@@ -103,7 +103,7 @@
              * @returns {*}
              */
             isTracking: function (breadcrumbEntity) {
-                return nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation);
+                return nfCommon.isDefinedAndNotNull(breadcrumbEntity.state);
             },
 
             /**
@@ -113,8 +113,8 @@
              * @returns {string}
              */
             getVersionControlClass: function (breadcrumbEntity) {
-                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation)) {
-                    var vciState = breadcrumbEntity.breadcrumb.versionControlInformation.state;
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.state)) {
+                    var vciState = breadcrumbEntity.state;
                     if (vciState === 'SYNC_FAILURE') {
                         return 'breadcrumb-version-control-gray fa fa-question'
                     } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
@@ -137,7 +137,7 @@
              * @param breadcrumbEntity
              */
             getVersionControlTooltip: function (breadcrumbEntity) {
-                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation)) {
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.state) && breadcrumbEntity.permissions.canRead) {
                     return nfCommon.getVersionControlTooltip(breadcrumbEntity.breadcrumb.versionControlInformation);
                 } else {
                     return 'This Process Group is not under version control.'

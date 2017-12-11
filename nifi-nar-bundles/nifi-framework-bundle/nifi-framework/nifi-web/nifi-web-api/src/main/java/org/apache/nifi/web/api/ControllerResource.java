@@ -238,7 +238,6 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-
     public Response createReportingTask(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
@@ -383,9 +382,17 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Registry.");
         }
 
-        final RegistryDTO requestReportingTask = requestRegistryClientEntity.getComponent();
-        if (requestReportingTask.getId() != null) {
+        final RegistryDTO requestRegistryClient = requestRegistryClientEntity.getComponent();
+        if (requestRegistryClient.getId() != null) {
             throw new IllegalArgumentException("Registry ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(requestRegistryClient.getName())) {
+            throw new IllegalArgumentException("Registry name must be specified.");
+        }
+
+        if (StringUtils.isBlank(requestRegistryClient.getUri())) {
+            throw new IllegalArgumentException("Registry URL must be specified.");
         }
 
         if (isReplicateRequest()) {
@@ -468,7 +475,7 @@ public class ControllerResource extends ApplicationResource {
      *
      * @param httpServletRequest      request
      * @param id                      The id of the controller service to update.
-     * @param requestRegsitryEntity A controllerServiceEntity.
+     * @param requestRegistryEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
     @PUT
@@ -501,32 +508,40 @@ public class ControllerResource extends ApplicationResource {
             @ApiParam(
                     value = "The registry configuration details.",
                     required = true
-            ) final RegistryClientEntity requestRegsitryEntity) {
+            ) final RegistryClientEntity requestRegistryEntity) {
 
-        if (requestRegsitryEntity == null || requestRegsitryEntity.getComponent() == null) {
+        if (requestRegistryEntity == null || requestRegistryEntity.getComponent() == null) {
             throw new IllegalArgumentException("Registry details must be specified.");
         }
 
-        if (requestRegsitryEntity.getRevision() == null) {
+        if (requestRegistryEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final RegistryDTO requestRegistryDTO = requestRegsitryEntity.getComponent();
-        if (!id.equals(requestRegistryDTO.getId())) {
+        final RegistryDTO requestRegistryClient = requestRegistryEntity.getComponent();
+        if (!id.equals(requestRegistryClient.getId())) {
             throw new IllegalArgumentException(String.format("The registry id (%s) in the request body does not equal the "
-                    + "registry id of the requested resource (%s).", requestRegistryDTO.getId(), id));
+                    + "registry id of the requested resource (%s).", requestRegistryClient.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, requestRegsitryEntity);
+            return replicate(HttpMethod.PUT, requestRegistryEntity);
+        }
+
+        if (requestRegistryClient.getName() != null && StringUtils.isBlank(requestRegistryClient.getName())) {
+            throw new IllegalArgumentException("Registry name must be specified.");
+        }
+
+        if (requestRegistryClient.getUri() != null && StringUtils.isBlank(requestRegistryClient.getUri())) {
+            throw new IllegalArgumentException("Registry URL must be specified.");
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision requestRevision = getRevision(requestRegsitryEntity, id);
+        final Revision requestRevision = getRevision(requestRegistryEntity, id);
         return withWriteLock(
                 serviceFacade,
-                requestRegsitryEntity,
+                requestRegistryEntity,
                 requestRevision,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);

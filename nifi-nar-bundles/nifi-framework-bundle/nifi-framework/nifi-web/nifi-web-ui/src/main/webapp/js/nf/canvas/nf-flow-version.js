@@ -90,7 +90,7 @@
         $('#save-flow-version-bucket').text('').hide();
 
         $('#save-flow-version-name').text('').hide();
-        $('#save-flow-version-description').text('').hide();
+        $('#save-flow-version-description').removeClass('unset blank').text('').hide();
 
         $('#save-flow-version-name-field').val('').hide();
         $('#save-flow-version-description-field').val('').hide();
@@ -277,14 +277,17 @@
                     optionClass: 'unset',
                     disabled: true
                 });
-                flowCombo.combo('destroy').combo({
-                    options: [{
-                        text: 'No available flows',
-                        value: null,
-                        optionClass: 'unset',
-                        disabled: true
-                    }]
-                });
+
+                if (nfCommon.isDefinedAndNotNull(flowCombo)) {
+                    flowCombo.combo('destroy').combo({
+                        options: [{
+                            text: 'No available flows',
+                            value: null,
+                            optionClass: 'unset',
+                            disabled: true
+                        }]
+                    });
+                }
             }
 
             // load the buckets
@@ -315,14 +318,17 @@
                     disabled: true
                 }]
             });
-            flowCombo.combo('destroy').combo({
-                options: [{
-                    text: 'No available flows',
-                    value: null,
-                    optionClass: 'unset',
-                    disabled: true
-                }]
-            });
+
+            if (nfCommon.isDefinedAndNotNull(flowCombo)) {
+                flowCombo.combo('destroy').combo({
+                    options: [{
+                        text: 'No available flows',
+                        value: null,
+                        optionClass: 'unset',
+                        disabled: true
+                    }]
+                });
+            }
 
             dialog.modal('refreshButtons');
         };
@@ -390,8 +396,6 @@
                 registryId: versionControlInformation.registryId,
                 bucketId: versionControlInformation.bucketId,
                 flowId: versionControlInformation.flowId,
-                flowName: $('#save-flow-version-name').text(),
-                description: $('#save-flow-version-description').text(),
                 comments: $('#save-flow-version-change-comments').val()
             }
         } else {
@@ -1598,9 +1602,10 @@
                             var processGroupId = $('#save-flow-version-process-group-id').text();
                             saveFlowVersion().done(function (response) {
                                 updateVersionControlInformation(processGroupId, response.versionControlInformation);
-                            });
 
-                            $(this).modal('hide');
+                                // only hide the dialog if the flow version was successfully saved
+                                $(this).modal('hide');
+                            });
                         }
                     }
                 }, {
@@ -1729,9 +1734,6 @@
 
             return $.Deferred(function (deferred) {
                 getVersionControlInformation(processGroupId).done(function (groupVersionControlInformation) {
-                    // record the revision
-                    $('#save-flow-version-process-group-id').data('revision', groupVersionControlInformation.processGroupRevision).text(processGroupId);
-
                     if (nfCommon.isDefinedAndNotNull(groupVersionControlInformation.versionControlInformation)) {
                         var versionControlInformation = groupVersionControlInformation.versionControlInformation;
 
@@ -1741,7 +1743,8 @@
                         $('#save-flow-version-label').text(versionControlInformation.version + 1);
 
                         $('#save-flow-version-name').text(versionControlInformation.flowName).show();
-                        $('#save-flow-version-description').text(versionControlInformation.flowDescription).show();
+                        nfCommon.populateField('save-flow-version-description', versionControlInformation.flowDescription);
+                        $('#save-flow-version-description').show();
 
                         // record the versionControlInformation
                         $('#save-flow-version-process-group-id').data('versionControlInformation', versionControlInformation);
@@ -1787,6 +1790,9 @@
                             deferred.reject();
                         });
                     }
+
+                    // record the revision
+                    $('#save-flow-version-process-group-id').data('revision', groupVersionControlInformation.processGroupRevision).text(processGroupId);
                 }).fail(nfErrorHandler.handleAjaxError);
             }).done(function () {
                 $('#save-flow-version-dialog').modal('show');

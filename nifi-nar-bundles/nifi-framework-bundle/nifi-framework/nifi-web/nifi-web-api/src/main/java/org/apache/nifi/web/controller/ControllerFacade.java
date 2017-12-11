@@ -593,6 +593,11 @@ public class ControllerFacade implements Authorizable {
         controllerStatus.setDisabledCount(counts.getDisabledCount());
         controllerStatus.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         controllerStatus.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
+        controllerStatus.setUpToDateCount(counts.getUpToDateCount());
+        controllerStatus.setLocallyModifiedCount(counts.getLocallyModifiedCount());
+        controllerStatus.setStaleCount(counts.getStaleCount());
+        controllerStatus.setLocallyModifiedAndStaleCount(counts.getLocallyModifiedAndStaleCount());
+        controllerStatus.setSyncFailureCount(counts.getSyncFailureCount());
 
         return controllerStatus;
     }

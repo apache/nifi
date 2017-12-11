@@ -24,7 +24,10 @@
             </div>
         </div>
         <div class="setting">
-            <span id="import-process-group-link" class="link"><i class="fa fa-cloud-download" aria-hidden="true" style="margin-left: 5px; margin-right: 5px;"></i>Import version...</span>
+            <span id="import-process-group-link" class="link" title="Import a flow from a registry">
+                <i class="fa fa-cloud-download" aria-hidden="true" style="margin-left: 5px; margin-right: 5px;"></i>
+                Import...
+            </span>
         </div>
     </div>
 </div>

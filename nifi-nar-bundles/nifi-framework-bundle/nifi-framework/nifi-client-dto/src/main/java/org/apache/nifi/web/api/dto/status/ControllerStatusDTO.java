@@ -38,6 +38,12 @@ public class ControllerStatusDTO implements Cloneable {
     private Integer activeRemotePortCount = 0;
     private Integer inactiveRemotePortCount = 0;
 
+    private Integer upToDateCount;
+    private Integer locallyModifiedCount;
+    private Integer staleCount;
+    private Integer locallyModifiedAndStaleCount;
+    private Integer syncFailureCount;
+
     /**
      * The active thread count.
      *
@@ -154,6 +160,51 @@ public class ControllerStatusDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
+    @ApiModelProperty("The number of up to date versioned process groups in the NiFi.")
+    public Integer getUpToDateCount() {
+        return upToDateCount;
+    }
+
+    public void setUpToDateCount(Integer upToDateCount) {
+        this.upToDateCount = upToDateCount;
+    }
+
+    @ApiModelProperty("The number of locally modified versioned process groups in the NiFi.")
+    public Integer getLocallyModifiedCount() {
+        return locallyModifiedCount;
+    }
+
+    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+        this.locallyModifiedCount = locallyModifiedCount;
+    }
+
+    @ApiModelProperty("The number of stale versioned process groups in the NiFi.")
+    public Integer getStaleCount() {
+        return staleCount;
+    }
+
+    public void setStaleCount(Integer staleCount) {
+        this.staleCount = staleCount;
+    }
+
+    @ApiModelProperty("The number of locally modified and stale versioned process groups in the NiFi.")
+    public Integer getLocallyModifiedAndStaleCount() {
+        return locallyModifiedAndStaleCount;
+    }
+
+    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+        this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
+    }
+
+    @ApiModelProperty("The number of versioned process groups in the NiFi that are unable to sync to a registry.")
+    public Integer getSyncFailureCount() {
+        return syncFailureCount;
+    }
+
+    public void setSyncFailureCount(Integer syncFailureCount) {
+        this.syncFailureCount = syncFailureCount;
+    }
+
     @Override
     public ControllerStatusDTO clone() {
         final ControllerStatusDTO other = new ControllerStatusDTO();
@@ -167,6 +218,11 @@ public class ControllerStatusDTO implements Cloneable {
         other.setDisabledCount(getDisabledCount());
         other.setActiveRemotePortCount(getActiveRemotePortCount());
         other.setInactiveRemotePortCount(getInactiveRemotePortCount());
+        other.setUpToDateCount(getUpToDateCount());
+        other.setLocallyModifiedCount(getLocallyModifiedCount());
+        other.setStaleCount(getStaleCount());
+        other.setLocallyModifiedAndStaleCount(getLocallyModifiedAndStaleCount());
+        other.setStaleCount(getStaleCount());
         return other;
     }
 }

@@ -91,7 +91,7 @@
      * @param d
      */
     var isUnderVersionControl = function (d) {
-        return nfCommon.isDefinedAndNotNull(d.component.versionControlInformation);
+        return nfCommon.isDefinedAndNotNull(d.state);
     };
 
     /**
@@ -953,48 +953,152 @@
                         return d.disabledCount;
                     });
 
-                if (processGroupData.permissions.canRead) {
-                    // update version control information
-                    var versionControl = processGroup.select('text.version-control')
-                        .style({
-                            'visibility': isUnderVersionControl(processGroupData) ? 'visible' : 'hidden',
-                            'fill': function () {
-                                if (isUnderVersionControl(processGroupData)) {
-                                    var vciState = processGroupData.component.versionControlInformation.state;
-                                    if (vciState === 'SYNC_FAILURE') {
-                                        return '#666666';
-                                    } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                        return '#BA554A';
-                                    } else if (vciState === 'STALE') {
-                                        return '#BA554A';
-                                    } else if (vciState === 'LOCALLY_MODIFIED') {
-                                        return '#666666';
-                                    } else {
-                                        return '#1A9964';
-                                    }
-                                } else {
-                                    return '#000';
-                                }
-                            }
-                        })
-                        .text(function () {
+                // up to date current
+                var upToDate = details.select('text.process-group-up-to-date')
+                    .classed('up-to-date', function (d) {
+                        return d.permissions.canRead && d.component.upToDateCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.upToDateCount === 0;
+                    });
+                var upToDateCount = details.select('text.process-group-up-to-date-count')
+                    .attr('x', function () {
+                        var updateToDateCountX = parseInt(upToDate.attr('x'), 10);
+                        return updateToDateCountX + Math.round(upToDate.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.upToDateCount;
+                    });
+
+                // update locally modified
+                var locallyModified = details.select('text.process-group-locally-modified')
+                    .classed('locally-modified', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedCount === 0;
+                    })
+                    .attr('x', function () {
+                        var upToDateX = parseInt(upToDateCount.attr('x'), 10);
+                        return upToDateX + Math.round(upToDateCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                    });
+                var locallyModifiedCount = details.select('text.process-group-locally-modified-count')
+                    .attr('x', function () {
+                        var locallyModifiedCountX = parseInt(locallyModified.attr('x'), 10);
+                        return locallyModifiedCountX + Math.round(locallyModified.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.locallyModifiedCount;
+                    });
+
+                // update stale
+                var stale = details.select('text.process-group-stale')
+                    .classed('stale', function (d) {
+                        return d.permissions.canRead && d.component.staleCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.staleCount === 0;
+                    })
+                    .attr('x', function () {
+                        var locallyModifiedX = parseInt(locallyModifiedCount.attr('x'), 10);
+                        return locallyModifiedX + Math.round(locallyModifiedCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                    });
+                var staleCount = details.select('text.process-group-stale-count')
+                    .attr('x', function () {
+                        var staleCountX = parseInt(stale.attr('x'), 10);
+                        return staleCountX + Math.round(stale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.staleCount;
+                    });
+
+                // update locally modified and stale
+                var locallyModifiedAndStale = details.select('text.process-group-locally-modified-and-stale')
+                    .classed('locally-modified-and-stale', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedAndStaleCount === 0;
+                    })
+                    .attr('x', function () {
+                        var staleX = parseInt(staleCount.attr('x'), 10);
+                        return staleX + Math.round(staleCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                    });
+                var locallyModifiedAndStaleCount = details.select('text.process-group-locally-modified-and-stale-count')
+                    .attr('x', function () {
+                        var locallyModifiedAndStaleCountX = parseInt(locallyModifiedAndStale.attr('x'), 10);
+                        return locallyModifiedAndStaleCountX + Math.round(locallyModifiedAndStale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.locallyModifiedAndStaleCount;
+                    });
+
+                // update sync failure
+                var syncFailure = details.select('text.process-group-sync-failure')
+                    .classed('sync-failure', function (d) {
+                        return d.permissions.canRead && d.component.syncFailureCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.syncFailureCount === 0;
+                    })
+                    .attr('x', function () {
+                        var syncFailureX = parseInt(locallyModifiedAndStaleCount.attr('x'), 10);
+                        return syncFailureX + Math.round(locallyModifiedAndStaleCount.node().getComputedTextLength()) + CONTENTS_SPACER - 2;
+                    });
+                details.select('text.process-group-sync-failure-count')
+                    .attr('x', function () {
+                        var syncFailureCountX = parseInt(syncFailure.attr('x'), 10);
+                        return syncFailureCountX + Math.round(syncFailure.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.syncFailureCount;
+                    });
+
+                // update version control information
+                var versionControl = processGroup.select('text.version-control')
+                    .style({
+                        'visibility': isUnderVersionControl(processGroupData) ? 'visible' : 'hidden',
+                        'fill': function () {
                             if (isUnderVersionControl(processGroupData)) {
-                                var vciState = processGroupData.component.versionControlInformation.state;
+                                var vciState = processGroupData.state;
                                 if (vciState === 'SYNC_FAILURE') {
-                                    return '\uf128'
+                                    return '#666666';
                                 } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                    return '\uf06a';
+                                    return '#BA554A';
                                 } else if (vciState === 'STALE') {
-                                    return '\uf0aa';
+                                    return '#BA554A';
                                 } else if (vciState === 'LOCALLY_MODIFIED') {
-                                    return '\uf069';
+                                    return '#666666';
                                 } else {
-                                    return '\uf00c';
+                                    return '#1A9964';
                                 }
                             } else {
-                                return '';
+                                return '#000';
                             }
-                        }).each(function () {
+                        }
+                    })
+                    .text(function () {
+                        if (isUnderVersionControl(processGroupData)) {
+                            var vciState = processGroupData.state;
+                            if (vciState === 'SYNC_FAILURE') {
+                                return '\uf128'
+                            } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
+                                return '\uf06a';
+                            } else if (vciState === 'STALE') {
+                                return '\uf0aa';
+                            } else if (vciState === 'LOCALLY_MODIFIED') {
+                                return '\uf069';
+                            } else {
+                                return '\uf00c';
+                            }
+                        } else {
+                            return '';
+                        }
+                    });
+
+                if (processGroupData.permissions.canRead) {
+                    // version control tooltip
+                    versionControl.each(function () {
                             // get the tip
                             var tip = d3.select('#version-control-tip-' + processGroupData.id);
 
@@ -1092,135 +1196,9 @@
                         .text(function (d) {
                             return d.component.name;
                         });
-
-                    // up to date current
-                    var upToDate = details.select('text.process-group-up-to-date')
-                        .style('visibility', 'visible')
-                        .classed('up-to-date', function (d) {
-                            return d.component.upToDateCount > 0;
-                        })
-                        .classed('zero', function (d) {
-                            return d.component.upToDateCount === 0;
-                        });
-                    var upToDateCount = details.select('text.process-group-up-to-date-count')
-                        .style('visibility', 'visible')
-                        .attr('x', function () {
-                            var updateToDateCountX = parseInt(upToDate.attr('x'), 10);
-                            return updateToDateCountX + Math.round(upToDate.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
-                        })
-                        .text(function (d) {
-                            return d.component.upToDateCount;
-                        });
-
-                    // update locally modified
-                    var locallyModified = details.select('text.process-group-locally-modified')
-                        .style('visibility', 'visible')
-                        .classed('locally-modified', function (d) {
-                            return d.component.locallyModifiedCount > 0;
-                        })
-                        .classed('zero', function (d) {
-                            return d.component.locallyModifiedCount === 0;
-                        })
-                        .attr('x', function () {
-                            var upToDateX = parseInt(upToDateCount.attr('x'), 10);
-                            return upToDateX + Math.round(upToDateCount.node().getComputedTextLength()) + CONTENTS_SPACER;
-                        });
-                    var locallyModifiedCount = details.select('text.process-group-locally-modified-count')
-                        .style('visibility', 'visible')
-                        .attr('x', function () {
-                            var locallyModifiedCountX = parseInt(locallyModified.attr('x'), 10);
-                            return locallyModifiedCountX + Math.round(locallyModified.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
-                        })
-                        .text(function (d) {
-                            return d.component.locallyModifiedCount;
-                        });
-
-                    // update stale
-                    var stale = details.select('text.process-group-stale')
-                        .style('visibility', 'visible')
-                        .classed('stale', function (d) {
-                            return d.component.staleCount > 0;
-                        })
-                        .classed('zero', function (d) {
-                            return d.component.staleCount === 0;
-                        })
-                        .attr('x', function () {
-                            var locallyModifiedX = parseInt(locallyModifiedCount.attr('x'), 10);
-                            return locallyModifiedX + Math.round(locallyModifiedCount.node().getComputedTextLength()) + CONTENTS_SPACER;
-                        });
-                    var staleCount = details.select('text.process-group-stale-count')
-                        .style('visibility', 'visible')
-                        .attr('x', function () {
-                            var staleCountX = parseInt(stale.attr('x'), 10);
-                            return staleCountX + Math.round(stale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
-                        })
-                        .text(function (d) {
-                            return d.component.staleCount;
-                        });
-
-                    // update locally modified and stale
-                    var locallyModifiedAndStale = details.select('text.process-group-locally-modified-and-stale')
-                        .style('visibility', 'visible')
-                        .classed('locally-modified-and-stale', function (d) {
-                            return d.component.locallyModifiedAndStaleCount > 0;
-                        })
-                        .classed('zero', function (d) {
-                            return d.component.locallyModifiedAndStaleCount === 0;
-                        })
-                        .attr('x', function () {
-                            var staleX = parseInt(staleCount.attr('x'), 10);
-                            return staleX + Math.round(staleCount.node().getComputedTextLength()) + CONTENTS_SPACER;
-                        });
-                    var locallyModifiedAndStaleCount = details.select('text.process-group-locally-modified-and-stale-count')
-                        .style('visibility', 'visible')
-                        .attr('x', function () {
-                            var locallyModifiedAndStaleCountX = parseInt(locallyModifiedAndStale.attr('x'), 10);
-                            return locallyModifiedAndStaleCountX + Math.round(locallyModifiedAndStale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
-                        })
-                        .text(function (d) {
-                            return d.component.locallyModifiedAndStaleCount;
-                        });
-
-                    // update sync failure
-                    var syncFailure = details.select('text.process-group-sync-failure')
-                        .style('visibility', 'visible')
-                        .classed('sync-failure', function (d) {
-                            return d.component.syncFailureCount > 0;
-                        })
-                        .classed('zero', function (d) {
-                            return d.component.syncFailureCount === 0;
-                        })
-                        .attr('x', function () {
-                            var syncFailureX = parseInt(locallyModifiedAndStaleCount.attr('x'), 10);
-                            return syncFailureX + Math.round(locallyModifiedAndStaleCount.node().getComputedTextLength()) + CONTENTS_SPACER - 2;
-                        });
-                    details.select('text.process-group-sync-failure-count')
-                        .style('visibility', 'visible')
-                        .attr('x', function () {
-                            var syncFailureCountX = parseInt(syncFailure.attr('x'), 10);
-                            return syncFailureCountX + Math.round(syncFailure.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
-                        })
-                        .text(function (d) {
-                            return d.component.syncFailureCount;
-                        });
                 } else {
-                    // update version control information
-                    processGroup.select('text.version-control').style('visibility', 'hidden');
-
                     // clear the process group comments
                     processGroup.select('path.component-comments').style('visibility', 'hidden');
-
-                    // clear the encapsulate versioned pg counts
-                    details.select('text.process-group-up-to-date').style('visibility', 'hidden');
-                    details.select('text.process-group-up-to-date-count').style('visibility', 'hidden');
-                    details.select('text.process-group-locally-modified').style('visibility', 'hidden');
-                    details.select('text.process-group-locally-modified-count').style('visibility', 'hidden');
-                    details.select('text.process-group-stale').style('visibility', 'hidden');
-                    details.select('text.process-group-stale-count').style('visibility', 'hidden');
-                    details.select('text.process-group-locally-modified-and-stale').style('visibility', 'hidden');
-                    details.select('text.process-group-locally-modified-and-stale-count').style('visibility', 'hidden');
-                    details.select('text.process-group-sync-failure').style('visibility', 'hidden');
-                    details.select('text.process-group-sync-failure-count').style('visibility', 'hidden');
 
                     // clear the process group name
                     processGroup.select('text.process-group-name')
@@ -1229,6 +1207,9 @@
                             'width': 316
                         })
                         .text(null);
+
+                    // clear tooltips
+                    processGroup.call(removeTooltips);
                 }
 
                 // populate the stats
