@@ -241,7 +241,7 @@ public final class EntityFactory {
             entity.setSyncFailureCount(dto.getSyncFailureCount());
 
             if (dto.getVersionControlInformation() != null) {
-                entity.setState(dto.getVersionControlInformation().getState());
+                entity.setVersionedFlowState(dto.getVersionControlInformation().getState());
             }
 
             entity.setBulletins(bulletins); // include bulletins as authorized descendant component bulletins should be available
@@ -513,7 +513,7 @@ public final class EntityFactory {
             entity.setId(dto.getId());
 
             if (dto.getVersionControlInformation() != null) {
-                entity.setState(dto.getVersionControlInformation().getState());
+                entity.setVersionedFlowState(dto.getVersionControlInformation().getState());
             }
 
             if (permissions != null && permissions.getCanRead()) {

@@ -437,7 +437,7 @@ public class VersionsResource extends ApplicationResource {
         if (StringUtils.isEmpty(versionedFlowDto.getFlowName()) && StringUtils.isEmpty(versionedFlowDto.getFlowId())) {
             throw new IllegalArgumentException("The Flow Name or Flow ID must be supplied.");
         }
-        if (versionedFlowDto.getFlowName().length() > 1000) {
+        if (versionedFlowDto.getFlowName() != null && versionedFlowDto.getFlowName().length() > 1000) {
             throw new IllegalArgumentException("The Flow Name cannot exceed 1,000 characters");
         }
         if (StringUtils.isEmpty(versionedFlowDto.getRegistryId())) {

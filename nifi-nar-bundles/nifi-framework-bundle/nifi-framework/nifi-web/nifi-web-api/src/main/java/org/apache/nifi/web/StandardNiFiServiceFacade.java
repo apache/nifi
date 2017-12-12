@@ -115,6 +115,7 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.registry.model.authorization.Permissions;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
@@ -2417,10 +2418,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     dto.setDescription(bucket.getDescription());
                     dto.setCreated(bucket.getCreatedTimestamp());
 
-                    final Set<String> authorizedActions = bucket.getAuthorizedActions();
+                    final Permissions regPermissions = bucket.getPermissions();
                     final PermissionsDTO permissions = new PermissionsDTO();
-                    permissions.setCanRead(authorizedActions.contains("read"));
-                    permissions.setCanWrite(authorizedActions.contains("write"));
+                    permissions.setCanRead(regPermissions.getCanRead());
+                    permissions.setCanWrite(regPermissions.getCanWrite());
 
                     return entityFactory.createBucketEntity(dto, permissions);
                 })

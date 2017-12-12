@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.status;
 
+import org.apache.nifi.registry.flow.VersionedFlowState;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,6 +29,7 @@ public class ProcessGroupStatus implements Cloneable {
 
     private String id;
     private String name;
+    private VersionedFlowState versionedFlowState;
     private Integer inputCount;
     private Long inputContentSize;
     private Integer outputCount;
@@ -64,6 +67,14 @@ public class ProcessGroupStatus implements Cloneable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public VersionedFlowState getVersionedFlowState() {
+        return versionedFlowState;
+    }
+
+    public void setVersionedFlowState(VersionedFlowState versionedFlowState) {
+        this.versionedFlowState = versionedFlowState;
     }
 
     public Integer getInputCount() {
@@ -398,6 +409,11 @@ public class ProcessGroupStatus implements Cloneable {
         target.setBytesReceived(target.getBytesReceived() + toMerge.getBytesReceived());
         target.setFlowFilesSent(target.getFlowFilesSent() + toMerge.getFlowFilesSent());
         target.setBytesSent(target.getBytesSent() + toMerge.getBytesSent());
+
+        // if the versioned flow state to merge is sync failure allow it to take precedence.
+        if (VersionedFlowState.SYNC_FAILURE.equals(toMerge.getVersionedFlowState())) {
+            target.setVersionedFlowState(VersionedFlowState.SYNC_FAILURE);
+        }
 
         // connection status
         // sort by id
