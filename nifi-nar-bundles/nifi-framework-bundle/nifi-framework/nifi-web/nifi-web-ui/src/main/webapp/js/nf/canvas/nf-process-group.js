@@ -91,7 +91,7 @@
      * @param d
      */
     var isUnderVersionControl = function (d) {
-        return nfCommon.isDefinedAndNotNull(d.state);
+        return nfCommon.isDefinedAndNotNull(d.versionedFlowState);
     };
 
     /**
@@ -1060,7 +1060,7 @@
                         'visibility': isUnderVersionControl(processGroupData) ? 'visible' : 'hidden',
                         'fill': function () {
                             if (isUnderVersionControl(processGroupData)) {
-                                var vciState = processGroupData.state;
+                                var vciState = processGroupData.versionedFlowState;
                                 if (vciState === 'SYNC_FAILURE') {
                                     return '#666666';
                                 } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
@@ -1079,7 +1079,7 @@
                     })
                     .text(function () {
                         if (isUnderVersionControl(processGroupData)) {
-                            var vciState = processGroupData.state;
+                            var vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
                                 return '\uf128'
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {

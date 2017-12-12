@@ -1602,10 +1602,9 @@
                             var processGroupId = $('#save-flow-version-process-group-id').text();
                             saveFlowVersion().done(function (response) {
                                 updateVersionControlInformation(processGroupId, response.versionControlInformation);
-
-                                // only hide the dialog if the flow version was successfully saved
-                                $(this).modal('hide');
                             });
+
+                            $(this).modal('hide');
                         }
                     }
                 }, {

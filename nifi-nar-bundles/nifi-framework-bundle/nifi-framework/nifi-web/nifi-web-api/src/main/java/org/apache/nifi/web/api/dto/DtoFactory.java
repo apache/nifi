@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -192,6 +190,7 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
+import javax.ws.rs.WebApplicationException;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -954,6 +953,10 @@ public final class DtoFactory {
 
         snapshot.setId(processGroupStatus.getId());
         snapshot.setName(processGroupStatus.getName());
+
+        if (processGroupStatus.getVersionedFlowState() != null) {
+            snapshot.setVersionedFlowState(processGroupStatus.getVersionedFlowState().name());
+        }
 
         snapshot.setFlowFilesQueued(processGroupStatus.getQueuedCount());
         snapshot.setBytesQueued(processGroupStatus.getQueuedContentSize());
@@ -2214,7 +2217,7 @@ public final class DtoFactory {
 
         final ComponentDifferenceDTO dto = new ComponentDifferenceDTO();
         dto.setComponentName(component.getName());
-        dto.setComponentType(component.getComponentType().name());
+        dto.setComponentType(component.getComponentType().toString());
 
         if (component instanceof InstantiatedVersionedComponent) {
             final InstantiatedVersionedComponent instantiatedComponent = (InstantiatedVersionedComponent) component;

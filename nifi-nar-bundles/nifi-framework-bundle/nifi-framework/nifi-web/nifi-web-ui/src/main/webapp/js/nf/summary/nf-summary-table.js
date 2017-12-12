@@ -310,25 +310,25 @@
             if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
                 activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
             }
-            var classes = nfCommon.escapeHtml(value.toLowerCase());
-            switch (nfCommon.escapeHtml(value.toLowerCase())) {
+            var classes;
+            switch (value.toLowerCase()) {
                 case 'running':
-                    classes += ' fa fa-play running';
+                    classes = 'fa fa-play running';
                     break;
                 case 'stopped':
-                    classes += ' fa fa-stop stopped';
+                    classes = 'fa fa-stop stopped';
                     break;
                 case 'enabled':
-                    classes += ' fa fa-flash enabled';
+                    classes = 'fa fa-flash enabled';
                     break;
                 case 'disabled':
-                    classes += ' icon icon-enable-false disabled';
+                    classes = 'icon icon-enable-false disabled';
                     break;
                 case 'invalid':
-                    classes += ' fa fa-warning invalid';
+                    classes = 'fa fa-warning invalid';
                     break;
                 default:
-                    classes += '';
+                    classes = '';
             }
             var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
             return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nfCommon.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
@@ -1041,6 +1041,37 @@
             formatter: nfCommon.genericValueFormatter
         };
 
+        // define how the column is formatted
+        var versionStateFormatter = function (row, cell, value, columnDef, dataContext) {
+            var classes, label;
+            switch (value) {
+                case 'UP_TO_DATE':
+                    classes = 'fa fa-check up-to-date';
+                    label = 'Up to date';
+                    break;
+                case 'LOCALLY_MODIFIED':
+                    classes = 'fa fa-asterisk locally-modified';
+                    label = 'Locally modified';
+                    break;
+                case 'STALE':
+                    classes = 'fa fa-arrow-circle-up stale';
+                    label = 'Stale';
+                    break;
+                case 'LOCALLY_MODIFIED_AND_STALE':
+                    classes = 'fa fa-exclamation-circle locally-modified-and-stale';
+                    label = 'Locally modified and stale';
+                    break;
+                case 'SYNC_FAILURE':
+                    classes = 'fa fa-question sync-failure';
+                    label = 'Sync failure';
+                    break;
+                default:
+                    classes = '';
+                    label = '';
+            }
+            return '<div layout="row"><div class="' + classes + '"></div><div class="status-text" style="margin-top: 4px;">' + label + '</div></div>';
+        };
+
         // define the column model for the summary table
         var processGroupsColumnModel = [
             moreDetailsColumn,
@@ -1051,6 +1082,14 @@
                 sortable: true,
                 resizable: true,
                 formatter: valueFormatter
+            },
+            {
+                id: 'versionedFlowState',
+                field: 'versionedFlowState',
+                name: 'Version State',
+                sortable: true,
+                resizable: true,
+                formatter: versionStateFormatter
             },
             transferredColumn,
             inputColumn,

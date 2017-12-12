@@ -40,7 +40,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     private Integer activeRemotePortCount;
     private Integer inactiveRemotePortCount;
 
-    private String state;
+    private String versionedFlowState;
 
     private Integer upToDateCount;
     private Integer locallyModifiedCount;
@@ -204,12 +204,12 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     @ApiModelProperty(readOnly = true,
             value = "The current state of the Process Group, as it relates to the Versioned Flow",
             allowableValues = "LOCALLY_MODIFIED_DESCENDANT, LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE")
-    public String getState() {
-        return state;
+    public String getVersionedFlowState() {
+        return versionedFlowState;
     }
 
-    public void setState(String state) {
-        this.state = state;
+    public void setVersionedFlowState(String versionedFlowState) {
+        this.versionedFlowState = versionedFlowState;
     }
 
     @ApiModelProperty("The number of up to date versioned process groups in the process group.")
