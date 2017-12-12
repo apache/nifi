@@ -108,9 +108,9 @@ docker run -d -v YOUR_CONFIG.YML:/opt/minifi/minifi-${minifi.version}/conf/confi
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](https://mail-archives.apache.org/mod_mbox/nifi-dev)).
-We're also often available in IRC: #nifi on
-[irc.freenode.net](https://webchat.freenode.net/?channels=#nifi).
+([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
+For more interactive conversations and chat, we're also often available in IRC: #nifi on
+[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi) and in #NiFi on [ASF HipChat](https://www.hipchat.com/gzh2m5YML). 
 
 ## Documentation
 
