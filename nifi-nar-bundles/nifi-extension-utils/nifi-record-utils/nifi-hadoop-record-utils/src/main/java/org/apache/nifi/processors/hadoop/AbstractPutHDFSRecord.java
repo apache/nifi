@@ -275,7 +275,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             Path tempDotCopyFile = null;
             FlowFile putFlowFile = flowFile;
             try {
-                final String filenameValue = putFlowFile.getAttribute(CoreAttributes.FILENAME.key()); // TODO codec extension
+                final String filenameValue = putFlowFile.getAttribute(CoreAttributes.FILENAME.key()); // TODO codec extension 
                 final String directoryValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(putFlowFile).getValue();
 
                 // create the directory if it doesn't exist
