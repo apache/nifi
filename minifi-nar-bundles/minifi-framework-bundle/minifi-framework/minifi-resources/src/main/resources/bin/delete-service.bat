@@ -16,7 +16,7 @@ rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
 
-set SERVICE_NAME="minifi"
+set SERVICE_NAME=minifi
 set SRV_BIN=%SERVICE_NAME%.exe
  
 REM Remove service
