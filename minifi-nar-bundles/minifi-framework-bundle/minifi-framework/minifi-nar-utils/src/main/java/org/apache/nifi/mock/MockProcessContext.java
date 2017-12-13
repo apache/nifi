@@ -24,6 +24,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +33,15 @@ public class MockProcessContext implements ProcessContext {
     @Override
     public PropertyValue getProperty(PropertyDescriptor descriptor) {
         return null;
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
     }
 
     @Override

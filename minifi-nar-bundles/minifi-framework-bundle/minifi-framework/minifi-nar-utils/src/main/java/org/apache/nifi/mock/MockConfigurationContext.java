@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +30,15 @@ public class MockConfigurationContext implements ConfigurationContext {
     @Override
     public PropertyValue getProperty(PropertyDescriptor property) {
         return null;
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
     }
 
     @Override

@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.events.EventReporter;
@@ -27,6 +23,13 @@ import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+
+import static java.util.Collections.EMPTY_SET;
+import static java.util.Collections.emptyList;
 
 /**
  * Implementation of {@link ProvenanceRepository} that does not
@@ -65,13 +68,13 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
   @Override
   public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords)
       throws IOException {
-    return Collections.emptyList();
+    return emptyList();
   }
 
   @Override
   public List<ProvenanceEventRecord> getEvents(long firstRecordId,
       int maxRecords, NiFiUser niFiUser) throws IOException {
-    return Collections.emptyList();
+    return emptyList();
   }
 
   @Override
@@ -122,6 +125,21 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
   @Override
   public List<SearchableField> getSearchableAttributes() {
     return null;
+  }
+
+  @Override
+  public Set<String> getContainerNames() {
+    return EMPTY_SET;
+  }
+
+  @Override
+  public long getContainerCapacity(String s) throws IOException {
+    return 0;
+  }
+
+  @Override
+  public long getContainerUsableSpace(String s) throws IOException {
+    return 0;
   }
 
   @Override

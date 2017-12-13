@@ -939,6 +939,11 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             }
 
             @Override
+            public Set<String> getGroups() {
+                return null;
+            }
+
+            @Override
             public NiFiUser getChain() {
                 return null;
             }
