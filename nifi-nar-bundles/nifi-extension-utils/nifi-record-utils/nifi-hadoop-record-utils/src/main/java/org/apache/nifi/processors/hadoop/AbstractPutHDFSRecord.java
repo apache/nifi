@@ -280,7 +280,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
                 // create the directory if it doesn't exist
                 final Path directoryPath = new Path(directoryValue);
-                createDirectory(context, fileSystem, directoryPath, remoteOwner, remoteGroup, flowFile);
+                createDirectory(fileSystem, directoryPath, remoteOwner, remoteGroup);
 
                 // write to tempFile first and on success rename to destFile
                 final Path tempFile = new Path(directoryPath, "." + filenameValue);
@@ -345,7 +345,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
                 // Attempt to rename from the tempFile to destFile, and change owner if successfully renamed
                 rename(fileSystem, tempFile, destFile);
-                changeOwner(context, fileSystem, destFile, remoteOwner, remoteGroup, flowFile);
+                changeOwner(fileSystem, destFile, remoteOwner, remoteGroup);
 
                 getLogger().info("Wrote {} to {} in {} milliseconds at a rate of {}", new Object[]{putFlowFile, destFile, millis, dataRate});
 
@@ -446,17 +446,11 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
      * @param remoteOwner the new owner for the file
      * @param remoteGroup the new group for the file
      */
-    protected void changeOwner(final ProcessContext context, final FileSystem fileSystem, final Path path, final String remoteOwner, final String remoteGroup,final FlowFile flowFile) {
+    protected void changeOwner(final FileSystem fileSystem, final Path path, final String remoteOwner, final String remoteGroup) {
         try {
             // Change owner and group of file if configured to do so
-            String owner = context.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
-            String group = context.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
-
-            owner = owner == null || owner.isEmpty() ? null : owner;
-            group = group == null || group.isEmpty() ? null : group;
-
-            if (owner != null || group != null) {
-                fileSystem.setOwner(path, owner, group);
+            if (remoteOwner != null || remoteGroup != null) {
+                fileSystem.setOwner(path, remoteOwner, remoteGroup);
             }
         } catch (Exception e) {
             getLogger().warn("Could not change owner or group of {} on due to {}", new Object[]{path, e});
@@ -473,7 +467,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
      * @throws IOException if an error occurs obtaining the file status or issuing the mkdir command
      * @throws FailureException if the directory could not be created
      */
-    protected void createDirectory(final ProcessContext context, final FileSystem fileSystem, final Path directory, final String remoteOwner, final String remoteGroup, final FlowFile flowFile) throws IOException, FailureException {
+    protected void createDirectory( final FileSystem fileSystem, final Path directory, final String remoteOwner, final String remoteGroup) throws IOException, FailureException {
         try {
             if (!fileSystem.getFileStatus(directory).isDirectory()) {
                 throw new FailureException(directory.toString() + " already exists and is not a directory");
@@ -482,7 +476,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             if (!fileSystem.mkdirs(directory)) {
                 throw new FailureException(directory.toString() + " could not be created");
             }
-            changeOwner(context, fileSystem, directory, remoteOwner, remoteGroup, flowFile);
+            changeOwner(fileSystem, directory, remoteOwner, remoteGroup);
         }
     }
 
