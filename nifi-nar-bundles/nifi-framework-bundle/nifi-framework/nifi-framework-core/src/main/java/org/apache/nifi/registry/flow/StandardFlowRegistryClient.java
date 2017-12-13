@@ -18,6 +18,7 @@
 package org.apache.nifi.registry.flow;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -58,21 +59,20 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
 
     @Override
     public FlowRegistry addFlowRegistry(final String registryId, final String registryName, final String registryUrl, final String description) {
-        final URI uri = URI.create(registryUrl);
+        final URI uri;
+        try {
+            uri = new URI(registryUrl);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("The given Registry URL is not valid: " + registryUrl);
+        }
+
         final String uriScheme = uri.getScheme();
+        if (uriScheme == null) {
+            throw new IllegalArgumentException("The given Registry URL is not valid: " + registryUrl);
+        }
 
         final FlowRegistry registry;
         if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
-            final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties, false);
-            if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
-                throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl
-                    + " because this NiFi is not configured with a Keystore/Truststore, so it is not capable of communicating with a secure Registry. "
-                    + "Please populate NiFi's Keystore/Truststore properties or connect to a NiFi Registry over http instead of https.");
-            }
-
-            registry = new RestBasedFlowRegistry(this, registryId, registryUrl, sslContext, registryName);
-            registry.setDescription(description);
-        } else if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
             final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties, false);
             if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
                 throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl
