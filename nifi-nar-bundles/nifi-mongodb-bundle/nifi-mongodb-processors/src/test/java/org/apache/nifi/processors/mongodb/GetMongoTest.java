@@ -228,7 +228,8 @@ public class GetMongoTest {
     @Test
     public void testLimit() throws Exception {
         runner.setProperty(GetMongo.QUERY, "{a: {$exists: true}}");
-        runner.setProperty(GetMongo.LIMIT, "1");
+        runner.setProperty(GetMongo.LIMIT, "${limit}");
+        runner.setVariable("limit", "1");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
@@ -238,7 +239,20 @@ public class GetMongoTest {
 
     @Test
     public void testResultsPerFlowfile() throws Exception {
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "${results.per.flowfile}");
+        runner.setVariable("results.per.flowfile", "2");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 2);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
+        Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
+    }
+
+    @Test
+    public void testBatchSize() throws Exception {
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "2");
+        runner.setProperty(GetMongo.BATCH_SIZE, "${batch.size}");
+        runner.setVariable("batch.size", "1");
         runner.run();
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 2);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
