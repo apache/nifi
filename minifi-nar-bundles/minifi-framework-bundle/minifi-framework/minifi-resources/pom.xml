@@ -69,7 +69,7 @@
 											dest="${java.io.tmpdir}" />
 										<copy file="${java.io.tmpdir}/prunmgr.exe"
 											tofile="${basedir}/src/main/resources/bin/minifiw.exe" />
-										<copy file="${java.io.tmpdir}/prunsrv.exe" tofile="${basedir}/src/main/resources/bin/minifi.exe" />
+                    <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/src/main/resources/bin/minifi.exe" />
 									</else>
 								</if>
 							</tasks>

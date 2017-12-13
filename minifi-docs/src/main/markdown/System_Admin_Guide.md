@@ -656,11 +656,13 @@ NiFi Properties Overrides:
 
 MiNiFi can run as a Windows service. To do so, you must modify the `conf/bootstrap.conf` to set absolute paths for some properties. The properties are:
 
-* `lib.dir`
-* `conf.dir`
-* `nifi.minifi.config`
+* `lib.dir`  (e.g. `C:\\minifi-x.x.x\\lib`)
+* `conf.dir` (e.g. `C:\\minifi-x.x.x\\conf`)
+* `nifi.minifi.config` (e.g. `C:\\minifi-x.x.x\\conf\\config.yml`)
 
 You can now install the MiNiFi service by running the `install-service.bat` script. To remove the service run the `delete-service.bat` file. 
+
+The `minifi.exe` in MiNiFi `bin` directory is used to run MiNiFi Windows service. The bundled one is for 64 bit architecture and requires 64 bit JRE. If you have to use 32 bit JRE for some reason, you need to replace the `minifi.exe` file with the one for 32 bit to make MiNiFi service runs successfully. To do so, go to [Commons Daemon project download page](https://commons.apache.org/proper/commons-daemon/download_daemon.cgi), download the binary (e.g. commons-daemon-1.1.0-bin.zip), extract it and replace `bin/minifi.exe` by copying `commons-daemon-x.x.x-bin/prunsrv.exe` into MiNiFi `bin` directory as `minifi.exe` to overwrite the 64 bit exe with the 32 bit one.
 
 # Example Config File
 
