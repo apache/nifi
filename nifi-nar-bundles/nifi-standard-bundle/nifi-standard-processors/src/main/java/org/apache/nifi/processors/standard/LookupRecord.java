@@ -259,7 +259,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         final Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
 
         final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
-        final Map<String, String> lookupCoordinates = new HashMap<>(recordPaths.size());
+        final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
 
         for (final Map.Entry<String, RecordPath> entry : recordPaths.entrySet()) {
             final String coordinateKey = entry.getKey();
@@ -284,7 +284,8 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             }
 
             final FieldValue fieldValue = lookupFieldValues.get(0);
-            final String coordinateValue = DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+            final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
+                    ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
             lookupCoordinates.put(coordinateKey, coordinateValue);
         }
 

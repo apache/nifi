@@ -189,7 +189,7 @@ public class IPLookupService extends AbstractControllerService implements Record
     }
 
     @Override
-    public Optional<Record> lookup(final Map<String, String> coordinates) throws LookupFailureException {
+    public Optional<Record> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         if (coordinates == null) {
             return Optional.empty();
         }
@@ -237,11 +237,12 @@ public class IPLookupService extends AbstractControllerService implements Record
         }
     }
 
-    private Optional<Record> doLookup(final DatabaseReader databaseReader, final Map<String, String> coordinates) throws LookupFailureException, InvalidDatabaseException {
-        final String ipAddress = coordinates.get(IP_KEY);
-        if (ipAddress == null) {
+    private Optional<Record> doLookup(final DatabaseReader databaseReader, final Map<String, Object> coordinates) throws LookupFailureException, InvalidDatabaseException {
+        if (coordinates.get(IP_KEY) == null) {
             return Optional.empty();
         }
+
+        final String ipAddress = coordinates.get(IP_KEY).toString();
 
         final InetAddress inetAddress;
         try {

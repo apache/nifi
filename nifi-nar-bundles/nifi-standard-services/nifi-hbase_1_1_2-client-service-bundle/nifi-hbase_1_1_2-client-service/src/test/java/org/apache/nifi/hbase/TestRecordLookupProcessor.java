@@ -88,7 +88,7 @@ public class TestRecordLookupProcessor extends AbstractProcessor {
 
         final String rowKey = context.getProperty(HBASE_ROW).getValue();
 
-        final Map<String,String> coordinates = new HashMap<>();
+        final Map<String,Object> coordinates = new HashMap<>();
         coordinates.put(HBase_1_1_2_RecordLookupService.ROW_KEY_KEY, rowKey);
 
         final LookupService<Record> lookupService = context.getProperty(HBASE_LOOKUP_SERVICE).asControllerService(LookupService.class);

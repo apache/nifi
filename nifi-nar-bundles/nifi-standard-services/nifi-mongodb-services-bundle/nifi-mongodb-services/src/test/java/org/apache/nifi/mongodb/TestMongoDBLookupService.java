@@ -71,7 +71,7 @@ public class TestMongoDBLookupService {
         Document document = service.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
         service.insert(document);
 
-        Map<String, String> criteria = new HashMap<>();
+        Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
         Optional result = service.lookup(criteria);
 
@@ -99,7 +99,7 @@ public class TestMongoDBLookupService {
         Document document = service.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
         service.insert(document);
 
-        Map<String, String> criteria = new HashMap<>();
+        Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
         Optional result = service.lookup(criteria);
 
@@ -129,7 +129,7 @@ public class TestMongoDBLookupService {
         Document document = service.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
         service.insert(document);
 
-        Map<String, String> criteria = new HashMap<>();
+        Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
 
         boolean error = false;
