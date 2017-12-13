@@ -498,7 +498,7 @@ Another option for the UserGroupProvider is the LdapUserGroupProvider. By defaul
 * Read Timeout - Duration of read timeout. (i.e. 10 secs).
 * Url - Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
 * Page Size - Sets the page size when retrieving users and groups. If not specified, no paging is performed.
-* Sync Interval - Duration of time between syncing users and groups. (i.e. 30 mins).
+* Sync Interval - Duration of time between syncing users and groups. (i.e. 30 mins). Minimum allowable value is 10 secs.
 * User Search Base - Base DN for searching for users (i.e. ou=users,o=nifi). Required to search users.
 * User Object Class - Object class for identifying users (i.e. person). Required if searching users.
 * User Search Scope - Search scope for searching users (ONE_LEVEL, OBJECT, or SUBTREE). Required if searching users.

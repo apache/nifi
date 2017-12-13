@@ -30,13 +30,13 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.ldap.LdapAuthenticationStrategy;
 import org.apache.nifi.ldap.LdapsSocketFactory;
 import org.apache.nifi.ldap.ReferralStrategy;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.control.PagedResultsDirContextProcessor;
@@ -114,6 +114,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     public static final String PROP_GROUP_MEMBER_REFERENCED_USER_ATTRIBUTE = "Group Member Attribute - Referenced User Attribute";
 
     public static final String PROP_SYNC_INTERVAL = "Sync Interval";
+    private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
 
     private List<IdentityMapping> identityMappings;
     private NiFiProperties properties;
@@ -370,8 +371,12 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             } catch (final IllegalArgumentException iae) {
                 throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time duration", PROP_SYNC_INTERVAL, rawSyncInterval.getValue()));
             }
+            if (syncInterval < MINIMUM_SYNC_INTERVAL_MILLISECONDS) {
+                throw new AuthorizerCreationException(String.format("The %s '%s' is below the minimum value of '%d ms'",
+                        PROP_SYNC_INTERVAL, rawSyncInterval.getValue(), MINIMUM_SYNC_INTERVAL_MILLISECONDS));
+            }
         } else {
-            throw new AuthorizerCreationException("The 'Sync Interval' must be specified.");
+            throw new AuthorizerCreationException(String.format("The '%s' must be specified.", PROP_SYNC_INTERVAL));
         }
 
         try {
@@ -385,7 +390,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             }
 
             // schedule the background thread to load the users/groups
-            ldapSync.scheduleWithFixedDelay(() -> load(context), syncInterval, syncInterval, TimeUnit.SECONDS);
+            ldapSync.scheduleWithFixedDelay(() -> load(context), syncInterval, syncInterval, TimeUnit.MILLISECONDS);
         } catch (final AuthorizationAccessException e) {
             throw new AuthorizerCreationException(e);
         }
