@@ -58,7 +58,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -194,7 +193,6 @@ public class LivySessionController extends AbstractControllerService implements 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
         ComponentLog log = getLogger();
-        log.info("********** Starting Livy Session Controller Service...");
 
         final String livyHost = context.getProperty(LIVY_HOST).evaluateAttributeExpressions().getValue();
         final String livyPort = context.getProperty(LIVY_PORT).evaluateAttributeExpressions().getValue();
@@ -220,9 +218,7 @@ public class LivySessionController extends AbstractControllerService implements 
                     manageSessions();
                     Thread.sleep(sessionManagerStatusInterval);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    log.debug("********** " + Thread.currentThread().getName()
-                            + " run() Interrupt Status: " + Thread.currentThread().isInterrupted());
+                    Thread.currentThread().interrupt();
                     enabled = false;
                 } catch (IOException ioe) {
                     throw new ProcessException(ioe);
@@ -237,15 +233,16 @@ public class LivySessionController extends AbstractControllerService implements 
     public void shutdown() {
         ComponentLog log = getLogger();
         try {
-            log.info("********** Starting Livy Session Controller Service...");
             enabled = false;
             livySessionManagerThread.interrupt();
             livySessionManagerThread.join();
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("Livy Session Manager Thread interrupted");
         }
     }
 
+    @Override
     public Map<String, String> getSession() {
         Map<String, String> sessionMap = new HashMap<>();
         try {
@@ -265,6 +262,7 @@ public class LivySessionController extends AbstractControllerService implements 
         return sessionMap;
     }
 
+    @Override
     public HttpURLConnection getConnection(String urlString) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -288,16 +286,16 @@ public class LivySessionController extends AbstractControllerService implements 
         try {
             sessionsInfo = listSessions();
             if (sessions.isEmpty()) {
-                log.debug("********** manageSessions() the active session list is empty, populating from acquired list...");
+                log.debug("manageSessions() the active session list is empty, populating from acquired list...");
                 sessions.putAll(sessionsInfo);
             }
             for (Integer sessionId : new ArrayList<>(sessions.keySet())) {
                 JSONObject currentSession = sessions.get(sessionId);
-                log.debug("********** manageSessions() Updating current session: " + currentSession);
+                log.debug("manageSessions() Updating current session: " + currentSession);
                 if (sessionsInfo.containsKey(sessionId)) {
                     String state = currentSession.getString("state");
                     String sessionKind = currentSession.getString("kind");
-                    log.debug("********** manageSessions() controller kind: {}, session kind: {}, session state: {}",
+                    log.debug("manageSessions() controller kind: {}, session kind: {}, session state: {}",
                             new Object[]{controllerKind, sessionKind, state});
                     if (state.equalsIgnoreCase("idle") && sessionKind.equalsIgnoreCase(controllerKind)) {
                         // Keep track of how many sessions are in an idle state and thus available
@@ -319,36 +317,36 @@ public class LivySessionController extends AbstractControllerService implements 
                     }
                 } else {
                     // Prune sessions that no longer exist
-                    log.debug("********** manageSessions() session exists in session pool but not in source snapshot, removing from pool...");
+                    log.debug("manageSessions() session exists in session pool but not in source snapshot, removing from pool...");
                     sessions.remove(sessionId);
                     // Remove session from session list source of truth snapshot since it has been dealt with
                     sessionsInfo.remove(sessionId);
                 }
             }
             int numSessions = sessions.size();
-            log.debug("********** manageSessions() There are " + numSessions + " sessions in the pool");
+            log.debug("manageSessions() There are " + numSessions + " sessions in the pool");
             // Open new sessions equal to the number requested by sessionPoolSize
             if (numSessions == 0) {
                 for (int i = 0; i < sessionPoolSize; i++) {
                     newSessionInfo = openSession();
                     sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
-                    log.debug("********** manageSessions() Registered new session: " + newSessionInfo);
+                    log.debug("manageSessions() Registered new session: " + newSessionInfo);
                 }
             } else {
                 // Open one new session if there are no idle sessions
                 if (idleSessions == 0) {
-                    log.debug("********** manageSessions() There are " + numSessions + " sessions in the pool but none of them are idle sessions, creating...");
+                    log.debug("manageSessions() There are " + numSessions + " sessions in the pool but none of them are idle sessions, creating...");
                     newSessionInfo = openSession();
                     sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
-                    log.debug("********** manageSessions() Registered new session: " + newSessionInfo);
+                    log.debug("manageSessions() Registered new session: " + newSessionInfo);
                 }
                 // Open more sessions if number of sessions is less than target pool size
                 if (numSessions < sessionPoolSize) {
-                    log.debug("********** manageSessions() There are " + numSessions + ", need more sessions to equal requested pool size of " + sessionPoolSize + ", creating...");
+                    log.debug("manageSessions() There are " + numSessions + ", need more sessions to equal requested pool size of " + sessionPoolSize + ", creating...");
                     for (int i = 0; i < sessionPoolSize - numSessions; i++) {
                         newSessionInfo = openSession();
                         sessions.put(newSessionInfo.getInt("id"), newSessionInfo);
-                        log.debug("********** manageSessions() Registered new session: " + newSessionInfo);
+                        log.debug("manageSessions() Registered new session: " + newSessionInfo);
                     }
                 }
             }
@@ -423,7 +421,7 @@ public class LivySessionController extends AbstractControllerService implements 
         }
 
         payload.append("}");
-        log.debug("********** openSession() Session Payload: " + payload.toString());
+        log.debug("openSession() Session Payload: " + payload.toString());
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", APPLICATION_JSON);
         headers.put("X-Requested-By", USER);
@@ -431,9 +429,9 @@ public class LivySessionController extends AbstractControllerService implements 
         newSessionInfo = readJSONObjectFromUrlPOST(sessionsUrl, headers, payload.toString());
         Thread.sleep(1000);
         while (newSessionInfo.getString("state").equalsIgnoreCase("starting")) {
-            log.debug("********** openSession() Waiting for session to start...");
+            log.debug("openSession() Waiting for session to start...");
             newSessionInfo = getSessionInfo(newSessionInfo.getInt("id"));
-            log.debug("********** openSession() newSessionInfo: " + newSessionInfo);
+            log.debug("openSession() newSessionInfo: " + newSessionInfo);
             Thread.sleep(1000);
         }
 
@@ -463,28 +461,6 @@ public class LivySessionController extends AbstractControllerService implements 
         return readAllIntoJSONObject(content);
     }
 
-    private JSONArray readJSONArrayFromUrlPOST(String urlString, Map<String, String> headers, String payload) throws IOException, JSONException {
-        URL url = new URL(urlString);
-        HttpURLConnection connection = getConnection(urlString);
-        connection.setRequestMethod(POST);
-        connection.setDoOutput(true);
-
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            connection.setRequestProperty(entry.getKey(), entry.getValue());
-        }
-
-        OutputStream os = connection.getOutputStream();
-        os.write(payload.getBytes());
-        os.flush();
-
-        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK && connection.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
-            throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode() + " : " + connection.getResponseMessage());
-        }
-
-        InputStream content = connection.getInputStream();
-        return readAllIntoJSONArray(content);
-    }
-
     private JSONObject readJSONFromUrl(String urlString, Map<String, String> headers) throws IOException, JSONException {
 
         HttpURLConnection connection = getConnection(urlString);
@@ -497,27 +473,10 @@ public class LivySessionController extends AbstractControllerService implements 
         return readAllIntoJSONObject(content);
     }
 
-    private JSONArray readJSONArrayFromUrl(String urlString, Map<String, String> headers) throws IOException, JSONException {
-        HttpURLConnection connection = getConnection(urlString);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            connection.setRequestProperty(entry.getKey(), entry.getValue());
-        }
-        connection.setRequestMethod(GET);
-        connection.setDoOutput(true);
-        InputStream content = connection.getInputStream();
-        return readAllIntoJSONArray(content);
-    }
-
     private JSONObject readAllIntoJSONObject(InputStream content) throws IOException, JSONException {
         BufferedReader rd = new BufferedReader(new InputStreamReader(content, StandardCharsets.UTF_8));
         String jsonText = IOUtils.toString(rd);
         return new JSONObject(jsonText);
-    }
-
-    private JSONArray readAllIntoJSONArray(InputStream content) throws IOException, JSONException {
-        BufferedReader rd = new BufferedReader(new InputStreamReader(content, StandardCharsets.UTF_8));
-        String jsonText = IOUtils.toString(rd);
-        return new JSONArray(jsonText);
     }
 
     private void setSslSocketFactory(HttpsURLConnection httpsURLConnection, SSLContextService sslService, SSLContext sslContext)

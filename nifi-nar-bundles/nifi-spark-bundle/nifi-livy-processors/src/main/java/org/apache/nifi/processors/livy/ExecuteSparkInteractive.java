@@ -84,7 +84,8 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             .build();
 
     /**
-     * Points to the charset name corresponding to the incoming flow file's encoding.
+     * Points to the charset name corresponding to the incoming flow file's
+     * encoding.
      */
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("exec-spark-iactive-charset")
@@ -124,7 +125,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
     private volatile List<PropertyDescriptor> properties;
     private volatile Set<Relationship> relationships;
 
-
+    @Override
     public void init(final ProcessorInitializationContext context) {
         List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(LIVY_CONTROLLER_SERVICE);
@@ -194,7 +195,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         String payload = "{\"code\":\"" + code + "\"}";
         try {
             final JSONObject result = submitAndHandleJob(livyUrl, livySessionService, sessionId, payload, statusCheckInterval);
-            log.debug("********** ExecuteSparkInteractive Result of Job Submit: " + result);
+            log.debug("ExecuteSparkInteractive Result of Job Submit: " + result);
             if (result == null) {
                 session.transfer(flowFile, REL_FAILURE);
             } else {
@@ -228,23 +229,23 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         headers.put("X-Requested-By", LivySessionService.USER);
         headers.put("Accept", "application/json");
 
-        log.debug("********** submitAndHandleJob() Submitting Job to Spark via: " + statementUrl);
+        log.debug("submitAndHandleJob() Submitting Job to Spark via: " + statementUrl);
         try {
             JSONObject jobInfo = readJSONObjectFromUrlPOST(statementUrl, livySessionService, headers, payload);
-            log.debug("********** submitAndHandleJob() Job Info: " + jobInfo);
+            log.debug("submitAndHandleJob() Job Info: " + jobInfo);
             String statementId = String.valueOf(jobInfo.getInt("id"));
             statementUrl = statementUrl + "/" + statementId;
             jobInfo = readJSONObjectFromUrl(statementUrl, livySessionService, headers);
             String jobState = jobInfo.getString("state");
 
-            log.debug("********** submitAndHandleJob() New Job Info: " + jobInfo);
+            log.debug("submitAndHandleJob() New Job Info: " + jobInfo);
             Thread.sleep(statusCheckInterval);
             if (jobState.equalsIgnoreCase("available")) {
-                log.debug("********** submitAndHandleJob() Job status is: " + jobState + ". returning output...");
+                log.debug("submitAndHandleJob() Job status is: " + jobState + ". returning output...");
                 output = jobInfo.getJSONObject("output");
             } else if (jobState.equalsIgnoreCase("running") || jobState.equalsIgnoreCase("waiting")) {
                 while (!jobState.equalsIgnoreCase("available")) {
-                    log.debug("********** submitAndHandleJob() Job status is: " + jobState + ". Waiting for job to complete...");
+                    log.debug("submitAndHandleJob() Job status is: " + jobState + ". Waiting for job to complete...");
                     Thread.sleep(statusCheckInterval);
                     jobInfo = readJSONObjectFromUrl(statementUrl, livySessionService, headers);
                     jobState = jobInfo.getString("state");
@@ -253,7 +254,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             } else if (jobState.equalsIgnoreCase("error")
                     || jobState.equalsIgnoreCase("cancelled")
                     || jobState.equalsIgnoreCase("cancelling")) {
-                log.debug("********** Job status is: " + jobState + ". Job did not complete due to error or has been cancelled. Check SparkUI for details.");
+                log.debug("Job status is: " + jobState + ". Job did not complete due to error or has been cancelled. Check SparkUI for details.");
                 throw new IOException(jobState);
             }
         } catch (JSONException | InterruptedException e) {
