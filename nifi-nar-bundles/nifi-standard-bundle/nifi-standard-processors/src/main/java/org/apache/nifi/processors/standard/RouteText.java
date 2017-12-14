@@ -31,11 +31,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -208,6 +214,30 @@ public class RouteText extends AbstractProcessor {
      */
     private volatile Map<Relationship, PropertyValue> propertyMap = new HashMap<>();
     private volatile Pattern groupingRegex = null;
+
+    @VisibleForTesting
+    final static int PATTERNS_CACHE_MAXIMUM_ENTRIES = 10;
+
+    /**
+     * LRU cache for the compiled patterns. The size of the cache is determined by the value of
+     * {@link #PATTERNS_CACHE_MAXIMUM_ENTRIES}.
+     */
+    @VisibleForTesting
+    final ConcurrentMap<Pair<Boolean, String>, Pattern> patternsCache = CacheBuilder.newBuilder()
+            .maximumSize(PATTERNS_CACHE_MAXIMUM_ENTRIES)
+            .<Pair<Boolean, String>, Pattern>build()
+            .asMap();
+
+    private final Function<Pair<Boolean, String>, Pattern> compileRegex = ignoreCaseAndRegex -> {
+        final boolean ignoreCase = ignoreCaseAndRegex.getLeft();
+        final String regex = ignoreCaseAndRegex.getRight();
+        return ignoreCase ? Pattern.compile(regex, Pattern.CASE_INSENSITIVE) : Pattern.compile(regex);
+    };
+
+    private Pattern cachedCompiledPattern(String regex, boolean ignoreCase) {
+        final Pair<Boolean, String> key = Pair.of(ignoreCase, regex);
+        return patternsCache.computeIfAbsent(key, compileRegex);
+    }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -384,11 +414,7 @@ public class RouteText extends AbstractProcessor {
             for (final Map.Entry<Relationship, PropertyValue> entry : propMap.entrySet()) {
                 final String value = entry.getValue().evaluateAttributeExpressions(originalFlowFile).getValue();
 
-                Pattern compiledRegex = null;
-                if (compileRegex) {
-                    compiledRegex = ignoreCase ? Pattern.compile(value, Pattern.CASE_INSENSITIVE) : Pattern.compile(value);
-                }
-                propValueMap.put(entry.getKey(), compileRegex ? compiledRegex : value);
+                propValueMap.put(entry.getKey(), compileRegex ? cachedCompiledPattern(value, ignoreCase) : value);
             }
         }
 
@@ -435,7 +461,7 @@ public class RouteText extends AbstractProcessor {
 
                         int propertiesThatMatchedLine = 0;
                         for (final Map.Entry<Relationship, Object> entry : propValueMap.entrySet()) {
-                            boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), context.getProperty(MATCH_STRATEGY).getValue(), ignoreCase, originalFlowFile, variables);
+                            boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), matchStrategy, ignoreCase, originalFlowFile, variables);
                             if (lineMatchesProperty) {
                                 propertiesThatMatchedLine++;
                             }
