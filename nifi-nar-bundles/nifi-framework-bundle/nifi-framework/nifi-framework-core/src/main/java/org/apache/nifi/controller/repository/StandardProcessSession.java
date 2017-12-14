@@ -1537,7 +1537,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             @Override
             public List<FlowFileRecord> poll(final Connection connection, final Set<FlowFileRecord> expiredRecords) {
                 return connection.poll(new FlowFileFilter() {
-                    volatile int polled = 0;
+                    int polled = 0;
 
                     @Override
                     public FlowFileFilterResult filter(final FlowFile flowFile) {
@@ -1549,7 +1549,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     }
                 }, expiredRecords);
             }
-        }, true);
+        }, false);
     }
 
     @Override
