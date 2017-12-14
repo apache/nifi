@@ -96,17 +96,22 @@ public class SFTPTransfer implements FileTransfer {
         .build();
 
     /**
-     * Dynamic property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
+     * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
      * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
      * exception.
-     * <p>
-     * This property is dynamic until deemed a worthy inclusion as proper.
      */
     public static final PropertyDescriptor DISABLE_DIRECTORY_LISTING = new PropertyDescriptor.Builder()
         .name("Disable Directory Listing")
-        .description("Disables directory listings before operations which might fail, such as configurations which create directory structures.")
+        .description("If set to 'true', directory listing is not performed prior to create missing directories." +
+                " By default, this processor executes a directory listing command" +
+                " to see target directory existence before creating missing directories." +
+                " However, there are situations that you might need to disable the directory listing such as followings." +
+                " Directory listing might fail with some permission setups (e.g. chmod 100) on a directory." +
+                " Also, if any other SFTP client created the directory after this processor performed a listing" +
+                " and before a directory creation request by this processor is finished," +
+                " then an error is returned because the directory already exists.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .dynamic(true)
+        .allowableValues("true", "false")
         .defaultValue("false")
         .build();
 
