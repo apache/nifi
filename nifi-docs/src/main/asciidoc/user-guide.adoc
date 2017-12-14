@@ -460,13 +460,11 @@ image::add-processor-version-sort-filter.png["Add Processor Version Sort and Fil
 To change a component version, perform the following steps.
 
 1. Right-click the component on the canvas to display configuration options.
-2. Select Change version.
-
+2. Select Change version. 
++
 image::processor-change-version.png["Processor Change Version"]
-
-[start=3]
 3. In the Component Version dialog, select the version you want to run from the Version drop-down menu.
-
++
 image::component-version-dialog.png["Component Version"]
 
 ==== Understanding Version Dependencies
@@ -890,12 +888,9 @@ image:process-group-controller-services-scope.png["Process Group Controller Serv
 
 Use the following steps to add a Controller Service:
 
-1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services.
-
-image:process-group-configuration-window.png["Process Group Configuration Window"]
-
-The General tab is for settings that pertain to general information about the process group. For example, if configuring the root process group, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow (Note: this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site)).
-[start=2]
+1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services. The General tab is for settings that pertain to general information about the process group. For example, if configuring the root process group, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow (Note: this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site)).
++
+image::process-group-configuration-window.png["Process Group Configuration Window"]
 2. From the Process Group Configuration page, select the Controller Services tab.
 3. Click the Add button to display the Add Controller Service dialog.
 4. Select the Controller Service desired, and click Add.
