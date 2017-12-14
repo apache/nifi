@@ -14,14 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Getting Started with Apache NiFi
-================================
+= Getting Started with Apache NiFi
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
 
-Who is This Guide For?
-----------------------
+== Who is This Guide For?
 
 This guide is written for users who have never used, have had limited exposure to, or only accomplished specific tasks within NiFi.
 This guide is not intended to be an exhaustive instruction manual or a reference guide. The
@@ -42,8 +40,7 @@ link:overview.html[Overview] documentation.
 
 
 
-Terminology Used in This Guide
-------------------------------
+== Terminology Used in This Guide
 
 In order to talk about NiFi, there are a few key terms that readers should be familiar with.
 We will explain those NiFi-specific terms here, at a high level.
@@ -58,8 +55,7 @@ splitting, merging, and processing FlowFiles. It is the most important building 
 dataflows.
 
 
-Downloading and Installing NiFi
--------------------------------
+== Downloading and Installing NiFi
 
 NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads Page]. There are two packaging options
 available: a "tarball" that is tailored more to Linux and a zip file that is more applicable for Windows users. Mac OS X users
@@ -74,8 +70,7 @@ For information on how to configure the instance of NiFi (for example, to config
 configuration, or the port that NiFi is running on), see the link:administration-guide.html[Admin Guide].
 
 
-Starting NiFi
--------------
+== Starting NiFi
 
 Once NiFi has been downloaded and installed as described above, it can be started by using the mechanism
 appropriate for your operating system.
@@ -113,8 +108,7 @@ and `sudo service nifi stop`. Additionally, the running status can be checked vi
 
 
 
-I Started NiFi. Now What?
--------------------------
+== I Started NiFi. Now What?
 
 Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
 To get started, open a web browser and navigate to `http://localhost:8080/nifi`. The port can be changed by
@@ -272,8 +266,7 @@ link:user-guide.html[User Guide].
 
 
 
-What Processors are Available
------------------------------
+== What Processors are Available
 
 In order to create an effective dataflow, the users must understand what types of Processors are available to them.
 NiFi contains many different Processors out of the box. These Processors provide capabilities to ingest data from
@@ -440,8 +433,7 @@ categorizing them by their functions.
   a message from SQS, perform some processing on it, and then delete the object from the queue only after it has successfully completed processing.
 
 
-Working With Attributes
------------------------
+== Working With Attributes
 Each FlowFile is created with several Attributes, and these Attributes will change over the life of
 the FlowFile. The concept of a FlowFile is extremely powerful and provides three primary benefits.
 First, it allows the user to make routing decisions in the flow so that FlowFiles that meet some criteria
@@ -565,14 +557,12 @@ cause a tooltip to show, which explains what the function does, the arguments th
 
 
 
-Custom Properties Within Expression Language
---------------------------------------------
+== Custom Properties Within Expression Language
 
 In addition to using FlowFile attributes, you can also define custom properties for Expression Language use. Defining custom properties gives you additional flexibility in processing and configuring dataflows. For example, you can refer to custom properties for connection, server, and service properties. Once you have created custom properties, you can identify their location in the `nifi.variable.registry.properties` field in the 'nifi.properties' file. After you have updated the 'nifi.properties' file and restarted NiFi, you are able to use custom properties as needed.
 
 
-Working With Templates
-----------------------
+== Working With Templates
 
 As we use Processors to build more and more complex dataflows in NiFi, we often will find that we string together the same sequence
 of Processors to perform some task. This can become tedious and inefficient. To address this, NiFi provides a concept of Templates.
@@ -610,8 +600,7 @@ There are a few important notes to remember when working with templates:
 - If a component that is included in the template references a Controller Service, the Controller Service will also be added to the template. This means that each time that the template is added to the graph, it will create a copy of the Controller Service.
 
 
-Monitoring NiFi
----------------
+== Monitoring NiFi
 
 As data flows through your dataflow in NiFi, it is important to understand how well your system is performing in order to assess if you
 will require more resources and in order to assess the health of your current resources. NiFi provides a few mechanisms for monitoring
@@ -658,8 +647,7 @@ If the framework emits a bulletin, we will also see a bulletin indicator highlig
 In the Global Menu is a Bulletin Board option. Clicking this option will take us to the bulletin board where we can see all bulletins that occur across the NiFi instance and can filter based on the component, the message, etc.
 
 
-Data Provenance
----------------
+== Data Provenance
 
 NiFi keeps a very granular level of detail about each piece of data that it ingests. As the data is processed through
 the system and is transformed, routed, split, aggregated, and distributed to other endpoints, this information is
@@ -734,8 +722,7 @@ was introduced by a JOIN event, in which we were waiting for more FlowFiles to j
 see where this is occurring is a very powerful feature that will help users to understand how the enterprise is operating.
 
 
-Where To Go For More Information
---------------------------------
+== Where To Go For More Information
 
 The NiFi community has built up a significant amount of documentation on how to use the software. The following guides are available, in
 addition to this Getting Started Guide:

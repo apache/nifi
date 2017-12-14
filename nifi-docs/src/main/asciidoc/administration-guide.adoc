@@ -14,13 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-NiFi System Administrator's Guide
-=================================
+= NiFi System Administrator's Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
-System Requirements
--------------------
+== System Requirements
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
 * Requires Java 8 or newer
@@ -37,8 +35,7 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 
 **Note** Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
 
-How to install and start NiFi
------------------------------
+== How to install and start NiFi
 
 * Linux/Unix/OS X
 ** Decompress and untar into desired installation directory
@@ -76,8 +73,7 @@ When NiFi first starts up, the following files and directories are created:
 See the <<system_properties>> section of this guide for more information about configuring NiFi repositories and configuration files.
 
 
-Configuration Best Practices
-----------------------------
+== Configuration Best Practices
 NOTE: If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary.  Use these sections as advice, but
 consult your distribution-specific documentation for how best to achieve these recommendations.
 
@@ -127,8 +123,7 @@ Doing so can cause a surprising bump in throughput.  Edit the '/etc/fstab' file
 and for the partition(s) of interest add the 'noatime' option.
 
 
-Security Configuration
-----------------------
+== Security Configuration
 
 NiFi provides several different configuration options for security purposes. The most important properties are those under the
 "security properties" heading in the _nifi.properties_ file. In order to run securely, the following properties must be set:
@@ -164,8 +159,7 @@ Now that the User Interface has been secured, we can easily secure Site-to-Site 
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
 
 
-TLS Generation Toolkit
-~~~~~~~~~~~~~~~~~~~~~~
+=== TLS Generation Toolkit
 
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
@@ -176,8 +170,7 @@ The `tls-toolkit` command line tool has two primary modes of operation:
 1. Standalone -- generates the certificate authority, keystores, truststores, and nifi.properties files in one command.
 2. Client/Server mode -- uses a Certificate Authority Server that accepts Certificate Signing Requests from clients, signs them, and sends the resulting certificates back.  Both client and server validate the other’s identity through a shared secret.
 
-Standalone
-^^^^^^^^^^
+==== Standalone
 Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone -h` which prints the usage information along with descriptions of options that can be specified.
 
 You can use the following command line options with the `tls-toolkit` in standalone mode:
@@ -228,8 +221,7 @@ bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=u
 ----
 
 
-Client/Server
-^^^^^^^^^^^^^
+==== Client/Server
 Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates. The CA can be stopped when you’re not bringing nodes online.
 
 
@@ -279,8 +271,7 @@ After running the client you will have the CA’s certificate, a keystore, a tru
 For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
 
 [[user_authentication]]
-User Authentication
--------------------
+== User Authentication
 
 NiFi supports user authentication via client certificates, via username/password, via Apache Knox, or via OpenId Connect (http://openid.net/connect).
 
@@ -306,8 +297,7 @@ A secured instance of NiFi cannot be accessed anonymously unless configured to u
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
 
 [[ldap_login_identity_provider]]
-Lightweight Directory Access Protocol (LDAP)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Lightweight Directory Access Protocol (LDAP)
 
 Below is an example and description of configuring a Login Identity Provider that integrates with a Directory Server to authenticate users.
 
@@ -376,8 +366,7 @@ compatibility. USE_DN will use the full DN of the user entry if possible. USE_US
 |==================================================================================================================================================
 
 [[kerberos_login_identity_provider]]
-Kerberos
-~~~~~~~~
+=== Kerberos
 
 Below is an example and description of configuring a Login Identity Provider that integrates with a Kerberos Key Distribution Center (KDC) to authenticate users.
 
@@ -408,8 +397,7 @@ nifi.security.user.login.identity.provider=kerberos-provider
 See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
 
 [[openid_connect]]
-OpenId Connect
-~~~~~~~~~~~~~~
+=== OpenId Connect
 
 To enable authentication via OpenId Connect the following properties must be configured in nifi.properties.
 
@@ -428,8 +416,7 @@ JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the di
 |==================================================================================================================================================
 
 [[apache_knox]]
-Apache Knox
-~~~~~~~~~~~
+=== Apache Knox
 
 To enable authentication via Apache Knox the following properties must be configured in nifi.properties.
 
@@ -444,8 +431,7 @@ this listing. The audience that is populated in the token can be configured in K
 |==================================================================================================================================================
 
 [[multi-tenant-authorization]]
-Multi-Tenant Authorization
---------------------------
+== Multi-Tenant Authorization
 
 After you have configured NiFi to run securely and with an authentication mechanism, you must configure who has access to the system, and the level of their access.
 You can do this using 'multi-tenant authorization'. Multi-tenant authorization enables multiple groups of users (tenants) to command, control, and observe different
@@ -453,8 +439,7 @@ parts of the dataflow, with varying levels of authorization. When an authenticat
 user has privileges to perform that action. These privileges are defined by policies that you can apply system-wide or to individual components.
 
 [[authorizer-configuration]]
-Authorizer Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~
+=== Authorizer Configuration
 
 An 'authorizer' grants users the privileges to manage users and policies by creating preliminary authorizations at startup.
 
@@ -464,8 +449,7 @@ Authorizers are configured using two properties in the 'nifi.properties' file:
 * The `nifi.security.user.authorizer` property indicates which of the configured authorizers in the 'authorizers.xml' file to use.
 
 [[authorizers-setup]]
-Authorizers.xml Setup
-~~~~~~~~~~~~~~~~~~~~~
+=== Authorizers.xml Setup
 
 The 'authorizers.xml' file is used to define and configure available authorizers.  The default authorizer is the StandardManagedAuthorizer.  The managed authorizer is comprised of a UserGroupProvider
 and a AccessPolicyProvider.  The users, group, and access policies will be loaded and optionally configured through these providers.  The managed authorizer will make all access decisions based on
@@ -549,8 +533,7 @@ FileAuthorizer has the following properties.
 * Node Identity - The identity of a NiFi cluster node. When clustered, a property for each node should be defined, so that every node knows about every other node. If not clustered, these properties can be ignored.
 
 [[initial-admin-identity]]
-Initial Admin Identity  (New NiFi Instance)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==== Initial Admin Identity  (New NiFi Instance)
 
 If you are setting up a secured NiFi instance for the first time, you must manually designate an “Initial Admin Identity” in the 'authorizers.xml' file.  This initial admin user is granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN (when using certificates or LDAP) or a Kerberos principal.  If you are the NiFi administrator, add yourself as the “Initial Admin Identity”.
 
@@ -876,8 +859,7 @@ Here is an example composite implementation loading users and groups from LDAP a
 In this example, the users and groups are loaded from LDAP but the servers are managed in a local file. The 'Initial Admin Identity' value came from an attribute in a LDAP entry based on the 'User Identity Attribute'. The 'Node Identity' values are established in the local file using the 'Initial User Identity' properties.
 
 [[legacy-authorized-users]]
-Legacy Authorized Users (NiFi Instance Upgrade)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==== Legacy Authorized Users (NiFi Instance Upgrade)
 
 If you are upgrading from a 0.x NiFi instance, you can convert your previously configured users and roles to the multi-tenant authorization model.  In the 'authorizers.xml' file, specify the location of your existing 'authorized-users.xml' file in the “Legacy Authorized Users File” property.
 
@@ -952,8 +934,7 @@ NOTE: NiFi fails to restart if values exist for both the “Initial Admin Identi
 NOTE: Do not manually edit the 'authorizations.xml' file. Create authorizations only during initial setup and afterwards using the NiFi UI.
 
 [[cluster-node-identities]]
-Cluster Node Identities
-^^^^^^^^^^^^^^^^^^^^^^^
+==== Cluster Node Identities
 
 If you are running NiFi in a clustered environment, you must specify the identities for each node.  The authorization policies required for the nodes to communicate are created during startup.
 
@@ -1000,8 +981,7 @@ NOTE: In a cluster, all nodes must have the same 'authorizations.xml' and 'users
 Now that initial authorizations have been created, additional users, groups and authorizations can be created and managed in the NiFi UI.
 
 [[config-users-access-policies]]
-Configuring Users & Access Policies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Configuring Users & Access Policies
 
 Depending on the capabilities of the configured UserGroupProvider and AccessPolicyProvider the users, groups, and policies will be configurable in the UI. If the extensions are not configurable the
 users, groups, and policies will read-only in the UI. If the configured authorizer does not use UserGroupProvider and AccessPolicyProvider the users and policies may or may not be visible and
@@ -1017,8 +997,7 @@ This section assumes the users, groups, and policies are configurable in the UI 
 NOTE: Instructions requiring interaction with the UI assume the application is being accessed by User1, a user with administrator privileges, such as the “Initial Admin Identity” user or a converted legacy admin user (see <<authorizers-setup>>).
 
 [[creating-users-groups]]
-Creating Users and Groups
-^^^^^^^^^^^^^^^^^^^^^^^^^
+==== Creating Users and Groups
 
 From the UI, select “Users” from the Global Menu.  This opens a dialog to create and manage users and groups.
 
@@ -1034,8 +1013,7 @@ To create a group, select the “Group” radio button, enter the name of the gr
 image:group-creation-dialog.png["Group Creation Dialog"]
 
 [[access-policies]]
-Access Policies
-^^^^^^^^^^^^^^^
+==== Access Policies
 
 You can manage the ability for users and groups to view or modify NiFi resources using 'access policies'.  There are two types of access policies that can be applied to a resource:
 
@@ -1142,8 +1120,7 @@ NOTE: “View the policies” and “modify the policies” component-level acce
 NOTE:  You cannot modify the users/groups on an inherited policy.  Users and groups can only be added or removed from a parent policy or an override policy.
 
 [[viewing-policies-users]]
-Viewing Policies on Users
-^^^^^^^^^^^^^^^^^^^^^^^^^
+==== Viewing Policies on Users
 
 From the UI, select “Users” from the Global Menu. This opens the NiFi Users dialog.
 
@@ -1156,8 +1133,7 @@ image:user-policies-detail.png["User Policies Detail"]
 The User Policies window displays the global and component level policies that have been set for the chosen user.  Select the Go To icon (image:iconGoTo.png["Go To Icon"]) to navigate to that component in the canvas.
 
 [[access-policy-config-examples]]
-Access Policy Configuration Examples
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==== Access Policy Configuration Examples
 
 The most effective way to understand how to create and apply access policies is to walk through some common examples.  The following scenarios assume User1 is an administrator and User2 is a newly added user that has only been given access to the UI.
 
@@ -1288,16 +1264,14 @@ Being added to both the view and modify policies for the process group, User2 ca
 image:user2-edit-connection.png["User2 Edit Connection"]
 
 [[encryption]]
-Encryption Configuration
-------------------------
+== Encryption Configuration
 
 This section provides an overview of the capabilities of NiFi to encrypt and decrypt data.
 
 The `EncryptContent` processor allows for the encryption and decryption of data, both internal to NiFi and integrated with external systems, such as `openssl` and other data sources and consumers.
 
 [[key-derivation-functions]]
-Key Derivation Functions
-~~~~~~~~~~~~~~~~~~~~~~~~
+=== Key Derivation Functions
 
 Key Derivation Functions (KDF) are mechanisms by which human-readable information, usually a password or other secret information, is translated into a cryptographic key suitable for data protection. For further information, read https://en.wikipedia.org/wiki/Key_derivation_function[the Wikipedia entry on Key Derivation Functions].
 Currently, KDFs are ingested by `CipherProvider` implementations and return a fully-initialized `Cipher` object to be used for encryption or decryption. Due to the use of a `CipherProviderFactory`, the KDFs are not customizable at this time. Future enhancements will include the ability to provide custom cost parameters to the KDF at initialization time. As a work-around, `CipherProvider` instances can be initialized with custom cost parameters in the constructor but this is not currently supported by the `CipherProviderFactory`.
@@ -1337,8 +1311,7 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 ** This KDF was added in v0.5.0.
 ** This KDF performs no operation on the input and is a marker to indicate the raw key is provided to the cipher. The key must be provided in hexadecimal encoding and be of a valid length for the associated cipher/algorithm.
 
-Additional Resources
-^^^^^^^^^^^^^^^^^^^^
+==== Additional Resources
 
 * http://stackoverflow.com/a/30308723/70465[Explanation of optimal scrypt cost parameters and relationships]
 * http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST Special Publication 800-132]
@@ -1353,22 +1326,19 @@ Additional Resources
 * https://wiki.openssl.org/index.php/Manual:PKCS5_PBKDF2_HMAC(3)[OpenSSL PBKDF2 KDF]
 * http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description]
 
-Salt and IV Encoding
-~~~~~~~~~~~~~~~~~~~~
+=== Salt and IV Encoding
 
 Initially, the `EncryptContent` processor had a single method of deriving the encryption key from a user-provided password. This is now referred to as `NiFiLegacy` mode, effectively `MD5 digest, 1000 iterations`. In v0.4.0, another method of deriving the key, `OpenSSL PKCS#5 v1.5 EVP_BytesToKey` was added for compatibility with content encrypted outside of NiFi using the `openssl` command-line tool. Both of these <<key-derivation-functions, Key Derivation Functions>> (KDF) had hard-coded digest functions and iteration counts, and the salt format was also hard-coded. With v0.5.0, additional KDFs are introduced with variable iteration counts, work factors, and salt formats. In addition, _raw keyed encryption_ was also introduced. This required the capacity to encode arbitrary salts and Initialization Vectors (IV) into the cipher stream in order to be recovered by NiFi or a follow-on system to decrypt these messages.
 
 For the existing KDFs, the salt format has not changed.
 
-NiFi Legacy
-^^^^^^^^^^^
+==== NiFi Legacy
 
 The first 8 or 16 bytes of the input are the salt. The salt length is determined based on the selected algorithm's cipher block length. If the cipher block size cannot be determined (such as with a stream cipher like `RC4`), the default value of 8 bytes is used. On decryption, the salt is read in and combined with the password to derive the encryption key and IV.
 
 image:nifi-legacy-salt.png["NiFi Legacy Salt Encoding"]
 
-OpenSSL PKCS#5 v1.5 EVP_BytesToKey
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==== OpenSSL PKCS#5 v1.5 EVP_BytesToKey
 
 OpenSSL allows for salted or unsalted key derivation. _*Unsalted key derivation is a security risk and is not recommended.*_ If a salt is present, the first 8 bytes of the input are the ASCII string "`Salted__`" (`0x53 61 6C 74 65 64 5F 5F`) and the next 8 bytes are the ASCII-encoded salt. On decryption, the salt is read in and combined with the password to derive the encryption key and IV. If there is no salt header, the entire input is considered to be the cipher text.
 
@@ -1376,8 +1346,7 @@ image:openssl-salt.png["OpenSSL Salt Encoding"]
 
 For new KDFs, each of which allow for non-deterministic IVs, the IV must be stored alongside the cipher text. This is not a vulnerability, as the IV is not required to be secret, but simply to be unique for messages encrypted using the same key to reduce the success of cryptographic attacks. For these KDFs, the output consists of the salt, followed by the salt delimiter, UTF-8 string "`NiFiSALT`" (`0x4E 69 46 69 53 41 4C 54`) and then the IV, followed by the IV delimiter, UTF-8 string "`NiFiIV`" (`0x4E 69 46 69 49 56`), followed by the cipher text.
 
-Bcrypt, Scrypt, PBKDF2
-^^^^^^^^^^^^^^^^^^^^^^
+==== Bcrypt, Scrypt, PBKDF2
 
 image:bcrypt-salt.png["Bcrypt Salt & IV Encoding"]
 
@@ -1385,8 +1354,7 @@ image:scrypt-salt.png["Scrypt Salt & IV Encoding"]
 
 image:pbkdf2-salt.png["PBKDF2 Salt & IV Encoding"]
 
-Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
 
 Because of US export regulations, default JVMs have http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits[limits imposed on the strength of cryptographic operations] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
 
@@ -1459,8 +1427,7 @@ A number of PBE algorithms provided by NiFi impose strict limits on the length o
 |7
 |===
 
-Allow Insecure Cryptographic Modes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Allow Insecure Cryptographic Modes
 
 By default, the `Allow Insecure Cryptographic Modes` property in `EncryptContent` processor settings is set to `not-allowed`. This means that if a password of fewer than `10` characters is provided, a validation error will occur. 10 characters is a conservative estimate and does not take into consideration full entropy calculations, patterns, etc.
 
@@ -1480,8 +1447,7 @@ If it is not possible to install the unlimited strength jurisdiction policies, t
 
 It is preferable to request upstream/downstream systems to switch to https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption] or use a "strong" https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi].
 
-Encrypted Passwords in Configuration Files
-------------------------------------------
+== Encrypted Passwords in Configuration Files
 
 In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In the future, hardware security modules (HSM) and external secure storage mechanisms will be integrated, but for now, an AES encryption provider is the default implementation.
 
@@ -1490,8 +1456,7 @@ This is a change in behavior; prior to 1.0, all configuration values were stored
 If no administrator action is taken, the configuration values remain unencrypted.
 
 [[encrypt-config_tool]]
-Encrypt-Config Tool
-~~~~~~~~~~~~~~~~~~~
+=== Encrypt-Config Tool
 
 The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a 'nifi.properties' file with plaintext sensitive configuration values, prompts for a master password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new 'nifi.properties' file if specified.
 
@@ -1596,8 +1561,7 @@ When applied to 'login-identity-providers.xml', the property elements are update
 ----
 
 [encrypt_config_property_migration]
-Sensitive Property Key Migration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Sensitive Property Key Migration
 
 In order to change the key used to encrypt the sensitive values, indicate *migration mode* using the `-m` or `--migrate` flag, provide the new key or password using the `-k` or `-p` flags as usual, and provide the existing key or password using `-e` or `-w` respectively. This will allow the toolkit to decrypt the existing values and re-encrypt them, and update `bootstrap.conf` with the new key. Only one of the key or password needs to be specified for each phase (old vs. new), and any combination is sufficient:
 
@@ -1607,8 +1571,7 @@ In order to change the key used to encrypt the sensitive values, indicate *migra
 * old password -> new password
 
 [encrypt_config_flow_migration]
-Existing Flow Migration
-~~~~~~~~~~~~~~~~~~~~~~~
+=== Existing Flow Migration
 
 This tool can also be used to change the value of `nifi.sensitive.props.key` for an existing flow. The tool will read the existing `flow.xml.gz` and decrypt any sensitive component properties using the original key,
 then re-encrypt the sensitive properties with the new key, and write out a new version of the `flow.xml.gz`, or overwrite the existing one.
@@ -1626,8 +1589,7 @@ The following command would migrate the sensitive properties key and write out a
 ----
 
 [[encrypt-config_password]]
-Password Key Derivation
-~~~~~~~~~~~~~~~~~~~~~~~
+=== Password Key Derivation
 
 Instead of providing a 32 or 64 character raw hexadecimal key, you can provide a password from which the key will be derived. As of 1.0.0, the password must be at least 12 characters, and the key will be derived using `SCrypt` with the parameters:
 
@@ -1643,14 +1605,12 @@ As of August 2016, these values are determined to be strong for this threat mode
 NOTE: While fixed salts are counter to best practices, a static salt is necessary for deterministic key derivation without additional storage of the salt value.
 
 [[encrypt-config_secure_prompt]]
-Secure Prompt
-~~~~~~~~~~~~~
+=== Secure Prompt
 
 If you prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
 
 [[admin-toolkit]]
-Administrative Tools
---------------------
+== Administrative Tools
 The admin toolkit contains command line utilities for administrators to support NiFi maintenance in standalone
 and clustered environments. These utilities include:
 
@@ -1872,8 +1832,7 @@ live outside of the NiFi directory, remove them so they can be recreated on star
 
 
 [[clustering]]
-Clustering Configuration
-------------------------
+== Clustering Configuration
 
 This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster.
 In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth.
@@ -2045,8 +2004,7 @@ set the level="DEBUG" in the following line (instead of "INFO"):
 
 
 [[state_management]]
-State Management
-----------------
+== State Management
 
 NiFi provides a mechanism for Processors, Reporting Tasks, Controller Services, and the framework itself to persist state. This
 allows a Processor, for example, to resume from the place where it left off after NiFi is restarted. Additionally, it allows for
@@ -2474,8 +2432,7 @@ If the state-management.xml specifies Open, no authentication is required.
 6. Once the migration has completed successfully, start the processors in the NiFi flow.  Processing should continue from the point at which it was stopped when the NiFi flow was stopped.
 
 [[bootstrap_properties]]
-Bootstrap Properties
---------------------
+== Bootstrap Properties
 The _bootstrap.conf_ file in the _conf_ directory allows users to configure settings for how NiFi should be started.
 This includes parameters, such as the size of the Java Heap, what Java command to run, and Java System Properties.
 
@@ -2511,8 +2468,7 @@ take effect only after NiFi has been stopped and restarted.
 |====
 
 [[notification_services]]
-Notification Services
----------------------
+== Notification Services
 When the NiFi bootstrap starts or stops NiFi, or detects that it has died unexpectedly, it is able to notify configured recipients. Currently,
 the only mechanisms supplied are to send an e-mail or HTTP POST notification. The notification services configuration file
 is an XML file where the notification capabilities are configured.
@@ -2623,8 +2579,7 @@ A complete example of configuring the HTTP service could look like the following
 ....
 
 [[proxy_configuration]]
-Proxy Configuration
--------------------
+== Proxy Configuration
 ​When running Apache NiFi behind a proxy there are a couple of key items to be aware of during deployment.
 
 * NiFi is comprised of a number of web applications (web UI, web API, documentation, custom UIs, data viewers, etc), so the mapping needs to be configured for the *root path*. That way all context
@@ -2680,8 +2635,7 @@ documentation of the proxy for guidance for your deployment environment and use 
 ....
 
 [[kerberos_service]]
-Kerberos Service
-----------------
+== Kerberos Service
 NiFi can be configured to use Kerberos SPNEGO (or "Kerberos Service") for authentication. In this scenario, users will hit the REST endpoint `/access/kerberos` and the server will respond with a `401` status code and the challenge response header `WWW-Authenticate: Negotiate`. This communicates to the browser to use the GSS-API and load the user's Kerberos ticket and provide it as a Base64-encoded header value in the subsequent request. It will be of the form `Authorization: Negotiate YII...`. NiFi will attempt to validate this ticket with the KDC. If it is successful, the user's _principal_ will be returned as the identity, and the flow will follow login/credential authentication, in that a JWT will be issued in the response to prevent the unnecessary overhead of Kerberos authentication on every subsequent request. If the ticket cannot be validated, it will return with the appropriate error response code. The user will then be able to provide their Kerberos credentials to the login form if the `KerberosLoginIdentityProvider` has been configured. See <<kerberos_login_identity_provider>> login identity provider for more details.
 
 NiFi will only respond to Kerberos SPNEGO negotiation over an HTTPS connection, as unsecured requests are never authenticated.
@@ -2697,8 +2651,7 @@ The following properties must be set in _nifi.properties_ to enable Kerberos ser
 See <<kerberos_properties>> for complete documentation.
 
 [[kerberos_service_notes]]
-Notes
-~~~~~
+=== Notes
 
 * Kerberos is case-sensitive in many places and the error messages (or lack thereof) may not be sufficiently explanatory. Check the case sensitivity of the service principal in your configuration files. Convention is `HTTP/fully.qualified.domain@REALM`.
 * Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation] for common browsers.
@@ -2733,8 +2686,7 @@ root@kdc:~#
 ....
 
 [[system_properties]]
-System Properties
------------------
+== System Properties
 The _nifi.properties_ file in the _conf_ directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
 for the changes to take effect.*
 

@@ -14,13 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Apache NiFi Overview
-====================
+= Apache NiFi Overview
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
-What is Apache NiFi?
---------------------
+== What is Apache NiFi?
 Put simply NiFi was built to automate the flow of data between systems.  While
 the term 'dataflow' is used in a variety of contexts, we use it here
 to mean the automated and managed flow of information between systems.  This
@@ -66,8 +64,7 @@ complexity, the rate of change necessary to adapt, and that at scale
 the edge case becomes common occurrence.  NiFi is built to help tackle these
 modern dataflow challenges.
 
-The core concepts of NiFi
--------------------------
+== The core concepts of NiFi
 
 NiFi's fundamental design concepts closely relate to the main ideas of Flow Based
 Programming <<fbp>>.  Here are some of
@@ -121,8 +118,7 @@ A few of these benefits include:
 * Error handling becomes as natural as the happy-path rather than a coarse grained catch-all
 * The points at which data enters and exits the system as well as how it flows through are well understood and easily tracked
 
-NiFi Architecture
------------------
+== NiFi Architecture
 image::zero-master-node.png["NiFi Architecture Diagram"]
 
 NiFi executes within a JVM on a host operating system.  The primary
@@ -152,8 +148,7 @@ image::zero-master-cluster.png["NiFi Cluster Architecture Diagram"]
 
 Starting with the NiFi 1.0 release, a Zero-Master Clustering paradigm is employed. Each node in a NiFi cluster performs the same tasks on the data, but each operates on a different set of data. Apache ZooKeeper elects a single node as the Cluster Coordinator, and failover is handled automatically by ZooKeeper. All cluster nodes report heartbeat and status information to the Cluster Coordinator. The Cluster Coordinator is responsible for disconnecting and connecting nodes. Additionally, every cluster has one Primary Node, also elected by ZooKeeper. As a DataFlow manager, you can interact with the NiFi cluster through the user interface (UI) of any node. Any change you make is replicated to all nodes in the cluster, allowing for multiple entry points.
 
-Performance Expectations and Characteristics of NiFi
-----------------------------------------------------
+== Performance Expectations and Characteristics of NiFi
 NiFi is designed to fully leverage the capabilities of the underlying host system
 on which it is operating.  This maximization of resources is particularly strong with
 regard to CPU and disk.  For additional details, see the best practices and configuration tips in the Administration Guide.
@@ -192,8 +187,7 @@ is afforded by the JVM.  JVM garbage collection becomes a very important
 factor to both restricting the total practical heap size, as well as optimizing
 how well the application runs over time. NiFi jobs can be I/O intensive when reading the same content regularly. Configure a large enough disk to optimize performance.
 
-High Level Overview of Key NiFi Features
-----------------------------------------
+== High Level Overview of Key NiFi Features
 This sections provides a 20,000 foot view of NiFi's cornerstone fundamentals, so that you can understand the Apache NiFi big picture, and some of its the most interesting features. The key features categories include flow management, ease of use, security, extensible architecture, and flexible scaling model.
 
 Flow Management::
@@ -283,8 +277,7 @@ Flexible Scaling Model::
 
 
 
-References
-----------
+== References
 [bibliography]
 - [[[eip]]] Gregor Hohpe. Enterprise Integration Patterns [online].  Retrieved: 27 Dec 2014, from: http://www.enterpriseintegrationpatterns.com/
 - [[[soa]]] Wikipedia. Service Oriented Architecture [online]. Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Service-oriented_architecture

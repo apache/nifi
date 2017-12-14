@@ -14,14 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Apache NiFi User Guide
-======================
+= Apache NiFi User Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 
 
-Introduction
-------------
+== Introduction
 Apache NiFi is a dataflow system based on the concepts of flow-based programming. It supports
 powerful and scalable directed graphs of data routing, transformation, and system mediation logic. NiFi has
 a web-based user interface for design, control, feedback, and monitoring of dataflows. It is highly configurable
@@ -33,8 +31,7 @@ See the link:administration-guide.html[System Administrator’s Guide] for infor
 use a supported web browser to view the UI.
 
 
-Browser Support
----------------
+== Browser Support
 [options="header"]
 |======================
 |Browser  |Version
@@ -65,8 +62,7 @@ In environments where your browser width is less than 800 pixels and the height 
 UI may become unavailable.
 
 [template="glossary", id="terminology"]
-Terminology
------------
+== Terminology
 *DataFlow Manager*: A DataFlow Manager (DFM) is a NiFi user who has permissions to add, remove, and modify components of a NiFi dataflow.
 
 *FlowFile*: The FlowFile represents a single piece of data in NiFi. A FlowFile is made up of two components:
@@ -134,8 +130,7 @@ Terminology
 
 
 [[User_Interface]]
-NiFi User Interface
--------------------
+== NiFi User Interface
 
 The NiFi UI provides mechanisms for creating automated dataflows, as well as visualizing,
 editing, monitoring, and administering those dataflows. The UI can be broken down into several segments,
@@ -180,8 +175,7 @@ breadcrumbs is a link that will take you back up to that level in the flow.
 image::nifi-navigation.png["NiFi Navigation"]
 
 [[UI-with-multi-tenant-authorization]]
-Accessing the UI with Multi-Tenant Authorization
-------------------------------------------------
+== Accessing the UI with Multi-Tenant Authorization
 Multi-tenant authorization enables multiple groups of users (tenants) to command, control, and observe different parts of the dataflow,
 with varying levels of authorization. When an authenticated user attempts to view or modify a NiFi resource, the system checks whether the
 user has privileges to perform that action. These privileges are defined by policies that you can apply system wide or to individual
@@ -223,8 +217,7 @@ If you are unable to view or modify a NiFi resource, contact your System Adminis
 link:administration-guide.html[System Administrator’s Guide] for more information.
 
 [[logging-in]]
-Logging In
----------
+== Logging In
 
 If NiFi is configured to run securely, users will be able to request access to the DataFlow. For information on configuring NiFi to run
 securely, see the link:administration-guide.html[System Administrator’s Guide]. If NiFi supports anonymous access, users will be given access
@@ -238,8 +231,7 @@ image::login.png["Log In"]
 
 
 [[building-dataflow]]
-Building a DataFlow
--------------------
+== Building a DataFlow
 
 A DFM is able to build an automated dataflow using the NiFi UI. Simply drag components from the toolbar to the canvas,
 configure the components to meet specific needs, and connect
@@ -2100,8 +2092,7 @@ When switching between implementation "families" (i.e. `VolatileProvenanceReposi
 * Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption).
 
 [[other_management_features]]
-Other Management Features
--------------------------
+== Other Management Features
 
 In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are
 other tools in the Global Menu (see <<User_Interface>>) that are useful to the DFM. Select Flow Configuration History to view
