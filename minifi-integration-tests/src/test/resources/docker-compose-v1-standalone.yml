@@ -17,7 +17,10 @@ version: "2"
 
 services:
   minifi:
-    image: apacheminifi:${minifi.version}
+    build:
+      context: ./
+      dockerfile: Dockerfile.minifi.test
+    image: apacheminifi-test
     ports:
       - "8000"
     hostname: minifi
@@ -28,6 +31,6 @@ services:
       - ./logback.xml:/opt/minifi/minifi-${minifi.version}/conf/logback.xml
       - REPLACED_WITH_CONFIG_FILE:/opt/minifi/minifi-${minifi.version}/conf/config.yml
     entrypoint:
-      - bash
+      - sh
       - -c
       - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+#!/bin/sh
 DOCKER_IMAGE="$(egrep -v '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
 echo "Running Docker Image: $DOCKER_IMAGE"
 docker run -it -d $DOCKER_IMAGE

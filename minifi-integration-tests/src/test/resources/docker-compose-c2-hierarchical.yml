@@ -17,7 +17,10 @@ version: "2"
 
 services:
   c2-authoritative:
-    image: apacheminific2:${minifi.c2.version}
+    build:
+      context: ./
+      dockerfile: Dockerfile.minific2.test
+    image: apacheminific2-test
     ports:
       - "10443"
     hostname: c2-authoritative
@@ -36,7 +39,10 @@ services:
       - edge1
 
   minifi-edge1:
-    image: apacheminifi:${minifi.version}
+    build:
+      context: ./
+      dockerfile: ./Dockerfile.minifi.test
+    image: apacheminifi-test
     ports:
       - "8000"
     volumes:
@@ -48,14 +54,17 @@ services:
       - ./certificates-c2-hierarchical/minifi-edge1/keystore.jks:/opt/minifi/minifi-${minifi.version}/conf/keystore.jks
       - ./certificates-c2-hierarchical/minifi-edge1/truststore.jks:/opt/minifi/minifi-${minifi.version}/conf/truststore.jks
     entrypoint:
-      - bash
+      - sh
       - -c
       - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
       - edge1
 
   c2-edge2:
-    image: apacheminific2:${minifi.c2.version}
+    build:
+      context: ./
+      dockerfile: Dockerfile.minific2.test
+    image: apacheminific2-test
     ports:
       - "10080"
     hostname: c2-edge2
@@ -70,7 +79,10 @@ services:
       - edge2
 
   minifi-edge2:
-    image: apacheminifi:${minifi.version}
+    build:
+      context: ./
+      dockerfile: Dockerfile.minifi.test
+    image: apacheminifi-test
     ports:
       - "8000"
     volumes:
@@ -79,7 +91,7 @@ services:
       - ./c2/hierarchical/minifi-edge2/bootstrap.conf:/opt/minifi/minifi-${minifi.version}/conf/bootstrap.conf
       - ./logback.xml:/opt/minifi/minifi-${minifi.version}/conf/logback.xml
     entrypoint:
-      - bash
+      - sh
       - -c
       - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:
@@ -97,7 +109,10 @@ services:
       - edge3
 
   minifi-edge3:
-    image: apacheminifi:${minifi.version}
+    build:
+      context: ./
+      dockerfile: Dockerfile.minifi.test
+    image: apacheminifi-test
     ports:
       - "8000"
     volumes:
@@ -109,7 +124,7 @@ services:
       - ./certificates-c2-hierarchical/minifi-edge3/keystore.jks:/opt/minifi/minifi-${minifi.version}/conf/keystore.jks
       - ./certificates-c2-hierarchical/minifi-edge3/truststore.jks:/opt/minifi/minifi-${minifi.version}/conf/truststore.jks
     entrypoint:
-      - bash
+      - sh
       - -c
       - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
     networks:

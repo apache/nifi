@@ -45,6 +45,7 @@ public class LogUtil {
             expectedLogEntries = expected.stream().map(map -> new ExpectedLogEntry(Pattern.compile((String)map.get("pattern")), (int) map.getOrDefault("occurrences", 1))).collect(Collectors.toList());
         }
         DockerPort dockerPort = container.port(8000);
+        logger.info("Connecting to external port {} for docker internal port of {}", new Object[]{dockerPort.getExternalPort(), dockerPort.getInternalPort()});
         URL url = new URL("http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort());
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         try (InputStream inputStream = urlConnection.getInputStream();

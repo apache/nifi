@@ -99,7 +99,7 @@ public class HierarchicalC2IntegrationTest {
         docker.after();
     }
 
-    @Test(timeout = 120_000)
+    @Test(timeout = 180_000)
     public void testMiNiFiEdge1() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge1/expected.json", docker.containers().container("minifi-edge1"));
         Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
@@ -107,7 +107,7 @@ public class HierarchicalC2IntegrationTest {
         LogUtil.verifyLogEntries("standalone/v1/CsvToJson/yml/expected.json", docker.containers().container("minifi-edge1"));
     }
 
-    @Test(timeout = 120_000)
+    @Test(timeout = 180_000)
     public void testMiNiFiEdge2() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge2/expected.json", docker.containers().container("minifi-edge2"));
         Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
@@ -115,7 +115,7 @@ public class HierarchicalC2IntegrationTest {
         LogUtil.verifyLogEntries("standalone/v1/CsvToJson/yml/expected.json", docker.containers().container("minifi-edge2"));
     }
 
-    @Test(timeout = 120_000)
+    @Test(timeout = 180_000)
     public void testMiNiFiEdge3() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge3/expected.json", docker.containers().container("minifi-edge3"));
         Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
