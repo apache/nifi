@@ -31,11 +31,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.CacheBuilder;
 import org.apache.commons.lang3.StringUtils;
+
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -209,6 +213,24 @@ public class RouteText extends AbstractProcessor {
     private volatile Map<Relationship, PropertyValue> propertyMap = new HashMap<>();
     private volatile Pattern groupingRegex = null;
 
+    @VisibleForTesting
+    final static int PATTERNS_CACHE_MAXIMUM_ENTRIES = 1024;
+
+    /**
+     * LRU cache for the compiled patterns. The size of the cache is determined by the value of
+     * {@link #PATTERNS_CACHE_MAXIMUM_ENTRIES}.
+     */
+    @VisibleForTesting
+    final ConcurrentMap<String, Pattern> patternsCache = CacheBuilder.newBuilder()
+            .maximumSize(PATTERNS_CACHE_MAXIMUM_ENTRIES)
+            .<String, Pattern>build()
+            .asMap();
+
+    private Pattern cachedCompiledPattern(final String regex, final boolean ignoreCase) {
+        return patternsCache.computeIfAbsent(regex,
+                r -> ignoreCase ? Pattern.compile(r, Pattern.CASE_INSENSITIVE) : Pattern.compile(r));
+    }
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final Set<Relationship> set = new HashSet<>();
@@ -249,6 +271,10 @@ public class RouteText extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (descriptor.equals(IGNORE_CASE) && !newValue.equals(oldValue)) {
+            patternsCache.clear();
+        }
+
         if (descriptor.equals(ROUTE_STRATEGY)) {
             configuredRouteStrategy = newValue;
         } else {
@@ -384,11 +410,7 @@ public class RouteText extends AbstractProcessor {
             for (final Map.Entry<Relationship, PropertyValue> entry : propMap.entrySet()) {
                 final String value = entry.getValue().evaluateAttributeExpressions(originalFlowFile).getValue();
 
-                Pattern compiledRegex = null;
-                if (compileRegex) {
-                    compiledRegex = ignoreCase ? Pattern.compile(value, Pattern.CASE_INSENSITIVE) : Pattern.compile(value);
-                }
-                propValueMap.put(entry.getKey(), compileRegex ? compiledRegex : value);
+                propValueMap.put(entry.getKey(), compileRegex ? cachedCompiledPattern(value, ignoreCase) : value);
             }
         }
 
@@ -435,7 +457,7 @@ public class RouteText extends AbstractProcessor {
 
                         int propertiesThatMatchedLine = 0;
                         for (final Map.Entry<Relationship, Object> entry : propValueMap.entrySet()) {
-                            boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), context.getProperty(MATCH_STRATEGY).getValue(), ignoreCase, originalFlowFile, variables);
+                            boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), matchStrategy, ignoreCase, originalFlowFile, variables);
                             if (lineMatchesProperty) {
                                 propertiesThatMatchedLine++;
                             }
