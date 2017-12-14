@@ -89,6 +89,7 @@
         <module>nifi-extension-utils</module>
         <module>nifi-redis-bundle</module>
         <module>nifi-metrics-reporting-bundle</module>
+        <module>nifi-spark-bundle</module>
   </modules>
 
     <build>
