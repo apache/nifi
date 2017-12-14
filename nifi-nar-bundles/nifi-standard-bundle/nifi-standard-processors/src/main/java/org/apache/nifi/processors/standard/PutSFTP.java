@@ -54,6 +54,7 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
         properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
         properties.add(SFTPTransfer.REMOTE_PATH);
         properties.add(SFTPTransfer.CREATE_DIRECTORY);
+        properties.add(SFTPTransfer.DISABLE_DIRECTORY_LISTING);
         properties.add(SFTPTransfer.BATCH_SIZE);
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
         properties.add(SFTPTransfer.DATA_TIMEOUT);
@@ -75,14 +76,6 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
-    }
-
-    @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        if (SFTPTransfer.DISABLE_DIRECTORY_LISTING.getName().equalsIgnoreCase(propertyDescriptorName)) {
-            return SFTPTransfer.DISABLE_DIRECTORY_LISTING;
-        }
-        return super.getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
     }
 
     @Override
