@@ -214,7 +214,7 @@ public class RouteText extends AbstractProcessor {
     private volatile Pattern groupingRegex = null;
 
     @VisibleForTesting
-    final static int PATTERNS_CACHE_MAXIMUM_ENTRIES = 10;
+    final static int PATTERNS_CACHE_MAXIMUM_ENTRIES = 1024;
 
     /**
      * LRU cache for the compiled patterns. The size of the cache is determined by the value of
