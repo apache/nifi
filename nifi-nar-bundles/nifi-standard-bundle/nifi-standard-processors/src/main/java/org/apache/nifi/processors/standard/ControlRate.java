@@ -399,8 +399,13 @@ public class ControlRate extends AbstractProcessor {
                 return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
             }
 
-            final String groupName = (groupingAttributeName == null) ? DEFAULT_GROUP_ATTRIBUTE : flowFile
+            String groupName = (groupingAttributeName == null) ? DEFAULT_GROUP_ATTRIBUTE : flowFile
                     .getAttribute(groupingAttributeName);
+            // the flow file may not have the required attribute: in this case it is considered part
+            // of the DEFAULT_GROUP_ATTRIBUTE
+            if (groupName == null) {
+                groupName = DEFAULT_GROUP_ATTRIBUTE;
+            }
             Throttle throttle = throttleMap.get(groupName);
             if (throttle == null) {
                 throttle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger());
