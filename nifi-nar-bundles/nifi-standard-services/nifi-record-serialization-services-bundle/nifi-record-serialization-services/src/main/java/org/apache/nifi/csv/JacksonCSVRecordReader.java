@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 
 public class JacksonCSVRecordReader implements RecordReader {
@@ -137,13 +136,7 @@ public class JacksonCSVRecordReader implements RecordReader {
                 if (!hasHeader || ignoreHeader) {
                     rawFieldNames = schema.getFieldNames();
                 } else {
-                    rawFieldNames = Arrays.stream(csvRecord).map((a) -> {
-                        if (a == null) {
-                            return null;
-                        } else {
-                            return a;
-                        }
-                    }).collect(Collectors.toList());
+                    rawFieldNames = Arrays.asList(csvRecord);
 
                     // Advance the stream to keep the record count correct
                     if (recordStream.hasNext()) {
