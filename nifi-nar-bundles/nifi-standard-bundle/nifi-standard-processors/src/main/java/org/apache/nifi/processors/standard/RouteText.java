@@ -33,14 +33,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
@@ -223,20 +221,14 @@ public class RouteText extends AbstractProcessor {
      * {@link #PATTERNS_CACHE_MAXIMUM_ENTRIES}.
      */
     @VisibleForTesting
-    final ConcurrentMap<Pair<Boolean, String>, Pattern> patternsCache = CacheBuilder.newBuilder()
+    final ConcurrentMap<String, Pattern> patternsCache = CacheBuilder.newBuilder()
             .maximumSize(PATTERNS_CACHE_MAXIMUM_ENTRIES)
-            .<Pair<Boolean, String>, Pattern>build()
+            .<String, Pattern>build()
             .asMap();
 
-    private final Function<Pair<Boolean, String>, Pattern> compileRegex = ignoreCaseAndRegex -> {
-        final boolean ignoreCase = ignoreCaseAndRegex.getLeft();
-        final String regex = ignoreCaseAndRegex.getRight();
-        return ignoreCase ? Pattern.compile(regex, Pattern.CASE_INSENSITIVE) : Pattern.compile(regex);
-    };
-
-    private Pattern cachedCompiledPattern(String regex, boolean ignoreCase) {
-        final Pair<Boolean, String> key = Pair.of(ignoreCase, regex);
-        return patternsCache.computeIfAbsent(key, compileRegex);
+    private Pattern cachedCompiledPattern(final String regex, final boolean ignoreCase) {
+        return patternsCache.computeIfAbsent(regex,
+                r -> ignoreCase ? Pattern.compile(r, Pattern.CASE_INSENSITIVE) : Pattern.compile(r));
     }
 
     @Override
@@ -279,6 +271,10 @@ public class RouteText extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (descriptor.equals(IGNORE_CASE) && !newValue.equals(oldValue)) {
+            patternsCache.clear();
+        }
+
         if (descriptor.equals(ROUTE_STRATEGY)) {
             configuredRouteStrategy = newValue;
         } else {
