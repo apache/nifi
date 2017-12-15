@@ -775,7 +775,8 @@ public class TestRouteText {
         runner.enqueue("some other text", ImmutableMap.of("someValue", "a value"));
         runner.run(2);
 
-        assert routeText.patternsCache.size() == 1;
+        assertEquals("Expected 1 elements in the cache for the patterns, got" +
+                routeText.patternsCache.size(), 1, routeText.patternsCache.size());
 
         for (int i = 0; i < RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2; ++i) {
             String iString = Long.toString(i);
@@ -784,11 +785,16 @@ public class TestRouteText {
             runner.run();
         }
 
-        assert routeText.patternsCache.size() == RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES;
+        assertEquals("Expected " + RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES +
+                " elements in the cache for the patterns, got" + routeText.patternsCache.size(),
+                RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES, routeText.patternsCache.size());
 
         runner.assertTransferCount("simple", RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2);
         runner.assertTransferCount("unmatched", 2);
         runner.assertTransferCount("original", RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2 + 2);
+
+        runner.setProperty(RouteText.IGNORE_CASE, "true");
+        assertEquals("Pattern cache is not cleared after changing IGNORE_CASE", 0, routeText.patternsCache.size());
     }
 
 
