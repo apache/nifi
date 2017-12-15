@@ -98,8 +98,6 @@ public class JacksonCSVRecordReader implements RecordReader {
             if (ignoreHeader) {
                 csvSchemaBuilder = csvSchemaBuilder.setSkipFirstDataRow(true);
             }
-        } else {
-            csvSchemaBuilder = csvSchemaBuilder.addColumns(schema.getFieldNames(), CsvSchema.ColumnType.STRING);
         }
 
         CsvSchema csvSchema = csvSchemaBuilder.build();
@@ -136,7 +134,7 @@ public class JacksonCSVRecordReader implements RecordReader {
 
             // If the first record is the header names (and we're using them), store those off for use in creating the value map on the next iterations
             if (rawFieldNames == null) {
-                if (hasHeader && ignoreHeader) {
+                if (!hasHeader || ignoreHeader) {
                     rawFieldNames = schema.getFieldNames();
                 } else {
                     rawFieldNames = Arrays.stream(csvRecord).map((a) -> {
