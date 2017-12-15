@@ -19,14 +19,13 @@
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Registry</div>
-            <div id="save-flow-version-registry-container" class="setting-field">
+            <div class="setting-field">
                 <div id="save-flow-version-registry-combo" class="hidden"></div>
                 <div id="save-flow-version-registry" class="hidden"></div>
-                <div id="save-flow-version-label"></div>
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Location</div>
+            <div class="setting-name">Bucket</div>
             <div class="setting-field">
                 <div id="save-flow-version-bucket-combo" class="hidden"></div>
                 <div id="save-flow-version-bucket" class="hidden"></div>
@@ -34,10 +33,11 @@
         </div>
         <div class="setting">
             <div class="setting-name">Name</div>
-            <div class="setting-field">
+            <div id="save-flow-version-registry-container" class="setting-field">
                 <span id="save-flow-version-process-group-id" class="hidden"></span>
                 <input type="text" id="save-flow-version-name-field" class="setting-input hidden"/>
                 <div id="save-flow-version-name" class="hidden"></div>
+                <div id="save-flow-version-label"></div>
             </div>
         </div>
         <div class="setting">

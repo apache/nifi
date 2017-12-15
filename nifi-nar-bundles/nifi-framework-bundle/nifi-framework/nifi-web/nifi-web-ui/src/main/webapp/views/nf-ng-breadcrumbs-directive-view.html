@@ -22,7 +22,7 @@ limitations under the License.
                 <span ng-if="separatorFunc(crumb.parentBreadcrumb)" style="margin: 0 12px;">
                     &raquo;
                 </span>
-                <span ng-if="isTracking(crumb)" title="{{getVersionControlTooltip(crumb)}}" class="{{getVersionControlClass(crumb)}}" style="margin: 0 6px;"></span>
+                <span ng-if="isTracking(crumb)" title="{{getVersionControlTooltip(crumb)}}" class="{{getVersionControlClass(crumb)}}" style="margin-right: 6px;"></span>
                 <span class="link"
                       ng-class="(highlightCrumbId === crumb.id) ? 'link-bold' : ''"
                       ng-click="clickFunc(crumb.id)">

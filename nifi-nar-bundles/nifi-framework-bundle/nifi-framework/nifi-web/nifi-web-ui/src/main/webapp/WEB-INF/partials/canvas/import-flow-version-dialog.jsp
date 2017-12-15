@@ -25,7 +25,7 @@
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Location</div>
+            <div class="setting-name">Bucket</div>
             <div class="setting-field">
                 <div id="import-flow-version-bucket-combo"></div>
                 <div id="import-flow-version-bucket" class="hidden"></div>

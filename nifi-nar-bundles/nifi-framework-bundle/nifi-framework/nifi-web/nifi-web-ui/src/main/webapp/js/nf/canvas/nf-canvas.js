@@ -609,14 +609,6 @@
                 });
             };
 
-            // define a function for update the flow status dimensions
-            var updateFlowStatusContainerSize = function () {
-                $('#flow-status-container').css({
-                    'width': ((($('#nifi-logo').width() + $('#component-container').width())/$(window).width())*100)*2 + '%'
-                });
-            };
-            updateFlowStatusContainerSize();
-
             // listen for events to go to components
             $('body').on('GoTo:Component', function (e, item) {
                 nfCanvasUtils.showComponent(item.parentGroupId, item.id);
@@ -641,7 +633,6 @@
                     }
 
                     updateGraphSize();
-                    updateFlowStatusContainerSize();
 
                     // resize shell when appropriate
                     var shell = $('#shell-dialog');
