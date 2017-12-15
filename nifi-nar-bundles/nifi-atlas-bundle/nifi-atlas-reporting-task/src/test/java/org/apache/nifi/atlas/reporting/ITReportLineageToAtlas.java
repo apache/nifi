@@ -70,12 +70,12 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.BiConsumer;
 
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_NIFI_URL;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_PASSWORD;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_URLS;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_USER;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.LINEAGE_STRATEGY_COMPLETE_PATH;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.NIFI_LINEAGE_STRATEGY;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_NIFI_URL;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_PASSWORD;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.LINEAGE_STRATEGY_COMPLETE_PATH;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_LINEAGE_STRATEGY;
 import static org.apache.nifi.atlas.reporting.SimpleProvenanceRecord.pr;
 import static org.apache.nifi.provenance.ProvenanceEventType.ATTRIBUTES_MODIFIED;
 import static org.apache.nifi.provenance.ProvenanceEventType.CREATE;
@@ -92,9 +92,9 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ITAtlasNiFiFlowLineage {
+public class ITReportLineageToAtlas {
 
-    private static final Logger logger = LoggerFactory.getLogger(ITAtlasNiFiFlowLineage.class);
+    private static final Logger logger = LoggerFactory.getLogger(ITReportLineageToAtlas.class);
 
     private ProcessGroupStatus loadTemplate(String name) {
 
@@ -113,7 +113,7 @@ public class ITAtlasNiFiFlowLineage {
             throw new RuntimeException("Failed to create a XML reader", e);
         }
 
-        final String template = ITAtlasNiFiFlowLineage.class.getResource("/flow-templates/" + name + ".xml").getPath();
+        final String template = ITReportLineageToAtlas.class.getResource("/flow-templates/" + name + ".xml").getPath();
         final TemplateContentHander handler = new TemplateContentHander(name);
         xmlReader.setContentHandler(handler);
         try {
@@ -391,7 +391,7 @@ public class ITAtlasNiFiFlowLineage {
     }
 
     private void test(TestConfiguration tc) throws InitializationException, IOException {
-        final AtlasNiFiFlowLineage reportingTask = new AtlasNiFiFlowLineage();
+        final ReportLineageToAtlas reportingTask = new ReportLineageToAtlas();
         final MockComponentLog logger = new MockComponentLog("reporting-task-id", reportingTask);
 
         final ReportingInitializationContext initializationContext = mock(ReportingInitializationContext.class);
@@ -446,7 +446,7 @@ public class ITAtlasNiFiFlowLineage {
     private boolean useEmbeddedEmulator;
     private AtlasAPIV2ServerEmulator atlasAPIServer;
 
-    public ITAtlasNiFiFlowLineage() {
+    public ITReportLineageToAtlas() {
         useEmbeddedEmulator = Boolean.valueOf(System.getenv("useEmbeddedEmulator"));
         if (useEmbeddedEmulator) {
             atlasAPIServer = new AtlasAPIV2ServerEmulator();

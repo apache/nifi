@@ -27,8 +27,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_PASSWORD;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_USER;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_PASSWORD;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
 
 public class Basic implements AtlasAuthN {
 

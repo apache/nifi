@@ -20,6 +20,7 @@ import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.atlas.ApplicationProperties;
 import org.apache.atlas.AtlasClientV2;
+import org.apache.atlas.AtlasErrorCode;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.atlas.model.SearchFilter;
 import org.apache.atlas.model.instance.AtlasEntity;
@@ -306,6 +307,7 @@ public class NiFiAtlasClient {
                 final Map<String, Object> uniqueAttrs = Collections.singletonMap(ATTR_QUALIFIED_NAME, entity.getAttribute(ATTR_QUALIFIED_NAME));
                 return new Tuple<>(new AtlasObjectId(id.getGuid(), id.getTypeName(), uniqueAttrs), entity);
             } catch (AtlasServiceException e) {
+                logger.warn("Failed to search entity by id {}, due to {}", id, e);
                 return null;
             }
         }).filter(Objects::nonNull).collect(Collectors.toMap(Tuple::getKey, Tuple::getValue));
@@ -341,13 +343,15 @@ public class NiFiAtlasClient {
             shouldUpdateNiFiFlow = true;
         }
 
-        logger.debug("### NiFi Flow Audit Logs START");
-        nifiFlow.getUpdateAudit().forEach(logger::debug);
-        nifiFlow.getFlowPaths().forEach((k, v) -> {
-            logger.debug("--- NiFiFlowPath Audit Logs: {}", k);
-            v.getUpdateAudit().forEach(logger::debug);
-        });
-        logger.debug("### NiFi Flow Audit Logs END");
+        if (logger.isDebugEnabled()) {
+            logger.debug("### NiFi Flow Audit Logs START");
+            nifiFlow.getUpdateAudit().forEach(logger::debug);
+            nifiFlow.getFlowPaths().forEach((k, v) -> {
+                logger.debug("--- NiFiFlowPath Audit Logs: {}", k);
+                v.getUpdateAudit().forEach(logger::debug);
+            });
+            logger.debug("### NiFi Flow Audit Logs END");
+        }
 
         if (shouldUpdateNiFiFlow) {
             // Send updated entities.
@@ -358,7 +362,8 @@ public class NiFiAtlasClient {
                 final EntityMutationResponse mutationResponse = atlasClient.createEntities(atlasEntities);
                 logger.debug("mutation response={}", mutationResponse);
             } catch (AtlasServiceException e) {
-                if (e.getStatus().getStatusCode() == 404 && e.getMessage().contains("ATLAS-404-00-00B")) {
+                if (e.getStatus().getStatusCode() == AtlasErrorCode.INSTANCE_NOT_FOUND.getHttpCode().getStatusCode()
+                        && e.getMessage().contains(AtlasErrorCode.INSTANCE_NOT_FOUND.getErrorCode())) {
                     // NOTE: If previously existed nifi_flow_path entity is removed because the path is removed from NiFi,
                     // then Atlas respond with 404 even though the entity is successfully updated.
                     // Following exception is thrown in this case. Just log it.

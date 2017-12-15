@@ -31,8 +31,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.NIFI_KERBEROS_KEYTAB;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.NIFI_KERBEROS_PRINCIPAL;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_KEYTAB;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_PRINCIPAL;
 
 public class Kerberos implements AtlasAuthN {
 

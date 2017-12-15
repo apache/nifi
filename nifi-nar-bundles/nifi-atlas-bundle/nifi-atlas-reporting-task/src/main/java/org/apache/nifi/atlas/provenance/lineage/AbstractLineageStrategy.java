@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.atlas.AtlasUtils.toStr;
 import static org.apache.nifi.atlas.AtlasUtils.toTypedQualifiedName;
-import static org.apache.nifi.atlas.NiFIAtlasHook.NIFI_USER;
+import static org.apache.nifi.atlas.NiFiAtlasHook.NIFI_USER;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_INPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NIFI_FLOW;

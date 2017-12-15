@@ -52,11 +52,11 @@ import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_FLOW_PATH;
  * This class is not thread-safe as it holds uncommitted notification messages within instance.
  * {@link #addMessage(HookNotificationMessage)} and {@link #commitMessages()} should be used serially from a single thread.
  */
-public class NiFIAtlasHook extends AtlasHook implements LineageContext {
+public class NiFiAtlasHook extends AtlasHook implements LineageContext {
 
     public static final String NIFI_USER = "nifi";
 
-    private static final Logger logger = LoggerFactory.getLogger(NiFIAtlasHook.class);
+    private static final Logger logger = LoggerFactory.getLogger(NiFiAtlasHook.class);
     private static final String CONF_PREFIX = "atlas.hook.nifi.";
     private static final String HOOK_NUM_RETRIES = CONF_PREFIX + "numRetries";
 
@@ -81,7 +81,7 @@ public class NiFIAtlasHook extends AtlasHook implements LineageContext {
         };
     }
 
-    public NiFIAtlasHook(NiFiAtlasClient atlasClient) {
+    public NiFiAtlasHook(NiFiAtlasClient atlasClient) {
         this.atlasClient = atlasClient;
 
         final int qualifiedNameCacheSize = 10_000;

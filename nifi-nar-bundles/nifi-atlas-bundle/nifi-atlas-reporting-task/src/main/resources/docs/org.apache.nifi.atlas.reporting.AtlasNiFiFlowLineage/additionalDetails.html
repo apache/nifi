@@ -16,15 +16,14 @@
 -->
     <head>
         <meta charset="utf-8" />
-        <title>AtlasNiFiFlowLineage</title>
+        <title>ReportLineageToAtlas</title>
         <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
     </head>
 
     <body>
-        <h2>AtlasNiFiFlowLineage</h2>
+        <h2>ReportLineageToAtlas</h2>
 
         Table of contents:
-        <!-- TODO: Fix header tags most h4 should be h3 -->
         <ul>
             <li><a href="#how-it-works">Information reported to Atlas</a></li>
             <li><a href="#nifi-atlas-types">NiFi Atlas Types</a></li>
@@ -61,7 +60,7 @@
 
         <p>As both information types use the same <a href="#nifi-atlas-types">NiFi Atlas Types</a> and <a href="#cluster-name">Cluster Name Resolution</a> concepts, it is recommended to start reading those sections first.</p>
 
-        <h4 id="nifi-atlas-types">NiFi Atlas Types</h4>
+        <h3 id="nifi-atlas-types">NiFi Atlas Types</h3>
 
         <p>This reporting task creates following NiFi specific types in Atlas Type system when it runs if these type definitions are not found.</p>
 
@@ -98,7 +97,6 @@
             </ul>
         </ul>
         <ul>
-            <!-- TODO: link to S2S details -->
             <li>nifi_input/output_port <p>Represents a RootGroupPort which can be accessed by RemoteProcessGroup via Site-to-Site protocol.</p></li>
             Attributes:
             <ul>
@@ -107,8 +105,7 @@
             </ul>
         </ul>
         <ul>
-            <!-- TODO: link to unknown datasets -->
-            <li>nifi_data <p>Represents 'Unknown' DataSets created by CREATE/SEND/RECEIVE NiFi provenance events those do not have particular provenance event analyzer.</p></li>
+            <li>nifi_data <p>Represents <a href="#unknown-datasets">Unknown DataSets</a> created by CREATE/SEND/RECEIVE NiFi provenance events those do not have particular provenance event analyzer.</p></li>
             Attributes:
             <ul>
                 <li>qualifiedName: ID of a Processor which generated the provenance event@clusterName (e.g. db8bb12c-5cd3-3011-c971-579f460ebedf@cl1)</li>
@@ -138,7 +135,7 @@
             </ul>
         </p>
 
-        <p>To answer such questions, AtlasNiFiFlowLineage reporting task provides a way to define mappings from ip address or hostname to a cluster name.
+        <p>To answer such questions, ReportLineageToAtlas reporting task provides a way to define mappings from ip address or hostname to a cluster name.
         The mapping can be defined by Dynamic Properties with a name in 'hostnamePattern.ClusterName' format, having its value as a set of Regular Expression Patterns to match ip addresses or host names to a particular cluster name.</p>
 
         <p>As an example, following mapping definition would resolve cluster name 'cluster-A' for ip address such as '192.168.30.123' or hostname 'namenode1.a.example.com', and 'cluster-B' for '192.168.40.223' or 'nifi3.b.example.com'.</p>
@@ -280,7 +277,7 @@ Processor 3</pre>
 
         <p>'clusterName' in 'qualifiedName' attribute is resolved by mapping ip-address or hostname available at NiFi Provenance event 'transitUri' to a cluster name. See <a href="cluster-name">Cluster Name Resolution</a> for detail.</p>
 
-        <p>For 'typeName' and 'qualifiedName', different analysis rules are needed for different DataSet. AtlasNiFiFlowLineage provides an extension point called 'NiFiProvenanceEventAnalyzer' to implement such analysis logic for particular DataSets.</p>
+        <p>For 'typeName' and 'qualifiedName', different analysis rules are needed for different DataSet. ReportLineageToAtlas provides an extension point called 'NiFiProvenanceEventAnalyzer' to implement such analysis logic for particular DataSets.</p>
 
         <p>When a Provenance event is analyzed, registered NiFiProvenanceEventAnalyzer implementations are searched in following order to find a best matching analyzer implementation:
             <ol>
@@ -463,7 +460,7 @@ Processor 3</pre>
                 <td>/path/fileName@hostname<br/>(e.g. /tmp/dir/filename.txt@host.example.com)</td>
             </tr>
 
-            <tr>
+            <tr id="unknown-datasets">
                 <td>unknown.Create<br/>Receive, Fetch<br/>Send, RemoteInvocation</td>
                 <td>Other Processors those generates listed event types</td>
                 <td>

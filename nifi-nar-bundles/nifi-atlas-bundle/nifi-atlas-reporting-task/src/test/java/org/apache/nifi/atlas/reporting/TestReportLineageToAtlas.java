@@ -27,19 +27,19 @@ import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_NIFI_URL;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_PASSWORD;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_URLS;
-import static org.apache.nifi.atlas.reporting.AtlasNiFiFlowLineage.ATLAS_USER;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_NIFI_URL;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_PASSWORD;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
 import static org.junit.Assert.assertTrue;
 
-public class TestAtlasNiFiFlowLineage {
+public class TestReportLineageToAtlas {
 
-    private final Logger logger = LoggerFactory.getLogger(TestAtlasNiFiFlowLineage.class);
+    private final Logger logger = LoggerFactory.getLogger(TestReportLineageToAtlas.class);
 
     @Test
     public void validateAtlasUrls() throws Exception {
-        final AtlasNiFiFlowLineage reportingTask = new AtlasNiFiFlowLineage();
+        final ReportLineageToAtlas reportingTask = new ReportLineageToAtlas();
         final MockProcessContext processContext = new MockProcessContext(reportingTask);
         final MockValidationContext validationContext = new MockValidationContext(processContext);
 

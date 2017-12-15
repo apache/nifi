@@ -17,6 +17,7 @@
 package org.apache.nifi.atlas;
 
 import org.apache.atlas.model.instance.AtlasObjectId;
+import org.apache.nifi.atlas.reporting.ITReportLineageToAtlas;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -35,7 +36,7 @@ import static org.junit.Assert.assertEquals;
 
 /**
  * Test {@link NiFiFlowAnalyzer} with simple mock code.
- * More complex and detailed tests are available in {@link org.apache.nifi.atlas.reporting.ITAtlasNiFiFlowLineage}.
+ * More complex and detailed tests are available in {@link ITReportLineageToAtlas}.
  */
 public class TestNiFiFlowAnalyzer {
 

@@ -18,7 +18,7 @@ Since [Apache Atlas](http://atlas.apache.org/) uses multiple data storage such a
 
 In order to execute Atlas client side testing and debugging more aggressively, this Atlas Server Emulator is created.
 
-It can be run as a Java process from your IDE, and let Apache NiFI AtlasNiFiFlowLineage reporting task to call Atlas V2 REST APIs and send notification messages. The emulator runs a Jetty REST API server emulator and an embedded Kafka broker.
+It can be run as a Java process from your IDE, and let Apache NiFI ReportLineageToAtlas reporting task to call Atlas V2 REST APIs and send notification messages. The emulator runs a Jetty REST API server emulator and an embedded Kafka broker.
 
 ![](architecture.svg)
 
@@ -30,7 +30,7 @@ Run org.apache.nifi.atlas.emulator.AtlasAPIV2ServerEmulator.
 
 ## How to debug reported entities
 
-Configure NAtlasNiFiFlowLineage reporting task as follows:
+Configure ReportLineageToAtlas reporting task as follows:
 
 - Atlas URLs: http://localhost:21000
 - Create Atlas Configuration File: true
@@ -41,12 +41,12 @@ Once the reporting task runs, you can visit http://localhost:21000/graph.html to
 
 ![](graph-example.png)
 
-## ITAtlasNiFiFlowLineage
+## ITReportLineageToAtlas
 
-ITAtlasNiFiFlowLineage is a automated test class using multiple NiFi flow templates and Atlas Server Emulator to test the entire NiFiAtlasFlowLineage reporting task behavior including registered NiFiProvenanceEventAnalyzer implementations.
+ITReportLineageToAtlas is a automated test class using multiple NiFi flow templates and Atlas Server Emulator to test the entire NiFiAtlasFlowLineage reporting task behavior including registered NiFiProvenanceEventAnalyzer implementations.
 
 This test class is not executed as a normal unit test class because it is takes longer. However, it's recommended to run this class when the reporting task code is modified to confirm existing situations are still handled as expected.
 
 You can see NiFi flows used at the test class by importing NiFi flow template files in test/resources/flow-templates to your NiFi instance.
 
-Similarly, you can create new test methods by creating a NiFi flow template and load it from the method. NiFi provenance events can be generated programmatically. After AtlasNiFiFlowLineage reporting task runs, test methods can verify the created Atlas entities and lineages.
+Similarly, you can create new test methods by creating a NiFi flow template and load it from the method. NiFi provenance events can be generated programmatically. After ReportLineageToAtlas reporting task runs, test methods can verify the created Atlas entities and lineages.
