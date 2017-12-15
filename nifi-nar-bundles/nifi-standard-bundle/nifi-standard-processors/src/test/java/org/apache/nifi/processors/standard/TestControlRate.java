@@ -207,6 +207,25 @@ public class TestControlRate {
         runner.assertQueueEmpty();
     }
 
+    @Test
+    public void testNonExistingGroupAttribute() throws InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "2");
+        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
+
+        createFlowFileWithGroup(runner, "one");
+        createFlowFile(runner, 1); // no group set on this flow file
+        createFlowFileWithGroup(runner, "one");
+        createFlowFile(runner, 2); // no group set on this flow file
+
+        runner.run(4, false);
+
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 4);
+        runner.assertQueueEmpty();
+    }
+
     private void createFlowFile(final TestRunner runner, final int value) {
         final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("count", String.valueOf(value));
