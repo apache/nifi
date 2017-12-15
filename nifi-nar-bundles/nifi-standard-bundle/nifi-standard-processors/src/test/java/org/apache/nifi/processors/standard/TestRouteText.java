@@ -31,7 +31,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
