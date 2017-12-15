@@ -224,7 +224,7 @@ div.progress-label {
     height: 85px;
 }
 
-#save-flow-version-registry-combo, #save-flow-version-registry {
+#save-flow-version-name-field, #save-flow-version-name {
     width: 100%;
     margin-right: 10px;
 }

@@ -1289,7 +1289,7 @@ public interface NiFiServiceFacade {
      * Returns a FlowComparisonEntity that contains all of the local modifications since the Process Group
      * was last synchronized with the Flow Registry
      *
-     * @param processGroupId
+     * @param processGroupId the ID of the Process Group
      * @return a FlowComparisonEntity that contains all of the local modifications since the Process Group
      *         was last synchronized with the Flow Registry
      * @throws IllegalStateException if the Process Group with the given ID is not under version control
@@ -1455,8 +1455,8 @@ public interface NiFiServiceFacade {
      *            update the contents of that Process Group
      * @return the Process Group
      */
-    ProcessGroupEntity updateProcessGroupContents(NiFiUser user, Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot, String componentIdSeed,
-        boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
+    ProcessGroupEntity updateProcessGroupContents(NiFiUser user, Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot,
+                                                  String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     // ----------------------------------------
     // Component state methods

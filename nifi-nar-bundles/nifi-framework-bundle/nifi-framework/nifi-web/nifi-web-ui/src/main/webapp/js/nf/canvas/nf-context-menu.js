@@ -541,7 +541,9 @@
         }
 
         // check the selection for version control information
-        return versionControlInformation.state !== 'LOCALLY_MODIFIED' && versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE';
+        return versionControlInformation.state !== 'LOCALLY_MODIFIED' &&
+            versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE' &&
+            versionControlInformation.state !== 'SYNC_FAILURE';
     };
 
     /**
