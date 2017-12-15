@@ -75,7 +75,7 @@ public class NiFiFlowAnalyzer {
                 if (nifiFlow.isProcessor(sourceId)) {
                     ids.add(sourceId);
                 } else {
-                    ids.addAll(getIncomingProcessorsIds(nifiFlow, nifiFlow.getIncomingRelationShips(sourceId)));
+                    ids.addAll(getIncomingProcessorsIds(nifiFlow, nifiFlow.getIncomingConnections(sourceId)));
                 }
             }
         });
@@ -84,7 +84,7 @@ public class NiFiFlowAnalyzer {
     }
 
     private List<String> getNextProcessComponent(NiFiFlow nifiFlow, NiFiFlowPath path, String componentId) {
-        final List<ConnectionStatus> outs = nifiFlow.getOutgoingRelationShips(componentId);
+        final List<ConnectionStatus> outs = nifiFlow.getOutgoingConnections(componentId);
         if (outs == null || outs.isEmpty()) {
             return Collections.emptyList();
         }
@@ -119,7 +119,7 @@ public class NiFiFlowAnalyzer {
             path.addProcessor(componentId);
         }
 
-        final List<ConnectionStatus> outs = nifiFlow.getOutgoingRelationShips(componentId);
+        final List<ConnectionStatus> outs = nifiFlow.getOutgoingConnections(componentId);
         if (outs == null || outs.isEmpty()) {
             return;
         }
@@ -135,7 +135,7 @@ public class NiFiFlowAnalyzer {
             // If the destination has more than one inputs, or there are multiple destinations,
             // then it should be treated as a separate flow path.
             final boolean createJointPoint = nextProcessComponents.size() > 1
-                    || getIncomingProcessorsIds(nifiFlow, nifiFlow.getIncomingRelationShips(destPid)).size() > 1;
+                    || getIncomingProcessorsIds(nifiFlow, nifiFlow.getIncomingConnections(destPid)).size() > 1;
 
             if (createJointPoint) {
 
@@ -180,8 +180,8 @@ public class NiFiFlowAnalyzer {
                         return false;
                     }
                     // Check next level.
-                    final List<ConnectionStatus> incomingRelationShips = nifiFlow.getIncomingRelationShips(sourceId);
-                    return isHeadProcessor(nifiFlow, incomingRelationShips);
+                    final List<ConnectionStatus> incomingConnections = nifiFlow.getIncomingConnections(sourceId);
+                    return isHeadProcessor(nifiFlow, incomingConnections);
                 }
         );
     }
@@ -193,7 +193,7 @@ public class NiFiFlowAnalyzer {
         final Map<String, ProcessorStatus> processors = nifiFlow.getProcessors();
         final Set<String> headProcessComponents = processors.keySet().stream()
                 .filter(pid -> {
-                    final List<ConnectionStatus> ins = nifiFlow.getIncomingRelationShips(pid);
+                    final List<ConnectionStatus> ins = nifiFlow.getIncomingConnections(pid);
                     return isHeadProcessor(nifiFlow, ins);
                 })
                 .collect(Collectors.toSet());

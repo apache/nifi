@@ -49,12 +49,12 @@ public class StandardAnalysisContext implements AnalysisContext {
 
     @Override
     public List<ConnectionStatus> findConnectionTo(String componentId) {
-        return nifiFlow.getIncomingRelationShips(componentId);
+        return nifiFlow.getIncomingConnections(componentId);
     }
 
     @Override
     public List<ConnectionStatus> findConnectionFrom(String componentId) {
-        return nifiFlow.getOutgoingRelationShips(componentId);
+        return nifiFlow.getOutgoingConnections(componentId);
     }
 
     @Override

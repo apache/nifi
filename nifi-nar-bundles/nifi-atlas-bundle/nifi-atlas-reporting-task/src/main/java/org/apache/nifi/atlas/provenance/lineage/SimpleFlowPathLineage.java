@@ -84,13 +84,13 @@ public class SimpleFlowPathLineage extends AbstractLineageStrategy {
             }
 
             // Set groupId from incoming connection if available.
-            final List<ConnectionStatus> incomingRelationShips = nifiFlow.getIncomingRelationShips(portProcessId);
-            if (incomingRelationShips == null || incomingRelationShips.isEmpty()) {
+            final List<ConnectionStatus> incomingConnections = nifiFlow.getIncomingConnections(portProcessId);
+            if (incomingConnections == null || incomingConnections.isEmpty()) {
                 logger.warn("Incoming relationship was not found: {}", new Object[]{event});
                 return;
             }
 
-            final ConnectionStatus connection = incomingRelationShips.get(0);
+            final ConnectionStatus connection = incomingConnections.get(0);
             remotePortProcess.setGroupId(connection.getGroupId());
 
             final Referenceable remotePortProcessRef = toReferenceable(remotePortProcess, nifiFlow);
@@ -117,7 +117,7 @@ public class SimpleFlowPathLineage extends AbstractLineageStrategy {
             // For RemoteOutputPort, it's possible that multiple processors are connected.
             // In that case, the received FlowFile is cloned and passed to each connection.
             // So we need to create multiple DataSetRefs.
-            final List<ConnectionStatus> connections = nifiFlow.getOutgoingRelationShips(portProcessId);
+            final List<ConnectionStatus> connections = nifiFlow.getOutgoingConnections(portProcessId);
             if (connections == null || connections.isEmpty()) {
                 logger.warn("Incoming connection was not found: {}", new Object[]{event});
                 return;
