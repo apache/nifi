@@ -638,6 +638,7 @@
          */
         showConfiguration: function (selection) {
             if (nfCanvasUtils.isProcessor(selection)) {
+                var self = this;
                 var selectionData = selection.datum();
 
                 // get the processor details
@@ -852,11 +853,10 @@
 
                                         // show the custom ui
                                         nfCustomUi.showCustomUi(processorResponse, processor.config.customUiUrl, true).done(function () {
-                                            // once the custom ui is closed, reload the processor
-                                            nfProcessor.reload(processor.id);
-
-                                            // and reload the processor's outgoing connections
+                                            // reload the processor's outgoing connections
                                             reloadProcessorConnections(processor);
+                                            // show a reloaded configuration dialog
+                                            self.showConfiguration(selection);
                                         });
                                     };
 

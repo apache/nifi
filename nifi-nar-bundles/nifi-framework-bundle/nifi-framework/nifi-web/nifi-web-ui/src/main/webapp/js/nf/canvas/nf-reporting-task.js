@@ -444,7 +444,7 @@
                 // update the mode
                 reportingTaskDialog.data('mode', config.edit);
             }
-
+            var self = this;
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
@@ -584,9 +584,11 @@
                                         nfReportingTask.reload(reportingTaskEntity.id).done(function (response) {
                                             nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
                                         });
-
-                                        // show the settings
-                                        nfSettings.showSettings();
+                                        // show the settings dialog again
+                                        nfSettings.showSettings().done(function () {
+                                            // show a reloaded configuration dialog
+                                            self.showConfiguration(reportingTaskEntity);
+                                        });
                                     });
                                 };
 
@@ -652,7 +654,7 @@
                 // update the mode
                 reportingTaskDialog.data('mode', config.readOnly);
             }
-
+            var self = this;
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
@@ -728,7 +730,11 @@
 
                                 // show the custom ui
                                 nfCustomUi.showCustomUi(reportingTaskEntity, reportingTask.customUiUrl, false).done(function () {
-                                    nfSettings.showSettings();
+                                    // show the settings dialog again
+                                    nfSettings.showSettings().done(function () {
+                                        // show a reloaded configuration dialog
+                                        self.showConfiguration(reportingTaskEntity);
+                                    });
                                 });
                             }
                         }

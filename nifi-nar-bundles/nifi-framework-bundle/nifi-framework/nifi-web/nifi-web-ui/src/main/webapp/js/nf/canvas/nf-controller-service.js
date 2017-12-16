@@ -1826,7 +1826,7 @@
                 // update the mode
                 controllerServiceDialog.data('mode', config.edit);
             }
-
+            var self = this;
             //track the current table
             currentTable = serviceTable;
 
@@ -1936,9 +1936,11 @@
                                     nfCustomUi.showCustomUi(controllerServiceEntity, controllerService.customUiUrl, true).done(function () {
                                         // once the custom ui is closed, reload the controller service
                                         reloadControllerServiceAndReferencingComponents(serviceTable, controllerService);
-
-                                        // show the settings
-                                        nfSettings.showSettings();
+                                        // show the settings dialog again
+                                        nfSettings.showSettings().done(function () {
+                                            // show a reloaded configuration dialog
+                                            self.showConfiguration(serviceTable, controllerServiceEntity);
+                                        });
                                     });
                                 };
 
@@ -2010,7 +2012,7 @@
                 // update the mode
                 controllerServiceDialog.data('mode', config.readOnly);
             }
-
+            var self = this;
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({
                 type: 'GET',
@@ -2094,7 +2096,11 @@
 
                                 // show the custom ui
                                 nfCustomUi.showCustomUi(controllerServiceEntity, controllerService.customUiUrl, false).done(function () {
-                                    nfSettings.showSettings();
+                                    // show the settings dialog again
+                                    nfSettings.showSettings().done(function () {
+                                        // show a reloaded configuration dialog
+                                        self.showConfiguration(serviceTable, controllerServiceEntity);
+                                    });
                                 });
                             }
                         }
