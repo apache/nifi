@@ -1455,25 +1455,27 @@ The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is use
 
 You can use the following command line options with the `encrypt-config` tool:
 
- * `-A`,`--newFlowAlgorithm <arg>`               The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz
- * `-b`,`--bootstrapConf <arg>`                  The bootstrap.conf file to persist master key
- * `-e`,`--oldKey <arg>`                         The old raw hexadecimal key to use during key migration
- * `-f`,`--flowXml <arg>`                        The flow.xml.gz file currently protected with old password (will be overwritten)
- * `-g`,`--outputFlowXml <arg>`                  The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)
  * `-h`,`--help`                                 Prints this usage message
- * `-i`,`--outputLoginIdentityProviders <arg>`   The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)
- * `-k`,`--key <arg>`                            The raw hexadecimal key to use to encrypt the sensitive properties
- * `-l`,`--loginIdentityProviders <arg>`         The login-identity-providers.xml file containing unprotected config values (will be overwritten)
- * `-m`,`--migrate`                              If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key
- * `-n`,`--niFiProperties <arg>`                 The nifi.properties file containing unprotected config values (will be overwritten)
- * `-o`,`--outputNiFiProperties <arg>`           The destination nifi.properties file containing protected config values (will not modify input nifi.properties)
- * `-p`,`--password <arg>`                       The password from which to derive the key to use to encrypt the sensitive properties
- * `-P`,`--newFlowProvider <arg>`                The security provider to use to encrypt the sensitive processor properties in flow.xml.gz
- * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
- * `-s`,`--propsKey <arg>`                       The password or key to use to encrypt the sensitive processor properties in flow.xml.gz
  * `-v`,`--verbose`                              Sets verbose mode (default false)
+ * `-n`,`--niFiProperties <arg>`                 The nifi.properties file containing unprotected config values (will be overwritten)
+ * `-l`,`--loginIdentityProviders <arg>`         The login-identity-providers.xml file containing unprotected config values (will be overwritten)
+ * `-a`,`--authorizers <arg>`                    The authorizers.xml file containing unprotected config values (will be overwritten)
+ * `-f`,`--flowXml <arg>`                        The flow.xml.gz file currently protected with old password (will be overwritten)
+ * `-b`,`--bootstrapConf <arg>`                  The bootstrap.conf file to persist master key
+ * `-o`,`--outputNiFiProperties <arg>`           The destination nifi.properties file containing protected config values (will not modify input nifi.properties)
+ * `-i`,`--outputLoginIdentityProviders <arg>`   The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)
+ * `-u`,`--outputAuthorizers <arg>`              The destination authorizers.xml file containing protected config values (will not modify input authorizers.xml)
+ * `-g`,`--outputFlowXml <arg>`                  The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)
+ * `-k`,`--key <arg>`                            The raw hexadecimal key to use to encrypt the sensitive properties
+ * `-e`,`--oldKey <arg>`                         The old raw hexadecimal key to use during key migration
+ * `-p`,`--password <arg>`                       The password from which to derive the key to use to encrypt the sensitive properties
  * `-w`,`--oldPassword <arg>`                    The old password from which to derive the key during migration
+ * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
+ * `-m`,`--migrate`                              If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key
  * `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified
+ * `-s`,`--propsKey <arg>`                       The password or key to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-A`,`--newFlowAlgorithm <arg>`               The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-P`,`--newFlowProvider <arg>`                The security provider to use to encrypt the sensitive processor properties in flow.xml.gz
 
 As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the 'nifi.properties' file:
 
@@ -1534,11 +1536,13 @@ Sensitive configuration values are encrypted by the tool by default, however you
 
 If the 'nifi.properties' file already has valid protected values, those property values are not modified by the tool.
 
-When applied to 'login-identity-providers.xml', the property elements are updated with an `encryption` attribute:
+When applied to 'login-identity-providers.xml' and 'authorizers.xml', the property elements are updated with an `encryption` attribute:
+
+Example of protected login-identity-providers.xml:
 
 ----
-<!-- LDAP Provider -->
-<provider>
+   <!-- LDAP Provider -->
+   <provider>
        <identifier>ldap-provider</identifier>
        <class>org.apache.nifi.ldap.LdapProvider</class>
        <property name="Authentication Strategy">START_TLS</property>
@@ -1547,9 +1551,26 @@ When applied to 'login-identity-providers.xml', the property elements are update
        <property name="TLS - Keystore"></property>
        <property name="TLS - Keystore Password" encryption="aes/gcm/128">Uah59TWX+Ru5GY5p||B44RT/LJtC08QWA5ehQf01JxIpf0qSJUzug25UwkF5a50g</property>
        <property name="TLS - Keystore Type"></property>
-      ...
+       ...
    </provider>
 ----
+
+Example of protected authorizers.xml:
+
+---
+   <!-- LDAP User Group Provider -->
+   <userGroupProvider>
+       <identifier>ldap-user-group-provider</identifier>
+       <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+       <property name="Authentication Strategy">START_TLS</property>
+       <property name="Manager DN">someuser</property>
+       <property name="Manager Password" encryption="aes/gcm/128">q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA</property>
+       <property name="TLS - Keystore"></property>
+       <property name="TLS - Keystore Password" encryption="aes/gcm/128">Uah59TWX+Ru5GY5p||B44RT/LJtC08QWA5ehQf01JxIpf0qSJUzug25UwkF5a50g</property>
+       <property name="TLS - Keystore Type"></property>
+       ...
+   </userGroupProvider>
+---
 
 [encrypt_config_property_migration]
 === Sensitive Property Key Migration
