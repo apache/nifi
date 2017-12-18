@@ -28,6 +28,52 @@ limitations under the License.
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>ant-contrib</groupId>
+                        <artifactId>ant-contrib</artifactId>
+                        <version>20020829</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>download-commons-daemon</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                                <if>
+                                    <available file="${basedir}/target/minifiw.exe" />
+                                    <then>
+                                        <echo message="Skipping download of commons-daemon." />
+                                    </then>
+                                    <else>
+                                        <echo message="Downloading Commons Daemon Windows binaries." />
+                                        <get src="http://apache.claz.org/commons/daemon/binaries/windows/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" skipexisting="true" />
+                                        <local name="checksum.matches" />
+                                        <property name="sha256sum" value="b5a211f826dc4c0d90508eb1222fe00d70c04a960a6c06540b13ccc5ca71d377" />
+                                        <checksum file="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches" />
+                                        <echo message="Checksum match = ${checksum.matches}" />
+                                        <condition property="checksum.matches.fail">
+                                            <equals arg1="${checksum.matches}" arg2="false" />
+                                        </condition>
+                                        <fail if="checksum.matches.fail">Checksum error</fail>
+                                        <unzip src="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}" />
+                                        <copy file="${java.io.tmpdir}/prunmgr.exe" tofile="${basedir}/target/minifiw.exe" />
+                                        <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
+                                    </else>
+                                </if>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <finalName>minifi-${project.version}</finalName>
