@@ -56,7 +56,7 @@ public abstract class AbstractGCPProcessor<
             .build();
 
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor
-            .Builder().name("proxy-host")
+            .Builder().name("gcp-proxy-host")
             .displayName("Proxy host")
             .description("IP or hostname of the proxy to be used")
             .required(false)
@@ -65,9 +65,9 @@ public abstract class AbstractGCPProcessor<
             .build();
 
     public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor
-            .Builder().name("proxy-port")
+            .Builder().name("gcp-proxy-port")
             .displayName("Proxy port")
-            .description("Porxy port number")
+            .description("Proxy port number")
             .required(false)
             .expressionLanguageSupported(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
