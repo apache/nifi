@@ -90,6 +90,7 @@
         <module>nifi-redis-bundle</module>
         <module>nifi-metrics-reporting-bundle</module>
         <module>nifi-spark-bundle</module>
+        <module>nifi-atlas-bundle</module>
   </modules>
 
     <build>

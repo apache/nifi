@@ -1,0 +1,153 @@
+<?xml version="1.0" ?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<template encoding-version="1.1">
+  <description></description>
+  <groupId>27b7b6b8-015f-1000-0d31-197ae42bab34</groupId>
+  <name>S2STransfer</name>
+  <snippet>
+    <connections>
+      <id>157c6a56-3753-304d-0000-000000000000</id>
+      <parentGroupId>c81f8a46-4aa3-313e-0000-000000000000</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <destination>
+        <groupId>c81f8a46-4aa3-313e-0000-000000000000</groupId>
+        <id>392e7343-3950-329b-0000-000000000000</id>
+        <type>OUTPUT_PORT</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name></name>
+      <selectedRelationships>success</selectedRelationships>
+      <source>
+        <groupId>c81f8a46-4aa3-313e-0000-000000000000</groupId>
+        <id>1b9f81db-a0fd-389a-0000-000000000000</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <outputPorts>
+      <id>392e7343-3950-329b-0000-000000000000</id>
+      <parentGroupId>c81f8a46-4aa3-313e-0000-000000000000</parentGroupId>
+      <position>
+        <x>53.43126270299064</x>
+        <y>267.91819788476437</y>
+      </position>
+      <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+      <name>output</name>
+      <state>RUNNING</state>
+      <transmitting>false</transmitting>
+      <type>OUTPUT_PORT</type>
+    </outputPorts>
+    <processors>
+      <id>1b9f81db-a0fd-389a-0000-000000000000</id>
+      <parentGroupId>c81f8a46-4aa3-313e-0000-000000000000</parentGroupId>
+      <position>
+        <x>0.0</x>
+        <y>0.0</y>
+      </position>
+      <bundle>
+        <artifact>nifi-standard-nar</artifact>
+        <group>org.apache.nifi</group>
+        <version>1.5.0-SNAPSHOT</version>
+      </bundle>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments></comments>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <descriptors>
+          <entry>
+            <key>File Size</key>
+            <value>
+              <name>File Size</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Batch Size</key>
+            <value>
+              <name>Batch Size</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Data Format</key>
+            <value>
+              <name>Data Format</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Unique FlowFiles</key>
+            <value>
+              <name>Unique FlowFiles</name>
+            </value>
+          </entry>
+          <entry>
+            <key>generate-ff-custom-text</key>
+            <value>
+              <name>generate-ff-custom-text</name>
+            </value>
+          </entry>
+          <entry>
+            <key>character-set</key>
+            <value>
+              <name>character-set</name>
+            </value>
+          </entry>
+        </descriptors>
+        <executionNode>ALL</executionNode>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>File Size</key>
+            <value>0B</value>
+          </entry>
+          <entry>
+            <key>Batch Size</key>
+            <value>1</value>
+          </entry>
+          <entry>
+            <key>Data Format</key>
+            <value>Text</value>
+          </entry>
+          <entry>
+            <key>Unique FlowFiles</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>generate-ff-custom-text</key>
+          </entry>
+          <entry>
+            <key>character-set</key>
+            <value>UTF-8</value>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>1d</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>GenerateFlowFile</name>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>success</name>
+      </relationships>
+      <state>RUNNING</state>
+      <style></style>
+      <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+    </processors>
+  </snippet>
+  <timestamp>10/20/2017 17:48:34 JST</timestamp>
+</template>
