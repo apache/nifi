@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-provenance-reporting-bundle</artifactId>
-        <version>0.2.1-SNAPSHOT</version>
+        <version>0.3.0</version>
     </parent>
 
     <artifactId>minifi-provenance-reporting-nar</artifactId>
