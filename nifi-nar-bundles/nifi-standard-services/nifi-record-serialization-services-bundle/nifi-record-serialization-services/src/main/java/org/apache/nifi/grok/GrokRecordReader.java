@@ -48,6 +48,7 @@ public class GrokRecordReader implements RecordReader {
     private RecordSchema schema;
 
     private String nextLine;
+    Map<String, Object> nextMap = null;
 
     static final String STACK_TRACE_COLUMN_NAME = "stackTrace";
     static final String RAW_MESSAGE_NAME = "_raw";
@@ -74,10 +75,13 @@ public class GrokRecordReader implements RecordReader {
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
-        Map<String, Object> valueMap = null;
+        Map<String, Object> valueMap = nextMap;
+        nextMap = null;
         StringBuilder raw = new StringBuilder();
 
+        int iterations = 0;
         while (valueMap == null || valueMap.isEmpty()) {
+            iterations++;
             final String line = nextLine == null ? reader.readLine() : nextLine;
             raw.append(line);
             nextLine = null; // ensure that we don't process nextLine again
@@ -88,6 +92,10 @@ public class GrokRecordReader implements RecordReader {
             final Match match = grok.match(line);
             match.captures();
             valueMap = match.toMap();
+        }
+
+        if (iterations == 0 && nextLine != null) {
+            raw.append(nextLine);
         }
 
         // Read the next line to see if it matches the pattern (in which case we will simply leave it for
@@ -111,6 +119,7 @@ public class GrokRecordReader implements RecordReader {
                 }
             } else {
                 // The next line matched our pattern.
+                nextMap = nextValueMap;
                 break;
             }
         }
