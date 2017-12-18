@@ -544,19 +544,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-livy-controller-service-api-nar</artifactId>
-            <version>1.5.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-livy-nar</artifactId>
-            <version>1.5.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-atlas-nar</artifactId>
-            <version>1.5.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
     </dependencies>
@@ -573,6 +565,22 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-grpc-nar</artifactId>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-atlas</id>
+            <!-- This profile handles the inclusion of atlas artifacts. The NAR
+            is quite large and makes the resultant binary distribution significantly
+            larger (60+ MB). -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-atlas-nar</artifactId>
                     <type>nar</type>
                 </dependency>
             </dependencies>
