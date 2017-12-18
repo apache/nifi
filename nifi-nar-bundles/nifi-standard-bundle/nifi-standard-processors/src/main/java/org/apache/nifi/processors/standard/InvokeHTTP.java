@@ -62,6 +62,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
@@ -253,14 +254,14 @@ public final class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
-        .name("Content-Type")
-        .description("The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
-            + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
-        .required(true)
-        .expressionLanguageSupported(true)
-        .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
-        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-        .build();
+            .name("Content-Type")
+            .description("The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
+                    + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
+            .required(true)
+            .expressionLanguageSupported(true)
+            .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .build();
 
     public static final PropertyDescriptor PROP_SEND_BODY = new PropertyDescriptor.Builder()
             .name("send-message-body")
@@ -567,31 +568,42 @@ public final class InvokeHTTP extends AbstractProcessor {
      */
     private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext)
             throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
-        final String keystoreLocation = sslService.getKeyStoreFile();
-        final String keystorePass = sslService.getKeyStorePassword();
-        final String keystoreType = sslService.getKeyStoreType();
-
-        // prepare the keystore
-        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-        try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-            keyStore.load(keyStoreStream, keystorePass.toCharArray());
-        }
 
         final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-
-        // load truststore
-        final String truststoreLocation = sslService.getTrustStoreFile();
-        final String truststorePass = sslService.getTrustStorePassword();
-        final String truststoreType = sslService.getTrustStoreType();
-
-        KeyStore truststore = KeyStore.getInstance(truststoreType);
         final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-        trustManagerFactory.init(truststore);
+        // initialize the KeyManager array to null and we will overwrite later if a keystore is loaded
+        KeyManager[] keyManagers = null;
 
-        /*
+        // we will only initialize the keystore if properties have been supplied by the SSLContextService
+        if (sslService.isKeyStoreConfigured()) {
+            final String keystoreLocation = sslService.getKeyStoreFile();
+            final String keystorePass = sslService.getKeyStorePassword();
+            final String keystoreType = sslService.getKeyStoreType();
+
+            // prepare the keystore
+            final KeyStore keyStore = KeyStore.getInstance(keystoreType);
+
+            try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
+                keyStore.load(keyStoreStream, keystorePass.toCharArray());
+            }
+
+            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
+            keyManagers = keyManagerFactory.getKeyManagers();
+        }
+
+        // we will only initialize the truststure if properties have been supplied by the SSLContextService
+        if (sslService.isTrustStoreConfigured()) {
+            // load truststore
+            final String truststoreLocation = sslService.getTrustStoreFile();
+            final String truststorePass = sslService.getTrustStorePassword();
+            final String truststoreType = sslService.getTrustStoreType();
+
+            KeyStore truststore = KeyStore.getInstance(truststoreType);
+            truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
+            trustManagerFactory.init(truststore);
+        }
+
+         /*
             TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
             as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
 
@@ -605,7 +617,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             throw new IllegalStateException("List of trust managers is null");
         }
 
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+        // if keystore properties were not supplied, the keyManagers array will be null
+        sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
 
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
         okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
