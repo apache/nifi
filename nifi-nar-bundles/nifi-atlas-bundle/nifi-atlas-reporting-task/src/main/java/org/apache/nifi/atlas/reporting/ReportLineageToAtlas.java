@@ -640,7 +640,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         final AnalysisContext analysisContext = new StandardAnalysisContext(nifiFlow, clusterResolvers,
                 // FIXME: This class cast shouldn't be necessary to query lineage. Possible refactor target in next major update.
                 (ProvenanceRepository)eventAccess.getProvenanceRepository());
-        consumer.consumeEvents(eventAccess, context.getStateManager(), events -> {
+        consumer.consumeEvents(context, context.getStateManager(), (componentMapHolder, events) -> {
             for (ProvenanceEventRecord event : events) {
                 try {
                     lineageStrategy.processEvent(analysisContext, nifiFlow, event);

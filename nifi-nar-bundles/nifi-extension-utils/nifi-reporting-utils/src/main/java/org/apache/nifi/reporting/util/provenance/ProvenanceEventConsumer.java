@@ -21,19 +21,21 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.EventAccess;
+import org.apache.nifi.reporting.ReportingContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 
 public class ProvenanceEventConsumer {
@@ -111,8 +113,16 @@ public class ProvenanceEventConsumer {
         this.logger = logger;
     }
 
-    public void consumeEvents(final EventAccess eventAccess, final StateManager stateManager,
-                              final Consumer<List<ProvenanceEventRecord>> consumer) throws ProcessException {
+    public void consumeEvents(final ReportingContext context, final StateManager stateManager,
+                              final BiConsumer<ComponentMapHolder, List<ProvenanceEventRecord>> consumer) throws ProcessException {
+
+        if (context == null) {
+            logger.debug("No ReportingContext available.");
+            return;
+        }
+        final EventAccess eventAccess = context.getEventAccess();
+        final ProcessGroupStatus procGroupStatus = eventAccess.getControllerStatus();
+        final ComponentMapHolder componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus);
 
         Long currMaxId = eventAccess.getProvenanceRepository().getMaxEventId();
 
@@ -160,7 +170,7 @@ public class ProvenanceEventConsumer {
         List<ProvenanceEventRecord> filteredEvents;
         try {
             rawEvents = eventAccess.getProvenanceEvents(firstEventId, batchSize);
-            filteredEvents = filterEvents(rawEvents);
+            filteredEvents = filterEvents(componentMapHolder, rawEvents);
         } catch (final IOException ioe) {
             logger.error("Failed to retrieve Provenance Events from repository due to: " + ioe.getMessage(), ioe);
             return;
@@ -176,7 +186,7 @@ public class ProvenanceEventConsumer {
 
             if (!filteredEvents.isEmpty()) {
                 // Executes callback.
-                consumer.accept(filteredEvents);
+                consumer.accept(componentMapHolder, filteredEvents);
             }
 
             firstEventId = updateLastEventId(rawEvents, stateManager);
@@ -184,7 +194,7 @@ public class ProvenanceEventConsumer {
             // Retrieve the next batch
             try {
                 rawEvents = eventAccess.getProvenanceEvents(firstEventId, batchSize);
-                filteredEvents = filterEvents(rawEvents);
+                filteredEvents = filterEvents(componentMapHolder, rawEvents);
             } catch (final IOException ioe) {
                 logger.error("Failed to retrieve Provenance Events from repository due to: " + ioe.getMessage(), ioe);
                 return;
@@ -218,13 +228,20 @@ public class ProvenanceEventConsumer {
         return componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty();
     }
 
-    private List<ProvenanceEventRecord> filterEvents(List<ProvenanceEventRecord> provenanceEvents) {
+    private List<ProvenanceEventRecord> filterEvents(ComponentMapHolder componentMapHolder, List<ProvenanceEventRecord> provenanceEvents) {
         if(isFilteringEnabled()) {
-            List<ProvenanceEventRecord> filteredEvents = new ArrayList<ProvenanceEventRecord>();
+            List<ProvenanceEventRecord> filteredEvents = new ArrayList<>();
 
             for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
                 if(!componentIds.isEmpty() && !componentIds.contains(provenanceEventRecord.getComponentId())) {
-                    continue;
+                    // If we aren't filtering it out based on component ID, let's see if this component has a parent process group ID
+                    // that is being filtered on
+                    if (componentMapHolder == null || componentMapHolder.getComponentToParentGroupMap().isEmpty()) {
+                        continue;
+                    }
+                    if (!componentIds.contains(componentMapHolder.getComponentToParentGroupMap().get(provenanceEventRecord.getComponentId()))) {
+                        continue;
+                    }
                 }
                 if(!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
                     continue;
