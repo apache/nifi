@@ -41,6 +41,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -123,6 +124,10 @@ import java.util.stream.Collectors;
  * Determining when the listing must be cleared. It is sometimes necessary to clear state about which entities have already been ingested, as the result of a user
  * changing a property value. The {@link #isListingResetNecessary(PropertyDescriptor)} method is responsible for determining when the listing needs to be reset by returning
  * a boolean indicating whether or not a change in the value of the provided property should trigger the timestamp and identifier information to be cleared.
+ * </li>
+ * <li>
+ * Provide the target system timestamp precision. By either letting user to choose the right one by adding TARGET_SYSTEM_TIMESTAMP_PRECISION to the return value of
+ * getSupportedPropertyDescriptors method or, overriding getDefaultTimePrecision method in case the target system has a fixed time precision.
  * </li>
  * </ul>
  */
@@ -438,7 +443,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             latestListedEntryTimestampThisCycleMillis = orderedEntries.lastKey();
 
             // Determine target system time precision.
-            final String specifiedPrecision = context.getProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION).getValue();
+            String specifiedPrecision = context.getProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION).getValue();
+            if (StringUtils.isBlank(specifiedPrecision)) {
+                // If TARGET_SYSTEM_TIMESTAMP_PRECISION is not supported by the Processor, then specifiedPrecision can be null, instead of its default value.
+                specifiedPrecision = getDefaultTimePrecision();
+            }
             final TimeUnit targetSystemTimePrecision
                     = PRECISION_AUTO_DETECT.getValue().equals(specifiedPrecision)
                         ? targetSystemHasMilliseconds ? TimeUnit.MILLISECONDS : targetSystemHasSeconds ? TimeUnit.SECONDS : TimeUnit.MINUTES
@@ -542,6 +551,17 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
             return;
         }
+    }
+
+    /**
+     * This method is intended to be overridden by SubClasses those do not support TARGET_SYSTEM_TIMESTAMP_PRECISION property.
+     * So that it use return different precisions than PRECISION_AUTO_DETECT.
+     * If TARGET_SYSTEM_TIMESTAMP_PRECISION is supported as a valid Processor property,
+     * then PRECISION_AUTO_DETECT will be the default value when not specified by a user.
+     * @return
+     */
+    protected String getDefaultTimePrecision() {
+        return TARGET_SYSTEM_TIMESTAMP_PRECISION.getDefaultValue();
     }
 
     private void resetTimeStates() {

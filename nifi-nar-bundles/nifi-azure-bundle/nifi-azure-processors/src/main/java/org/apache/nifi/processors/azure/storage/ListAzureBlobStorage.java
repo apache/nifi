@@ -124,6 +124,14 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
+    protected String getDefaultTimePrecision() {
+        // User does not have to choose one.
+        // AUTO_DETECT can handle most cases, but it may incur longer latency
+        // when all listed files do not have SECOND part in their timestamps although Azure Blob Storage does support seconds.
+        return PRECISION_SECONDS.getValue();
+    }
+
+    @Override
     protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
         String containerName = context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions().getValue();
         String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
