@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public final class Azure {
+public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
     public static final String PAGE = "Page";
 
@@ -50,9 +50,9 @@ public final class Azure {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(false).sensitive(true).build();
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder().name("storage-account-name").displayName("Storage Account Name")
-            .description("The storage account name.  There are certain risks in allowing the account name to be stored as a flowfile" +
+            .description("The storage account name.  There are certain risks in allowing the account name to be stored as a flowfile " +
                     "attribute. While it does provide for a more flexible flow by allowing the account name to " +
-                    "be fetched dynamically from a flow file attribute, care must be taken to restrict access to " +
+                    "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
                     "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
                     "In addition, the provenance repositories may be put on encrypted disk partitions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(true).sensitive(true).build();
@@ -61,8 +61,9 @@ public final class Azure {
             .description("Name of the Azure storage container").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(true).build();
 
     public static final PropertyDescriptor PROP_SAS_TOKEN = new PropertyDescriptor.Builder()
-            .name("SAS String")
-            .description("Shared Access Signature string, including the leading '?'. Specify either SAS (recommended) or Account Key")
+            .name("storage-sas-token")
+            .displayName("SAS Token")
+            .description("Shared Access Signature token, including the leading '?'. Specify either SAS Token (recommended) or Account Key")
             .required(false)
             .expressionLanguageSupported(true)
             .sensitive(true)
@@ -73,25 +74,25 @@ public final class Azure {
     public static final String FORMAT_BLOB_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
     public static final String FORMAT_BASE_URI = "https://%s.blob.core.windows.net";
 
-    private Azure() {
+    private AzureStorageUtils() {
         // do not instantiate
     }
 
     public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger) {
-        final String accountName = context.getProperty(Azure.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-        final String accountKey = context.getProperty(Azure.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-        final String sasToken = context.getProperty(Azure.PROP_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+        final String accountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
+        final String accountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
+        final String sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions().getValue();
 
         CloudBlobClient cloudBlobClient;
 
         try {
             // sas token and acct name/key have different ways of creating a secure connection (e.g. new StorageCredentialsAccountAndKey didn't work)
             if (StringUtils.isNotBlank(sasToken)) {
-                String storageConnectionString = String.format(Azure.FORMAT_BASE_URI, accountName);
+                String storageConnectionString = String.format(AzureStorageUtils.FORMAT_BASE_URI, accountName);
                 StorageCredentials creds = new StorageCredentialsSharedAccessSignature(sasToken);
                 cloudBlobClient = new CloudBlobClient(new URI(storageConnectionString), creds);
             } else {
-                String blobConnString = String.format(Azure.FORMAT_BLOB_CONNECTION_STRING, accountName, accountKey);
+                String blobConnString = String.format(AzureStorageUtils.FORMAT_BLOB_CONNECTION_STRING, accountName, accountKey);
                 CloudStorageAccount storageAccount = CloudStorageAccount.parse(blobConnString);
                 cloudBlobClient = storageAccount.createCloudBlobClient();
             }
@@ -113,7 +114,7 @@ public final class Azure {
         String acctName = validationContext.getProperty(ACCOUNT_KEY).getValue();
         if ((StringUtils.isBlank(sasToken) && StringUtils.isBlank(acctName))
                 || (StringUtils.isNotBlank(sasToken) && StringUtils.isNotBlank(acctName))) {
-            results.add(new ValidationResult.Builder().subject("Azure Credentials")
+            results.add(new ValidationResult.Builder().subject("AzureStorageUtils Credentials")
                         .valid(false)
                         .explanation("either Azure Account Key or Shared Access Signature required, but not both")
                         .build());
