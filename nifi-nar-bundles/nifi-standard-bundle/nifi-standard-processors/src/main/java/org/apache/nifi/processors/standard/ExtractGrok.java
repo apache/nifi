@@ -123,6 +123,15 @@ public class ExtractGrok extends AbstractProcessor {
         .defaultValue("1 MB")
         .build();
 
+    public static final PropertyDescriptor NAMED_CAPTURES_ONLY = new PropertyDescriptor.Builder()
+        .name("Named captures only")
+        .description("Only store named captures from grok")
+        .required(true)
+        .allowableValues("true", "false")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .defaultValue("false")
+        .build();
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the Grok Expression is successfully evaluated and the FlowFile is modified as a result")
@@ -151,6 +160,7 @@ public class ExtractGrok extends AbstractProcessor {
         _descriptors.add(DESTINATION);
         _descriptors.add(CHARACTER_SET);
         _descriptors.add(MAX_BUFFER_SIZE);
+        _descriptors.add(NAMED_CAPTURES_ONLY);
         descriptors = Collections.unmodifiableList(_descriptors);
     }
 
@@ -179,7 +189,7 @@ public class ExtractGrok extends AbstractProcessor {
 
         grok = new Grok();
         grok.addPatternFromFile(context.getProperty(GROK_PATTERN_FILE).getValue());
-        grok.compile(context.getProperty(GROK_EXPRESSION).getValue());
+        grok.compile(context.getProperty(GROK_EXPRESSION).getValue(), context.getProperty(NAMED_CAPTURES_ONLY).asBoolean());
     }
 
     @Override
