@@ -95,7 +95,9 @@ import java.util.regex.Pattern;
 @Tags({"hive", "streaming", "put", "database", "store"})
 @CapabilityDescription("This processor uses Hive Streaming to send flow file data to an Apache Hive table. The incoming flow file is expected to be in "
         + "Avro format and the table must exist in Hive. Please see the Hive documentation for requirements on the Hive table (format, partitions, etc.). "
-        + "The partition values are extracted from the Avro record based on the names of the partition columns as specified in the processor.")
+        + "The partition values are extracted from the Avro record based on the names of the partition columns as specified in the processor. NOTE: If "
+        + "multiple concurrent tasks are configured for this processor, only one table can be written to at any time by a single thread. Additional tasks "
+        + "intending to write to the same table will wait for the current task to finish writing to the table.")
 @WritesAttributes({
         @WritesAttribute(attribute = "hivestreaming.record.count", description = "This attribute is written on the flow files routed to the 'success' "
                 + "and 'failure' relationships, and contains the number of records from the incoming flow file written successfully and unsuccessfully, respectively."),
