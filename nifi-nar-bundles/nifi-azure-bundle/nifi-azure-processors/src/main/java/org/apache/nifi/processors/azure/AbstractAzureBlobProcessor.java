@@ -22,7 +22,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.azure.storage.utils.Azure;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,10 +40,10 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections
             .unmodifiableList(Arrays.asList(
-                    Azure.CONTAINER,
-                    Azure.PROP_SAS_TOKEN,
-                    Azure.ACCOUNT_NAME,
-                    Azure.ACCOUNT_KEY,
+                    AzureStorageUtils.CONTAINER,
+                    AzureStorageUtils.PROP_SAS_TOKEN,
+                    AzureStorageUtils.ACCOUNT_NAME,
+                    AzureStorageUtils.ACCOUNT_KEY,
                     BLOB));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
@@ -58,7 +58,7 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return Azure.validateCredentialProperties(validationContext);
+        return AzureStorageUtils.validateCredentialProperties(validationContext);
     }
 
     @Override

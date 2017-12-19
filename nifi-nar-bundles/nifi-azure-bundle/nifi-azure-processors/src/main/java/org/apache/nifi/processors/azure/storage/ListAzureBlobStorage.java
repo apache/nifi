@@ -41,7 +41,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
-import org.apache.nifi.processors.azure.storage.utils.Azure;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
 
@@ -83,10 +83,10 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            Azure.CONTAINER,
-            Azure.PROP_SAS_TOKEN,
-            Azure.ACCOUNT_NAME,
-            Azure.ACCOUNT_KEY,
+            AzureStorageUtils.CONTAINER,
+            AzureStorageUtils.PROP_SAS_TOKEN,
+            AzureStorageUtils.ACCOUNT_NAME,
+            AzureStorageUtils.ACCOUNT_KEY,
             PROP_PREFIX));
 
     @Override
@@ -96,7 +96,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return Azure.validateCredentialProperties(validationContext);
+        return AzureStorageUtils.validateCredentialProperties(validationContext);
     }
 
     @Override
@@ -117,16 +117,16 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected String getPath(final ProcessContext context) {
-        return context.getProperty(Azure.CONTAINER).evaluateAttributeExpressions().getValue();
+        return context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions().getValue();
     }
 
     @Override
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
         // re-list if configuration changed, but not when security keys are rolled (not included in the condition)
         return PROP_PREFIX.equals(property)
-                   || Azure.ACCOUNT_NAME.equals(property)
-                   || Azure.CONTAINER.equals(property)
-                   || Azure.PROP_SAS_TOKEN.equals(property);
+                   || AzureStorageUtils.ACCOUNT_NAME.equals(property)
+                   || AzureStorageUtils.CONTAINER.equals(property)
+                   || AzureStorageUtils.PROP_SAS_TOKEN.equals(property);
     }
 
     @Override
@@ -136,14 +136,14 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
-        String containerName = context.getProperty(Azure.CONTAINER).evaluateAttributeExpressions().getValue();
+        String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions().getValue();
         String prefix = context.getProperty(PROP_PREFIX).evaluateAttributeExpressions().getValue();
         if (prefix == null) {
             prefix = "";
         }
         final List<BlobInfo> listing = new ArrayList<>();
         try {
-            CloudBlobClient blobClient = Azure.createCloudBlobClient(context, getLogger());
+            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger());
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
@@ -165,9 +165,9 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                     }
 
                     if (blob instanceof CloudBlockBlob) {
-                        builder.blobType(Azure.BLOCK);
+                        builder.blobType(AzureStorageUtils.BLOCK);
                     } else {
-                        builder.blobType(Azure.PAGE);
+                        builder.blobType(AzureStorageUtils.PAGE);
                     }
                     listing.add(builder.build());
                 }
