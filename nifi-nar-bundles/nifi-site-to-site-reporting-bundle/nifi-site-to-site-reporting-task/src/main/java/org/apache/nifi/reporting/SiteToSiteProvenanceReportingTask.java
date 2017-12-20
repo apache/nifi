@@ -203,14 +203,14 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
         df.setTimeZone(TimeZone.getTimeZone("Z"));
 
-        consumer.consumeEvents(context, context.getStateManager(), (mapHolder, events) -> {
+        consumer.consumeEvents(context, (mapHolder, events) -> {
             final long start = System.nanoTime();
             // Create a JSON array of all the events in the current batch
             final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
             for (final ProvenanceEventRecord event : events) {
                 final String componentName = mapHolder.getComponentName(event.getComponentId());
-                final String processGroupId = mapHolder.getProcessGroupId(event.getComponentId());
-                final String processGroupName = mapHolder.getComponentMap().get(processGroupId);
+                final String processGroupId = mapHolder.getProcessGroupId(event.getComponentId(), event.getComponentType());
+                final String processGroupName = mapHolder.getComponentName(processGroupId);
                 arrayBuilder.add(serialize(factory, builder, event, df, componentName, processGroupId, processGroupName, hostname, url, rootGroupName, platform, nodeId));
             }
             final JsonArray jsonArray = arrayBuilder.build();
@@ -219,8 +219,8 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             try {
                 final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
-                    getLogger().debug("All destination nodes are penalized; will attempt to send data later");
-                    return;
+                    // Throw an exception to avoid provenance event id will not proceed so that those can be consumed again.
+                    throw new ProcessException("All destination nodes are penalized; will attempt to send data later");
                 }
 
                 final Map<String, String> attributes = new HashMap<>();
