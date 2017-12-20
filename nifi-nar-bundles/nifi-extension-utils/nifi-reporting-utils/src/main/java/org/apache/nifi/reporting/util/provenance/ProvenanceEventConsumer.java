@@ -113,7 +113,7 @@ public class ProvenanceEventConsumer {
         this.logger = logger;
     }
 
-    public void consumeEvents(final ReportingContext context, final StateManager stateManager,
+    public void consumeEvents(final ReportingContext context,
                               final BiConsumer<ComponentMapHolder, List<ProvenanceEventRecord>> consumer) throws ProcessException {
 
         if (context == null) {
@@ -123,6 +123,7 @@ public class ProvenanceEventConsumer {
         final EventAccess eventAccess = context.getEventAccess();
         final ProcessGroupStatus procGroupStatus = eventAccess.getControllerStatus();
         final ComponentMapHolder componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus);
+        final StateManager stateManager = context.getStateManager();
 
         Long currMaxId = eventAccess.getProvenanceRepository().getMaxEventId();
 
@@ -234,12 +235,16 @@ public class ProvenanceEventConsumer {
 
             for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
                 if(!componentIds.isEmpty() && !componentIds.contains(provenanceEventRecord.getComponentId())) {
-                    // If we aren't filtering it out based on component ID, let's see if this component has a parent process group ID
+                    // If we aren't filtering it out based on component ID, let's see if this component has a parent process group IDs
                     // that is being filtered on
-                    if (componentMapHolder == null || componentMapHolder.getComponentToParentGroupMap().isEmpty()) {
+                    if (componentMapHolder == null) {
                         continue;
                     }
-                    if (!componentIds.contains(componentMapHolder.getComponentToParentGroupMap().get(provenanceEventRecord.getComponentId()))) {
+                    final String processGroupId = componentMapHolder.getProcessGroupId(provenanceEventRecord.getComponentId(), provenanceEventRecord.getComponentType());
+                    if (processGroupId == null || processGroupId.isEmpty()) {
+                        continue;
+                    }
+                    if (componentMapHolder.getProcessGroupIdStack(processGroupId).stream().noneMatch(pgid -> componentIds.contains(pgid))) {
                         continue;
                     }
                 }
