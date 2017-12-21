@@ -22,6 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
@@ -55,6 +56,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteProvenanceReportingTask {
 
@@ -65,7 +67,7 @@ public class TestSiteToSiteProvenanceReportingTask {
     private MockSiteToSiteProvenanceReportingTask setup(ProvenanceEventRecord event, Map<PropertyDescriptor, String> properties) throws IOException {
         final MockSiteToSiteProvenanceReportingTask task = new MockSiteToSiteProvenanceReportingTask();
 
-        Mockito.when(context.getStateManager())
+        when(context.getStateManager())
                 .thenReturn(new MockStateManager(task));
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
@@ -104,6 +106,9 @@ public class TestSiteToSiteProvenanceReportingTask {
                 return eventsToReturn;
             }
         }).when(eventAccess).getProvenanceEvents(Mockito.anyLong(), Mockito.anyInt());
+        ProcessGroupStatus processGroupStatus = new ProcessGroupStatus();
+        processGroupStatus.setId("root");
+        when(eventAccess.getControllerStatus()).thenReturn(processGroupStatus);
 
         final ProvenanceEventRepository provenanceRepository = Mockito.mock(ProvenanceEventRepository.class);
         Mockito.doAnswer(new Answer<Long>() {
@@ -113,12 +118,12 @@ public class TestSiteToSiteProvenanceReportingTask {
             }
         }).when(provenanceRepository).getMaxEventId();
 
-        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
-        Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
+        when(context.getEventAccess()).thenReturn(eventAccess);
+        when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
 
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(logger);
 
         return task;
     }
@@ -331,7 +336,7 @@ public class TestSiteToSiteProvenanceReportingTask {
 
         // setup the mock EventAccess to return the mock provenance repository
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
-        Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
+        when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
 
         task.initialize(initContext);
 
@@ -388,7 +393,7 @@ public class TestSiteToSiteProvenanceReportingTask {
                     }
                 }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
             } catch (final Exception e) {
                 e.printStackTrace();
                 Assert.fail(e.toString());
