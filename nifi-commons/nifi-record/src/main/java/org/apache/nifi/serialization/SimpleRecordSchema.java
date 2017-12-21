@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
 import org.apache.nifi.serialization.record.DataType;
@@ -33,7 +32,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class SimpleRecordSchema implements RecordSchema {
     private List<RecordField> fields = null;
-    private Map<String, Integer> fieldIndices = null;
+    private Map<String, RecordField> fieldMap = null;
     private final boolean textAvailable;
     private final String text;
     private final String schemaFormat;
@@ -88,29 +87,25 @@ public class SimpleRecordSchema implements RecordSchema {
     }
 
     public void setFields(final List<RecordField> fields) {
-
         if (this.fields != null) {
             throw new IllegalArgumentException("Fields have already been set.");
         }
 
         this.fields = Collections.unmodifiableList(new ArrayList<>(fields));
-        this.fieldIndices = new HashMap<>(fields.size());
+        this.fieldMap = new HashMap<>(fields.size() * 2);
 
-        int index = 0;
         for (final RecordField field : fields) {
-            Integer previousValue = fieldIndices.put(field.getFieldName(), index);
+            RecordField previousValue = fieldMap.put(field.getFieldName(), field);
             if (previousValue != null) {
                 throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
             }
 
             for (final String alias : field.getAliases()) {
-                previousValue = fieldIndices.put(alias, index);
+                previousValue = fieldMap.put(alias, field);
                 if (previousValue != null) {
                     throw new IllegalArgumentException("Two fields are given with the same name (or alias) of '" + field.getFieldName() + "'");
                 }
             }
-
-            index++;
         }
     }
 
@@ -138,24 +133,18 @@ public class SimpleRecordSchema implements RecordSchema {
 
     @Override
     public Optional<DataType> getDataType(final String fieldName) {
-        final OptionalInt idx = getFieldIndex(fieldName);
-        return idx.isPresent() ? Optional.of(fields.get(idx.getAsInt()).getDataType()) : Optional.empty();
+        final RecordField field = fieldMap.get(fieldName);
+        if (field == null) {
+            return Optional.empty();
+        }
+        return Optional.of(field.getDataType());
     }
 
     @Override
     public Optional<RecordField> getField(final String fieldName) {
-        final OptionalInt indexOption = getFieldIndex(fieldName);
-        if (indexOption.isPresent()) {
-            return Optional.of(fields.get(indexOption.getAsInt()));
-        }
-
-        return Optional.empty();
+        return Optional.ofNullable(fieldMap.get(fieldName));
     }
 
-    private OptionalInt getFieldIndex(final String fieldName) {
-        final Integer index = fieldIndices.get(fieldName);
-        return index == null ? OptionalInt.empty() : OptionalInt.of(index);
-    }
 
     @Override
     public boolean equals(final Object obj) {

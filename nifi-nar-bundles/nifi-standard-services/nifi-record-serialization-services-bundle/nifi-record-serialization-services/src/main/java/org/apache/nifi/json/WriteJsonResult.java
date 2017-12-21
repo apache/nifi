@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.text.DateFormat;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -117,26 +118,31 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     public Map<String, String> writeRecord(final Record record) throws IOException {
         // If we are not writing an active record set, then we need to ensure that we write the
         // schema information.
+        boolean firstRecord = false;
         if (!isActiveRecordSet()) {
             generator.flush();
             schemaAccess.writeHeader(recordSchema, getOutputStream());
+            firstRecord = true;
         }
 
         writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject(), true);
-        return schemaAccess.getAttributes(recordSchema);
+        return firstRecord ? schemaAccess.getAttributes(recordSchema) : Collections.emptyMap();
     }
 
     @Override
     public WriteResult writeRawRecord(final Record record) throws IOException {
         // If we are not writing an active record set, then we need to ensure that we write the
         // schema information.
+        boolean firstRecord = false;
         if (!isActiveRecordSet()) {
             generator.flush();
             schemaAccess.writeHeader(recordSchema, getOutputStream());
+            firstRecord = true;
         }
 
         writeRecord(record, recordSchema, generator, g -> g.writeStartObject(), g -> g.writeEndObject(), false);
-        return WriteResult.of(incrementRecordCount(), schemaAccess.getAttributes(recordSchema));
+        final Map<String, String> attributes = firstRecord ? schemaAccess.getAttributes(recordSchema) : Collections.emptyMap();
+        return WriteResult.of(incrementRecordCount(), attributes);
     }
 
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator,
