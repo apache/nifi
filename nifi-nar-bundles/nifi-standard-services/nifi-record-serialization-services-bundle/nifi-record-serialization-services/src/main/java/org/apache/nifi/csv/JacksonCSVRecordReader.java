@@ -123,13 +123,7 @@ public class JacksonCSVRecordReader implements RecordReader {
         final RecordSchema schema = getSchema();
 
         if (recordStream.hasNext()) {
-            String[] csvRecord = null;
-            try {
-                csvRecord = recordStream.next();
-            } catch (Exception e) {
-                logger.debug("Error getting next row", e);
-                return null;
-            }
+            String[] csvRecord = recordStream.next();
 
             // If the first record is the header names (and we're using them), store those off for use in creating the value map on the next iterations
             if (rawFieldNames == null) {
