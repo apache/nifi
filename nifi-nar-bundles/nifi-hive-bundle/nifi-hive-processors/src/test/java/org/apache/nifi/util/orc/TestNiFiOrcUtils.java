@@ -28,7 +28,6 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -202,10 +201,9 @@ public class TestNiFiOrcUtils {
         map.put("Hello", 1.0f);
         map.put("World", 2.0f);
 
-        Object writable = NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("map<string,float>"), map);
-        assertTrue(writable instanceof MapWritable);
-        MapWritable mapWritable = (MapWritable) writable;
-        mapWritable.forEach((key, value) -> {
+        Object convMap = NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("map<string,float>"), map);
+        assertTrue(convMap instanceof Map);
+        ((Map) convMap).forEach((key, value) -> {
             assertTrue(key instanceof Text);
             assertTrue(value instanceof FloatWritable);
         });
@@ -338,6 +336,25 @@ public class TestNiFiOrcUtils {
         return TypeInfoUtils.getTypeInfoFromTypeString("struct<myInt:int,myMap:map<string,double>,myEnum:string,myLongOrFloat:uniontype<int>,myIntList:array<int>>");
     }
 
+    public static Schema buildNestedComplexAvroSchema() {
+        // Build a fake Avro record with nested complex types
+        final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("nested.complex.record").namespace("any.data").fields();
+        builder.name("myMapOfArray").type().map().values().array().items().doubleType().noDefault();
+        builder.name("myArrayOfMap").type().array().items().map().values().stringType().noDefault();
+        return builder.endRecord();
+    }
+
+    public static GenericData.Record buildNestedComplexAvroRecord(Map<String, List<Double>> m, List<Map<String, String>> a) {
+        Schema schema = buildNestedComplexAvroSchema();
+        GenericData.Record row = new GenericData.Record(schema);
+        row.put("myMapOfArray", m);
+        row.put("myArrayOfMap", a);
+        return row;
+    }
+
+    public static TypeInfo buildNestedComplexOrcSchema() {
+        return TypeInfoUtils.getTypeInfoFromTypeString("struct<myMapOfArray:map<string,array<double>>,myArrayOfMap:array<map<string,string>>>");
+    }
 
     private static class TypeInfoCreator {
         static TypeInfo createInt() {
