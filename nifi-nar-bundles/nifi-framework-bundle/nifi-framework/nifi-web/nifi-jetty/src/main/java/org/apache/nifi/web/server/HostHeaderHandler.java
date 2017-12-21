@@ -62,8 +62,8 @@ public class HostHeaderHandler extends ScopedHandler {
         // Different from customizer -- empty is ok here
         validHosts.add("");
         try {
-            validHosts.add(InetAddress.getLocalHost().getHostName());
-            validHosts.add(InetAddress.getLocalHost().getHostName() + ":" + serverPort);
+            validHosts.add(InetAddress.getLocalHost().getHostName().toLowerCase());
+            validHosts.add(InetAddress.getLocalHost().getHostName().toLowerCase() + ":" + serverPort);
         } catch (final Exception e) {
             logger.warn("Failed to determine local hostname.", e);
         }
