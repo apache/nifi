@@ -89,13 +89,13 @@ public class ProvenanceEventConsumer {
         }
     }
 
-    public void addTargetEventType(final ProvenanceEventType ... types) {
+    public void addTargetEventType(final ProvenanceEventType... types) {
         for (ProvenanceEventType type : types) {
             eventTypes.add(type);
         }
     }
 
-    public void addTargetComponentId(final String ... ids) {
+    public void addTargetComponentId(final String... ids) {
         for (String id : ids) {
             componentIds.add(id);
         }
@@ -122,12 +122,13 @@ public class ProvenanceEventConsumer {
         }
         final EventAccess eventAccess = context.getEventAccess();
         final ProcessGroupStatus procGroupStatus = eventAccess.getControllerStatus();
-        final ComponentMapHolder componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus);
+        final ParentProcessGroupSearchNode rootNode = new ParentProcessGroupSearchNode(procGroupStatus.getId(), null);
+        final ComponentMapHolder componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus, rootNode);
         final StateManager stateManager = context.getStateManager();
 
         Long currMaxId = eventAccess.getProvenanceRepository().getMaxEventId();
 
-        if(currMaxId == null) {
+        if (currMaxId == null) {
             logger.debug("No events to send because no events have been created yet.");
             return;
         }
@@ -156,7 +157,7 @@ public class ProvenanceEventConsumer {
                     firstEventId = -1;
                 } else {
                     logger.warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
-                            "ids. Restarting querying from the latest event in the Provenance Repository.", new Object[] {currMaxId, firstEventId});
+                            "ids. Restarting querying from the latest event in the Provenance Repository.", new Object[]{currMaxId, firstEventId});
                     firstEventId = currMaxId;
                 }
             }
@@ -218,7 +219,7 @@ public class ProvenanceEventConsumer {
             stateManager.setState(newMapOfState, Scope.LOCAL);
         } catch (final IOException ioe) {
             logger.error("Failed to update state to {} due to {}; this could result in events being re-sent after a restart. The message of {} was: {}",
-                    new Object[] {lastEventId, ioe, ioe, ioe.getMessage()}, ioe);
+                    new Object[]{lastEventId, ioe, ioe, ioe.getMessage()}, ioe);
         }
 
         return lastEvent.getEventId() + 1;
@@ -230,28 +231,34 @@ public class ProvenanceEventConsumer {
     }
 
     private List<ProvenanceEventRecord> filterEvents(ComponentMapHolder componentMapHolder, List<ProvenanceEventRecord> provenanceEvents) {
-        if(isFilteringEnabled()) {
+        if (isFilteringEnabled()) {
             List<ProvenanceEventRecord> filteredEvents = new ArrayList<>();
 
             for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
-                if(!componentIds.isEmpty() && !componentIds.contains(provenanceEventRecord.getComponentId())) {
+                final String componentId = provenanceEventRecord.getComponentId();
+                if (!componentIds.isEmpty() && !componentIds.contains(componentId)) {
                     // If we aren't filtering it out based on component ID, let's see if this component has a parent process group IDs
                     // that is being filtered on
                     if (componentMapHolder == null) {
                         continue;
                     }
-                    final String processGroupId = componentMapHolder.getProcessGroupId(provenanceEventRecord.getComponentId(), provenanceEventRecord.getComponentType());
-                    if (processGroupId == null || processGroupId.isEmpty()) {
+                    final String processGroupId = componentMapHolder.getProcessGroupId(componentId, provenanceEventRecord.getComponentType());
+                    if (StringUtils.isEmpty(processGroupId)) {
                         continue;
                     }
-                    if (componentMapHolder.getProcessGroupIdStack(processGroupId).stream().noneMatch(pgid -> componentIds.contains(pgid))) {
+                    // Check if any parent process group has the specified component ID
+                    ParentProcessGroupSearchNode matchedComponent = componentMapHolder.getProcessGroupParent(componentId);
+                    while (matchedComponent != null && !matchedComponent.getId().equals(processGroupId) && !componentIds.contains(matchedComponent.getId())) {
+                        matchedComponent = matchedComponent.getParent();
+                    }
+                    if (matchedComponent == null) {
                         continue;
                     }
                 }
-                if(!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
+                if (!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
                     continue;
                 }
-                if(componentTypeRegex != null && !componentTypeRegex.matcher(provenanceEventRecord.getComponentType()).matches()) {
+                if (componentTypeRegex != null && !componentTypeRegex.matcher(provenanceEventRecord.getComponentType()).matches()) {
                     continue;
                 }
                 filteredEvents.add(provenanceEventRecord);
