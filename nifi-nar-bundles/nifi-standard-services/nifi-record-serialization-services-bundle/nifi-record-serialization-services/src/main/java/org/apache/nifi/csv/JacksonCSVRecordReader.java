@@ -17,11 +17,19 @@
 
 package org.apache.nifi.csv;
 
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvParser;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang3.CharUtils;
@@ -35,18 +43,11 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Supplier;
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvParser;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 
 public class JacksonCSVRecordReader implements RecordReader {
@@ -140,6 +141,7 @@ public class JacksonCSVRecordReader implements RecordReader {
                     }
                 }
             }
+
             // Check for empty lines and ignore them
             boolean foundRecord = true;
             if (csvRecord == null || (csvRecord.length == 1 && StringUtils.isEmpty(csvRecord[0]))) {
@@ -154,12 +156,13 @@ public class JacksonCSVRecordReader implements RecordReader {
                     }
                 }
             }
+
             // If we didn't find a record, then the end of the file was comprised of empty lines, so we have no record to return
             if (!foundRecord) {
                 return null;
             }
 
-            final Map<String, Object> values = new LinkedHashMap<>();
+            final Map<String, Object> values = new HashMap<>(rawFieldNames.size() * 2);
             final int numFieldNames = rawFieldNames.size();
             for (int i = 0; i < csvRecord.length; i++) {
                 final String rawFieldName = numFieldNames <= i ? "unknown_field_index_" + i : rawFieldNames.get(i);

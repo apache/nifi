@@ -31,6 +31,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.slf4j.Logger;
@@ -174,7 +176,13 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
                 final Object obj = rs.getObject(columnIndex);
                 if (obj == null || !(obj instanceof Record)) {
-                    return RecordFieldType.RECORD.getDataType();
+                    final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
+                        RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING, RecordFieldType.TIME,
+                        RecordFieldType.TIMESTAMP)
+                    .map(recordFieldType -> recordFieldType.getDataType())
+                    .collect(Collectors.toList());
+
+                    return RecordFieldType.CHOICE.getChoiceDataType(dataTypes);
                 }
 
                 final Record record = (Record) obj;

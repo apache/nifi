@@ -23,7 +23,6 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -84,31 +83,64 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         return convertJsonNodeToRecord(jsonNode, schema, fieldNamePrefix, coerceTypes, dropUnknown);
     }
 
+    private JsonNode getChildNode(final JsonNode jsonNode, final RecordField field) {
+        if (jsonNode.has(field.getFieldName())) {
+            return jsonNode.get(field.getFieldName());
+        }
+
+        for (final String alias : field.getAliases()) {
+            if (jsonNode.has(alias)) {
+                return jsonNode.get(alias);
+            }
+        }
+
+        return null;
+    }
 
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix,
             final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
-        final Map<String, Object> values = new LinkedHashMap<>();
-        final Iterator<String> fieldNames = jsonNode.getFieldNames();
-        while (fieldNames.hasNext()) {
-            final String fieldName = fieldNames.next();
-            final JsonNode childNode = jsonNode.get(fieldName);
+        final Map<String, Object> values = new HashMap<>(schema.getFieldCount() * 2);
 
-            final RecordField recordField = schema.getField(fieldName).orElse(null);
-            if (recordField == null && dropUnknown) {
-                continue;
+        if (dropUnknown) {
+            for (final RecordField recordField : schema.getFields()) {
+                final JsonNode childNode = getChildNode(jsonNode, recordField);
+                if (childNode == null) {
+                    continue;
+                }
+
+                final String fieldName = recordField.getFieldName();
+
+                final Object value;
+                if (coerceTypes) {
+                    final DataType desiredType = recordField.getDataType();
+                    final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
+                    value = convertField(childNode, fullFieldName, desiredType, dropUnknown);
+                } else {
+                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType());
+                }
+
+                values.put(fieldName, value);
             }
+        } else {
+            final Iterator<String> fieldNames = jsonNode.getFieldNames();
+            while (fieldNames.hasNext()) {
+                final String fieldName = fieldNames.next();
+                final JsonNode childNode = jsonNode.get(fieldName);
 
-            final Object value;
-            if (coerceTypes && recordField != null) {
-                final DataType desiredType = recordField.getDataType();
-                final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
-                value = convertField(childNode, fullFieldName, desiredType, dropUnknown);
-            } else {
-                value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType());
+                final RecordField recordField = schema.getField(fieldName).orElse(null);
+
+                final Object value;
+                if (coerceTypes && recordField != null) {
+                    final DataType desiredType = recordField.getDataType();
+                    final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
+                    value = convertField(childNode, fullFieldName, desiredType, dropUnknown);
+                } else {
+                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType());
+                }
+
+                values.put(fieldName, value);
             }
-
-            values.put(fieldName, value);
         }
 
         final Supplier<String> supplier = () -> jsonNode.toString();

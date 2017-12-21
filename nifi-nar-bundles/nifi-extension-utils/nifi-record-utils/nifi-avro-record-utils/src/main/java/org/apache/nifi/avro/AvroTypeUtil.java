@@ -27,9 +27,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -150,9 +152,20 @@ public class AvroTypeUtil {
                 final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
                 final List<DataType> options = choiceDataType.getPossibleSubTypes();
 
+                // We need to keep track of which types have been added to the union, because if we have
+                // two elements in the UNION with the same type, it will fail - even if the logical type is
+                // different. So if we have an int and a logical type date (which also has a 'concrete type' of int)
+                // then an Exception will be thrown when we try to create the union. To avoid this, we just keep track
+                // of the Types and avoid adding it in such a case.
                 final List<Schema> unionTypes = new ArrayList<>(options.size());
+                final Set<Type> typesAdded = new HashSet<>();
+
                 for (final DataType option : options) {
-                    unionTypes.add(buildAvroSchema(option, fieldName, false));
+                    final Schema optionSchema = buildAvroSchema(option, fieldName, false);
+                    if (!typesAdded.contains(optionSchema.getType())) {
+                        unionTypes.add(optionSchema);
+                        typesAdded.add(optionSchema.getType());
+                    }
                 }
 
                 schema = Schema.createUnion(unionTypes);
@@ -213,6 +226,17 @@ public class AvroTypeUtil {
     }
 
     private static Schema nullable(final Schema schema) {
+        if (schema.getType() == Type.UNION) {
+            final List<Schema> unionTypes = new ArrayList<>(schema.getTypes());
+            final Schema nullSchema = Schema.create(Type.NULL);
+            if (unionTypes.contains(nullSchema)) {
+                return schema;
+            }
+
+            unionTypes.add(nullSchema);
+            return Schema.createUnion(unionTypes);
+        }
+
         return Schema.createUnion(Schema.create(Type.NULL), schema);
     }
 

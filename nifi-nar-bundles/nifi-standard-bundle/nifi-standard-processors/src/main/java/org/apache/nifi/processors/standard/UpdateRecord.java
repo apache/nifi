@@ -165,17 +165,23 @@ public class UpdateRecord extends AbstractRecordProcessor {
                 }
             } else {
                 final PropertyValue replacementValue = context.getProperty(recordPathText);
-                final Map<String, String> fieldVariables = new HashMap<>(4);
 
-                result.getSelectedFields().forEach(fieldVal -> {
-                    fieldVariables.clear();
-                    fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
-                    fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
-                    fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
+                if (replacementValue.isExpressionLanguagePresent()) {
+                    final Map<String, String> fieldVariables = new HashMap<>();
 
-                    final String evaluatedReplacementVal = replacementValue.evaluateAttributeExpressions(flowFile, fieldVariables).getValue();
-                    fieldVal.updateValue(evaluatedReplacementVal);
-                });
+                    result.getSelectedFields().forEach(fieldVal -> {
+                        fieldVariables.clear();
+                        fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
+                        fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
+                        fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
+
+                        final String evaluatedReplacementVal = replacementValue.evaluateAttributeExpressions(flowFile, fieldVariables).getValue();
+                        fieldVal.updateValue(evaluatedReplacementVal);
+                    });
+                } else {
+                    final String evaluatedReplacementVal = replacementValue.getValue();
+                    result.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(evaluatedReplacementVal));
+                }
             }
         }
 

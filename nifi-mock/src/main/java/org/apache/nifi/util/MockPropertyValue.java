@@ -225,7 +225,7 @@ public class MockPropertyValue implements PropertyValue {
 
     @Override
     public boolean isExpressionLanguagePresent() {
-        if (!expectExpressions) {
+        if (!Boolean.TRUE.equals(expectExpressions)) {
             return false;
         }
 

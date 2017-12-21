@@ -18,9 +18,12 @@ package org.apache.nifi.queryrecord;
 
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -47,6 +50,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -62,6 +66,8 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
     private volatile ProcessSession session;
     private volatile FlowFile flowFile;
     private volatile int maxRecordsRead;
+
+    private final Set<FlowFileEnumerator<?>> enumerators = new HashSet<>();
 
     /**
      * Creates a FlowFile table.
@@ -85,6 +91,14 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
         return "FlowFileTable";
     }
 
+    public void close() {
+        synchronized (enumerators) {
+            for (final FlowFileEnumerator<?> enumerator : enumerators) {
+                enumerator.close();
+            }
+        }
+    }
+
     /**
      * Returns an enumerable over a given projection of the fields.
      *
@@ -96,7 +110,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             @Override
             @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                return new FlowFileEnumerator(session, flowFile, logger, recordParserFactory, fields) {
+                final FlowFileEnumerator flowFileEnumerator = new FlowFileEnumerator(session, flowFile, logger, recordParserFactory, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -104,7 +118,21 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
                             maxRecordsRead = recordCount;
                         }
                     }
+
+                    @Override
+                    public void close() {
+                        synchronized (enumerators) {
+                            enumerators.remove(this);
+                        }
+                        super.close();
+                    }
                 };
+
+                synchronized (enumerators) {
+                    enumerators.add(flowFileEnumerator);
+                }
+
+                return flowFileEnumerator;
             }
         };
     }
@@ -203,9 +231,13 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             case ARRAY:
                 return typeFactory.createJavaType(Object[].class);
             case RECORD:
-                return typeFactory.createJavaType(Object.class);
+                return typeFactory.createJavaType(Record.class);
             case MAP:
                 return typeFactory.createJavaType(HashMap.class);
+            case BIGINT:
+                return typeFactory.createJavaType(BigInteger.class);
+            case CHOICE:
+                return typeFactory.createJavaType(Object.class);
         }
 
         throw new IllegalArgumentException("Unknown Record Field Type: " + fieldType);
