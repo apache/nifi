@@ -195,7 +195,18 @@
                             }
                         },
                         _renderItem: function (ul, match) {
-                            var itemContent = $('<a></a>').append($('<div class="search-match-header"></div>').text(match.name));
+                            var itemHeader = $('<div class="search-match-header"></div>').text(match.name);
+
+                            var parentGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Parent: '));
+                            var parentGroup = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
+                            parentGroupHeader = parentGroupHeader.append($('<span></span>').text(parentGroup));
+
+                            var topLevelGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Top level: '));
+                            var topLevelGroup = match.topLevelGroup.name ? match.topLevelGroup.name : match.topLevelGroup.id;
+                            topLevelGroupHeader = topLevelGroupHeader.append($('<span></span>').text(topLevelGroup));
+                            // create a search item wrapper
+                            var itemContent = $('<a></a>').append(itemHeader).append(parentGroupHeader).append(topLevelGroupHeader);
+                            // append all matches
                             $.each(match.matches, function (i, match) {
                                 itemContent.append($('<div class="search-match"></div>').text(match));
                             });
@@ -226,9 +237,10 @@
                         },
                         select: function (event, ui) {
                             var item = ui.item;
+                            var group = item.parentGroup;
 
                             // show the selected component
-                            nfCanvasUtils.showComponent(item.groupId, item.id);
+                            nfCanvasUtils.showComponent(group.id, item.id);
 
                             searchCtrl.getInputElement().val('').blur();
 

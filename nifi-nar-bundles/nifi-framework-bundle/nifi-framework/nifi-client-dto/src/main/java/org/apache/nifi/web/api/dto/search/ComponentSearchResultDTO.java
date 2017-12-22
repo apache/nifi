@@ -28,7 +28,8 @@ import java.util.List;
 public class ComponentSearchResultDTO {
 
     private String id;
-    private String groupId;
+    private SearchResultGroupDTO parentGroup;
+    private SearchResultGroupDTO topLevelGroup;
     private String name;
     private List<String> matches;
 
@@ -47,17 +48,31 @@ public class ComponentSearchResultDTO {
     }
 
     /**
-     * @return group id of the component that matched
+     * @return parent group of the component that matched
      */
     @ApiModelProperty(
-            value = "The group id of the component that matched the search."
+            value = "The parent group of the component that matched the search."
     )
-    public String getGroupId() {
-        return groupId;
+    public SearchResultGroupDTO getParentGroup() {
+        return parentGroup;
     }
 
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
+    public void setParentGroup(final SearchResultGroupDTO parentGroup) {
+        this.parentGroup = parentGroup;
+    }
+
+    /**
+     * @return top level ancestor group of the component that matched
+     */
+    @ApiModelProperty(
+            value = "The top level ancestor group of the component that matched the search."
+    )
+    public SearchResultGroupDTO getTopLevelGroup() {
+        return topLevelGroup;
+    }
+
+    public void setTopLevelGroup(final SearchResultGroupDTO topLevelGroup) {
+        this.topLevelGroup = topLevelGroup;
     }
 
     /**
