@@ -29,7 +29,7 @@ import java.util.Date;
  */
 @XmlRootElement(name = "template")
 public class TemplateDTO {
-    public static final String MAX_ENCODING_VERSION = "1.1";
+    public static final String MAX_ENCODING_VERSION = "1.2";
 
     private String uri;
 
