@@ -19,6 +19,7 @@ package org.apache.nifi.processors.hadoop;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -50,6 +51,7 @@ import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -295,6 +297,11 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 context.yield();
                 getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
                 return;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                context.yield();
+                getLogger().warn("Interrupted while retrieving files", e);
+                return;
             }
         }
 
@@ -342,13 +349,13 @@ public class GetHDFS extends AbstractHadoopProcessor {
         final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
         for (final Path file : files) {
             try {
-                if (!hdfs.exists(file)) {
+                if (!getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(file))) {
                     continue; // if file is no longer there then move on
                 }
                 final String originalFilename = file.getName();
                 final String relativePath = getPathDifference(rootDir, file);
 
-                stream = hdfs.open(file, bufferSize);
+                stream = getUserGroupInformation().doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> hdfs.open(file, bufferSize));
 
                 final String outputFilename;
                 // Check if we should infer compression codec
@@ -374,7 +381,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath);
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
-                if (!keepSourceFiles && !hdfs.delete(file, false)) {
+                if (!keepSourceFiles && !getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.delete(file, false))) {
                     getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...",
                             new Object[]{file});
                     session.remove(flowFile);
@@ -406,7 +413,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
      * @return null if POLLING_INTERVAL has not lapsed. Will return an empty set if no files were found on HDFS that matched the configured filters
      * @throws java.io.IOException ex
      */
-    protected Set<Path> performListing(final ProcessContext context) throws IOException {
+    protected Set<Path> performListing(final ProcessContext context) throws IOException, InterruptedException {
 
         final long pollingIntervalMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final long nextPollTime = lastPollTime.get() + pollingIntervalMillis;
@@ -435,7 +442,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
      * @return files to process
      * @throws java.io.IOException ex
      */
-    protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException {
+    protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException, InterruptedException {
         if (null == filesVisited) {
             filesVisited = new HashSet<>();
         }
@@ -446,7 +453,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
         final Set<Path> files = new HashSet<>();
 
-        for (final FileStatus file : hdfs.listStatus(dir)) {
+        FileStatus[] fileStatuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(dir));
+        for (final FileStatus file : fileStatuses) {
             if (files.size() >= MAX_WORKING_QUEUE_SIZE) {
                 // no need to make the files set larger than what we would queue anyway
                 break;

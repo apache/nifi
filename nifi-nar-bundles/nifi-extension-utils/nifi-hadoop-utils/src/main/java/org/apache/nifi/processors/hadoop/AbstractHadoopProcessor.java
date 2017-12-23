@@ -28,7 +28,6 @@ import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -37,7 +36,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import javax.net.SocketFactory;
@@ -54,11 +52,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
+ * <p/>
+ * As of Apache NiFi 1.5.0, the Relogin Period property is no longer used in the configuration of a Hadoop processor.
+ * Due to changes made to {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this
+ * class to authenticate a principal with Kerberos, Hadoop components no longer
+ * attempt relogins explicitly.  For more information, please read the documentation for
+ * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
+ *
+ * @see SecurityUtil#loginKerberos(Configuration, String, String)
  */
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
@@ -91,7 +96,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder()
             .name("Kerberos Relogin Period").required(false)
-            .description("Period of time which should pass before attempting a kerberos relogin")
+            .description("Period of time which should pass before attempting a kerberos relogin.\n\nThis property has been deprecated, and has no effect on processing.  Relogins"
+                    + "now occur automatically.")
             .defaultValue("4 hours")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -111,8 +117,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     private static final Object RESOURCES_LOCK = new Object();
 
-    private long kerberosReloginThreshold;
-    private long lastKerberosReloginTime;
     protected KerberosProperties kerberosProperties;
     protected List<PropertyDescriptor> properties;
     private volatile File kerberosConfigFile = null;
@@ -195,10 +199,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         try {
             // This value will be null when called from ListHDFS, because it overrides all of the default
             // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
-            PropertyValue reloginPeriod = context.getProperty(KERBEROS_RELOGIN_PERIOD).evaluateAttributeExpressions();
-            if (reloginPeriod.getValue() != null) {
-                kerberosReloginThreshold = reloginPeriod.asTimePeriod(TimeUnit.SECONDS);
-            }
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
                 final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
@@ -274,7 +274,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
                 ugi = SecurityUtil.loginKerberos(config, principal, keyTab);
                 fs = getFileSystemAsUser(config, ugi);
-                lastKerberosReloginTime = System.currentTimeMillis() / 1000;
             } else {
                 config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
                 config.set("hadoop.security.authentication", "simple");
@@ -403,44 +402,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected FileSystem getFileSystem() {
-        // trigger Relogin if necessary
-        getUserGroupInformation();
         return hdfsResources.get().getFileSystem();
     }
 
     protected UserGroupInformation getUserGroupInformation() {
-        // if kerberos is enabled, check if the ticket should be renewed before returning
-        UserGroupInformation userGroupInformation = hdfsResources.get().getUserGroupInformation();
-        if (userGroupInformation != null && isTicketOld()) {
-            tryKerberosRelogin(userGroupInformation);
-        }
-        return userGroupInformation;
-    }
-
-    protected void tryKerberosRelogin(UserGroupInformation ugi) {
-        try {
-            getLogger().info("Kerberos ticket age exceeds threshold [{} seconds] " +
-                "attempting to renew ticket for user {}", new Object[]{
-              kerberosReloginThreshold, ugi.getUserName()});
-            ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-                ugi.checkTGTAndReloginFromKeytab();
-                return null;
-            });
-            lastKerberosReloginTime = System.currentTimeMillis() / 1000;
-            getLogger().info("Kerberos relogin successful or ticket still valid");
-        } catch (IOException e) {
-            // Most likely case of this happening is ticket is expired and error getting a new one,
-            // meaning dfs operations would fail
-            getLogger().error("Kerberos relogin failed", e);
-            throw new ProcessException("Unable to renew kerberos ticket", e);
-        } catch (InterruptedException e) {
-            getLogger().error("Interrupted while attempting Kerberos relogin", e);
-            throw new ProcessException("Unable to renew kerberos ticket", e);
-        }
-    }
-
-    protected boolean isTicketOld() {
-        return (System.currentTimeMillis() / 1000 - lastKerberosReloginTime) > kerberosReloginThreshold;
+        return hdfsResources.get().getUserGroupInformation();
     }
 
     static protected class HdfsResources {

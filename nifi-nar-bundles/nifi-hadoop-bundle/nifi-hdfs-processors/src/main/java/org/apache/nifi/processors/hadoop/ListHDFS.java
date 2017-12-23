@@ -49,6 +49,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -343,6 +344,10 @@ public class ListHDFS extends AbstractHadoopProcessor {
         } catch (final IOException | IllegalArgumentException e) {
             getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {e});
             return;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            getLogger().error("Interrupted while performing listing of HDFS", e);
+            return;
         }
 
         final Set<FileStatus> listable = determineListable(statuses, context);
@@ -381,11 +386,11 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
     }
 
-    private Set<FileStatus> getStatuses(final Path path, final boolean recursive, final FileSystem hdfs, final PathFilter filter) throws IOException {
+    private Set<FileStatus> getStatuses(final Path path, final boolean recursive, final FileSystem hdfs, final PathFilter filter) throws IOException, InterruptedException {
         final Set<FileStatus> statusSet = new HashSet<>();
 
         getLogger().debug("Fetching listing for {}", new Object[] {path});
-        final FileStatus[] statuses = hdfs.listStatus(path, filter);
+        final FileStatus[] statuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path, filter));
 
         for ( final FileStatus status : statuses ) {
             if ( status.isDirectory() ) {
