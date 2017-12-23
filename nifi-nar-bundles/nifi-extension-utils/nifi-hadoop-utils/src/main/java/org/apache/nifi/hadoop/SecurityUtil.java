@@ -19,7 +19,6 @@ package org.apache.nifi.hadoop;
 import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.nifi.logging.ComponentLog;
 
 import java.io.IOException;
 
@@ -51,7 +50,8 @@ public class SecurityUtil {
         Validate.notNull(keyTab);
 
         UserGroupInformation.setConfiguration(config);
-        return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal.trim(), keyTab.trim());
+        UserGroupInformation.loginUserFromKeytab(principal.trim(), keyTab.trim());
+        return UserGroupInformation.getCurrentUser();
     }
 
     /**
@@ -85,32 +85,4 @@ public class SecurityUtil {
         Validate.notNull(config);
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
     }
-
-    /**
-     * Start a thread that periodically attempts to renew the current Kerberos user's ticket.
-     *
-     * Callers of this method should store the reference to the KerberosTicketRenewer and call stop() to stop the thread.
-     *
-     * @param id
-     *          The unique identifier to use for the thread, can be the class name that started the thread
-     *              (i.e. PutHDFS, etc)
-     * @param ugi
-     *          The current Kerberos user.
-     * @param renewalPeriod
-     *          The amount of time between attempting renewals.
-     * @param logger
-     *          The logger to use with in the renewer
-     *
-     * @return the KerberosTicketRenewer Runnable
-     */
-    public static KerberosTicketRenewer startTicketRenewalThread(final String id, final UserGroupInformation ugi, final long renewalPeriod, final ComponentLog logger) {
-        final KerberosTicketRenewer renewer = new KerberosTicketRenewer(ugi, renewalPeriod, logger);
-
-        final Thread t = new Thread(renewer);
-        t.setName("Kerberos Ticket Renewal [" + id + "]");
-        t.start();
-
-        return renewer;
-    }
-
 }

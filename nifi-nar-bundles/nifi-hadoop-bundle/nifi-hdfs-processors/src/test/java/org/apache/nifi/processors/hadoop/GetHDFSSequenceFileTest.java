@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -46,7 +45,6 @@ public class GetHDFSSequenceFileTest {
     private Configuration configuration;
     private FileSystem fileSystem;
     private UserGroupInformation userGroupInformation;
-    private boolean isTicketOld;
     private boolean reloginTried;
 
     @Before
@@ -57,7 +55,6 @@ public class GetHDFSSequenceFileTest {
         hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, userGroupInformation);
         getHDFSSequenceFile = new TestableGetHDFSSequenceFile();
         getHDFSSequenceFile.kerberosProperties = mock(KerberosProperties.class);
-        isTicketOld = false;
         reloginTried = false;
         init();
     }
@@ -68,7 +65,8 @@ public class GetHDFSSequenceFileTest {
         getHDFSSequenceFile.onScheduled(context);
     }
 
-    private void getFlowFilesWithUgi() throws Exception {
+    @Test
+    public void getFlowFilesWithUgiAndNewTicketShouldCallDoAsAndNotRelogin() throws Exception {
         SequenceFileReader reader = mock(SequenceFileReader.class);
         Path file = mock(Path.class);
         getHDFSSequenceFile.getFlowFiles(configuration, fileSystem, reader, file);
@@ -77,19 +75,7 @@ public class GetHDFSSequenceFileTest {
         verify(userGroupInformation).doAs(privilegedExceptionActionArgumentCaptor.capture());
         privilegedExceptionActionArgumentCaptor.getValue().run();
         verify(reader).readSequenceFile(file, configuration, fileSystem);
-    }
-
-    @Test
-    public void getFlowFilesWithUgiAndNewTicketShouldCallDoAsAndNotRelogin() throws Exception {
-        getFlowFilesWithUgi();
         assertFalse(reloginTried);
-    }
-
-    @Test
-    public void getFlowFilesWithUgiAndOldTicketShouldCallDoAsAndRelogin() throws Exception {
-        isTicketOld = true;
-        getFlowFilesWithUgi();
-        assertTrue(reloginTried);
     }
 
     @Test
@@ -116,16 +102,6 @@ public class GetHDFSSequenceFileTest {
         @Override
         protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return kerberosProperties;
-        }
-
-        @Override
-        protected boolean isTicketOld() {
-            return isTicketOld;
-        }
-
-        @Override
-        protected void tryKerberosRelogin(UserGroupInformation ugi) {
-            reloginTried = true;
         }
     }
 }

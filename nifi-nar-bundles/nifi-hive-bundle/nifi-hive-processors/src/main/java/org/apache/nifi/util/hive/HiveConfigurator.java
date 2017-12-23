@@ -24,7 +24,6 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.hadoop.KerberosTicketRenewer;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.logging.ComponentLog;
 
@@ -38,9 +37,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * Created by mburgess on 5/4/16.
  */
 public class HiveConfigurator {
-
-    private volatile KerberosTicketRenewer renewer;
-
 
     public Collection<ValidationResult> validate(String configFiles, String principal, String keyTab, AtomicReference<ValidationResources> validationResourceHolder, ComponentLog log) {
 
@@ -89,18 +85,6 @@ public class HiveConfigurator {
         } catch (IOException ioe) {
             throw new AuthenticationFailedException("Kerberos Authentication for Hive failed", ioe);
         }
-
-        // if we got here then we have a ugi so start a renewer
-        if (ugi != null) {
-            final String id = getClass().getSimpleName();
-            renewer = SecurityUtil.startTicketRenewalThread(id, ugi, ticketRenewalPeriod, log);
-        }
         return ugi;
-    }
-
-    public void stopRenewer() {
-        if (renewer != null) {
-            renewer.stop();
-        }
     }
 }

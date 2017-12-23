@@ -200,12 +200,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             if (admin != null) {
                 admin.listTableNames();
             }
-
-            // if we got here then we have a successful connection, so if we have a ugi then start a renewer
-            if (ugi != null) {
-                final String id = getClass().getSimpleName();
-                renewer = SecurityUtil.startTicketRenewalThread(id, ugi, TICKET_RENEWAL_PERIOD, getLogger());
-            }
         }
     }
 

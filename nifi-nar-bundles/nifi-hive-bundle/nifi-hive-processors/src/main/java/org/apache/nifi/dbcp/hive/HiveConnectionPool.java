@@ -269,9 +269,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
      */
     @OnDisabled
     public void shutdown() {
-
-        hiveConfigurator.stopRenewer();
-
         try {
             dataSource.close();
         } catch (final SQLException e) {

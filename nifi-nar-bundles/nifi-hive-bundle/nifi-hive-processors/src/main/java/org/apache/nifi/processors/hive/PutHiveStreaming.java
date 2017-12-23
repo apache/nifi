@@ -865,7 +865,6 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         }
 
         ugi = null;
-        hiveConfigurator.stopRenewer();
     }
 
     private void setupHeartBeatTimer(int heartbeatInterval) {
