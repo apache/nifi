@@ -60,7 +60,11 @@ public class ComponentMapHolder {
         return componentToParentGroupMap.get(componentId);
     }
 
-    public static ComponentMapHolder createComponentMap(final ProcessGroupStatus status, final ParentProcessGroupSearchNode thisNode) {
+    public static ComponentMapHolder createComponentMap(final ProcessGroupStatus status) {
+        return createComponentMap(status, new ParentProcessGroupSearchNode(status.getId(), null));
+    }
+
+    private static ComponentMapHolder createComponentMap(final ProcessGroupStatus status, final ParentProcessGroupSearchNode thisProcessGroupNode) {
         final ComponentMapHolder holder = new ComponentMapHolder();
         final Map<String,String> componentNameMap = holder.componentNameMap;
         final Map<String,ParentProcessGroupSearchNode> componentToParentGroupMap = holder.componentToParentGroupMap;
@@ -68,37 +72,31 @@ public class ComponentMapHolder {
         final Map<String,String> destinationToConnectionParentGroupMap = holder.destinationToConnectionParentGroupMap;
 
         if (status != null) {
-            ParentProcessGroupSearchNode parentNode = thisNode;
             componentNameMap.put(status.getId(), status.getName());
-            // Put a root entry in if one does not yet exist
-            if (parentNode == null) {
-                parentNode = new ParentProcessGroupSearchNode(status.getId(), null);
-                componentToParentGroupMap.put(status.getId(), parentNode);
-            }
 
             for (final ProcessorStatus procStatus : status.getProcessorStatus()) {
                 componentNameMap.put(procStatus.getId(), procStatus.getName());
-                componentToParentGroupMap.put(procStatus.getId(), new ParentProcessGroupSearchNode(status.getId(), parentNode));
+                componentToParentGroupMap.put(procStatus.getId(), thisProcessGroupNode);
             }
 
             for (final PortStatus portStatus : status.getInputPortStatus()) {
                 componentNameMap.put(portStatus.getId(), portStatus.getName());
-                componentToParentGroupMap.put(portStatus.getId(), new ParentProcessGroupSearchNode(status.getId(), parentNode));
+                componentToParentGroupMap.put(portStatus.getId(), thisProcessGroupNode);
             }
 
             for (final PortStatus portStatus : status.getOutputPortStatus()) {
                 componentNameMap.put(portStatus.getId(), portStatus.getName());
-                componentToParentGroupMap.put(portStatus.getId(), new ParentProcessGroupSearchNode(status.getId(), parentNode));
+                componentToParentGroupMap.put(portStatus.getId(), thisProcessGroupNode);
             }
 
             for (final RemoteProcessGroupStatus rpgStatus : status.getRemoteProcessGroupStatus()) {
                 componentNameMap.put(rpgStatus.getId(), rpgStatus.getName());
-                componentToParentGroupMap.put(rpgStatus.getId(), new ParentProcessGroupSearchNode(status.getId(), parentNode));
+                componentToParentGroupMap.put(rpgStatus.getId(), thisProcessGroupNode);
             }
 
             for (final ConnectionStatus connectionStatus : status.getConnectionStatus()) {
                 componentNameMap.put(connectionStatus.getId(), connectionStatus.getName());
-                componentToParentGroupMap.put(connectionStatus.getId(), new ParentProcessGroupSearchNode(status.getId(), parentNode));
+                componentToParentGroupMap.put(connectionStatus.getId(), thisProcessGroupNode);
                 // Add source and destination for Remote Input/Output Ports because metadata for those are only available at ConnectionStatus.
                 componentNameMap.computeIfAbsent(connectionStatus.getSourceId(), k -> connectionStatus.getSourceName());
                 componentNameMap.computeIfAbsent(connectionStatus.getDestinationId(), k -> connectionStatus.getDestinationName());
@@ -108,9 +106,9 @@ public class ComponentMapHolder {
 
             for (final ProcessGroupStatus childGroup : status.getProcessGroupStatus()) {
                 componentNameMap.put(childGroup.getId(), childGroup.getName());
-                ParentProcessGroupSearchNode node = new ParentProcessGroupSearchNode(status.getId(), parentNode);
-                componentToParentGroupMap.put(childGroup.getId(), node);
-                holder.putAll(createComponentMap(childGroup, node));
+                ParentProcessGroupSearchNode childProcessGroupNode = new ParentProcessGroupSearchNode(childGroup.getId(), thisProcessGroupNode);
+                componentToParentGroupMap.put(childGroup.getId(), thisProcessGroupNode);
+                holder.putAll(createComponentMap(childGroup, childProcessGroupNode));
             }
         }
 
