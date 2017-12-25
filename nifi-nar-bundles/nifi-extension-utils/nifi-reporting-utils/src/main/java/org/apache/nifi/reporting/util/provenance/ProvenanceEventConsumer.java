@@ -122,8 +122,7 @@ public class ProvenanceEventConsumer {
         }
         final EventAccess eventAccess = context.getEventAccess();
         final ProcessGroupStatus procGroupStatus = eventAccess.getControllerStatus();
-        final ParentProcessGroupSearchNode rootNode = new ParentProcessGroupSearchNode(procGroupStatus.getId(), null);
-        final ComponentMapHolder componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus, rootNode);
+        final ComponentMapHolder componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus);
         final StateManager stateManager = context.getStateManager();
 
         Long currMaxId = eventAccess.getProvenanceRepository().getMaxEventId();
@@ -246,13 +245,15 @@ public class ProvenanceEventConsumer {
                     if (StringUtils.isEmpty(processGroupId)) {
                         continue;
                     }
-                    // Check if any parent process group has the specified component ID
-                    ParentProcessGroupSearchNode matchedComponent = componentMapHolder.getProcessGroupParent(componentId);
-                    while (matchedComponent != null && !matchedComponent.getId().equals(processGroupId) && !componentIds.contains(matchedComponent.getId())) {
-                        matchedComponent = matchedComponent.getParent();
-                    }
-                    if (matchedComponent == null) {
-                        continue;
+                    // Check if the process group or any parent process group is specified as a target component ID.
+                    if (!componentIds.contains(processGroupId)) {
+                        ParentProcessGroupSearchNode parentProcessGroup = componentMapHolder.getProcessGroupParent(processGroupId);
+                        while (parentProcessGroup != null && !componentIds.contains(parentProcessGroup.getId())) {
+                            parentProcessGroup = parentProcessGroup.getParent();
+                        }
+                        if (parentProcessGroup == null) {
+                            continue;
+                        }
                     }
                 }
                 if (!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
