@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -762,6 +763,40 @@ public class TestRouteText {
         final MockFlowFile outOriginal = runner.getFlowFilesForRelationship("original").get(0);
         outOriginal.assertContentEquals(Paths.get("src/test/resources/TestXml/XmlBundle.xsd"));
     }
+
+    @Test
+    public void testPatternCache() throws IOException {
+        final RouteText routeText = new RouteText();
+        final TestRunner runner = TestRunners.newTestRunner(routeText);
+        runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.MATCHES_REGULAR_EXPRESSION);
+        runner.setProperty("simple", ".*(${someValue}).*");
+
+        runner.enqueue("some text", ImmutableMap.of("someValue", "a value"));
+        runner.enqueue("some other text", ImmutableMap.of("someValue", "a value"));
+        runner.run(2);
+
+        assertEquals("Expected 1 elements in the cache for the patterns, got" +
+                routeText.patternsCache.size(), 1, routeText.patternsCache.size());
+
+        for (int i = 0; i < RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2; ++i) {
+            String iString = Long.toString(i);
+            runner.enqueue("some text with " + iString + "in it",
+                    ImmutableMap.of("someValue", iString));
+            runner.run();
+        }
+
+        assertEquals("Expected " + RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES +
+                " elements in the cache for the patterns, got" + routeText.patternsCache.size(),
+                RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES, routeText.patternsCache.size());
+
+        runner.assertTransferCount("simple", RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2);
+        runner.assertTransferCount("unmatched", 2);
+        runner.assertTransferCount("original", RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2 + 2);
+
+        runner.setProperty(RouteText.IGNORE_CASE, "true");
+        assertEquals("Pattern cache is not cleared after changing IGNORE_CASE", 0, routeText.patternsCache.size());
+    }
+
 
     public static int countLines(String str) {
         if (str == null || str.isEmpty()) {
