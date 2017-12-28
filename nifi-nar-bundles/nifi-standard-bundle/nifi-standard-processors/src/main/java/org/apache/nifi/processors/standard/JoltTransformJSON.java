@@ -52,6 +52,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.jolt.JsonUtils;
 import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.processors.standard.util.jolt.TransformUtils;
 import org.apache.nifi.util.StopWatch;
@@ -59,7 +60,6 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtils;
 
 @EventDriven
 @SideEffectFree
@@ -217,7 +217,8 @@ public class JoltTransformJSON extends AbstractProcessor {
                             .build());
                 } else {
                     //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
-                    Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
+                    Object specJson = SORTR.getValue().equals(transform) ? null :
+                            JsonUtils.getInstance().jsonToObject(specValue.replaceAll("\\$\\{","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
 
                     if (CUSTOMR.getValue().equals(transform)) {
                         if (StringUtils.isEmpty(customTransform)) {
@@ -256,7 +257,7 @@ public class JoltTransformJSON extends AbstractProcessor {
 
         final Object inputJson;
         try (final InputStream in = session.read(original)) {
-            inputJson = JsonUtils.jsonToObject(in);
+            inputJson = JsonUtils.getInstance().jsonToObject(in);
         } catch (final Exception e) {
             logger.error("Failed to transform {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);
@@ -272,7 +273,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             }
 
             final Object transformedJson = TransformUtils.transform(transform,inputJson);
-            jsonString = JsonUtils.toJsonString(transformedJson);
+            jsonString = JsonUtils.getInstance().toJsonString(transformedJson);
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", new Object[] {original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
@@ -318,7 +319,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         // If no transform for our spec, create the transform.
         final Object specJson;
         if (context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            specJson = JsonUtils.jsonToObject(specString, DEFAULT_CHARSET);
+            specJson = JsonUtils.getInstance().jsonToObject(specString, DEFAULT_CHARSET);
         } else {
             specJson = null;
         }
