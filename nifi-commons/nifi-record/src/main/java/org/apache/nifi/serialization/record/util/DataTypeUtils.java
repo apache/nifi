@@ -891,6 +891,9 @@ public class DataTypeUtils {
         if (otherSchema == null) {
             return thisSchema;
         }
+        if (thisSchema == otherSchema) {
+            return thisSchema;
+        }
 
         final List<RecordField> otherFields = otherSchema.getFields();
         if (otherFields.isEmpty()) {

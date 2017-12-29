@@ -453,6 +453,8 @@ public class QueryRecord extends AbstractProcessor {
         return new QueryResult() {
             @Override
             public void close() throws IOException {
+                table.close();
+
                 final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(sql);
                 if (statementQueue == null || !statementQueue.offer(cachedStatement)) {
                     try {
