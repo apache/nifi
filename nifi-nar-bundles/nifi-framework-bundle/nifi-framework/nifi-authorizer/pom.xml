@@ -91,6 +91,10 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-properties-loader</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
