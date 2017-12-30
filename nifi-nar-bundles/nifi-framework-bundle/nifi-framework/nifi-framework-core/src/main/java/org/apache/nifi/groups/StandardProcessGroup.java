@@ -2028,19 +2028,23 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public Set<ControllerServiceNode> getControllerServices(final boolean recursive) {
+        final Set<ControllerServiceNode> services = new HashSet<>();
+
         readLock.lock();
         try {
-            final Set<ControllerServiceNode> services = new HashSet<>();
             services.addAll(controllerServices.values());
-
-            if (recursive && parent.get() != null) {
-                services.addAll(parent.get().getControllerServices(true));
-            }
-
-            return services;
         } finally {
             readLock.unlock();
         }
+
+        if (recursive) {
+            final ProcessGroup parentGroup = parent.get();
+            if (parentGroup != null) {
+                services.addAll(parentGroup.getControllerServices(true));
+            }
+        }
+
+        return services;
     }
 
     @Override
