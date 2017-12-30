@@ -98,18 +98,23 @@ public class TestGetSolr {
         }
     }
 
+    private static TestRunner createDefaultTestRunner(GetSolr processor) {
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
+        runner.setProperty(SolrUtils.COLLECTION, "testCollection");
+        return runner;
+    }
+
     @Test
     public void testLessThanBatchSizeShouldProduceOneFlowFile() throws IOException, SolrServerException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.BATCH_SIZE, "20");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 1);
@@ -119,15 +124,9 @@ public class TestGetSolr {
     public void testNoResultsShouldProduceNoOutput() throws IOException, SolrServerException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.SOLR_QUERY, "integer_single:1000");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
         runner.setProperty(GetSolr.BATCH_SIZE, "1");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
@@ -142,12 +141,8 @@ public class TestGetSolr {
     public void testValidation() throws IOException, SolrServerException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.BATCH_SIZE, "2");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
         runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_REC.getValue());
 
         runner.run(1);
@@ -157,14 +152,8 @@ public class TestGetSolr {
     public void testCompletenessDespiteUpdates() throws IOException, SolrServerException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.BATCH_SIZE, "1");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run(1,false, true);
         runner.assertQueueEmpty();
@@ -192,14 +181,8 @@ public class TestGetSolr {
     public void testCompletenessDespiteDeletions() throws IOException, SolrServerException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.BATCH_SIZE, "1");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run(1,false, true);
         runner.assertQueueEmpty();
@@ -234,15 +217,9 @@ public class TestGetSolr {
 
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.DATE_FILTER, df.format(dateToFilter));
         runner.setProperty(GetSolr.BATCH_SIZE, "1");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         SolrInputDocument doc10 = new SolrInputDocument();
         doc10.addField("id", "doc10");
@@ -265,14 +242,8 @@ public class TestGetSolr {
     public void testPropertyModified() throws IOException, SolrServerException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.BATCH_SIZE, "1");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run(1,false, true);
         runner.assertQueueEmpty();
@@ -298,14 +269,8 @@ public class TestGetSolr {
     public void testStateCleared() throws IOException, SolrServerException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.BATCH_SIZE, "1");
-        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run(1,false, true);
         runner.assertQueueEmpty();
@@ -330,13 +295,10 @@ public class TestGetSolr {
     public void testRecordWriter() throws IOException, SolrServerException, InitializationException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_REC.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "id,created,integer_single");
         runner.setProperty(GetSolr.BATCH_SIZE, "10");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/test-schema.avsc")));
 
@@ -376,15 +338,10 @@ public class TestGetSolr {
     public void testForValidXml() throws IOException, SolrServerException, InitializationException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
-        TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(GetSolr.SOLR_TYPE, GetSolr.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(GetSolr.RETURN_TYPE, GetSolr.MODE_XML.getValue());
-        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(GetSolr.SOLR_QUERY, "id:doc1");
         runner.setProperty(GetSolr.RETURN_FIELDS, "id");
-        runner.setProperty(GetSolr.DATE_FIELD, "created");
         runner.setProperty(GetSolr.BATCH_SIZE, "10");
-        runner.setProperty(GetSolr.COLLECTION, "testCollection");
 
         runner.run(1,true, true);
         runner.assertQueueEmpty();

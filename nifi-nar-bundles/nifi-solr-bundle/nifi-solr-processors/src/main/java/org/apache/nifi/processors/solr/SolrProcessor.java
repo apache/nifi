@@ -21,14 +21,10 @@ package org.apache.nifi.processors.solr;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.Krb5HttpClientConfigurer;
@@ -39,55 +35,21 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_STANDARD;
+import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
+import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
+import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
+
 /**
  * A base class for processors that interact with Apache Solr.
  *
  */
 public abstract class SolrProcessor extends AbstractProcessor {
-
-    // make PropertyDescriptors of SolrUtils visible for classes extending SolrProcessor
-    public static AllowableValue SOLR_TYPE_CLOUD = SolrUtils.SOLR_TYPE_CLOUD;
-    public static AllowableValue SOLR_TYPE_STANDARD = SolrUtils.SOLR_TYPE_STANDARD;
-    public static PropertyDescriptor SOLR_TYPE = SolrUtils.SOLR_TYPE;
-    public static PropertyDescriptor COLLECTION = SolrUtils.COLLECTION;
-    public static PropertyDescriptor JAAS_CLIENT_APP_NAME = SolrUtils.JAAS_CLIENT_APP_NAME;
-    public static PropertyDescriptor SSL_CONTEXT_SERVICE = SolrUtils.SSL_CONTEXT_SERVICE;
-    public static PropertyDescriptor SOLR_SOCKET_TIMEOUT = SolrUtils.SOLR_SOCKET_TIMEOUT;
-    public static PropertyDescriptor SOLR_CONNECTION_TIMEOUT = SolrUtils.SOLR_CONNECTION_TIMEOUT;
-    public static PropertyDescriptor SOLR_MAX_CONNECTIONS = SolrUtils.SOLR_MAX_CONNECTIONS;
-    public static PropertyDescriptor SOLR_MAX_CONNECTIONS_PER_HOST = SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
-    public static PropertyDescriptor ZK_CLIENT_TIMEOUT = SolrUtils.ZK_CLIENT_TIMEOUT;
-    public static PropertyDescriptor ZK_CONNECTION_TIMEOUT = SolrUtils.ZK_CONNECTION_TIMEOUT;
-
-    public static final PropertyDescriptor SOLR_LOCATION = new PropertyDescriptor
-            .Builder().name("Solr Location")
-            .description("The Solr url for a Solr Type of Standard (ex: http://localhost:8984/solr/gettingstarted), " +
-                    "or the ZooKeeper hosts for a Solr Type of Cloud (ex: localhost:9983).")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor BASIC_USERNAME = new PropertyDescriptor
-            .Builder().name("Username")
-            .description("The username to use when Solr is configured with basic authentication.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor BASIC_PASSWORD = new PropertyDescriptor
-            .Builder().name("Password")
-            .description("The password to use when Solr is configured with basic authentication.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(true)
-            .sensitive(true)
-            .build();
-
 
     private volatile SolrClient solrClient;
     private volatile String solrLocation;

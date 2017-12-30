@@ -26,6 +26,7 @@ import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -79,6 +80,35 @@ public class SolrUtils {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor SOLR_LOCATION = new PropertyDescriptor
+            .Builder().name("Solr Location")
+            .description("The Solr url for a Solr Type of Standard (ex: http://localhost:8984/solr/gettingstarted), " +
+                    "or the ZooKeeper hosts for a Solr Type of Cloud (ex: localhost:9983).")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor BASIC_USERNAME = new PropertyDescriptor
+            .Builder().name("Username")
+            .description("The username to use when Solr is configured with basic authentication.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor BASIC_PASSWORD = new PropertyDescriptor
+            .Builder().name("Password")
+            .description("The password to use when Solr is configured with basic authentication.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(true)
+            .sensitive(true)
             .build();
 
     public static final PropertyDescriptor JAAS_CLIENT_APP_NAME = new PropertyDescriptor
