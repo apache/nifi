@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.persistence;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -42,6 +27,22 @@ import org.eclipse.jgit.diff.HistogramDiff;
 import org.eclipse.jgit.diff.RawText;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.junit.Test;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
 
 public class TemplateSerializerTest {
 
@@ -106,11 +107,11 @@ public class TemplateSerializerTest {
             List<String> changes = reader.lines().peek(System.out::println)
                     .filter(line -> line.startsWith("+") || line.startsWith("-")).collect(Collectors.toList());
 
-            assertEquals("+      <name>Hello-0</name>", changes.get(0));
-            assertEquals("+      <name>Hello-2</name>", changes.get(1));
-            assertEquals("+    <processors>", changes.get(2));
-            assertEquals("+      <type>ProcessorNew.class</type>", changes.get(4));
-            assertEquals("+    </processors>", changes.get(5));
+            assertEquals("+            <name>Hello-0</name>", changes.get(0));
+            assertEquals("+            <name>Hello-2</name>", changes.get(1));
+            assertEquals("+        <processors>", changes.get(2));
+            assertEquals("+            <type>ProcessorNew.class</type>", changes.get(4));
+            assertEquals("+        </processors>", changes.get(5));
         }
     }
 
