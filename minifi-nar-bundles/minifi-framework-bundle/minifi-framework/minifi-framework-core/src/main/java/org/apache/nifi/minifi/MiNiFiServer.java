@@ -52,6 +52,8 @@ public class MiNiFiServer {
     private FlowService flowService;
     private FlowController flowController;
 
+    private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
+
     /**
      *
      * @param props the configuration
@@ -87,7 +89,12 @@ public class MiNiFiServer {
                     // do nothing
                 }
             };
-            StringEncryptor encryptor = StringEncryptor.createEncryptor(props);
+
+            final String sensitivePropAlgorithmVal = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_ALGORITHM);
+            final String sensitivePropProviderVal = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER);
+            final String sensitivePropValueNifiPropVar = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
+
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(sensitivePropAlgorithmVal, sensitivePropProviderVal, sensitivePropValueNifiPropVar);
             VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
 
@@ -98,7 +105,8 @@ public class MiNiFiServer {
                     auditService,
                     encryptor,
                     bulletinRepository,
-                    variableRegistry
+                    variableRegistry,
+                    null
                     );
 
             flowService = StandardFlowService.createStandaloneInstance(

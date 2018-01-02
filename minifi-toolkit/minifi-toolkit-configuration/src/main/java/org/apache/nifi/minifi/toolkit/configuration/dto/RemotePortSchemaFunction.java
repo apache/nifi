@@ -17,6 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -32,7 +33,9 @@ public class RemotePortSchemaFunction implements Function<RemoteProcessGroupPort
     @Override
     public RemotePortSchema apply(RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         Map<String, Object> map = new HashMap<>();
-        map.put(ID_KEY, remoteProcessGroupPortDTO.getId());
+        // If a targetId is specified, it takes precedence over the original id
+        final String targetId = remoteProcessGroupPortDTO.getTargetId();
+        map.put(ID_KEY, StringUtils.isNotBlank(targetId) ? targetId : remoteProcessGroupPortDTO.getId());
         map.put(NAME_KEY, remoteProcessGroupPortDTO.getName());
 
         map.put(CommonPropertyKeys.COMMENT_KEY, remoteProcessGroupPortDTO.getComments());

@@ -1,0 +1,173 @@
+<?xml version="1.0" ?>
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ -->
+
+<template encoding-version="1.2">
+  <description></description>
+  <groupId>b8c22bdc-0160-1000-5e40-cc895080bf30</groupId>
+  <name>1.5 RPG Handling</name>
+  <snippet>
+    <connections>
+      <id>89b6b729-aa58-32f5-0000-000000000000</id>
+      <parentGroupId>108e0f24-3b43-34fb-0000-000000000000</parentGroupId>
+      <backPressureDataSizeThreshold>1 GB</backPressureDataSizeThreshold>
+      <backPressureObjectThreshold>10000</backPressureObjectThreshold>
+      <destination>
+        <groupId>9abd6b8c-816a-3f66-0000-000000000000</groupId>
+        <id>178e0a53-d8e9-3e33-a9d8-4949c4a3b805</id>
+        <type>REMOTE_INPUT_PORT</type>
+      </destination>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+      <labelIndex>1</labelIndex>
+      <name></name>
+      <selectedRelationships>success</selectedRelationships>
+      <source>
+        <groupId>108e0f24-3b43-34fb-0000-000000000000</groupId>
+        <id>d80d4090-c56d-33ab-0000-000000000000</id>
+        <type>PROCESSOR</type>
+      </source>
+      <zIndex>0</zIndex>
+    </connections>
+    <processors>
+      <id>d80d4090-c56d-33ab-0000-000000000000</id>
+      <parentGroupId>108e0f24-3b43-34fb-0000-000000000000</parentGroupId>
+      <position>
+        <x>0.0</x>
+        <y>9.838514449178149</y>
+      </position>
+      <bundle>
+        <artifact>nifi-standard-nar</artifact>
+        <group>org.apache.nifi</group>
+        <version>1.5.0-SNAPSHOT</version>
+      </bundle>
+      <config>
+        <bulletinLevel>WARN</bulletinLevel>
+        <comments></comments>
+        <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+        <descriptors>
+          <entry>
+            <key>File Size</key>
+            <value>
+              <name>File Size</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Batch Size</key>
+            <value>
+              <name>Batch Size</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Data Format</key>
+            <value>
+              <name>Data Format</name>
+            </value>
+          </entry>
+          <entry>
+            <key>Unique FlowFiles</key>
+            <value>
+              <name>Unique FlowFiles</name>
+            </value>
+          </entry>
+          <entry>
+            <key>generate-ff-custom-text</key>
+            <value>
+              <name>generate-ff-custom-text</name>
+            </value>
+          </entry>
+          <entry>
+            <key>character-set</key>
+            <value>
+              <name>character-set</name>
+            </value>
+          </entry>
+        </descriptors>
+        <executionNode>ALL</executionNode>
+        <lossTolerant>false</lossTolerant>
+        <penaltyDuration>30 sec</penaltyDuration>
+        <properties>
+          <entry>
+            <key>File Size</key>
+            <value>1 kB</value>
+          </entry>
+          <entry>
+            <key>Batch Size</key>
+            <value>1</value>
+          </entry>
+          <entry>
+            <key>Data Format</key>
+            <value>Text</value>
+          </entry>
+          <entry>
+            <key>Unique FlowFiles</key>
+            <value>false</value>
+          </entry>
+          <entry>
+            <key>generate-ff-custom-text</key>
+          </entry>
+          <entry>
+            <key>character-set</key>
+            <value>UTF-8</value>
+          </entry>
+        </properties>
+        <runDurationMillis>0</runDurationMillis>
+        <schedulingPeriod>1 sec</schedulingPeriod>
+        <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+        <yieldDuration>1 sec</yieldDuration>
+      </config>
+      <name>GenerateFlowFile</name>
+      <relationships>
+        <autoTerminate>false</autoTerminate>
+        <name>success</name>
+      </relationships>
+      <state>RUNNING</state>
+      <style></style>
+      <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+    </processors>
+    <remoteProcessGroups>
+      <id>9abd6b8c-816a-3f66-0000-000000000000</id>
+      <parentGroupId>108e0f24-3b43-34fb-0000-000000000000</parentGroupId>
+      <position>
+        <x>573.6607153753321</x>
+        <y>0.0</y>
+      </position>
+      <communicationsTimeout>30 sec</communicationsTimeout>
+      <contents>
+        <inputPorts>
+          <comments></comments>
+          <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+          <connected>true</connected>
+          <exists>true</exists>
+          <id>178e0a53-d8e9-3e33-a9d8-4949c4a3b805</id>
+          <name>From instance</name>
+          <targetId>d7c01635-0160-1000-68aa-fd8a4f9d168e</targetId>
+          <targetRunning>true</targetRunning>
+          <transmitting>true</transmitting>
+          <useCompression>false</useCompression>
+        </inputPorts>
+      </contents>
+      <proxyHost></proxyHost>
+      <proxyUser></proxyUser>
+      <targetUri>http://localhost:8080/nifi</targetUri>
+      <targetUris>http://localhost:8080/nifi</targetUris>
+      <transportProtocol>RAW</transportProtocol>
+      <yieldDuration>10 sec</yieldDuration>
+    </remoteProcessGroups>
+  </snippet>
+  <timestamp>01/03/2018 10:26:57 EST</timestamp>
+</template>
