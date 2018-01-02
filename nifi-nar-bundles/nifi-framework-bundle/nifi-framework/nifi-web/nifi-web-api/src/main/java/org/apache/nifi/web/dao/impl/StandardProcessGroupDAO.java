@@ -275,6 +275,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     public ProcessGroup disconnectVersionControl(final String groupId) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.disconnectVersionControl(true);
+        group.onComponentModified();
         return group;
     }
 
