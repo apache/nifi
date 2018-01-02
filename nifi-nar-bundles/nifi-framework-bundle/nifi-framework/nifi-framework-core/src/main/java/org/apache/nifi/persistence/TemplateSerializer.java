@@ -25,11 +25,6 @@ import javax.xml.bind.Marshaller;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-
-import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 
 public final class TemplateSerializer {
 
@@ -46,13 +41,12 @@ public final class TemplateSerializer {
 
             JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
             Marshaller marshaller = context.createMarshaller();
-            XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
-            XMLStreamWriter writer = new IndentingXMLStreamWriter(xmlof.createXMLStreamWriter(bos));
-            marshaller.marshal(dto, writer);
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            marshaller.marshal(dto, bos);
 
             bos.flush();
             return baos.toByteArray(); //Note: For really large templates this could use a lot of heap space
-        } catch (final IOException | JAXBException | XMLStreamException e) {
+        } catch (final IOException | JAXBException e) {
             throw new FlowSerializationException(e);
         }
     }
