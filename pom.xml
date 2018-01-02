@@ -110,7 +110,7 @@
         <hwx.registry.version>0.3.0</hwx.registry.version>
         <jackson.version>2.9.1</jackson.version>
         <atlas.version>0.8.1</atlas.version>
-        <nifi.registry.version>0.0.1-SNAPSHOT</nifi.registry.version>
+        <nifi.registry.version>0.1.0</nifi.registry.version>
     </properties>
 
     <repositories>

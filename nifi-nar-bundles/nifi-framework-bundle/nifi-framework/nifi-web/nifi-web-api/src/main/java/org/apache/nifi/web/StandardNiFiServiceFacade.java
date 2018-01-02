@@ -2449,6 +2449,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final FlowRegistry registry = registryDAO.getFlowRegistry(registryDTO.getId());
         final RevisionUpdate<FlowRegistry> revisionUpdate = revisionManager.updateRevision(revisionClaim, user, () -> {
+            final boolean duplicateName = registryDAO.getFlowRegistries().stream()
+                    .anyMatch(reg -> reg.getName().equals(registryDTO.getName()));
+
+            if (duplicateName) {
+                throw new IllegalStateException("Cannot update Flow Registry because a Flow Registry already exists with the name " + registryDTO.getName());
+            }
+
             registry.setDescription(registryDTO.getDescription());
             registry.setName(registryDTO.getName());
             registry.setURL(registryDTO.getUri());
