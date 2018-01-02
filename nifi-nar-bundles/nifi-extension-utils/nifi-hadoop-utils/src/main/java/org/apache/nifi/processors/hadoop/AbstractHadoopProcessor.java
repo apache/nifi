@@ -56,6 +56,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
+ * <p/>
+ * As of Apache NiFi 1.5.0, the Relogin Period property is no longer used in the configuration of a Hadoop processor.
+ * Due to changes made to {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this
+ * class to authenticate a principal with Kerberos, Hadoop components no longer
+ * attempt relogins explicitly.  For more information, please read the documentation for
+ * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
+ *
+ * @see SecurityUtil#loginKerberos(Configuration, String, String)
  */
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
@@ -84,6 +92,16 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .required(true)
             .allowableValues(CompressionType.allowableValues())
             .defaultValue(CompressionType.NONE.toString())
+            .build();
+
+    public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder()
+            .name("Kerberos Relogin Period").required(false)
+            .description("Period of time which should pass before attempting a kerberos relogin.\n\nThis property has been deprecated, and has no effect on processing.  Relogins"
+                    + "now occur automatically.")
+            .defaultValue("4 hours")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor ADDITIONAL_CLASSPATH_RESOURCES = new PropertyDescriptor.Builder()
@@ -121,6 +139,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         props.add(HADOOP_CONFIGURATION_RESOURCES);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
+        props.add(KERBEROS_RELOGIN_PERIOD);
         props.add(ADDITIONAL_CLASSPATH_RESOURCES);
         properties = Collections.unmodifiableList(props);
     }

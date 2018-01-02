@@ -77,8 +77,25 @@ public class HiveConfigurator {
         }
     }
 
-    public UserGroupInformation authenticate(final Configuration hiveConfig, String principal, String keyTab, long ticketRenewalPeriod, ComponentLog log) throws AuthenticationFailedException {
-
+    /**
+     * As of Apache NiFi 1.5.0, due to changes made to
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this
+     * class to authenticate a principal with Kerberos, Hive controller services no longer
+     * attempt relogins explicitly.  For more information, please read the documentation for
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
+     * <p/>
+     * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started by
+     * {@link HiveConfigurator#authenticate(Configuration, String, String, long)} when the Hive
+     * controller service was enabled.  The use of a separate thread to explicitly relogin could cause race conditions
+     * with the implicit relogin attempts made by hadoop/Hive code on a thread that references the same
+     * {@link UserGroupInformation} instance.  One of these threads could leave the
+     * {@link javax.security.auth.Subject} in {@link UserGroupInformation} to be cleared or in an unexpected state
+     * while the other thread is attempting to use the {@link javax.security.auth.Subject}, resulting in failed
+     * authentication attempts that would leave the Hive controller service in an unrecoverable state.
+     *
+     * @see SecurityUtil#loginKerberos(Configuration, String, String)
+     */
+    public UserGroupInformation authenticate(final Configuration hiveConfig, String principal, String keyTab) throws AuthenticationFailedException {
         UserGroupInformation ugi;
         try {
             ugi = SecurityUtil.loginKerberos(hiveConfig, principal, keyTab);
@@ -86,5 +103,17 @@ public class HiveConfigurator {
             throw new AuthenticationFailedException("Kerberos Authentication for Hive failed", ioe);
         }
         return ugi;
+    }
+
+    /**
+     * As of Apache NiFi 1.5.0, this method has been deprecated and is now a wrapper
+     * method which invokes {@link HiveConfigurator#authenticate(Configuration, String, String)}. It will no longer start a
+     * {@link org.apache.nifi.hadoop.KerberosTicketRenewer} to perform explicit relogins.
+     *
+     * @see HiveConfigurator#authenticate(Configuration, String, String)
+     */
+    @Deprecated
+    public UserGroupInformation authenticate(final Configuration hiveConfig, String principal, String keyTab, long ticketRenewalPeriod) throws AuthenticationFailedException {
+        return authenticate(hiveConfig, principal, keyTab);
     }
 }
