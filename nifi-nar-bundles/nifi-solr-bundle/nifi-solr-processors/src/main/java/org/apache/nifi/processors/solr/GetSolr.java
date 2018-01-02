@@ -20,7 +20,6 @@ package org.apache.nifi.processors.solr;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,7 +35,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -62,11 +59,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.record.ListRecordSet;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.StringUtils;
@@ -75,11 +67,23 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.QueryRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CursorMarkParams;
+
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
+import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
+import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
+import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
+import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 
 @Tags({"Apache", "Solr", "Get", "Pull", "Records"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -367,13 +371,13 @@ public class GetSolr extends SolrProcessor {
                                 doc.removeFields(dateField);
                             }
                         }
-                        flowFile = session.write(flowFile, new QueryResponseOutputStreamCallback(response));
+                        flowFile = session.write(flowFile, SolrUtils.getOutputStreamCallbackToTransformSolrResponseToXml(response));
                         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/xml");
 
                     } else {
                         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
                         final RecordSchema schema = writerFactory.getSchema(null, null);
-                        final RecordSet recordSet = solrDocumentsToRecordSet(response.getResults(), schema);
+                        final RecordSet recordSet = SolrUtils.solrDocumentsToRecordSet(response.getResults(), schema);
                         final StringBuffer mimeType = new StringBuffer();
                         flowFile = session.write(flowFile, new OutputStreamCallback() {
                             @Override
@@ -408,57 +412,6 @@ public class GetSolr extends SolrProcessor {
         }
     }
 
-    /**
-     * Writes each SolrDocument to a record.
-     */
-    private RecordSet solrDocumentsToRecordSet(final List<SolrDocument> docs, final RecordSchema schema) {
-        final List<Record> lr = new ArrayList<Record>();
 
-        for (SolrDocument doc : docs) {
-            final Map<String, Object> recordValues = new LinkedHashMap<>();
-            for (RecordField field : schema.getFields()){
-                final Object fieldValue = doc.getFieldValue(field.getFieldName());
-                if (fieldValue != null) {
-                    if (field.getDataType().getFieldType().equals(RecordFieldType.ARRAY)){
-                        recordValues.put(field.getFieldName(), ((List<Object>) fieldValue).toArray());
-                    } else {
-                        recordValues.put(field.getFieldName(), fieldValue);
-                    }
-                }
-            }
-            lr.add(new MapRecord(schema, recordValues));
-        }
-        return new ListRecordSet(schema, lr);
-    }
 
-    /**
-     * Writes each SolrDocument in XML format to the OutputStream.
-     */
-    private class QueryResponseOutputStreamCallback implements OutputStreamCallback {
-        private QueryResponse response;
-
-        public QueryResponseOutputStreamCallback(QueryResponse response) {
-            this.response = response;
-        }
-
-        @Override
-        public void process(OutputStream out) throws IOException {
-            IOUtils.write("<docs>", out, StandardCharsets.UTF_8);
-            for (SolrDocument doc : response.getResults()) {
-                final String xml = ClientUtils.toXML(toSolrInputDocument(doc));
-                IOUtils.write(xml, out, StandardCharsets.UTF_8);
-            }
-            IOUtils.write("</docs>", out, StandardCharsets.UTF_8);
-        }
-
-        public SolrInputDocument toSolrInputDocument(SolrDocument d) {
-            final SolrInputDocument doc = new SolrInputDocument();
-
-            for (String name : d.getFieldNames()) {
-                doc.addField(name, d.getFieldValue(name));
-            }
-
-            return doc;
-        }
-    }
 }
