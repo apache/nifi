@@ -32,7 +32,7 @@
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Name</div>
+            <div class="setting-name">Flow Name</div>
             <div id="save-flow-version-registry-container" class="setting-field">
                 <span id="save-flow-version-process-group-id" class="hidden"></span>
                 <input type="text" id="save-flow-version-name-field" class="setting-input hidden"/>
@@ -41,14 +41,14 @@
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Description</div>
+            <div class="setting-name">Flow Description</div>
             <div class="setting-field">
                 <textarea id="save-flow-version-description-field" class="setting-input hidden"></textarea>
                 <div id="save-flow-version-description" class="hidden"></div>
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Comments</div>
+            <div class="setting-name">Version Comments</div>
             <div class="setting-field">
                 <textarea id="save-flow-version-change-comments" class="setting-input"></textarea>
             </div>
