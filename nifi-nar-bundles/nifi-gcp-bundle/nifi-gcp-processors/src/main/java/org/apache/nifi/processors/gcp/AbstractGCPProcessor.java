@@ -25,7 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 
 import java.util.List;
 

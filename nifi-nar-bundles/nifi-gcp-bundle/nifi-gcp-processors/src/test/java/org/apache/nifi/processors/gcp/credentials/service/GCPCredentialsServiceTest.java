@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;

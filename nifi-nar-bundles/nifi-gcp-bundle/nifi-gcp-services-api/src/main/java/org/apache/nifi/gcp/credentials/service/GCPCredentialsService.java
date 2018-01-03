@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.gcp.credentials.service;
+package org.apache.nifi.gcp.credentials.service;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;

@@ -18,19 +18,24 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
+        <artifactId>nifi-gcp-bundle</artifactId>
         <version>1.5.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-gcp-bundle</artifactId>
+    <artifactId>nifi-gcp-services-api-nar</artifactId>
     <version>1.5.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <packaging>nar</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
 
-    <modules>
-        <module>nifi-gcp-services-api</module>
-        <module>nifi-gcp-services-api-nar</module>
-        <module>nifi-gcp-processors</module>
-        <module>nifi-gcp-nar</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-gcp-services-api</artifactId>
+            <version>1.5.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
 </project>
