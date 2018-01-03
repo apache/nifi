@@ -32,28 +32,28 @@ class EncryptConfig {
     static final int EXIT_STATUS_FAILURE = -1
     static final int EXIT_STATUS_OTHER = 1
 
+    static final String NIFI_REGISTRY_FLAG = "--nifi-registry"
+    static final String DECRYPT_FLAG = "--decrypt"
+
     static final int HELP_FORMAT_WIDTH = 160
 
-    private Map<String, ToolMode> toolModesByName
-    private LegacyMode legacyMode
-    private CliBuilder cli
+//    private Map<String, ToolMode> toolModesByName
+//    private LegacyMode legacyMode
+//    private CliBuilder cli
 
     EncryptConfig() {
-        toolModesByName = new HashMap<>()
-        addMode(new NiFiRegistryMode())
-        addMode(new DecryptMode())
-        legacyMode = new LegacyMode()
-        addMode(legacyMode)
+//        toolModesByName = new HashMap<>()
+//        addMode(new NiFiRegistryMode())
+//        addMode(new DecryptMode())
+//        legacyMode = new LegacyMode()
+//        addMode(legacyMode)
     }
 
-    private void addMode(ToolMode mode) {
-        this.toolModesByName.put(mode.getModeName(), mode)
-    }
+//    private void addMode(ToolMode mode) {
+//        this.toolModesByName.put(mode.getModeName(), mode)
+//    }
 
-    private printUsageAndExit(int exitCode) {
-        List<String> modes = this.toolModesByName.keySet().sort()
-        String modesString = modes.join(", ")
-
+    private static printUsageAndExit(int exitCode) {
         String header = "\nThis tool enables easy encryption and decryption of configuration files for NiFi and its sub-projects. " +
                 "Unprotected files can be input to this tool to be protected by a key in a manner that is understood by NiFi. " +
                 "Protected files, along with a key, can be input to this tool to be unprotected, for troubleshooting purposes.\n\n"
@@ -61,24 +61,18 @@ class EncryptConfig {
         def options = new Options()
         options.addOption("h", "help", false, "Show usage information (this message)")
 
-        List<String> footerLines = [ "", "Available modes are: [${modesString}]", "" ]
-        modes.forEach({
-            footerLines.add("${it}:")
-            footerLines.add("    ${toolModesByName.get(it).getModeDescription()}")
-            footerLines.add("")
-        })
-        footerLines.add("For mode usage information, run:")
-        footerLines.add("    encrypt-config <mode> -h")
-        String footer = footerLines.join("\n")
+        // TODO: Print nifi mode usage
+
+        // TODO: Print nifi-registry mode usage
 
         HelpFormatter helpFormatter = new HelpFormatter()
         helpFormatter.setWidth(160)
-        helpFormatter.printHelp("${EncryptConfig.class.getCanonicalName()} [-h] <mode> <mode_args>...", header, options, footer, false)
+        helpFormatter.printHelp("${EncryptConfig.class.getCanonicalName()} [-h] <args>...", header, options, "")
 
-        System.exit(exitCode);
+        System.exit(exitCode)
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         Security.addProvider(new BouncyCastleProvider())
 
         def tool = new EncryptConfig()
@@ -87,30 +81,35 @@ class EncryptConfig {
             tool.printUsageAndExit(EXIT_STATUS_FAILURE)
         }
 
-        String toolModeName = args[0]
+        String firstArg = args[0]
 
-        if (toolModeName.equals("-h") || toolModeName.equals("--help")) {
+        if (["-h", "--help"].contains(firstArg)) {
             tool.printUsageAndExit(EXIT_STATUS_OTHER)
         }
 
-        if (!tool.toolModesByName.keySet().contains(toolModeName)) {
-            // for backwards compatibility, if the first arg, indicating the mode or command, is not recognized as an explicit mode,
-            // check if the arguments are understood by the old tool.
-            // If so, add an implicit "legacy" mode to the args
-            if (tool.legacyMode.matchesArgs(args)) {
-                List<String> argsList = args.toList()
-                argsList.add(0, tool.legacyMode.getModeName())
-                args = (String[]) argsList.toArray()
-            } else {
-                tool.printUsageAndExit(EXIT_STATUS_FAILURE)
-            }
+        ToolMode toolMode = determineModeFromArgs(args)
+        if (toolMode) {
+            toolMode.run(args)
+            System.exit(EXIT_STATUS_SUCCESS)
+        } else {
+            printUsageAndExit(EXIT_STATUS_FAILURE)
         }
-
-        String[] passThroughArgs = args.length >=2 ? args[(1..-1)] : []
-        ToolMode toolMode = tool.toolModesByName.get(toolModeName)
-        toolMode.run(passThroughArgs)
-
-        System.exit(EXIT_STATUS_SUCCESS)
     }
 
+    static ToolMode determineModeFromArgs(String[] args) {
+        if (args.contains(NIFI_REGISTRY_FLAG)) {
+            if (args.contains(DECRYPT_FLAG)) {
+                return new DecryptMode()
+            } else {
+                return new NiFiRegistryMode()
+            }
+        } else {
+            if (args.contains(DECRYPT_FLAG)) {
+                logger.error("The ${DECRYPT_FLAG} flag is only available when running in ${NIFI_REGISTRY_FLAG} mode and targeting nifi-registry.properties to allow for the inline TLS status check. ")
+                return null
+            } else {
+                return new LegacyMode()
+            }
+        }
+    }
 }
