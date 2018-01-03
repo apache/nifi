@@ -474,6 +474,102 @@ RecordPath finds a "city" field whose parent does not have a name that begins wi
 the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".  
 
 
+=== toDate
+
+Converts a String to a date.  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "eventDate", "type" : "string"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+}
+----
+
+The following record path would parse the eventDate field into a Date:
+
+`toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")`
+
+=== format
+
+Converts a Date to a String in the given format.
+
+The first argument to this function must be a Date or a Number, and the second argument must be a format String that
+follows the Java SimpleDateFormat.
+
+For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "eventDate", "type" : { "type" : "long", "logicalType" : "timestamp-millis" } }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "eventDate" : 1508457600000
+}
+----
+
+The following record path expressions would format the date as a String:
+
+|==========================================================
+| RecordPath | Return value
+| `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20'T'11:00:00'Z'
+| `format( /eventDate, "yyyy-MM-dd")` | 2017-10-20
+|==========================================================
+
+In the case where the field is declared as a String, the toDate function must be called before formatting.
+
+For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "eventDate", "type" : "string"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+}
+----
+
+The following record path expression would re-format the date String:
+
+|==========================================================
+| RecordPath | Return value
+| `format( toDate(/eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"), 'yyyy-MM-dd')` | 2017-10-20
+|==========================================================
+
 [[filter_functions]]
 == Filter Functions
 
