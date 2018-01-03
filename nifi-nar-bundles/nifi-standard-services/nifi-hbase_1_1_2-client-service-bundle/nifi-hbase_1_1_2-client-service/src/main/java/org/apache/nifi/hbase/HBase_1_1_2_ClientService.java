@@ -48,7 +48,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.hadoop.KerberosTicketRenewer;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -90,11 +89,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     static final String HBASE_CONF_ZNODE_PARENT = "zookeeper.znode.parent";
     static final String HBASE_CONF_CLIENT_RETRIES = "hbase.client.retries.number";
 
-    static final long TICKET_RENEWAL_PERIOD = 60000;
-
     private volatile Connection connection;
     private volatile UserGroupInformation ugi;
-    private volatile KerberosTicketRenewer renewer;
 
     private List<PropertyDescriptor> properties;
     private KerberosProperties kerberosProperties;
@@ -190,6 +186,23 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         return problems;
     }
 
+    /**
+     * As of Apache NiFi 1.5.0, due to changes made to
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this
+     * class to authenticate a principal with Kerberos, HBase controller services no longer
+     * attempt relogins explicitly.  For more information, please read the documentation for
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
+     * <p/>
+     * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started
+     * when the HBase controller service was enabled.  The use of a separate thread to explicitly relogin could cause
+     * race conditions with the implicit relogin attempts made by hadoop/HBase code on a thread that references the same
+     * {@link UserGroupInformation} instance.  One of these threads could leave the
+     * {@link javax.security.auth.Subject} in {@link UserGroupInformation} to be cleared or in an unexpected state
+     * while the other thread is attempting to use the {@link javax.security.auth.Subject}, resulting in failed
+     * authentication attempts that would leave the HBase controller service in an unrecoverable state.
+     *
+     * @see SecurityUtil#loginKerberos(Configuration, String, String)
+     */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
         this.connection = createConnection(context);
@@ -199,12 +212,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final Admin admin = this.connection.getAdmin();
             if (admin != null) {
                 admin.listTableNames();
-            }
-
-            // if we got here then we have a successful connection, so if we have a ugi then start a renewer
-            if (ugi != null) {
-                final String id = getClass().getSimpleName();
-                renewer = SecurityUtil.startTicketRenewalThread(id, ugi, TICKET_RENEWAL_PERIOD, getLogger());
             }
         }
     }
@@ -269,10 +276,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @OnDisabled
     public void shutdown() {
-        if (renewer != null) {
-            renewer.stop();
-        }
-
         if (connection != null) {
             try {
                 connection.close();

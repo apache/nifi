@@ -143,8 +143,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .build();
 
 
-    private static final long TICKET_RENEWAL_PERIOD = 60000;
-
     private List<PropertyDescriptor> properties;
 
     private String connectionUrl = "unknown";
@@ -206,7 +204,26 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
      * This operation makes no guarantees that the actual connection could be
      * made since the underlying system may still go off-line during normal
      * operation of the connection pool.
+     * <p/>
+     * As of Apache NiFi 1.5.0, due to changes made to
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this class invoking
+     * {@link HiveConfigurator#authenticate(Configuration, String, String)}
+     * to authenticate a principal with Kerberos, Hive controller services no longer
+     * attempt relogins explicitly.  For more information, please read the documentation for
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
+     * <p/>
+     * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started by
+     * {@link HiveConfigurator#authenticate(Configuration, String, String, long)} when the Hive
+     * controller service was enabled.  The use of a separate thread to explicitly relogin could cause race conditions
+     * with the implicit relogin attempts made by hadoop/Hive code on a thread that references the same
+     * {@link UserGroupInformation} instance.  One of these threads could leave the
+     * {@link javax.security.auth.Subject} in {@link UserGroupInformation} to be cleared or in an unexpected state
+     * while the other thread is attempting to use the {@link javax.security.auth.Subject}, resulting in failed
+     * authentication attempts that would leave the Hive controller service in an unrecoverable state.
      *
+     * @see SecurityUtil#loginKerberos(Configuration, String, String)
+     * @see HiveConfigurator#authenticate(Configuration, String, String)
+     * @see HiveConfigurator#authenticate(Configuration, String, String, long)
      * @param context the configuration context
      * @throws InitializationException if unable to create a database connection
      */
@@ -234,7 +251,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
             log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{principal, keyTab});
             try {
-                ugi = hiveConfigurator.authenticate(hiveConfig, principal, keyTab, TICKET_RENEWAL_PERIOD, log);
+                ugi = hiveConfigurator.authenticate(hiveConfig, principal, keyTab);
             } catch (AuthenticationFailedException ae) {
                 log.error(ae.getMessage(), ae);
             }
@@ -269,9 +286,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
      */
     @OnDisabled
     public void shutdown() {
-
-        hiveConfigurator.stopRenewer();
-
         try {
             dataSource.close();
         } catch (final SQLException e) {
