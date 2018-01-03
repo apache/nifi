@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "versionedFlowSnapshot")
+@XmlRootElement(name = "versionedFlowSnapshotEntity")
 public class VersionedFlowSnapshotEntity extends Entity {
     private VersionedFlowSnapshot versionedFlowSnapshot;
     private RevisionDTO processGroupRevision;

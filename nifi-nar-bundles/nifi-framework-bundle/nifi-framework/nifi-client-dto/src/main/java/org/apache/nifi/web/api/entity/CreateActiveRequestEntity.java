@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "createActiveRequest")
+@XmlRootElement(name = "createActiveRequestEntity")
 public class CreateActiveRequestEntity extends Entity {
     private String processGroupId;
 

@@ -37,7 +37,6 @@ import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.exception.BadRequestException;
@@ -46,7 +45,6 @@ import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.ComponentIdGenerator;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
@@ -57,14 +55,11 @@ import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
 import org.apache.nifi.web.util.WebUtils;
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.client.ClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.client.Client;
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -225,17 +220,6 @@ public abstract class ApplicationResource {
         }
 
         return Optional.of(idGenerationSeed);
-    }
-
-    protected Client createJerseyClient() {
-        final NiFiProperties properties = getProperties();
-        final ClientConfig clientConfig = new ClientConfig();
-        final int connectionTimeout = (int) FormatUtils.getTimeDuration(properties.getClusterNodeConnectionTimeout(), TimeUnit.MILLISECONDS);
-        final int readTimeout = (int) FormatUtils.getTimeDuration(properties.getClusterNodeReadTimeout(), TimeUnit.MILLISECONDS);
-        clientConfig.property(ClientProperties.READ_TIMEOUT, readTimeout);
-        clientConfig.property(ClientProperties.CONNECT_TIMEOUT, connectionTimeout);
-        clientConfig.property(ClientProperties.FOLLOW_REDIRECTS, Boolean.TRUE);
-        return WebUtils.createClient(clientConfig, SslContextFactory.createSslContext(properties));
     }
 
     /**
