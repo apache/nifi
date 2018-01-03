@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard
 
+import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.components.ValidationResult
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.security.util.EncryptionMethod
@@ -63,8 +64,6 @@ class CountTextTest extends GroovyTestCase {
     void testShouldCountAllMetrics() throws Exception {
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(CountText.class)
-        Collection<ValidationResult> results
-        MockProcessContext pc
 
         runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "true")
         runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "true")
@@ -107,18 +106,68 @@ All mimsy were the borogoves,
 And the mome raths outgrabe."""
 
         runner.enqueue(INPUT_TEXT.bytes)
-        pc = (MockProcessContext) runner.getProcessContext()
 
         // Act
         runner.run()
 
         // Assert
-       runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
+        runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
         FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).first()
         assert flowFile.attributes."text.line.count" == 34 as String
         assert flowFile.attributes."text.line.nonempty.count" == 28 as String
         assert flowFile.attributes."text.word.count" == 166 as String
-        assert flowFile.attributes."text.character.count" == 933 as String
+        assert flowFile.attributes."text.character.count" == 900 as String
+    }
+
+    @Test
+    void testShouldCountEachMetric() throws Exception {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(CountText.class)
+        String INPUT_TEXT = new File("src/test/resources/TestCountText/jabberwocky.txt")
+
+        final def EXPECTED_VALUES = [
+                "text.line.count"         : 34,
+                "text.line.nonempty.count": 28,
+                "text.word.count"         : 166,
+                "text.character.count"    : 900,
+        ]
+
+        def linesOnly = [(CountText.TEXT_LINE_COUNT_PD): "true"]
+        def linesNonEmptyOnly = [(CountText.TEXT_LINE_NONEMPTY_COUNT_PD): "true"]
+        def wordsOnly = [(CountText.TEXT_WORD_COUNT_PD): "true"]
+        def charactersOnly = [(CountText.TEXT_CHARACTER_COUNT_PD): "true"]
+
+        final List<Map<PropertyDescriptor, String>> SCENARIOS = [linesOnly, linesNonEmptyOnly, wordsOnly, charactersOnly]
+
+        SCENARIOS.each { map ->
+            // Reset the processor properties
+            runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "false")
+            runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "false")
+            runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "false")
+            runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "false")
+
+            // Apply the scenario-specific properties
+            map.each { key, value ->
+                runner.setProperty(key, value)
+            }
+
+            runner.clearProvenanceEvents()
+            runner.clearTransferState()
+            runner.enqueue(INPUT_TEXT.bytes)
+
+            // Act
+            runner.run()
+
+            // Assert
+            runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
+            FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).first()
+            logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
+            EXPECTED_VALUES.each { key, value ->
+                if (flowFile.attributes.containsKey(key)) {
+                    assert EXPECTED_VALUES.get(key) == value
+                }
+            }
+        }
     }
 
     @Ignore("Not yet implemented")

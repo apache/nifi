@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -236,7 +237,8 @@ public class CountText extends AbstractProcessor {
                     DecimalFormat df = new DecimalFormat("#.###");
                     getLogger().debug("Computed metrics in " + durationNanos + " nanoseconds (" + df.format(durationNanos / 1_000_000_000.0) + " seconds).");
                 }
-                getLogger().info("Counted {} lines, {} non-empty lines, {} words, {} characters", new Object[]{lineCount, lineNonEmptyCount, wordCount, characterCount});
+                String message = generateMetricsMessage();
+                getLogger().info(message);
             } catch (IllegalStateException e) {
                 error.set(true);
                 getLogger().error(e.getMessage() + " Routing to failure.", e);
@@ -264,6 +266,25 @@ public class CountText extends AbstractProcessor {
         }
     }
 
+    private String generateMetricsMessage() {
+        StringBuilder sb = new StringBuilder("Counted ");
+        List<String> metrics = new ArrayList<>();
+        if (countLines) {
+            metrics.add(lineCount + " lines");
+        }
+        if (countLinesNonEmpty) {
+            metrics.add(lineNonEmptyCount + " non-empty lines");
+        }
+        if (countWords) {
+            metrics.add(wordCount + " words");
+        }
+        if (countCharacters) {
+            metrics.add(characterCount + " characters");
+        }
+        sb.append(StringUtils.join(metrics, ", "));
+        return sb.toString();
+    }
+
     private int countWordsInLine(String line, boolean splitWordsOnSymbols) {
         if (line == null || line.trim().length() == 0) {
             return 0;
@@ -272,7 +293,7 @@ public class CountText extends AbstractProcessor {
             final String[] words = line.split(regex);
             // TODO: Trim individual words before counting to eliminate whitespace words?
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Split " + line + " to [" + StringUtils.join(Arrays.asList(words), ", ") + "] (" + words.length + ")");
+                getLogger().debug("Split [" + line + "] to [" + StringUtils.join(Arrays.asList(words), ", ") + "] (" + words.length + ")");
             }
             return words.length;
         }
