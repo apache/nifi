@@ -127,5 +127,4 @@ public class FlowConfigurationDTO {
     public void setTimeOffset(Integer timeOffset) {
         this.timeOffset = timeOffset;
     }
-
 }

@@ -22,7 +22,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "versionedFlowSnapshotMetadata")
+@XmlRootElement(name = "versionedFlowSnapshotMetadataEntity")
 public class VersionedFlowSnapshotMetadataEntity extends Entity {
     private VersionedFlowSnapshotMetadata versionedFlowSnapshotMetadata;
     private String registryId;

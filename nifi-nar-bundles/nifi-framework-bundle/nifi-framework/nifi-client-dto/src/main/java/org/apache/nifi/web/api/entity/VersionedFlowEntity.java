@@ -22,7 +22,7 @@ import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "versionedFlow")
+@XmlRootElement(name = "versionedFlowEntity")
 public class VersionedFlowEntity extends Entity {
     private VersionedFlowDTO versionedFlow;
 

@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "versionedFlow")
+@XmlRootElement(name = "startVersionControlRequestEntity")
 public class StartVersionControlRequestEntity extends Entity {
     private VersionedFlowDTO versionedFlow;
     private RevisionDTO processGroupRevision;
