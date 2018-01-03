@@ -207,7 +207,7 @@ public class TestConvertJSONToSQL {
         out.assertAttributeEquals("sql.args.2.value", "Bool");
         // Boolean value 'true' is converted to '0'
         out.assertAttributeEquals("sql.args.3.type", String.valueOf(java.sql.Types.INTEGER));
-        out.assertAttributeEquals("sql.args.3.value", "0");
+        out.assertAttributeEquals("sql.args.3.value", "1");
 
         out.assertContentEquals("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?)");
     }
