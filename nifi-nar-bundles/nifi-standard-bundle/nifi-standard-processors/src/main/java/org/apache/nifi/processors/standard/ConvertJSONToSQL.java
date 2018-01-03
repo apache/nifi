@@ -547,7 +547,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         case Types.NUMERIC:
             if (fieldNode.isBoolean()) {
                 // Convert boolean to number representation for databases those don't support boolean type.
-                fieldValue = fieldNode.asBoolean() ? "0" : "1";
+                fieldValue = fieldNode.asBoolean() ? "1" : "0";
             }
             break;
 
