@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 
 import java.io.IOException;
 import java.util.ArrayList;

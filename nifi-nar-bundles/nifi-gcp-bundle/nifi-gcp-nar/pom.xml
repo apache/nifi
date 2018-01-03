@@ -32,6 +32,11 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-gcp-services-api-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-gcp-processors</artifactId>
             <version>1.5.0-SNAPSHOT</version>
         </dependency>

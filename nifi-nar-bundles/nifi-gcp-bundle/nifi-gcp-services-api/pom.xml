@@ -18,19 +18,33 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
+        <artifactId>nifi-gcp-bundle</artifactId>
         <version>1.5.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-gcp-bundle</artifactId>
-    <version>1.5.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <artifactId>nifi-gcp-services-api</artifactId>
+    <packaging>jar</packaging>
 
-    <modules>
-        <module>nifi-gcp-services-api</module>
-        <module>nifi-gcp-services-api-nar</module>
-        <module>nifi-gcp-processors</module>
-        <module>nifi-gcp-nar</module>
-    </modules>
-
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>0.6.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.code.findbugs</groupId>
+                    <artifactId>jsr305</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.github.stephenc.findbugs</groupId>
+            <artifactId>findbugs-annotations</artifactId>
+            <version>1.3.9-1</version>
+        </dependency>        
+    </dependencies>
 </project>

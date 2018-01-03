@@ -1411,6 +1411,17 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-gcp-services-api</artifactId>
+                <version>1.5.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-gcp-services-api-nar</artifactId>
+                <version>1.5.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-grpc-nar</artifactId>
                 <version>1.5.0-SNAPSHOT</version>
                 <type>nar</type>

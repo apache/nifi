@@ -23,7 +23,7 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.cloud.storage.testing.RemoteStorageHelper;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
-import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
