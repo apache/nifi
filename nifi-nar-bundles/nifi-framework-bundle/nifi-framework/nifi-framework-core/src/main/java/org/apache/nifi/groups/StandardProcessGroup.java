@@ -3316,7 +3316,17 @@ public final class StandardProcessGroup implements ProcessGroup {
             ancestorServiceIds = Collections.emptySet();
         } else {
             ancestorServiceIds = parentGroup.getControllerServices(true).stream()
-                .map(ControllerServiceNode::getIdentifier)
+                .map(cs -> {
+                    // We want to map the Controller Service to its Versioned Component ID, if it has one.
+                    // If it does not have one, we want to generate it in the same way that our Flow Mapper does
+                    // because this allows us to find the Controller Service when doing a Flow Diff.
+                    final Optional<String> versionedId = cs.getVersionedComponentId();
+                    if (versionedId.isPresent()) {
+                        return versionedId.get();
+                    }
+
+                    return UUID.nameUUIDFromBytes(cs.getIdentifier().getBytes(StandardCharsets.UTF_8)).toString();
+                })
                 .collect(Collectors.toSet());
         }
 
