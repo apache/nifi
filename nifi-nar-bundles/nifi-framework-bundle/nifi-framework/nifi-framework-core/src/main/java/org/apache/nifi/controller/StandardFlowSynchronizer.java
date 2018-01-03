@@ -240,7 +240,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     existingFlowEmpty = taskElements.isEmpty()
                         && unrootedControllerServiceElements.isEmpty()
                         && isEmpty(rootGroupDto)
-                        && registriesPresent;
+                        && !registriesPresent;
                     logger.debug("Existing Flow Empty = {}", existingFlowEmpty);
                 }
             }
