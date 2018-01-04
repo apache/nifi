@@ -199,6 +199,45 @@ And the mome raths outgrabe."""
         assert flowFile.attributes.get(CountText.TEXT_WORD_COUNT) == EXPECTED_WORD_COUNT as String
     }
 
+    @Test
+    void testShouldCountIndependentlyPerFlowFile() throws Exception {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(CountText.class)
+        String INPUT_TEXT = new File("src/test/resources/TestCountText/jabberwocky.txt").text
+
+        final def EXPECTED_VALUES = [
+                "text.line.count"         : 34,
+                "text.line.nonempty.count": 28,
+                "text.word.count"         : 166,
+                "text.character.count"    : 900,
+        ]
+
+        // Reset the processor properties
+        runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "true")
+
+        2.times { int i ->
+            runner.clearProvenanceEvents()
+            runner.clearTransferState()
+            runner.enqueue(INPUT_TEXT.bytes)
+
+            // Act
+            runner.run()
+
+            // Assert
+            runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
+            FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).first()
+            logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
+            EXPECTED_VALUES.each { key, value ->
+                if (flowFile.attributes.containsKey(key)) {
+                    assert flowFile.attributes.get(key) == value as String
+                }
+            }
+        }
+    }
+
     @Ignore("Not yet implemented")
     @Test
     void testShouldValidateCharacterEncodings() throws Exception {

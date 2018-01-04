@@ -67,7 +67,13 @@ import org.apache.nifi.util.StringUtils;
 })
 @SeeAlso(SplitText.class)
 public class CountText extends AbstractProcessor {
-    private static final List<Charset> STANDARD_CHARSETS = Arrays.asList(StandardCharsets.UTF_8, StandardCharsets.US_ASCII, StandardCharsets.ISO_8859_1, StandardCharsets.UTF_16, StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE);
+    private static final List<Charset> STANDARD_CHARSETS = Arrays.asList(
+            StandardCharsets.UTF_8,
+            StandardCharsets.US_ASCII,
+            StandardCharsets.ISO_8859_1,
+            StandardCharsets.UTF_16,
+            StandardCharsets.UTF_16LE,
+            StandardCharsets.UTF_16BE);
 
     private static final String SYMBOL_REGEX = "[\\s-\\._]";
     private static final String WHITESPACE_ONLY_REGEX = "\\s";
@@ -100,7 +106,8 @@ public class CountText extends AbstractProcessor {
     public static final PropertyDescriptor TEXT_WORD_COUNT_PD = new PropertyDescriptor.Builder()
             .name("text-word-count")
             .displayName("Text Word Count")
-            .description("If enabled, will count the number of words (alphanumeric character groups bounded by whitespace) present in the incoming text. Common logical delimiters [_-.] do not bound a word unless 'Split Words on Symbols' is true.")
+            .description("If enabled, will count the number of words (alphanumeric character groups bounded by whitespace)" +
+                    " present in the incoming text. Common logical delimiters [_-.] do not bound a word unless 'Split Words on Symbols' is true.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -195,7 +202,7 @@ public class CountText extends AbstractProcessor {
     }
 
     /**
-     * Will split the incoming stream releasing all splits as FlowFile at once.
+     * Will count text attributes of the incoming stream.
      */
     @Override
     public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
@@ -204,6 +211,11 @@ public class CountText extends AbstractProcessor {
             return;
         }
         AtomicBoolean error = new AtomicBoolean();
+
+        lineCount = 0;
+        lineNonEmptyCount = 0;
+        wordCount = 0;
+        characterCount = 0;
 
         processSession.read(sourceFlowFile, in -> {
             long start = System.nanoTime();
