@@ -214,14 +214,8 @@
                 });
             }
 
-            // determine the max registry height
-            var windowHeight = $(window).height();
-            var registryOffset = $('#import-flow-version-registry-combo').offset();
-            var registryMaxHeight = windowHeight - registryOffset.top - 64;
-
             // load the registries
             registryCombo.combo({
-                maxHeight: registryMaxHeight,
                 options: registries,
                 select: function (selectedOption) {
                     selectRegistry(dialog, selectedOption, bucketCombo, flowCombo, selectBucket, bucketCheck)
@@ -296,14 +290,8 @@
                 }
             }
 
-            // determine the max bucket height
-            var windowHeight = $(window).height();
-            var bucketOffset = $('#import-flow-version-bucket-combo').offset();
-            var bucketMaxHeight = windowHeight - bucketOffset.top - 64;
-
             // load the buckets
             bucketCombo.combo('destroy').combo({
-                maxHeight: bucketMaxHeight,
                 options: buckets,
                 select: selectBucket
             });
@@ -902,14 +890,8 @@
                 });
             }
 
-            // determine the max flow height
-            var windowHeight = $(window).height();
-            var flowOffset = $('#import-flow-version-name-combo').offset();
-            var flowMaxHeight = windowHeight - flowOffset.top - 64;
-
             // load the buckets
             $('#import-flow-version-name-combo').combo('destroy').combo({
-                maxHeight: flowMaxHeight,
                 options: versionedFlows,
                 select: function (selectedFlow) {
                     if (nfCommon.isDefinedAndNotNull(selectedFlow.value)) {
