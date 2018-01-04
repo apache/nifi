@@ -363,6 +363,41 @@ public class TestJdbcCommon {
         assertTrue(foundNullSchema);
     }
 
+    @Test
+    public void testInt9ShouldBeLong() throws SQLException, IllegalArgumentException, IllegalAccessException {
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(metadata.getPrecision(1)).thenReturn(9);
+        when(metadata.isSigned(1)).thenReturn(false);
+        when(metadata.getColumnName(1)).thenReturn("Col1");
+        when(metadata.getTableName(1)).thenReturn("Table1");
+
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(metadata);
+
+        Schema schema = JdbcCommon.createSchema(rs);
+        Assert.assertNotNull(schema);
+
+        Schema.Field field = schema.getField("Col1");
+        Schema fieldSchema = field.schema();
+        Assert.assertEquals(2, fieldSchema.getTypes().size());
+
+        boolean foundLongSchema = false;
+        boolean foundNullSchema = false;
+
+        for (Schema type : fieldSchema.getTypes()) {
+            if (type.getType().equals(Schema.Type.LONG)) {
+                foundLongSchema = true;
+            } else if (type.getType().equals(Schema.Type.NULL)) {
+                foundNullSchema = true;
+            }
+        }
+
+        assertTrue(foundLongSchema);
+        assertTrue(foundNullSchema);
+    }
+
 
     @Test
     public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {
