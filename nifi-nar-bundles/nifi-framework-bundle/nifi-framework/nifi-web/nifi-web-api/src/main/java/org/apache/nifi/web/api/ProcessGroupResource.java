@@ -620,7 +620,7 @@ public class ProcessGroupResource extends ApplicationResource {
         final VariableRegistryDTO requestRegistryDto = requestVariableRegistryEntity.getVariableRegistry();
         if (!groupId.equals(requestRegistryDto.getProcessGroupId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
-                    + "not equal the process group id of the requested resource (%s).", registryDto.getProcessGroupId(), groupId));
+                    + "not equal the process group id of the requested resource (%s).", requestRegistryDto.getProcessGroupId(), groupId));
         }
 
         if (isReplicateRequest()) {

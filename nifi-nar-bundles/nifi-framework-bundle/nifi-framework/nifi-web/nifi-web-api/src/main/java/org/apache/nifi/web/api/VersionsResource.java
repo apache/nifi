@@ -1590,12 +1590,12 @@ public class VersionsResource extends ApplicationResource {
 
 
     private static class InitiateChangeFlowVersionRequestWrapper extends Entity {
-        final VersionControlInformationEntity versionControlInformationEntity;
-        final ComponentLifecycle componentLifecycle;
-        final URI exampleUri;
-        final Set<AffectedComponentEntity> affectedComponents;
-        final boolean replicateRequest;
-        final VersionedFlowSnapshot flowSnapshot;
+        private final VersionControlInformationEntity versionControlInformationEntity;
+        private final ComponentLifecycle componentLifecycle;
+        private final URI exampleUri;
+        private final Set<AffectedComponentEntity> affectedComponents;
+        private final boolean replicateRequest;
+        private final VersionedFlowSnapshot flowSnapshot;
 
         public InitiateChangeFlowVersionRequestWrapper(final VersionControlInformationEntity versionControlInformationEntity, final ComponentLifecycle componentLifecycle,
                                                        final URI exampleUri, final Set<AffectedComponentEntity> affectedComponents, final boolean replicateRequest,
