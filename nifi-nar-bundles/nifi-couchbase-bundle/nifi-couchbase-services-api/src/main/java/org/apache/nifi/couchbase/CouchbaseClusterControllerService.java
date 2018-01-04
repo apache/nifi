@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.couchbase;
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.controller.ControllerService;
 
 import com.couchbase.client.java.Bucket;
@@ -25,7 +24,6 @@ import com.couchbase.client.java.Bucket;
  * Provides a connection to a Couchbase Server cluster throughout a NiFi Data
  * flow.
  */
-@CapabilityDescription("Provides a centralized Couchbase connection.")
 public interface CouchbaseClusterControllerService extends ControllerService {
 
     /**

@@ -22,7 +22,7 @@
         <version>1.5.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-couchbase-nar</artifactId>
+    <artifactId>nifi-couchbase-services-api-nar</artifactId>
     <version>1.5.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
@@ -33,12 +33,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-couchbase-services-api-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-couchbase-processors</artifactId>
+            <artifactId>nifi-couchbase-services-api</artifactId>
             <version>1.5.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
