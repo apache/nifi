@@ -107,8 +107,7 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\"")})
-@SeeAlso(value = {HandleHttpResponse.class},
-        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.RestrictedStandardSSLContextService"})
+@SeeAlso(value = {HandleHttpResponse.class})
 public class HandleHttpRequest extends AbstractProcessor {
 
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");

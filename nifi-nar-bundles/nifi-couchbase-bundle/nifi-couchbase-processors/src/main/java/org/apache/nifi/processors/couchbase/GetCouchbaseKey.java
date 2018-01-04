@@ -32,11 +32,9 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.couchbase.CouchbaseAttributes;
-import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -59,7 +57,6 @@ import com.couchbase.client.java.error.DocumentDoesNotExistException;
 @CapabilityDescription("Get a document from Couchbase Server via Key/Value access. The ID of the document to fetch may be supplied by setting the <Document Id> property. "
     + "NOTE: if the Document Id property is not set, the contents of the FlowFile will be read to determine the Document Id, which means that the contents of the entire "
     + "FlowFile will be buffered in memory.")
-@SeeAlso({CouchbaseClusterControllerService.class})
 @WritesAttributes({
     @WritesAttribute(attribute = "couchbase.cluster", description = "Cluster where the document was retrieved from."),
     @WritesAttribute(attribute = "couchbase.bucket", description = "Bucket where the document was retrieved from."),
