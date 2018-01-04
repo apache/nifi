@@ -28,6 +28,8 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>nifi-couchbase-services-api</module>
+        <module>nifi-couchbase-services-api-nar</module>
         <module>nifi-couchbase-processors</module>
         <module>nifi-couchbase-nar</module>
     </modules>
