@@ -3158,9 +3158,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                     .forEach(port -> port.setVersionedComponentId(lookup.apply(port.getIdentifier())));
             });
 
-        processGroup.getProcessGroups().stream()
-            .filter(childGroup -> childGroup.getVersionControlInformation() == null)
-            .forEach(childGroup -> applyVersionedComponentIds(childGroup, lookup));
+        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
+            if (childGroup.getVersionControlInformation() == null) {
+                applyVersionedComponentIds(childGroup, lookup);
+            } else if (!childGroup.getVersionedComponentId().isPresent()) {
+                childGroup.setVersionedComponentId(lookup.apply(childGroup.getIdentifier()));
+            }
+        }
     }
 
 
