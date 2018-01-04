@@ -38,7 +38,6 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ScheduledState;
@@ -146,7 +145,7 @@ public class TestStandardControllerServiceProvider {
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider =
                 new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
 
@@ -162,7 +161,7 @@ public class TestStandardControllerServiceProvider {
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(group);
 
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider =
                 new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
 
@@ -214,13 +213,13 @@ public class TestStandardControllerServiceProvider {
      */
     @Test(timeout = 120000)
     public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         for (int i = 0; i < 5000; i++) {
             testEnableReferencingServicesGraph(scheduler);
         }
     }
 
-    public void testEnableReferencingServicesGraph(final ProcessScheduler scheduler) {
+    public void testEnableReferencingServicesGraph(final StandardProcessScheduler scheduler) {
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);

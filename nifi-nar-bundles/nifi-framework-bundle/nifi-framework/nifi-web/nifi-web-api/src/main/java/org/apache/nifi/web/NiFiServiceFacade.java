@@ -116,6 +116,7 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -778,6 +779,15 @@ public interface NiFiServiceFacade {
     PortEntity getInputPort(String inputPortId);
 
     /**
+     * Gets an input port as it is available to the given user
+     *
+     * @param inputPortId The input port id
+     * @param user the user
+     * @return port
+     */
+    PortEntity getInputPort(String inputPortId, NiFiUser user);
+
+    /**
      * Gets all input ports in a given group.
      *
      * @param groupId The id of the group
@@ -845,6 +855,15 @@ public interface NiFiServiceFacade {
      * @return port
      */
     PortEntity getOutputPort(String outputPortId);
+
+    /**
+     * Gets an output port as it is available to the given user
+     *
+     * @param outputPortId The output port id
+     * @param user the user
+     * @return port
+     */
+    PortEntity getOutputPort(String outputPortId, NiFiUser user);
 
     /**
      * Gets all output ports in a given group.
@@ -1008,7 +1027,7 @@ public interface NiFiServiceFacade {
      * @param state the state
      * @param serviceIds the id's of the services
      */
-    void verifyActivateControllerServices(String processGroupId, ControllerServiceState state, Set<String> serviceIds);
+    void verifyActivateControllerServices(String processGroupId, ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Enables or disables the controller services with the given IDs & Revisions on behalf of the currently logged in user

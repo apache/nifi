@@ -45,6 +45,7 @@ import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.ResumeFlowException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
 import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
@@ -1128,6 +1129,11 @@ public class VersionsResource extends ApplicationResource {
                             idGenerationSeed, true, true);
 
                         vcur.markComplete(updatedVersionControlEntity);
+                    } catch (final ResumeFlowException rfe) {
+                        // Treat ResumeFlowException differently because we don't want to include a message that we couldn't update the flow
+                        // since in this case the flow was successfully updated - we just couldn't re-enable the components.
+                        logger.error(rfe.getMessage(), rfe);
+                        vcur.setFailureReason(rfe.getMessage());
                     } catch (final Exception e) {
                         logger.error("Failed to update flow to new version", e);
                         vcur.setFailureReason("Failed to update flow to new version due to " + e);
@@ -1301,6 +1307,11 @@ public class VersionsResource extends ApplicationResource {
                             idGenerationSeed, false, true);
 
                         vcur.markComplete(updatedVersionControlEntity);
+                    } catch (final ResumeFlowException rfe) {
+                        // Treat ResumeFlowException differently because we don't want to include a message that we couldn't update the flow
+                        // since in this case the flow was successfully updated - we just couldn't re-enable the components.
+                        logger.error(rfe.getMessage(), rfe);
+                        vcur.setFailureReason(rfe.getMessage());
                     } catch (final Exception e) {
                         logger.error("Failed to update flow to new version", e);
                         vcur.setFailureReason("Failed to update flow to new version due to " + e.getMessage());
@@ -1333,13 +1344,15 @@ public class VersionsResource extends ApplicationResource {
     private VersionControlInformationEntity updateFlowVersion(final String groupId, final ComponentLifecycle componentLifecycle, final URI exampleUri,
         final Set<AffectedComponentEntity> affectedComponents, final NiFiUser user, final boolean replicateRequest, final Revision revision, final VersionControlInformationEntity requestEntity,
         final VersionedFlowSnapshot flowSnapshot, final AsynchronousWebRequest<VersionControlInformationEntity> asyncRequest, final String idGenerationSeed,
-        final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) throws LifecycleManagementException {
+        final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) throws LifecycleManagementException, ResumeFlowException {
 
         // Steps 6-7: Determine which components must be stopped and stop them.
         final Set<String> stoppableReferenceTypes = new HashSet<>();
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT);
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT);
+        stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT);
+        stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
 
         final Set<AffectedComponentEntity> runningComponents = affectedComponents.stream()
             .filter(dto -> stoppableReferenceTypes.contains(dto.getComponent().getReferenceType()))
@@ -1459,7 +1472,14 @@ public class VersionsResource extends ApplicationResource {
                 asyncRequest.setCancelCallback(enableServicesPause::cancel);
                 final Set<AffectedComponentEntity> servicesToEnable = getUpdatedEntities(enabledServices, user);
                 logger.info("Successfully updated flow; re-enabling {} Controller Services", servicesToEnable.size());
-                componentLifecycle.activateControllerServices(exampleUri, user, groupId, servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause);
+
+                try {
+                    componentLifecycle.activateControllerServices(exampleUri, user, groupId, servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause);
+                } catch (final IllegalStateException ise) {
+                    // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
+                    // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
+                    throw new ResumeFlowException("Failed to re-enable Controller Services because " + ise.getMessage(), ise);
+                }
             }
 
             if (!asyncRequest.isCancelled()) {
@@ -1474,7 +1494,14 @@ public class VersionsResource extends ApplicationResource {
                 final CancellableTimedPause startComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
                 asyncRequest.setCancelCallback(startComponentsPause::cancel);
                 logger.info("Restarting {} Processors", componentsToStart.size());
-                componentLifecycle.scheduleComponents(exampleUri, user, groupId, componentsToStart, ScheduledState.RUNNING, startComponentsPause);
+
+                try {
+                    componentLifecycle.scheduleComponents(exampleUri, user, groupId, componentsToStart, ScheduledState.RUNNING, startComponentsPause);
+                } catch (final IllegalStateException ise) {
+                    // Component Lifecycle will restart the Processors only if they are valid. If IllegalStateException gets thrown, we need to provide
+                    // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
+                    throw new ResumeFlowException("Failed to restart components because " + ise.getMessage(), ise);
+                }
             }
         }
 

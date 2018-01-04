@@ -41,8 +41,10 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -130,18 +132,18 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public void verifyActivateControllerServices(final String groupId, final ControllerServiceState state, final Set<String> serviceIds) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public void verifyActivateControllerServices(final ControllerServiceState state, final Collection<String> serviceIds) {
+        final Set<ControllerServiceNode> serviceNodes = serviceIds.stream()
+            .map(flowController::getControllerServiceNode)
+            .collect(Collectors.toSet());
 
-        group.findAllControllerServices().stream()
-            .filter(service -> serviceIds.contains(service.getIdentifier()))
-            .forEach(service -> {
-                if (state == ControllerServiceState.ENABLED) {
-                    service.verifyCanEnable();
-                } else {
-                    service.verifyCanDisable();
-                }
-            });
+        for (final ControllerServiceNode serviceNode : serviceNodes) {
+            if (state == ControllerServiceState.ENABLED) {
+                serviceNode.verifyCanEnable(serviceNodes);
+            } else {
+                serviceNode.verifyCanDisable(serviceNodes);
+            }
+        }
     }
 
     @Override
@@ -201,26 +203,16 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public Future<Void> activateControllerServices(final String groupId, final ControllerServiceState state, final Set<String> serviceIds) {
-        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public Future<Void> activateControllerServices(final ControllerServiceState state, final Collection<String> serviceIds) {
+        final List<ControllerServiceNode> serviceNodes = serviceIds.stream()
+            .map(flowController::getControllerServiceNode)
+            .collect(Collectors.toList());
 
-        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-        for (final String serviceId : serviceIds) {
-            final ControllerServiceNode serviceNode = group.findControllerService(serviceId, true, true);
-            if (serviceNode == null) {
-                throw new ResourceNotFoundException("Could not find Controller Service with identifier " + serviceId);
-            }
-
-            if (ControllerServiceState.ENABLED.equals(state)) {
-                final CompletableFuture<Void> serviceFuture = flowController.enableControllerService(serviceNode);
-                future = CompletableFuture.allOf(future, serviceFuture);
-            } else {
-                final CompletableFuture<Void> serviceFuture = flowController.disableControllerService(serviceNode);
-                future = CompletableFuture.allOf(future, serviceFuture);
-            }
+        if (state == ControllerServiceState.ENABLED) {
+            return flowController.enableControllerServicesAsync(serviceNodes);
+        } else {
+            return flowController.disableControllerServicesAsync(serviceNodes);
         }
-
-        return future;
     }
 
     @Override

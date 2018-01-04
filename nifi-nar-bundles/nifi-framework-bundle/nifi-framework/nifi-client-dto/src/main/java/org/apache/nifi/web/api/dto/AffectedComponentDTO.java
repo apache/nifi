@@ -26,6 +26,8 @@ import java.util.Collection;
 public class AffectedComponentDTO {
     public static final String COMPONENT_TYPE_PROCESSOR = "PROCESSOR";
     public static final String COMPONENT_TYPE_CONTROLLER_SERVICE = "CONTROLLER_SERVICE";
+    public static final String COMPONENT_TYPE_INPUT_PORT = "INPUT_PORT";
+    public static final String COMPONENT_TYPE_OUTPUT_PORT = "OUTPUT_PORT";
     public static final String COMPONENT_TYPE_REMOTE_INPUT_PORT = "REMOTE_INPUT_PORT";
     public static final String COMPONENT_TYPE_REMOTE_OUTPUT_PORT = "REMOTE_OUTPUT_PORT";
 
@@ -58,6 +60,7 @@ public class AffectedComponentDTO {
 
     @ApiModelProperty(value = "The type of this component",
         allowableValues = COMPONENT_TYPE_PROCESSOR + "," + COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
+            + COMPONENT_TYPE_INPUT_PORT + ", " + COMPONENT_TYPE_OUTPUT_PORT + ", "
             + COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + COMPONENT_TYPE_REMOTE_OUTPUT_PORT)
     public String getReferenceType() {
         return referenceType;

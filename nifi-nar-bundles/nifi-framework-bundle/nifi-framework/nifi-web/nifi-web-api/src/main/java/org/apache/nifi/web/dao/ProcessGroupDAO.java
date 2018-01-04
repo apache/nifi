@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -74,11 +75,10 @@ public interface ProcessGroupDAO {
     /**
      * Verifies the specified controller services can be modified
      *
-     * @param groupId the ID of the process group
      * @param state the desired state
      * @param serviceIds the ID's of the controller services
      */
-    void verifyActivateControllerServices(String groupId, ControllerServiceState state, Set<String> serviceIds);
+    void verifyActivateControllerServices(ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Schedules the components in the specified process group.
@@ -93,11 +93,10 @@ public interface ProcessGroupDAO {
     /**
      * Enables or disables the controller services in the specified process group
      *
-     * @param groupId the id of the group
      * @param state the desired state
      * @param serviceIds the ID's of the services to enable or disable
      */
-    Future<Void> activateControllerServices(String groupId, ControllerServiceState state, Set<String> serviceIds);
+    Future<Void> activateControllerServices(ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Updates the specified process group.
