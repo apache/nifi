@@ -17,9 +17,12 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.cli.HelpFormatter
-import org.apache.commons.lang3.EnumUtils
 import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
+import org.apache.nifi.toolkit.encryptconfig.util.PropertiesEncryptor
+import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
+import org.apache.nifi.toolkit.encryptconfig.util.XmlEncryptor
 import org.apache.nifi.util.console.TextDevices
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -27,8 +30,6 @@ import org.slf4j.LoggerFactory
 class DecryptMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(DecryptMode.class)
-
-    private static final MODE_NAME = "decrypt"
 
     enum FileType {
         properties,
@@ -39,16 +40,6 @@ class DecryptMode implements ToolMode {
 
     DecryptMode() {
         cli = cliBuilder()
-    }
-
-    @Override
-    String getModeName() {
-        return MODE_NAME
-    }
-
-    @Override
-    String getModeDescription() {
-        return "Decrypt sensitive values previously encrypted by this tool, e.g., for troubleshooting."
     }
 
     void printUsage(String message = "") {
@@ -71,24 +62,23 @@ class DecryptMode implements ToolMode {
             def options = cli.parse(args)
 
             if (!options || options.h) {
-                printUsageAndExit("", EncryptConfig.EXIT_STATUS_OTHER)
+                printUsageAndExit("", EncryptConfigMain.EXIT_STATUS_OTHER)
             }
 
             EncryptConfigLogger.configureLogger(options.v)
 
-            Configuration config = new Configuration(options)
+            DecryptConfiguration config = new DecryptConfiguration(options)
 
             run(config)
 
-        } catch (Throwable t) {
-            logger.error("Encountered an error: ${t.getMessage()}")
-            logger.debug("", t)
-            System.exit(EncryptConfig.EXIT_STATUS_FAILURE)
+        } catch (Exception e) {
+            logger.error("Encountered an error: ${e.getMessage()}")
+            logger.debug("", e) // stack trace only when verbose enabled
+            printUsageAndExit(e.getMessage(), EncryptConfigMain.EXIT_STATUS_FAILURE)
         }
-
     }
 
-    void run(Configuration config) throws Exception {
+    void run(DecryptConfiguration config) throws Exception {
 
         if (!config.fileType) {
 
@@ -154,9 +144,7 @@ class DecryptMode implements ToolMode {
                     logger.info("Wrote decrypted file contents to '${config.outputFilePath}'")
                 }
             } catch (IOException e) {
-                def msg = "Encountered an exception writing the decrypted content to '${config.outputFilePath}'"
-                logger.error(msg, e)
-                throw e
+                throw new RuntimeException("Encountered an exception writing the decrypted content to '${config.outputFilePath}': ${e.getMessage()}", e)
             }
         } else {
             System.out.println(decryptedSerializedContent)
@@ -166,16 +154,15 @@ class DecryptMode implements ToolMode {
 
     private CliBuilder cliBuilder() {
 
-        String usage = "${EncryptConfig.class.getCanonicalName()} ${MODE_NAME} [options] file"
+        String usage = "${EncryptConfigMain.class.getCanonicalName()} decrypt [options] file"
 
-        int formatWidth = EncryptConfig.HELP_FORMAT_WIDTH
+        int formatWidth = EncryptConfigMain.HELP_FORMAT_WIDTH
         HelpFormatter formatter = new HelpFormatter()
         formatter.setWidth(formatWidth)
         formatter.setOptionComparator(null) // preserve order of options below in help text
 
         CliBuilder cli = new CliBuilder(
                 usage: usage,
-                header: getModeDescription(),
                 width: formatWidth,
                 formatter: formatter,
                 stopAtNonOption: false)
@@ -199,38 +186,20 @@ class DecryptMode implements ToolMode {
                 argName: 'file',
                 'Use a bootstrap.conf file containing the master key to decrypt the input file (as an alternative to -p or -k)')
 
-        // TODO, remove all references to this arg -- auto-detect or fail
-//        // Options for the file type of the file to decrypt
-//        cli.t(longOpt: 'fileType',
-//                args: 1,
-//                argName: 'type',
-//                "The type of file to decrypt. If this is not provided, the tool will attempt to auto-detect the input file type by examining the format of its content. Supported files types are [${EnumUtils.getEnumList(FileType.class).join(", ")}]")
-
         cli.o(longOpt: 'output',
                 args: 1,
                 argName: 'file',
                 'Specify an output file. If omitted, Standard Out is used. Output file can be set to the input file to decrypt the file in-place.')
 
-        cli.footer = """
-            |Examples:
-            |
-            |Decrypt a properties file that was protected using a password:
-            |    encrypt-config decrypt -p <password> /path/to/nifi/conf/nifi.properties
-            |
-            |Decrypt an xml file using a key in a bootstrap.conf:
-            |    encrypt-config decrypt -b /path/to/nifi/conf/bootstrap.conf /path/to/nifi/conf/authorizers.xml""".stripMargin()
-
         return cli
 
     }
 
-    class Configuration {
+    static class DecryptConfiguration {
 
         OptionAccessor rawOptions
 
-        boolean usingRawKeyHex
-        boolean usingPassword
-        boolean usingBootstrapKey
+        Configuration.KeySource keySource
         String key
         SensitivePropertyProvider decryptionProvider
         String inputBootstrapPath
@@ -242,10 +211,10 @@ class DecryptMode implements ToolMode {
         boolean outputToFile = false
         String outputFilePath
 
-        Configuration() {
+        DecryptConfiguration() {
         }
 
-        Configuration(OptionAccessor options) {
+        DecryptConfiguration(OptionAccessor options) {
             this.rawOptions = options
 
             validateOptions()
@@ -293,6 +262,10 @@ class DecryptMode implements ToolMode {
 
         private void determineKey() {
 
+            boolean usingPassword = false
+            boolean usingRawKeyHex = false
+            boolean usingBootstrapKey = false
+
             if (rawOptions.p) {
                 usingPassword = true
             }
@@ -312,10 +285,12 @@ class DecryptMode implements ToolMode {
                 String keyHex = null
                 if (usingPassword) {
                     logger.debug("Using password to derive master key for decryption")
-                    password = rawOptions.p
+                    password = rawOptions.getInner().getOptionValue("p")
+                    keySource = Configuration.KeySource.PASSWORD
                 } else {
                     logger.debug("Using raw key hex as master key for decryption")
-                    keyHex = rawOptions.k
+                    keyHex = rawOptions.getInner().getOptionValue("k")
+                    keySource = Configuration.KeySource.KEY_HEX
                 }
                 key = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), keyHex, password, usingPassword)
             } else if (usingBootstrapKey) {
@@ -335,6 +310,7 @@ class DecryptMode implements ToolMode {
                 // check we have found the key after trying all bootstrap formats
                 if (key) {
                     logger.debug("Master key found in ${inputBootstrapPath}. This key will be used for decryption operations.")
+                    keySource = Configuration.KeySource.BOOTSTRAP_FILE
                 } else {
                     logger.warn("Bootstrap Conf flag present, but master key could not be found in ${inputBootstrapPath}.")
                 }

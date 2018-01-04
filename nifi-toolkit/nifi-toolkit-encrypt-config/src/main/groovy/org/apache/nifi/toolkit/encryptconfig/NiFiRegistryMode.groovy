@@ -17,8 +17,14 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.cli.HelpFormatter
+import org.apache.commons.cli.Options
 import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
+import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
+import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
+import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryPropertiesEncryptor
+import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
 import org.apache.nifi.util.console.TextDevices
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -27,37 +33,19 @@ class NiFiRegistryMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryMode.class)
 
-    private static final String MODE_NAME = "nifi-registry"
-
     CliBuilder cli
 
     NiFiRegistryMode() {
-        super
         cli = cliBuilder()
     }
 
-    @Override
-    String getModeName() {
-        return MODE_NAME
-    }
-
-    @Override
-    String getModeDescription() {
-        return "Protect sensitive values in NiFi Registry config files by encrypting them with a master key."
-    }
-
-    void printUsage(String message = "") {
-        if (message) {
-            System.out.println(message)
-            System.out.println()
-        }
-        cli.usage()
-    }
-
-    void printUsageAndExit(String message = "", int exitStatusCode) {
-        printUsage(message)
-        System.exit(exitStatusCode)
-    }
+//    private void printUsage(String message = "") {
+//        if (message) {
+//            System.out.println(message)
+//            System.out.println()
+//        }
+//        cli.usage()
+//    }
 
     @Override
     void run(String[] args) {
@@ -67,7 +55,7 @@ class NiFiRegistryMode implements ToolMode {
             def options = cli.parse(args)
 
             if (!options || options.h) {
-                printUsageAndExit("", EncryptConfig.EXIT_STATUS_OTHER)
+                EncryptConfigMain.printUsageAndExit("", EncryptConfigMain.EXIT_STATUS_OTHER)
             }
 
             EncryptConfigLogger.configureLogger(options.v)
@@ -76,8 +64,9 @@ class NiFiRegistryMode implements ToolMode {
             run(config)
 
         } catch (Exception e) {
-            logger.error("Encountered an error: ${e.getMessage()}", e)
-            printUsageAndExit(e.getMessage(), EncryptConfig.EXIT_STATUS_FAILURE)
+            logger.error("Encountered an error: ${e.getMessage()}")
+            logger.debug("", e) // stack trace only when verbose enabled
+            EncryptConfigMain.printUsageAndExit(e.getMessage(), EncryptConfigMain.EXIT_STATUS_FAILURE)
         }
     }
 
@@ -108,9 +97,7 @@ class NiFiRegistryMode implements ToolMode {
                 niFiRegistryProperties = config.propertiesEncryptor.decrypt(niFiRegistryProperties)
                 niFiRegistryProperties = config.propertiesEncryptor.encrypt(niFiRegistryProperties)
             } catch (Exception e) {
-                def msg = "Encountered error trying to load and encrypt NiFi Registry Properties in ${config.inputNiFiRegistryPropertiesPath}."
-                logger.debug(msg, e)
-                printUsageAndExit(msg, EncryptConfig.EXIT_STATUS_FAILURE)
+                throw new RuntimeException("Encountered error trying to load and encrypt NiFi Registry Properties in ${config.inputNiFiRegistryPropertiesPath}: ${e.getMessage()}", e)
             }
         }
 
@@ -122,9 +109,7 @@ class NiFiRegistryMode implements ToolMode {
                 identityProvidersXml = config.identityProvidersXmlEncryptor.decrypt(identityProvidersXml)
                 identityProvidersXml = config.identityProvidersXmlEncryptor.encrypt(identityProvidersXml)
             } catch (Exception e) {
-                def msg = "Encountered error trying to load and encrypt Identity Providers XML in ${config.inputIdentityProvidersPath}."
-                logger.debug(msg, e)
-                printUsageAndExit(msg, EncryptConfig.EXIT_STATUS_FAILURE)
+                throw new RuntimeException("Encountered error trying to load and encrypt Identity Providers XML in ${config.inputIdentityProvidersPath}: ${e.getMessage()}", e)
             }
         }
 
@@ -136,9 +121,7 @@ class NiFiRegistryMode implements ToolMode {
                 authorizersXml = config.authorizersXmlEncryptor.decrypt(authorizersXml)
                 authorizersXml = config.authorizersXmlEncryptor.encrypt(authorizersXml)
             } catch (Exception e) {
-                def msg = "Encountered error trying to load and encrypt Authorizers XML in ${config.inputAuthorizersPath}."
-                logger.debug(msg, e)
-                printUsageAndExit(msg, EncryptConfig.EXIT_STATUS_FAILURE)
+                throw new RuntimeException("Encountered error trying to load and encrypt Authorizers XML in ${config.inputAuthorizersPath}: ${e.getMessage()}", e)
             }
         }
 
@@ -165,28 +148,30 @@ class NiFiRegistryMode implements ToolMode {
                 }
             }
         } catch (Exception e) {
-            logger.debug("Encountered an error: ", e)
-            throw new RuntimeException("Encountered an error writing the output files.", e)
+            throw new RuntimeException("Encountered error while writing the output files: ${e.getMessage()}", e)
         }
     }
 
-    private CliBuilder cliBuilder() {
+    static Options getCliOptions() {
+        return cliBuilder().options
+    }
 
-        String usage = "${EncryptConfig.class.getCanonicalName()} ${MODE_NAME} [options]"
+    static CliBuilder cliBuilder() {
 
-        int formatWidth = EncryptConfig.HELP_FORMAT_WIDTH
+        String usage = "${NiFiRegistryMode.class.getCanonicalName()} [options]"
+
+        int formatWidth = EncryptConfigMain.HELP_FORMAT_WIDTH
         HelpFormatter formatter = new HelpFormatter()
         formatter.setWidth(formatWidth)
         formatter.setOptionComparator(null) // preserve order of options below in help text
 
         CliBuilder cli = new CliBuilder(
                 usage: usage,
-                header: getModeDescription(),
                 width: formatWidth,
                 formatter: formatter)
 
         cli.h(longOpt: 'help', 'Show usage information (this message)')
-        cli.v(longOpt: 'verbose', 'Enables verbose mode (off by default)')
+        cli.v(longOpt: 'verbose', 'Sets verbose mode (default false)')
 
         // Options for the new password or key
         cli.p(longOpt: 'password',
@@ -214,7 +199,7 @@ class NiFiRegistryMode implements ToolMode {
         cli.b(longOpt: 'bootstrapConf',
                 args: 1,
                 argName: 'file',
-                'The bootstrap.conf file containing no master key or an existing master key. If a new password/key is specified and no output bootstrap.conf file is specified, then this file will be overwritten to persist the new master key.')
+                'The bootstrap.conf file containing no master key or an existing master key. If a new password or key is specified (using -p or -k) and no output bootstrap.conf file is specified, then this file will be overwritten to persist the new master key.')
         cli.B(longOpt: 'outputBootstrapConf',
                 args: 1,
                 argName: 'file',
@@ -249,8 +234,6 @@ class NiFiRegistryMode implements ToolMode {
                 args: 1,
                 argName: 'file',
                 'The destination identity-providers.xml file containing protected config values.')
-
-        // TODO, add a footer with usage examples
 
         return cli
 
@@ -368,10 +351,10 @@ class NiFiRegistryMode implements ToolMode {
                 if (rawOptions.p) {
                     logger.debug("Attempting to generate key from password.")
                     usingPassword = true
-                    password = rawOptions.p
+                    password = rawOptions.getInner().getOptionValue("p")
                 } else {
                     usingRawKeyHex = true
-                    keyHex = rawOptions.k
+                    keyHex = rawOptions.getInner().getOptionValue("k")
                 }
                 encryptionKey = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), keyHex, password, usingPassword)
             } else if (rawOptions.b) {

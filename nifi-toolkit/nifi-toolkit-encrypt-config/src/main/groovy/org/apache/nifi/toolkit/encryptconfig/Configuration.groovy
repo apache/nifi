@@ -16,17 +16,14 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import org.apache.nifi.properties.ConfigEncryptionTool
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+interface Configuration {
 
-class LegacyMode extends ConfigEncryptionTool implements ToolMode {
-
-    private static final Logger logger = LoggerFactory.getLogger(LegacyMode.class)
-
-    @Override
-    void run(String[] args) {
-        logger.debug("Invoking NiFi Config Encryption Tool")
-        ConfigEncryptionTool.main(args)
+    enum KeySource {
+        PASSWORD,
+        KEY_HEX,
+        BOOTSTRAP_FILE
     }
+
+    // Future enhancement: configuration field accessors that are common to multiple (action, domain) combinations can go here
+
 }

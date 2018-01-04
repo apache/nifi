@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.encryptconfig
+package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.xml.XmlUtil
 import org.apache.nifi.properties.SensitivePropertyProvider
@@ -22,44 +22,45 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.xml.sax.SAXException
 
-class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
+class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
 
-    private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryIdentityProvidersXmlEncryptor.class)
+    private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryAuthorizersXmlEncryptor.class)
 
-    private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.registry.security.ldap.LdapIdentityProvider"
-    private static final String LDAP_PROVIDER_REGEX = /(?s)<provider>(?:(?!<provider>).)*?<class>\s*org\.apache\.nifi\.registry\.security\.ldap\.LdapIdentityProvider.*?<\/provider>/
-    /* Explanation of LDAP_PROVIDER_REGEX:
+    private static final String LDAP_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.registry.security.ldap.tenants.LdapUserGroupProvider"
+    private static final String LDAP_USER_GROUP_PROVIDER_REGEX =
+            /(?s)<userGroupProvider>(?:(?!<userGroupProvider>).)*?<class>\s*org\.apache\.nifi\.registry\.security\.ldap\.tenants\.LdapUserGroupProvider.*?<\/userGroupProvider>/
+    /* Explanation of LDAP_USER_GROUP_PROVIDER_REGEX:
      *   (?s)                             -> single-line mode (i.e., `.` in regex matches newlines)
-     *   <provider>                       -> find occurrence of `<provider>` literally (case-sensitive)
+     *   <userGroupProvider>              -> find occurrence of `<userGroupProvider>` literally (case-sensitive)
      *   (?: ... )                        -> group but do not capture submatch
      *   (?! ... )                        -> negative lookahead
-     *   (?:(?!<provider>).)*?            -> find everything until a new `<provider>` starts. This is for not selecting multiple providers in one match
+     *   (?:(?!<userGroupProvider>).)*?   -> find everything until a new `<userGroupProvider>` starts. This is for not selecting multiple userGroupProviders in one match
      *   <class>                          -> find occurrence of `<class>` literally (case-sensitive)
      *   \s*                              -> find any whitespace
-     *   org\.apache\.nifi\.registry\.security\.ldap\.LdapIdentityProvider
-     *                                    -> find occurrence of `org.apache.nifi.registry.security.ldap.LdapIdentityProvider` literally (case-sensitive)
-     *   .*?</provider>                   -> find everything as needed up until and including occurrence of `</provider>`
+     *   org\.apache\.nifi\.registry\.security\.ldap\.tenants\.LdapUserGroupProvider
+     *                                    -> find occurrence of `org.apache.nifi.registry.security.ldap.tenants.LdapUserGroupProvider` literally (case-sensitive)
+     *   .*?</userGroupProvider>          -> find everything as needed up until and including occurrence of '</userGroupProvider>'
      */
 
-    NiFiRegistryIdentityProvidersXmlEncryptor(SensitivePropertyProvider encryptionProvider, SensitivePropertyProvider decryptionProvider) {
+    NiFiRegistryAuthorizersXmlEncryptor(SensitivePropertyProvider encryptionProvider, SensitivePropertyProvider decryptionProvider) {
         super(encryptionProvider, decryptionProvider)
     }
 
     @Override
     String encrypt(String plainXmlContent) {
-        // First, mark the XML nodes to encrypt that are specific to identity-providers.xml by adding an attribute encryption="none"
+        // First, mark the XML nodes to encrypt that are specific to authorizers.xml by adding an attribute encryption="none"
         String markedXmlContent
         try {
             def doc = new XmlSlurper().parseText(plainXmlContent)
             // Find the provider element by class even if it has been renamed
-            def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
+            def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
                     .property.findAll {
                 // Only operate on populated password properties
                 it.@name =~ "Password" && it.text()
             }
 
             if (passwords.isEmpty()) {
-                logger.debug("No populated password property elements found in identity-providers.xml")
+                logger.debug("No populated password property elements found in authorizers.xml")
                 return plainXmlContent
             }
 
@@ -85,19 +86,19 @@ class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
         String fileContents = originalInputXmlFile.text
         try {
             def parsedXml = new XmlSlurper().parseText(xmlContent)
-            def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
+            def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = new XmlUtil().serialize(provider)
                 // Remove XML declaration from top
                 serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
-                fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
+                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, serializedProvider)
                 return fileContents.split("\n")
             } else {
-                throw new SAXException("No ldap-provider element found")
+                throw new SAXException("No ldap-user-group-provider element found")
             }
         } catch (SAXException e) {
             logger.error("No provider element with class {} found in XML content; " +
-                    "the file could be empty or the element may be missing or commented out", LDAP_PROVIDER_CLASS)
+                    "the file could be empty or the element may be missing or commented out", LDAP_USER_GROUP_PROVIDER_CLASS)
             return fileContents.split("\n")
         }
     }

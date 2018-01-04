@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.encryptconfig
+package org.apache.nifi.toolkit.encryptconfig.util
 
+import org.apache.commons.cli.CommandLine
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
@@ -38,9 +39,14 @@ class ToolUtilities {
     private static final int SCRYPT_R = 8
     private static final int SCRYPT_P = 1
 
+    static boolean isExactlyOneOptionSet(CommandLine commandLine, String... opt) {
+        Collection<Boolean> setOptions = opt.findAll{commandLine.hasOption(it)}
+        return setOptions.size() == 1
+    }
+
     static boolean isExactlyOneTrue(Boolean... b) {
-        Collection<Boolean> allTrues = b.findAll{it}
-        return allTrues.size() == 1
+        Collection<Boolean> trues = b.findAll{it}
+        return trues.size() == 1
     }
 
     /**

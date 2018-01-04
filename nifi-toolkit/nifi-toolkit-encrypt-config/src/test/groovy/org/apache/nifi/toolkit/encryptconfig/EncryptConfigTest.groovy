@@ -21,11 +21,12 @@ import org.junit.Test
 
 class EncryptConfigTest {
 
+    @Ignore
     @Test
     void testMain() {
 
         String[] args = [];
-        EncryptConfig.main(args)
+        EncryptConfigMain.main(args)
 
     }
 
@@ -33,29 +34,32 @@ class EncryptConfigTest {
     @Test
     void testNiFiRegistryModeMain() {
 
-        String[] args = ["nifi-registry",
-                         "-b", "/Users/kdoran/dev/nr-ec-test-conf/bootstrap.conf",
-                         "-k", "0123456789ABCDEFFEDCBA9876543210",
-                         //"-r", "/Users/kdoran/dev/nr-ec-test-conf/nifi-registry.properties",
-                         "-i", "/Users/kdoran/dev/nr-ec-test-conf/identity-providers.xml",
-                         "-a", "/Users/kdoran/dev/nr-ec-test-conf/authorizers.xml",
+        String[] args = [
+                "--nifiRegistry",
+                "-b", "/Users/kdoran/dev/nr-ec-test-conf/bootstrap.conf",
+                "-k", "0123456789ABCDEFFEDCBA9876543210",
+                //"-r", "/Users/kdoran/dev/nr-ec-test-conf/nifi-registry.properties",
+                "-i", "/Users/kdoran/dev/nr-ec-test-conf/identity-providers.xml",
+                "-a", "/Users/kdoran/dev/nr-ec-test-conf/authorizers.xml",
         ];
-        EncryptConfig.main(args)
+        EncryptConfigMain.main(args)
 
     }
 
-    @Ignore
+    //@Ignore
     @Test
     void testDecryptModeMain() {
 
-        String[] args = ["decrypt", "-v",
-                         //"-b", "/Users/kdoran/dev/nifi-toolkit/test-data/encrypt-config/conf/bootstrap.conf",
-                         "-k", "0123456789ABCDEFFEDCBA9876543210",
-                         //"-t", "properties",
-                         //"/Users/kdoran/dev/nifi-toolkit/test-data/encrypt-config/conf/nifi-registry.properties",
-                         "/Users/kdoran/dev/nifi-toolkit/test-data/encrypt-config/conf/authorizers.xml",
+        String[] args = [
+                "--nifiRegistry", "--decrypt", "-v",
+                //"-b", "/Users/kdoran/dev/nifi-toolkit/test-data/encrypt-config/conf/bootstrap.conf",
+                //"-k", "0123456789ABCDEFFEDCBA9876543210",
+                "-p",
+                //"-t", "properties",
+                "-r", "/Users/kdoran/dev/nifi-toolkit/test-data/encrypt-config/conf/nifi-registry.properties",
+                //"/Users/kdoran/dev/nifi-toolkit/test-data/encrypt-config/conf/authorizers.xml",
         ];
-        EncryptConfig.main(args)
+        EncryptConfigMain.main(args)
 
     }
 

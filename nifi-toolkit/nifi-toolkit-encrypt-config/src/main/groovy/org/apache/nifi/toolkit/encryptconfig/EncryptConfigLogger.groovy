@@ -55,7 +55,8 @@ class EncryptConfigLogger {
         }
 
         if (verboseEnabled) {
-            // Override the log level for this package. For this to work as intended, this class must belong to the same package (or a parent package) of all the encrypt-config classes
+            // Override the log level for this package. For this to work as intended, this class must belong
+            // to the same package (or a parent package) of all the encrypt-config classes
             log4jProps.put("log4j.logger." + EncryptConfigLogger.class.package.name, "DEBUG")
         }
 

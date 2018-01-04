@@ -18,10 +18,6 @@ package org.apache.nifi.toolkit.encryptconfig
 
 interface ToolMode {
 
-    String getModeName()
-
-    String getModeDescription()
-
     void run(String[] args)
 
 }
