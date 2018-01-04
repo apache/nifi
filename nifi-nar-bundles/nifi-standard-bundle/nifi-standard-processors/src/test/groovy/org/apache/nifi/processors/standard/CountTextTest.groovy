@@ -17,27 +17,27 @@
 package org.apache.nifi.processors.standard
 
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.components.ValidationResult
 import org.apache.nifi.flowfile.FlowFile
-import org.apache.nifi.security.util.EncryptionMethod
-import org.apache.nifi.security.util.KeyDerivationFunction
-import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor
-import org.apache.nifi.util.MockProcessContext
+import org.apache.nifi.util.MockProcessSession
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
-import org.junit.Assert
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import org.mockito.Mockito
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.charset.StandardCharsets
 import java.security.Security
+
+import static org.mockito.Matchers.anyBoolean
+import static org.mockito.Matchers.anyString
+import static org.mockito.Mockito.when
 
 @RunWith(JUnit4.class)
 class CountTextTest extends GroovyTestCase {
@@ -238,40 +238,87 @@ And the mome raths outgrabe."""
         }
     }
 
-    @Ignore("Not yet implemented")
     @Test
-    void testShouldValidateCharacterEncodings() throws Exception {
+    void testShouldTrackSessionCountersAcrossMultipleFlowfiles() throws Exception {
         // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
-        Collection<ValidationResult> results
-        MockProcessContext pc
+        final TestRunner runner = TestRunners.newTestRunner(CountText.class)
+        String INPUT_TEXT = new File("src/test/resources/TestCountText/jabberwocky.txt").text
 
-        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+        final def EXPECTED_VALUES = [
+                "text.line.count"         : 34,
+                "text.line.nonempty.count": 28,
+                "text.word.count"         : 166,
+                "text.character.count"    : 900,
+        ]
 
-        // Integer.MAX_VALUE or 128, so use 256 or 128
-        final int MAX_KEY_LENGTH = [PasswordBasedEncryptor.getMaxAllowedKeyLength(encryptionMethod.algorithm), 256].min()
-        final String TOO_LONG_KEY_HEX = "ab" * (MAX_KEY_LENGTH / 8 + 1)
-        logger.info("Using key ${TOO_LONG_KEY_HEX} (${TOO_LONG_KEY_HEX.length() * 4} bits)")
+        // Reset the processor properties
+        runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "true")
 
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
-        runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name())
-        runner.setProperty(EncryptContent.RAW_KEY_HEX, TOO_LONG_KEY_HEX)
+        MockProcessSession mockPS = runner.processSessionFactory.createSession()
+        def sessionCounters = mockPS.sharedState.counterMap
+        logger.info("Session counters (0): ${sessionCounters}")
 
-        runner.enqueue(new byte[0])
-        pc = (MockProcessContext) runner.getProcessContext()
+        int n = 2
 
-        // Act
-        results = pc.validate()
+        n.times { int i ->
+            runner.clearTransferState()
+            runner.enqueue(INPUT_TEXT.bytes)
 
-        // Assert
-        Assert.assertEquals(1, results.size())
-        logger.expected(results)
-        ValidationResult vr = results.first()
+            // Act
+            runner.run()
+            logger.info("Session counters (${i+1}): ${sessionCounters}")
 
-        String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
-        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, vr.toString().contains(expectedResult))
+            // Assert
+            runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
+            FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).first()
+            logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
+            EXPECTED_VALUES.each { key, value ->
+                if (flowFile.attributes.containsKey(key)) {
+                    assert flowFile.attributes.get(key) == value as String
+                }
+            }
+        }
+
+        assert sessionCounters.get("Lines Counted").get() == EXPECTED_VALUES["text.line.count"] * n as long
+        assert sessionCounters.get("Lines (non-empty) Counted").get() == EXPECTED_VALUES["text.line.nonempty.count"] * n as long
+        assert sessionCounters.get("Words Counted").get() == EXPECTED_VALUES["text.word.count"] * n as long
+        assert sessionCounters.get("Characters Counted").get() == EXPECTED_VALUES["text.character.count"] * n as long
     }
 
+    @Test
+    void testShouldHandleInternalError() throws Exception {
+        // Arrange
+        CountText ct = new CountText()
+        ct.countLines = true
+        ct.countLinesNonEmpty = true
+        ct.countWords = true
+        ct.countCharacters = true
+
+        CountText ctSpy = Mockito.spy(ct)
+        when(ctSpy.countWordsInLine(anyString(), anyBoolean())).thenThrow(new IOException("Expected exception"))
+
+        final TestRunner runner = TestRunners.newTestRunner(ctSpy)
+        final String INPUT_TEXT = "This flowfile should throw an error"
+
+        // Reset the processor properties
+        runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "true")
+        runner.setProperty(CountText.CHARACTER_ENCODING_PD, StandardCharsets.US_ASCII.displayName())
+
+        runner.enqueue(INPUT_TEXT.bytes)
+
+        // Act
+        // Need initialize = true to run #onScheduled()
+        runner.run(1, true, true)
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(CountText.REL_FAILURE, 1)
+        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_FAILURE).first()
+        logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
+    }
 }

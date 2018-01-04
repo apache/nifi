@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -75,8 +77,8 @@ public class CountText extends AbstractProcessor {
             StandardCharsets.UTF_16LE,
             StandardCharsets.UTF_16BE);
 
-    private static final String SYMBOL_REGEX = "[\\s-\\._]";
-    private static final String WHITESPACE_ONLY_REGEX = "\\s";
+    private static final Pattern SYMBOL_PATTERN = Pattern.compile("[\\s-\\._]");
+    private static final Pattern WHITESPACE_ONLY_PATTERN = Pattern.compile("\\s");
 
     // Attribute keys
     public static final String TEXT_LINE_COUNT = "text.line.count";
@@ -87,7 +89,7 @@ public class CountText extends AbstractProcessor {
 
     public static final PropertyDescriptor TEXT_LINE_COUNT_PD = new PropertyDescriptor.Builder()
             .name("text-line-count")
-            .displayName("Text Line Count")
+            .displayName("Count Lines")
             .description("If enabled, will count the number of lines present in the incoming text.")
             .required(true)
             .allowableValues("true", "false")
@@ -96,7 +98,7 @@ public class CountText extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor TEXT_LINE_NONEMPTY_COUNT_PD = new PropertyDescriptor.Builder()
             .name("text-line-nonempty-count")
-            .displayName("Text Line (non-empty) Count")
+            .displayName("Count Non-Empty Lines")
             .description("If enabled, will count the number of lines that contain a non-whitespace character present in the incoming text.")
             .required(true)
             .allowableValues("true", "false")
@@ -105,7 +107,7 @@ public class CountText extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor TEXT_WORD_COUNT_PD = new PropertyDescriptor.Builder()
             .name("text-word-count")
-            .displayName("Text Word Count")
+            .displayName("Count Words")
             .description("If enabled, will count the number of words (alphanumeric character groups bounded by whitespace)" +
                     " present in the incoming text. Common logical delimiters [_-.] do not bound a word unless 'Split Words on Symbols' is true.")
             .required(true)
@@ -115,8 +117,8 @@ public class CountText extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor TEXT_CHARACTER_COUNT_PD = new PropertyDescriptor.Builder()
             .name("text-character-count")
-            .displayName("Text Character Count")
-            .description("If enabled, will count the number of characters (including whitespace and symbols) present in the incoming text.")
+            .displayName("Count Characters")
+            .description("If enabled, will count the number of characters (including whitespace and symbols, but not including newlines and carriage returns) present in the incoming text.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -131,7 +133,6 @@ public class CountText extends AbstractProcessor {
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
-    // TODO: Stream map allowable values to name/key pair?
     public static final PropertyDescriptor CHARACTER_ENCODING_PD = new PropertyDescriptor.Builder()
             .name("character-encoding")
             .displayName("Character Encoding")
@@ -174,7 +175,7 @@ public class CountText extends AbstractProcessor {
     private volatile boolean countWords;
     private volatile boolean countCharacters;
     private volatile boolean splitWordsOnSymbols;
-    private volatile String characterEncoding;
+    private volatile String characterEncoding = StandardCharsets.UTF_8.name();
 
     private volatile int lineCount;
     private volatile int lineNonEmptyCount;
@@ -249,9 +250,17 @@ public class CountText extends AbstractProcessor {
                     DecimalFormat df = new DecimalFormat("#.###");
                     getLogger().debug("Computed metrics in " + durationNanos + " nanoseconds (" + df.format(durationNanos / 1_000_000_000.0) + " seconds).");
                 }
-                String message = generateMetricsMessage();
-                getLogger().info(message);
-            } catch (IllegalStateException e) {
+                if (getLogger().isInfoEnabled()) {
+                    String message = generateMetricsMessage();
+                    getLogger().info(message);
+                }
+
+                // Update session counters
+                processSession.adjustCounter("Lines Counted", (long) lineCount, false);
+                processSession.adjustCounter("Lines (non-empty) Counted", (long) lineNonEmptyCount, false);
+                processSession.adjustCounter("Words Counted", (long) wordCount, false);
+                processSession.adjustCounter("Characters Counted", (long) characterCount, false);
+            } catch (IOException e) {
                 error.set(true);
                 getLogger().error(e.getMessage() + " Routing to failure.", e);
             }
@@ -297,12 +306,12 @@ public class CountText extends AbstractProcessor {
         return sb.toString();
     }
 
-    private int countWordsInLine(String line, boolean splitWordsOnSymbols) {
+    int countWordsInLine(String line, boolean splitWordsOnSymbols) throws IOException {
         if (line == null || line.trim().length() == 0) {
             return 0;
         } else {
-            String regex = splitWordsOnSymbols ? SYMBOL_REGEX : WHITESPACE_ONLY_REGEX;
-            final String[] words = line.split(regex);
+            Pattern regex = splitWordsOnSymbols ? SYMBOL_PATTERN : WHITESPACE_ONLY_PATTERN;
+            final String[] words = regex.split(line);
             // TODO: Trim individual words before counting to eliminate whitespace words?
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug("Split [" + line + "] to [" + StringUtils.join(Arrays.asList(words), ", ") + "] (" + words.length + ")");
