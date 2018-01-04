@@ -123,7 +123,7 @@ And the mome raths outgrabe."""
     void testShouldCountEachMetric() throws Exception {
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(CountText.class)
-        String INPUT_TEXT = new File("src/test/resources/TestCountText/jabberwocky.txt")
+        String INPUT_TEXT = new File("src/test/resources/TestCountText/jabberwocky.txt").text
 
         final def EXPECTED_VALUES = [
                 "text.line.count"         : 34,
@@ -164,10 +164,39 @@ And the mome raths outgrabe."""
             logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
             EXPECTED_VALUES.each { key, value ->
                 if (flowFile.attributes.containsKey(key)) {
-                    assert EXPECTED_VALUES.get(key) == value
+                    assert flowFile.attributes.get(key) == value as String
                 }
             }
         }
+    }
+
+    @Test
+    void testShouldCountWordsSplitOnSymbol() throws Exception {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(CountText.class)
+        String INPUT_TEXT = new File("src/test/resources/TestCountText/jabberwocky.txt").text
+
+        final int EXPECTED_WORD_COUNT = 167
+
+        // Reset the processor properties
+        runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "false")
+        runner.setProperty(CountText.TEXT_LINE_NONEMPTY_COUNT_PD, "false")
+        runner.setProperty(CountText.TEXT_WORD_COUNT_PD, "true")
+        runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "false")
+        runner.setProperty(CountText.SPLIT_WORDS_ON_SYMBOLS_PD, "true")
+
+        runner.clearProvenanceEvents()
+        runner.clearTransferState()
+        runner.enqueue(INPUT_TEXT.bytes)
+
+        // Act
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1)
+        FlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).first()
+        logger.info("Generated flowfile: ${flowFile} | ${flowFile.attributes}")
+        assert flowFile.attributes.get(CountText.TEXT_WORD_COUNT) == EXPECTED_WORD_COUNT as String
     }
 
     @Ignore("Not yet implemented")

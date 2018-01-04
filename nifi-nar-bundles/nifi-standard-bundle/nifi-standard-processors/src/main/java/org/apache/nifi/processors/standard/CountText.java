@@ -69,7 +69,7 @@ import org.apache.nifi.util.StringUtils;
 public class CountText extends AbstractProcessor {
     private static final List<Charset> STANDARD_CHARSETS = Arrays.asList(StandardCharsets.UTF_8, StandardCharsets.US_ASCII, StandardCharsets.ISO_8859_1, StandardCharsets.UTF_16, StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE);
 
-    private static final String SYMBOL_REGEX = "\\s-\\._";
+    private static final String SYMBOL_REGEX = "[\\s-\\._]";
     private static final String WHITESPACE_ONLY_REGEX = "\\s";
 
     // Attribute keys
