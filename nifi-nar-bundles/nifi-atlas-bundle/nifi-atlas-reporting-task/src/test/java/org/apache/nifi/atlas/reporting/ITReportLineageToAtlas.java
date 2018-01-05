@@ -409,6 +409,7 @@ public class ITReportLineageToAtlas {
         when(eventAccess.getGroupStatus(eq("root"))).thenReturn(tc.rootPgStatus);
 
         final ProvenanceRepository provenanceRepository = mock(ProvenanceRepository.class);
+        when(eventAccess.getControllerStatus()).thenReturn(tc.rootPgStatus);
         when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
         when(eventAccess.getProvenanceEvents(eq(-1L), anyInt())).thenReturn(tc.provenanceRecords);
         when(provenanceRepository.getMaxEventId()).thenReturn((long) tc.provenanceRecords.size() - 1);
