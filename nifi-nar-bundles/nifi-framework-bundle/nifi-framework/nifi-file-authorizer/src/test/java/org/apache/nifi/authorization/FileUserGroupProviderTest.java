@@ -551,7 +551,7 @@ public class FileUserGroupProviderTest {
         assertEquals(3, groups.size());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testAddGroupWhenUserDoesNotExist() throws Exception {
         writeFile(primaryTenants, EMPTY_TENANTS);
         userGroupProvider.onConfigured(configurationContext);
@@ -564,6 +564,7 @@ public class FileUserGroupProviderTest {
                 .build();
 
         userGroupProvider.addGroup(group);
+        assertEquals(1, userGroupProvider.getGroups().size());
     }
 
     @Test

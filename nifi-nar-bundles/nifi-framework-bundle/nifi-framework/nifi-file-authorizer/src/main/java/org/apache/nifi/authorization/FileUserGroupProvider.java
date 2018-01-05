@@ -331,9 +331,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         final UserGroupHolder holder = userGroupHolder.get();
         final Tenants tenants = holder.getTenants();
 
-        // determine that all users in the group exist before doing anything, throw an exception if they don't
-        checkGroupUsers(group, tenants.getUsers().getUser());
-
         // create a new JAXB Group based on the incoming Group
         final org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup = new org.apache.nifi.authorization.file.tenants.generated.Group();
         jaxbGroup.setIdentifier(group.getIdentifier());
@@ -599,25 +596,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         jaxbUser.setIdentifier(user.getIdentifier());
         jaxbUser.setIdentity(user.getIdentity());
         return jaxbUser;
-    }
-
-    private Set<org.apache.nifi.authorization.file.tenants.generated.User> checkGroupUsers(final Group group, final List<org.apache.nifi.authorization.file.tenants.generated.User> users) {
-        final Set<org.apache.nifi.authorization.file.tenants.generated.User> jaxbUsers = new HashSet<>();
-        for (String groupUser : group.getUsers()) {
-            boolean found = false;
-            for (org.apache.nifi.authorization.file.tenants.generated.User jaxbUser : users) {
-                if (jaxbUser.getIdentifier().equals(groupUser)) {
-                    jaxbUsers.add(jaxbUser);
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                throw new IllegalStateException("Unable to add group because user " + groupUser + " does not exist");
-            }
-        }
-        return jaxbUsers;
     }
 
     /**
