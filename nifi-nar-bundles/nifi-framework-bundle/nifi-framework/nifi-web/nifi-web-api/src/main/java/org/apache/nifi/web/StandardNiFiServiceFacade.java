@@ -3291,8 +3291,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private PortEntity createInputPortEntity(final Port port) {
+        return createInputPortEntity(port, NiFiUserUtils.getNiFiUser());
+    }
+
+    private PortEntity createInputPortEntity(final Port port, final NiFiUser user) {
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(port);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(port, user);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(port.getIdentifier()));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(port.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
@@ -3300,8 +3304,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private PortEntity createOutputPortEntity(final Port port) {
+        return createOutputPortEntity(port, NiFiUserUtils.getNiFiUser());
+    }
+
+    private PortEntity createOutputPortEntity(final Port port, final NiFiUser user) {
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(port);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(port, user);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(port.getIdentifier()));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(port.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
@@ -3411,6 +3419,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public PortEntity getInputPort(final String inputPortId, final NiFiUser user) {
+        final Port port = inputPortDAO.getPort(inputPortId);
+        return createInputPortEntity(port, user);
+    }
+
+    @Override
     public PortStatusEntity getInputPortStatus(final String inputPortId) {
         final Port inputPort = inputPortDAO.getPort(inputPortId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(inputPort);
@@ -3422,6 +3436,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public PortEntity getOutputPort(final String outputPortId) {
         final Port port = outputPortDAO.getPort(outputPortId);
         return createOutputPortEntity(port);
+    }
+
+    @Override
+    public PortEntity getOutputPort(final String outputPortId, final NiFiUser user) {
+        final Port port = outputPortDAO.getPort(outputPortId);
+        return createOutputPortEntity(port, user);
     }
 
     @Override
@@ -4034,7 +4054,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 }
             }
 
-            final String destinationVersionId = connection.getSource().getId();
+            final String destinationVersionId = connection.getDestination().getId();
             final List<Connectable> destinations = connectablesByVersionId.get(destinationVersionId);
             if (destinations != null) {
                 for (final Connectable destination : destinations) {

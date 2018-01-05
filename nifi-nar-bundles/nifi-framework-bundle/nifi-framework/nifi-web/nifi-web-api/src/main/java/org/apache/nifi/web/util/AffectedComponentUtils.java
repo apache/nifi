@@ -27,6 +27,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
@@ -39,6 +40,14 @@ public class AffectedComponentUtils {
             case AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR:
                 final ProcessorEntity procEntity = serviceFacade.getProcessor(componentEntity.getId(), user);
                 return dtoFactory.createAffectedComponentEntity(procEntity);
+            case AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT: {
+                final PortEntity portEntity = serviceFacade.getInputPort(componentEntity.getId(), user);
+                return dtoFactory.createAffectedComponentEntity(portEntity, AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT);
+            }
+            case AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT: {
+                final PortEntity portEntity = serviceFacade.getOutputPort(componentEntity.getId(), user);
+                return dtoFactory.createAffectedComponentEntity(portEntity, AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
+            }
             case AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE:
                 final ControllerServiceEntity serviceEntity = serviceFacade.getControllerService(componentEntity.getId(), user);
                 return dtoFactory.createAffectedComponentEntity(serviceEntity);

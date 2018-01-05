@@ -179,6 +179,7 @@ import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -1794,6 +1795,32 @@ public final class DtoFactory {
         componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         componentDto.setState(processorDto.getState());
         componentDto.setValidationErrors(processorDto.getValidationErrors());
+        component.setComponent(componentDto);
+
+        return component;
+    }
+
+    public AffectedComponentEntity createAffectedComponentEntity(final PortEntity portEntity, final String referenceType) {
+        if (portEntity == null) {
+            return null;
+        }
+
+        final AffectedComponentEntity component = new AffectedComponentEntity();
+        component.setBulletins(portEntity.getBulletins());
+        component.setId(portEntity.getId());
+        component.setPermissions(portEntity.getPermissions());
+        component.setPosition(portEntity.getPosition());
+        component.setRevision(portEntity.getRevision());
+        component.setUri(portEntity.getUri());
+
+        final PortDTO portDto = portEntity.getComponent();
+        final AffectedComponentDTO componentDto = new AffectedComponentDTO();
+        componentDto.setId(portDto.getId());
+        componentDto.setName(portDto.getName());
+        componentDto.setProcessGroupId(portDto.getParentGroupId());
+        componentDto.setReferenceType(referenceType);
+        componentDto.setState(portDto.getState());
+        componentDto.setValidationErrors(portDto.getValidationErrors());
         component.setComponent(componentDto);
 
         return component;

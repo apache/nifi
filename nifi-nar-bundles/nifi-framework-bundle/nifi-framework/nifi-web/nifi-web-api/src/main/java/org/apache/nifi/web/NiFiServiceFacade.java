@@ -779,6 +779,15 @@ public interface NiFiServiceFacade {
     PortEntity getInputPort(String inputPortId);
 
     /**
+     * Gets an input port as it is available to the given user
+     *
+     * @param inputPortId The input port id
+     * @param user the user
+     * @return port
+     */
+    PortEntity getInputPort(String inputPortId, NiFiUser user);
+
+    /**
      * Gets all input ports in a given group.
      *
      * @param groupId The id of the group
@@ -846,6 +855,15 @@ public interface NiFiServiceFacade {
      * @return port
      */
     PortEntity getOutputPort(String outputPortId);
+
+    /**
+     * Gets an output port as it is available to the given user
+     *
+     * @param outputPortId The output port id
+     * @param user the user
+     * @return port
+     */
+    PortEntity getOutputPort(String outputPortId, NiFiUser user);
 
     /**
      * Gets all output ports in a given group.
