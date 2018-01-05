@@ -53,9 +53,8 @@ public class ShutdownHook extends Thread {
         if (ccPort > 0) {
             System.out.println("Initiating Shutdown of NiFi...");
 
-            try {
-                final Socket socket = new Socket("localhost", ccPort);
-                final OutputStream out = socket.getOutputStream();
+            try (Socket socket = new Socket("localhost", ccPort);
+                 OutputStream out = socket.getOutputStream()){
                 out.write(("SHUTDOWN " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
                 out.flush();
 
