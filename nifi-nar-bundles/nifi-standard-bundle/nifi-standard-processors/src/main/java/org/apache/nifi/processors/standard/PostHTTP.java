@@ -127,7 +127,8 @@ import java.util.regex.Pattern;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
-@CapabilityDescription("Performs an HTTP Post with the content of the FlowFile")
+@CapabilityDescription("Performs an HTTP Post with the content of the FlowFile. "
+    + "Uses a connection pool with max number of connections equal to its Concurrent Tasks configuration.")
 public class PostHTTP extends AbstractProcessor {
 
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -151,8 +152,8 @@ public class PostHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
             .name("URL")
-            .description("The URL to POST to. The first part of the URL must be static. However, the path of the URL may be defined using the Attribute Expression Language. "
-                    + "For example, https://${hostname} is not valid, but https://1.1.1.1:8080/files/${nf.file.name} is valid.")
+            .description("The URL to POST to. The URL may be defined using the Attribute Expression Language. "
+                    + "A separate connection pool will be created for each unique host:port combination.")
             .required(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .addValidator(StandardValidators.URL_VALIDATOR)
