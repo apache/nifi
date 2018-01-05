@@ -75,10 +75,13 @@ public class PublisherLease implements Closeable {
         try {
             byte[] messageContent;
             if (demarcatorBytes == null || demarcatorBytes.length == 0) {
+                if (flowFile.getSize() > maxMessageSize) {
+                    tracker.fail(flowFile, new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of " + maxMessageSize + " bytes."));
+                    return;
+                }
                 // Send FlowFile content as it is, to support sending 0 byte message.
-                final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                StreamUtils.copy(flowFileContent, bos);
-                messageContent = bos.toByteArray();
+                messageContent = new byte[(int) flowFile.getSize()];
+                StreamUtils.fillBuffer(flowFileContent, messageContent);
                 publish(flowFile, messageKey, messageContent, topic, tracker);
                 return;
             }

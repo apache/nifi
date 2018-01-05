@@ -80,7 +80,9 @@ public class TestPublisherLease {
             }
         };
 
-        final FlowFile flowFile = new MockFlowFile(1L);
+        final FlowFile flowFile = Mockito.spy(new MockFlowFile(1L));
+        // Need a size grater than zero to make the lease reads the InputStream.
+        Mockito.when(flowFile.getSize()).thenReturn(1L);
         final String topic = "unit-test";
         final byte[] messageKey = null;
         final byte[] demarcatorBytes = null;
