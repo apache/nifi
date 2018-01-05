@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.io.GroovyPrintWriter
 import org.apache.commons.configuration2.PropertiesConfiguration
+import org.apache.commons.configuration2.PropertiesConfigurationLayout
 import org.apache.commons.configuration2.builder.fluent.Configurations
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.slf4j.Logger
@@ -135,7 +136,7 @@ class PropertiesEncryptor {
                 protectedProperties.setProperty(propertyName, encryptedPropertyValue)
                 protectedProperties.setProperty(protectionPropertyForProperty(propertyName), encryptionProvider.getIdentifierKey())
             } else {
-                properties.setProperty(propertyName, propertyValue)
+                protectedProperties.setProperty(propertyName, propertyValue)
             }
 
         }
@@ -174,14 +175,35 @@ class PropertiesEncryptor {
         Configurations configurations = new Configurations()
         try {
             PropertiesConfiguration originalPropertiesConfiguration = configurations.properties(originalPropertiesFile)
-            properties.forEach({ k,v ->
-                originalPropertiesConfiguration.setProperty(k.toString(), v)
-            })
+            def keysToAdd = properties.keySet().findAll { !originalPropertiesConfiguration.containsKey(it.toString()) }
+            def keysToUpdate = properties.keySet().findAll {
+                !keysToAdd.contains(it) &&
+                        properties.getProperty(it.toString()) != originalPropertiesConfiguration.getProperty(it.toString())
+            }
+            def keysToRemove = originalPropertiesConfiguration.getKeys().findAll {!properties.containsKey(it) }
+
+            keysToUpdate.forEach {
+                originalPropertiesConfiguration.setProperty(it.toString(), properties.getProperty(it.toString()))
+            }
+            keysToRemove.forEach {
+                originalPropertiesConfiguration.clearProperty(it.toString())
+            }
+            boolean isFirst = true
+            keysToAdd.sort().forEach {
+                originalPropertiesConfiguration.setProperty(it.toString(), properties.getProperty(it.toString()))
+                if (isFirst) {
+                    originalPropertiesConfiguration.getLayout().setBlancLinesBefore(it.toString(), 1)
+                    originalPropertiesConfiguration.getLayout().setComment(it.toString(), "protection properties")
+                    isFirst = false
+                }
+            }
 
             OutputStream out = new ByteArrayOutputStream()
             Writer writer = new GroovyPrintWriter(out)
 
-            originalPropertiesConfiguration.getLayout().save(originalPropertiesConfiguration, writer)
+            PropertiesConfigurationLayout layout = originalPropertiesConfiguration.getLayout()
+            layout.setGlobalSeparator("=")
+            layout.save(originalPropertiesConfiguration, writer)
 
             writer.flush()
             List<String> lines = out.toString().split("\n")

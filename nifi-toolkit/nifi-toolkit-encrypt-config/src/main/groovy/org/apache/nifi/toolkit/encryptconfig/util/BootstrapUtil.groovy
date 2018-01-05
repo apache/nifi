@@ -33,7 +33,7 @@ class BootstrapUtil {
      *
      * @return keyHex, if present in input bootstrap file; otherwise, null
      */
-    static String extractKeyFromInputFile(String inputBootstrapPath, String bootstrapKeyPropertyName) throws IOException {
+    static String extractKeyFromBootstrapFile(String inputBootstrapPath, String bootstrapKeyPropertyName) throws IOException {
 
         File inputBootstrapConfFile
         if (!(inputBootstrapPath && (inputBootstrapConfFile = new File(inputBootstrapPath)).exists() && inputBootstrapConfFile.canRead())) {
@@ -58,8 +58,7 @@ class BootstrapUtil {
 
 
         } catch (IOException e) {
-            def msg = "Encountered an exception updating the bootstrap.conf file with the master key"
-            logger.error(msg, e)
+            logger.error("Encountered an exception reading the master key from the input bootstrap.conf file: ${e.getMessage()}")
             throw e
         }
 
@@ -72,15 +71,15 @@ class BootstrapUtil {
      *
      * @param keyHex
      */
-    static void writeKey(String keyHex, String bootstrapKeyPropertyName, String outputBootstrapPath, String inputBootstrapPath) throws IOException {
-        File inputBootstrapConfFile
-        File outputBootstrapConfFile
+    static void writeKeyToBootstrapFile(String keyHex, String bootstrapKeyPropertyName, String outputBootstrapPath, String inputBootstrapPath) throws IOException {
+        File inputBootstrapConfFile = new File(inputBootstrapPath)
+        File outputBootstrapConfFile = new File(outputBootstrapPath)
 
-        if (!(inputBootstrapPath && (inputBootstrapConfFile = new File(inputBootstrapPath)).exists() && inputBootstrapConfFile.canRead())) {
+        if (!ToolUtilities.canRead(inputBootstrapConfFile)) {
             throw new IOException("The bootstrap.conf file at ${inputBootstrapPath} must exist and be readable by the user running this tool")
         }
 
-        if (!(outputBootstrapPath && (outputBootstrapConfFile = new File(outputBootstrapPath)).exists() && outputBootstrapConfFile.canRead() && outputBootstrapConfFile.canRead())) {
+        if (!ToolUtilities.isSafeToWrite(outputBootstrapConfFile)) {
             throw new IOException("The bootstrap.conf file at ${outputBootstrapPath} must exist and be readable and writable by the user running this tool")
         }
 
@@ -92,8 +91,7 @@ class BootstrapUtil {
             // Write the updated values to the output file
             outputBootstrapConfFile.text = lines.join("\n")
         } catch (IOException e) {
-            def msg = "Encountered an exception updating the bootstrap.conf file with the master key"
-            logger.error(msg, e)
+            logger.error("Encountered an exception reading the master key from the input bootstrap.conf file: ${e.getMessage()}")
             throw e
         }
     }
@@ -128,7 +126,7 @@ class BootstrapUtil {
             logger.debug("The key property was not detected in bootstrap.conf so it was added along with a comment explaining it")
         }
 
-        lines
+        return lines
     }
 
 }

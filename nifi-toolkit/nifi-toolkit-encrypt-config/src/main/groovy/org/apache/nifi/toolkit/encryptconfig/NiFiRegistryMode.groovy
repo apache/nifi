@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
+import org.apache.http.annotation.Experimental
 import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
@@ -29,6 +30,7 @@ import org.apache.nifi.util.console.TextDevices
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+@Experimental
 class NiFiRegistryMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryMode.class)
@@ -49,7 +51,7 @@ class NiFiRegistryMode implements ToolMode {
 
     @Override
     void run(String[] args) {
-
+        logger.warn("The NiFi Registry capabilities of this tool is still considered experimental. The results should be manually verified.")
         try {
 
             def options = cli.parse(args)
@@ -130,7 +132,7 @@ class NiFiRegistryMode implements ToolMode {
             synchronized (this) {
 
                 if (config.writingKeyToBootstrap) {
-                    BootstrapUtil.writeKey(config.encryptionKey, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY, config.outputBootstrapPath, config.inputBootstrapPath)
+                    BootstrapUtil.writeKeyToBootstrapFile(config.encryptionKey, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY, config.outputBootstrapPath, config.inputBootstrapPath)
                     logger.info("Updated bootstrap config file with master key: ${config.outputBootstrapPath}")
                 }
 
@@ -360,7 +362,7 @@ class NiFiRegistryMode implements ToolMode {
             } else if (rawOptions.b) {
                 logger.debug("Attempting to read master key from input bootstrap.conf file.")
                 usingBootstrapKey = true
-                encryptionKey = BootstrapUtil.extractKeyFromInputFile(inputBootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
+                encryptionKey = BootstrapUtil.extractKeyFromBootstrapFile(inputBootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
                 if (!encryptionKey) {
                     logger.warn("-b specified without -p or -k, but the input bootstrap.conf file did not contain a master key.")
                 }

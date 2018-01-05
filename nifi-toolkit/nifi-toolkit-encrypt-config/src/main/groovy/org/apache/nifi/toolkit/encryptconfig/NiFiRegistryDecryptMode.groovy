@@ -37,6 +37,7 @@ class NiFiRegistryDecryptMode extends DecryptMode {
 
     @Override
     void run(String[] args) {
+        logger.warn("The decryption capability of this tool is still considered experimental. The results should be manually verified.")
         try {
 
             def options = cli.parse(args)
@@ -111,7 +112,7 @@ class NiFiRegistryDecryptMode extends DecryptMode {
                 config.inputBootstrapPath = options.b
 
                 logger.debug("Checking expected NiFi Registry bootstrap.conf format")
-                config.key = BootstrapUtil.extractKeyFromInputFile(config.inputBootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
+                config.key = BootstrapUtil.extractKeyFromBootstrapFile(config.inputBootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
 
                 // check we have found the key
                 if (config.key) {

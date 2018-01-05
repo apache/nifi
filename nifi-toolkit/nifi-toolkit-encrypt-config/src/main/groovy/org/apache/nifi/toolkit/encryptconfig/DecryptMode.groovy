@@ -57,6 +57,7 @@ class DecryptMode implements ToolMode {
 
     @Override
     void run(String[] args) {
+        logger.warn("The decryption capability of this tool is still considered experimental. The results should be manually verified.")
         try {
 
             def options = cli.parse(args)
@@ -299,12 +300,12 @@ class DecryptMode implements ToolMode {
 
                 // first, try to treat the bootstrap file as a NiFi bootstrap.conf
                 logger.debug("Checking expected NiFi bootstrap.conf format")
-                key = BootstrapUtil.extractKeyFromInputFile(inputBootstrapPath, BootstrapUtil.NIFI_BOOTSTRAP_KEY_PROPERTY)
+                key = BootstrapUtil.extractKeyFromBootstrapFile(inputBootstrapPath, BootstrapUtil.NIFI_BOOTSTRAP_KEY_PROPERTY)
 
                 // if the key is still null, try again, this time treating the bootstrap file as a NiFi Registry bootstrap.conf
                 if (!key) {
                     logger.debug("Checking expected NiFi Registry bootstrap.conf format")
-                    key = BootstrapUtil.extractKeyFromInputFile(inputBootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
+                    key = BootstrapUtil.extractKeyFromBootstrapFile(inputBootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
                 }
 
                 // check we have found the key after trying all bootstrap formats
