@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.web;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -271,8 +273,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
+import com.google.common.collect.Sets;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -3974,33 +3976,64 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             })
             .collect(Collectors.toCollection(HashSet::new));
 
-        final Map<String, List<Connection>> connectionsByVersionedId = group.findAllConnections().stream()
-            .filter(conn -> conn.getVersionedComponentId().isPresent())
-            .collect(Collectors.groupingBy(conn -> conn.getVersionedComponentId().get()));
+        // Create a map of all connectable components by versioned component ID to the connectable component itself
+        final Map<String, List<Connectable>> connectablesByVersionId = new HashMap<>();
+        mapToConnectableId(group.findAllFunnels(), connectablesByVersionId);
+        mapToConnectableId(group.findAllInputPorts(), connectablesByVersionId);
+        mapToConnectableId(group.findAllOutputPorts(), connectablesByVersionId);
+        mapToConnectableId(group.findAllProcessors(), connectablesByVersionId);
 
+        final List<RemoteGroupPort> remotePorts = new ArrayList<>();
+        for (final RemoteProcessGroup rpg : group.findAllRemoteProcessGroups()) {
+            remotePorts.addAll(rpg.getInputPorts());
+            remotePorts.addAll(rpg.getOutputPorts());
+        }
+        mapToConnectableId(remotePorts, connectablesByVersionId);
+
+        // If any connection is added or modified, we need to stop both the source (if it exists in the flow currently)
+        // and the destination (if it exists in the flow currently).
         for (final FlowDifference difference : comparison.getDifferences()) {
             VersionedComponent component = difference.getComponentA();
             if (component == null) {
                 component = difference.getComponentB();
             }
 
-            if (component.getComponentType() == org.apache.nifi.registry.flow.ComponentType.CONNECTION) {
-                final VersionedConnection connection = (VersionedConnection) component;
+            if (component.getComponentType() != org.apache.nifi.registry.flow.ComponentType.CONNECTION) {
+                continue;
+            }
 
-                final String versionedConnectionId = connection.getIdentifier();
-                final List<Connection> instances = connectionsByVersionedId.get(versionedConnectionId);
-                if (instances == null) {
-                    continue;
+            final VersionedConnection connection = (VersionedConnection) component;
+
+            final String sourceVersionedId = connection.getSource().getId();
+            final List<Connectable> sources = connectablesByVersionId.get(sourceVersionedId);
+            if (sources != null) {
+                for (final Connectable source : sources) {
+                    affectedComponents.add(createAffectedComponentEntity(source, user));
                 }
+            }
 
-                for (final Connection instance : instances) {
-                    affectedComponents.add(createAffectedComponentEntity(instance.getSource(), user));
-                    affectedComponents.add(createAffectedComponentEntity(instance.getDestination(), user));
+            final String destinationVersionId = connection.getSource().getId();
+            final List<Connectable> destinations = connectablesByVersionId.get(destinationVersionId);
+            if (destinations != null) {
+                for (final Connectable destination : destinations) {
+                    affectedComponents.add(createAffectedComponentEntity(destination, user));
                 }
             }
         }
 
         return affectedComponents;
+    }
+
+    private void mapToConnectableId(final Collection<? extends Connectable> connectables, final Map<String, List<Connectable>> destination) {
+        for (final Connectable connectable : connectables) {
+            final Optional<String> versionedId = connectable.getVersionedComponentId();
+            if (!versionedId.isPresent()) {
+                continue;
+            }
+
+            final List<Connectable> byVersionedId = destination.computeIfAbsent(versionedId.get(), key -> new ArrayList<>());
+            byVersionedId.add(connectable);
+        }
     }
 
 
