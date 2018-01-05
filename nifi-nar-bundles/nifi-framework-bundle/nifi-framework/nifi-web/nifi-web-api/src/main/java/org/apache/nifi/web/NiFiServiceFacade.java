@@ -116,6 +116,7 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -1008,7 +1009,7 @@ public interface NiFiServiceFacade {
      * @param state the state
      * @param serviceIds the id's of the services
      */
-    void verifyActivateControllerServices(String processGroupId, ControllerServiceState state, Set<String> serviceIds);
+    void verifyActivateControllerServices(String processGroupId, ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Enables or disables the controller services with the given IDs & Revisions on behalf of the currently logged in user

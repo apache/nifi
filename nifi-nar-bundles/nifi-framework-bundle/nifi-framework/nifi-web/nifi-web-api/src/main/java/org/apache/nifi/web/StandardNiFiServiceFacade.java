@@ -486,8 +486,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyActivateControllerServices(final String groupId, final ControllerServiceState state, final Set<String> serviceIds) {
-        processGroupDAO.verifyActivateControllerServices(groupId, state, serviceIds);
+    public void verifyActivateControllerServices(final String groupId, final ControllerServiceState state, final Collection<String> serviceIds) {
+        processGroupDAO.verifyActivateControllerServices(state, serviceIds);
     }
 
     @Override
@@ -1018,7 +1018,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 @Override
                 public RevisionUpdate<ActivateControllerServicesEntity> update() {
                     // schedule the components
-                    processGroupDAO.activateControllerServices(processGroupId, state, serviceRevisions.keySet());
+                    processGroupDAO.activateControllerServices(state, serviceRevisions.keySet());
 
                     // update the revisions
                     final Map<String, Revision> updatedRevisions = new HashMap<>();
@@ -3976,6 +3976,28 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             })
             .collect(Collectors.toCollection(HashSet::new));
 
+        for (final FlowDifference difference : comparison.getDifferences()) {
+            final VersionedComponent localComponent = difference.getComponentA();
+            if (localComponent == null) {
+                continue;
+            }
+
+            if (localComponent.getComponentType() == org.apache.nifi.registry.flow.ComponentType.CONTROLLER_SERVICE) {
+                final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceId();
+                final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
+
+                final List<ControllerServiceNode> referencingServices = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
+                for (final ControllerServiceNode referencingService : referencingServices) {
+                    affectedComponents.add(createAffectedComponentEntity(referencingService, user));
+                }
+
+                final List<ProcessorNode> referencingProcessors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
+                for (final ProcessorNode referencingProcessor : referencingProcessors) {
+                    affectedComponents.add(createAffectedComponentEntity(referencingProcessor, user));
+                }
+            }
+        }
+
         // Create a map of all connectable components by versioned component ID to the connectable component itself
         final Map<String, List<Connectable>> connectablesByVersionId = new HashMap<>();
         mapToConnectableId(group.findAllFunnels(), connectablesByVersionId);
@@ -4051,6 +4073,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         dto.setReferenceType(connectable.getConnectableType().name());
         dto.setProcessGroupId(connectable.getProcessGroupIdentifier());
         dto.setState(connectable.getScheduledState().name());
+
+        entity.setComponent(dto);
+        return entity;
+    }
+
+    private AffectedComponentEntity createAffectedComponentEntity(final ControllerServiceNode serviceNode, final NiFiUser user) {
+        final AffectedComponentEntity entity = new AffectedComponentEntity();
+        entity.setRevision(dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier())));
+        entity.setId(serviceNode.getIdentifier());
+
+        final Authorizable authorizable = authorizableLookup.getControllerService(serviceNode.getIdentifier()).getAuthorizable();
+        final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(authorizable, user);
+        entity.setPermissions(permissionsDto);
+
+        final AffectedComponentDTO dto = new AffectedComponentDTO();
+        dto.setId(serviceNode.getIdentifier());
+        dto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        dto.setProcessGroupId(serviceNode.getProcessGroupIdentifier());
+        dto.setState(serviceNode.getState().name());
 
         entity.setComponent(dto);
         return entity;

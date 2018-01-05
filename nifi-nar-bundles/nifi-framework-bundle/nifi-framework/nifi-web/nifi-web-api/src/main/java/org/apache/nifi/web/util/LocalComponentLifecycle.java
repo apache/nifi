@@ -18,7 +18,9 @@
 package org.apache.nifi.web.util;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
@@ -33,6 +35,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -227,6 +232,46 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         serviceFacade.activateControllerServices(user, processGroupId, ControllerServiceState.DISABLED, serviceRevisions);
         waitForControllerServiceState(processGroupId, affectedServices, ControllerServiceState.DISABLED, pause, user);
     }
+
+    static List<List<ControllerServiceNode>> determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap) {
+        final List<List<ControllerServiceNode>> orderedNodeLists = new ArrayList<>();
+
+        for (final ControllerServiceNode node : serviceNodeMap.values()) {
+            final List<ControllerServiceNode> branch = new ArrayList<>();
+            determineEnablingOrder(serviceNodeMap, node, branch, new HashSet<ControllerServiceNode>());
+            orderedNodeLists.add(branch);
+        }
+
+        return orderedNodeLists;
+    }
+
+    private static void determineEnablingOrder(
+        final Map<String, ControllerServiceNode> serviceNodeMap,
+        final ControllerServiceNode contextNode,
+        final List<ControllerServiceNode> orderedNodes,
+        final Set<ControllerServiceNode> visited) {
+        if (visited.contains(contextNode)) {
+            return;
+        }
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : contextNode.getProperties().entrySet()) {
+            if (entry.getKey().getControllerServiceDefinition() != null) {
+                final String referencedServiceId = entry.getValue();
+                if (referencedServiceId != null) {
+                    final ControllerServiceNode referencedNode = serviceNodeMap.get(referencedServiceId);
+                    if (!orderedNodes.contains(referencedNode)) {
+                        visited.add(contextNode);
+                        determineEnablingOrder(serviceNodeMap, referencedNode, orderedNodes, visited);
+                    }
+                }
+            }
+        }
+
+        if (!orderedNodes.contains(contextNode)) {
+            orderedNodes.add(contextNode);
+        }
+    }
+
 
     /**
      * Periodically polls the process group with the given ID, waiting for all controller services whose ID's are given to have the given Controller Service State.

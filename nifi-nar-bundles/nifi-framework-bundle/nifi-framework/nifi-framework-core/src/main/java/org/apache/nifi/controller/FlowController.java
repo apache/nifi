@@ -245,6 +245,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -3610,9 +3611,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
+    public Future<Void> enableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
+        return controllerServiceProvider.enableControllerServicesAsync(serviceNodes);
+    }
+
+    @Override
     public CompletableFuture<Void> disableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanDisable();
         return controllerServiceProvider.disableControllerService(serviceNode);
+    }
+
+    @Override
+    public Future<Void> disableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
+        return controllerServiceProvider.disableControllerServicesAsync(serviceNodes);
     }
 
     @Override

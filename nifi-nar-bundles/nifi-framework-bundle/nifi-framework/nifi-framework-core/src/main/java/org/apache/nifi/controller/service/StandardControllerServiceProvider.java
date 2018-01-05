@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ClassUtils;
@@ -50,13 +51,13 @@ import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
@@ -78,7 +79,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     private static final Logger logger = LoggerFactory.getLogger(StandardControllerServiceProvider.class);
 
-    private final ProcessScheduler processScheduler;
+    private final StandardProcessScheduler processScheduler;
     private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
     private final VariableRegistry variableRegistry;
@@ -87,7 +88,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     private final ConcurrentMap<String, ControllerServiceNode> serviceCache = new ConcurrentHashMap<>();
 
-    public StandardControllerServiceProvider(final FlowController flowController, final ProcessScheduler scheduler, final BulletinRepository bulletinRepo,
+    public StandardControllerServiceProvider(final FlowController flowController, final StandardProcessScheduler scheduler, final BulletinRepository bulletinRepo,
             final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry, final NiFiProperties nifiProperties) {
 
         this.flowController = flowController;
@@ -384,6 +385,74 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
     }
 
+    @Override
+    public Future<Void> enableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        processScheduler.submitFrameworkTask(() -> {
+            enableControllerServices(serviceNodes, future);
+            future.complete(null);
+        });
+
+        return future;
+    }
+
+    private void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes, final CompletableFuture<Void> completableFuture) {
+        // validate that we are able to start all of the services.
+        Iterator<ControllerServiceNode> serviceIter = serviceNodes.iterator();
+        while (serviceIter.hasNext()) {
+            ControllerServiceNode controllerServiceNode = serviceIter.next();
+            List<ControllerServiceNode> requiredServices = ((StandardControllerServiceNode) controllerServiceNode).getRequiredControllerServices();
+            for (ControllerServiceNode requiredService : requiredServices) {
+                if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
+                    logger.error("Cannot enable {} because it has a dependency on {}, which is not enabled", controllerServiceNode, requiredService);
+                    completableFuture.completeExceptionally(new IllegalStateException("Cannot enable " + controllerServiceNode
+                        + " because it has a dependency on " + requiredService + ", which is not enabled"));
+                    return;
+                }
+            }
+        }
+
+        for (final ControllerServiceNode controllerServiceNode : serviceNodes) {
+            if (completableFuture.isCancelled()) {
+                return;
+            }
+
+            try {
+                if (!controllerServiceNode.isActive()) {
+                    final Future<Void> future = enableControllerServiceDependenciesFirst(controllerServiceNode);
+
+                    while (true) {
+                        try {
+                            future.get(1, TimeUnit.SECONDS);
+                            logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
+                            break;
+                        } catch (final TimeoutException e) {
+                            if (completableFuture.isCancelled()) {
+                                return;
+                            }
+                        } catch (final Exception e) {
+                            logger.warn("Failed to enable service {}", controllerServiceNode, e);
+                            completableFuture.completeExceptionally(e);
+
+                            if (this.bulletinRepo != null) {
+                                this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
+                                    Severity.ERROR.name(), "Could not enable " + controllerServiceNode + " due to " + e));
+                            }
+
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Failed to enable " + controllerServiceNode, e);
+                if (this.bulletinRepo != null) {
+                    this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
+                        Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+                }
+            }
+        }
+    }
+
     private Future<Void> enableControllerServiceDependenciesFirst(ControllerServiceNode serviceNode) {
         final Map<ControllerServiceNode, Future<Void>> futures = new HashMap<>();
 
@@ -458,6 +527,58 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public CompletableFuture<Void> disableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanDisable();
         return processScheduler.disableControllerService(serviceNode);
+    }
+
+    @Override
+    public Future<Void> disableControllerServicesAsync(final Collection<ControllerServiceNode> serviceNodes) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        processScheduler.submitFrameworkTask(() -> {
+            disableControllerServices(serviceNodes, future);
+            future.complete(null);
+        });
+
+        return future;
+    }
+
+    private void disableControllerServices(final Collection<ControllerServiceNode> serviceNodes, final CompletableFuture<Void> future) {
+        final Set<ControllerServiceNode> serviceNodeSet = new HashSet<>(serviceNodes);
+
+        // Verify that for each Controller Service given, any service that references it is either disabled or is also in the given collection
+        for (final ControllerServiceNode serviceNode : serviceNodes) {
+            final List<ControllerServiceNode> references = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
+            for (final ControllerServiceNode reference : references) {
+                if (reference.isActive()) {
+                    try {
+                        reference.verifyCanDisable(serviceNodeSet);
+                    } catch (final Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                }
+            }
+        }
+
+        for (final ControllerServiceNode serviceNode : serviceNodes) {
+            if (serviceNode.isActive()) {
+                disableReferencingServices(serviceNode);
+                final CompletableFuture<?> serviceFuture = disableControllerService(serviceNode);
+
+                while (true) {
+                    try {
+                        serviceFuture.get(1, TimeUnit.SECONDS);
+                        break;
+                    } catch (final TimeoutException e) {
+                        if (future.isCancelled()) {
+                            return;
+                        }
+
+                        continue;
+                    } catch (final Exception e) {
+                        logger.error("Failed to disable {}", serviceNode, e);
+                        future.completeExceptionally(e);
+                    }
+                }
+            }
+        }
     }
 
     @Override
