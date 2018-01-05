@@ -1150,7 +1150,7 @@ public class FileAuthorizerTest {
         assertEquals(3, groups.size());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testAddGroupWhenUserDoesNotExist() throws Exception {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
         writeFile(primaryTenants, EMPTY_TENANTS);
@@ -1164,6 +1164,8 @@ public class FileAuthorizerTest {
                 .build();
 
         authorizer.addGroup(group);
+
+        assertEquals(1, authorizer.getGroups().size());
     }
 
     @Test

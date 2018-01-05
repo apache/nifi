@@ -24,6 +24,21 @@ import java.util.Set;
 public interface UserAndGroups {
 
     /**
+     * A static, immutable, empty implementation of the UserAndGroups interface.
+     */
+    UserAndGroups EMPTY = new UserAndGroups() {
+        @Override
+        public User getUser() {
+            return null;
+        }
+
+        @Override
+        public Set<Group> getGroups() {
+            return null;
+        }
+    };
+
+    /**
      * Retrieves the user, or null if the user is unknown
      *
      * @return the user with the given identity
