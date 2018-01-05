@@ -533,7 +533,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 // operating in standalone mode, so load proposed flow and initialize the controller
                 loadFromBytes(dataFlow, true);
                 initializeController();
-                dao.save(controller, true);
+                /*
+                when restart nifi,sometimes the compontent state is from star to stop,no need to save this state again
+                */
             } finally {
                 writeLock.unlock();
             }
