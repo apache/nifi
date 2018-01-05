@@ -3246,7 +3246,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
             final ComparableDataFlow remoteFlow = new StandardComparableDataFlow("Remote Flow", proposedSnapshot.getFlowContents());
 
-            final FlowComparator flowComparator = new StandardFlowComparator(localFlow, remoteFlow, getAncestorGroupServiceIds(), new StaticDifferenceDescriptor());
+            final FlowComparator flowComparator = new StandardFlowComparator(remoteFlow, localFlow, getAncestorGroupServiceIds(), new StaticDifferenceDescriptor());
             final FlowComparison flowComparison = flowComparator.compare();
 
             final Set<String> updatedVersionedComponentIds = new HashSet<>();
@@ -4069,13 +4069,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                     // to the instance ID of the Controller Service.
                     final String serviceVersionedComponentId = entry.getValue();
                     String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                    if (instanceId == null) {
-                        // We didn't find the instance ID based on the Versioned Component ID. So we want to just
-                        // leave the value set to whatever it currently is, if it's currently set.
-                        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(entry.getKey()).build();
-                        instanceId = currentProperties.get(propertyDescriptor);
-                    }
-
                     value = instanceId == null ? serviceVersionedComponentId : instanceId;
                 } else {
                     value = entry.getValue();
@@ -4089,13 +4082,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private String getServiceInstanceId(final String serviceVersionedComponentId, final ProcessGroup group) {
-        for (final ControllerServiceNode serviceNode : group.getControllerServices(false)) {
+        for (final ControllerServiceNode serviceNode : group.getControllerServices(true)) {
             final Optional<String> optionalVersionedId = serviceNode.getVersionedComponentId();
-            if (!optionalVersionedId.isPresent()) {
-                continue;
-            }
-
-            final String versionedId = optionalVersionedId.get();
+            final String versionedId = optionalVersionedId.orElseGet(() -> UUID.nameUUIDFromBytes(serviceNode.getIdentifier().getBytes(StandardCharsets.UTF_8)).toString());
             if (versionedId.equals(serviceVersionedComponentId)) {
                 return serviceNode.getIdentifier();
             }
