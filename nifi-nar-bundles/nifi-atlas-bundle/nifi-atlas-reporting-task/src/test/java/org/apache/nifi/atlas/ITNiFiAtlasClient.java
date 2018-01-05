@@ -39,14 +39,14 @@ public class ITNiFiAtlasClient {
 
     @Before
     public void setup() {
-        atlasClient = NiFiAtlasClient.getInstance();
         // Add your atlas server ip address into /etc/hosts as atlas.example.com
         PropertyContext propertyContext = mock(PropertyContext.class);
         when(propertyContext.getProperty(ReportLineageToAtlas.ATLAS_USER)).thenReturn(new MockPropertyValue("admin"));
         when(propertyContext.getProperty(ReportLineageToAtlas.ATLAS_PASSWORD)).thenReturn(new MockPropertyValue("admin"));
         final AtlasAuthN atlasAuthN = new Basic();
         atlasAuthN.configure(propertyContext);
-        atlasClient.initialize(new String[]{"http://atlas.example.com:21000/"}, atlasAuthN, null);
+
+        atlasClient = new NiFiAtlasClient(atlasAuthN.createClient(new String[]{"http://atlas.example.com:21000/"}));
     }
 
     @Test

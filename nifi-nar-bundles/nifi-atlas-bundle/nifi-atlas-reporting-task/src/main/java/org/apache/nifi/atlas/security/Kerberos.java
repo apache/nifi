@@ -73,7 +73,8 @@ public class Kerberos implements AtlasAuthN {
         UserGroupInformation.setConfiguration(hadoopConf);
         final UserGroupInformation ugi;
         try {
-            ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+            UserGroupInformation.loginUserFromKeytab(principal, keytab);
+            ugi = UserGroupInformation.getCurrentUser();
         } catch (IOException e) {
             throw new RuntimeException("Failed to login with Kerberos due to: " + e, e);
         }

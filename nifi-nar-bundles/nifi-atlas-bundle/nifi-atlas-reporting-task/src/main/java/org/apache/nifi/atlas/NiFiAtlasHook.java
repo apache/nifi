@@ -60,7 +60,7 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
     private static final String CONF_PREFIX = "atlas.hook.nifi.";
     private static final String HOOK_NUM_RETRIES = CONF_PREFIX + "numRetries";
 
-    private final NiFiAtlasClient atlasClient;
+    private NiFiAtlasClient atlasClient;
 
     /**
      * An index to resolve a qualifiedName from a GUID.
@@ -81,14 +81,16 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
         };
     }
 
-    public NiFiAtlasHook(NiFiAtlasClient atlasClient) {
-        this.atlasClient = atlasClient;
-
+    public NiFiAtlasHook() {
         final int qualifiedNameCacheSize = 10_000;
         this.guidToQualifiedName = createCache(qualifiedNameCacheSize);
 
         final int dataSetRefCacheSize = 1_000;
         this.typedQualifiedNameToRef = createCache(dataSetRefCacheSize);
+    }
+
+    public void setAtlasClient(NiFiAtlasClient atlasClient) {
+        this.atlasClient = atlasClient;
     }
 
     @Override

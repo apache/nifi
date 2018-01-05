@@ -18,7 +18,6 @@ package org.apache.nifi.atlas;
 
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
-import org.apache.atlas.ApplicationProperties;
 import org.apache.atlas.AtlasClientV2;
 import org.apache.atlas.AtlasErrorCode;
 import org.apache.atlas.AtlasServiceException;
@@ -29,14 +28,12 @@ import org.apache.atlas.model.instance.EntityMutationResponse;
 import org.apache.atlas.model.typedef.AtlasEntityDef;
 import org.apache.atlas.model.typedef.AtlasStructDef.AtlasAttributeDef;
 import org.apache.atlas.model.typedef.AtlasTypesDef;
-import org.apache.nifi.atlas.security.AtlasAuthN;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MultivaluedMap;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,7 +41,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -82,44 +78,10 @@ public class NiFiAtlasClient {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiAtlasClient.class);
 
-    private static NiFiAtlasClient nifiClient;
-    private AtlasClientV2 atlasClient;
+    private final AtlasClientV2 atlasClient;
 
-    private NiFiAtlasClient() {
-        super();
-    }
-
-    public static NiFiAtlasClient getInstance() {
-        if (nifiClient == null) {
-            synchronized (NiFiAtlasClient.class) {
-                if (nifiClient == null) {
-                    nifiClient = new NiFiAtlasClient();
-                }
-            }
-        }
-        return nifiClient;
-    }
-
-    public void initialize(final String[] baseUrls, final AtlasAuthN authN, final File atlasConfDir) {
-
-        synchronized (NiFiAtlasClient.class) {
-
-            if (atlasClient != null) {
-                logger.info("{} had been setup but replacing it with new one.", atlasClient);
-                ApplicationProperties.forceReload();
-            }
-
-            if (atlasConfDir != null) {
-                // If atlasConfDir is not set, atlas-application.properties will be searched under classpath.
-                Properties props = System.getProperties();
-                final String atlasConfProp = "atlas.conf";
-                props.setProperty(atlasConfProp, atlasConfDir.getAbsolutePath());
-                logger.debug("{} has been set to: {}", atlasConfProp, props.getProperty(atlasConfProp));
-            }
-
-            atlasClient = authN.createClient(baseUrls);
-
-        }
+    public NiFiAtlasClient(AtlasClientV2 atlasClient) {
+        this.atlasClient = atlasClient;
     }
 
     /**

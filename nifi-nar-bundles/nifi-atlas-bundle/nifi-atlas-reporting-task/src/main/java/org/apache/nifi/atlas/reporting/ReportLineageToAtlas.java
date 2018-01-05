@@ -17,6 +17,7 @@
 package org.apache.nifi.atlas.reporting;
 
 import com.sun.jersey.api.client.ClientResponse;
+import org.apache.atlas.ApplicationProperties;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -279,7 +280,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private static final String ATLAS_PROPERTY_KAFKA_BOOTSTRAP_SERVERS = ATLAS_KAFKA_PREFIX + "bootstrap.servers";
     private static final String ATLAS_PROPERTY_KAFKA_CLIENT_ID = ATLAS_KAFKA_PREFIX + ProducerConfig.CLIENT_ID_CONFIG;
     private final ServiceLoader<ClusterResolver> clusterResolverLoader = ServiceLoader.load(ClusterResolver.class);
-    private volatile NiFiAtlasClient atlasClient;
+    private volatile AtlasAuthN atlasAuthN;
     private volatile Properties atlasProperties;
     private volatile boolean isTypeDefCreated = false;
     private volatile String defaultClusterName;
@@ -399,13 +400,13 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     @OnScheduled
     public void setup(ConfigurationContext context) throws IOException {
         // initAtlasClient has to be done first as it loads AtlasProperty.
-        initAtlasClient(context);
+        initAtlasProperties(context);
         initLineageStrategy(context);
         initClusterResolvers(context);
     }
 
     private void initLineageStrategy(ConfigurationContext context) throws IOException {
-        nifiAtlasHook = new NiFiAtlasHook(atlasClient);
+        nifiAtlasHook = new NiFiAtlasHook();
 
         final String strategy = context.getProperty(NIFI_LINEAGE_STRATEGY).getValue();
         if (LINEAGE_STRATEGY_SIMPLE_PATH.equals(strategy)) {
@@ -428,7 +429,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     }
 
 
-    private void initAtlasClient(ConfigurationContext context) throws IOException {
+    private void initAtlasProperties(ConfigurationContext context) throws IOException {
         List<String> urls = new ArrayList<>();
         parseAtlasUrls(context.getProperty(ATLAS_URLS), urls::add);
         final boolean isAtlasApiSecure = urls.stream().anyMatch(url -> url.toLowerCase().startsWith("https"));
@@ -476,7 +477,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             throw new ProcessException("Default cluster name is not defined.");
         }
 
-        final AtlasAuthN atlasAuthN = getAtlasAuthN(atlasAuthNMethod);
+        atlasAuthN = getAtlasAuthN(atlasAuthNMethod);
         atlasAuthN.configure(context);
 
         // Create Atlas configuration file if necessary.
@@ -497,16 +498,32 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             }
         }
 
+        getLogger().debug("Force reloading Atlas application properties.");
+        ApplicationProperties.forceReload();
 
-        atlasClient = NiFiAtlasClient.getInstance();
+        if (confDir != null) {
+            // If atlasConfDir is not set, atlas-application.properties will be searched under classpath.
+            Properties props = System.getProperties();
+            final String atlasConfProp = "atlas.conf";
+            props.setProperty(atlasConfProp, confDir.getAbsolutePath());
+            getLogger().debug("{} has been set to: {}", new Object[]{atlasConfProp, props.getProperty(atlasConfProp)});
+        }
+    }
+
+    /**
+     * In order to avoid authentication expiration issues (i.e. Kerberos ticket and DelegationToken expiration),
+     * create Atlas client instance at every onTrigger execution.
+     */
+    private NiFiAtlasClient createNiFiAtlasClient(ReportingContext context) {
+        List<String> urls = new ArrayList<>();
+        parseAtlasUrls(context.getProperty(ATLAS_URLS), urls::add);
         try {
-            atlasClient.initialize(urls.toArray(new String[]{}), atlasAuthN, confDir);
+            return new NiFiAtlasClient(atlasAuthN.createClient(urls.toArray(new String[]{})));
         } catch (final NullPointerException e) {
             throw new ProcessException(String.format("Failed to initialize Atlas client due to %s." +
                     " Make sure 'atlas-application.properties' is in the directory specified with %s" +
                     " or under root classpath if not specified.", e, ATLAS_CONF_DIR.getDisplayName()), e);
         }
-
     }
 
     private AtlasAuthN getAtlasAuthN(String atlasAuthNMethod) {
@@ -557,6 +574,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         // If standalone or being primary node in a NiFi cluster, this node is responsible for doing primary tasks.
         final boolean isResponsibleForPrimaryTasks = !isClustered || getNodeTypeProvider().isPrimary();
 
+        final NiFiAtlasClient atlasClient = createNiFiAtlasClient(context);
+
         // Create Entity defs in Atlas if there's none yet.
         if (!isTypeDefCreated) {
             try {
@@ -578,7 +597,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
         // Regardless of whether being a primary task node, each node has to analyse NiFiFlow.
         // Assuming each node has the same flow definition, that is guaranteed by NiFi cluster management mechanism.
-        final NiFiFlow nifiFlow = createNiFiFlow(context);
+        final NiFiFlow nifiFlow = createNiFiFlow(context, atlasClient);
 
 
         if (isResponsibleForPrimaryTasks) {
@@ -592,11 +611,12 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         // NOTE: There is a race condition between the primary node and other nodes.
         // If a node notifies an event related to a NiFi component which is not yet created by NiFi primary node,
         // then the notification message will fail due to having a reference to a non-existing entity.
+        nifiAtlasHook.setAtlasClient(atlasClient);
         consumeNiFiProvenanceEvents(context, nifiFlow);
 
     }
 
-    private NiFiFlow createNiFiFlow(ReportingContext context) {
+    private NiFiFlow createNiFiFlow(ReportingContext context, NiFiAtlasClient atlasClient) {
         final ProcessGroupStatus rootProcessGroup = context.getEventAccess().getGroupStatus("root");
         final String flowName = rootProcessGroup.getName();
         final String nifiUrl = context.getProperty(ATLAS_NIFI_URL).evaluateAttributeExpressions().getValue();
