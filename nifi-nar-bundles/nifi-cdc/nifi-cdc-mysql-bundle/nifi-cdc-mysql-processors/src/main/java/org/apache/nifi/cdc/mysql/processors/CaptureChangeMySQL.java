@@ -704,6 +704,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
         }
         if (!binlogClient.isConnected()) {
+            binlogClient.disconnect();
             binlogClient = null;
             throw new IOException("Could not connect binlog client to any of the specified hosts due to: " + lastConnectException.getMessage(), lastConnectException);
         }
@@ -712,6 +713,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             try {
                 jdbcConnection = getJdbcConnection(driverLocation, driverName, connectedHost, username, password, null);
             } catch (InitializationException | SQLException e) {
+                binlogClient.disconnect();
+                binlogClient = null;
                 throw new IOException("Error creating binlog enrichment JDBC connection to any of the specified hosts", e);
             }
         }
