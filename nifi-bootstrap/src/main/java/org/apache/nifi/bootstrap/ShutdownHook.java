@@ -57,8 +57,6 @@ public class ShutdownHook extends Thread {
                  OutputStream out = socket.getOutputStream()){
                 out.write(("SHUTDOWN " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
                 out.flush();
-
-                socket.close();
             } catch (final IOException ioe) {
                 System.out.println("Failed to Shutdown NiFi due to " + ioe);
             }
