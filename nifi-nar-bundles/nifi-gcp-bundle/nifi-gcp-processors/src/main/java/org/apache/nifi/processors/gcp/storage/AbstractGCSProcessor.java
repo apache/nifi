@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.RetryParams;
 import com.google.cloud.storage.Storage;
@@ -26,7 +29,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.util.StringUtils;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -66,15 +72,36 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     @Override
     protected StorageOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
         final String projectId = context.getProperty(PROJECT_ID).getValue();
-        final Integer retryCount = Integer.valueOf(context.getProperty(RETRY_COUNT).getValue());
+        final Integer retryCount = context.getProperty(RETRY_COUNT).asInteger();
 
-        return StorageOptions.newBuilder()
+        final String proxyHost = context.getProperty(PROXY_HOST).getValue();
+        final Integer proxyPort = context.getProperty(PROXY_PORT).asInteger();
+
+        StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
                 .setCredentials(credentials)
                 .setProjectId(projectId)
                 .setRetryParams(RetryParams.newBuilder()
                         .setRetryMaxAttempts(retryCount)
                         .setRetryMinAttempts(retryCount)
-                        .build())
-                .build();
+                        .build());
+
+        if (!StringUtils.isBlank(proxyHost) && proxyPort > 0) {
+            storageOptionsBuilder.setHttpTransportFactory(new HttpTransportFactory() {
+                @Override
+                public HttpTransport create() {
+                    final HttpTransport transport = new NetHttpTransport.Builder()
+                            .setProxy(
+                                    new Proxy(
+                                            Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)
+                                    )
+                            )
+                            .build();
+                    return transport;
+                }
+            });
+        }
+        return  storageOptionsBuilder.build();
     }
+
+
 }
