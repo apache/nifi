@@ -2613,9 +2613,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private void canUpdateTemplate(final String name, final String templateId, final TemplateDTO processGroupTemplate) {
+    private void canUpdateTemplate(String name, final String templateId, final TemplateDTO processGroupTemplate) {
+        name = name.trim();
         // prevent renaming to another template's name
-        if (name.equals(processGroupTemplate.getName()) && !templateId.equals(processGroupTemplate.getId())) {
+        if (name.equalsIgnoreCase(processGroupTemplate.getName()) && !templateId.equals(processGroupTemplate.getId())) {
             throw new IllegalStateException(String.format("Cant't rename template to '%s'. A template named '%s' already exists within the process group.", name, name));
         }
     }
