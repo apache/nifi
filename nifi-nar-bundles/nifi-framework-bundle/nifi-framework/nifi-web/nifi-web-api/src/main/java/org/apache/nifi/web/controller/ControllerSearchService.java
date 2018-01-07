@@ -89,6 +89,7 @@ public class ControllerSearchService {
             if (procNode.isAuthorized(authorizer, RequestAction.READ, user)) {
                 final ComponentSearchResultDTO match = search(search, procNode);
                 if (match != null) {
+                    match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
                     match.setTopLevelGroup(buildTopLevelGroup(group, user));
                     results.getProcessorResults().add(match);
@@ -100,6 +101,7 @@ public class ControllerSearchService {
             if (connection.isAuthorized(authorizer, RequestAction.READ, user)) {
                 final ComponentSearchResultDTO match = search(search, connection);
                 if (match != null) {
+                    match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
                     match.setTopLevelGroup(buildTopLevelGroup(group, user));
                     results.getConnectionResults().add(match);
@@ -111,6 +113,7 @@ public class ControllerSearchService {
             if (remoteGroup.isAuthorized(authorizer, RequestAction.READ, user)) {
                 final ComponentSearchResultDTO match = search(search, remoteGroup);
                 if (match != null) {
+                    match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
                     match.setTopLevelGroup(buildTopLevelGroup(group, user));
                     results.getRemoteProcessGroupResults().add(match);
@@ -122,6 +125,7 @@ public class ControllerSearchService {
             if (port.isAuthorized(authorizer, RequestAction.READ, user)) {
                 final ComponentSearchResultDTO match = search(search, port);
                 if (match != null) {
+                    match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
                     match.setTopLevelGroup(buildTopLevelGroup(group, user));
                     results.getInputPortResults().add(match);
@@ -133,6 +137,7 @@ public class ControllerSearchService {
             if (port.isAuthorized(authorizer, RequestAction.READ, user)) {
                 final ComponentSearchResultDTO match = search(search, port);
                 if (match != null) {
+                    match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
                     match.setTopLevelGroup(buildTopLevelGroup(group, user));
                     results.getOutputPortResults().add(match);
@@ -144,6 +149,7 @@ public class ControllerSearchService {
             if (funnel.isAuthorized(authorizer, RequestAction.READ, user)) {
                 final ComponentSearchResultDTO match = search(search, funnel);
                 if (match != null) {
+                    match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
                     match.setTopLevelGroup(buildTopLevelGroup(group, user));
                     results.getFunnelResults().add(match);
@@ -331,6 +337,7 @@ public class ControllerSearchService {
         final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
         result.setId(group.getIdentifier());
         result.setName(group.getName());
+        result.setGroupId(parent.getIdentifier());
         result.setMatches(matches);
         return result;
     }

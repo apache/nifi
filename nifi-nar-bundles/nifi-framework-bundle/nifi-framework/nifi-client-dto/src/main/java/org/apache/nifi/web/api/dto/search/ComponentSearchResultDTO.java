@@ -28,6 +28,7 @@ import java.util.List;
 public class ComponentSearchResultDTO {
 
     private String id;
+    private String groupId;
     private SearchResultGroupDTO parentGroup;
     private SearchResultGroupDTO topLevelGroup;
     private String name;
@@ -45,6 +46,20 @@ public class ComponentSearchResultDTO {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    /**
+     * @return group id of the component that matched
+     */
+    @ApiModelProperty(
+            value = "The group id of the component that matched the search."
+    )
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     /**
