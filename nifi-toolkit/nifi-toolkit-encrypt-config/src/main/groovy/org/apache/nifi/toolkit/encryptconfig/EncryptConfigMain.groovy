@@ -82,13 +82,6 @@ class EncryptConfigMain {
                 false)
         System.out.println()
 
-//        String footer = """
-//            |
-//            |Encrypt a NiFi Registry properties using a password:
-//            |    encrypt-config -p <password> -b /path/to/nifi/conf/bootstrap.conf -r /path/to/nifi/conf/nifi.properties
-//            |
-//            |""".stripMargin()
-        //helpFormatter.printHelp("Examples:", "", new Options(), footer)
     }
 
     static void printUsageAndExit(String message = "", int exitStatusCode) {
@@ -119,7 +112,7 @@ class EncryptConfigMain {
                 printUsageAndExit(EXIT_STATUS_FAILURE)
             }
         } catch (Throwable t) {
-            logger.debug("", t)
+            logger.error("", t)
             printUsageAndExit(t.getMessage(), EXIT_STATUS_FAILURE)
         }
     }

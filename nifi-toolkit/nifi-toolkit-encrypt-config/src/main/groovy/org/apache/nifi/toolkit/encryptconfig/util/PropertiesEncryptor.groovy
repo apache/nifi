@@ -21,6 +21,7 @@ import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.commons.configuration2.PropertiesConfigurationLayout
 import org.apache.commons.configuration2.builder.fluent.Configurations
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.util.StringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -50,7 +51,7 @@ class PropertiesEncryptor {
             }
             Pattern p = Pattern.compile(SUPPORTED_PROPERTY_FILE_REGEX);
             return file.readLines().any { it =~ SUPPORTED_PROPERTY_FILE_REGEX }
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
             return false
         }
     }
@@ -127,18 +128,19 @@ class PropertiesEncryptor {
                     "Usually this means a decryption password / key was not provided to the tool.")
         }
 
-        Properties protectedProperties = new Properties();
+        logger.debug("Encrypting ${propertiesToEncrypt.size()} properties")
 
+        Properties protectedProperties = new Properties();
         for (String propertyName : properties.stringPropertyNames()) {
             String propertyValue = properties.getProperty(propertyName)
-            if (propertiesToEncrypt.contains(propertyName)) {
+            // empty properties are not encrypted
+            if (!StringUtils.isEmpty(propertyValue) && propertiesToEncrypt.contains(propertyName)) {
                 String encryptedPropertyValue = encryptionProvider.protect(propertyValue)
                 protectedProperties.setProperty(propertyName, encryptedPropertyValue)
                 protectedProperties.setProperty(protectionPropertyForProperty(propertyName), encryptionProvider.getIdentifierKey())
             } else {
                 protectedProperties.setProperty(propertyName, propertyValue)
             }
-
         }
 
         return protectedProperties

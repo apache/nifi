@@ -31,15 +31,17 @@ class DecryptMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(DecryptMode.class)
 
-    enum FileType {
+    static enum FileType {
         properties,
         xml
     }
 
     CliBuilder cli
+    boolean verboseEnabled
 
     DecryptMode() {
         cli = cliBuilder()
+        verboseEnabled = false
     }
 
     void printUsage(String message = "") {
@@ -57,7 +59,6 @@ class DecryptMode implements ToolMode {
 
     @Override
     void run(String[] args) {
-        logger.warn("The decryption capability of this tool is still considered experimental. The results should be manually verified.")
         try {
 
             def options = cli.parse(args)
@@ -66,15 +67,19 @@ class DecryptMode implements ToolMode {
                 printUsageAndExit("", EncryptConfigMain.EXIT_STATUS_OTHER)
             }
 
-            EncryptConfigLogger.configureLogger(options.v)
+            if (options.v) {
+                verboseEnabled = true
+            }
+            EncryptConfigLogger.configureLogger(verboseEnabled)
 
             DecryptConfiguration config = new DecryptConfiguration(options)
 
             run(config)
 
         } catch (Exception e) {
-            logger.error("Encountered an error: ${e.getMessage()}")
-            logger.debug("", e) // stack trace only when verbose enabled
+            if (verboseEnabled) {
+                logger.error("Encountered an error: ${e.getMessage()}", e)
+            }
             printUsageAndExit(e.getMessage(), EncryptConfigMain.EXIT_STATUS_FAILURE)
         }
     }
@@ -118,7 +123,7 @@ class DecryptMode implements ToolMode {
             case FileType.xml:
                 XmlEncryptor xmlEncryptor = new XmlEncryptor(null, config.decryptionProvider) {
                     @Override
-                    List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, File originalInputXmlFile) {
+                    List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {
                         // For decrypting unknown, generic XML, this tool will not support preserving the format
                         return updatedXmlContent.split("\n")
                     }
@@ -196,7 +201,7 @@ class DecryptMode implements ToolMode {
 
     }
 
-    static class DecryptConfiguration {
+    static class DecryptConfiguration implements Configuration {
 
         OptionAccessor rawOptions
 
@@ -254,7 +259,7 @@ class DecryptMode implements ToolMode {
         private void determineInputFileFromRemainingArgs() {
             String[] remainingArgs = this.rawOptions.getInner().getArgs()
             if (remainingArgs.length == 0) {
-                throw new RuntimeException("Missing argument: Input file must provided.")
+                throw new RuntimeException("Missing argument: Input file must be provided.")
             } else if (remainingArgs.length > 1) {
                 throw new RuntimeException("Too many arguments: Please specify exactly one input file in addition to the options.")
             }

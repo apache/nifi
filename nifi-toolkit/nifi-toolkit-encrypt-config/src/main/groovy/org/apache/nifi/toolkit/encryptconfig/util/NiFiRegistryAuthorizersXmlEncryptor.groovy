@@ -26,7 +26,7 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryAuthorizersXmlEncryptor.class)
 
-    private static final String LDAP_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.registry.security.ldap.tenants.LdapUserGroupProvider"
+    static final String LDAP_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.registry.security.ldap.tenants.LdapUserGroupProvider"
     private static final String LDAP_USER_GROUP_PROVIDER_REGEX =
             /(?s)<userGroupProvider>(?:(?!<userGroupProvider>).)*?<class>\s*org\.apache\.nifi\.registry\.security\.ldap\.tenants\.LdapUserGroupProvider.*?<\/userGroupProvider>/
     /* Explanation of LDAP_USER_GROUP_PROVIDER_REGEX:
@@ -46,60 +46,57 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
         super(encryptionProvider, decryptionProvider)
     }
 
+    /**
+     * Overrides the super class implementation to marking xml nodes that should be encrypted.
+     * This is done using logic specific to the authorizers.xml file type targeted by this subclass,
+     * leveraging knowledge of the XML file structure and which elements are sensitive.
+     * Sensitive nodes are marked by adding the encryption="none" attribute.
+     * When all the sensitive values are found and marked, the base class implementation
+     * is invoked to encrypt them.
+     *
+     * @param plainXmlContent the plaintext content of an authorizers.xml file
+     * @return the comment with sensitive values encrypted and marked with the cipher.
+     */
     @Override
     String encrypt(String plainXmlContent) {
         // First, mark the XML nodes to encrypt that are specific to authorizers.xml by adding an attribute encryption="none"
-        String markedXmlContent
-        try {
-            def doc = new XmlSlurper().parseText(plainXmlContent)
-            // Find the provider element by class even if it has been renamed
-            def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
-                    .property.findAll {
+        String markedXmlContent = markXmlNodesForEncryption(plainXmlContent, "userGroupProvider", {
+            it.find {
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
+            }.property.findAll {
                 // Only operate on populated password properties
                 it.@name =~ "Password" && it.text()
             }
+        })
 
-            if (passwords.isEmpty()) {
-                logger.debug("No populated password property elements found in authorizers.xml")
-                return plainXmlContent
-            }
-
-            passwords.each { password ->
-                logger.debug("Marking ${password.name()} to be encrypted")
-                password.@encryption = ENCRYPTION_NONE
-            }
-
-            // Does not preserve whitespace formatting or comments
-            // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
-            markedXmlContent = XmlUtil.serialize(doc)
-        } catch (Exception e) {
-            logger.debug("Encountered exception", e)
-            throw new RuntimeException("Cannot encrypt login identity providers XML content.", e)
-        }
-
-        // Now, return the results of the base implementation, which will encrypt the body of any node with an encryption="none" attribute
+        // Now, return the results of the base implementation, which encrypts any node with an encryption="none" attribute
         return super.encrypt(markedXmlContent)
     }
 
-    List<String> serializeXmlContentAndPreserveFormat(String xmlContent, File originalInputXmlFile) {
-        // Find the provider element of the new XML in the file contents
-        String fileContents = originalInputXmlFile.text
+    List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {
+        if (updatedXmlContent == originalXmlContent) {
+            // If nothing was encrypted, e.g., the sensitive properties are commented out or empty,
+            // then the best thing to do to preserve formatting perspective is to do nothing.
+            return originalXmlContent.split("\n")
+        }
+
+        // Find & replace the userGroupProvider element of the updated content in the original contents
         try {
-            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def parsedXml = new XmlSlurper().parseText(updatedXmlContent)
             def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = new XmlUtil().serialize(provider)
                 // Remove XML declaration from top
                 serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
-                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, serializedProvider)
-                return fileContents.split("\n")
+                originalXmlContent = originalXmlContent.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, serializedProvider)
+                return originalXmlContent.split("\n")
             } else {
                 throw new SAXException("No ldap-user-group-provider element found")
             }
         } catch (SAXException e) {
-            logger.error("No provider element with class {} found in XML content; " +
-                    "the file could be empty or the element may be missing or commented out", LDAP_USER_GROUP_PROVIDER_CLASS)
-            return fileContents.split("\n")
+            logger.warn("No userGroupProvider with class ${LDAP_USER_GROUP_PROVIDER_CLASS} found in XML content. " +
+                    "The file could be empty or the element may be missing or commented out")
+            return originalXmlContent.split("\n")
         }
     }
 

@@ -43,7 +43,7 @@ abstract class XmlEncryptor {
         try {
             String rawFileContents = loadXmlFile(filePath)
             doc = new XmlSlurper().parseText(rawFileContents)
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
             return false
         }
         return doc != null
@@ -67,16 +67,11 @@ abstract class XmlEncryptor {
         try {
 
             def doc = new XmlSlurper().parseText(encryptedXmlContent)
-
-            List<GPathResult> encryptedNodes = new ArrayList<>()
-            doc.depthFirst().forEachRemaining { GPathResult node ->
-                if (node.@encryption != ENCRYPTION_NONE && node.@encryption != ENCRYPTION_EMPTY) {
-                    encryptedNodes.add(node)
-                }
+            GPathResult[] encryptedNodes = doc.depthFirst().findAll { GPathResult node ->
+                node.@encryption != ENCRYPTION_NONE && node.@encryption != ENCRYPTION_EMPTY
             }
 
-            if (encryptedNodes.isEmpty()) {
-                logger.debug("No encrypted elements found in XML contents.")
+            if (encryptedNodes.size() == 0) {
                 return encryptedXmlContent
             }
 
@@ -85,6 +80,8 @@ abstract class XmlEncryptor {
                         "Usually this means a decryption password / key was not provided to the tool.")
             }
             String supportedDecryptionScheme = decryptionProvider.getIdentifierKey()
+
+            logger.debug("Found ${encryptedNodes.size()} encrypted XML elements. Will attempt to decrypt using the provided decryption key.")
 
             encryptedNodes.each { node ->
                 logger.debug("Attempting to decrypt ${node.text()}")
@@ -112,15 +109,13 @@ abstract class XmlEncryptor {
         try {
             def doc = new XmlSlurper().parseText(plainXmlContent)
 
-            List<GPathResult> nodesToEncrypt = new ArrayList<>()
-            doc.depthFirst().forEachRemaining { GPathResult node ->
-                if (node.@encryption == ENCRYPTION_NONE) {
-                    nodesToEncrypt.add(node)
-                }
+            GPathResult[] nodesToEncrypt = doc.depthFirst().findAll { GPathResult node ->
+                node.text() && node.@encryption == ENCRYPTION_NONE
             }
 
-            if (nodesToEncrypt.isEmpty()) {
-                logger.debug("No elements encrypted in XML.")
+            logger.debug("Encrypting ${nodesToEncrypt.size()} element(s) of XML decoument")
+
+            if (nodesToEncrypt.size() == 0) {
                 return plainXmlContent
             }
 
@@ -142,14 +137,8 @@ abstract class XmlEncryptor {
     void writeXmlFile(String updatedXmlContent, String outputXmlPath, String inputXmlPath) throws IOException {
         File outputXmlFile = new File(outputXmlPath)
         if (ToolUtilities.isSafeToWrite(outputXmlFile)) {
-            try {
-                String finalXmlContent = serializeXmlContentAndPreserveFormatIfPossible(updatedXmlContent, inputXmlPath)
-                outputXmlFile.text = finalXmlContent
-            } catch (IOException e) {
-                def msg = "Encountered an exception writing the protected values to ${outputXmlPath}"
-                logger.error(msg, e)
-                throw e
-            }
+            String finalXmlContent = serializeXmlContentAndPreserveFormatIfPossible(updatedXmlContent, inputXmlPath)
+            outputXmlFile.text = finalXmlContent
         } else {
             throw new IOException("The XML file at ${outputXmlPath} must be writable by the user running this tool")
         }
@@ -159,9 +148,10 @@ abstract class XmlEncryptor {
         String finalXmlContent
         File inputXmlFile = new File(inputXmlPath)
         if (ToolUtilities.canRead(inputXmlFile)) {
-            // Instead of just writing the XML content to a file,
-            // this method attempts to maintain the structure of the original file
-            finalXmlContent = serializeXmlContentAndPreserveFormat(updatedXmlContent, inputXmlFile).join("\n")
+            String originalXmlContent = new File(inputXmlPath).text
+            // Instead of just writing the XML content to a file, this method attempts to maintain
+            // the structure of the original file.
+            finalXmlContent = serializeXmlContentAndPreserveFormat(updatedXmlContent, originalXmlContent).join("\n")
         } else {
             finalXmlContent = updatedXmlContent
         }
@@ -176,30 +166,35 @@ abstract class XmlEncryptor {
      * @param inputXmlFile the original input xml file to use as a template for formatting the serialization
      * @return the lines of serialized finalXmlContent that are close in raw format to originalInputXmlFile
      */
-    abstract List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, File originalInputXmlFile)
-
+    abstract List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent)
     // TODO, replace the above abstract method with an implementation that works generically for any updated (encryption=."..") nodes
     // perhaps this could be done leveraging org.apache.commons.configuration2 which is capable of preserving comments, eg:
 
-//    private List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, File originalInputXmlFile) {
-//        Configurations configurations = new Configurations()
-//        try {
-//            XMLConfiguration originalXmlConfiguration = configurations.xml(originalInputXmlFile)
-//
-//            // TO DO: override transformer: https://stackoverflow.com/a/16211353/2892227
-//            // TO DO: update xml
-//
-//            OutputStream out = new ByteArrayOutputStream()
-//            Writer writer = new GroovyPrintWriter(out)
-//
-//            originalXmlConfiguration.write(writer)
-//
-//            writer.flush()
-//            List<String> lines = out.toString().split("\n")
-//
-//            return lines
-//        } catch(Exception e) {
-//            throw new RuntimeException("Error serializing xml.", e)
-//        }
-//    }
+
+    static String markXmlNodesForEncryption(String plainXmlContent, String gPath, gPathCallback) {
+        String markedXmlContent
+        try {
+            def doc = new XmlSlurper().parseText(plainXmlContent)
+            // Find the provider element by class even if it has been renamed
+            def sensitiveProperties = gPathCallback(doc."${gPath}")
+
+            logger.debug("Marking ${sensitiveProperties.size()} sensitive element(s) of XML to be encrypted")
+
+            if (sensitiveProperties.size() == 0) {
+                logger.debug("No populated sensitive properties found in XML content")
+                return plainXmlContent
+            }
+
+            sensitiveProperties.each {
+                it.@encryption = ENCRYPTION_NONE
+            }
+
+            // Does not preserve whitespace formatting or comments
+            // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
+            markedXmlContent = XmlUtil.serialize(doc)
+        } catch (Exception e) {
+            logger.debug("Encountered exception", e)
+            throw new RuntimeException(e)
+        }
+    }
 }

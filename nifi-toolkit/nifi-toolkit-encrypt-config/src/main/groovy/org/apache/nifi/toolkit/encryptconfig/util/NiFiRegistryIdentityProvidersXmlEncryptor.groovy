@@ -26,7 +26,7 @@ class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryIdentityProvidersXmlEncryptor.class)
 
-    private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.registry.security.ldap.LdapIdentityProvider"
+    static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.registry.security.ldap.LdapIdentityProvider"
     private static final String LDAP_PROVIDER_REGEX = /(?s)<provider>(?:(?!<provider>).)*?<class>\s*org\.apache\.nifi\.registry\.security\.ldap\.LdapIdentityProvider.*?<\/provider>/
     /* Explanation of LDAP_PROVIDER_REGEX:
      *   (?s)                             -> single-line mode (i.e., `.` in regex matches newlines)
@@ -45,60 +45,57 @@ class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
         super(encryptionProvider, decryptionProvider)
     }
 
+    /**
+     * Overrides the super class implementation to marking xml nodes that should be encrypted.
+     * This is done using logic specific to the identity-providers.xml file type targeted by this
+     * subclass, leveraging knowledge of the XML file structure and which elements are sensitive.
+     * Sensitive nodes are marked by adding the encryption="none" attribute.
+     * When all the sensitive values are found and marked, the base class implementation
+     * is invoked to encrypt them.
+     *
+     * @param plainXmlContent the plaintext content of an identity-providers.xml file
+     * @return the comment with sensitive values encrypted and marked with the cipher.
+     */
     @Override
     String encrypt(String plainXmlContent) {
-        // First, mark the XML nodes to encrypt that are specific to identity-providers.xml by adding an attribute encryption="none"
-        String markedXmlContent
-        try {
-            def doc = new XmlSlurper().parseText(plainXmlContent)
-            // Find the provider element by class even if it has been renamed
-            def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
-                    .property.findAll {
+        // First, mark the XML nodes to encrypt that are specific to authorizers.xml by adding an attribute encryption="none"
+        String markedXmlContent = markXmlNodesForEncryption(plainXmlContent, "provider", {
+            it.find {
+                it.'class' as String == LDAP_PROVIDER_CLASS
+            }.property.findAll {
                 // Only operate on populated password properties
                 it.@name =~ "Password" && it.text()
             }
+        })
 
-            if (passwords.isEmpty()) {
-                logger.debug("No populated password property elements found in identity-providers.xml")
-                return plainXmlContent
-            }
-
-            passwords.each { password ->
-                logger.debug("Marking ${password.name()} to be encrypted")
-                password.@encryption = ENCRYPTION_NONE
-            }
-
-            // Does not preserve whitespace formatting or comments
-            // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
-            markedXmlContent = XmlUtil.serialize(doc)
-        } catch (Exception e) {
-            logger.debug("Encountered exception", e)
-            throw new RuntimeException("Cannot encrypt login identity providers XML content.", e)
-        }
-
-        // Now, return the results of the base implementation, which will encrypt the body of any node with an encryption="none" attribute
+        // Now, return the results of the base implementation, which encrypts any node with an encryption="none" attribute
         return super.encrypt(markedXmlContent)
     }
 
-    List<String> serializeXmlContentAndPreserveFormat(String xmlContent, File originalInputXmlFile) {
-        // Find the provider element of the new XML in the file contents
-        String fileContents = originalInputXmlFile.text
+    List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {
+        if (updatedXmlContent == originalXmlContent) {
+            // If nothing was encrypted, e.g., the sensitive properties are commented out or empty,
+            // then the best thing to do to preserve formatting perspective is to do nothing.
+            return originalXmlContent.split("\n")
+        }
+
+        // Find & replace the provider element of the updated content in the original contents
         try {
-            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def parsedXml = new XmlSlurper().parseText(updatedXmlContent)
             def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = new XmlUtil().serialize(provider)
                 // Remove XML declaration from top
                 serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
-                fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
-                return fileContents.split("\n")
+                originalXmlContent = originalXmlContent.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
+                return originalXmlContent.split("\n")
             } else {
-                throw new SAXException("No ldap-provider element found")
+                throw new SAXException("No ldap-provider found")
             }
         } catch (SAXException e) {
-            logger.error("No provider element with class {} found in XML content; " +
-                    "the file could be empty or the element may be missing or commented out", LDAP_PROVIDER_CLASS)
-            return fileContents.split("\n")
+            logger.warn("No provider with class ${LDAP_PROVIDER_CLASS} found in XML content. " +
+                    "The file could be empty or the element may be missing or commented out")
+            return originalXmlContent.split("\n")
         }
     }
 

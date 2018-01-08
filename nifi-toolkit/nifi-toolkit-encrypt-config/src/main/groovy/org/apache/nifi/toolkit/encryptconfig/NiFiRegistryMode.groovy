@@ -30,28 +30,20 @@ import org.apache.nifi.util.console.TextDevices
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@Experimental
 class NiFiRegistryMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryMode.class)
 
     CliBuilder cli
+    boolean verboseEnabled
 
     NiFiRegistryMode() {
         cli = cliBuilder()
+        verboseEnabled = false
     }
-
-//    private void printUsage(String message = "") {
-//        if (message) {
-//            System.out.println(message)
-//            System.out.println()
-//        }
-//        cli.usage()
-//    }
 
     @Override
     void run(String[] args) {
-        logger.warn("The NiFi Registry capabilities of this tool is still considered experimental. The results should be manually verified.")
         try {
 
             def options = cli.parse(args)
@@ -60,19 +52,23 @@ class NiFiRegistryMode implements ToolMode {
                 EncryptConfigMain.printUsageAndExit("", EncryptConfigMain.EXIT_STATUS_OTHER)
             }
 
-            EncryptConfigLogger.configureLogger(options.v)
+            if (options.v) {
+                verboseEnabled = true
+            }
+            EncryptConfigLogger.configureLogger(verboseEnabled)
 
-            Configuration config = new Configuration(options)
+            NiFiRegistryConfiguration config = new NiFiRegistryConfiguration(options)
             run(config)
 
         } catch (Exception e) {
-            logger.error("Encountered an error: ${e.getMessage()}")
-            logger.debug("", e) // stack trace only when verbose enabled
+            if (verboseEnabled) {
+                logger.error("Encountered an error: ${e.getMessage()}")
+            }
             EncryptConfigMain.printUsageAndExit(e.getMessage(), EncryptConfigMain.EXIT_STATUS_FAILURE)
         }
     }
 
-    void run(Configuration config) throws Exception {
+    void run(NiFiRegistryConfiguration config) throws Exception {
 
         if (config.usingPassword) {
             logger.info("Using encryption key derived from password.")
@@ -82,18 +78,19 @@ class NiFiRegistryMode implements ToolMode {
             logger.info("Using encryption key from input bootstrap.conf.")
         }
 
-        logger.debug("(src)  bootstrap.conf:         ${config.inputBootstrapPath}")
-        logger.debug("(dest) bootstrap.conf:         ${config.outputBootstrapPath}")
-        logger.debug("(src)  nifi.properties:        ${config.inputNiFiRegistryPropertiesPath}")
-        logger.debug("(dest) nifi.properties:        ${config.outputNiFiRegistryPropertiesPath}")
-        logger.debug("(src)  identity-providers.xml: ${config.inputIdentityProvidersPath}")
-        logger.debug("(dest) identity-providers.xml: ${config.outputIdentityProvidersPath}")
-        logger.debug("(src)  authorizers.xml:        ${config.inputAuthorizersPath}")
-        logger.debug("(dest) authorizers.xml:        ${config.outputAuthorizersPath}")
+        logger.debug("(src)  bootstrap.conf:           ${config.inputBootstrapPath}")
+        logger.debug("(dest) bootstrap.conf:           ${config.outputBootstrapPath}")
+        logger.debug("(src)  nifi-registry.properties: ${config.inputNiFiRegistryPropertiesPath}")
+        logger.debug("(dest) nifi-registry.properties: ${config.outputNiFiRegistryPropertiesPath}")
+        logger.debug("(src)  identity-providers.xml:   ${config.inputIdentityProvidersPath}")
+        logger.debug("(dest) identity-providers.xml:   ${config.outputIdentityProvidersPath}")
+        logger.debug("(src)  authorizers.xml:          ${config.inputAuthorizersPath}")
+        logger.debug("(dest) authorizers.xml:          ${config.outputAuthorizersPath}")
 
         Properties niFiRegistryProperties = null
         if (config.handlingNiFiRegistryProperties) {
             try {
+                logger.debug("Encrypting NiFi Registry Properties")
                 niFiRegistryProperties = config.propertiesEncryptor.loadFile(config.inputNiFiRegistryPropertiesPath)
                 // if properties are not protected, then the call to decrypt is a no-op
                 niFiRegistryProperties = config.propertiesEncryptor.decrypt(niFiRegistryProperties)
@@ -106,6 +103,7 @@ class NiFiRegistryMode implements ToolMode {
         String identityProvidersXml = null
         if (config.handlingIdentityProviders) {
             try {
+                logger.debug("Encrypting Identity Providers XML")
                 identityProvidersXml = config.identityProvidersXmlEncryptor.loadXmlFile(config.inputIdentityProvidersPath)
                 // if xml is not protected, then the call to decrypt is a no-op
                 identityProvidersXml = config.identityProvidersXmlEncryptor.decrypt(identityProvidersXml)
@@ -118,6 +116,7 @@ class NiFiRegistryMode implements ToolMode {
         String authorizersXml = null
         if (config.handlingAuthorizers) {
             try {
+                logger.debug("Encrypting Authorizers XML")
                 authorizersXml = config.authorizersXmlEncryptor.loadXmlFile(config.inputAuthorizersPath)
                 // if xml is not protected, then the call to decrypt is a no-op
                 authorizersXml = config.authorizersXmlEncryptor.decrypt(authorizersXml)
@@ -241,7 +240,7 @@ class NiFiRegistryMode implements ToolMode {
 
     }
 
-    class Configuration {
+    static class NiFiRegistryConfiguration implements Configuration {
 
         OptionAccessor rawOptions
 
@@ -274,10 +273,10 @@ class NiFiRegistryMode implements ToolMode {
         String outputAuthorizersPath
         NiFiRegistryAuthorizersXmlEncryptor authorizersXmlEncryptor
 
-        Configuration() {
+        NiFiRegistryConfiguration() {
         }
 
-        Configuration(OptionAccessor options) {
+        NiFiRegistryConfiguration(OptionAccessor options) {
             this.rawOptions = options
 
             validateOptions()
@@ -301,27 +300,27 @@ class NiFiRegistryMode implements ToolMode {
 
             writingKeyToBootstrap = (usingPassword || usingRawKeyHex || rawOptions.B)
             if (writingKeyToBootstrap) {
-                outputBootstrapPath = rawOptions.B ? rawOptions.B : inputBootstrapPath
+                outputBootstrapPath = rawOptions.B ?: inputBootstrapPath
             }
 
             handlingNiFiRegistryProperties = rawOptions.r
             if (handlingNiFiRegistryProperties) {
                 inputNiFiRegistryPropertiesPath = rawOptions.r
-                outputNiFiRegistryPropertiesPath = rawOptions.R ? rawOptions.R : inputNiFiRegistryPropertiesPath
+                outputNiFiRegistryPropertiesPath = rawOptions.R ?: inputNiFiRegistryPropertiesPath
                 propertiesEncryptor = new NiFiRegistryPropertiesEncryptor(encryptionProvider, decryptionProvider)
             }
 
             handlingIdentityProviders = rawOptions.i
             if (handlingIdentityProviders) {
                 inputIdentityProvidersPath = rawOptions.i
-                outputIdentityProvidersPath = rawOptions.I ? rawOptions.I : inputIdentityProvidersPath
+                outputIdentityProvidersPath = rawOptions.I ?: inputIdentityProvidersPath
                 identityProvidersXmlEncryptor = new NiFiRegistryIdentityProvidersXmlEncryptor(encryptionProvider, decryptionProvider)
             }
 
             handlingAuthorizers = rawOptions.a
             if (handlingAuthorizers) {
                 inputAuthorizersPath = rawOptions.a
-                outputAuthorizersPath = rawOptions.A ? rawOptions.A : inputAuthorizersPath
+                outputAuthorizersPath = rawOptions.A ?: inputAuthorizersPath
                 authorizersXmlEncryptor = new NiFiRegistryAuthorizersXmlEncryptor(encryptionProvider, decryptionProvider)
             }
 

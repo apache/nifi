@@ -156,9 +156,6 @@ class EncryptConfigMainTest extends GroovyTestCase {
 
         NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
         logger.info("Loaded ${inputProperties.size()} properties from input file")
-//        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
-//        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
-//        logger.info("Original sensitive values: ${originalSensitiveValues}")
 
         // Set up the LIP file
         File inputLIPFile = new File("src/test/resources/login-identity-providers-populated.xml")

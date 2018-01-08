@@ -35,8 +35,8 @@ class BootstrapUtil {
      */
     static String extractKeyFromBootstrapFile(String inputBootstrapPath, String bootstrapKeyPropertyName) throws IOException {
 
-        File inputBootstrapConfFile
-        if (!(inputBootstrapPath && (inputBootstrapConfFile = new File(inputBootstrapPath)).exists() && inputBootstrapConfFile.canRead())) {
+        File inputBootstrapConfFile = new File(inputBootstrapPath)
+        if (!(inputBootstrapPath && ToolUtilities.canRead(inputBootstrapConfFile))) {
             throw new IOException("The bootstrap.conf file at ${inputBootstrapPath} must exist and be readable by the user running this tool")
         }
 

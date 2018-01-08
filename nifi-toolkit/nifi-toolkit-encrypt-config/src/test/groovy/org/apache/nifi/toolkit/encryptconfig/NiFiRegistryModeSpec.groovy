@@ -136,6 +136,161 @@ class NiFiRegistryModeSpec extends Specification {
 
     }
 
+    def "encrypt nifi-registry.properties with no sensitive properties is a no-op"() {
+
+        setup:
+        NiFiRegistryMode tool = new NiFiRegistryMode()
+        def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_COMMENTED)
+        def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inRegistryProperties2 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_EMPTY)
+        def outRegistryProperties2 = generateTmpFilePath()
+
+        when: "run with args: -k <key> -b <file> -r <file_with_no_sensitive_props>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf1} -r ${inRegistryProperties1}".split(" "))
+        then: "properties file is unchanged"
+        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_COMMENTED, inRegistryProperties1, true)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf1)
+
+        when: "run with args: -k <key> -b <file> -r <file_with_empty_sensitive_props> -R <file>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf2} -r ${inRegistryProperties2} -R ${outRegistryProperties2}".split(" "))
+        then: "input properties file is unchanged and output properties file matches input"
+        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_EMPTY, inRegistryProperties2, true)
+        assertPropertiesFilesAreEqual(inRegistryProperties2, outRegistryProperties2, true)
+        and: "key is written to output bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf2)
+
+    }
+
+    def "encrypt unprotected authorizers.xml file"() {
+
+        setup:
+        NiFiRegistryMode tool = new NiFiRegistryMode()
+        def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inAuthorizers1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED)
+        def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inAuthorizers2 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED)
+        def outAuthorizers2 = generateTmpFilePath()
+
+        when: "run with args: -k <key> -b <file> -a <file>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf1} -a ${inAuthorizers1}".split(" "))
+        then: "authorizers file is protected in place"
+        assertRegistryAuthorizersXmlIsProtected(inAuthorizers1)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf1)
+
+        when: "run with args: -k <key> -b <file> -a <file> -A <file>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf2} -a ${inAuthorizers2} -A ${outAuthorizers2}".split(" "))
+        then: "authorizers file is protected in place"
+        assertRegistryAuthorizersXmlIsProtected(outAuthorizers2)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf2)
+
+    }
+
+    def "encrypt authorizers.xml with no sensitive properties is a no-op"() {
+
+        setup:
+        NiFiRegistryMode tool = new NiFiRegistryMode()
+        def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inAuthorizersXml1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_COMMENTED)
+        def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inAuthorizersXml2 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_EMPTY)
+        def outAuthorizers2 = generateTmpFilePath()
+
+        when: "run with args: -k <key> -b <file> -a <file_with_no_sensitive_props>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf1} -a ${inAuthorizersXml1}".split(" "))
+        then: "authorizers file is unchanged"
+        assertFilesAreEqual(RESOURCE_REGISTRY_AUTHORIZERS_COMMENTED, inAuthorizersXml1)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf1)
+
+        when: "run with args: -k <key> -b <file> -a <file_with_empty_sensitive_props> -A <file>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf2} -a ${inAuthorizersXml2} -A ${outAuthorizers2}".split(" "))
+        then: "input authorizers file is unchanged and output authorizers matches input"
+        assertFilesAreEqual(RESOURCE_REGISTRY_AUTHORIZERS_EMPTY, inAuthorizersXml2)
+        assertFilesAreEqual(inAuthorizersXml2, outAuthorizers2)
+        and: "key is written to output bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf2)
+
+    }
+
+    def "encrypt unprotected identity-providers.xml file"() {
+
+        setup:
+        NiFiRegistryMode tool = new NiFiRegistryMode()
+        def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED)
+        def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inIdentityProviders2 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED)
+        def outIdentityProviders2 = generateTmpFilePath()
+
+        when: "run with args: -k <key> -b <file> -i <file>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf1} -i ${inIdentityProviders1}".split(" "))
+        then: "identity providers file is protected in place"
+        assertRegistryIdentityProvidersXmlIsProtected(inIdentityProviders1)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf1)
+
+        when: "run with args: -k <key> -b <file> -i <file> -I <file>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf2} -i ${inIdentityProviders2} -I ${outIdentityProviders2}".split(" "))
+        then: "identity providers file is protected in place"
+        assertRegistryIdentityProvidersXmlIsProtected(outIdentityProviders2)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf2)
+
+    }
+
+    def "encrypt identity-providers.xml with no sensitive properties is a no-op"() {
+
+        setup:
+        NiFiRegistryMode tool = new NiFiRegistryMode()
+        def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_COMMENTED)
+        def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inIdentityProviders2 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_EMPTY)
+        def outIdentityProviders2 = generateTmpFilePath()
+
+        when: "run with args: -k <key> -b <file> -i <file_with_no_sensitive_props>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf1} -i ${inIdentityProviders1}".split(" "))
+        then: "identity providers file is unchanged"
+        assertFilesAreEqual(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_COMMENTED, inIdentityProviders1)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf1)
+
+        when: "run with args: -k <key> -b <file> -i <file_with_empty_sensitive_props> -I <file>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf2} -i ${inIdentityProviders2} -I ${outIdentityProviders2}".split(" "))
+        then: "identity providers file is unchanged and output identity providers matches input"
+        assertFilesAreEqual(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_EMPTY, inIdentityProviders2)
+        assertFilesAreEqual(inIdentityProviders2, outIdentityProviders2)
+        and: "key is written to output bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf2)
+
+    }
+
+    def "encrypt full configuration with properties, authorizers, and identity providers"() {
+
+        setup:
+        NiFiRegistryMode tool = new NiFiRegistryMode()
+        def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
+        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED)
+        def inAuthorizers1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED)
+        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED)
+
+        when: "run with args: -k <key> -b <file> -r <file> -a <file_with_no_sensitive_props> -i <file_with_no_sensitive_props>"
+        tool.run("-k ${KEY_HEX} -b ${inBootstrapConf1} -r ${inRegistryProperties1} -a ${inAuthorizers1} -i ${inIdentityProviders1}".split(" "))
+        then: "all files are protected"
+        assertNiFiRegistryUnprotectedPropertiesAreProtected(inRegistryProperties1)
+        assertRegistryAuthorizersXmlIsProtected(inAuthorizers1)
+        assertRegistryIdentityProvidersXmlIsProtected(inIdentityProviders1)
+        and: "key is written to input bootstrap.conf"
+        KEY_HEX == readKeyFromBootstrap(inBootstrapConf1)
+
+    }
+    
+    //-- Helper Methods
+
     private static String readKeyFromBootstrap(String bootstrapPath) {
         return BootstrapUtil.extractKeyFromBootstrapFile(bootstrapPath, BootstrapUtil.REGISTRY_BOOTSTRAP_KEY_PROPERTY)
     }
@@ -148,6 +303,28 @@ class NiFiRegistryModeSpec extends Specification {
                 pathToProtectedProperties,
                 RESOURCE_REGISTRY_PROPERTIES_SENSITIVE_PROPS,
                 expectedProtectionScheme)
+    }
+
+    static boolean assertRegistryAuthorizersXmlIsProtected(
+            String pathToProtectedXmlToVerify,
+            String expectedProtectionScheme = PROTECTION_SCHEME,
+            String expectedKey = KEY_HEX) {
+        return assertRegistryAuthorizersXmlIsProtected(
+                RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED,
+                pathToProtectedXmlToVerify,
+                expectedProtectionScheme,
+                expectedKey)
+    }
+
+    static boolean assertRegistryIdentityProvidersXmlIsProtected(
+            String pathToProtectedXmlToVerify,
+            String expectedProtectionScheme = PROTECTION_SCHEME,
+            String expectedKey = KEY_HEX) {
+        return assertRegistryIdentityProvidersXmlIsProtected(
+                RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED,
+                pathToProtectedXmlToVerify,
+                expectedProtectionScheme,
+                expectedKey)
     }
 
 

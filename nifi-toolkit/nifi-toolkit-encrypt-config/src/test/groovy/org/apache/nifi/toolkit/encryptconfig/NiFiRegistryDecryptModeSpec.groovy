@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.junit.Assume
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spock.lang.Specification
@@ -28,11 +29,22 @@ import static org.apache.nifi.toolkit.encryptconfig.TestUtil.*
 class NiFiRegistryDecryptModeSpec extends Specification {
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryDecryptModeSpec.class)
 
+    ByteArrayOutputStream toolStdOutContent
+    PrintStream origSystemOut
+
     // runs before every feature method
-    def setup() {}
+    def setup() {
+        origSystemOut = System.out
+        toolStdOutContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(toolStdOutContent));
+    }
 
     // runs after every feature method
-    def cleanup() {}
+    def cleanup() {
+        toolStdOutContent.flush()
+        System.setOut(origSystemOut);
+        toolStdOutContent.close()
+    }
 
     // runs before the first feature method
     def setupSpec() {
@@ -45,39 +57,60 @@ class NiFiRegistryDecryptModeSpec extends Specification {
         cleanupTmpDir()
     }
 
-    def "decrypt protected nifi-registry.properties file"() {
+    def "decrypt protected nifi-registry.properties file using -k"() {
 
         setup:
         NiFiRegistryDecryptMode tool = new NiFiRegistryDecryptMode()
         def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128)
-        def inRegistryProperties2 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128)
-        def outRegistryProperties2 = generateTmpFilePath()
-        def inRegistryProperties3 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128)
-        def outRegistryProperties3 = generateTmpFilePath()
-        def inRegistryProperties4 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128)
-        def outRegistryProperties4 = generateTmpFilePath()
+        File outRegistryProperties1 = generateTmpFile()
 
-        when: "run with args: --oldKey <key> -r <file>"
-        tool.run("--oldKey ${KEY_HEX_128} -r ${inRegistryProperties1}".split(" "))
-        then: "input properties file is still encrypted (output goes to stdout)"
+        when: "run with args: -k <key> -r <file>"
+        tool.run("-k ${KEY_HEX_128} -r ${inRegistryProperties1}".split(" "))
+        toolStdOutContent.flush()
+        outRegistryProperties1.text = toolStdOutContent.toString()
+        then: "decrypted properties file was printed to std out"
+        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED, outRegistryProperties1.getAbsolutePath(), true)
+        and: "input properties file is still encrypted"
         assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128, inRegistryProperties1, true)
 
-        when: "run with args: --oldKey <key> -r <file> -R <file>"
-        tool.run("--oldKey ${KEY_HEX_128} -r ${inRegistryProperties2} -R ${outRegistryProperties2}".split(" "))
-        then: "output properties file is decrypted"
-        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED, outRegistryProperties2, true)
+    }
+
+    def "decrypt protected nifi-registry.properties file using -p [256-bit]"() {
+
+        Assume.assumeTrue("Test only runs when unlimited strength crypto is available", isUnlimitedStrengthCryptoAvailable())
+
+        setup:
+        NiFiRegistryDecryptMode tool = new NiFiRegistryDecryptMode()
+        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_PASSWORD_256)
+        File outRegistryProperties1 = generateTmpFile()
+
+        when: "run with args: -p <password> -r <file>"
+        tool.run("-p ${PASSWORD} -r ${inRegistryProperties1}".split(" "))
+        toolStdOutContent.flush()
+        outRegistryProperties1.text = toolStdOutContent.toString()
+        then: "decrypted properties file was printed to std out"
+        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED, outRegistryProperties1.getAbsolutePath(), true)
         and: "input properties file is still encrypted"
-        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128, inRegistryProperties2, true)
+        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_PASSWORD_256, inRegistryProperties1, true)
 
-        when: "run with args: -k <key> -r <file> -R <file>"
-        tool.run("-k ${KEY_HEX_128} -r ${inRegistryProperties3} -R ${outRegistryProperties3}".split(" "))
-        then: "output properties file is decrypted"
-        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED, outRegistryProperties3, true)
+    }
 
-        when: "run with args: -b <file> -r <file> -R <file>"
-        tool.run("-k ${KEY_HEX_128} -r ${inRegistryProperties4} -R ${outRegistryProperties4}".split(" "))
-        then: "output properties file is decrypted"
-        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED, outRegistryProperties4, true)
+    def "decrypt protected nifi-registry.properties file using -b"() {
+
+        setup:
+        NiFiRegistryDecryptMode tool = new NiFiRegistryDecryptMode()
+        def inRegistryProperties = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128)
+        def inBootstrap = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_KEY_128)
+        File outRegistryProperties = generateTmpFile()
+
+        when: "run with args: -b <file> -r <file>"
+        tool.run("-b ${inBootstrap} -r ${inRegistryProperties}".split(" "))
+        toolStdOutContent.flush()
+        outRegistryProperties.text = toolStdOutContent.toString()
+        then: "decrypted properties file was printed to std out"
+        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED, outRegistryProperties.getAbsolutePath(), true)
+        and: "input properties file is still encrypted"
+        assertPropertiesFilesAreEqual(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128, inRegistryProperties, true)
 
     }
 

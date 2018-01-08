@@ -22,7 +22,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 class EncryptConfigLogger {
-
     private static final Logger logger = LoggerFactory.getLogger(EncryptConfigLogger.class)
 
     /**
@@ -74,20 +73,11 @@ class EncryptConfigLogger {
      */
     static Properties defaultProperties() {
         Properties defaultProperties = new Properties()
-
         defaultProperties.setProperty("log4j.rootLogger", "INFO,console")
-
         defaultProperties.setProperty("log4j.appender.console", "org.apache.log4j.ConsoleAppender")
         defaultProperties.setProperty("log4j.appender.console.Target", "System.err")
         defaultProperties.setProperty("log4j.appender.console.layout", "org.apache.log4j.PatternLayout")
         defaultProperties.setProperty("log4j.appender.console.layout.ConversionPattern", "%d{yyyy-mm-dd HH:mm:ss} %p %c{1}: %m%n")
-
         return defaultProperties
     }
-
-
-
-
-
-
 }

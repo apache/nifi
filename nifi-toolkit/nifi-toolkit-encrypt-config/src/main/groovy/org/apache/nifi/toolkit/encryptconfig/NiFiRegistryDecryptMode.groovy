@@ -30,14 +30,15 @@ class NiFiRegistryDecryptMode extends DecryptMode {
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryDecryptMode.class)
 
     CliBuilder cli
+    boolean verboseEnabled
 
     NiFiRegistryDecryptMode() {
         cli = NiFiRegistryMode.cliBuilder()
+        verboseEnabled = false
     }
 
     @Override
     void run(String[] args) {
-        logger.warn("The decryption capability of this tool is still considered experimental. The results should be manually verified.")
         try {
 
             def options = cli.parse(args)
@@ -46,17 +47,20 @@ class NiFiRegistryDecryptMode extends DecryptMode {
                 EncryptConfigMain.printUsageAndExit("", EncryptConfigMain.EXIT_STATUS_OTHER)
             }
 
-            EncryptConfigLogger.configureLogger(options.v)
+            if (options.v) {
+                verboseEnabled = true
+            }
+            EncryptConfigLogger.configureLogger(verboseEnabled)
 
             DecryptConfiguration config = new DecryptConfiguration()
 
             /* Invalid fields when used with --decrypt: */
-            def invalidDecryptOptions = ["i", "a"]
+            def invalidDecryptOptions = ["R", "i", "I", "a", "A", "oldPassword", "oldKey"]
             def presentInvalidOptions = Arrays.stream(options.getInner().getOptions()).findAll {
                 invalidDecryptOptions.contains(it.getOpt())
             }
             if (presentInvalidOptions.size() > 0) {
-                throw new RuntimeException("Invalid options: ${EncryptConfigMain.DECRYPT_OPT} cannot be used with [${presentInvalidOptions.join(", ")}]. It should only be used with [-r].")
+                throw new RuntimeException("Invalid options: ${EncryptConfigMain.DECRYPT_FLAG} cannot be used with [${presentInvalidOptions.join(", ")}]. It should only be used with -r and one of [-p, -k, -b].")
             }
 
             /* Required fields when using --decrypt */
@@ -67,46 +71,29 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             config.inputFilePath = options.r
             config.fileType = FileType.properties  // disables auto-detection, which is still experimental
 
-            // one of [--oldPassword, --oldKey] or [-p, -k, -b <file]
+            // one of [-p, -k, -b]
             String keyHex = null
             String password = null
             config.keySource = null
-            if (options.oldPassword) {
-                if (config.keySource != null) {
-                    throw new RuntimeException("Invalid options: Only one of [--oldPassword, --oldKey, -b, -p, -k] is allowed for specifying the decryption password/key.")
-                }
-                config.keySource = Configuration.KeySource.PASSWORD
-                keyHex = options.getInner().getOptionValue("oldPassword")
-            }
-            if (options.oldKey) {
-                if (config.keySource != null) {
-                    throw new RuntimeException("Invalid options: Only one of [--oldPassword, --oldKey, -b, -p, -k] is allowed for specifying the decryption password/key.")
-                }
-                config.keySource = Configuration.KeySource.KEY_HEX
-                keyHex = options.getInner().getOptionValue("oldKey")
-            }
             if (options.p) {
-                if (config.keySource != null) {
-                    throw new RuntimeException("Invalid options: Only one of [--oldPassword, --oldKey, -b, -p, -k] is allowed for specifying the decryption password/key.")
-                }
                 config.keySource = Configuration.KeySource.PASSWORD
                 password = options.getInner().getOptionValue("p")
             }
             if (options.k) {
                 if (config.keySource != null) {
-                    throw new RuntimeException("Invalid options: Only one of [--oldPassword, --oldKey, -b, -p, -k] is allowed for specifying the decryption password/key.")
+                    throw new RuntimeException("Invalid options: Only one of [-b, -p, -k] is allowed for specifying the decryption password/key.")
                 }
                 config.keySource = Configuration.KeySource.KEY_HEX
                 keyHex = options.getInner().getOptionValue("k")
             }
 
             if (config.keySource) {
-                config.key = ToolUtilities.determineKey(keyHex, password, Configuration.KeySource.PASSWORD.equals(config.keySource))
+                config.key = ToolUtilities.determineKey(keyHex, password, Configuration.KeySource.PASSWORD == config.keySource)
             }
 
             if (options.b) {
                 if (config.keySource != null) {
-                    throw new RuntimeException("Invalid options: Only one of [--oldPassword, --oldKey, -b, -p, -k] is allowed for specifying the decryption password/key.")
+                    throw new RuntimeException("Invalid options: Only one of [-b, -p, -k] is allowed for specifying the decryption password/key.")
                 }
                 config.keySource = Configuration.KeySource.BOOTSTRAP_FILE
                 config.inputBootstrapPath = options.b
@@ -124,19 +111,13 @@ class NiFiRegistryDecryptMode extends DecryptMode {
 
             config.decryptionProvider = new AESSensitivePropertyProvider(config.key)
 
-            /* Optional fields when using --decrypt */
-            // -R outputRegistryPropertiesFile (-R)
-            if (options.R) {
-                config.outputToFile = true
-                config.outputFilePath = options.R
-            }
-
             run(config)
 
         } catch (Exception e) {
-            logger.error("Encountered an error: ${e.getMessage()}")
-            logger.debug("", e)  // only print stack trace when verbose is enabled
-            EncryptConfigMain.printUsageAndExit(EncryptConfigMain.EXIT_STATUS_FAILURE)
+            if (verboseEnabled) {
+                logger.error("Encountered an error: ${e.getMessage()}", e)
+            }
+            EncryptConfigMain.printUsageAndExit(e.getMessage(), EncryptConfigMain.EXIT_STATUS_FAILURE)
         }
     }
 

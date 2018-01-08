@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
+import groovy.util.slurpersupport.GPathResult
 import org.apache.commons.lang3.SystemUtils
+import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
+import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
 
 import javax.crypto.Cipher
 import java.nio.file.Files
@@ -34,6 +38,16 @@ class TestUtil {
     static final String RESOURCE_REGISTRY_PROPERTIES_EMPTY = absolutePathForResource('/nifi-registry/nifi-registry-empty.properties')
     static final String RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED = absolutePathForResource('/nifi-registry/nifi-registry-populated-unprotected.properties')
     static final String RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128 = absolutePathForResource('/nifi-registry/nifi-registry-populated-protected-key-128.properties')
+    static final String RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_256 = absolutePathForResource('/nifi-registry/nifi-registry-populated-protected-key-256.properties')
+    static final String RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_PASSWORD_256 = absolutePathForResource('/nifi-registry/nifi-registry-populated-protected-password-256.properties')
+
+    static final String RESOURCE_REGISTRY_AUTHORIZERS_COMMENTED = absolutePathForResource('/nifi-registry/authorizers-commented.xml')
+    static final String RESOURCE_REGISTRY_AUTHORIZERS_EMPTY = absolutePathForResource('/nifi-registry/authorizers-empty.xml')
+    static final String RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED = absolutePathForResource('/nifi-registry/authorizers-populated-unprotected.xml')
+
+    static final String RESOURCE_REGISTRY_IDENTITY_PROVIDERS_COMMENTED = absolutePathForResource('/nifi-registry/identity-providers-commented.xml')
+    static final String RESOURCE_REGISTRY_IDENTITY_PROVIDERS_EMPTY = absolutePathForResource('/nifi-registry/identity-providers-empty.xml')
+    static final String RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED = absolutePathForResource('/nifi-registry/identity-providers-populated-unprotected.xml')
 
     static final String[] RESOURCE_REGISTRY_PROPERTIES_SENSITIVE_PROPS = [
             "nifi.registry.security.keystorePasswd",
@@ -42,6 +56,10 @@ class TestUtil {
             "nifi.registry.dummy.sensitive.property.1",
             "nifi.registry.dummy.sensitive.property.2"
     ]
+
+    private static final int RESOURCE_REGISTRY_IDENTITY_PROVIDERS_PASSWORD_LINE_COUNT = 3
+    private static final int RESOURCE_REGISTRY_AUTHORIZERS_PASSWORD_LINE_COUNT = 3
+    private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
 
     static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     static final String KEY_HEX_256 = KEY_HEX_128 * 2
@@ -59,11 +77,14 @@ class TestUtil {
 
     private static final String DEFAULT_TMP_DIR = "target/tmp/"
 
+    /**
+     * @return boolean indicating if the current Java Runtime Environment supports unlimited strength crypto functions
+     */
     static boolean isUnlimitedStrengthCryptoAvailable() {
         Cipher.getMaxAllowedKeyLength("AES") > 128
     }
 
-    static absolutePathForResource(String relativeResourcePath) {
+    private static absolutePathForResource(String relativeResourcePath) {
         return TestUtil.class.getResource(relativeResourcePath).getPath()
     }
 
@@ -111,23 +132,31 @@ class TestUtil {
         }
     }
 
+    /**
+     * Make assertions that a properties file is protected correctly given a known starting point.
+     *
+     * @param pathToOriginalUnprotectedProperties - location of the original, plaintext properties file
+     * @param pathToProtectedPropertiesToVerify - location of the protected properties file
+     * @param sensitivePropertiesToVerify - the properties that should be considered sensitive
+     * @param expectedProtectionSchemeToVerify - the expected protection cipher identifier
+     * @return true if all assertion checks pass, otherwise assertion error is thrown
+     */
     static boolean assertPropertiesAreProtected(
-            String pathToUnprotectedProperties,
-            String pathToProtectedProperties,
-            String[] sensitiveProperties,
+            String pathToOriginalUnprotectedProperties,
+            String pathToProtectedPropertiesToVerify,
+            String[] sensitivePropertiesToVerify,
             String expectedProtectionScheme = PROTECTION_SCHEME) {
 
-        // Setup
         Properties unprotectedProperties = new Properties()
-        unprotectedProperties.load(new FileReader(pathToUnprotectedProperties))
+        unprotectedProperties.load(new FileReader(pathToOriginalUnprotectedProperties))
 
-        String[] populatedSensitiveProperties = sensitiveProperties.findAll {
+        String[] populatedSensitiveProperties = sensitivePropertiesToVerify.findAll {
             unprotectedProperties.getProperty(it) != null && unprotectedProperties.getProperty(it).toString().length() > 0
         }
         def populatedSensitivePropertiesCount = populatedSensitiveProperties.length
 
         Properties protectedProperties = new Properties()
-        protectedProperties.load(new FileReader(pathToProtectedProperties))
+        protectedProperties.load(new FileReader(pathToProtectedPropertiesToVerify))
 
         // For each populated, sensitive property, one additional "*.protected" property should have been added
         assert unprotectedProperties.size() + populatedSensitivePropertiesCount == protectedProperties.size()
@@ -150,6 +179,154 @@ class TestUtil {
         }
 
         return true
+    }
+
+    /**
+     * Make assertions that a NiFi Registry Authorizers XML file is protected correctly given a known starting point.
+     *
+     * @param pathToOriginalUnprotectedXml - location of the original, plaintext XML file
+     * @param pathToProtectedXmlToVerify - location of the protected XML file
+     * @param expectedProtectionScheme - expected scheme/cipher used to encrypt
+     * @param expectedKey - key used to encrypt
+     *
+     * @return true if all assertions pass
+     * @throws AssertionError if any assertion fails
+     */
+    static boolean assertRegistryAuthorizersXmlIsProtected(
+            String pathToOriginalUnprotectedXml,
+            String pathToProtectedXmlToVerify,
+            String expectedProtectionScheme = PROTECTION_SCHEME,
+            String expectedKey = KEY_HEX) {
+
+        return assertXmlIsProtected(
+                pathToOriginalUnprotectedXml,
+                pathToProtectedXmlToVerify,
+                expectedProtectionScheme,
+                expectedKey,
+                { rootNode ->
+                    try {
+                        rootNode.userGroupProvider.find {
+                            it.'class'.text() == NiFiRegistryAuthorizersXmlEncryptor.LDAP_USER_GROUP_PROVIDER_CLASS
+                        }.property.findAll {
+                            it.@name =~ "Password"
+                        }
+                    } catch (Exception ignored) {
+                        null
+                    }
+
+                }
+        )
+    }
+
+    /**
+     * Make assertions that a NiFi Registry Identity Providers XML file is protected correctly given a known starting point.
+     *
+     * @param pathToOriginalUnprotectedXml - location of the original, plaintext XML file
+     * @param pathToProtectedXmlToVerify - location of the protected XML file
+     * @param expectedProtectionScheme - expected scheme/cipher used to encrypt
+     * @param expectedKey - key used to encrypt
+     *
+     * @return true if all assertions pass
+     * @throws AssertionError if any assertion fails
+     */
+    static boolean assertRegistryIdentityProvidersXmlIsProtected(
+            String pathToOriginalUnprotectedXml,
+            String pathToProtectedXmlToVerify,
+            String expectedProtectionScheme = PROTECTION_SCHEME,
+            String expectedKey = KEY_HEX) {
+
+        return assertXmlIsProtected(
+                pathToOriginalUnprotectedXml,
+                pathToProtectedXmlToVerify,
+                expectedProtectionScheme,
+                expectedKey,
+                { rootNode ->
+                    try {
+                        rootNode.provider.find {
+                            it.'class'.text() == NiFiRegistryIdentityProvidersXmlEncryptor.LDAP_PROVIDER_CLASS
+                        }.property.findAll {
+                            it.@name =~ "Password"
+                        }
+                    } catch (Exception ignored) {
+                        null
+                    }
+
+                }
+        )
+    }
+
+    /**
+     * Make assertions that an XML file is protected correctly given a known starting point.
+     *
+     * @param pathToOriginalUnprotectedXml - location of the original, plaintext XML file
+     * @param pathToProtectedXmlToVerify - location of the protected XML file
+     * @param expectedProtectionScheme - expected scheme/cipher used to encrypt
+     * @param expectedKey - key used to encrypt
+     * @param callbackToGetNodesToVerify - closure that returns GPathResult[] of all sensitive nodes that
+     *                                     should be protected given a GPathResult for the root of the XML document
+     *
+     * @return true if all assertions pass
+     * @throws AssertionError if any assertion fails
+     */
+    static boolean assertXmlIsProtected(
+            String pathToOriginalUnprotectedXml,
+            String pathToProtectedXmlToVerify,
+            String expectedProtectionScheme = PROTECTION_SCHEME,
+            String expectedKey = KEY_HEX,
+            callbackToGetNodesToVerify) {
+
+        String originalUnprotectedXml = new File(pathToOriginalUnprotectedXml).text
+        String protectedXml = new File(pathToProtectedXmlToVerify).text
+        def originalDoc = new XmlParser().parseText(originalUnprotectedXml)
+        def protectedDoc = new XmlParser().parseText(protectedXml)
+
+        def sensitiveProperties = callbackToGetNodesToVerify(originalDoc)
+        assert sensitiveProperties && sensitiveProperties.size > 0  // necessary as so many key assertions are based on at least one sensitive prop
+        def populatedSensitiveProperties = sensitiveProperties.findAll { node ->
+            node.text()
+        }
+        def plaintextValues = populatedSensitiveProperties.collect {
+            it.text()
+        }
+
+        if (populatedSensitiveProperties.size() == 0) {
+            return assertFilesAreEqual(pathToOriginalUnprotectedXml, pathToProtectedXmlToVerify)
+        }
+
+        def protectedSensitiveProperties = callbackToGetNodesToVerify(protectedDoc).findAll { node ->
+            node.@encryption != "none" && node.@encryption != "" }
+
+        assert populatedSensitiveProperties.size() == protectedSensitiveProperties.size()
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(expectedKey)
+
+        protectedSensitiveProperties.each {
+            String value = it.text()
+            String propertyValue = value
+            assert it.@encryption == expectedProtectionScheme
+            assert !plaintextValues.contains(propertyValue)
+            assert plaintextValues.contains(spp.unprotect(propertyValue))
+        }
+
+        return true
+    }
+
+    /**
+     * Asserts the contents of files are equal, ignoring blank lines and starting / trailing whitespace
+     *
+     * @param pathToExpected - path to file with the expected content
+     * @param pathToActual - path to file with the actual content
+     * @return true if assertions pass
+     */
+    static boolean assertFilesAreEqual(String pathToExpected, String pathToActual) {
+        List<String> expectedLines = new File(pathToExpected).readLines().findAll{
+            it.trim().length() > 0
+        }.collect{ it.trim() }
+        List<String> actualLines = new File(pathToActual).readLines().findAll{
+            it.trim().length() > 0
+        }.collect{ it.trim() }
+
+        return assertLinesAreEqual(expectedLines, actualLines)
     }
 
     /**
@@ -179,12 +356,10 @@ class TestUtil {
     private static boolean assertConfOrPropertiesFilesAreEqual(String expected, String actual, boolean includeComments) {
         List<String> expectedLines = new File(expected).readLines().findAll{
             (it.trim().length() > 0 && (includeComments || !it.startsWith("#")))
-            it.trim()
-        }
+        }.collect{ it.trim() }
         List<String> actualLines = new File(actual).readLines().findAll{
             (it.trim().length() > 0 && (includeComments || !it.startsWith("#")))
-            it.trim()
-        }
+        }.collect{ it.trim() }
 
         return assertLinesAreEqual(expectedLines, actualLines)
     }
