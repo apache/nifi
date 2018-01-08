@@ -127,6 +127,11 @@ public class TemplateUtils {
             processGroupDTO.setOutputPortCount(null);
             processGroupDTO.setRunningCount(null);
             processGroupDTO.setStoppedCount(null);
+            processGroupDTO.setUpToDateCount(null);
+            processGroupDTO.setLocallyModifiedCount(null);
+            processGroupDTO.setStaleCount(null);
+            processGroupDTO.setLocallyModifiedAndStaleCount(null);
+            processGroupDTO.setSyncFailureCount(null);
 
             scrubSnippet(processGroupDTO.getContents());
         }

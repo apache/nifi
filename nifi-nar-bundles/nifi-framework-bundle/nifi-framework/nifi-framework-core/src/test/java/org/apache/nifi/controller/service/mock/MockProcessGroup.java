@@ -17,15 +17,6 @@
 
 package org.apache.nifi.controller.service.mock;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
@@ -45,14 +36,28 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.RemoteGroupPort;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
     private final Map<String, ProcessorNode> processorMap = new HashMap<>();
     private final FlowController flowController;
     private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
+    private VersionControlInformation versionControlInfo;
 
     public MockProcessGroup(final FlowController flowController) {
         this.flowController = flowController;
@@ -342,7 +347,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public ControllerServiceNode findControllerService(final String id) {
+    public ControllerServiceNode findControllerService(final String id, final boolean includeDescendants, final boolean includeAncestors) {
         return serviceMap.get(id);
     }
 
@@ -624,5 +629,57 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public Set<ConfiguredComponent> getComponentsAffectedByVariable(String variableName) {
         return Collections.emptySet();
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.empty();
+    }
+
+    @Override
+    public void setVersionedComponentId(String versionedComponentId) {
+    }
+
+    @Override
+    public VersionControlInformation getVersionControlInformation() {
+        return versionControlInfo;
+    }
+
+    @Override
+    public void verifyCanUpdate(VersionedFlowSnapshot updatedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty) {
+    }
+
+    @Override
+    public void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId) {
+    }
+
+    @Override
+    public void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry) {
+    }
+
+    @Override
+    public void updateFlow(VersionedFlowSnapshot proposedFlow, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVerisonedFlows) {
+    }
+
+    @Override
+    public void setVersionControlInformation(VersionControlInformation versionControlInformation, Map<String, String> versionedComponentIds) {
+        this.versionControlInfo = versionControlInformation;
+    }
+
+    @Override
+    public void disconnectVersionControl(final boolean removeVersionedComponentIds) {
+        this.versionControlInfo = null;
+    }
+
+    @Override
+    public void verifyCanRevertLocalModifications() {
+    }
+
+    @Override
+    public void verifyCanShowLocalModifications() {
+    }
+
+    @Override
+    public void onComponentModified() {
     }
 }

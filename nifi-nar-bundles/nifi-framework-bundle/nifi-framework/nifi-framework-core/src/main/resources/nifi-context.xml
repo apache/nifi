@@ -35,6 +35,11 @@
         <constructor-arg ref="nifiProperties" />
     </bean>
 
+    <!-- flow registry -->
+    <bean id="flowRegistryClient" class="org.apache.nifi.registry.flow.StandardFlowRegistryClient">
+        <property name="properties" ref="nifiProperties" />
+    </bean>
+
     <!-- flow controller -->
     <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
@@ -45,6 +50,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="variableRegistry" ref="variableRegistry"/>
         <property name="leaderElectionManager" ref="leaderElectionManager" />
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
     </bean>
 
     <!-- flow service -->

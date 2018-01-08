@@ -49,6 +49,7 @@ import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -162,7 +163,8 @@ public class TestFlowController {
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
     }
 
     @After
@@ -323,7 +325,8 @@ public class TestFlowController {
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
         controller.shutdown(true);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }

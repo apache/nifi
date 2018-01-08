@@ -20,6 +20,7 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -84,6 +85,16 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
     void enableControllerServices(Collection<ControllerServiceNode> serviceNodes);
 
     /**
+     * Enables the collection of services in the background. If a service in this collection
+     * depends on another service, the service being depended on must either already be enabled
+     * or must be in the collection as well.
+     *
+     * @param serviceNodes the nodes
+     * @return a Future that can be used to cancel the task or wait until it is completed
+     */
+    Future<Void> enableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
+
+    /**
      * Disables the given controller service so that it cannot be used by other
      * components. This allows configuration to be updated or allows service to
      * be removed.
@@ -93,8 +104,17 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
     CompletableFuture<Void> disableControllerService(ControllerServiceNode serviceNode);
 
     /**
+     * Disables the collection of services in the background. If any of the services given is referenced
+     * by another service, then that other service must either be disabled or be in the given collection.
+     *
+     * @param serviceNodes the nodes the disable
+     * @return a Future that can be used to cancel the task or wait until it is completed
+     */
+    Future<Void> disableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
+
+    /**
      * @return a Set of all Controller Services that exist for this service
-     * provider
+     *         provider
      */
     Set<ControllerServiceNode> getAllControllerServices();
 

@@ -52,6 +52,7 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -82,6 +83,7 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.ReportingTask;
@@ -169,6 +171,10 @@ public class ControllerFacade implements Authorizable {
         } else {
             return processor.getProcessGroup().getIdentifier();
         }
+    }
+
+    public ControllerServiceProvider getControllerServiceProvider() {
+        return flowController;
     }
 
     /**
@@ -587,6 +593,11 @@ public class ControllerFacade implements Authorizable {
         controllerStatus.setDisabledCount(counts.getDisabledCount());
         controllerStatus.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         controllerStatus.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
+        controllerStatus.setUpToDateCount(counts.getUpToDateCount());
+        controllerStatus.setLocallyModifiedCount(counts.getLocallyModifiedCount());
+        controllerStatus.setStaleCount(counts.getStaleCount());
+        controllerStatus.setLocallyModifiedAndStaleCount(counts.getLocallyModifiedAndStaleCount());
+        controllerStatus.setSyncFailureCount(counts.getSyncFailureCount());
 
         return controllerStatus;
     }
@@ -1599,6 +1610,7 @@ public class ControllerFacade implements Authorizable {
         final List<String> matches = new ArrayList<>();
 
         addIfAppropriate(searchStr, port.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, port.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, port.getName(), "Name", matches);
         addIfAppropriate(searchStr, port.getComments(), "Comments", matches);
 
@@ -1642,6 +1654,9 @@ public class ControllerFacade implements Authorizable {
         return dto;
     }
 
+    public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {
+        flowController.verifyComponentTypesInSnippet(versionedFlow);
+    }
 
 
     private ComponentSearchResultDTO search(final String searchStr, final ProcessorNode procNode) {
@@ -1649,6 +1664,7 @@ public class ControllerFacade implements Authorizable {
         final Processor processor = procNode.getProcessor();
 
         addIfAppropriate(searchStr, procNode.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, procNode.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, procNode.getName(), "Name", matches);
         addIfAppropriate(searchStr, procNode.getComments(), "Comments", matches);
 
@@ -1753,6 +1769,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, group.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, group.getName(), "Name", matches);
         addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
 
@@ -1783,6 +1800,7 @@ public class ControllerFacade implements Authorizable {
 
         // search id and name
         addIfAppropriate(searchStr, connection.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, connection.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, connection.getName(), "Name", matches);
 
         // search relationships
@@ -1864,6 +1882,7 @@ public class ControllerFacade implements Authorizable {
     private ComponentSearchResultDTO search(final String searchStr, final RemoteProcessGroup group) {
         final List<String> matches = new ArrayList<>();
         addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, group.getVersionedComponentId().orElse(null), "Version Control ID", matches);
         addIfAppropriate(searchStr, group.getName(), "Name", matches);
         addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
         addIfAppropriate(searchStr, group.getTargetUris(), "URLs", matches);
@@ -1889,6 +1908,7 @@ public class ControllerFacade implements Authorizable {
     private ComponentSearchResultDTO search(final String searchStr, final Funnel funnel) {
         final List<String> matches = new ArrayList<>();
         addIfAppropriate(searchStr, funnel.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, funnel.getVersionedComponentId().orElse(null), "Version Control ID", matches);
 
         if (matches.isEmpty()) {
             return null;

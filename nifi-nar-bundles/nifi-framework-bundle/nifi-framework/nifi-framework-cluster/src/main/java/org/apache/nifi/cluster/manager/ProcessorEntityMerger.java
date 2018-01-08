@@ -32,7 +32,6 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
     public void merge(ProcessorEntity clientEntity, Map<NodeIdentifier, ProcessorEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
         for (Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final ProcessorEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());

@@ -85,6 +85,10 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -113,6 +117,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -181,7 +186,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         try {
             if (flowAlreadySynchronized) {
                 existingFlow = toBytes(controller);
-                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty() && controller.getAllReportingTasks().isEmpty() && controller.getAllControllerServices().isEmpty();
+                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty()
+                    && controller.getAllReportingTasks().isEmpty()
+                    && controller.getAllControllerServices().isEmpty()
+                    && controller.getFlowRegistryClient().getRegistryIdentifiers().isEmpty();
             } else {
                 existingFlow = readFlowFromDisk();
                 if (existingFlow == null || existingFlow.length == 0) {
@@ -217,10 +225,22 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         unrootedControllerServiceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
                     }
 
+                    final boolean registriesPresent;
+                    final Element registriesElement = DomUtils.getChild(rootElement, "registries");
+                    if (registriesElement == null) {
+                        registriesPresent = false;
+                    } else {
+                        final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+                        registriesPresent = !flowRegistryElems.isEmpty();
+                    }
+
                     logger.trace("Parsing process group from DOM");
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
                     final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
-                    existingFlowEmpty = taskElements.isEmpty() && unrootedControllerServiceElements.isEmpty() && isEmpty(rootGroupDto);
+                    existingFlowEmpty = taskElements.isEmpty()
+                        && unrootedControllerServiceElements.isEmpty()
+                        && isEmpty(rootGroupDto)
+                        && !registriesPresent;
                     logger.debug("Existing Flow Empty = {}", existingFlowEmpty);
                 }
             }
@@ -315,6 +335,22 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     // get the root group XML element
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
 
+                    if (!flowAlreadySynchronized || existingFlowEmpty) {
+                        final Element registriesElement = DomUtils.getChild(rootElement, "registries");
+                        if (registriesElement != null) {
+                            final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+                            for (final Element flowRegistryElement : flowRegistryElems) {
+                                final String registryId = getString(flowRegistryElement, "id");
+                                final String registryName = getString(flowRegistryElement, "name");
+                                final String registryUrl = getString(flowRegistryElement, "url");
+                                final String description = getString(flowRegistryElement, "description");
+
+                                final FlowRegistryClient client = controller.getFlowRegistryClient();
+                                client.addFlowRegistry(registryId, registryName, registryUrl, description);
+                            }
+                        }
+                    }
+
                     // if this controller isn't initialized or its empty, add the root group, otherwise update
                     final ProcessGroup rootGroup;
                     if (!flowAlreadySynchronized || existingFlowEmpty) {
@@ -324,6 +360,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         logger.trace("Updating root process group");
                         rootGroup = updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
                     }
+
+                    rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
 
                     // If there are any Templates that do not exist in the Proposed Flow that do exist in the 'existing flow', we need
                     // to ensure that we also add those to the appropriate Process Groups, so that we don't lose them.
@@ -896,6 +934,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final Label label = controller.createLabel(labelDTO.getId(), labelDTO.getLabel());
             label.setStyle(labelDTO.getStyle());
             label.setPosition(new Position(labelDTO.getPosition().getX(), labelDTO.getPosition().getY()));
+            label.setVersionedComponentId(labelDTO.getVersionedComponentId());
             if (labelDTO.getWidth() != null && labelDTO.getHeight() != null) {
                 label.setSize(new Size(labelDTO.getWidth(), labelDTO.getHeight()));
             }
@@ -1048,6 +1087,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final ProcessGroupDTO processGroupDTO = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor, encodingVersion);
         final ProcessGroup processGroup = controller.createProcessGroup(processGroupDTO.getId());
         processGroup.setComments(processGroupDTO.getComments());
+        processGroup.setVersionedComponentId(processGroupDTO.getVersionedComponentId());
         processGroup.setPosition(toPosition(processGroupDTO.getPosition()));
         processGroup.setName(processGroupDTO.getName());
         processGroup.setParent(parentGroup);
@@ -1071,6 +1111,21 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
 
         processGroup.setVariables(variables);
+
+        final VersionControlInformationDTO versionControlInfoDto = processGroupDTO.getVersionControlInformation();
+        if (versionControlInfoDto != null) {
+            final FlowRegistry flowRegistry = controller.getFlowRegistryClient().getFlowRegistry(versionControlInfoDto.getRegistryId());
+            final String registryName = flowRegistry == null ? versionControlInfoDto.getRegistryId() : flowRegistry.getName();
+
+            versionControlInfoDto.setState(VersionedFlowState.SYNC_FAILURE.name());
+            versionControlInfoDto.setStateExplanation("Process Group has not yet been synchronized with the Flow Registry");
+            final StandardVersionControlInformation versionControlInformation = StandardVersionControlInformation.Builder.fromDto(versionControlInfoDto)
+                .registryName(registryName)
+                .build();
+
+            // pass empty map for the version control mapping because the VersionedComponentId has already been set on the components
+            processGroup.setVersionControlInformation(versionControlInformation, Collections.emptyMap());
+        }
 
         // Add Controller Services
         final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
@@ -1097,6 +1152,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId(), coordinate, false);
+            procNode.setVersionedComponentId(processorDTO.getVersionedComponentId());
             processGroup.addProcessor(procNode);
             updateProcessor(procNode, processorDTO, processGroup, controller);
         }
@@ -1113,6 +1169,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 port = controller.createLocalInputPort(portDTO.getId(), portDTO.getName());
             }
 
+            port.setVersionedComponentId(portDTO.getVersionedComponentId());
             port.setPosition(toPosition(portDTO.getPosition()));
             port.setComments(portDTO.getComments());
             port.setProcessGroup(processGroup);
@@ -1156,6 +1213,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             } else {
                 port = controller.createLocalOutputPort(portDTO.getId(), portDTO.getName());
             }
+
+            port.setVersionedComponentId(portDTO.getVersionedComponentId());
             port.setPosition(toPosition(portDTO.getPosition()));
             port.setComments(portDTO.getComments());
             port.setProcessGroup(processGroup);
@@ -1193,6 +1252,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element funnelElement : funnelNodeList) {
             final FunnelDTO funnelDTO = FlowFromDOMFactory.getFunnel(funnelElement);
             final Funnel funnel = controller.createFunnel(funnelDTO.getId());
+            funnel.setVersionedComponentId(funnelDTO.getVersionedComponentId());
             funnel.setPosition(toPosition(funnelDTO.getPosition()));
 
             // Since this is called during startup, we want to add the funnel without enabling it
@@ -1207,6 +1267,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element labelElement : labelNodeList) {
             final LabelDTO labelDTO = FlowFromDOMFactory.getLabel(labelElement);
             final Label label = controller.createLabel(labelDTO.getId(), labelDTO.getLabel());
+            label.setVersionedComponentId(labelDTO.getVersionedComponentId());
             label.setStyle(labelDTO.getStyle());
 
             label.setPosition(toPosition(labelDTO.getPosition()));
@@ -1225,6 +1286,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element remoteProcessGroupElement : remoteProcessGroupNodeList) {
             final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteProcessGroupElement, encryptor);
             final RemoteProcessGroup remoteGroup = controller.createRemoteProcessGroup(remoteGroupDto.getId(), remoteGroupDto.getTargetUris());
+            remoteGroup.setVersionedComponentId(remoteGroupDto.getVersionedComponentId());
             remoteGroup.setComments(remoteGroupDto.getComments());
             remoteGroup.setPosition(toPosition(remoteGroupDto.getPosition()));
             final String name = remoteGroupDto.getName();
@@ -1269,13 +1331,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             for (final Element portElement : getChildrenByTagName(remoteProcessGroupElement, "inputPort")) {
                 inputPorts.add(FlowFromDOMFactory.getRemoteProcessGroupPort(portElement));
             }
-            remoteGroup.setInputPorts(inputPorts);
+            remoteGroup.setInputPorts(inputPorts, false);
 
             final Set<RemoteProcessGroupPortDescriptor> outputPorts = new HashSet<>();
             for (final Element portElement : getChildrenByTagName(remoteProcessGroupElement, "outputPort")) {
                 outputPorts.add(FlowFromDOMFactory.getRemoteProcessGroupPort(portElement));
             }
-            remoteGroup.setOutputPorts(outputPorts);
+            remoteGroup.setOutputPorts(outputPorts, false);
             processGroup.addRemoteProcessGroup(remoteGroup);
 
             for (final RemoteProcessGroupPortDescriptor remoteGroupPortDTO : outputPorts) {
@@ -1332,6 +1394,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             final Connection connection = controller.createConnection(dto.getId(), dto.getName(), source, destination, dto.getSelectedRelationships());
+            connection.setVersionedComponentId(dto.getVersionedComponentId());
             connection.setProcessGroup(processGroup);
 
             final List<Position> bendPoints = new ArrayList<>();

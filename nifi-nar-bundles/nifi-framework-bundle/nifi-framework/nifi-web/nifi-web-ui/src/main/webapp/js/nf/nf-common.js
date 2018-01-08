@@ -420,6 +420,15 @@
         },
 
         /**
+         * Gets the version control tooltip.
+         *
+         * @param versionControlInformation
+         */
+        getVersionControlTooltip: function (versionControlInformation) {
+            return versionControlInformation.stateExplanation;
+        },
+
+        /**
          * Formats the class name of this component.
          *
          * @param dataContext component datum
@@ -554,6 +563,17 @@
             }
 
             return null;
+        },
+
+        /**
+         * Determines whether the current user can version flows.
+         */
+        canVersionFlows: function () {
+            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                return nfCommon.currentUser.canVersionFlows === true;
+            } else {
+                return false;
+            }
         },
 
         /**

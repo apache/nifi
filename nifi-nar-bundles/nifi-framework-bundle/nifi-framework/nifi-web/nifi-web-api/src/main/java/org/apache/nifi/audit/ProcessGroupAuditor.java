@@ -28,7 +28,10 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -39,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.concurrent.Future;
 
 /**
  * Audits process group creation/removal and configuration changes.
@@ -173,10 +177,13 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
-        + "execution(void scheduleComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, java.util.Set)) && "
+        + "execution(java.util.concurrent.Future<Void> scheduleComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, java.util.Set)) && "
         + "args(groupId, state)")
-    public void scheduleComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state) throws Throwable {
+    public Future<Void> scheduleComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state) throws Throwable {
         final Operation operation;
+
+        final Future<Void> result = (Future<Void>) proceedingJoinPoint.proceed();
+
         // determine the running state
         if (ScheduledState.RUNNING.equals(state)) {
             operation = Operation.Start;
@@ -184,7 +191,9 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             operation = Operation.Stop;
         }
 
-        saveUpdateAction(proceedingJoinPoint, groupId, operation);
+        saveUpdateAction(NiFiUserUtils.getNiFiUser(), groupId, operation);
+
+        return result;
     }
 
 
@@ -193,51 +202,117 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint join point
      * @param groupId group id
-     * @param state controller serivce state state
+     * @param state controller service state
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
-        + "execution(java.util.concurrent.Future activateControllerServices(java.lang.String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Set)) && "
+        + "execution(java.util.concurrent.Future<Void> activateControllerServices(java.lang.String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Set)) && "
         + "args(groupId, state)")
-    public void activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state) throws Throwable {
+    public Future<Void> activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state) throws Throwable {
+        final Operation operation;
+
+        final Future<Void> result = (Future<Void>) proceedingJoinPoint.proceed();
 
         // determine the service state
-        final Operation operation;
         if (ControllerServiceState.ENABLED.equals(state)) {
             operation = Operation.Enable;
         } else {
             operation = Operation.Disable;
         }
 
-        saveUpdateAction(proceedingJoinPoint, groupId, operation);
+        saveUpdateAction(NiFiUserUtils.getNiFiUser(), groupId, operation);
+
+        return result;
     }
 
     /**
      * Audits the update of process group variable registry.
      *
      * @param proceedingJoinPoint join point
-     * @param groupId group id
+     * @param user the user performing the action
+     * @param variableRegistry variable registry
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
-        + "execution(org.apache.nifi.groups.ProcessGroup updateVariableRegistry(org.apache.nifi.web.api.dto.VariableRegistryDTO)) && "
-        + "args(groupId)")
-    public void updateVariableRegistryAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId) throws Throwable {
-        final Operation operation = Operation.Configure;
-        saveUpdateAction(proceedingJoinPoint, groupId, operation);
+        + "execution(org.apache.nifi.groups.ProcessGroup updateVariableRegistry(org.apache.nifi.authorization.user.NiFiUser, org.apache.nifi.web.api.dto.VariableRegistryDTO)) && "
+        + "args(user, variableRegistry)")
+    public ProcessGroup updateVariableRegistryAdvice(final ProceedingJoinPoint proceedingJoinPoint, final NiFiUser user, final VariableRegistryDTO variableRegistry) throws Throwable {
+        final ProcessGroup updatedProcessGroup = (ProcessGroup) proceedingJoinPoint.proceed();
+
+        saveUpdateAction(user, variableRegistry.getProcessGroupId(), Operation.Configure);
+
+        return updatedProcessGroup;
     }
 
+    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
+            + "execution(org.apache.nifi.groups.ProcessGroup updateProcessGroupFlow(..))")
+    public ProcessGroup updateProcessGroupFlowAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        final Object[] args = proceedingJoinPoint.getArgs();
+        final String groupId = (String) args[0];
+        final NiFiUser user = (NiFiUser) args[1];
 
+        final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        final VersionControlInformation vci = processGroup.getVersionControlInformation();
 
-    private void saveUpdateAction(final ProceedingJoinPoint proceedingJoinPoint, final String groupId, final Operation operation) throws Throwable {
+        final ProcessGroup updatedProcessGroup = (ProcessGroup) proceedingJoinPoint.proceed();
+        final VersionControlInformation updatedVci = updatedProcessGroup.getVersionControlInformation();
+
+        final Operation operation;
+        if (vci == null) {
+            operation = Operation.StartVersionControl;
+        } else {
+            if (updatedVci == null) {
+                operation = Operation.StopVersionControl;
+            } else if (vci.getVersion() == updatedVci.getVersion()) {
+                operation = Operation.RevertLocalChanges;
+            } else {
+                operation = Operation.ChangeVersion;
+            }
+        }
+
+        saveUpdateAction(user, groupId, operation);
+
+        return updatedProcessGroup;
+    }
+
+    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
+            + "execution(org.apache.nifi.groups.ProcessGroup updateVersionControlInformation(..))")
+    public ProcessGroup updateVersionControlInformationAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        final VersionControlInformationDTO vciDto = (VersionControlInformationDTO) proceedingJoinPoint.getArgs()[0];
+
+        final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(vciDto.getGroupId());
+        final VersionControlInformation vci = processGroup.getVersionControlInformation();
+
+        final ProcessGroup updatedProcessGroup = (ProcessGroup) proceedingJoinPoint.proceed();
+
+        final Operation operation;
+        if (vci == null) {
+            operation = Operation.StartVersionControl;
+        } else {
+            operation = Operation.CommitLocalChanges;
+        }
+
+        saveUpdateAction(NiFiUserUtils.getNiFiUser(), vciDto.getGroupId(), operation);
+
+        return updatedProcessGroup;
+    }
+
+    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
+            + "execution(org.apache.nifi.groups.ProcessGroup disconnectVersionControl(java.lang.String)) && "
+            + "args(groupId)")
+    public ProcessGroup disconnectVersionControlAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String groupId) throws Throwable {
+        final ProcessGroup updatedProcessGroup = (ProcessGroup) proceedingJoinPoint.proceed();
+
+        saveUpdateAction(NiFiUserUtils.getNiFiUser(), groupId, Operation.StopVersionControl);
+
+        return updatedProcessGroup;
+    }
+
+    private void saveUpdateAction(final NiFiUser user, final String groupId, final Operation operation) throws Throwable {
         ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
         ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-
-        // perform the action
-        proceedingJoinPoint.proceed();
-
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // if the user was starting/stopping this process group
         FlowChangeAction action = new FlowChangeAction();

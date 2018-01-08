@@ -115,6 +115,11 @@
         <jsp:include page="/WEB-INF/partials/canvas/instantiate-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/fill-color-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connections-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/save-flow-version-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/import-flow-version-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/revert-local-changes-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/show-local-changes-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/registry-configuration-dialog.jsp"/>
         <div id="canvas-container" class="unselectable"></div>
         <div id="canvas-tooltips">
             <div id="processor-tooltips"></div>

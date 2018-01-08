@@ -42,6 +42,12 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.registry.bucket.Bucket;
+import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.FlowRegistryUtils;
+import org.apache.nifi.registry.flow.VersionedFlow;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -64,6 +70,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
@@ -75,6 +82,7 @@ import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CreateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.FunnelsEntity;
@@ -291,6 +299,51 @@ public class ProcessGroupResource extends ApplicationResource {
             entity.getComponent().setContents(null);
         }
 
+        return generateOkResponse(entity).build();
+    }
+
+
+    /**
+     * Retrieves a list of local modifications to the Process Group since it was last synchronized with the Flow Registry
+     *
+     * @param groupId The id of the process group.
+     * @return A processGroupEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/local-modifications")
+    @ApiOperation(
+            value = "Gets a list of local modifications to the Process Group since it was last synchronized with the Flow Registry",
+            response = FlowComparisonEntity.class,
+            authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid}"),
+            @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getLocalModifications(
+            @ApiParam(
+                    value = "The process group id.",
+                    required = false
+            )
+            @PathParam("id") final String groupId) throws IOException, NiFiRegistryException {
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, true, false);
+        });
+
+        final FlowComparisonEntity entity = serviceFacade.getLocalModifications(groupId);
         return generateOkResponse(entity).build();
     }
 
@@ -567,7 +620,7 @@ public class ProcessGroupResource extends ApplicationResource {
         final VariableRegistryDTO requestRegistryDto = requestVariableRegistryEntity.getVariableRegistry();
         if (!groupId.equals(requestRegistryDto.getProcessGroupId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
-                + "not equal the process group id of the requested resource (%s).", requestRegistryDto.getProcessGroupId(), groupId));
+                    + "not equal the process group id of the requested resource (%s).", requestRegistryDto.getProcessGroupId(), groupId));
         }
 
         if (isReplicateRequest()) {
@@ -763,7 +816,6 @@ public class ProcessGroupResource extends ApplicationResource {
     private void updateVariableRegistryReplicated(final String groupId, final URI originalUri, final Collection<AffectedComponentDTO> affectedProcessors,
                                                   final Collection<AffectedComponentDTO> affectedServices, final VariableRegistryUpdateRequest updateRequest,
                                                   final VariableRegistryEntity requestEntity) throws InterruptedException, IOException {
-
         final Pause pause = createPause(updateRequest);
 
         // stop processors
@@ -805,8 +857,6 @@ public class ProcessGroupResource extends ApplicationResource {
             logger.info("In order to update Variable Registry for Process Group with ID {}, no Processors are affected.", groupId);
             updateRequest.getStartProcessorsStep().setComplete(true);
         }
-
-        updateRequest.setComplete(true);
     }
 
     /**
@@ -829,7 +879,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -986,7 +1036,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -1414,6 +1464,7 @@ public class ProcessGroupResource extends ApplicationResource {
      * @param <T> type of class
      * @return the response entity
      */
+    @SuppressWarnings("unchecked")
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
@@ -1515,9 +1566,10 @@ public class ProcessGroupResource extends ApplicationResource {
      * Adds the specified process group.
      *
      * @param httpServletRequest request
-     * @param groupId            The group id
+     * @param groupId The group id
      * @param requestProcessGroupEntity A processGroupEntity
      * @return A processGroupEntity
+     * @throws IOException if the request indicates that the Process Group should be imported from a Flow Registry and NiFi is unable to communicate with the Flow Registry
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -1549,7 +1601,7 @@ public class ProcessGroupResource extends ApplicationResource {
             @ApiParam(
                     value = "The process group configuration details.",
                     required = true
-            ) final ProcessGroupEntity requestProcessGroupEntity) {
+        ) final ProcessGroupEntity requestProcessGroupEntity) throws IOException {
 
         if (requestProcessGroupEntity == null || requestProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Process group details must be specified.");
@@ -1570,12 +1622,54 @@ public class ProcessGroupResource extends ApplicationResource {
             }
         }
 
+        // if the group name isn't specified, ensure the group is being imported from version control
+        if (StringUtils.isBlank(requestProcessGroupEntity.getComponent().getName()) && requestProcessGroupEntity.getComponent().getVersionControlInformation() == null) {
+            throw new IllegalArgumentException("The group name is required when the group is not imported from version control.");
+        }
+
         if (requestProcessGroupEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestProcessGroupEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                     requestProcessGroupEntity.getComponent().getParentGroupId(), groupId));
         }
         requestProcessGroupEntity.getComponent().setParentGroupId(groupId);
 
+        // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
+        // Step 2: Retrieve flow from Flow Registry
+        // Step 3: Resolve Bundle info
+        // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
+        // Step 5: If any of the components is a Restricted Component, then we must authorize the user
+        //         for write access to the RestrictedComponents resource
+        // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
+
+        final VersionControlInformationDTO versionControlInfo = requestProcessGroupEntity.getComponent().getVersionControlInformation();
+        if (versionControlInfo != null && requestProcessGroupEntity.getVersionedFlowSnapshot() == null) {
+            // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
+            // Step 2: Retrieve flow from Flow Registry
+            final VersionedFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(versionControlInfo, true);
+            final Bucket bucket = flowSnapshot.getBucket();
+            final VersionedFlow flow = flowSnapshot.getFlow();
+
+            versionControlInfo.setBucketName(bucket.getName());
+            versionControlInfo.setFlowName(flow.getName());
+            versionControlInfo.setFlowDescription(flow.getDescription());
+
+            versionControlInfo.setRegistryName(serviceFacade.getFlowRegistryName(versionControlInfo.getRegistryId()));
+            final VersionedFlowState flowState = flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE : VersionedFlowState.STALE;
+            versionControlInfo.setState(flowState.name());
+
+            // Step 3: Resolve Bundle info
+            BundleUtils.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+
+            // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
+            requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
+        }
+
+        if (versionControlInfo != null) {
+            final VersionedFlowSnapshot flowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+            serviceFacade.verifyImportProcessGroup(versionControlInfo, flowSnapshot.getFlowContents(), groupId);
+        }
+
+        // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestProcessGroupEntity);
         }
@@ -1586,15 +1680,52 @@ public class ProcessGroupResource extends ApplicationResource {
                 lookup -> {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // Step 5: If any of the components is a Restricted Component, then we must authorize the user
+                    // for write access to the RestrictedComponents resource
+                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+                    if (versionedFlowSnapshot != null) {
+                        final boolean containsRestrictedComponent = FlowRegistryUtils.containsRestrictedComponent(versionedFlowSnapshot.getFlowContents());
+                        if (containsRestrictedComponent) {
+                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        }
+                    }
                 },
-                null,
-                processGroupGroupEntity -> {
+                () -> {
+                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
+                    if (versionedFlowSnapshot != null) {
+                        serviceFacade.verifyComponentTypes(versionedFlowSnapshot.getFlowContents());
+                    }
+                },
+                processGroupEntity -> {
+                    final ProcessGroupDTO processGroup = processGroupEntity.getComponent();
+
                     // set the processor id as appropriate
-                    processGroupGroupEntity.getComponent().setId(generateUuid());
+                    processGroup.setId(generateUuid());
+
+                    // ensure the group name comes from the versioned flow
+                    final VersionedFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
+                    if (flowSnapshot != null && StringUtils.isNotBlank(flowSnapshot.getFlowContents().getName()) && StringUtils.isBlank(processGroup.getName())) {
+                        processGroup.setName(flowSnapshot.getFlowContents().getName());
+                    }
 
                     // create the process group contents
-                    final Revision revision = getRevision(processGroupGroupEntity, processGroupGroupEntity.getComponent().getId());
-                    final ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroupGroupEntity.getComponent());
+                    final Revision revision = getRevision(processGroupEntity, processGroup.getId());
+                    ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroup);
+
+                    if (flowSnapshot != null) {
+                        final RevisionDTO revisionDto = entity.getRevision();
+                        final String newGroupId = entity.getComponent().getId();
+                        final Revision newGroupRevision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), newGroupId);
+
+                        // We don't want the Process Group's position to be updated because we want to keep the position where the user
+                        // placed the Process Group. However, we do want to use the name of the Process Group that is in the Flow Contents.
+                        // To accomplish this, we call updateProcessGroupContents() passing 'true' for the updateSettings flag but null out the position.
+                        flowSnapshot.getFlowContents().setPosition(null);
+                        entity = serviceFacade.updateProcessGroupContents(NiFiUserUtils.getNiFiUser(), newGroupRevision, newGroupId,
+                            versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, true, true);
+                    }
+
                     populateRemainingProcessGroupEntityContent(entity);
 
                     // generate a 201 created response

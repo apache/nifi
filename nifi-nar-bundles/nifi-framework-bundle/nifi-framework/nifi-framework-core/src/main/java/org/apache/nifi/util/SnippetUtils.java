@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -307,4 +311,99 @@ public final class SnippetUtils {
             connection.setBends(bends);
         }
     }
+
+    public static void verifyNoVersionControlConflicts(final Snippet snippet, final ProcessGroup parentGroup, final ProcessGroup destination) {
+        if (snippet == null) {
+            return;
+        }
+        if (snippet.getProcessGroups() == null) {
+            return;
+        }
+
+        final List<VersionControlInformation> vcis = new ArrayList<>();
+        for (final String groupId : snippet.getProcessGroups().keySet()) {
+            final ProcessGroup group = parentGroup.getProcessGroup(groupId);
+            if (group != null) {
+                findAllVersionControlInfo(group, vcis);
+            }
+        }
+
+        verifyNoDuplicateVersionControlInfo(destination, vcis);
+    }
+
+    public static void verifyNoVersionControlConflicts(final FlowSnippetDTO snippetContents, final ProcessGroup destination) {
+        final List<VersionControlInformationDTO> vcis = new ArrayList<>();
+        for (final ProcessGroupDTO childGroup : snippetContents.getProcessGroups()) {
+            findAllVersionControlInfo(childGroup, vcis);
+        }
+
+        verifyNoDuplicateVersionControlInfoDtos(destination, vcis);
+    }
+
+    private static void verifyNoDuplicateVersionControlInfoDtos(final ProcessGroup group, final Collection<VersionControlInformationDTO> snippetVcis) {
+        final VersionControlInformation vci = group.getVersionControlInformation();
+        if (vci != null) {
+            for (final VersionControlInformationDTO snippetVci : snippetVcis) {
+                if (vci.getBucketIdentifier().equals(snippetVci.getBucketId()) && vci.getFlowIdentifier().equals(snippetVci.getFlowId())) {
+                    throw new IllegalArgumentException("Cannot place the given Process Group into the desired destination because the destination group or one of its ancestor groups is "
+                        + "under Version Control and one of the selected Process Groups is also under Version Control with the same Flow. A Process Group that is under Version Control "
+                        + "cannot contain a child Process Group that points to the same Versioned Flow.");
+                }
+            }
+        }
+
+        final ProcessGroup parent = group.getParent();
+        if (parent != null) {
+            verifyNoDuplicateVersionControlInfoDtos(parent, snippetVcis);
+        }
+    }
+
+    private static void verifyNoDuplicateVersionControlInfo(final ProcessGroup group, final Collection<VersionControlInformation> snippetVcis) {
+        final VersionControlInformation vci = group.getVersionControlInformation();
+        if (vci != null) {
+            for (final VersionControlInformation snippetVci : snippetVcis) {
+                if (vci.getBucketIdentifier().equals(snippetVci.getBucketIdentifier()) && vci.getFlowIdentifier().equals(snippetVci.getFlowIdentifier())) {
+                    throw new IllegalArgumentException("Cannot place the given Process Group into the desired destination because the destination group or one of its ancestor groups is "
+                        + "under Version Control and one of the selected Process Groups is also under Version Control with the same Flow. A Process Group that is under Version Control "
+                        + "cannot contain a child Process Group that points to the same Versioned Flow.");
+                }
+            }
+        }
+
+        final ProcessGroup parent = group.getParent();
+        if (parent != null) {
+            verifyNoDuplicateVersionControlInfo(parent, snippetVcis);
+        }
+    }
+
+
+    private static void findAllVersionControlInfo(final ProcessGroupDTO dto, final List<VersionControlInformationDTO> found) {
+        final VersionControlInformationDTO vci = dto.getVersionControlInformation();
+        if (vci != null) {
+            found.add(vci);
+        }
+
+        final FlowSnippetDTO contents = dto.getContents();
+        if (contents != null) {
+            for (final ProcessGroupDTO child : contents.getProcessGroups()) {
+                findAllVersionControlInfo(child, found);
+            }
+        }
+    }
+
+    private static void findAllVersionControlInfo(final ProcessGroup group, final List<VersionControlInformation> found) {
+        if (group == null) {
+            return;
+        }
+
+        final VersionControlInformation vci = group.getVersionControlInformation();
+        if (vci != null) {
+            found.add(vci);
+        }
+
+        for (final ProcessGroup childGroup : group.findAllProcessGroups()) {
+            findAllVersionControlInfo(childGroup, found);
+        }
+    }
+
 }

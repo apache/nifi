@@ -411,6 +411,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         // configure the processor
         configureProcessor(processor, processorDTO);
+        parentGroup.onComponentModified();
 
         // attempt to change the underlying processor if an updated bundle is specified
         // updating the bundle must happen after configuring so that any additional classpath resources are set first

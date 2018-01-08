@@ -86,16 +86,12 @@
     // --------------------------
 
     /**
-     * Gets the process group comments.
+     * Determines whether the specified process group is under version control.
      *
-     * @param {object} d
+     * @param d
      */
-    var getProcessGroupComments = function (d) {
-        if (nfCommon.isBlank(d.component.comments)) {
-            return 'No comments specified';
-        } else {
-            return d.component.comments;
-        }
+    var isUnderVersionControl = function (d) {
+        return nfCommon.isDefinedAndNotNull(d.versionedFlowState);
     };
 
     /**
@@ -178,6 +174,14 @@
                 'width': 316,
                 'height': 16,
                 'class': 'process-group-name'
+            });
+
+        // process group name
+        processGroup.append('text')
+            .attr({
+                'x': 10,
+                'y': 21,
+                'class': 'version-control'
             });
 
         // always support selecting and navigation
@@ -274,6 +278,19 @@
                             'y': 32,
                             'width': function () {
                                 return processGroupData.dimensions.width
+                            },
+                            'height': 24,
+                            'fill': '#e3e8eb'
+                        });
+
+                    details.append('rect')
+                        .attr({
+                            'x': 0,
+                            'y': function () {
+                                return processGroupData.dimensions.height - 24;
+                            },
+                            'width': function () {
+                                return processGroupData.dimensions.width;
                             },
                             'height': 24,
                             'fill': '#e3e8eb'
@@ -378,6 +395,107 @@
                         .attr({
                             'y': 49,
                             'class': 'process-group-disabled-count process-group-contents-count'
+                        });
+
+                    // up to date icon
+                    details.append('text')
+                        .attr({
+                            'x': 10,
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-up-to-date process-group-contents-icon',
+                            'font-family': 'FontAwesome'
+                        })
+                        .text('\uf00c');
+
+                    // up to date count
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-up-to-date-count process-group-contents-count'
+                        });
+
+                    // locally modified icon
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-locally-modified process-group-contents-icon',
+                            'font-family': 'FontAwesome'
+                        })
+                        .text('\uf069');
+
+                    // locally modified count
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-locally-modified-count process-group-contents-count'
+                        });
+
+                    // stale icon
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-stale process-group-contents-icon',
+                            'font-family': 'FontAwesome'
+                        })
+                        .text('\uf0aa');
+
+                    // stale count
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-stale-count process-group-contents-count'
+                        });
+
+                    // locally modified and stale icon
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-locally-modified-and-stale process-group-contents-icon',
+                            'font-family': 'FontAwesome'
+                        })
+                        .text('\uf06a');
+
+                    // locally modified and stale count
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-locally-modified-and-stale-count process-group-contents-count'
+                        });
+
+                    // sync failure icon
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-sync-failure process-group-contents-icon',
+                            'font-family': 'FontAwesome'
+                        })
+                        .text('\uf128');
+
+                    // sync failure count
+                    details.append('text')
+                        .attr({
+                            'y': function () {
+                                return processGroupData.dimensions.height - 7;
+                            },
+                            'class': 'process-group-sync-failure-count process-group-contents-count'
                         });
 
                     // ----------------
@@ -659,14 +777,11 @@
                     // comments
                     // --------
 
-                    // process group comments
-                    details.append('text')
+                    details.append('path')
                         .attr({
-                            'x': 10,
-                            'y': 160,
-                            'width': 342,
-                            'height': 22,
-                            'class': 'process-group-comments'
+                            'class': 'component-comments',
+                            'transform': 'translate(' + (processGroupData.dimensions.width - 2) + ', ' + (processGroupData.dimensions.height - 10) + ')',
+                            'd': 'm0,0 l0,8 l-8,0 z'
                         });
 
                     // -------------------
@@ -838,25 +953,236 @@
                         return d.disabledCount;
                     });
 
-                if (processGroupData.permissions.canRead) {
-                    // update the process group comments
-                    details.select('text.process-group-comments')
-                        .each(function (d) {
-                            var processGroupComments = d3.select(this);
-
-                            // reset the process group name to handle any previous state
-                            processGroupComments.text(null).selectAll('tspan, title').remove();
-
-                            // apply ellipsis to the port name as necessary
-                            nfCanvasUtils.ellipsis(processGroupComments, getProcessGroupComments(d));
-                        }).classed('unset', function (d) {
-                        return nfCommon.isBlank(d.component.comments);
-                    }).append('title').text(function (d) {
-                        return getProcessGroupComments(d);
+                // up to date current
+                var upToDate = details.select('text.process-group-up-to-date')
+                    .classed('up-to-date', function (d) {
+                        return d.permissions.canRead && d.component.upToDateCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.upToDateCount === 0;
                     });
+                var upToDateCount = details.select('text.process-group-up-to-date-count')
+                    .attr('x', function () {
+                        var updateToDateCountX = parseInt(upToDate.attr('x'), 10);
+                        return updateToDateCountX + Math.round(upToDate.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.upToDateCount;
+                    });
+
+                // update locally modified
+                var locallyModified = details.select('text.process-group-locally-modified')
+                    .classed('locally-modified', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedCount === 0;
+                    })
+                    .attr('x', function () {
+                        var upToDateX = parseInt(upToDateCount.attr('x'), 10);
+                        return upToDateX + Math.round(upToDateCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                    });
+                var locallyModifiedCount = details.select('text.process-group-locally-modified-count')
+                    .attr('x', function () {
+                        var locallyModifiedCountX = parseInt(locallyModified.attr('x'), 10);
+                        return locallyModifiedCountX + Math.round(locallyModified.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.locallyModifiedCount;
+                    });
+
+                // update stale
+                var stale = details.select('text.process-group-stale')
+                    .classed('stale', function (d) {
+                        return d.permissions.canRead && d.component.staleCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.staleCount === 0;
+                    })
+                    .attr('x', function () {
+                        var locallyModifiedX = parseInt(locallyModifiedCount.attr('x'), 10);
+                        return locallyModifiedX + Math.round(locallyModifiedCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                    });
+                var staleCount = details.select('text.process-group-stale-count')
+                    .attr('x', function () {
+                        var staleCountX = parseInt(stale.attr('x'), 10);
+                        return staleCountX + Math.round(stale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.staleCount;
+                    });
+
+                // update locally modified and stale
+                var locallyModifiedAndStale = details.select('text.process-group-locally-modified-and-stale')
+                    .classed('locally-modified-and-stale', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.locallyModifiedAndStaleCount === 0;
+                    })
+                    .attr('x', function () {
+                        var staleX = parseInt(staleCount.attr('x'), 10);
+                        return staleX + Math.round(staleCount.node().getComputedTextLength()) + CONTENTS_SPACER;
+                    });
+                var locallyModifiedAndStaleCount = details.select('text.process-group-locally-modified-and-stale-count')
+                    .attr('x', function () {
+                        var locallyModifiedAndStaleCountX = parseInt(locallyModifiedAndStale.attr('x'), 10);
+                        return locallyModifiedAndStaleCountX + Math.round(locallyModifiedAndStale.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.locallyModifiedAndStaleCount;
+                    });
+
+                // update sync failure
+                var syncFailure = details.select('text.process-group-sync-failure')
+                    .classed('sync-failure', function (d) {
+                        return d.permissions.canRead && d.component.syncFailureCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.syncFailureCount === 0;
+                    })
+                    .attr('x', function () {
+                        var syncFailureX = parseInt(locallyModifiedAndStaleCount.attr('x'), 10);
+                        return syncFailureX + Math.round(locallyModifiedAndStaleCount.node().getComputedTextLength()) + CONTENTS_SPACER - 2;
+                    });
+                details.select('text.process-group-sync-failure-count')
+                    .attr('x', function () {
+                        var syncFailureCountX = parseInt(syncFailure.attr('x'), 10);
+                        return syncFailureCountX + Math.round(syncFailure.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
+                    .text(function (d) {
+                        return d.syncFailureCount;
+                    });
+
+                // update version control information
+                var versionControl = processGroup.select('text.version-control')
+                    .style({
+                        'visibility': isUnderVersionControl(processGroupData) ? 'visible' : 'hidden',
+                        'fill': function () {
+                            if (isUnderVersionControl(processGroupData)) {
+                                var vciState = processGroupData.versionedFlowState;
+                                if (vciState === 'SYNC_FAILURE') {
+                                    return '#666666';
+                                } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
+                                    return '#BA554A';
+                                } else if (vciState === 'STALE') {
+                                    return '#BA554A';
+                                } else if (vciState === 'LOCALLY_MODIFIED') {
+                                    return '#666666';
+                                } else {
+                                    return '#1A9964';
+                                }
+                            } else {
+                                return '#000';
+                            }
+                        }
+                    })
+                    .text(function () {
+                        if (isUnderVersionControl(processGroupData)) {
+                            var vciState = processGroupData.versionedFlowState;
+                            if (vciState === 'SYNC_FAILURE') {
+                                return '\uf128'
+                            } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
+                                return '\uf06a';
+                            } else if (vciState === 'STALE') {
+                                return '\uf0aa';
+                            } else if (vciState === 'LOCALLY_MODIFIED') {
+                                return '\uf069';
+                            } else {
+                                return '\uf00c';
+                            }
+                        } else {
+                            return '';
+                        }
+                    });
+
+                if (processGroupData.permissions.canRead) {
+                    // version control tooltip
+                    versionControl.each(function () {
+                            // get the tip
+                            var tip = d3.select('#version-control-tip-' + processGroupData.id);
+
+                            // if there are validation errors generate a tooltip
+                            if (isUnderVersionControl(processGroupData)) {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#process-group-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'version-control-tip-' + processGroupData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
+
+                                // update the tip
+                                tip.html(function () {
+                                    var vci = processGroupData.component.versionControlInformation;
+                                    var versionControlTip = $('<div></div>').text('Tracking to "' + vci.flowName + '" version ' + vci.version + ' in "' + vci.registryName + ' - ' + vci.bucketName + '"');
+                                    var versionControlStateTip = $('<div></div>').text(nfCommon.getVersionControlTooltip(vci));
+                                    return $('<div></div>').append(versionControlTip).append('<br/>').append(versionControlStateTip).html();
+                                });
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            } else {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            }
+                        });
+
+                    // update the process group comments
+                    processGroup.select('path.component-comments')
+                        .style('visibility', nfCommon.isBlank(processGroupData.component.comments) ? 'hidden' : 'visible')
+                        .each(function () {
+                            // get the tip
+                            var tip = d3.select('#comments-tip-' + processGroupData.id);
+
+                            // if there are validation errors generate a tooltip
+                            if (nfCommon.isBlank(processGroupData.component.comments)) {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            } else {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#process-group-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'comments-tip-' + processGroupData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
+
+                                // update the tip
+                                tip.text(processGroupData.component.comments);
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            }
+                        });
 
                     // update the process group name
                     processGroup.select('text.process-group-name')
+                        .attr({
+                            'x': function () {
+                                if (isUnderVersionControl(processGroupData)) {
+                                    var versionControlX = parseInt(versionControl.attr('x'), 10);
+                                    return versionControlX + Math.round(versionControl.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                                } else {
+                                    return 10;
+                                }
+                            },
+                            'width': function () {
+                                if (isUnderVersionControl(processGroupData)) {
+                                    var versionControlX = parseInt(versionControl.attr('x'), 10);
+                                    var processGroupNameX = parseInt(d3.select(this).attr('x'), 10);
+                                    return 316 - (processGroupNameX - versionControlX);
+                                } else {
+                                    return 316;
+                                }
+                            }
+                        })
                         .each(function (d) {
                             var processGroupName = d3.select(this);
 
@@ -865,15 +1191,25 @@
 
                             // apply ellipsis to the process group name as necessary
                             nfCanvasUtils.ellipsis(processGroupName, d.component.name);
-                        }).append('title').text(function (d) {
-                        return d.component.name;
-                    });
+                        })
+                        .append('title')
+                        .text(function (d) {
+                            return d.component.name;
+                        });
                 } else {
                     // clear the process group comments
-                    details.select('text.process-group-comments').text(null);
+                    processGroup.select('path.component-comments').style('visibility', 'hidden');
 
                     // clear the process group name
-                    processGroup.select('text.process-group-name').text(null);
+                    processGroup.select('text.process-group-name')
+                        .attr({
+                            'x': 10,
+                            'width': 316
+                        })
+                        .text(null);
+
+                    // clear tooltips
+                    processGroup.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -1018,6 +1354,8 @@
         removed.each(function (d) {
             // remove any associated tooltips
             $('#bulletin-tip-' + d.id).remove();
+            $('#version-control-tip-' + d.id).remove();
+            $('#comments-tip-' + d.id).remove();
         });
     };
 

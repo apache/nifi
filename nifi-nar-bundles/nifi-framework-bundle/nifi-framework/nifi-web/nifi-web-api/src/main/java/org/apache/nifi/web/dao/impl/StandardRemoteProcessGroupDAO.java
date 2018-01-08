@@ -85,6 +85,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
         // create the remote process group
         RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
+        remoteProcessGroup.initialize();
 
         // set other properties
         updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
@@ -314,6 +315,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // perform the update
         updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
 
+        remoteProcessGroup.getProcessGroup().onComponentModified();
         return port;
     }
 
@@ -332,6 +334,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
         // perform the update
         updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
+        remoteProcessGroup.getProcessGroup().onComponentModified();
 
         return port;
     }
@@ -373,8 +376,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     public RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroupDTO) {
         RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupDTO.getId());
         return updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
-
-
     }
 
     private RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDTO) {
@@ -447,6 +448,10 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             }
         }
 
+        final ProcessGroup group = remoteProcessGroup.getProcessGroup();
+        if (group != null) {
+            group.onComponentModified();
+        }
         return remoteProcessGroup;
     }
 

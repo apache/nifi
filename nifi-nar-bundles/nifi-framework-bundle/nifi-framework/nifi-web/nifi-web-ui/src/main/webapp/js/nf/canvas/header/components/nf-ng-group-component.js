@@ -24,9 +24,11 @@
                 'nf.Birdseye',
                 'nf.Graph',
                 'nf.CanvasUtils',
-                'nf.ErrorHandler'],
-            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler) {
-                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler));
+                'nf.ErrorHandler',
+                'nf.Common',
+                'nf.Dialog'],
+            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
+                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.GroupComponent =
@@ -35,16 +37,20 @@
                 require('nf.Birdseye'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
-                require('nf.ErrorHandler')));
+                require('nf.ErrorHandler'),
+                require('nf.Common'),
+                require('nf.Dialog')));
     } else {
         nf.ng.GroupComponent = factory(root.$,
             root.nf.Client,
             root.nf.Birdseye,
             root.nf.Graph,
             root.nf.CanvasUtils,
-            root.nf.ErrorHandler);
+            root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler) {
+}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -126,6 +132,7 @@
                         handler: {
                             close: function () {
                                 $('#new-process-group-name').val('');
+                                $('#new-process-group-dialog').removeData('pt');
                             }
                         }
                     });
@@ -145,7 +152,22 @@
                  * Show the modal.
                  */
                 show: function () {
+                    if (nfCommon.canVersionFlows()) {
+                        $('#import-process-group-link').show();
+                    } else {
+                        $('#import-process-group-link').hide();
+                    }
+
                     this.getElement().modal('show');
+                },
+
+                /**
+                 * Stores the pt.
+                 *
+                 * @param pt
+                 */
+                storePt: function (pt) {
+                    $('#new-process-group-dialog').data('pt', pt);
                 },
 
                 /**
@@ -217,12 +239,22 @@
                         // hide the dialog
                         groupComponent.modal.hide();
 
-                        // create the group and resolve the deferred accordingly
-                        createGroup(groupName, pt).done(function (response) {
-                            deferred.resolve(response.component);
-                        }).fail(function () {
+                        // ensure the group name is specified
+                        if (nfCommon.isBlank(groupName)) {
+                            nfDialog.showOkDialog({
+                                headerText: 'Create Process Group',
+                                dialogContent: 'The group name is required.'
+                            });
+
                             deferred.reject();
-                        });
+                        } else {
+                            // create the group and resolve the deferred accordingly
+                            createGroup(groupName, pt).done(function (response) {
+                                deferred.resolve(response.component);
+                            }).fail(function () {
+                                deferred.reject();
+                            });
+                        }
                     };
 
                     groupComponent.modal.update('setButtonModel', [{
@@ -255,6 +287,7 @@
                         }]);
 
                     // show the dialog
+                    groupComponent.modal.storePt(pt);
                     groupComponent.modal.show();
 
                     // set up the focus and key handlers

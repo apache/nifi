@@ -16,14 +16,19 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
-import java.util.concurrent.Future;
-
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Future;
 
 public interface ProcessGroupDAO {
 
@@ -70,11 +75,10 @@ public interface ProcessGroupDAO {
     /**
      * Verifies the specified controller services can be modified
      *
-     * @param groupId the ID of the process group
      * @param state the desired state
      * @param serviceIds the ID's of the controller services
      */
-    void verifyActivateControllerServices(String groupId, ControllerServiceState state, Set<String> serviceIds);
+    void verifyActivateControllerServices(ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Schedules the components in the specified process group.
@@ -89,11 +93,10 @@ public interface ProcessGroupDAO {
     /**
      * Enables or disables the controller services in the specified process group
      *
-     * @param groupId the id of the group
      * @param state the desired state
      * @param serviceIds the ID's of the services to enable or disable
      */
-    Future<Void> activateControllerServices(String groupId, ControllerServiceState state, Set<String> serviceIds);
+    Future<Void> activateControllerServices(ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Updates the specified process group.
@@ -104,12 +107,45 @@ public interface ProcessGroupDAO {
     ProcessGroup updateProcessGroup(ProcessGroupDTO processGroup);
 
     /**
+     * Updates the process group so that it matches the proposed flow
+     *
+     * @param groupId the ID of the process group
+     * @param proposedSnapshot Flow the new version of the flow
+     * @param versionControlInformation the new Version Control Information
+     * @param componentIdSeed the seed value to use for generating ID's for new components
+     * @param updateSettings whether or not to update the process group's name and position
+     * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
+     *            update the contents of that Process Group
+     * @return the process group
+     */
+    ProcessGroup updateProcessGroupFlow(String groupId, NiFiUser user, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
+                                        boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
+
+    /**
+     * Applies the given Version Control Information to the Process Group
+     *
+     * @param versionControlInformation the Version Control Information to apply
+     * @param versionedComponentMapping a mapping of Component ID to Versioned Component ID
+     * @return the Process Group
+     */
+    ProcessGroup updateVersionControlInformation(VersionControlInformationDTO versionControlInformation, Map<String, String> versionedComponentMapping);
+
+    /**
+     * Disconnects the specified group from version control.
+     *
+     * @param groupId group id
+     * @return the corresponding Process Group
+     */
+    ProcessGroup disconnectVersionControl(String groupId);
+
+    /**
      * Updates the specified variable registry
      *
+     * @param user the user performing the update
      * @param variableRegistry the Variable Registry
      * @return the Process Group that was updated
      */
-    ProcessGroup updateVariableRegistry(VariableRegistryDTO variableRegistry);
+    ProcessGroup updateVariableRegistry(NiFiUser user, VariableRegistryDTO variableRegistry);
 
     /**
      * Verifies that the specified updates to a current Process Group can be applied at this time
@@ -124,6 +160,13 @@ public interface ProcessGroupDAO {
      * @param groupId id
      */
     void verifyDelete(String groupId);
+
+    /**
+     * Verifies the specified registry can be removed.
+     *
+     * @param registryId registry id
+     */
+    void verifyDeleteFlowRegistry(String registryId);
 
     /**
      * Deletes the specified process group.

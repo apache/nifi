@@ -475,6 +475,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-draggable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-graph.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-flow-version.js</include>
                                                 <include>${staging.dir}/js/nf/nf-filtered-dialog-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>

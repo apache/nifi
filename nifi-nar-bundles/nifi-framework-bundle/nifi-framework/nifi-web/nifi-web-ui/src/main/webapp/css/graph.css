@@ -136,6 +136,11 @@ text.active-thread-count {
     font-weight: bold;
 }
 
+path.component-comments {
+    fill: #000;
+    stroke: #000;
+}
+
 /*
     Selection
 */
@@ -422,6 +427,13 @@ text.process-group-name {
     font-size: 14px;
 }
 
+text.version-control {
+    font-family: FontAwesome;
+    font-size: 18px;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+    visibility: hidden;
+}
+
 text.process-group-contents-count {
     fill: #775351;
     font-size: 15px;
@@ -464,5 +476,4 @@ text.remote-process-group-transmission-secure {
 
 text.remote-process-group-last-refresh {
     fill: #728e9b;
-    text-anchor: end;
 }

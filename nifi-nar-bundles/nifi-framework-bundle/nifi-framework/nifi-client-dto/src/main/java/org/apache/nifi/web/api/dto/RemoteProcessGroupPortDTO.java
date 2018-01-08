@@ -27,6 +27,7 @@ public class RemoteProcessGroupPortDTO {
 
     private String id;
     private String targetId;
+    private String versionedComponentId;
     private String groupId;
     private String name;
     private String comments;
@@ -50,6 +51,15 @@ public class RemoteProcessGroupPortDTO {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    @ApiModelProperty("The ID of the corresponding component that is under version control")
+    public String getVersionedComponentId() {
+        return versionedComponentId;
+    }
+
+    public void setVersionedComponentId(final String id) {
+        this.versionedComponentId = id;
     }
 
     /**

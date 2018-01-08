@@ -74,6 +74,11 @@
             this.controllerStoppedCount = "-";
             this.controllerInvalidCount = "-";
             this.controllerDisabledCount = "-";
+            this.controllerUpToDateCount = "-";
+            this.controllerLocallyModifiedCount = "-";
+            this.controllerStaleCount = "-";
+            this.controllerLocallyModifiedAndStaleCount = "-";
+            this.controllerSyncFailureCount = "-";
             this.statsLastRefreshed = "-";
 
             /**
@@ -500,6 +505,51 @@
                     $('#flow-status-container').find('.icon-enable-false').removeClass('zero').addClass('disabled');
                 } else {
                     $('#flow-status-container').find('.icon-enable-false').removeClass('disabled').addClass('zero');
+                }
+
+                this.controllerUpToDateCount =
+                    nfCommon.isDefinedAndNotNull(status.upToDateCount) ? status.upToDateCount : '-';
+
+                if (this.controllerUpToDateCount > 0) {
+                    $('#flow-status-container').find('.fa-check').removeClass('zero').addClass('up-to-date');
+                } else {
+                    $('#flow-status-container').find('.fa-check').removeClass('up-to-date').addClass('zero');
+                }
+
+                this.controllerLocallyModifiedCount =
+                    nfCommon.isDefinedAndNotNull(status.locallyModifiedCount) ? status.locallyModifiedCount : '-';
+
+                if (this.controllerLocallyModifiedCount > 0) {
+                    $('#flow-status-container').find('.fa-asterisk').removeClass('zero').addClass('locally-modified');
+                } else {
+                    $('#flow-status-container').find('.fa-asterisk').removeClass('locally-modified').addClass('zero');
+                }
+
+                this.controllerStaleCount =
+                    nfCommon.isDefinedAndNotNull(status.staleCount) ? status.staleCount : '-';
+
+                if (this.controllerStaleCount > 0) {
+                    $('#flow-status-container').find('.fa-arrow-circle-up').removeClass('zero').addClass('stale');
+                } else {
+                    $('#flow-status-container').find('.fa-arrow-circle-up').removeClass('stale').addClass('zero');
+                }
+
+                this.controllerLocallyModifiedAndStaleCount =
+                    nfCommon.isDefinedAndNotNull(status.locallyModifiedAndStaleCount) ? status.locallyModifiedAndStaleCount : '-';
+
+                if (this.controllerLocallyModifiedAndStaleCount > 0) {
+                    $('#flow-status-container').find('.fa-exclamation-circle').removeClass('zero').addClass('locally-modified-and-stale');
+                } else {
+                    $('#flow-status-container').find('.fa-exclamation-circle').removeClass('locally-modified-and-stale').addClass('zero');
+                }
+
+                this.controllerSyncFailureCount =
+                    nfCommon.isDefinedAndNotNull(status.syncFailureCount) ? status.syncFailureCount : '-';
+
+                if (this.controllerSyncFailureCount > 0) {
+                    $('#flow-status-container').find('.fa-question').removeClass('zero').addClass('sync-failure');
+                } else {
+                    $('#flow-status-container').find('.fa-question').removeClass('sync-failure').addClass('zero');
                 }
 
             },

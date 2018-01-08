@@ -47,7 +47,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -269,7 +268,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     public void validateServiceEnablementLogicHappensOnlyOnce() throws Exception {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
@@ -308,7 +307,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     public void validateDisabledServiceCantBeDisabled() throws Exception {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
@@ -346,7 +345,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     public void validateEnabledServiceCanOnlyBeDisabledOnce() throws Exception {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
@@ -380,7 +379,7 @@ public class TestStandardProcessScheduler {
 
     @Test
     public void validateDisablingOfTheFailedService() throws Exception {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(FailingService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
@@ -412,7 +411,7 @@ public class TestStandardProcessScheduler {
     @Test
     @Ignore
     public void validateEnabledDisableMultiThread() throws Exception {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ExecutorService executor = Executors.newCachedThreadPool();
         for (int i = 0; i < 200; i++) {
@@ -455,7 +454,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     public void validateNeverEnablingServiceCanStillBeDisabled() throws Exception {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
@@ -481,7 +480,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     public void validateLongEnablingServiceCanStillBeDisabled() throws Exception {
-        final ProcessScheduler scheduler = createScheduler();
+        final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
                 "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
@@ -581,7 +580,7 @@ public class TestStandardProcessScheduler {
         }
     }
 
-    private ProcessScheduler createScheduler() {
+    private StandardProcessScheduler createScheduler() {
         return new StandardProcessScheduler(null, null, stateMgrProvider, nifiProperties);
     }
 }

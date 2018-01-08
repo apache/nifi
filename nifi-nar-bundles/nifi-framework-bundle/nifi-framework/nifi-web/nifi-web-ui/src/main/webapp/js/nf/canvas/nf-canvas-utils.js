@@ -378,6 +378,10 @@
                 });
 
                 return refreshGraph;
+            } else {
+                return $.Deferred(function (deferred) {
+                    deferred.reject();
+                }).promise();
             }
         },
 
@@ -543,7 +547,7 @@
                             params.set('processGroupId', 'root');
                         }
 
-                        if ((url.origin + url.pathname + '?' + params.toString()).length <= nfCanvasUtils.MAX_URL_LENGTH) {
+                        if ((url.origin + url.pathname + '?' + params.toString()).length <= MAX_URL_LENGTH) {
                             newUrl = url.origin + url.pathname + '?' + params.toString();
                         } else if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
                             // silently remove all component ids
@@ -1884,7 +1888,7 @@
          *
          * @returns {boolean}   can write
          */
-        canReadFromGroup: function () {
+        canReadCurrentGroup: function () {
             return nfCanvas.canRead();
         },
 
@@ -1893,7 +1897,7 @@
          *
          * @returns {boolean}   can write
          */
-        canWrite: function () {
+        canWriteCurrentGroup: function () {
             return nfCanvas.canWrite();
         },
 

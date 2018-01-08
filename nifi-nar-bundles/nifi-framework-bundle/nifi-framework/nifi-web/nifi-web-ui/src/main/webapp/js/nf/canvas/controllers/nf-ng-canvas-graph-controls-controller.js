@@ -234,7 +234,7 @@
              */
             getContextName: function () {
                 var selection = nfCanvasUtils.getSelection();
-                var canRead = nfCanvasUtils.canReadFromGroup();
+                var canRead = nfCanvasUtils.canReadCurrentGroup();
 
                 if (selection.empty()) {
                     if (canRead) {

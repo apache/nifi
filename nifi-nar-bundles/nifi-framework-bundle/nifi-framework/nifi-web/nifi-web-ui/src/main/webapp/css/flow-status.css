@@ -67,6 +67,10 @@
     padding-left: 5px;
 }
 
+#flow-status-container {
+    width: 90%;
+}
+
 #search-container {
     overflow: hidden;
     height: 32px;
