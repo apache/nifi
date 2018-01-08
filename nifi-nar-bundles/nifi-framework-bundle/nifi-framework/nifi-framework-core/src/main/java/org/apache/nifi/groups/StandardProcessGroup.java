@@ -738,7 +738,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         for (final ControllerServiceNode cs : group.getControllerServices(false)) {
-            group.removeControllerService(cs);
+            // Must go through Controller Service here because we need to ensure that it is removed from the cache
+            flowController.removeControllerService(cs);
         }
 
         for (final ProcessGroup childGroup : new ArrayList<>(group.getProcessGroups())) {
@@ -3391,7 +3392,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             .map(VariableDescriptor::getName)
             .collect(Collectors.toSet());
 
-
         final Map<String, String> updatedVariableMap = new HashMap<>();
 
         // If any new variables exist in the proposed flow, add those to the variable registry.
@@ -3681,6 +3681,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final String removedVersionedId : controllerServicesRemoved) {
             final ControllerServiceNode service = servicesByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", service, group);
+            // Must remove Controller Service through Flow Controller in order to remove from cache
             flowController.removeControllerService(service);
         }
 
@@ -3688,21 +3689,18 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Funnel funnel = funnelsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", funnel, group);
             group.removeFunnel(funnel);
-            flowController.onFunnelRemoved(funnel);
         }
 
         for (final String removedVersionedId : inputPortsRemoved) {
             final Port port = inputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
             group.removeInputPort(port);
-            flowController.onInputPortRemoved(port);
         }
 
         for (final String removedVersionedId : outputPortsRemoved) {
             final Port port = outputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
             group.removeOutputPort(port);
-            flowController.onOutputPortRemoved(port);
         }
 
         for (final String removedVersionedId : labelsRemoved) {
@@ -3715,7 +3713,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessorNode processor = processorsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", processor, group);
             group.removeProcessor(processor);
-            flowController.onProcessorRemoved(processor);
         }
 
         for (final String removedVersionedId : rpgsRemoved) {
@@ -3728,7 +3725,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", childGroup, group);
             group.removeProcessGroup(childGroup);
-            flowController.onProcessGroupRemoved(childGroup);
         }
     }
 
@@ -4323,7 +4319,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                         + "A Process Group cannot be deleted while it contains Templates. Please remove the Templates before attempting to change the version of the flow.");
                 }
             }
-
 
             // Ensure that all Processors are instantiate-able.
             final Map<String, VersionedProcessor> proposedProcessors = new HashMap<>();

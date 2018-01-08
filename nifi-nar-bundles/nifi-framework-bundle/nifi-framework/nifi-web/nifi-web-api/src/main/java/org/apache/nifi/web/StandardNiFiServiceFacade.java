@@ -4002,6 +4002,32 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 continue;
             }
 
+            // If any Process Group is removed, consider all components below that Process Group as an affected component
+            if (difference.getDifferenceType() == DifferenceType.COMPONENT_REMOVED && localComponent.getComponentType() == org.apache.nifi.registry.flow.ComponentType.PROCESS_GROUP) {
+                final String localGroupId = ((InstantiatedVersionedProcessGroup) localComponent).getInstanceId();
+                final ProcessGroup localGroup = processGroupDAO.getProcessGroup(localGroupId);
+
+                localGroup.findAllProcessors().stream()
+                    .map(comp -> createAffectedComponentEntity(comp, user))
+                    .forEach(affectedComponents::add);
+                localGroup.findAllFunnels().stream()
+                    .map(comp -> createAffectedComponentEntity(comp, user))
+                    .forEach(affectedComponents::add);
+                localGroup.findAllInputPorts().stream()
+                    .map(comp -> createAffectedComponentEntity(comp, user))
+                    .forEach(affectedComponents::add);
+                localGroup.findAllOutputPorts().stream()
+                    .map(comp -> createAffectedComponentEntity(comp, user))
+                    .forEach(affectedComponents::add);
+                localGroup.findAllRemoteProcessGroups().stream()
+                    .flatMap(rpg -> Stream.concat(rpg.getInputPorts().stream(), rpg.getOutputPorts().stream()))
+                    .map(comp -> createAffectedComponentEntity(comp, user))
+                    .forEach(affectedComponents::add);
+                localGroup.findAllControllerServices().stream()
+                    .map(comp -> createAffectedComponentEntity(comp, user))
+                    .forEach(affectedComponents::add);
+            }
+
             if (localComponent.getComponentType() == org.apache.nifi.registry.flow.ComponentType.CONTROLLER_SERVICE) {
                 final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceId();
                 final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
