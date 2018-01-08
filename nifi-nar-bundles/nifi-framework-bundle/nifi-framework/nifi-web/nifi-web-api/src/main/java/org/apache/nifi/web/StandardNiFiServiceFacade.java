@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -273,8 +271,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -2452,7 +2450,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowRegistry registry = registryDAO.getFlowRegistry(registryDTO.getId());
         final RevisionUpdate<FlowRegistry> revisionUpdate = revisionManager.updateRevision(revisionClaim, user, () -> {
             final boolean duplicateName = registryDAO.getFlowRegistries().stream()
-                    .anyMatch(reg -> reg.getName().equals(registryDTO.getName()));
+                    .anyMatch(reg -> reg.getName().equals(registryDTO.getName()) && !reg.getIdentifier().equals(registryDTO.getId()));
 
             if (duplicateName) {
                 throw new IllegalStateException("Cannot update Flow Registry because a Flow Registry already exists with the name " + registryDTO.getName());
