@@ -210,6 +210,10 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
 
     @Override
     public void preDestruction() throws AuthorizerDestructionException {
-        super.preDestruction();
+        try {
+            configurableUserGroupProvider.preDestruction();
+        } finally {
+            super.preDestruction();
+        }
     }
 }
