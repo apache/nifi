@@ -47,25 +47,27 @@ public abstract class AbstractOAuthControllerService
     protected String scopeRespName = null;
 
     public static final PropertyDescriptor AUTH_SERVER_URL = new PropertyDescriptor
-            .Builder().name("OAuth2 Authorization Server URL")
+            .Builder().name("oauth2_authorization_server_url")
             .displayName("OAuth2 Authorization Server")
             .description("OAuth2 Authorization Server that grants access to the protected resources on the behalf of the resource owner.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor RESPONSE_ACCESS_TOKEN_FIELD_NAME = new PropertyDescriptor
-            .Builder().name("JSON response 'access_token' name")
+            .Builder().name("JSON_response_access_token_name")
             .displayName("JSON response 'access_token' name")
             .description("Name of the field in the JSON response that contains the access token. IETF OAuth2 spec default is 'access_token' if your API provider's" +
                     " response field is different this is where you can change that.")
             .defaultValue("access_token")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor RESPONSE_EXPIRE_TIME_FIELD_NAME = new PropertyDescriptor
-            .Builder().name("JSON response 'expire_time' name")
+            .Builder().name("JSON_response_access_token_name")
             .displayName("JSON response 'expire_time' name")
             .description("Name of the field in the JSON response that contains the expire time. IETF OAuth2 spec default is 'expire_time' if your API provider's" +
                     " response field is different this is where you can change that.")
@@ -75,37 +77,40 @@ public abstract class AbstractOAuthControllerService
             .build();
 
     public static final PropertyDescriptor RESPONSE_EXPIRE_IN_FIELD_NAME = new PropertyDescriptor
-            .Builder().name("JSON response 'expire_in' name")
+            .Builder().name("JSON_response_access_token_name")
             .displayName("JSON response 'expire_in' name")
             .description("Name of the field in the JSON response that contains the expire in. IETF OAuth2 spec default is 'expire_in' if your API provider's" +
                     " response field is different this is where you can change that.")
             .defaultValue("expire_in")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor RESPONSE_TOKEN_TYPE_FIELD_NAME = new PropertyDescriptor
-            .Builder().name("JSON response 'token_type' name")
+            .Builder().name("JSON_response_access_token_name")
             .displayName("JSON response 'token_type' name")
             .description("Name of the field in the JSON response that contains the token type. IETF OAuth2 spec default is 'token_type' if your API provider's" +
                     " response field is different this is where you can change that.")
             .defaultValue("token_type")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor RESPONSE_SCOPE_FIELD_NAME = new PropertyDescriptor
-            .Builder().name("JSON response 'scope' name")
+            .Builder().name("JSON_response_scope_name")
             .displayName("JSON response 'scope' name")
             .description("Name of the field in the JSON response that contains the scope. IETF OAuth2 spec default is 'scope' if your API provider's" +
                     " response field is different this is where you can change that.")
             .defaultValue("scope")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor EXPIRE_TIME_SAFETY_NET = new PropertyDescriptor
-            .Builder().name("Expire time safety net in seconds")
+            .Builder().name("expire_time_safety_net")
             .displayName("Expire time safety net in seconds")
             .description("There can be a chance that the authentication server and the NiFi agent clocks could be out of sync. Expires In is an OAuth standard " +
                     "that tells when the access token received will be invalidated. Comparing the current system clock to that value and understanding if the " +
@@ -114,6 +119,7 @@ public abstract class AbstractOAuthControllerService
                     "waiting on new tokens from the authentication server.")
             .defaultValue("10")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -128,17 +134,17 @@ public abstract class AbstractOAuthControllerService
             }
         }
 
-        this.authUrl = context.getProperty(AUTH_SERVER_URL).getValue();
-        this.expireTimeSafetyNetSeconds = new Long(context.getProperty(EXPIRE_TIME_SAFETY_NET).getValue());
+        this.authUrl = context.getProperty(AUTH_SERVER_URL).evaluateAttributeExpressions().getValue();
+        this.expireTimeSafetyNetSeconds = new Long(context.getProperty(EXPIRE_TIME_SAFETY_NET).evaluateAttributeExpressions().getValue());
 
         // Name of the OAuth2 spec fields that should be extracted from the JSON authentication response. While in theory every provider should be
         // using the same names in the response JSON that rarely happens. These values are used to ensure that if the provider does NOT follow the
         // spec the user can still use this integration approach instead of having to write something custom.
-        this.accessTokenRespName = context.getProperty(RESPONSE_ACCESS_TOKEN_FIELD_NAME).getValue();
-        this.expireTimeRespName = context.getProperty(RESPONSE_EXPIRE_TIME_FIELD_NAME).getValue();
-        this.expireInRespName = context.getProperty(RESPONSE_EXPIRE_IN_FIELD_NAME).getValue();
-        this.tokenTypeRespName = context.getProperty(RESPONSE_TOKEN_TYPE_FIELD_NAME).getValue();
-        this.scopeRespName = context.getProperty(RESPONSE_SCOPE_FIELD_NAME).getValue();
+        this.accessTokenRespName = context.getProperty(RESPONSE_ACCESS_TOKEN_FIELD_NAME).evaluateAttributeExpressions().getValue();
+        this.expireTimeRespName = context.getProperty(RESPONSE_EXPIRE_TIME_FIELD_NAME).evaluateAttributeExpressions().getValue();
+        this.expireInRespName = context.getProperty(RESPONSE_EXPIRE_IN_FIELD_NAME).evaluateAttributeExpressions().getValue();
+        this.tokenTypeRespName = context.getProperty(RESPONSE_TOKEN_TYPE_FIELD_NAME).evaluateAttributeExpressions().getValue();
+        this.scopeRespName = context.getProperty(RESPONSE_SCOPE_FIELD_NAME).evaluateAttributeExpressions().getValue();
     }
 
     public boolean isOAuthTokenExpired() {
@@ -146,7 +152,11 @@ public abstract class AbstractOAuthControllerService
             return true;
 
         if (expiresTime > 0) {
-            // Use the actual time that the token will authenticate
+            // Use the actual clock time that the token will expire
+            if ((System.currentTimeMillis() + (expireTimeSafetyNetSeconds * 1000)) >= expiresTime) {
+                return true;
+            }
+
             if ((expiresTime - (expireTimeSafetyNetSeconds * 1000)) <= System.currentTimeMillis()) {
                 return true;
             } else {
@@ -161,8 +171,8 @@ public abstract class AbstractOAuthControllerService
             }
         } else {
             getLogger().warn("Neither 'expire_in' nor 'expire_time' is set. This makes it impossible to determine if the access token in still valid" +
-                    " or not. Assuming the token is valid.");
-            return false;
+                    " or not. Assuming the token is invalid.");
+            return true;
         }
     }
 
