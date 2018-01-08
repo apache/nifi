@@ -3481,6 +3481,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             if (childGroup == null) {
                 final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip);
+                flowController.onProcessGroupAdded(added);
                 added.findAllRemoteProcessGroups().stream().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, this);
             } else if (childCoordinates == null || updateDescendantVersionedGroups) {
@@ -3500,6 +3501,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Funnel funnel = funnelsByVersionedId.get(proposedFunnel.getIdentifier());
             if (funnel == null) {
                 final Funnel added = addFunnel(group, proposedFunnel, componentIdSeed);
+                flowController.onFunnelAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedFunnel.getIdentifier())) {
                 updateFunnel(funnel, proposedFunnel);
@@ -3521,6 +3523,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Port port = inputPortsByVersionedId.get(proposedPort.getIdentifier());
             if (port == null) {
                 final Port added = addInputPort(group, proposedPort, componentIdSeed);
+                flowController.onInputPortAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 updatePort(port, proposedPort);
@@ -3541,6 +3544,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Port port = outputPortsByVersionedId.get(proposedPort.getIdentifier());
             if (port == null) {
                 final Port added = addOutputPort(group, proposedPort, componentIdSeed);
+                flowController.onOutputPortAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (updatedVersionedComponentIds.contains(proposedPort.getIdentifier())) {
                 updatePort(port, proposedPort);
@@ -3584,6 +3588,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessorNode processor = processorsByVersionedId.get(proposedProcessor.getIdentifier());
             if (processor == null) {
                 final ProcessorNode added = addProcessor(group, proposedProcessor, componentIdSeed);
+                flowController.onProcessorAdded(added);
 
                 final Set<Relationship> proposedAutoTerminated =
                     proposedProcessor.getAutoTerminatedRelationships() == null ? Collections.emptySet() : proposedProcessor.getAutoTerminatedRelationships().stream()
@@ -3642,6 +3647,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Connection connection = connectionsByVersionedId.get(proposedConnection.getIdentifier());
             if (connection == null) {
                 final Connection added = addConnection(group, proposedConnection, componentIdSeed);
+                flowController.onConnectionAdded(added);
                 LOG.info("Added {} to {}", added, this);
             } else if (isUpdateable(connection)) {
                 // If the connection needs to be updated, then the source and destination will already have
@@ -3662,6 +3668,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final Connection connection = connectionsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", connection, group);
             group.removeConnection(connection);
+            flowController.onConnectionRemoved(connection);
         }
 
         // Once the appropriate connections have been removed, we may now update Processors' auto-terminated relationships.
@@ -3674,25 +3681,28 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final String removedVersionedId : controllerServicesRemoved) {
             final ControllerServiceNode service = servicesByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", service, group);
-            group.removeControllerService(service);
+            flowController.removeControllerService(service);
         }
 
         for (final String removedVersionedId : funnelsRemoved) {
             final Funnel funnel = funnelsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", funnel, group);
             group.removeFunnel(funnel);
+            flowController.onFunnelRemoved(funnel);
         }
 
         for (final String removedVersionedId : inputPortsRemoved) {
             final Port port = inputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
             group.removeInputPort(port);
+            flowController.onInputPortRemoved(port);
         }
 
         for (final String removedVersionedId : outputPortsRemoved) {
             final Port port = outputPortsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", port, group);
             group.removeOutputPort(port);
+            flowController.onOutputPortRemoved(port);
         }
 
         for (final String removedVersionedId : labelsRemoved) {
@@ -3705,6 +3715,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessorNode processor = processorsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", processor, group);
             group.removeProcessor(processor);
+            flowController.onProcessorRemoved(processor);
         }
 
         for (final String removedVersionedId : rpgsRemoved) {
@@ -3717,6 +3728,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", childGroup, group);
             group.removeProcessGroup(childGroup);
+            flowController.onProcessGroupRemoved(childGroup);
         }
     }
 

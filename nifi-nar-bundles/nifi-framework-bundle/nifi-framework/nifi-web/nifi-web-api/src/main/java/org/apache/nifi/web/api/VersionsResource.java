@@ -1461,7 +1461,14 @@ public class VersionsResource extends ApplicationResource {
                 asyncRequest.setCancelCallback(enableServicesPause::cancel);
                 final Set<AffectedComponentEntity> servicesToEnable = getUpdatedEntities(enabledServices, user);
                 logger.info("Successfully updated flow; re-enabling {} Controller Services", servicesToEnable.size());
-                componentLifecycle.activateControllerServices(exampleUri, user, groupId, servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause);
+
+                try {
+                    componentLifecycle.activateControllerServices(exampleUri, user, groupId, servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause);
+                } catch (final IllegalStateException ise) {
+                    // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
+                    // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
+                    throw new IllegalStateException("Failed to re-enable Controller Services because " + ise.getMessage(), ise);
+                }
             }
 
             if (!asyncRequest.isCancelled()) {
@@ -1476,7 +1483,14 @@ public class VersionsResource extends ApplicationResource {
                 final CancellableTimedPause startComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
                 asyncRequest.setCancelCallback(startComponentsPause::cancel);
                 logger.info("Restarting {} Processors", componentsToStart.size());
-                componentLifecycle.scheduleComponents(exampleUri, user, groupId, componentsToStart, ScheduledState.RUNNING, startComponentsPause);
+
+                try {
+                    componentLifecycle.scheduleComponents(exampleUri, user, groupId, componentsToStart, ScheduledState.RUNNING, startComponentsPause);
+                } catch (final IllegalStateException ise) {
+                    // Component Lifecycle will restart the Processors only if they are valid. If IllegalStateException gets thrown, we need to provide
+                    // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
+                    throw new IllegalStateException("Failed to restart components because " + ise.getMessage(), ise);
+                }
             }
         }
 
