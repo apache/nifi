@@ -199,5 +199,18 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
 
     @Override
     public void preDestruction() throws AuthorizerDestructionException {
+        Exception error = null;
+        for (final UserGroupProvider userGroupProvider : userGroupProviders) {
+            try {
+                userGroupProvider.preDestruction();
+            } catch (Exception e) {
+                error = e;
+                logger.error("Error pre-destructing: " + e);
+            }
+        }
+
+        if (error != null) {
+            throw new AuthorizerDestructionException(error);
+        }
     }
 }

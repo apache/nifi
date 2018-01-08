@@ -480,6 +480,18 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
     public void destroy() throws Exception {
         if (authorizer != null) {
             authorizer.preDestruction();
+
+            if (authorizer instanceof ManagedAuthorizer) {
+                final AccessPolicyProvider accessPolicyProvider = ((ManagedAuthorizer) authorizer).getAccessPolicyProvider();
+                if (accessPolicyProvider != null) {
+                    accessPolicyProvider.preDestruction();
+
+                    final UserGroupProvider userGroupProvider = accessPolicyProvider.getUserGroupProvider();
+                    if (userGroupProvider != null) {
+                        userGroupProvider.preDestruction();
+                    }
+                }
+            }
         }
     }
 
