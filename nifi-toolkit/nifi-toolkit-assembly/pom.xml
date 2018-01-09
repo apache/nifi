@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
-        <version>1.5.0-SNAPSHOT</version>
+        <version>1.5.0</version>
     </parent>
     <artifactId>nifi-toolkit-assembly</artifactId>
     <packaging>pom</packaging>
@@ -142,10 +142,9 @@ language governing permissions and limitations under the License. -->
                                 <phase>package</phase>
                                 <configuration>
                                     <target name="copy assembly to docker for image build">
-                                        <copy todir="${project.basedir}/target/docker-build" overwrite="true"
-                                              flatten="true">
+                                        <copy todir="${project.basedir}/target/docker-build" overwrite="true" flatten="true">
                                             <fileset dir="${project.basedir}/target" includes="*.tar.gz">
-                                                <include name="*.tar.gz"/>
+                                                <include name="*.tar.gz" />
                                             </fileset>
                                         </copy>
                                     </target>
