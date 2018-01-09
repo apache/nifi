@@ -143,6 +143,17 @@ public class GetHDFSTest {
     }
 
     @Test
+    public void testDirectoryDoesNotExist() {
+        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "does/not/exist/${now():format('yyyyMMdd')}");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        assertEquals(0, flowFiles.size());
+    }
+
+    @Test
     public void testAutomaticDecompression() throws IOException {
         GetHDFS proc = new TestableGetHDFS(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(proc);
