@@ -37,7 +37,7 @@ class EncryptConfigLogger {
     static configureLogger(boolean verboseEnabled) {
 
         Properties log4jProps = null
-        URL log4jPropsPath = this.getClass().getResource("log4j.properties")
+        URL log4jPropsPath = EncryptConfigLogger.class.getResource("/log4j.properties")
         if (log4jPropsPath) {
             try {
                 log4jPropsPath.withReader { reader ->
@@ -52,6 +52,9 @@ class EncryptConfigLogger {
         if (!log4jProps) {
             log4jProps = defaultProperties()
         }
+
+        // For encrypt-config, log output should go to System.err as System.out is used for tool output in decrypt mode
+        log4jProps.put("log4j.appender.console.Target", "System.err")
 
         if (verboseEnabled) {
             // Override the log level for this package. For this to work as intended, this class must belong
