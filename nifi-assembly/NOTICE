@@ -885,7 +885,7 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Apache Commons FileUpload
     The following NOTICE information applies:
-      Apache Commons IO
+      Apache Commons FileUpload
       Copyright 2002-2014 The Apache Software Foundation
 
   (ASLv2) JSON-SMART
@@ -1260,32 +1260,7 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) The Netty Project
       The following NOTICE information applies:
-
-  	                            The Netty Project
-  	                            =================
-
-  	Please visit the Netty web site for more information:
-
-  	  * http://netty.io/
-
   	Copyright 2014 The Netty Project
-
-  	The Netty Project licenses this file to you under the Apache License,
-  	version 2.0 (the "License"); you may not use this file except in compliance
-  	with the License. You may obtain a copy of the License at:
-
-  	  http://www.apache.org/licenses/LICENSE-2.0
-
-  	Unless required by applicable law or agreed to in writing, software
-  	distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-  	WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-  	License for the specific language governing permissions and limitations
-  	under the License.
-
-  	Also, please refer to each LICENSE.<component>.txt file, which is located in
-  	the 'license' directory of the distribution file, for the license terms of the
-  	components that this product depends on.
-
   	-------------------------------------------------------------------------------
   	This product contains the extensions to Java Collections Framework which has
   	been derived from the works by JSR-166 EG, Doug Lea, and Jason T. Greene:
@@ -1574,6 +1549,10 @@ The following binary components are provided under the Apache Software License v
            The original software and related information is available
            at http://www.jcraft.com/jsch/.
 
+    (ASLv2) DataStax Java Driver for Apache Cassandra - Core
+        The following NOTICE information applies:
+          DataStax Java Driver for Apache Cassandra - Core
+          Copyright (C) 2012-2017 DataStax Inc.
 
 ************************
 Common Development and Distribution License 1.1
@@ -1676,15 +1655,6 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) JaCoCo Java Code Coverage Library ( org.jacoco ) http://www.eclemma.org/jacoco
     (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)
-
-************************
-The MIT License
-************************
-
-The following binary components are provided under the MIT License.  See project link for details.
-
-  (MIT License) EWS Java API (com.microsoft.ews-java-api:ews-java-api:2.0 - https://github.com/OfficeDev/ews-java-api)
-  (MIT License) libffi (libffi-3.2.1 - http://sourceware.org/libffi/)
 
 *****************
 Mozilla Public License v2.0
