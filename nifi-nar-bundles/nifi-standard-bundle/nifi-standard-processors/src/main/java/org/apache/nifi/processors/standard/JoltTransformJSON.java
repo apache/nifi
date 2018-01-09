@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.bazaarvoice.jolt.JsonUtil;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -52,6 +53,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.JsonUtilsPool;
 import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.processors.standard.util.jolt.TransformUtils;
 import org.apache.nifi.util.StopWatch;
@@ -59,7 +61,6 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtils;
 
 @EventDriven
 @SideEffectFree
@@ -216,8 +217,12 @@ public class JoltTransformJSON extends AbstractProcessor {
                             .explanation(customMessage)
                             .build());
                 } else {
-                    //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
-                    Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
+                    JsonUtil jsonUtil = JsonUtilsPool.getInstance();
+                    // for validation we want to be able to ensure the spec is syntactically correct and
+                    // not try to resolve variables since they may not exist yet
+                    Object specJson = SORTR.getValue().equals(transform) ? null :
+                            jsonUtil.jsonToObject(specValue.replaceAll("\\$\\{","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
+                    JsonUtilsPool.returnInstance(jsonUtil);
 
                     if (CUSTOMR.getValue().equals(transform)) {
                         if (StringUtils.isEmpty(customTransform)) {
@@ -256,7 +261,9 @@ public class JoltTransformJSON extends AbstractProcessor {
 
         final Object inputJson;
         try (final InputStream in = session.read(original)) {
-            inputJson = JsonUtils.jsonToObject(in);
+            JsonUtil jsonUtil = JsonUtilsPool.getInstance();
+            inputJson = jsonUtil.jsonToObject(in);
+            JsonUtilsPool.returnInstance(jsonUtil);
         } catch (final Exception e) {
             logger.error("Failed to transform {}; routing to failure", new Object[] {original, e});
             session.transfer(original, REL_FAILURE);
@@ -272,7 +279,9 @@ public class JoltTransformJSON extends AbstractProcessor {
             }
 
             final Object transformedJson = TransformUtils.transform(transform,inputJson);
-            jsonString = JsonUtils.toJsonString(transformedJson);
+            JsonUtil jsonUtil = JsonUtilsPool.getInstance();
+            jsonString = jsonUtil.toJsonString(transformedJson);
+            JsonUtilsPool.returnInstance(jsonUtil);
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", new Object[] {original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
@@ -318,7 +327,9 @@ public class JoltTransformJSON extends AbstractProcessor {
         // If no transform for our spec, create the transform.
         final Object specJson;
         if (context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            specJson = JsonUtils.jsonToObject(specString, DEFAULT_CHARSET);
+            JsonUtil jsonUtil = JsonUtilsPool.getInstance();
+            specJson = JsonUtilsPool.getInstance().jsonToObject(specString, DEFAULT_CHARSET);
+            JsonUtilsPool.returnInstance(jsonUtil);
         } else {
             specJson = null;
         }
