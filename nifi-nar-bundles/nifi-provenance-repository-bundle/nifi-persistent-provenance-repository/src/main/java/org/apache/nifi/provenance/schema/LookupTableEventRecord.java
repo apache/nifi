@@ -245,11 +245,14 @@ public class LookupTableEventRecord implements Record {
         final Map<String, String> previousAttributes = truncateAttributes((Map<String, String>) record.getFieldValue(EventFieldNames.PREVIOUS_ATTRIBUTES), maxAttributeLength);
         final Map<String, String> updatedAttributes = truncateAttributes((Map<String, String>) record.getFieldValue(EventFieldNames.UPDATED_ATTRIBUTES), maxAttributeLength);
 
+        final List<String> childUuids = (List<String>) record.getFieldValue(EventFieldNames.CHILD_UUIDS);
+        final List<String> parentUuids = (List<String>) record.getFieldValue(EventFieldNames.PARENT_UUIDS);
+
         final StandardProvenanceEventRecord.Builder builder = new StandardProvenanceEventRecord.Builder();
         builder.setAlternateIdentifierUri((String) record.getFieldValue(EventFieldNames.ALTERNATE_IDENTIFIER));
-        builder.setChildUuids((List<String>) record.getFieldValue(EventFieldNames.CHILD_UUIDS));
+        builder.setChildUuids(childUuids);
         builder.setDetails((String) record.getFieldValue(EventFieldNames.EVENT_DETAILS));
-        builder.setParentUuids((List<String>) record.getFieldValue(EventFieldNames.PARENT_UUIDS));
+        builder.setParentUuids(parentUuids);
         builder.setPreviousAttributes(previousAttributes);
         builder.setRelationship((String) record.getFieldValue(EventFieldNames.RELATIONSHIP));
         builder.setSourceSystemFlowFileIdentifier((String) record.getFieldValue(EventFieldNames.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER));
@@ -263,20 +266,42 @@ public class LookupTableEventRecord implements Record {
 
         // Determine the event type
         final Integer eventTypeOrdinal = (Integer) record.getFieldValue(EventFieldNames.EVENT_TYPE);
+        ProvenanceEventType eventType;
         if (eventTypeOrdinal == null || eventTypeOrdinal > eventTypes.size() || eventTypeOrdinal < 0) {
-            builder.setEventType(ProvenanceEventType.UNKNOWN);
+            eventType = ProvenanceEventType.UNKNOWN;
         } else {
             try {
-                builder.setEventType(ProvenanceEventType.valueOf(eventTypes.get(eventTypeOrdinal)));
+                eventType = ProvenanceEventType.valueOf(eventTypes.get(eventTypeOrdinal));
             } catch (final Exception e) {
-                builder.setEventType(ProvenanceEventType.UNKNOWN);
+                eventType = ProvenanceEventType.UNKNOWN;
+            }
+        }
+        builder.setEventType(eventType);
+
+        // Determine appropriate UUID for the event
+        String uuid = null;
+        switch (eventType) {
+            case CLONE:
+            case FORK:
+            case REPLAY:
+                if (parentUuids != null && !parentUuids.isEmpty()) {
+                    uuid = parentUuids.get(0);
+                }
+                break;
+            case JOIN:
+                if (childUuids != null && !childUuids.isEmpty()) {
+                    uuid = childUuids.get(0);
+                }
+                break;
+        }
+
+        if (uuid == null) {
+            uuid = updatedAttributes == null ? null : updatedAttributes.get(CoreAttributes.UUID.key());
+            if (uuid == null) {
+                uuid = previousAttributes == null ? null : previousAttributes.get(CoreAttributes.UUID.key());
             }
         }
 
-        String uuid = updatedAttributes == null ? null : updatedAttributes.get(CoreAttributes.UUID.key());
-        if (uuid == null) {
-            uuid = previousAttributes == null ? null : previousAttributes.get(CoreAttributes.UUID.key());
-        }
         builder.setFlowFileUUID(uuid);
 
         builder.setEventDuration((Integer) record.getFieldValue(EventFieldNames.EVENT_DURATION));

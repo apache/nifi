@@ -632,6 +632,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
             logger.error("Failed to re-index Provenance Events for partition " + partitionName, e);
         }
 
+        executor.shutdown();
+
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         final long seconds = millis / 1000L;
         final long millisRemainder = millis % 1000L;

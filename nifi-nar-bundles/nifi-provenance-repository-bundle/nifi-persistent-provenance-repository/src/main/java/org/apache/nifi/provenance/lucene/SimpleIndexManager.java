@@ -53,7 +53,7 @@ public class SimpleIndexManager implements IndexManager {
 
     public SimpleIndexManager(final RepositoryConfiguration repoConfig) {
         this.repoConfig = repoConfig;
-        this.searchExecutor = Executors.newFixedThreadPool(repoConfig.getQueryThreadPoolSize(), new NamedThreadFactory("Search Lucene Index"));
+        this.searchExecutor = Executors.newFixedThreadPool(repoConfig.getQueryThreadPoolSize(), new NamedThreadFactory("Search Lucene Index", true));
     }
 
     @Override
