@@ -19,18 +19,18 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-kudu-bundle</artifactId>
-        <version>1.5.0</version>
+        <version>1.5.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-kudu-nar</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.1-SNAPSHOT</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kudu-processors</artifactId>
-            <version>1.5.0</version>
+            <version>1.5.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

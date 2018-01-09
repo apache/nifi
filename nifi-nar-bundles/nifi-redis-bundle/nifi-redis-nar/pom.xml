@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-redis-bundle</artifactId>
-        <version>1.5.0</version>
+        <version>1.5.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-redis-nar</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.1-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-redis-extensions</artifactId>
-            <version>1.5.0</version>
+            <version>1.5.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

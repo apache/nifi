@@ -15,7 +15,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.5.0</version>
+        <version>1.5.1-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
@@ -34,12 +34,12 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-processors</artifactId>
-                <version>1.5.0</version>
+                <version>1.5.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-5-processors</artifactId>
-                <version>1.5.0</version>
+                <version>1.5.1-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

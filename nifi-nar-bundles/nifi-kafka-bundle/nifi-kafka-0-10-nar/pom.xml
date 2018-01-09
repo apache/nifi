@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-kafka-bundle</artifactId>
-        <version>1.5.0</version>
+        <version>1.5.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-kafka-0-10-nar</artifactId>
     <packaging>nar</packaging>

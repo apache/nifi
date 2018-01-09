@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-azure-bundle</artifactId>
-        <version>1.5.0</version>
+        <version>1.5.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-azure-nar</artifactId>
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-processors</artifactId>
-            <version>1.5.0</version>
+            <version>1.5.1-SNAPSHOT</version>
         </dependency>
         
         <dependency>
