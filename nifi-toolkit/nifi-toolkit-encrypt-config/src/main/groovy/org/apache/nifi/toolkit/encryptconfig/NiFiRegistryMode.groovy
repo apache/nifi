@@ -371,7 +371,7 @@ class NiFiRegistryMode implements ToolMode {
         private String determineDecryptionKey() {
             if (rawOptions.oldPassword) {
                 logger.debug("Attempting to generate decryption key (for migration) from old password.")
-                encryptionKey = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), null, rawOptions.oldPassword, true)
+                decryptionKey = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), null, rawOptions.oldPassword, true)
             } else if (rawOptions.oldKey) {
                 decryptionKey = rawOptions.oldKey
             }
