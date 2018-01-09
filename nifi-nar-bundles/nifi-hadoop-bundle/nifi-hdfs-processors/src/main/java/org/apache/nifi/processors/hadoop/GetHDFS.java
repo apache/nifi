@@ -238,11 +238,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
         abstractOnScheduled(context);
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
-        final FileSystem fs = getFileSystem();
-        final Path dir = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
-        if (!fs.exists(dir)) {
-            throw new IOException("PropertyDescriptor " + DIRECTORY + " has invalid value " + dir + ". The directory does not exist.");
-        }
 
         // forget the state of the queue in case HDFS contents changed while this processor was turned off
         queueLock.lock();
@@ -422,8 +417,16 @@ public class GetHDFS extends AbstractHadoopProcessor {
         if (System.currentTimeMillis() >= nextPollTime && listingLock.tryLock()) {
             try {
                 final FileSystem hdfs = getFileSystem();
-                // get listing
-                listing = selectFiles(hdfs, new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue()), null);
+                final Path directoryPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
+
+                if (!hdfs.exists(directoryPath)) {
+                    context.yield();
+                    getLogger().warn("The directory {} does not exist.", new Object[]{directoryPath});
+                } else {
+                    // get listing
+                    listing = selectFiles(hdfs, directoryPath, null);
+                }
+
                 lastPollTime.set(System.currentTimeMillis());
             } finally {
                 listingLock.unlock();
@@ -445,10 +448,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
     protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException, InterruptedException {
         if (null == filesVisited) {
             filesVisited = new HashSet<>();
-        }
-
-        if (!hdfs.exists(dir)) {
-            throw new IOException("Selection directory " + dir.toString() + " doesn't appear to exist!");
         }
 
         final Set<Path> files = new HashSet<>();
