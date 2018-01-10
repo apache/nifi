@@ -3964,6 +3964,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
+            .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
@@ -3995,6 +3996,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .collect(Collectors.toCollection(HashSet::new));
 
         for (final FlowDifference difference : comparison.getDifferences()) {
+            // Ignore these as local differences for now because we can't do anything with it
+            if (difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
+                continue;
+            }
+
             final VersionedComponent localComponent = difference.getComponentA();
             if (localComponent == null) {
                 continue;
