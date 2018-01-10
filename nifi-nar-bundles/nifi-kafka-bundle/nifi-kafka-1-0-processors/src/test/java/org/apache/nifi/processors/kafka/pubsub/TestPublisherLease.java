@@ -43,6 +43,7 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -274,6 +275,7 @@ public class TestPublisherLease {
 
         final RecordSetWriterFactory writerFactory = Mockito.mock(RecordSetWriterFactory.class);
         final RecordSetWriter writer = Mockito.mock(RecordSetWriter.class);
+        Mockito.when(writer.write(Mockito.any(Record.class))).thenReturn(WriteResult.of(1, Collections.emptyMap()));
 
         Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any())).thenReturn(writer);
 
