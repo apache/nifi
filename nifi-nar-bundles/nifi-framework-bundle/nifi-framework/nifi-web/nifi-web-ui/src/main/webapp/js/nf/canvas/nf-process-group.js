@@ -308,7 +308,10 @@
                             'class': 'process-group-transmitting process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf140');
+                        .text('\uf140')
+                        .append("title")
+                        .text("Transmitting Remote Process Groups");
+
 
                     // transmitting count
                     details.append('text')
@@ -324,7 +327,9 @@
                             'class': 'process-group-not-transmitting process-group-contents-icon',
                             'font-family': 'flowfont'
                         })
-                        .text('\ue80a');
+                        .text('\ue80a')
+                        .append("title")
+                        .text("Not Transmitting Remote Process Groups");
 
                     // not transmitting count
                     details.append('text')
@@ -340,7 +345,9 @@
                             'class': 'process-group-running process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf04b');
+                        .text('\uf04b')
+                        .append("title")
+                        .text("Running Components");
 
                     // running count
                     details.append('text')
@@ -356,7 +363,9 @@
                             'class': 'process-group-stopped process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf04d');
+                        .text('\uf04d')
+                        .append("title")
+                        .text("Stopped Components");
 
                     // stopped count
                     details.append('text')
@@ -372,7 +381,9 @@
                             'class': 'process-group-invalid process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf071');
+                        .text('\uf071')
+                        .append("title")
+                        .text("Invalid Components");
 
                     // invalid count
                     details.append('text')
@@ -388,7 +399,9 @@
                             'class': 'process-group-disabled process-group-contents-icon',
                             'font-family': 'flowfont'
                         })
-                        .text('\ue802');
+                        .text('\ue802')
+                        .append("title")
+                        .text("Disabled Components");
 
                     // disabled count
                     details.append('text')
@@ -407,7 +420,9 @@
                             'class': 'process-group-up-to-date process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf00c');
+                        .text('\uf00c')
+                        .append("title")
+                        .text("Up to date Versioned Process Groups");
 
                     // up to date count
                     details.append('text')
@@ -427,7 +442,9 @@
                             'class': 'process-group-locally-modified process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf069');
+                        .text('\uf069')
+                        .append("title")
+                        .text("Locally modified Versioned Process Groups");
 
                     // locally modified count
                     details.append('text')
@@ -447,7 +464,9 @@
                             'class': 'process-group-stale process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf0aa');
+                        .text('\uf0aa')
+                        .append("title")
+                        .text("Stale Versioned Process Groups");
 
                     // stale count
                     details.append('text')
@@ -467,7 +486,9 @@
                             'class': 'process-group-locally-modified-and-stale process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf06a');
+                        .text('\uf06a')
+                        .append("title")
+                        .text("Locally modified and stale Versioned Process Groups");
 
                     // locally modified and stale count
                     details.append('text')
@@ -487,7 +508,9 @@
                             'class': 'process-group-sync-failure process-group-contents-icon',
                             'font-family': 'FontAwesome'
                         })
-                        .text('\uf128');
+                        .text('\uf128')
+                        .append("title")
+                        .text("Sync failure Versioned Process Groups");
 
                     // sync failure count
                     details.append('text')
@@ -847,6 +870,7 @@
                     .text(function (d) {
                         return d.activeRemotePortCount;
                     });
+                transmittingCount.append("title").text("Transmitting Remote Process Groups");
 
                 // update not transmitting
                 var notTransmitting = details.select('text.process-group-not-transmitting')
@@ -868,6 +892,7 @@
                     .text(function (d) {
                         return d.inactiveRemotePortCount;
                     });
+                notTransmittingCount.append("title").text("Not transmitting Remote Process Groups")
 
                 // update running
                 var running = details.select('text.process-group-running')
@@ -889,6 +914,7 @@
                     .text(function (d) {
                         return d.runningCount;
                     });
+                runningCount.append("title").text("Running Components");
 
                 // update stopped
                 var stopped = details.select('text.process-group-stopped')
@@ -910,6 +936,7 @@
                     .text(function (d) {
                         return d.stoppedCount;
                     });
+                stoppedCount.append("title").text("Stopped Components");
 
                 // update invalid
                 var invalid = details.select('text.process-group-invalid')
@@ -931,6 +958,7 @@
                     .text(function (d) {
                         return d.invalidCount;
                     });
+                invalidCount.append("title").text("Invalid Components");
 
                 // update disabled
                 var disabled = details.select('text.process-group-disabled')
@@ -944,7 +972,7 @@
                         var invalidX = parseInt(invalidCount.attr('x'), 10);
                         return invalidX + Math.round(invalidCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                     });
-                details.select('text.process-group-disabled-count')
+                var disabledCount = details.select('text.process-group-disabled-count')
                     .attr('x', function () {
                         var disabledCountX = parseInt(disabled.attr('x'), 10);
                         return disabledCountX + Math.round(disabled.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
@@ -952,6 +980,7 @@
                     .text(function (d) {
                         return d.disabledCount;
                     });
+                disabledCount.append("title").text("Disabled Components");
 
                 // up to date current
                 var upToDate = details.select('text.process-group-up-to-date')
@@ -969,6 +998,7 @@
                     .text(function (d) {
                         return d.upToDateCount;
                     });
+                upToDateCount.append("title").text("Up to date Versioned Process Groups");
 
                 // update locally modified
                 var locallyModified = details.select('text.process-group-locally-modified')
@@ -990,6 +1020,7 @@
                     .text(function (d) {
                         return d.locallyModifiedCount;
                     });
+                locallyModifiedCount.append("title").text("Locally modified Versioned Process Groups");
 
                 // update stale
                 var stale = details.select('text.process-group-stale')
@@ -1011,6 +1042,7 @@
                     .text(function (d) {
                         return d.staleCount;
                     });
+                staleCount.append("title").text("Stale Versioned Process Groups");
 
                 // update locally modified and stale
                 var locallyModifiedAndStale = details.select('text.process-group-locally-modified-and-stale')
@@ -1032,6 +1064,7 @@
                     .text(function (d) {
                         return d.locallyModifiedAndStaleCount;
                     });
+                locallyModifiedAndStaleCount.append("title").text("Locally modified and stale Versioned Process Groups");
 
                 // update sync failure
                 var syncFailure = details.select('text.process-group-sync-failure')
@@ -1045,7 +1078,7 @@
                         var syncFailureX = parseInt(locallyModifiedAndStaleCount.attr('x'), 10);
                         return syncFailureX + Math.round(locallyModifiedAndStaleCount.node().getComputedTextLength()) + CONTENTS_SPACER - 2;
                     });
-                details.select('text.process-group-sync-failure-count')
+                var syncFailureCount = details.select('text.process-group-sync-failure-count')
                     .attr('x', function () {
                         var syncFailureCountX = parseInt(syncFailure.attr('x'), 10);
                         return syncFailureCountX + Math.round(syncFailure.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
@@ -1053,6 +1086,7 @@
                     .text(function (d) {
                         return d.syncFailureCount;
                     });
+                syncFailureCount.append("title").text("Sync failure Versioned Process Groups");
 
                 // update version control information
                 var versionControl = processGroup.select('text.version-control')
