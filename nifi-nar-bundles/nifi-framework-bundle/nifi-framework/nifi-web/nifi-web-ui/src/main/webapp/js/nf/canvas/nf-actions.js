@@ -1535,7 +1535,7 @@
             var origin = nfCanvasUtils.getOrigin(selection);
 
             var pt = {'x': origin.x, 'y': origin.y};
-            $.when(nfNgBridge.injector.get('groupComponent').promptForGroupName(pt)).done(function (processGroup) {
+            $.when(nfNgBridge.injector.get('groupComponent').promptForGroupName(pt, false)).done(function (processGroup) {
                 var group = d3.select('#id-' + processGroup.id);
                 nfCanvasUtils.moveComponents(selection, group);
             });
