@@ -149,7 +149,13 @@ image::nifi-toolbar-components.png["NiFi Components Toolbar"]
 The Components Toolbar runs across the top left portion of your screen. It consists of the components you can drag onto the
 canvas to build your dataflow. Each component is described in more detail in link:building-dataflow.html[Building a Dataflow].
 
-The Status Bar is under the Components Toolbar. The Status bar provides information about the number of threads that are currently active in the flow, the amount of data that currently exists in the flow, how many Remote Process Groups exist on the canvas in each state (Transmitting, Not Transmitting), how many Processors exist on the canvas in each state (Stopped, Running, Invalid, Disabled), how many versioned Process Groups exist on the canvas in each state (Up to date, Locally modified, Stale, Locally modified and stale, Sync failure) and the timestamp at which all of this information was last refreshed. Additionally, if the instance of NiFi is clustered, the Status bar shows how many nodes are in the cluster and how many are currently connected.
+The Status Bar is under the Components Toolbar. The Status bar provides information about the number of threads that are
+currently active in the flow, the amount of data that currently exists in the flow, how many Remote Process Groups exist
+on the canvas in each state (Transmitting, Not Transmitting), how many Processors exist on the canvas in each state
+(Stopped, Running, Invalid, Disabled), how many versioned Process Groups exist on the canvas in each state (Up to date,
+Locally modified, Stale, Locally modified and stale, Sync failure) and the timestamp at which all of this information
+was last refreshed. Additionally, if the instance of NiFi is clustered, the Status bar shows how many nodes are in the
+cluster and how many are currently connected.
 
 The Operate Palette sits to the left-hand side of the screen. It consists of buttons that are
 used by DFMs to manage the flow, as well as by administrators who manage user access
