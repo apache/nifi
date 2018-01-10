@@ -3252,6 +3252,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             final Set<String> updatedVersionedComponentIds = new HashSet<>();
             for (final FlowDifference diff : flowComparison.getDifferences()) {
+                // Ignore these as local differences for now because we can't do anything with it
+                if (diff.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
+                    continue;
+                }
+
                 // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
                 // and if so compare our VersionedControllerService to the existing service.
                 if (diff.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
@@ -4187,7 +4192,9 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorGroupServiceIds(), new EvolvingDifferenceDescriptor());
         final FlowComparison comparison = flowComparator.compare();
-        final Set<FlowDifference> differences = comparison.getDifferences();
+        final Set<FlowDifference> differences = comparison.getDifferences().stream()
+            .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
+            .collect(Collectors.toCollection(HashSet::new));
 
         LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
         return differences;
