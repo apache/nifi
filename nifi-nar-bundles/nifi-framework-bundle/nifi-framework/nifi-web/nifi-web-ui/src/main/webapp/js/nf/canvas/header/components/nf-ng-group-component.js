@@ -152,12 +152,6 @@
                  * Show the modal.
                  */
                 show: function () {
-                    if (nfCommon.canVersionFlows()) {
-                        $('#import-process-group-link').show();
-                    } else {
-                        $('#import-process-group-link').hide();
-                    }
-
                     this.getElement().modal('show');
                 },
 
@@ -211,7 +205,7 @@
              * @argument {object} pt        The point that the component was dropped.
              */
             dropHandler: function (pt) {
-                this.promptForGroupName(pt);
+                this.promptForGroupName(pt, true);
             },
 
             /**
@@ -228,8 +222,9 @@
              * Prompts the user to enter the name for the group.
              *
              * @argument {object} pt        The point that the group was dropped.
+             * @argument {boolean} showImportLink Whether we should show the import link
              */
-            promptForGroupName: function (pt) {
+            promptForGroupName: function (pt, showImportLink) {
                 var groupComponent = this;
                 return $.Deferred(function (deferred) {
                     var addGroup = function () {
@@ -285,6 +280,12 @@
                                 }
                             }
                         }]);
+
+                    if (showImportLink === true && nfCommon.canVersionFlows()) {
+                        $('#import-process-group-link').show();
+                    } else {
+                        $('#import-process-group-link').hide();
+                    }
 
                     // show the dialog
                     groupComponent.modal.storePt(pt);
