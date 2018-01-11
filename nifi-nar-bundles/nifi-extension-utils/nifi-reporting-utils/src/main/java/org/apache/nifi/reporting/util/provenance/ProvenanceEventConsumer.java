@@ -32,6 +32,8 @@ import org.apache.nifi.reporting.ReportingContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,8 +68,11 @@ public class ProvenanceEventConsumer {
 
     private String startPositionValue = PROVENANCE_START_POSITION.getDefaultValue();
     private Pattern componentTypeRegex;
-    private List<ProvenanceEventType> eventTypes = new ArrayList<ProvenanceEventType>();
-    private List<String> componentIds = new ArrayList<String>();
+    private Pattern componentTypeRegexExclude;
+    private List<ProvenanceEventType> eventTypes = new ArrayList<>();
+    private List<ProvenanceEventType> eventTypesExclude = new ArrayList<>();
+    private List<String> componentIds = new ArrayList<>();
+    private List<String> componentIdsExclude = new ArrayList<>();
     private int batchSize = Integer.parseInt(PROVENANCE_BATCH_SIZE.getDefaultValue());
 
     private volatile long firstEventId = -1L;
@@ -89,16 +94,26 @@ public class ProvenanceEventConsumer {
         }
     }
 
-    public void addTargetEventType(final ProvenanceEventType... types) {
-        for (ProvenanceEventType type : types) {
-            eventTypes.add(type);
+    public void setComponentTypeRegexExclude(final String componentTypeRegex) {
+        if (!StringUtils.isBlank(componentTypeRegex)) {
+            this.componentTypeRegexExclude = Pattern.compile(componentTypeRegex);
         }
     }
 
+    public void addTargetEventType(final ProvenanceEventType... types) {
+        eventTypes.addAll(Arrays.asList(types));
+    }
+
+    public void addTargetEventTypeExclude(final ProvenanceEventType... types) {
+        Collections.addAll(eventTypesExclude, types);
+    }
+
     public void addTargetComponentId(final String... ids) {
-        for (String id : ids) {
-            componentIds.add(id);
-        }
+        Collections.addAll(componentIds, ids);
+    }
+
+    public void addTargetComponentIdExclude(final String... ids) {
+        Collections.addAll(componentIdsExclude, ids);
     }
 
     public void setScheduled(boolean scheduled) {
@@ -226,7 +241,8 @@ public class ProvenanceEventConsumer {
 
 
     private boolean isFilteringEnabled() {
-        return componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty();
+        return componentTypeRegex != null || !eventTypes.isEmpty() || !componentIds.isEmpty()
+                || componentTypeRegexExclude != null || !eventTypesExclude.isEmpty() || !componentIdsExclude.isEmpty();
     }
 
     private List<ProvenanceEventRecord> filterEvents(ComponentMapHolder componentMapHolder, List<ProvenanceEventRecord> provenanceEvents) {
@@ -235,6 +251,32 @@ public class ProvenanceEventConsumer {
 
             for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
                 final String componentId = provenanceEventRecord.getComponentId();
+                if (!componentIdsExclude.isEmpty()) {
+                    if (componentIdsExclude.contains(componentId)) {
+                        continue;
+                    }
+                    // If we aren't excluding it based on component ID, let's see if this component has a parent process group IDs
+                    // that is being excluded
+                    if (componentMapHolder == null) {
+                        continue;
+                    }
+                    final String processGroupId = componentMapHolder.getProcessGroupId(componentId, provenanceEventRecord.getComponentType());
+                    if (StringUtils.isEmpty(processGroupId)) {
+                        continue;
+                    }
+                    // Check if the process group or any parent process group is specified as a target component ID.
+                    if (componentIdsExclude.contains(processGroupId)) {
+                        continue;
+                    }
+                    ParentProcessGroupSearchNode parentProcessGroup = componentMapHolder.getProcessGroupParent(processGroupId);
+                    while (parentProcessGroup != null && !componentIdsExclude.contains(parentProcessGroup.getId())) {
+                        parentProcessGroup = parentProcessGroup.getParent();
+                    }
+                    if (parentProcessGroup != null) {
+                        continue;
+                    }
+
+                }
                 if (!componentIds.isEmpty() && !componentIds.contains(componentId)) {
                     // If we aren't filtering it out based on component ID, let's see if this component has a parent process group IDs
                     // that is being filtered on
@@ -245,7 +287,6 @@ public class ProvenanceEventConsumer {
                     if (StringUtils.isEmpty(processGroupId)) {
                         continue;
                     }
-                    // Check if the process group or any parent process group is specified as a target component ID.
                     if (!componentIds.contains(processGroupId)) {
                         ParentProcessGroupSearchNode parentProcessGroup = componentMapHolder.getProcessGroupParent(processGroupId);
                         while (parentProcessGroup != null && !componentIds.contains(parentProcessGroup.getId())) {
@@ -256,7 +297,13 @@ public class ProvenanceEventConsumer {
                         }
                     }
                 }
+                if (!eventTypesExclude.isEmpty() && eventTypesExclude.contains(provenanceEventRecord.getEventType())) {
+                    continue;
+                }
                 if (!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
+                    continue;
+                }
+                if (componentTypeRegexExclude != null && componentTypeRegexExclude.matcher(provenanceEventRecord.getComponentType()).matches()) {
                     continue;
                 }
                 if (componentTypeRegex != null && !componentTypeRegex.matcher(provenanceEventRecord.getComponentType()).matches()) {
