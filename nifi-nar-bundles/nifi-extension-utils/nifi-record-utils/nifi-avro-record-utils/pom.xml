@@ -42,4 +42,18 @@
             <artifactId>nifi-record</artifactId>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/org/apache/nifi/avro/data.avro</exclude>
+                        <exclude>src/test/resources/org/apache/nifi/avro/schema.json</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
