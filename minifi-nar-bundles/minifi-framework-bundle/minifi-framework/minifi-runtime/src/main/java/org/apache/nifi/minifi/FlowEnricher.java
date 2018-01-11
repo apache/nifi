@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FlowEnricher {
@@ -49,8 +48,6 @@ public class FlowEnricher {
     public static final String PROCESSOR_TAG_NAME = "processor";
     public static final String CONTROLLER_SERVICE_TAG_NAME = "controllerService";
     public static final String REPORTING_TASK_TAG_NAME = "reportingTask";
-
-    private static final Pattern UUID_PATTERN = Pattern.compile("[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", Pattern.CASE_INSENSITIVE);
 
     public FlowEnricher(MiNiFi minifi, FlowParser flowParser, NiFiProperties niFiProperties) {
         this.minifi = minifi;
@@ -130,17 +127,15 @@ public class FlowEnricher {
                 componentToEnrich.setBundleInformation(enrichingBundleCoordinate);
                 componentToEnrich.setDependsUponBundleCoordinate(enrichingBundleDetails.getDependencyCoordinate());
             } else {
-
-                // mUltiple options
+                // multiple options
                 final Set<String> componentToEnrichBundleVersions = componentToEnrichVersionToBundles.values().stream()
                         .map(bundle -> bundle.getBundleDetails().getCoordinate().getVersion()).collect(Collectors.toSet());
-                final String componentToEnrichId = componentToEnrich.getComponentId();
-                String bundleVersion = componentToEnrichBundleVersions.stream().sorted().reduce((version, otherVersion) -> otherVersion).orElse(null);
-                if (bundleVersion != null) {
-                    componentToEnrich.setBundleInformation(componentToEnrichVersionToBundles.get(bundleVersion).getBundleDetails().getCoordinate());
-                }
-                logger.info("Enriching {} with bundle {}", new Object[]{});
-
+                // Select the last version of those available for the enriching bundle
+                final String bundleVersion = componentToEnrichBundleVersions.stream().sorted().reduce((version, otherVersion) -> otherVersion).get();
+                final BundleCoordinate enrichingCoordinate = componentToEnrichVersionToBundles.get(bundleVersion).getBundleDetails().getCoordinate();
+                componentToEnrich.setBundleInformation(enrichingCoordinate);
+                logger.warn("Multiple enriching bundle options were available for component {}.  The automatically selected enriching bundle was {}",
+                        new Object[]{componentToEnrich.getComponentClass(), enrichingCoordinate});
             }
         } else {
             logger.warn("Could not find any eligible bundles for {}.  Automatic start of the flow cannot be guaranteed.", componentToEnrich.getComponentClass());

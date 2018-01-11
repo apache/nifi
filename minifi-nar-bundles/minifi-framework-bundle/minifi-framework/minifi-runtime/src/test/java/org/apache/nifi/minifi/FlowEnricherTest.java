@@ -88,7 +88,7 @@ public class FlowEnricherTest {
         standardSvcsBundles.add(generateBundle(defaultGroup, standardSvcsId, anotherVersion));
 
         // SSL Context Service Bundles - depends on nifi-standard-services-api
-        final String sslContextSvcId = " nifi-ssl-context-service-nar";
+        final String sslContextSvcId = "nifi-ssl-context-service-nar";
         final List<Bundle> sslBundles = new ArrayList<>();
         sslBundles.add(generateBundle(defaultGroup, sslContextSvcId, aVersion, standardSvcsBundles.get(0).getBundleDetails().getCoordinate()));
         sslBundles.add(generateBundle(defaultGroup, sslContextSvcId, anotherVersion, standardSvcsBundles.get(1).getBundleDetails().getCoordinate()));
