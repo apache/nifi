@@ -832,13 +832,7 @@ public class AvroTypeUtil {
                     map.put(key, obj);
                 }
 
-                final DataType elementType = AvroTypeUtil.determineDataType(avroSchema.getValueType());
-                final List<RecordField> mapFields = new ArrayList<>();
-                for (final String key : map.keySet()) {
-                    mapFields.add(new RecordField(key, elementType, true));
-                }
-                final RecordSchema mapSchema = new SimpleRecordSchema(mapFields);
-                return new MapRecord(mapSchema, map);
+                return map;
         }
 
         return value;
