@@ -913,7 +913,7 @@
                     })
                     .text(function (d) {
                         return d.runningCount;
-                    })
+                    });
                 runningCount.append("title").text("Running Components");
 
                 // update stopped
@@ -935,7 +935,7 @@
                     })
                     .text(function (d) {
                         return d.stoppedCount;
-                    })
+                    });
                 stoppedCount.append("title").text("Stopped Components");
 
                 // update invalid
