@@ -224,6 +224,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
             if (!urlstr.isEmpty()) {
+                getLogger().info("Overriding endpoint with {}", new Object[]{urlstr});
                 this.client.setEndpoint(urlstr);
             }
         }
