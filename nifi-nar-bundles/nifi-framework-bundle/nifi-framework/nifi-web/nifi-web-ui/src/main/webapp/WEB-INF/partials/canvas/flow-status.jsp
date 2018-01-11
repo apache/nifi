@@ -22,10 +22,10 @@
         <div class="fa fa-list" title="Total queued data"><span id="total-queued">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.totalQueued}}</span></div>
         <div class="fa fa-bullseye" title="Transmitting Remote Process Groups"><span id="controller-transmitting-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerTransmittingCount}}</span></div>
         <div class="icon icon-transmit-false" title="Not Transmitting Remote Process Groups"><span id="controller-not-transmitting-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerNotTransmittingCount}}</span></div>
-        <div class="fa fa-play" title="Running Processors"><span id="controller-running-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerRunningCount}}</span></div>
-        <div class="fa fa-stop" title="Stopped Processors"><span id="controller-stopped-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerStoppedCount}}</span></div>
-        <div class="fa fa-warning" title="Invalid Processors"><span id="controller-invalid-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerInvalidCount}}</span></div>
-        <div class="icon icon-enable-false" title="Disabled Processors"><span id="controller-disabled-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerDisabledCount}}</span></div>
+        <div class="fa fa-play" title="Running Components"><span id="controller-running-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerRunningCount}}</span></div>
+        <div class="fa fa-stop" title="Stopped Components"><span id="controller-stopped-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerStoppedCount}}</span></div>
+        <div class="fa fa-warning" title="Invalid Components"><span id="controller-invalid-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerInvalidCount}}</span></div>
+        <div class="icon icon-enable-false" title="Disabled Components"><span id="controller-disabled-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerDisabledCount}}</span></div>
         <div class="fa fa-check" title="Up to date Versioned Process Groups"><span id="controller-up-to-date-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerUpToDateCount}}</span></div>
         <div class="fa fa-asterisk" title="Locally modified Versioned Process Groups"><span id="controller-locally-modified-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerLocallyModifiedCount}}</span></div>
         <div class="fa fa-arrow-circle-up" title="Stale Versioned Process Groups"><span id="controller-stale-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerStaleCount}}</span></div>
