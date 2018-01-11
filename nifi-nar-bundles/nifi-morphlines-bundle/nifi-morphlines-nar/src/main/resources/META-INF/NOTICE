@@ -1,0 +1,39 @@
+nifi-morphlines-nar
+Copyright 2015-2017 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Kite SDK
+    The following NOTICE information applies:
+      This product includes software developed by Cloudera, Inc.
+      (http://www.cloudera.com/).
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+      This product includes software developed by
+      Saxonica (http://www.saxonica.com/).
+
+  This product optionally depends on 'SLF4J', a simple logging facade for Java,
+  which can be obtained at:
+
+    * LICENSE:
+      * license/LICENSE.slf4j.txt (MIT License)
+    * HOMEPAGE:
+      * http://www.slf4j.org/
+
+  This product optionally depends on 'JUnit', an unit testing framework for Java,
+  which can be obtained at:
+
+    * LICENSE:
+      * http://junit.sourceforge.net/cpl-v10.html (Common Public License v. 1.0)
+    * HOMEPAGE:
+      * http://www.junit.org/
+
