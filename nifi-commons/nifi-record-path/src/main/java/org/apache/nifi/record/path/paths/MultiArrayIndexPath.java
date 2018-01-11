@@ -19,7 +19,6 @@ package org.apache.nifi.record.path.paths;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.nifi.record.path.ArrayIndexFieldValue;
@@ -56,24 +55,19 @@ public class MultiArrayIndexPath extends RecordPathSegment {
                 return indices.stream()
                     .filter(range -> values.length > Math.abs(range.getMin()))
                     .flatMap(range -> {
-                        final List<Object> valuesWithinRange = new ArrayList<>();
-                        final List<Integer> indexes = new ArrayList<Integer>();
-
                         final int min = range.getMin() < 0 ? values.length + range.getMin() : range.getMin();
                         final int max = range.getMax() < 0 ? values.length + range.getMax() : range.getMax();
 
+                        final List<FieldValue> indexFieldValues = new ArrayList<>(Math.max(0, max - min));
                         for (int i = min; i <= max; i++) {
                             if (values.length > i) {
-                                valuesWithinRange.add(values[i]);
-                                indexes.add(i);
+                                final RecordField elementField = new RecordField(arrayField.getFieldName(), elementDataType);
+                                final FieldValue arrayIndexFieldValue = new ArrayIndexFieldValue(values[i], elementField, fieldValue, i);
+                                indexFieldValues.add(arrayIndexFieldValue);
                             }
                         }
 
-                        return IntStream.range(0, valuesWithinRange.size())
-                            .mapToObj(index -> {
-                                final RecordField elementField = new RecordField(arrayField.getFieldName(), elementDataType);
-                                return new ArrayIndexFieldValue(valuesWithinRange.get(index), elementField, fieldValue, indexes.get(index));
-                            });
+                        return indexFieldValues.stream();
                     });
 
             });
