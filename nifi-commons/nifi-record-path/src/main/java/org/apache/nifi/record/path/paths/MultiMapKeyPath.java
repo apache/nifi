@@ -49,7 +49,7 @@ public class MultiMapKeyPath extends RecordPathSegment {
                 final Map<String, ?> map = (Map<String, ?>) fieldValue.getValue();
                 return mapKeys.stream().map(key -> {
                     final DataType valueType = ((MapDataType) fieldValue.getField().getDataType()).getValueType();
-                    final RecordField elementField = new RecordField(fieldValue.getField().getFieldName() + "['" + key + "']", valueType);
+                    final RecordField elementField = new RecordField(fieldValue.getField().getFieldName(), valueType);
                     return new MapEntryFieldValue(map.get(key), elementField, fieldValue, key);
                 });
             });

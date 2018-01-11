@@ -17,6 +17,7 @@
 
 package org.apache.nifi.record.path;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -28,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.nifi.record.path.exception.RecordPathException;
@@ -134,6 +134,10 @@ public class TestRecordPath {
 
         assertEquals("balance", fieldValues.get(1).getField().getFieldName());
         assertEquals(123.45D, fieldValues.get(1).getValue());
+
+        RecordPath.compile("/mainAccount/*[. > 100]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(122.44D));
+        assertEquals(1, accountValues.get("id"));
+        assertEquals(122.44D, accountValues.get("balance"));
     }
 
     @Test
@@ -154,9 +158,21 @@ public class TestRecordPath {
         assertEquals(1, fieldValues.size());
 
         final FieldValue fieldValue = fieldValues.get(0);
-        assertTrue(fieldValue.getField().getFieldName().equals("accounts"));
+        assertEquals("accounts", fieldValue.getField().getFieldName());
         assertEquals(record, fieldValue.getParentRecord().get());
         assertEquals(accountRecord, fieldValue.getValue());
+
+        final Map<String, Object> updatedAccountValues = new HashMap<>(accountValues);
+        updatedAccountValues.put("balance", 122.44D);
+        final Record updatedAccountRecord = new MapRecord(getAccountSchema(), updatedAccountValues);
+        RecordPath.compile("/*[0]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(updatedAccountRecord));
+
+        final Object[] accountRecords = (Object[]) record.getValue("accounts");
+        assertEquals(1, accountRecords.length);
+        final Record recordToVerify = (Record) accountRecords[0];
+        assertEquals(122.44D, recordToVerify.getValue("balance"));
+        assertEquals(48, record.getValue("id"));
+        assertEquals("John Doe", record.getValue("name"));
     }
 
     @Test
@@ -228,9 +244,28 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         final FieldValue fieldValue = RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get();
-        assertTrue(fieldValue.getField().getFieldName().startsWith("attributes['"));
+        assertTrue(fieldValue.getField().getFieldName().equals("attributes"));
         assertEquals("New York", fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testUpdateMap() {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("city", "New York");
+        attributes.put("state", "NY");
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("name", "John Doe");
+        values.put("attributes", attributes);
+        final Record record = new MapRecord(schema, values);
+
+        RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get().updateValue("Boston");
+        assertEquals("Boston", ((Map<String, Object>) record.getValue("attributes")).get("city"));
     }
 
     @Test
@@ -254,9 +289,18 @@ public class TestRecordPath {
         assertEquals("NY", fieldValues.get(1).getValue());
 
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("attributes['"));
+            assertEquals("attributes", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
+
+        RecordPath.compile("/attributes[*]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
+        assertEquals("Unknown", attributes.get("city"));
+        assertEquals("Unknown", attributes.get("state"));
+
+        RecordPath.compile("/attributes[*][fieldName(.) = 'attributes']").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
+        assertEquals("Unknown", attributes.get("city"));
+        assertEquals("Unknown", attributes.get("state"));
+
     }
 
     @Test
@@ -280,9 +324,13 @@ public class TestRecordPath {
         assertEquals("NY", fieldValues.get(1).getValue());
 
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("attributes['"));
+            assertEquals("attributes", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
+
+        RecordPath.compile("/attributes['city', 'state']").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
+        assertEquals("Unknown", attributes.get("city"));
+        assertEquals("Unknown", attributes.get("state"));
     }
 
     @Test
@@ -314,7 +362,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         final FieldValue fieldValue = RecordPath.compile("/numbers[3]").evaluate(record).getSelectedFields().findFirst().get();
-        assertTrue(fieldValue.getField().getFieldName().equals("numbers"));
+        assertEquals("numbers", fieldValue.getField().getFieldName());
         assertEquals(3, fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
     }
@@ -330,7 +378,7 @@ public class TestRecordPath {
 
         final List<FieldValue> fieldValues = RecordPath.compile("/numbers[0..1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().equals("numbers"));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
 
@@ -354,11 +402,13 @@ public class TestRecordPath {
         int i = 0;
         final int[] expectedValues = new int[] {3, 6, 9, 8};
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers"));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(expectedValues[i++], fieldValue.getValue());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
 
+        RecordPath.compile("/numbers[3,6, -1, -2]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(99));
+        assertArrayEquals(new Object[] {0, 1, 2, 99, 4, 5, 99, 7, 99, 99}, (Object[]) values.get("numbers"));
     }
 
     @Test
@@ -372,7 +422,7 @@ public class TestRecordPath {
 
         List<FieldValue> fieldValues = RecordPath.compile("/numbers[0, 2, 4..7, 9]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().startsWith("numbers"));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
 
@@ -384,7 +434,7 @@ public class TestRecordPath {
 
         fieldValues = RecordPath.compile("/numbers[0..-1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().equals("numbers"));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
         expectedValues = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -396,7 +446,7 @@ public class TestRecordPath {
 
         fieldValues = RecordPath.compile("/numbers[-1..-1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().equals("numbers"));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
         expectedValues = new int[] {9};
@@ -407,7 +457,7 @@ public class TestRecordPath {
 
         fieldValues = RecordPath.compile("/numbers[*]").evaluate(record).getSelectedFields().collect(Collectors.toList());
         for (final FieldValue fieldValue : fieldValues) {
-            assertTrue(fieldValue.getField().getFieldName().equals("numbers"));
+            assertEquals("numbers", fieldValue.getField().getFieldName());
             assertEquals(record, fieldValue.getParentRecord().get());
         }
         expectedValues = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -441,7 +491,7 @@ public class TestRecordPath {
 
         for (final FieldValue fieldValue : fieldValues) {
             final String fieldName = fieldValue.getField().getFieldName();
-            assertTrue(Pattern.compile("numbers").matcher(fieldName).matches());
+            assertEquals("numbers", fieldName);
             assertEquals(RecordFieldType.INT, fieldValue.getField().getDataType().getFieldType());
             assertEquals(4, fieldValue.getValue());
             assertEquals(record, fieldValue.getParentRecord().get());
@@ -478,6 +528,9 @@ public class TestRecordPath {
         assertEquals(accountRecord, fieldValue.getParentRecord().get());
         assertEquals(123.45D, fieldValue.getValue());
         assertEquals("balance", fieldValue.getField().getFieldName());
+
+        RecordPath.compile("/mainAccount/././balance/.").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(123.44D));
+        assertEquals(123.44D, accountValues.get("balance"));
     }
 
     @Test
