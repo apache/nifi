@@ -72,7 +72,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger());
+            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             CloudBlob blob = container.getBlockBlobReference(blobPath);

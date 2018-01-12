@@ -151,7 +151,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         }
         final List<BlobInfo> listing = new ArrayList<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger());
+            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), null);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
