@@ -24,6 +24,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -80,6 +81,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     // thread pool for starting/stopping components
     private final ScheduledExecutorService componentLifeCycleThreadPool;
+    private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processore Lifecycle", true);
 
     private final StringEncryptor encryptor;
 
@@ -323,7 +325,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         };
 
         LOG.info("Starting {}", procNode);
-        procNode.start(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, processContext, callback, failIfStopping);
+        procNode.start(this.componentMonitoringThreadPool, this.administrativeYieldMillis, processContext, callback, failIfStopping);
         return future;
     }
 

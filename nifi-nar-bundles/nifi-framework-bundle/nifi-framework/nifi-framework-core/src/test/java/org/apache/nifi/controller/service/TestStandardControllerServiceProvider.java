@@ -128,7 +128,7 @@ public class TestStandardControllerServiceProvider {
     }
 
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(new FlowEngine(2, "Unit Test", true), null, null, stateManagerProvider, niFiProperties);
+        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateManagerProvider, niFiProperties);
     }
 
     private void setProperty(ControllerServiceNode serviceNode, String propName, String propValue) {

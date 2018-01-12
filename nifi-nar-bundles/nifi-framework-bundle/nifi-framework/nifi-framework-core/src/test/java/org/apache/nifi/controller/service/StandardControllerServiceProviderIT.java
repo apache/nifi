@@ -90,7 +90,7 @@ public class StandardControllerServiceProviderIT {
      */
     @Test(timeout = 120000)
     public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException {
-        final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(2, "Unit Test", true), null, null, stateManagerProvider, niFiProperties);
+        final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateManagerProvider, niFiProperties);
         for (int i = 0; i < 5000; i++) {
             testEnableReferencingServicesGraph(scheduler);
         }

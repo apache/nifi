@@ -66,7 +66,7 @@ public class StandardProcessSchedulerIT {
      */
     @Test
     public void validateLongEnablingServiceCanStillBeDisabled() throws Exception {
-        final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(2, "Unit Test", true), null, null, stateMgrProvider, nifiProperties);
+        final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateMgrProvider, nifiProperties);
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
             "1", systemBundle.getBundleDetails().getCoordinate(), null, false);

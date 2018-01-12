@@ -115,7 +115,7 @@ public class TestStandardProcessScheduler {
         systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        scheduler = new StandardProcessScheduler(new FlowEngine(2, "Unit Test", true), Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider, nifiProperties);
+        scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider, nifiProperties);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
         reportingTask = new TestReportingTask();
@@ -606,6 +606,6 @@ public class TestStandardProcessScheduler {
     }
 
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(new FlowEngine(2, "Unit Test", true), null, null, stateMgrProvider, nifiProperties);
+        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateMgrProvider, nifiProperties);
     }
 }
