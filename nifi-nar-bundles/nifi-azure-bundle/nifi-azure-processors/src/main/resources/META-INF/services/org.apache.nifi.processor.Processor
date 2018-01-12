@@ -18,3 +18,4 @@ org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub
 org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage
 org.apache.nifi.processors.azure.storage.ListAzureBlobStorage
 org.apache.nifi.processors.azure.storage.PutAzureBlobStorage
+org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage

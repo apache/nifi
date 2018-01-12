@@ -47,7 +47,7 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class })
+@SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class })
 @CapabilityDescription("Puts content into an Azure Storage Blob")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({ @WritesAttribute(attribute = "azure.container", description = "The name of the Azure container"),
