@@ -31,6 +31,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     private final long lastModifiedTime;
     private final long length;
     private final String blobType;
+    private final String containerName;
 
     public static long getSerialversionuid() {
         return serialVersionUID;
@@ -50,6 +51,10 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
 
     public String getContentLanguage() {
         return contentLanguage;
+    }
+
+    public String getContainerName() {
+        return containerName;
     }
 
     public String getEtag() {
@@ -77,6 +82,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         private long lastModifiedTime;
         private long length;
         private String blobType;
+        private String containerName;
 
         public Builder primaryUri(String primaryUri) {
             this.primaryUri = primaryUri;
@@ -95,6 +101,11 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
 
         public Builder contentLanguage(String contentLanguage) {
             this.contentLanguage = contentLanguage;
+            return this;
+        }
+
+        public Builder containerName(String containerName) {
+            this.containerName = containerName;
             return this;
         }
 
@@ -164,6 +175,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         this.secondaryUri = builder.secondaryUri;
         this.contentType = builder.contentType;
         this.contentLanguage = builder.contentLanguage;
+        this.containerName = builder.containerName;
         this.etag = builder.etag;
         this.lastModifiedTime = builder.lastModifiedTime;
         this.length = builder.length;
