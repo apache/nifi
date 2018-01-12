@@ -32,7 +32,6 @@ import org.apache.nifi.reporting.ReportingContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -101,7 +100,7 @@ public class ProvenanceEventConsumer {
     }
 
     public void addTargetEventType(final ProvenanceEventType... types) {
-        eventTypes.addAll(Arrays.asList(types));
+        Collections.addAll(eventTypes, types);
     }
 
     public void addTargetEventTypeExclude(final ProvenanceEventType... types) {
@@ -250,6 +249,12 @@ public class ProvenanceEventConsumer {
             List<ProvenanceEventRecord> filteredEvents = new ArrayList<>();
 
             for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
+                if (!eventTypesExclude.isEmpty() && eventTypesExclude.contains(provenanceEventRecord.getEventType())) {
+                    continue;
+                }
+                if (!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
+                    continue;
+                }
                 final String componentId = provenanceEventRecord.getComponentId();
                 if (!componentIdsExclude.isEmpty()) {
                     if (componentIdsExclude.contains(componentId)) {
@@ -261,21 +266,20 @@ public class ProvenanceEventConsumer {
                         continue;
                     }
                     final String processGroupId = componentMapHolder.getProcessGroupId(componentId, provenanceEventRecord.getComponentType());
-                    if (StringUtils.isEmpty(processGroupId)) {
-                        continue;
-                    }
-                    // Check if the process group or any parent process group is specified as a target component ID.
-                    if (componentIdsExclude.contains(processGroupId)) {
-                        continue;
-                    }
-                    ParentProcessGroupSearchNode parentProcessGroup = componentMapHolder.getProcessGroupParent(processGroupId);
-                    while (parentProcessGroup != null && !componentIdsExclude.contains(parentProcessGroup.getId())) {
-                        parentProcessGroup = parentProcessGroup.getParent();
-                    }
-                    if (parentProcessGroup != null) {
-                        continue;
-                    }
+                    if (!StringUtils.isEmpty(processGroupId)) {
 
+                        // Check if the process group or any parent process group is specified as a target component ID.
+                        if (componentIdsExclude.contains(processGroupId)) {
+                            continue;
+                        }
+                        ParentProcessGroupSearchNode parentProcessGroup = componentMapHolder.getProcessGroupParent(processGroupId);
+                        while (parentProcessGroup != null && !componentIdsExclude.contains(parentProcessGroup.getId())) {
+                            parentProcessGroup = parentProcessGroup.getParent();
+                        }
+                        if (parentProcessGroup != null) {
+                            continue;
+                        }
+                    }
                 }
                 if (!componentIds.isEmpty() && !componentIds.contains(componentId)) {
                     // If we aren't filtering it out based on component ID, let's see if this component has a parent process group IDs
@@ -297,12 +301,7 @@ public class ProvenanceEventConsumer {
                         }
                     }
                 }
-                if (!eventTypesExclude.isEmpty() && eventTypesExclude.contains(provenanceEventRecord.getEventType())) {
-                    continue;
-                }
-                if (!eventTypes.isEmpty() && !eventTypes.contains(provenanceEventRecord.getEventType())) {
-                    continue;
-                }
+
                 if (componentTypeRegexExclude != null && componentTypeRegexExclude.matcher(provenanceEventRecord.getComponentType()).matches()) {
                     continue;
                 }
