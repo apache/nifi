@@ -55,12 +55,14 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
+import org.apache.nifi.controller.scheduling.processors.FailOnScheduledProcessor;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
+import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -104,13 +106,16 @@ public class TestStandardProcessScheduler {
 
     @Before
     public void setup() throws InitializationException {
-        this.nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, null);
+        final Map<String, String> overrideProperties = new HashMap<>();
+        overrideProperties.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "2 millis");
+        overrideProperties.put(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT, "10 millis");
+        this.nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, overrideProperties);
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        scheduler = new StandardProcessScheduler(Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider, nifiProperties);
+        scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider, nifiProperties);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
         reportingTask = new TestReportingTask();
@@ -167,13 +172,13 @@ public class TestStandardProcessScheduler {
         scheduler.schedule(taskNode);
 
         // Let it try to run a few times.
-        Thread.sleep(1000L);
+        Thread.sleep(25L);
 
         scheduler.unschedule(taskNode);
 
         final int attempts = reportingTask.onScheduleAttempts.get();
         // give it a sec to make sure that it's finished running.
-        Thread.sleep(1500L);
+        Thread.sleep(250L);
         final int attemptsAfterStop = reportingTask.onScheduleAttempts.get() - attempts;
 
         // allow 1 extra run, due to timing issues that could call it as it's being stopped.
@@ -207,7 +212,7 @@ public class TestStandardProcessScheduler {
         scheduler.enableControllerService(service);
         scheduler.startProcessor(procNode, true);
 
-        Thread.sleep(1000L);
+        Thread.sleep(25L);
 
         scheduler.stopProcessor(procNode);
         assertTrue(service.isActive());
@@ -215,7 +220,10 @@ public class TestStandardProcessScheduler {
         scheduler.disableControllerService(service);
         assertTrue(service.getState() == ControllerServiceState.DISABLING);
         assertFalse(service.isActive());
-        Thread.sleep(2000);
+
+        while (service.getState() != ControllerServiceState.DISABLED) {
+            Thread.sleep(5L);
+        }
         assertTrue(service.getState() == ControllerServiceState.DISABLED);
     }
 
@@ -472,36 +480,86 @@ public class TestStandardProcessScheduler {
         assertEquals(0, ts.disableInvocationCount());
     }
 
-    /**
-     * Validates that the service that is currently in ENABLING state can be
-     * disabled and that its @OnDisabled operation will be invoked as soon as
-     *
-     * @OnEnable finishes.
-     */
-    @Test
-    public void validateLongEnablingServiceCanStillBeDisabled() throws Exception {
-        final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
-        final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
-                "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
-        final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
-        ts.setLimit(3000);
-        scheduler.enableControllerService(serviceNode);
-        Thread.sleep(2000);
-        assertTrue(serviceNode.isActive());
-        assertEquals(1, ts.enableInvocationCount());
+    // Test that if processor throws Exception in @OnScheduled, it keeps getting scheduled
+    @Test(timeout = 10000)
+    public void testProcessorThrowsExceptionOnScheduledRetry() throws InterruptedException {
+        final FailOnScheduledProcessor proc = new FailOnScheduledProcessor();
+        proc.setDesiredFailureCount(3);
 
-        Thread.sleep(500);
-        scheduler.disableControllerService(serviceNode);
-        assertFalse(serviceNode.isActive());
-        assertEquals(ControllerServiceState.DISABLING, serviceNode.getState());
-        assertEquals(0, ts.disableInvocationCount());
-        // wait a bit. . . Enabling will finish and @OnDisabled will be invoked
-        // automatically
-        Thread.sleep(4000);
-        assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
-        assertEquals(1, ts.disableInvocationCount());
+        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, nifiProperties));
+        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
+
+        final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
+            new StandardValidationContextFactory(controller, variableRegistry),
+            scheduler, controller, nifiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent);
+
+        rootGroup.addProcessor(procNode);
+
+        scheduler.startProcessor(procNode, true);
+        while (!proc.isSucceess()) {
+            Thread.sleep(5L);
+        }
+
+        assertEquals(3, proc.getOnScheduledInvocationCount());
     }
+
+    // Test that if processor times out in the @OnScheduled but responds to interrupt, it keeps getting scheduled
+    @Test(timeout = 1000000)
+    public void testProcessorTimeOutRespondsToInterrupt() throws InterruptedException {
+        final FailOnScheduledProcessor proc = new FailOnScheduledProcessor();
+        proc.setDesiredFailureCount(0);
+        proc.setOnScheduledSleepDuration(20, TimeUnit.MINUTES, true, 1);
+
+        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, nifiProperties));
+        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
+
+        final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
+            new StandardValidationContextFactory(controller, variableRegistry),
+            scheduler, controller, nifiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent);
+
+        rootGroup.addProcessor(procNode);
+
+        scheduler.startProcessor(procNode, true);
+        while (!proc.isSucceess()) {
+            Thread.sleep(5L);
+        }
+
+        // The first time that the processor's @OnScheduled method is called, it will sleep for 20 minutes. The scheduler should interrupt
+        // that thread and then try again. The second time, the Processor will not sleep because setOnScheduledSleepDuration was called
+        // above with iterations = 1
+        assertEquals(2, proc.getOnScheduledInvocationCount());
+    }
+
+    // Test that if processor times out in the @OnScheduled and does not respond to interrupt, it is not scheduled again
+    @Test(timeout = 10000)
+    public void testProcessorTimeOutNoResponseToInterrupt() throws InterruptedException {
+        final FailOnScheduledProcessor proc = new FailOnScheduledProcessor();
+        proc.setDesiredFailureCount(0);
+        proc.setOnScheduledSleepDuration(20, TimeUnit.MINUTES, false, 1);
+
+        proc.initialize(new StandardProcessorInitializationContext(UUID.randomUUID().toString(), null, null, null, nifiProperties));
+        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
+
+        final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, UUID.randomUUID().toString(),
+            new StandardValidationContextFactory(controller, variableRegistry),
+            scheduler, controller, nifiProperties, new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent);
+
+        rootGroup.addProcessor(procNode);
+
+        scheduler.startProcessor(procNode, true);
+
+        Thread.sleep(100L);
+        assertEquals(1, proc.getOnScheduledInvocationCount());
+        Thread.sleep(100L);
+        assertEquals(1, proc.getOnScheduledInvocationCount());
+
+        // Allow test to complete.
+        proc.setAllowSleepInterrupt(true);
+    }
+
 
     public static class FailingService extends AbstractControllerService {
 
@@ -512,7 +570,6 @@ public class TestStandardProcessScheduler {
     }
 
     public static class RandomShortDelayEnablingService extends AbstractControllerService {
-
         private final Random random = new Random();
 
         @OnEnabled
@@ -526,7 +583,6 @@ public class TestStandardProcessScheduler {
     }
 
     public static class SimpleTestService extends AbstractControllerService {
-
         private final AtomicInteger enableCounter = new AtomicInteger();
         private final AtomicInteger disableCounter = new AtomicInteger();
 
@@ -549,38 +605,7 @@ public class TestStandardProcessScheduler {
         }
     }
 
-    public static class LongEnablingService extends AbstractControllerService {
-
-        private final AtomicInteger enableCounter = new AtomicInteger();
-        private final AtomicInteger disableCounter = new AtomicInteger();
-
-        private volatile long limit;
-
-        @OnEnabled
-        public void enable(final ConfigurationContext context) throws Exception {
-            this.enableCounter.incrementAndGet();
-            Thread.sleep(limit);
-        }
-
-        @OnDisabled
-        public void disable(final ConfigurationContext context) {
-            this.disableCounter.incrementAndGet();
-        }
-
-        public int enableInvocationCount() {
-            return this.enableCounter.get();
-        }
-
-        public int disableInvocationCount() {
-            return this.disableCounter.get();
-        }
-
-        public void setLimit(final long limit) {
-            this.limit = limit;
-        }
-    }
-
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(null, null, stateMgrProvider, nifiProperties);
+        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateMgrProvider, nifiProperties);
     }
 }
