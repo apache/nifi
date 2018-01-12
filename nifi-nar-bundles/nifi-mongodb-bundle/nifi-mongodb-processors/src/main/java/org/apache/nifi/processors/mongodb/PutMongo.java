@@ -166,21 +166,15 @@ public class PutMongo extends AbstractMongoProcessor {
                 // update
                 final boolean upsert = context.getProperty(UPSERT).asBoolean();
                 final String updateKey = context.getProperty(UPDATE_QUERY_KEY).getValue();
-                final Document query;
 
                 Object keyVal = ((Map)doc).get(updateKey);
-                if (updateKey.equals("_id")) {
-                    try {
-                        keyVal = new ObjectId((String) keyVal);
-                    } catch (Exception ex) {
-                        getLogger().error("{} is not a valid ObjectID, using raw value.", new Object[]{keyVal});
-                    }
+                if (updateKey.equals("_id") && ObjectId.isValid(((String)keyVal))) {
+                    keyVal = new ObjectId((String) keyVal);
                 }
 
-                query = new Document(updateKey, keyVal);
+                final Document query = new Document(updateKey, keyVal);
 
                 if (updateMode.equals(UPDATE_WITH_DOC.getValue())) {
-
                     collection.replaceOne(query, (Document)doc, new UpdateOptions().upsert(upsert));
                 } else {
                     BasicDBObject update = (BasicDBObject)doc;

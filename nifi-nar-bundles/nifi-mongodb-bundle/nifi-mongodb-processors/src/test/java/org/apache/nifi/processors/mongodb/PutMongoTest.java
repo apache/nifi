@@ -167,7 +167,6 @@ public class PutMongoTest extends MongoWriteTestBase {
         byte[] bytes = documentToByteArray(doc);
 
         runner.setProperty(PutMongo.MODE, "update");
-        runner.setProperty(PutMongo.UPSERT, "false");
         runner.enqueue(bytes);
         runner.run();
 
@@ -274,7 +273,6 @@ public class PutMongoTest extends MongoWriteTestBase {
      * * _ids that are arbitrary strings should be still go in as strings.
      *
      */
-
     @Test
     public void testNiFi_4759_Regressions() {
         String[] upserts = new String[]{
@@ -284,12 +282,14 @@ public class PutMongoTest extends MongoWriteTestBase {
                 "\t\t\"msg\": \"Hello, world\"\n" +
                 "\t}\n" +
                 "}",
+
                 "{\n" +
                 "\t\"_id\": \"5a5617b9c1f5de6d8276e87d\",\n" +
                 "\t\"$set\": {\n" +
                 "\t\t\"msg\": \"Hello, world\"\n" +
                 "\t}\n" +
                 "}",
+
                 "{\n" +
                 "\t\"updateKey\": \"12345\",\n" +
                 "\t\"$set\": {\n" +
@@ -302,10 +302,11 @@ public class PutMongoTest extends MongoWriteTestBase {
         Object[] updateKeys = new Object[] { "12345", new ObjectId("5a5617b9c1f5de6d8276e87d"), "12345" };
         int index = 0;
 
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.UPSERT, "true");
+
         for (String upsert : upserts) {
-            runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
-            runner.setProperty(PutMongo.MODE, "update");
-            runner.setProperty(PutMongo.UPSERT, "true");
             runner.setProperty(PutMongo.UPDATE_QUERY_KEY, updateKeyProps[index]);
             for (int x = 0; x < 5; x++) {
                 runner.enqueue(upsert);
