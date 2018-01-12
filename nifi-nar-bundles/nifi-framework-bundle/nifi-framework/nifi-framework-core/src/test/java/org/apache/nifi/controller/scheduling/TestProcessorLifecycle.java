@@ -339,7 +339,7 @@ public class TestProcessorLifecycle {
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
-        int delay = 2000;
+        int delay = 200;
         this.longRunningOnSchedule(testProcessor, delay);
         ProcessScheduler ps = fc.getProcessScheduler();
 
@@ -348,9 +348,10 @@ public class TestProcessorLifecycle {
 
         ps.stopProcessor(testProcNode);
         assertCondition(() -> ScheduledState.STOPPED == testProcNode.getScheduledState(), 5000L);
-        assertCondition(() -> testProcessor.operationNames.size() == 2, 8000L);
+        assertCondition(() -> testProcessor.operationNames.size() == 3, 8000L);
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
         assertEquals("@OnUnscheduled", testProcessor.operationNames.get(1));
+        assertEquals("@OnStopped", testProcessor.operationNames.get(2));
     }
 
     /**
@@ -442,7 +443,7 @@ public class TestProcessorLifecycle {
      */
     @Test
     public void validateProcessorCanBeStoppedWhenOnScheduledBlocksIndefinitelyUninterruptable() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT, "5 sec");
+        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT, "1 sec");
         fc = fcsb.getFlowController();
 
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
@@ -462,7 +463,7 @@ public class TestProcessorLifecycle {
     }
 
     /**
-     * Validates that processor can be stopped if onTrigger() keeps trowing
+     * Validates that processor can be stopped if onTrigger() keeps throwing
      * exceptions.
      */
     @Test
@@ -593,7 +594,7 @@ public class TestProcessorLifecycle {
         testProcNodeB.setProperties(properties);
         testGroup.addProcessor(testProcNodeB);
 
-        Collection<String> relationNames = new ArrayList<String>();
+        Collection<String> relationNames = new ArrayList<>();
         relationNames.add("relation");
         Connection connection = fc.createConnection(UUID.randomUUID().toString(), Connection.class.getName(), testProcNodeA, testProcNodeB, relationNames);
         testGroup.addConnection(connection);

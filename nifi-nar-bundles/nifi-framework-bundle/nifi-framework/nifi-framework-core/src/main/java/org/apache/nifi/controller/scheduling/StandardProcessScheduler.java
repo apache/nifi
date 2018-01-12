@@ -77,19 +77,20 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ConcurrentMap<Object, ScheduleState> scheduleStates = new ConcurrentHashMap<>();
     private final ScheduledExecutorService frameworkTaskExecutor;
     private final ConcurrentMap<SchedulingStrategy, SchedulingAgent> strategyAgentMap = new ConcurrentHashMap<>();
-    // thread pool for starting/stopping components
 
-    private final ScheduledExecutorService componentLifeCycleThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
-    private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
+    // thread pool for starting/stopping components
+    private final ScheduledExecutorService componentLifeCycleThreadPool;
 
     private final StringEncryptor encryptor;
 
     public StandardProcessScheduler(
+        final FlowEngine componentLifecycleThreadPool,
             final ControllerServiceProvider controllerServiceProvider,
             final StringEncryptor encryptor,
             final StateManagerProvider stateManagerProvider,
             final NiFiProperties nifiProperties
     ) {
+        this.componentLifeCycleThreadPool = componentLifecycleThreadPool;
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
@@ -164,7 +165,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         frameworkTaskExecutor.shutdown();
         componentLifeCycleThreadPool.shutdown();
-        componentMonitoringThreadPool.shutdown();
     }
 
     @Override
@@ -313,7 +313,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             @Override
             public Future<?> scheduleTask(Callable<?> task) {
                 scheduleState.incrementActiveThreadCount();
-                return componentMonitoringThreadPool.submit(task);
+                return componentLifeCycleThreadPool.submit(task);
             }
 
             @Override
