@@ -273,6 +273,25 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     @Test
+    public void testFilterComponentTypeExcludeSuccess() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
+    }
+
+    @Test
     public void testFilterComponentTypeNoResult() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
@@ -292,6 +311,25 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     @Test
+    public void testFilterComponentTypeNoResultExcluded() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "proc.*");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(3, task.dataSent.size());
+    }
+
+    @Test
     public void testFilterEventTypeSuccess() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
@@ -308,6 +346,25 @@ public class TestSiteToSiteProvenanceReportingTask {
         task.onTrigger(context);
 
         assertEquals(3, task.dataSent.size());
+    }
+
+    @Test
+    public void testFilterEventTypeExcludeSuccess() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE_EXCLUDE, "RECEIVE, notExistingType, DROP");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
     }
 
     @Test
@@ -369,6 +426,26 @@ public class TestSiteToSiteProvenanceReportingTask {
         task.onTrigger(context);
 
         assertEquals(3, task.dataSent.size());
+    }
+
+    @Test
+    public void testFilterMultiFilterExcludeTakesPrecedence() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
+        properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        assertEquals(0, task.dataSent.size());
     }
 
     @Test
