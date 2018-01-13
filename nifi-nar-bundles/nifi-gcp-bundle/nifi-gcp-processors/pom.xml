@@ -83,6 +83,12 @@
             <artifactId>json</artifactId>
             <version>1.8</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.beam</groupId>
+            <artifactId>beam-sdks-java-core</artifactId>
+            <version>0.6.0</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
 
     <build>
