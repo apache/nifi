@@ -131,10 +131,13 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .expressionLanguageSupported(true)
             .build();
     
-    public static final PropertyDescriptor VERSION_ATTRIBUTE = new PropertyDescriptor.Builder()
-			.name("Version").displayName("Version Attribute")
-			.description("The name of the attribute containing the version for each FlowFile. Only used for index operation. Forces External Versioning")
-			.required(false).expressionLanguageSupported(false).addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+    public static final PropertyDescriptor VERSION = new PropertyDescriptor.Builder()
+			.name("el5-put-version")
+			.displayName("Version")
+			.description("The version for each FlowFile. Only used for index operation. Forces External Versioning")
+			.required(false)
+			.expressionLanguageSupported(true)
+			.addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
 			.build();
 
     private static final Set<Relationship> relationships;
@@ -162,7 +165,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
         descriptors.add(CHARSET);
         descriptors.add(BATCH_SIZE);
         descriptors.add(INDEX_OP);
-        descriptors.add(VERSION_ATTRIBUTE);
+        descriptors.add(VERSION);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -187,7 +190,6 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
         }
 
         final String id_attribute = context.getProperty(ID_ATTRIBUTE).getValue();
-        final String version_attribute = context.getProperty(VERSION_ATTRIBUTE).getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
         final List<FlowFile> flowFiles = session.get(batchSize);
@@ -205,7 +207,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
                 final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
                 final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(file).getValue();
                 final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(file).getValue();
-                final Long version = version_attribute != null ? Long.parseLong(file.getAttribute(version_attribute)) : null;
+                final Long version = context.getProperty(VERSION).evaluateAttributeExpressions(file).asLong();
                 final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(file).getValue());
 
 

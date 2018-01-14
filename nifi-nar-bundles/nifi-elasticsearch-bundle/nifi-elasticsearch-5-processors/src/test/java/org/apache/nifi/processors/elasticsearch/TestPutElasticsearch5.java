@@ -250,6 +250,16 @@ public class TestPutElasticsearch5 {
 
         // This test generates an exception on execute(),routes to failure
         runner.assertTransferCount(PutElasticsearch5.REL_FAILURE, 1);
+        
+     // Node Closed exception
+        processor.setExceptionToThrow(new NodeClosedException(mock(StreamInput.class)));
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652143");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(FetchElasticsearch5.REL_RETRY, 1);
+        runner.clearTransferState();
     }
 
     @Test
@@ -360,7 +370,7 @@ public class TestPutElasticsearch5 {
         runner.setProperty(PutElasticsearch5.INDEX_OP, "update");
         runner.assertValid();
         
-        runner.setProperty(PutElasticsearch5.VERSION_ATTRIBUTE, "version");
+        runner.setProperty(PutElasticsearch5.VERSION, "derp");
         runner.assertValid();
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
