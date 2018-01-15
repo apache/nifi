@@ -68,7 +68,16 @@ import org.apache.nifi.processors.gcp.storage.ListGCSBucket;
 @CapabilityDescription("Streams flow files to a Google BigQuery table.")
 
 @WritesAttributes({
-        @WritesAttribute(attribute = BigQueryAttributes.TABLE_NAME_ATTR, description = BigQueryAttributes.TABLE_NAME_DESC)
+    @WritesAttribute(attribute = BigQueryAttributes.DATASET_ATTR, description = BigQueryAttributes.DATASET_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.TABLE_NAME_ATTR, description = BigQueryAttributes.TABLE_NAME_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.TABLE_SCHEMA_ATTR, description = BigQueryAttributes.TABLE_SCHEMA_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.BATCH_SIZE_ATTR, description = BigQueryAttributes.BATCH_SIZE_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.MAX_ROW_SIZE_ATTR, description = BigQueryAttributes.MAX_ROW_SIZE_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.CREATE_DISPOSITION_ATTR, description = BigQueryAttributes.CREATE_DISPOSITION_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.TABLE_CACHE_RESET_ATTR, description = BigQueryAttributes.TABLE_CACHE_RESET_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_MSG_ATTR, description = BigQueryAttributes.JOB_ERROR_MSG_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_REASON_ATTR, description = BigQueryAttributes.JOB_ERROR_REASON_DESC),
+    @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_LOCATION_ATTR, description = BigQueryAttributes.JOB_ERROR_LOCATION_DESC)
 })
 
 public class PutBigQueryStream extends AbstractBigQueryProcessor {
