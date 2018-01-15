@@ -16,16 +16,26 @@
  */
 package org.apache.nifi.processors.gcp.bigquery;
 
-import org.apache.nifi.processors.gcp.storage.*;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.InsertAllRequest;
+import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableDefinition;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
+import java.util.Collections;
 import org.apache.nifi.util.TestRunner;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link PutBigQueryStream}.
@@ -34,12 +44,18 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
     private static final String TABLENAME = "test_table";
     private static final String TABLE_SCHEMA = "[{ \"mode\": \"NULLABLE\", \"name\": \"data\", \"type\": \"STRING\" }]";
     private static final String BATCH_SIZE = "100";
-    private static final String MAX_ROW_SIZE = "2 MB";
+    private static final String MAX_ROW_SIZE = "1 MB";
     private static final String CREATE_DISPOSITION = JobInfo.CreateDisposition.CREATE_IF_NEEDED.name();
     private static final String TABLE_CACHE_RESET = "1 hours";
     
     @Mock
     BigQuery bq;
+    
+    @Mock
+    Table table;
+    
+    @Mock 
+    InsertAllResponse response;
 
     @Before
     public void setup() throws Exception {
@@ -70,12 +86,20 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
     @Test
     public void testSuccessfulInsert() throws Exception {
         reset(bq);
+        reset(table);
+        reset(response);
+        
+        when(table.exists()).thenReturn(Boolean.TRUE);
+        when(response.getInsertErrors()).thenReturn(Collections.EMPTY_MAP);
+        when(bq.create(ArgumentMatchers.isA(TableInfo.class))).thenReturn(table);
+        when(bq.insertAll(ArgumentMatchers.isA(InsertAllRequest.class))).thenReturn(response);
+        
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
         
         runner.enqueue("{ \"data\": \"datavalue\" }");
-        
+
         runner.run();
     }
 }

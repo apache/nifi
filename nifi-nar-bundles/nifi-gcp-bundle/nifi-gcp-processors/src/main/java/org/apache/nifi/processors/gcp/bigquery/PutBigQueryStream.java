@@ -43,6 +43,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -189,8 +190,8 @@ public class PutBigQueryStream extends AbstractBigQueryProcessor {
 
         Table table = bq.create(tableInfo);
         
-        if(!table.exists()) {
-            throw new ProcessException("Unable to create table: " + tableId);
+        if(table == null || !table.exists()) {
+            throw new ProcessException("Unable to create table: " + table + " info: " + tableInfo);
         }
         
         getLogger().info("Created Table: {}", new Object[]{tableId});
@@ -230,10 +231,8 @@ public class PutBigQueryStream extends AbstractBigQueryProcessor {
         schemaCache = null;
     }
     
-    @Override
-    public void onScheduled(ProcessContext context) {
-        super.onScheduled(context);
-        
+    @OnScheduled
+    public void initSchema(ProcessContext context) {
         if(schemaCache == null) {
             String schemaStr = context.getProperty(TABLE_SCHEMA).getValue();
             schemaCache = BqUtils.schemaFromString(schemaStr);
@@ -256,7 +255,7 @@ public class PutBigQueryStream extends AbstractBigQueryProcessor {
         
         final Gson gson = new Gson();
         final long startNanos = System.nanoTime();
-        final long max_row_size = context.getProperty(MAX_ROW_SIZE).asLong();
+        final long max_row_size = context.getProperty(MAX_ROW_SIZE).asDataSize(DataUnit.B).longValue();
 
         Map<TableId, List<FlowFile>> binned = new HashMap();
         long totalSize = 0;
@@ -270,7 +269,7 @@ public class PutBigQueryStream extends AbstractBigQueryProcessor {
                 session.transfer(ff, REL_ROW_TOO_BIG);
             }
             
-            final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions(ff).getValue();
+            final String projectId = context.getProperty(PROJECT_ID).getValue();
             final String dataset_str = context.getProperty(DATASET).evaluateAttributeExpressions(ff).getValue();
             final String tablename_str = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(ff).getValue();
             

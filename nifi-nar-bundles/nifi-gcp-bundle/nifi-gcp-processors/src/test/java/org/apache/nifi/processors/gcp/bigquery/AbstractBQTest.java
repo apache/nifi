@@ -44,8 +44,8 @@ import static org.mockito.Mockito.reset;
  * Base class for BigQuery Unit Tests. Provides a framework for creating a TestRunner instance with always-required credentials.
  */
 public abstract class AbstractBQTest {
-    private static final String PROJECT_ID = System.getProperty("test.gcp.project.id", "nifi-test-gcp-project");
-    private static final Integer RETRIES = 9;
+    static final String PROJECT_ID = System.getProperty("test.gcp.project.id", "nifi-test-gcp-project");
+    static final Integer RETRIES = 9;
 
     static final String DATASET = RemoteBigQueryHelper.generateDatasetName();
 
