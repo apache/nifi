@@ -151,7 +151,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties) {
         if (properties == null) {
             return;
         }
@@ -170,7 +170,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                     }
 
                     if (entry.getKey() != null && entry.getValue() == null) {
-                        removeProperty(entry.getKey());
+                        removeProperty(entry.getKey(), allowRemovalOfRequiredProperties);
                     } else if (entry.getKey() != null) {
                         setProperty(entry.getKey(), CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue()));
                     }
@@ -231,17 +231,20 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      * if was a dynamic property.
      *
      * @param name the property to remove
+     * @param allowRemovalOfRequiredProperties whether or not the property should be removed if it's required
      * @return true if removed; false otherwise
      * @throws java.lang.IllegalArgumentException if the name is null
      */
-    private boolean removeProperty(final String name) {
+    private boolean removeProperty(final String name, final boolean allowRemovalOfRequiredProperties) {
         if (null == name) {
             throw new IllegalArgumentException("Name can not be null");
         }
 
         final PropertyDescriptor descriptor = getComponent().getPropertyDescriptor(name);
         String value = null;
-        if (!descriptor.isRequired() && (value = properties.remove(descriptor)) != null) {
+
+        final boolean allowRemoval = allowRemovalOfRequiredProperties || !descriptor.isRequired();
+        if (allowRemoval && (value = properties.remove(descriptor)) != null) {
 
             if (descriptor.getControllerServiceDefinition() != null) {
                 if (value != null) {
@@ -541,6 +544,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         }
     }
 
+    @Override
     public ComponentVariableRegistry getVariableRegistry() {
         return this.variableRegistry;
     }

@@ -3925,7 +3925,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         service.setAnnotationData(proposed.getAnnotationData());
         service.setComments(proposed.getComments());
         service.setName(proposed.getName());
-        service.setProperties(populatePropertiesMap(service.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup()));
+
+        final Map<String, String> properties = populatePropertiesMap(service.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
+        service.setProperties(properties, true);
 
         if (!isEqual(service.getBundleCoordinate(), proposed.getBundle())) {
             final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
@@ -4045,7 +4047,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
         processor.setName(proposed.getName());
         processor.setPenalizationPeriod(proposed.getPenaltyDuration());
-        processor.setProperties(populatePropertiesMap(processor.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup()));
+
+        final Map<String, String> properties = populatePropertiesMap(processor.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
+        processor.setProperties(properties, true);
         processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
         processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
         processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
