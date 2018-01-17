@@ -94,15 +94,16 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final long maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asDataSize(DataUnit.B).longValue();
-        final String streamName = context.getProperty(KINESIS_STREAM_NAME).getValue();
 
-        List<FlowFile> flowFiles = filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, streamName,
-           AWS_KINESIS_ERROR_MESSAGE);
+        List<FlowFile> flowFiles = filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, AWS_KINESIS_ERROR_MESSAGE);
+
+        HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
+        HashMap<String, List<PutRecordsRequestEntry>> recordHash = new HashMap<String, List<PutRecordsRequestEntry>>();
 
         final AmazonKinesisClient client = getClient();
 
+
         try {
-            List<PutRecordsRequestEntry> records = new ArrayList<>();
 
             List<FlowFile> failedFlowFiles = new ArrayList<>();
             List<FlowFile> successfulFlowFiles = new ArrayList<>();
@@ -111,64 +112,80 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
             for (int i = 0; i < flowFiles.size(); i++) {
                 FlowFile flowFile = flowFiles.get(i);
 
+                String streamName = context.getProperty(KINESIS_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();;
+
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 session.exportTo(flowFile, baos);
                 PutRecordsRequestEntry record = new PutRecordsRequestEntry().withData(ByteBuffer.wrap(baos.toByteArray()));
 
                 String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
-                    .evaluateAttributeExpressions(flowFiles.get(i)).getValue();
+                        .evaluateAttributeExpressions(flowFiles.get(i)).getValue();
 
-                if ( ! StringUtils.isBlank(partitionKey) ) {
+                if (StringUtils.isBlank(partitionKey) == false) {
                     record.setPartitionKey(partitionKey);
                 } else {
                     record.setPartitionKey(Integer.toString(randomParitionKeyGenerator.nextInt()));
                 }
 
-                records.add(record);
+                if (recordHash.containsKey(streamName) == false) {
+                    recordHash.put(streamName, new ArrayList<>());
+                }
+                if (hashFlowFiles.containsKey(streamName) == false) {
+                    hashFlowFiles.put(streamName, new ArrayList<>());
+                }
+
+                hashFlowFiles.get(streamName).add(flowFile);
+                recordHash.get(streamName).add(record);
             }
 
-            if ( records.size() > 0 ) {
+            for (Map.Entry<String, List<PutRecordsRequestEntry>> entryRecord : recordHash.entrySet()) {
+                String streamName = entryRecord.getKey();
+                List<PutRecordsRequestEntry> records = entryRecord.getValue();
 
-                PutRecordsRequest putRecordRequest = new PutRecordsRequest();
-                putRecordRequest.setStreamName(streamName);
-                putRecordRequest.setRecords(records);
-                PutRecordsResult results = client.putRecords(putRecordRequest);
+                if (records.size() > 0) {
 
-                List<PutRecordsResultEntry> responseEntries = results.getRecords();
-                for (int i = 0; i < responseEntries.size(); i++ ) {
-                    PutRecordsResultEntry entry = responseEntries.get(i);
-                    FlowFile flowFile = flowFiles.get(i);
+                    PutRecordsRequest putRecordRequest = new PutRecordsRequest();
+                    putRecordRequest.setStreamName(streamName);
+                    putRecordRequest.setRecords(records);
+                    PutRecordsResult results = client.putRecords(putRecordRequest);
 
-                    Map<String,String> attributes = new HashMap<>();
-                    attributes.put(AWS_KINESIS_SHARD_ID, entry.getShardId());
-                    attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.getSequenceNumber());
+                    List<PutRecordsResultEntry> responseEntries = results.getRecords();
+                    for (int i = 0; i < responseEntries.size(); i++ ) {
+                        PutRecordsResultEntry entry = responseEntries.get(i);
+                        FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
 
-                    if ( ! StringUtils.isBlank(entry.getErrorCode()) ) {
-                        attributes.put(AWS_KINESIS_ERROR_CODE, entry.getErrorCode());
-                        attributes.put(AWS_KINESIS_ERROR_MESSAGE, entry.getErrorMessage());
-                        flowFile = session.putAllAttributes(flowFile, attributes);
-                        failedFlowFiles.add(flowFile);
-                    } else {
-                        flowFile = session.putAllAttributes(flowFile, attributes);
-                        successfulFlowFiles.add(flowFile);
+                        Map<String,String> attributes = new HashMap<>();
+                        attributes.put(AWS_KINESIS_SHARD_ID, entry.getShardId());
+                        attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.getSequenceNumber());
+
+                        if (StringUtils.isBlank(entry.getErrorCode()) == false) {
+                            attributes.put(AWS_KINESIS_ERROR_CODE, entry.getErrorCode());
+                            attributes.put(AWS_KINESIS_ERROR_MESSAGE, entry.getErrorMessage());
+                            flowFile = session.putAllAttributes(flowFile, attributes);
+                            failedFlowFiles.add(flowFile);
+                        } else {
+                            flowFile = session.putAllAttributes(flowFile, attributes);
+                            successfulFlowFiles.add(flowFile);
+                        }
                     }
                 }
-                if ( failedFlowFiles.size() > 0 ) {
-                    session.transfer(failedFlowFiles, REL_FAILURE);
-                    getLogger().error("Failed to publish to kinesis {} records {}", new Object[]{streamName, failedFlowFiles});
-                }
-                if ( successfulFlowFiles.size() > 0 ) {
-                    session.transfer(successfulFlowFiles, REL_SUCCESS);
-                    getLogger().debug("Successfully published to kinesis {} records {}", new Object[]{streamName, successfulFlowFiles});
-                }
+                recordHash.get(streamName).clear();
                 records.clear();
             }
 
+            if ( failedFlowFiles.size() > 0 ) {
+                session.transfer(failedFlowFiles, REL_FAILURE);
+                getLogger().error("Failed to publish to kinesis records {}", new Object[]{failedFlowFiles});
+            }
+            if ( successfulFlowFiles.size() > 0 ) {
+                session.transfer(successfulFlowFiles, REL_SUCCESS);
+                getLogger().debug("Successfully published to kinesis records {}", new Object[]{successfulFlowFiles});
+            }
+
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish due to exception {} to kinesis {} flowfiles {} ", new Object[]{exception, streamName, flowFiles});
+            getLogger().error("Failed to publish due to exception {} flowfiles {} ", new Object[]{exception, flowFiles});
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }
     }
-
 }
