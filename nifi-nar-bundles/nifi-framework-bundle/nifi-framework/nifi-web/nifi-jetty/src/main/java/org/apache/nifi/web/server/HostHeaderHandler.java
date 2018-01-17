@@ -78,7 +78,7 @@ public class HostHeaderHandler extends ScopedHandler {
         nextScope(target, baseRequest, request, response);
     }
 
-    private boolean hostHeaderIsValid(String hostHeader) {
+    boolean hostHeaderIsValid(String hostHeader) {
         return validHosts.contains(hostHeader.toLowerCase().trim());
     }
 
