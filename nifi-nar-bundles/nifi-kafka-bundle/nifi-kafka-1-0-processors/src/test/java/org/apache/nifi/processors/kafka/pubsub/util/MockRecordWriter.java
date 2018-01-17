@@ -108,7 +108,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
 
             @Override
             public WriteResult write(Record record) throws IOException {
-                return null;
+                return WriteResult.of(1, Collections.emptyMap());
             }
 
             @Override

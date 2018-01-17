@@ -61,12 +61,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.nimbusds.openid.connect.sdk.claims.UserInfo.EMAIL_CLAIM_NAME;
+
 
 /**
  * OidcProvider for managing the OpenId Connect Authorization flow.
@@ -163,11 +165,15 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             }
 
             // ensure the oidc provider supports basic or post client auth
-            final List<ClientAuthenticationMethod> clientAuthenticationMethods = oidcProviderMetadata.getTokenEndpointAuthMethods();
-            if (clientAuthenticationMethods == null
-                    || (!clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                    && !clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_POST))) {
-
+            List<ClientAuthenticationMethod> clientAuthenticationMethods = oidcProviderMetadata.getTokenEndpointAuthMethods();
+            logger.info("OpenId Connect: Available clientAuthenticationMethods {} ", clientAuthenticationMethods);
+            if (clientAuthenticationMethods == null || clientAuthenticationMethods.isEmpty()) {
+                clientAuthenticationMethods = new ArrayList<>();
+                clientAuthenticationMethods.add(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
+                oidcProviderMetadata.setTokenEndpointAuthMethods(clientAuthenticationMethods);
+                logger.warn("OpenId Connect: ClientAuthenticationMethods is null, Setting clientAuthenticationMethods as CLIENT_SECRET_BASIC");
+            } else if (!clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    && !clientAuthenticationMethods.contains(ClientAuthenticationMethod.CLIENT_SECRET_POST)) {
                 throw new RuntimeException(String.format("OpenId Connect Provider does not support %s or %s",
                         ClientAuthenticationMethod.CLIENT_SECRET_BASIC.getValue(),
                         ClientAuthenticationMethod.CLIENT_SECRET_POST.getValue()));

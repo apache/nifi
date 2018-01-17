@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,6 +40,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -164,8 +166,10 @@ public class PublisherLease implements Closeable {
                 recordCount++;
                 baos.reset();
 
+                Map<String, String> additionalAttributes = Collections.emptyMap();
                 try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos)) {
-                    writer.write(record);
+                    final WriteResult writeResult = writer.write(record);
+                    additionalAttributes = writeResult.getAttributes();
                     writer.flush();
                 }
 
@@ -173,7 +177,7 @@ public class PublisherLease implements Closeable {
                 final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
                 final byte[] messageKey = (key == null) ? null : key.getBytes(StandardCharsets.UTF_8);
 
-                publish(flowFile, messageKey, messageContent, topic, tracker);
+                publish(flowFile, additionalAttributes, messageKey, messageContent, topic, tracker);
 
                 if (tracker.isFailed(flowFile)) {
                     // If we have a failure, don't try to send anything else.
@@ -195,7 +199,7 @@ public class PublisherLease implements Closeable {
         }
     }
 
-    private void addHeaders(final FlowFile flowFile, final ProducerRecord<?, ?> record) {
+    private void addHeaders(final FlowFile flowFile, final Map<String, String> additionalAttributes, final ProducerRecord<?, ?> record) {
         if (attributeNameRegex == null) {
             return;
         }
@@ -206,11 +210,23 @@ public class PublisherLease implements Closeable {
                 headers.add(entry.getKey(), entry.getValue().getBytes(headerCharacterSet));
             }
         }
+
+        for (final Map.Entry<String, String> entry : additionalAttributes.entrySet()) {
+            if (attributeNameRegex.matcher(entry.getKey()).matches()) {
+                headers.add(entry.getKey(), entry.getValue().getBytes(headerCharacterSet));
+            }
+        }
     }
 
     protected void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
+        publish(flowFile, Collections.emptyMap(), messageKey, messageContent, topic, tracker);
+    }
+
+    protected void publish(final FlowFile flowFile, final Map<String, String> additionalAttributes,
+        final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
+
         final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, messageKey, messageContent);
-        addHeaders(flowFile, record);
+        addHeaders(flowFile, additionalAttributes, record);
 
         producer.send(record, new Callback() {
             @Override

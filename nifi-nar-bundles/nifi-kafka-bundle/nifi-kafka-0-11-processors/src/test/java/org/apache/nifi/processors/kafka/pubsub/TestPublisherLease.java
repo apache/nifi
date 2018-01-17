@@ -38,12 +38,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
-import org.apache.nifi.processors.kafka.pubsub.util.MockRecordWriter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -270,13 +270,12 @@ public class TestPublisherLease {
         final RecordSet recordSet = reader.createRecordSet();
         final RecordSchema schema = reader.getSchema();
 
-        final RecordSetWriterFactory writerService = new MockRecordWriter("person_id, name, age");
-
         final String topic = "unit-test";
         final String keyField = "person_id";
 
         final RecordSetWriterFactory writerFactory = Mockito.mock(RecordSetWriterFactory.class);
         final RecordSetWriter writer = Mockito.mock(RecordSetWriter.class);
+        Mockito.when(writer.write(Mockito.any(Record.class))).thenReturn(WriteResult.of(1, Collections.emptyMap()));
 
         Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any())).thenReturn(writer);
 
