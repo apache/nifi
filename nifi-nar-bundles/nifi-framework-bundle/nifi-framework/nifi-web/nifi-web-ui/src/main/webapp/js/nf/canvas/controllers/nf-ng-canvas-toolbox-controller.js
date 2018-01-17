@@ -67,15 +67,15 @@
              */
             this.config = {
                 type: {
-                    processor: 'Processor',
-                    inputPort: 'Input Port',
-                    outputPort: 'Output Port',
-                    processGroup: 'Process Group',
-                    remoteProcessGroup: 'Remote Process Group',
-                    connection: 'Connection',
-                    funnel: 'Funnel',
-                    template: 'Template',
-                    label: 'Label'
+                    processor: nf._.msg('nf-canvas-toolbox.Processor'),
+                    inputPort: nf._.msg('nf-canvas-toolbox.InputPort'),
+                    outputPort: nf._.msg('nf-canvas-toolbox.OutputPort'),
+                    processGroup: nf._.msg('nf-canvas-toolbox.ProcessGroup'),
+                    remoteProcessGroup: nf._.msg('nf-canvas-toolbox.RemoteProcessGroup'),
+                    connection: nf._.msg('nf-canvas-toolbox.Connection'),
+                    funnel: nf._.msg('nf-canvas-toolbox.Funnel'),
+                    template: nf._.msg('nf-canvas-toolbox.Template'),
+                    label: nf._.msg('nf-canvas-toolbox.Label')
                 },
                 urls: {
                     api: '../nifi-api',

@@ -273,28 +273,28 @@
                 var selection = nfCanvasUtils.getSelection();
 
                 if (selection.empty()) {
-                    return 'Process Group';
+                    return nf._.msg('nf-canvas-graph-controls-controller.ProcessGroup');
                 } else {
                     if (selection.size() === 1) {
                         if (nfCanvasUtils.isProcessor(selection)) {
-                            return 'Processor';
+                            return nf._.msg('nf-canvas-graph-controls-controller.Processor');
                         } else if (nfCanvasUtils.isProcessGroup(selection)) {
-                            return 'Process Group';
+                            return nf._.msg('nf-canvas-graph-controls-controller.ProcessGroup');
                         } else if (nfCanvasUtils.isInputPort(selection)) {
-                            return 'Input Port';
+                            return nf._.msg('nf-canvas-graph-controls-controller.InputPort');
                         } else if (nfCanvasUtils.isOutputPort(selection)) {
-                            return 'Output Port';
+                            return nf._.msg('nf-canvas-graph-controls-controller.OutputPort');
                         } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
-                            return 'Remote Process Group';
+                            return nf._.msg('nf-canvas-graph-controls-controller.RemoteProcessGroup');
                         } else if (nfCanvasUtils.isFunnel(selection)) {
-                            return 'Funnel';
+                            return nf._.msg('nf-canvas-graph-controls-controller.Funnel');
                         } else if (nfCanvasUtils.isLabel(selection)) {
-                            return 'Label';
+                            return nf._.msg('nf-canvas-graph-controls-controller.Label');
                         } else if (nfCanvasUtils.isConnection(selection)) {
-                            return 'Connection';
+                            return nf._.msg('nf-canvas-graph-controls-controller.Connection');
                         }
                     } else {
-                        return 'Multiple selected';
+                        return nf._.msg('nf-canvas-graph-controls-controller.MultipleSelected');
                     }
                 }
             },
@@ -312,7 +312,7 @@
                         var d = selection.datum();
                         return d.id;
                     } else {
-                        return 'Multiple selected';
+                        return nf._.msg('nf-canvas-graph-controls-controller.MultipleSelected');
                     }
                 }
             },

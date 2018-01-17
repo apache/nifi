@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="processor-configuration" layout="column" class="hidden large-dialog">
     <div class="processor-configuration-tab-container dialog-content">
         <div id="processor-configuration-tabs" class="tab-container"></div>
@@ -22,23 +23,23 @@
             <div id="processor-standard-settings-tab-content" class="configuration-tab">
                 <div class="settings-left">
                     <div class="setting">
-                        <div class="setting-name">Name</div>
+                        <div class="setting-name"><fmt:message key="partials.canvas.processor-configuration.Name"/></div>
                         <div id="processor-name-container" class="setting-field">
                             <input type="text" id="processor-name" name="processor-name"/>
                             <div class="processor-enabled-container">
                                 <div id="processor-enabled" class="nf-checkbox checkbox-unchecked"></div>
-                                <span class="nf-checkbox-label"> Enabled</span>
+                                <span class="nf-checkbox-label"> <fmt:message key="partials.canvas.processor-configuration.Enabled"/></span>
                             </div>
                         </div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Id</div>
+                        <div class="setting-name"><fmt:message key="partials.canvas.processor-configuration.Id"/></div>
                         <div class="setting-field">
                             <span id="processor-id"></span>
                         </div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Type</div>
+                        <div class="setting-name"><fmt:message key="partials.canvas.processor-configuration.Type"/></div>
                         <div class="setting-field">
                             <span id="processor-type"></span>
                         </div>
@@ -50,8 +51,9 @@
                     <div class="setting">
                         <div class="penalty-duration-setting">
                             <div class="setting-name">
-                                Penalty duration
-                                <div class="fa fa-question-circle" alt="Info" title="The amount of time used when this processor penalizes a FlowFile."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.PenaltyDuration"/>
+                                <fmt:message key="partials.canvas.processor-configuration.PenaltyDuration.title" var="title_PenaltyDuration"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${title_PenaltyDuration}"></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="penalty-duration" name="penalty-duration" class="small-setting-input"/>
@@ -59,8 +61,9 @@
                         </div>
                         <div class="yield-duration-setting">
                             <div class="setting-name">
-                                Yield duration
-                                <div class="fa fa-question-circle" alt="Info" title="When a processor yields, it will not be scheduled again until this amount of time elapses."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.YieldDuration"/>
+                                <fmt:message key="partials.canvas.processor-configuration.YieldDuration.title" var="title_YieldDuration"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${title_YieldDuration}"></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="yield-duration" name="yield-duration" class="small-setting-input"/>
@@ -71,8 +74,9 @@
                     <div class="setting">
                         <div class="bulletin-setting">
                             <div class="setting-name">
-                                Bulletin level
-                                <div class="fa fa-question-circle" alt="Info" title="The level at which this processor will generate bulletins."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.BulletinLevel"/>
+                                <fmt:message key="partials.canvas.processor-configuration.BulletinLevel.title" var="title_BulletinLevel"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${title_BulletinLevel}"></div>
                             </div>
                             <div class="setting-field">
                                 <div id="bulletin-level-combo"></div>
@@ -85,8 +89,9 @@
                 <div class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
-                            Automatically terminate relationships
-                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate FlowFiles sent to a given relationship if it is not defined elsewhere."></div>
+                            <fmt:message key="partials.canvas.processor-configuration.AutoTerminateRelationships"/>
+                            <fmt:message key="partials.canvas.processor-configuration.AutoTerminateRelationships.title" var="title_AutoTerminateRelationships"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${title_AutoTerminateRelationships}"></div>
                         </div>
                         <div class="setting-field">
                             <div id="auto-terminate-relationship-names"></div>
@@ -99,8 +104,9 @@
                     <div class="setting">
                         <div class="scheduling-strategy-setting">
                             <div class="setting-name">
-                                Scheduling strategy
-                                <div class="fa fa-question-circle" alt="Info" title="The strategy used to schedule this processor."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.SchedulingStrategy"/>
+                                <fmt:message key="partials.canvas.processor-configuration.SchedulingStrategy.title" var="title_SchedulingStrategy"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${title_SchedulingStrategy}"></div>
                             </div>
                             <div class="setting-field">
                                 <div type="text" id="scheduling-strategy-combo"></div>
@@ -108,15 +114,16 @@
                         </div>
                         <div id="event-driven-warning" class="hidden">
                             <div class="processor-configuration-warning-icon"></div>
-                            This strategy is experimental
+                            <fmt:message key="partials.canvas.processor-configuration.event-driven-warning"/>
                         </div>
                         <div class="clear"></div>
                     </div>
                     <div id="timer-driven-options" class="setting">
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">
-                                Concurrent tasks
-                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.ConcurrentTasks"/>
+                                <fmt:message key="partials.canvas.processor-configuration.ConcurrentTasks.title" var="title_ConcurrentTasks"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${title_ConcurrentTasks}"></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="timer-driven-concurrently-schedulable-tasks" name="timer-driven-concurrently-schedulable-tasks" class="small-setting-input"/>
@@ -124,8 +131,9 @@
                         </div>
                         <div class="scheduling-period-setting">
                             <div class="setting-name">
-                                Run schedule
-                                <div class="fa fa-question-circle" alt="Info" title="The amount of time that should elapse between task executions."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.RunSchedule"/>
+                                <fmt:message key="partials.canvas.processor-configuration.RunSchedule.title.1" var="RunSchedule1"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${RunSchedule1}"></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="timer-driven-scheduling-period" name="timer-driven-scheduling-period" class="small-setting-input"/>
@@ -136,8 +144,9 @@
                     <div id="event-driven-options" class="setting">
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">
-                                Concurrent tasks
-                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.ConcurrentTasks"/>
+                                <fmt:message key="partials.canvas.processor-configuration.ConcurrentTasks.title" var="title_ConcurrentTasks"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${title_ConcurrentTasks}"></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="event-driven-concurrently-schedulable-tasks" name="event-driven-concurrently-schedulable-tasks" class="small-setting-input"/>
@@ -148,8 +157,9 @@
                     <div id="cron-driven-options" class="setting">
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">
-                                Concurrent tasks
-                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.ConcurrentTasks"/>
+                                <fmt:message key="partials.canvas.processor-configuration.ConcurrentTasks.title" var="title_ConcurrentTasks"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${title_ConcurrentTasks}"></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="cron-driven-concurrently-schedulable-tasks" name="cron-driven-concurrently-schedulable-tasks" class="small-setting-input"/>
@@ -157,8 +167,9 @@
                         </div>
                         <div class="scheduling-period-setting">
                             <div class="setting-name">
-                                Run schedule
-                                <div class="fa fa-question-circle" alt="Info" title="The CRON expression that defines when this processor should run."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.RunSchedule"/>
+                                <fmt:message key="partials.canvas.processor-configuration.RunSchedule.title.2" var="RunSchedule2"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${RunSchedule2}"></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="cron-driven-scheduling-period" name="cron-driven-scheduling-period" class="small-setting-input"/>
@@ -169,8 +180,9 @@
                     <div id="execution-node-options" class="setting">
                         <div class="execution-node-setting">
                             <div class="setting-name">
-                                Execution
-                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on."></div>
+                                <fmt:message key="partials.canvas.processor-configuration.Execution"/>
+                                <fmt:message key="partials.canvas.processor-configuration.ExecutionTitle" var="ExecutionTitle"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${ExecutionTitle}"></div>
                             </div>
                             <div class="setting-field">
                                 <div id="execution-node-combo"></div>
@@ -183,9 +195,10 @@
                 <div id="run-duration-setting-container" class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
-                            Run duration
+                            <fmt:message key="partials.canvas.processor-configuration.RunDuration"/>
+                            <fmt:message key="partials.canvas.processor-configuration.RunDuration.title" var="title_RunDuration"/>
                             <div class="fa fa-question-circle" alt="Info"
-                                 title="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."></div>
+                                 title="${title_RunDuration}"></div>
                         </div>
                         <div class="setting-field" style="overflow: visible;">
                             <div id="run-duration-container">
@@ -202,13 +215,13 @@
                                 </div>
                                 <div id="run-duration-slider"></div>
                                 <div id="run-duration-explanation">
-                                    <div id="min-run-duration-explanation">Lower latency</div>
-                                    <div id="max-run-duration-explanation">Higher throughput</div>
+                                    <div id="min-run-duration-explanation"><fmt:message key="partials.canvas.processor-configuration.LowerLatency"/></div>
+                                    <div id="max-run-duration-explanation"><fmt:message key="partials.canvas.processor-configuration.HigherThroughput"/></div>
                                     <div class="clear"></div>
                                 </div>
                                 <div id="run-duration-data-loss" class="hidden">
                                     <div class="processor-configuration-warning-icon"></div>
-                                    Source Processors with a run duration greater than 0ms and no incoming connections could lose data when NiFi is shutdown.
+                                    <fmt:message key="partials.canvas.processor-configuration.HigherThroughput.Warning"/>
                                 </div>
                             </div>
                         </div>

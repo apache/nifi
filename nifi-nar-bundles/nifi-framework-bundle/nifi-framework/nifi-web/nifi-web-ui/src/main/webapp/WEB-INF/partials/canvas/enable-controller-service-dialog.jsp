@@ -15,11 +15,12 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="enable-controller-service-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div class="settings-left">
             <div id="enable-controller-service-service-container" class="setting">
-                <div class="setting-name">Service</div>
+                <div class="setting-name"><fmt:message key="partials.canvas.enable-controller-service-dialog.Service"/></div>
                 <div class="setting-field">
                     <span id="enable-controller-service-id" class="hidden"></span>
                     <div id="enable-controller-service-name"></div>
@@ -28,7 +29,7 @@
                 </div>
             </div>
             <div id="enable-controller-service-scope-container" class="setting">
-                <div class="setting-name">Scope</div>
+                <div class="setting-name"><fmt:message key="partials.canvas.enable-controller-service-dialog.Scope"/></div>
                 <div class="setting-field">
                     <div id="enable-controller-service-scope"></div>
                 </div>
@@ -38,17 +39,17 @@
                 <div class="setting-field">
                     <ol id="enable-controller-service-progress">
                         <li>
-                            Enabling this controller service
+                            <fmt:message key="partials.canvas.enable-controller-service-dialog.enable-controller-service-progress.1"/>
                             <div id="enable-controller-service" class="enable-referencing-components"></div>
                             <div class="clear"></div>
                         </li>
                         <li class="referencing-component">
-                            Enabling referencing controller services
+                            <fmt:message key="partials.canvas.enable-controller-service-dialog.enable-controller-service-progress.2"/>
                             <div id="enable-referencing-services" class="enable-referencing-components"></div>
                             <div class="clear"></div>
                         </li>
                         <li class="referencing-component">
-                            Starting referencing processors and reporting tasks
+                            <fmt:message key="partials.canvas.enable-controller-service-dialog.enable-controller-service-progress.3"/>
                             <div id="enable-referencing-schedulable" class="enable-referencing-components"></div>
                             <div class="clear"></div>
                         </li>
@@ -60,8 +61,9 @@
         <div class="settings-right">
             <div class="setting">
                 <div class="setting-name">
-                    Referencing Components
-                    <div class="fa fa-question-circle" alt="Info" title="Other components referencing this controller service."></div>
+                    <fmt:message key="partials.canvas.enable-controller-service-dialog.ReferencingComponents"/>
+                    <fmt:message key="partials.canvas.enable-controller-service-dialog.ReferencingComponents.title" var="ReferencingComponents"/>
+                    <div class="fa fa-question-circle" alt="Info" title="${ReferencingComponents}"></div>
                 </div>
                 <div class="setting-field">
                     <div id="enable-controller-service-referencing-components"></div>
@@ -70,6 +72,6 @@
         </div>
     </div>
     <div class="controller-service-canceling hidden unset">
-        Canceling...
+        <fmt:message key="partials.canvas.enable-controller-service-dialog.Canceling"/>...
     </div>
 </div>

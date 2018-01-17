@@ -85,8 +85,8 @@
         // ensure every component is writable
         if (nfCanvasUtils.canModify(selectedConnections) === false || nfCanvasUtils.canModify(selectedComponents) === false) {
             nfDialog.showOkDialog({
-                headerText: 'Component Position',
-                dialogContent: 'Must be authorized to modify every component selected.'
+                headerText: nf._.msg('nf-draggable.ComponentPosition'),
+                dialogContent: nf._.msg('nf-draggable.Message2')
             });
             return;
         }
@@ -130,15 +130,15 @@
 
         if (nfCanvasUtils.canModify(selection) === false) {
             nfDialog.showOkDialog({
-                headerText: 'Component Position',
-                dialogContent: 'Must be authorized to modify every component selected.'
+                headerText: nf._.msg('nf-draggable.ComponentPosition'),
+                dialogContent: nf._.msg('nf-draggable.Message2')
             });
             return;
         }
         if (nfCanvasUtils.canModify(group) === false) {
             nfDialog.showOkDialog({
-                headerText: 'Component Position',
-                dialogContent: 'Not authorized to modify the destination group.'
+                headerText: nf._.msg('nf-draggable.ComponentPosition'),
+                dialogContent: nf._.msg('nf-draggable.Message1')
             });
             return;
         }

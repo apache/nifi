@@ -170,10 +170,10 @@
             // filter type
             $('#counters-filter-type').combo({
                 options: [{
-                    text: 'by name',
+                    text: nf._.msg('nf-counters-table.ByName'),
                     value: 'name'
                 }, {
-                    text: 'by context',
+                    text: nf._.msg('nf-counters-table.ByContext'),
                     value: 'context'
                 }],
                 select: function (option) {
@@ -185,7 +185,7 @@
             var countersColumns = [
                 {
                     id: 'context',
-                    name: 'Context',
+                    name: nf._.msg('nf-counters-table.Context'),
                     field: 'context',
                     sortable: true,
                     resizable: true,
@@ -193,7 +193,7 @@
                 },
                 {
                     id: 'name',
-                    name: 'Name',
+                    name: nf._.msg('nf-counters-table.Name'),
                     field: 'name',
                     sortable: true,
                     resizable: true,
@@ -201,7 +201,7 @@
                 },
                 {
                     id: 'value',
-                    name: 'Value',
+                    name: nf._.msg('nf-counters-table.Value'),
                     field: 'value',
                     sortable: true,
                     resizable: true,
@@ -214,7 +214,7 @@
             if (nfCommon.canModifyCounters()) {
                 // function for formatting the actions column
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                    return '<div title="Reset Counter" class="pointer reset-counter fa fa-undo" style="margin-top: 2px;"></div>';
+                    return '<div title="' + nf._.msg('nf-counters-table.Connect') + '" class="pointer reset-counter fa fa-undo" style="margin-top: 2px;"></div>';
                 };
 
                 // add the action column

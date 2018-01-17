@@ -74,7 +74,7 @@
 
             // update the button model
             $('#nf-ok-dialog').modal('setButtonModel', [{
-                buttonText: 'Ok',
+                buttonText: nf._.msg('nf-dialog.Ok'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',

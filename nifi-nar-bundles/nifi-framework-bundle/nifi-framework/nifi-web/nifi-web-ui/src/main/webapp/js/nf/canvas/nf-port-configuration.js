@@ -62,9 +62,9 @@
     var initPortConfigurationDialog = function () {
         $('#port-configuration').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Configure Port',
+            headerText: nf._.msg('nf-port-configuration.ConfigurePort'),
             buttons: [{
-                buttonText: 'Apply',
+                buttonText: nf._.msg('nf-port-configuration.Apply'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -133,7 +133,7 @@
 
                                 nfDialog.showOkDialog({
                                     dialogContent: content,
-                                    headerText: 'Port Configuration'
+                                    headerText: nf._.msg('nf=port-configuration.PortConfigure')
                                 });
                             } else {
                                 // close the details panel
@@ -147,7 +147,7 @@
                 }
             },
                 {
-                    buttonText: 'Cancel',
+                    buttonText: nf._.msg('nf=port-configuration.Cancel'),
                     color: {
                         base: '#E3E8EB',
                         hover: '#C7D2D7',

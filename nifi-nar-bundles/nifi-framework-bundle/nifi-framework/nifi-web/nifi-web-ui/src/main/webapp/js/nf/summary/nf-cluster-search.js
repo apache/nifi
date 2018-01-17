@@ -59,9 +59,9 @@
             // configure the view single node dialog
             $('#view-single-node-dialog').modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Select node',
+                headerText: nf._.msg('nf-cluster-search.SelectNode'),
                 buttons: [{
-                    buttonText: 'Ok',
+                    buttonText: nf._.msg('nf-cluster-search.Ok'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -91,14 +91,14 @@
                                     nfSummaryTable.loadSummaryTable();
 
                                     // update the header
-                                    $('#summary-header-text').text(node.address + ' Summary');
+                                    $('#summary-header-text').text(node.address + nf._.msg('nf-cluster-search.Summary'));
                                 };
 
                                 // ensure the search found some results
                                 if (!$.isArray(searchResults) || searchResults.length === 0) {
                                     nfDialog.showOkDialog({
-                                        headerText: 'Cluster Search',
-                                        dialogContent: 'No nodes match \'' + nfCommon.escapeHtml(clusterSearchTerm) + '\'.'
+                                        headerText: nf._.msg('nf-cluster-search.ClusterSearch'),
+                                        dialogContent: nf._.msg('nf-cluster-search.Message1') + nfCommon.escapeHtml(clusterSearchTerm) + '\'.'
                                     });
                                 } else if (searchResults.length > 1) {
                                     var exactMatch = false;
@@ -118,8 +118,8 @@
                                         $('#view-single-node-dialog').modal('hide');
                                     } else {
                                         nfDialog.showOkDialog({
-                                            headerText: 'Cluster Search',
-                                            dialogContent: 'More than one node matches \'' + nfCommon.escapeHtml(clusterSearchTerm) + '\'.'
+                                            headerText: nf._.msg('nf-cluster-search.ClusterSearch'),
+                                            dialogContent: nf._.msg('nf-cluster-search.Message2') + nfCommon.escapeHtml(clusterSearchTerm) + '\'.'
                                         });
                                     }
                                 } else if (searchResults.length === 1) {
@@ -133,7 +133,7 @@
                     }
                 },
                     {
-                        buttonText: 'Cancel',
+                        buttonText: nf._.msg('nf-cluster-search.Cancel'),
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -182,7 +182,7 @@
 
                     // ensure there were some results
                     if (ul.children().length === 0) {
-                        ul.append('<li class="unset search-no-matches">No nodes matched the search terms</li>');
+                        ul.append('<li class="unset search-no-matches">' + nf._.msg('nf-cluster-search.Message3') + '</li>');
                     }
                 },
                 _resizeMenu: function () {
@@ -238,7 +238,7 @@
                 nfSummaryTable.loadSummaryTable();
 
                 // update the header
-                $('#summary-header-text').text('NiFi Summary');
+                $('#summary-header-text').text(nf._.msg('nf-cluster-search.NiFiSumary'));
             });
 
             // show the view links

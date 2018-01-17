@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="connection-details">
     <div class="connection-details-tab-container dialog-content">
         <div id="connection-details-tabs" class="tab-container"></div>
@@ -28,15 +29,16 @@
                         </div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Within group</div>
+                        <div class="setting-name"><fmt:message key="partials.connection-details.WithinGroup"/></div>
                         <div class="setting-field">
                             <div id="read-only-connection-source-group-name"></div>
                         </div>
                     </div>
                     <div id="read-only-relationship-names-container" class="setting">
                         <div class="setting-name">
-                            Relationships
-                            <div class="fa fa-question-circle" alt="Info" title="Selected relationships are in bold."></div>
+                            <fmt:message key="partials.connection-details.Relationships"/>
+                            <fmt:message key="partials.connection-details.configuration-tab.read-only-relationship-names-container.title" var="read-only-relationship-names-container_title"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${read-only-relationship-names-container_title}"></div>
                         </div>
                         <div class="setting-field">
                             <div id="read-only-relationship-names"></div>
@@ -52,7 +54,7 @@
                         </div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Within group</div>
+                        <div class="setting-name"><fmt:message key="partials.connection-details.WithinGroup"/></div>
                         <div class="setting-field">
                             <div id="read-only-connection-target-group-name"></div>
                         </div>
@@ -62,21 +64,22 @@
             <div id="read-only-connection-settings-tab-content" class="configuration-tab">
                 <div class="settings-left">
                     <div class="setting">
-                        <div class="setting-name">Name</div>
+                        <div class="setting-name"><fmt:message key="partials.connection-details.Name"/></div>
                         <div class="setting-field">
                             <span id="read-only-connection-name"></span>
                         </div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Id</div>
+                        <div class="setting-name"><fmt:message key="partials.connection-details.Id"/></div>
                         <div class="setting-field">
                             <span id="read-only-connection-id"></span>
                         </div>
                     </div>
                     <div class="setting">
                         <div class="setting-name">
-                            FlowFile expiration
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."></div>
+                            <fmt:message key="partials.connection-details.read-only-flow-file-expiration"/>
+                            <fmt:message key="partials.connection-details.read-only-flow-file-expiration.title" var="read-only-flow-file-expiration_title"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${read-only-flow-file-expiration_title}"></div>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-flow-file-expiration"></span>
@@ -85,8 +88,9 @@
                     </div>
                     <div class="setting">
                         <div class="setting-name">
-                            Back pressure object threshold
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."></div>
+                            <fmt:message key="partials.connection-details.read-only-back-pressure-object-threshold"/>
+                            <fmt:message key="partials.connection-details.read-only-back-pressure-object-threshold.title" var="read-only-back-pressure-object-threshold_title"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${read-only-back-pressure-object-threshold_title}"></div>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-back-pressure-object-threshold"></span>
@@ -95,8 +99,9 @@
                     </div>
                     <div class="setting">
                         <div class="setting-name">
-                            Back pressure data size threshold
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."></div>
+                            <fmt:message key="partials.connection-details.read-only-back-pressure-data-size-threshold"/>
+                            <fmt:message key="partials.connection-details.read-only-back-pressure-data-size-threshold.title" var="read-only-back-pressure-data-size-threshold_title"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${read-only-back-pressure-data-size-threshold_title}"></div>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-back-pressure-data-size-threshold"></span>
@@ -108,8 +113,9 @@
                 <div class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
-                            Prioritizers
-                            <div class="fa fa-question-circle" alt="Info" title="Prioritizers that have been selected to reprioritize FlowFiles in this processors work queue."></div>
+                            <fmt:message key="partials.connection-details.read-only-prioritizers"/>
+                            <fmt:message key="partials.connection-details.read-only-prioritizers.title" var="read-only-prioritizers_title"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${read-only-prioritizers_title}"></div>
                         </div>
                         <div class="setting-field">
                             <div id="read-only-prioritizers"></div>

@@ -307,7 +307,7 @@
                             'y': 5,
                             'class': 'stats-label'
                         })
-                        .text('Sent');
+                        .text(nf._.msg('nf-canvas.Sent'));
 
                     // received label
                     remoteProcessGroupStatsLabel.append('text')
@@ -318,7 +318,7 @@
                             'y': 23,
                             'class': 'stats-label'
                         })
-                        .text('Received');
+                        .text(nf._.msg('nf-canvas.Received'));
 
                     // stats value container
                     var remoteProcessGroupStatsValue = details.append('g')
@@ -397,7 +397,7 @@
                             'y': 5,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-canvas.5min'));
 
                     // received info
                     processGroupStatsInfo.append('text')
@@ -408,7 +408,7 @@
                             'y': 23,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-canvas.5min'));
 
                     // -------------------
                     // last refreshed time
@@ -796,7 +796,7 @@
 
             // -------------------
             // active thread count
-            // -------------------            
+            // -------------------
 
             nfCanvasUtils.activeThreadCount(remoteProcessGroup, d, function (off) {
                 offset = off;

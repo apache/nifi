@@ -140,7 +140,7 @@
 
                             // show all processors
                             if (!nfCommon.isEmpty(searchResults.processorResults)) {
-                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-processor"></div>Processors</li>');
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-processor"></div>' + nf._.msg('nf-canvas-flow-status-controller.Processors') + '</li>');
                                 $.each(searchResults.processorResults, function (i, processorMatch) {
                                     nfSearchAutocomplete._renderItem(ul, processorMatch);
                                 });
@@ -148,7 +148,7 @@
 
                             // show all process groups
                             if (!nfCommon.isEmpty(searchResults.processGroupResults)) {
-                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-group"></div>Process Groups</li>');
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-group"></div>' + nf._.msg('nf-canvas-flow-status-controller.ProcessGroups') + '</li>');
                                 $.each(searchResults.processGroupResults, function (i, processGroupMatch) {
                                     nfSearchAutocomplete._renderItem(ul, processGroupMatch);
                                 });
@@ -156,7 +156,7 @@
 
                             // show all remote process groups
                             if (!nfCommon.isEmpty(searchResults.remoteProcessGroupResults)) {
-                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-group-remote"></div>Remote Process Groups</li>');
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-group-remote"></div>' + nf._.msg('nf-canvas-flow-status-controller.RemoteProcessGroups') + '</li>');
                                 $.each(searchResults.remoteProcessGroupResults, function (i, remoteProcessGroupMatch) {
                                     nfSearchAutocomplete._renderItem(ul, remoteProcessGroupMatch);
                                 });
@@ -164,7 +164,7 @@
 
                             // show all connections
                             if (!nfCommon.isEmpty(searchResults.connectionResults)) {
-                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-connect"></div>Connections</li>');
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-connect"></div>' + nf._.msg('nf-canvas-flow-status-controller.Connection') + '</li>');
                                 $.each(searchResults.connectionResults, function (i, connectionMatch) {
                                     nfSearchAutocomplete._renderItem(ul, connectionMatch);
                                 });
@@ -172,7 +172,7 @@
 
                             // show all input ports
                             if (!nfCommon.isEmpty(searchResults.inputPortResults)) {
-                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-in"></div>Input Ports</li>');
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-in"></div>' + nf._.msg('nf-canvas-flow-status-controller.InputPorts') + '</li>');
                                 $.each(searchResults.inputPortResults, function (i, inputPortMatch) {
                                     nfSearchAutocomplete._renderItem(ul, inputPortMatch);
                                 });
@@ -180,7 +180,7 @@
 
                             // show all output ports
                             if (!nfCommon.isEmpty(searchResults.outputPortResults)) {
-                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-out"></div>Output Ports</li>');
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-out"></div>' + nf._.msg('nf-canvas-flow-status-controller.OutputPorts') + '</li>');
                                 $.each(searchResults.outputPortResults, function (i, outputPortMatch) {
                                     nfSearchAutocomplete._renderItem(ul, outputPortMatch);
                                 });
@@ -188,7 +188,7 @@
 
                             // show all funnels
                             if (!nfCommon.isEmpty(searchResults.funnelResults)) {
-                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-funnel"></div>Funnels</li>');
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-funnel"></div>' + nf._.msg('nf-canvas-flow-status-controller.Funnel') + '</li>');
                                 $.each(searchResults.funnelResults, function (i, funnelMatch) {
                                     nfSearchAutocomplete._renderItem(ul, funnelMatch);
                                 });
@@ -196,7 +196,7 @@
 
                             // ensure there were some results
                             if (ul.children().length === 0) {
-                                ul.append('<li class="unset search-no-matches">No results matched the search terms</li>');
+                                ul.append('<li class="unset search-no-matches">' + nf._.msg('nf-canvas-flow-status-controller.no-matches') + '</li>');
                             }
                         },
                         _renderItem: function (ul, match) {

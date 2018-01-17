@@ -15,31 +15,32 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="remote-process-group-ports" class="hidden large-dialog">
     <div class="dialog-content">
         <span id="remote-process-group-ports-id" class="hidden"></span>
         <div class="settings-left">
             <div class="setting">
-                <div class="setting-name">Name</div>
+                <div class="setting-name"><fmt:message key="partials.canvas.remote-process-group-ports.Name"/></div>
                 <div class="setting-field">
                     <span id="remote-process-group-ports-name"></span>
                 </div>
             </div>
             <div class="remote-port-header">
-                <div>Input ports</div>
+                <div><fmt:message key="partials.canvas.remote-process-group-ports.InputPorts"/></div>
             </div>
             <div id="remote-process-group-input-ports-container" class="remote-ports-container"></div>
         </div>
         <div class="spacer">&nbsp;</div>
         <div class="settings-right">
             <div class="setting">
-                <div class="setting-name">URLs</div>
+                <div class="setting-name"><fmt:message key="partials.canvas.remote-process-group-ports.URL"/></div>
                 <div class="setting-field">
                     <span id="remote-process-group-ports-urls"></span>
                 </div>
             </div>
             <div class="remote-port-header">
-                <div>Output ports</div>
+                <div><fmt:message key="partials.canvas.remote-process-group-ports.OutputPorts"/></div>
             </div>
             <div id="remote-process-group-output-ports-container" class="remote-ports-container"></div>
         </div>

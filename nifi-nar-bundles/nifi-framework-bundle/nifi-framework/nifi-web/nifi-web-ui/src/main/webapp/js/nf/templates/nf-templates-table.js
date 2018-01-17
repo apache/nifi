@@ -97,8 +97,8 @@
     var promptToDeleteTemplate = function (templateEntity) {
         // prompt for deletion
         nfDialog.showYesNoDialog({
-            headerText: 'Delete Template',
-            dialogContent: 'Delete template \'' + nfCommon.escapeHtml(templateEntity.template.name) + '\'?',
+            headerText: nf._.msg('nf-templates-table.DeleteTemplate'),
+            dialogContent: nf._.msg('nf-templates-table.Message1') + nfCommon.escapeHtml(templateEntity.template.name) + '\'?',
             yesHandler: function () {
                 deleteTemplate(templateEntity);
             }
@@ -216,8 +216,8 @@
             }
         }).fail(function () {
             nfDialog.showOkDialog({
-                headerText: 'Download Template',
-                dialogContent: 'Unable to generate access token for downloading content.'
+                headerText: nf._.msg('nf-templates-table.DownloadTemplate'),
+                dialogContent: nf._.msg('nf-templates-table.Message2')
             });
         });
     };
@@ -235,10 +235,10 @@
             // filter type
             $('#templates-filter-type').combo({
                 options: [{
-                    text: 'by name',
+                    text: nf._.msg('nf-templates-table.ByName'),
                     value: 'name'
                 }, {
-                    text: 'by description',
+                    text: nf._.msg('nf-templates-table.ByDescription'),
                     value: 'description'
                 }],
                 select: function (option) {
@@ -283,18 +283,18 @@
                 var markup = '';
 
                 if (dataContext.permissions.canRead === true) {
-                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px; margin-right: 3px;"></div>';
+                    markup += '<div title="' + nf._.msg('nf-summary-table.Download') + '" class="pointer export-template icon icon-template-save" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
                 // all DFMs to remove templates
                 if (dataContext.permissions.canWrite === true) {
-                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
+                    markup += '<div title="' + nf._.msg('nf-summary-table.RemovieTemplate') + '" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
                 // allow policy configuration conditionally if embedded in
                 if (top !== window && nfCommon.canAccessTenants()) {
                     if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isManagedAuthorizer()) {
-                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                        markup += '<div title="' + nf._.msg('nf-summary-table.AccessPolicies') + '" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
                     }
                 }
 
@@ -305,7 +305,7 @@
             var templatesColumns = [
                 {
                     id: 'timestamp',
-                    name: 'Date/Time',
+                    name: nf._.msg('nf-templates-table.DateTime'),
                     sortable: true,
                     defaultSortAsc: false,
                     resizable: false,
@@ -315,21 +315,21 @@
                 },
                 {
                     id: 'name',
-                    name: 'Name',
+                    name: nf._.msg('nf-templates-table.Name'),
                     sortable: true,
                     resizable: true,
                     formatter: nameFormatter
                 },
                 {
                     id: 'description',
-                    name: 'Description',
+                    name: nf._.msg('nf-templates-table.Description'),
                     sortable: true,
                     resizable: true,
                     formatter: descriptionFormatter
                 },
                 {
                     id: 'groupId',
-                    name: 'Process Group Id',
+                    name: nf._.msg('nf-templates-table.GroupId'),
                     sortable: true,
                     resizable: true,
                     formatter: groupIdFormatter

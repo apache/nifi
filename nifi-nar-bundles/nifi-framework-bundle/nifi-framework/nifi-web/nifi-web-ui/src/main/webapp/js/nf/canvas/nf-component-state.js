@@ -233,9 +233,9 @@
             // initialize the component state dialog
             $('#component-state-dialog').modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Component State',
+                headerText: nf._.msg('nf-component-state.Header1'),
                 buttons: [{
-                    buttonText: 'Close',
+                    buttonText: nf._.msg('nf-component-state.Button1'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -284,8 +284,8 @@
                         }).fail(nfErrorHandler.handleAjaxError);
                     } else {
                         nfDialog.showOkDialog({
-                            headerText: 'Component State',
-                            dialogContent: 'This component has no state to clear.'
+                            headerText: nf._.msg('nf-component-state.Header1'),
+                            dialogContent: nf._.msg('nf-component-state.Content1')
                         });
                     }
                 }
@@ -296,7 +296,7 @@
                 {
                     id: 'key',
                     field: 'key',
-                    name: 'Key',
+                    name: nf._.msg('nf-component-state.Key'),
                     sortable: true,
                     resizable: true,
                     formatter: nfCommon.genericValueFormatter
@@ -304,7 +304,7 @@
                 {
                     id: 'value',
                     field: 'value',
-                    name: 'Value',
+                    name: nf._.msg('nf-component-state.Value'),
                     sortable: true,
                     resizable: true,
                     formatter: nfCommon.genericValueFormatter
@@ -316,7 +316,7 @@
                 componentStateColumns.push({
                     id: 'scope',
                     field: 'scope',
-                    name: 'Scope',
+                    name: nf._.msg('nf-component-state.Scope'),
                     sortable: true,
                     resizable: true,
                     formatter: nfCommon.genericValueFormatter
@@ -415,7 +415,7 @@
 
                 // only activate the link when appropriate
                 if (canClear === false) {
-                    $('#clear-link').addClass('disabled').attr('title', 'Component state can only be cleared when the component is not actively running');
+                    $('#clear-link').addClass('disabled').attr('title', nf._.msg('nf-component-state.Message1'));
                 }
 
                 // reset the grid size

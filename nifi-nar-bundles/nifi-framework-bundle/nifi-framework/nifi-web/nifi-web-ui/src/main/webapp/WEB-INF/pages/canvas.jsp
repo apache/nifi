@@ -81,6 +81,7 @@
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
         <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
         <script type="text/javascript" src="js/nf/canvas/nf-ng-canvas-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/globalization/resources.js"></script>
         ${nf.canvas.script.tags}
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>

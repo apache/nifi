@@ -376,12 +376,12 @@
 
                         this.getElement().modal({
                             scrollableContentStyle: 'scrollable',
-                            headerText: 'About Apache NiFi',
+                            headerText: nf._.msg('nf-canvas-global-menu-controller.About'),
                             handler: {
                                 resize: resizeAbout
                             },
                             buttons: [{
-                                buttonText: 'Ok',
+                                buttonText: nf._.msg('nf-canvas-global-menu-controller.OK'),
                                 color: {
                                     base: '#728E9B',
                                     hover: '#004849',

@@ -15,18 +15,20 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-controller-service-dialog" layout="column" class="hidden">
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<div id="new-controller-service-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
             <div flex="25" layout="row" layout-align="start center">
-                <div class="setting-name" style="margin-top: 10px;">Source</div>
+                <div class="setting-name"><fmt:message key="partials.canvas.new-controller-service-dialog.TagCloud"/>:</div>
             </div>
             <div flex layout="row" layout-align="space-between center" id="controller-service-type-filter-controls" class="filter-status">
                 <div id="controller-service-type-filter-status">
-                    Displaying&nbsp;<span id="displayed-controller-service-types"></span>&nbsp;of&nbsp;<span id="total-controller-service-types"></span>
+                    <fmt:message key="partials.canvas.new-controller-service-dialog.Displaying"/>&nbsp;<span id="displayed-controller-service-types"></span>&nbsp;<fmt:message key="partials.canvas.new-controller-service-dialog.Of"/>&nbsp;<span id="total-controller-service-types"></span>
                 </div>
                 <div id="controller-service-type-filter-container">
-                    <input type="text" id="controller-service-type-filter" placeholder="Filter"/>
+                	<fmt:message key="partials.canvas.new-controller-service-dialog.controller-service-type-filter" var="filter"/>
+                    <input type="text" id="controller-service-type-filter" placeholder="${filter}"/>
                 </div>
             </div>
         </div>

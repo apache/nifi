@@ -65,7 +65,7 @@
             // initialize the dialog
             $('#lineage-query-dialog').modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Computing FlowFile lineage...'
+                headerText: nf._.msg('nf-provenance-lineage.Message1')
             });
         };
 
@@ -774,7 +774,7 @@
 
                         // show the 'searching...' dialog
                         $('#lineage-query-dialog').modal('setButtonModel', [{
-                            buttonText: 'Cancel',
+                            buttonText: nf._.msg('nf-provenance-lineage.Cancel'),
                             color: {
                                 base: '#E3E8EB',
                                 hover: '#C7D2D7',
@@ -830,7 +830,7 @@
                             if (!nfCommon.isEmpty(lineage.results.errors)) {
                                 var errors = lineage.results.errors;
                                 nfDialog.showOkDialog({
-                                    headerText: 'Process Lineage',
+                                    headerText: nf._.msg('nf-provenance-lineage.Process Lineage'),
                                     dialogContent: nfCommon.formatUnorderedList(errors)
                                 });
 
@@ -852,8 +852,8 @@
                                 } else {
                                     // inform the user that no results were found
                                     nfDialog.showOkDialog({
-                                        headerText: 'Lineage Results',
-                                        dialogContent: 'The lineage search has completed successfully but there no results were found. The events may have aged off.'
+                                        headerText: nf._.msg('nf-provenance-lineage.Lineage Results'),
+                                        dialogContent: nf._.msg('nf-provenance-lineage.Message2')
                                     });
                                 }
 
@@ -967,7 +967,7 @@
                     // add menu items
                     menuItems.push({
                         'class': 'lineage-view-parents',
-                        'text': 'Find parents',
+                        'text': nf._.msg('nf-provenance-lineage.Find parents'),
                         'click': function () {
                             expandLineage({
                                 lineageRequestType: 'PARENTS',
@@ -977,7 +977,7 @@
                         }
                     }, {
                         'class': 'lineage-view-children',
-                        'text': 'Expand',
+                        'text': nf._.msg('nf-provenance-lineage.Expand'),
                         'click': function () {
                             expandLineage({
                                 lineageRequestType: 'CHILDREN',
@@ -987,7 +987,7 @@
                         }
                     }, {
                         'class': 'lineage-collapse-children',
-                        'text': 'Collapse',
+                        'text': nf._.msg('nf-provenance-lineage.Collapse'),
                         'click': function () {
                             // collapse the children lineage
                             collapseLineage(d.id, provenanceTableCtrl);
@@ -1032,7 +1032,7 @@
                         }
                     });
 
-                events    
+                events
                     .append('circle')
                     .classed('selected', function (d) {
                         return d.id === eventId;
@@ -1339,7 +1339,7 @@
 
                 // show the 'searching...' dialog
                 $('#lineage-query-dialog').modal('setButtonModel', [{
-                    buttonText: 'Cancel',
+                    buttonText: nf._.msg('nf-provenance-lineage.Cancel'),
                     color: {
                         base: '#E3E8EB',
                         hover: '#C7D2D7',
@@ -1393,7 +1393,7 @@
                     if (!nfCommon.isEmpty(lineage.results.errors)) {
                         var errors = lineage.results.errors;
                         nfDialog.showOkDialog({
-                            headerText: 'Process Lineage',
+                            headerText: nf._.msg('nf-provenance-lineage.Process Lineage'),
                             dialogContent: nfCommon.formatUnorderedList(errors)
                         });
 

@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="flow-status" flex layout="row" layout-align="space-between center">
     <div id="flow-status-container" layout="row" layout-align="space-around center">
         <div class="fa fa-cubes" ng-if="appCtrl.nf.ClusterSummary.isClustered()" title="Connected nodes / Total number of nodes in the cluster"><span id="connected-nodes-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.connectedNodesCount}}</span></div>
@@ -39,7 +40,8 @@
     <div layout="row" layout-align="end center">
         <div id="search-container">
             <button id="search-button" ng-click="appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.search.toggleSearchField();"><i class="fa fa-search"></i></button>
-            <input id="search-field" type="text" placeholder="Search"/>
+            <fmt:message key="partials.canvas.flow-status.search-field" var="search"/>
+            <input id="search-field" type="text" placeholder="${search}"/>
         </div>
         <button id="bulletin-button"><i class="fa fa-sticky-note-o"></i></button>
     </div>

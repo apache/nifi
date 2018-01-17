@@ -115,8 +115,8 @@
                 }
             }).fail(function () {
                 nfDialog.showOkDialog({
-                    headerText: 'Provenance',
-                    dialogContent: 'Unable to generate access token for downloading content.'
+                    headerText: nf._.msg('nf-provenance-table.Provenance'),
+                    dialogContent: nf._.msg('nf-provenance-table.Message8')
                 });
             });
         };
@@ -153,8 +153,8 @@
                         deferred.resolve(uiExtensionToken, downloadToken);
                     }).fail(function () {
                         nfDialog.showOkDialog({
-                            headerText: 'Provenance',
-                            dialogContent: 'Unable to generate access token for viewing content.'
+                            headerText: nf._.msg('nf-provenance-table.Provenance'),
+                            dialogContent: nf._.msg('nf-provenance-table.Message7')
                         });
                         deferred.reject();
                     });
@@ -219,22 +219,22 @@
                 selectedTabStyle: 'selected-tab',
                 scrollableTabContentStyle: 'scrollable',
                 tabs: [{
-                    name: 'Details',
+                    name: nf._.msg('nf-provenance-table.Details'),
                     tabContentId: 'event-details-tab-content'
                 }, {
-                    name: 'Attributes',
+                    name: nf._.msg('nf-provenance-table.Attributes'),
                     tabContentId: 'attributes-tab-content'
                 }, {
-                    name: 'Content',
+                    name: nf._.msg('nf-provenance-table.Content'),
                     tabContentId: 'content-tab-content'
                 }]
             });
 
             $('#event-details-dialog').modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Provenance Event',
+                headerText: nf._.msg('nf-provenance-table.ProvenanceEvent'),
                 buttons: [{
-                    buttonText: 'Ok',
+                    buttonText: nf._.msg('nf-provenance-table.Ok'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -315,8 +315,8 @@
                     contentType: 'application/json'
                 }).done(function (response) {
                     nfDialog.showOkDialog({
-                        headerText: 'Provenance',
-                        dialogContent: 'Successfully submitted replay request.'
+                        headerText: nf._.msg('nf-provenance-table.Provenance'),
+                        dialogContent: nf._.msg('nf-provenance-table.Message1')
                     });
                 }).fail(nfErrorHandler.handleAjaxError);
 
@@ -397,9 +397,9 @@
             // configure the search dialog
             $('#provenance-search-dialog').modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Search Events',
+                headerText: nf._.msg('nf-provenance-table.Message2'),
                 buttons: [{
-                    buttonText: 'Search',
+                    buttonText: nf._.msg('nf-provenance-table.Search'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -461,7 +461,7 @@
                     }
                 },
                     {
-                        buttonText: 'Cancel',
+                        buttonText: nf._.msg('nf-provenance-table.Cancel'),
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -496,7 +496,7 @@
             // initialize the dialog
             $('#provenance-query-dialog').modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Searching provenance events...'
+                headerText: nf._.msg('nf-provenance-table.Message10')
             });
         };
 
@@ -554,20 +554,20 @@
 
             // filter options
             var filterOptions = [{
-                text: 'by component name',
+                text: nf._.msg('nf-provenance-table.ByComponentName'),
                 value: 'componentName'
             }, {
-                text: 'by component type',
+                text: nf._.msg('nf-provenance-table.ByComponentType'),
                 value: 'componentType'
             }, {
-                text: 'by type',
+                text: nf._.msg('nf-provenance-table.ByType'),
                 value: 'eventType'
             }];
 
             // if clustered, allowing filtering by node id
             if (isClustered) {
                 filterOptions.push({
-                    text: 'by node',
+                    text: nf._.msg('nf-provenance-table.ByNode'),
                     value: 'clusterNodeAddress'
                 });
             }
@@ -600,7 +600,7 @@
                 // if we are clustered reset the selected option
                 if (isClustered) {
                     $('#provenance-search-location').combo('setSelectedOption', {
-                        text: 'cluster'
+                        text: nf._.msg('nf-provenance-table.Cluster')
                     });
                 }
 
@@ -618,7 +618,7 @@
 
             // define a custom formatter for the more details column
             var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<div title="View Details" class="pointer show-event-details fa fa-info-circle"></div>';
+                return '<div title="' + nf._.msg('nf-provenance-table.ViewDetail') + '" class="pointer show-event-details fa fa-info-circle"></div>';
             };
 
             // define how general values are formatted
@@ -635,13 +635,13 @@
 
                 // conditionally include the cluster node id
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-right: 3px;"></div>';
+                    markup += '<div title="' + nf._.msg('nf-provenance-table.ShowLineage') + '" class="pointer show-lineage icon icon-lineage" style="margin-right: 3px;"></div>';
                 }
 
                 // conditionally support going to the component
                 var isRemotePort = dataContext.componentType === 'Remote Input Port' || dataContext.componentType === 'Remote Output Port';
                 if (isInShell && nfCommon.isDefinedAndNotNull(dataContext.groupId) && isRemotePort === false) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="' + nf._.msg('nf-provenance-table.GoTo') + '"></div>';
                 }
 
                 return markup;
@@ -660,7 +660,7 @@
                 },
                 {
                     id: 'eventTime',
-                    name: 'Date/Time',
+                    name: nf._.msg('nf-provenance-table.DateTime'),
                     field: 'eventTime',
                     sortable: true,
                     defaultSortAsc: false,
@@ -669,7 +669,7 @@
                 },
                 {
                     id: 'eventType',
-                    name: 'Type',
+                    name: nf._.msg('nf-provenance-table.Type'),
                     field: 'eventType',
                     sortable: true,
                     resizable: true,
@@ -677,7 +677,7 @@
                 },
                 {
                     id: 'flowFileUuid',
-                    name: 'FlowFile Uuid',
+                    name: nf._.msg('nf-provenance-table.FlowFileUuid'),
                     field: 'flowFileUuid',
                     sortable: true,
                     resizable: true,
@@ -685,7 +685,7 @@
                 },
                 {
                     id: 'fileSize',
-                    name: 'Size',
+                    name: nf._.msg('nf-provenance-table.Size'),
                     field: 'fileSize',
                     sortable: true,
                     defaultSortAsc: false,
@@ -694,7 +694,7 @@
                 },
                 {
                     id: 'componentName',
-                    name: 'Component Name',
+                    name: nf._.msg('nf-provenance-table.ComponentName'),
                     field: 'componentName',
                     sortable: true,
                     resizable: true,
@@ -702,7 +702,7 @@
                 },
                 {
                     id: 'componentType',
-                    name: 'Component Type',
+                    name: nf._.msg('nf-provenance-table.ComponentType'),
                     field: 'componentType',
                     sortable: true,
                     resizable: true,
@@ -714,7 +714,7 @@
             if (isClustered) {
                 provenanceColumns.push({
                     id: 'clusterNodeAddress',
-                    name: 'Node',
+                    name: nf._.msg('nf-provenance-table.Node'),
                     field: 'clusterNodeAddress',
                     sortable: true,
                     resizable: true,
@@ -1021,20 +1021,20 @@
 
                 // update the filter message based on the request
                 if (isBlankQuery(provenanceRequest)) {
-                    var message = 'Showing the most recent ';
+                    var message = nf._.msg('nf-provenance-table.Message');
                     if (provenanceResults.totalCount >= config.maxResults) {
-                        message += (nfCommon.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events, please refine the search.');
+                        message += (nfCommon.formatInteger(config.maxResults) + nf._.msg('nf-provenance-table.Of') + provenanceResults.total + nf._.msg('nf-provenance-table.Message4'));
                     } else {
-                        message += ('events.');
+                        message += (nf._.msg('nf-provenance-table.Events'));
                     }
                     $('#provenance-query-message').text(message);
                     $('#clear-provenance-search').hide();
                 } else {
-                    var message = 'Showing ';
+                    var message = nf._.msg('nf-provenance-table.Showing');
                     if (provenanceResults.totalCount >= config.maxResults) {
-                        message += (nfCommon.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events that match the specified query, please refine the search.');
+                        message += (nfCommon.formatInteger(config.maxResults) + nf._.msg('nf-provenance-table.Of') + provenanceResults.total + nf._.msg('nf-provenance-table.Message5'));
                     } else {
-                        message += ('the events that match the specified query.');
+                        message += (nf._.msg('nf-provenance-table.Message6'));
                     }
                     $('#provenance-query-message').text(message);
                     $('#clear-provenance-search').show();
@@ -1129,7 +1129,7 @@
 
                 // update the progress bar
                 var label = $('<div class="progress-label"></div>').text(value + '%');
-                (nfNgBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + value + '" class="md-hue-2" md-mode="determinate" aria-label="Progress"></md-progress-linear>'))(nfNgBridge.rootScope)).appendTo(progressBar);
+                (nfNgBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + value + '" class="md-hue-2" md-mode="determinate" aria-label="' + nf._.msg('nf-provenance-table.Process') + '"></md-progress-linear>'))(nfNgBridge.rootScope)).appendTo(progressBar);
                 progressBar.append(label);
             },
 
@@ -1159,7 +1159,7 @@
 
                 // show the 'searching...' dialog
                 $('#provenance-query-dialog').modal('setButtonModel', [{
-                    buttonText: 'Cancel',
+                    buttonText: nf._.msg('nf-provenance-table.Cancel'),
                     color: {
                         base: '#E3E8EB',
                         hover: '#C7D2D7',
@@ -1236,7 +1236,7 @@
                         if (!nfCommon.isEmpty(provenance.results.errors)) {
                             var errors = provenance.results.errors;
                             nfDialog.showOkDialog({
-                                headerText: 'Provenance',
+                                headerText: nf._.msg('nf-provenance-table.Provenance'),
                                 dialogContent: nfCommon.formatUnorderedList(errors),
                             });
                         }
@@ -1313,7 +1313,7 @@
 
                     // over the default tooltip with the actual byte count
                     var fileSize = $('#provenance-event-file-size').html(nfCommon.formatValue(event.fileSize)).ellipsis();
-                    fileSize.attr('title', nfCommon.formatInteger(event.fileSizeBytes) + ' bytes');
+                    fileSize.attr('title', nfCommon.formatInteger(event.fileSizeBytes) + nf._.msg('nf-provenance-table.Bytes'));
 
                     // sets an duration
                     var setDuration = function (field, value) {
@@ -1324,7 +1324,7 @@
                                 field.text(nfCommon.formatDuration(value));
                             }
                         } else {
-                            field.html('<span class="unset">No value set</span>');
+                            field.html('<span class="unset">' + nf._.msg('nf-provenance-table.NoValueSet') + '</span>');
                         }
                     };
 
@@ -1387,7 +1387,7 @@
                     // handle parent flowfiles
                     if (nfCommon.isEmpty(event.parentUuids)) {
                         $('#parent-flowfile-count').text(0);
-                        parentUuids.append('<span class="unset">No parents</span>');
+                        parentUuids.append('<span class="unset">' + nf._.msg('nf-provenance-table.NoParent') + '</span>');
                     } else {
                         $('#parent-flowfile-count').text(event.parentUuids.length);
                         $.each(event.parentUuids, function (_, uuid) {
@@ -1398,7 +1398,7 @@
                     // handle child flowfiles
                     if (nfCommon.isEmpty(event.childUuids)) {
                         $('#child-flowfile-count').text(0);
-                        childUuids.append('<span class="unset">No children</span>');
+                        childUuids.append('<span class="unset">' + nf._.msg('nf-provenance-table.NoChildren') + '</span>');
                     } else {
                         $('#child-flowfile-count').text(event.childUuids.length);
                         $.each(event.childUuids, function (_, uuid) {
@@ -1442,12 +1442,12 @@
                         if (nfCommon.isDefinedAndNotNull(value)) {
                             element.removeClass('unset').text(value);
                         } else {
-                            element.addClass('unset').text('No value previously set');
+                            element.addClass('unset').text(nf._.msg('nf-provenance-table.Message9'));
                         }
                     };
 
                     // content
-                    $('#input-content-header').text('Input Claim');
+                    $('#input-content-header').text(nf._.msg('nf-provenance-table.InputClaim'));
                     formatContentValue($('#input-content-container'), event.inputContentClaimContainer);
                     formatContentValue($('#input-content-section'), event.inputContentClaimSection);
                     formatContentValue($('#input-content-identifier'), event.inputContentClaimIdentifier);
@@ -1459,7 +1459,7 @@
                     formatContentValue(inputContentSize, event.inputContentClaimFileSize);
                     if (nfCommon.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
                         // over the default tooltip with the actual byte count
-                        inputContentSize.attr('title', nfCommon.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
+                        inputContentSize.attr('title', nfCommon.formatInteger(event.inputContentClaimFileSizeBytes) + nf._.msg('nf-provenance-table.Bytes'));
                     }
 
                     formatContentValue($('#output-content-container'), event.outputContentClaimContainer);
@@ -1473,7 +1473,7 @@
                     formatContentValue(outputContentSize, event.outputContentClaimFileSize);
                     if (nfCommon.isDefinedAndNotNull(event.outputContentClaimFileSize)) {
                         // over the default tooltip with the actual byte count
-                        outputContentSize.attr('title', nfCommon.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
+                        outputContentSize.attr('title', nfCommon.formatInteger(event.outputContentClaimFileSizeBytes) + nf._.msg('nf-provenance-table.Bytes'));
                     }
 
                     if (event.inputContentAvailable === true) {

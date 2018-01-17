@@ -315,7 +315,7 @@
                         var processorTypesColumns = [
                             {
                                 id: 'type',
-                                name: 'Type',
+                                name: nf._.msg('nf-processor-component.Type'),
                                 field: 'label',
                                 formatter: nfCommon.typeFormatter,
                                 sortable: true,
@@ -323,7 +323,7 @@
                             },
                             {
                                 id: 'version',
-                                name: 'Version',
+                                name: nf._.msg('nf-processor-component.Version'),
                                 field: 'version',
                                 formatter: nfCommon.typeVersionFormatter,
                                 sortable: true,
@@ -331,7 +331,7 @@
                             },
                             {
                                 id: 'tags',
-                                name: 'Tags',
+                                name: nf._.msg('nf-processor-component.Tags'),
                                 field: 'tags',
                                 sortable: true,
                                 resizable: true,
@@ -546,7 +546,7 @@
                     // configure the new processor dialog
                     this.getElement().modal({
                         scrollableContentStyle: 'scrollable',
-                        headerText: 'Add Processor',
+                        headerText: nf._.msg('nf-processor-component.AddProcessor'),
                         handler: {
                             resize: function () {
                                 $('#processor-type-description')
@@ -647,8 +647,8 @@
                     // ensure something was selected
                     if (name === '' || processorType === '') {
                         nfDialog.showOkDialog({
-                            headerText: 'Add Processor',
-                            dialogContent: 'The type of processor to create must be selected.'
+                            headerText: nf._.msg('nf-processor-component.AddProcessor'),
+                            dialogContent: nf._.msg('nf-processor-component.AddProcessorContent')
                         });
                     } else {
                         // create the new processor
@@ -680,7 +680,7 @@
 
                 // update the button model
                 this.modal.update('setButtonModel', [{
-                    buttonText: 'Add',
+                    buttonText: nf._.msg('nf-processor-component.Add'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -702,7 +702,7 @@
                     }
                 },
                     {
-                        buttonText: 'Cancel',
+                        buttonText: nf._.msg('nf-processor-component.Cancel'),
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',

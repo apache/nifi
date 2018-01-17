@@ -61,10 +61,10 @@
      */
     var initRemotePortConfigurationDialog = function () {
         $('#remote-port-configuration').modal({
-            headerText: 'Configure Remote Port',
+            headerText: nf._.msg('nf-remote-process-group-ports.ConfigureRemotePort'),
             scrollableContentStyle: 'scrollable',
             buttons: [{
-                buttonText: 'Apply',
+                buttonText: nf._.msg('nf-remote-process-group-ports.Apply'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -155,7 +155,7 @@
 
                                     nfDialog.showOkDialog({
                                         dialogContent: content,
-                                        headerText: 'Remote Process Group Ports'
+                                        headerText: nf._.msg('nf-remote-process-group-ports.RemoteProcessGroupPorts')
                                     });
                                 } else {
                                     nfErrorHandler.handleAjaxError(xhr, status, error);
@@ -166,7 +166,7 @@
                             });
                         } else {
                             nfDialog.showOkDialog({
-                                headerText: 'Remote Process Group Ports',
+                                headerText: nf._.msg('nf-remote-process-group-ports.RemoteProcessGroupPorts'),
                                 dialogContent: portValidationErrors.reduce(function (prev, curr) {
                                     return typeof(prev) === 'string' ? prev + ' ' + curr : curr;
                                 })
@@ -179,7 +179,7 @@
                 }
             },
                 {
-                    buttonText: 'Cancel',
+                    buttonText: nf._.msg('nf-remote-process-group-ports.Cancel'),
                     color: {
                         base: '#E3E8EB',
                         hover: '#C7D2D7',
@@ -212,9 +212,9 @@
     var initRemoteProcessGroupConfigurationDialog = function () {
         $('#remote-process-group-ports').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Remote Process Group Ports',
+            headerText: nf._.msg('nf-remote-process-group-ports.RemoteProcessGroupPorts'),
             buttons: [{
-                buttonText: 'Close',
+                buttonText: nf._.msg('nf-remote-process-group-ports.Close'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -478,7 +478,7 @@
 
         // add the comments for this port
         if (nfCommon.isBlank(port.comments)) {
-            $('<div class="remote-port-description unset">No description specified.</div>').appendTo(portContainerDetailsContainer);
+            $('<div class="remote-port-description unset">' + nf._.msg('nf-remote-process-group-ports.description') + '</div>').appendTo(portContainerDetailsContainer);
         } else {
             $('<div class="remote-port-description"></div>').text(port.comments).appendTo(portContainerDetailsContainer);
         }
@@ -500,7 +500,7 @@
             '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('div.concurrent-tasks-info').qtip($.extend({},
             nfCommon.config.tooltipConfig,
             {
-                content: 'The number of tasks that should be concurrently scheduled for this port.'
+                content: nf._.msg('nf-remote-process-group-ports.Message4')
             }));
 
         var compressionContainer = $('<div class="compression-container"></div>').appendTo(portContainerDetailsContainer);

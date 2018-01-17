@@ -498,7 +498,7 @@
                         if ($('#current-user').text() !== nfCommon.ANONYMOUS_USER_TEXT && !$('#anonymous-user-alert').is(':visible')) {
                             // if the token will expire before the next interval minus some bonus time, notify the user to re-login
                             $('#anonymous-user-alert').show().qtip($.extend({}, nfCommon.config.tooltipConfig, {
-                                content: 'Your session will expire soon. Please log in again to avoid being automatically logged out.',
+                                content: nf._.msg('nf-common.Message15'),
                                 position: {
                                     my: 'top right',
                                     at: 'bottom left'
@@ -527,7 +527,7 @@
 
             // alert user's of anonymous access
             anonymousUserAlert.show().qtip($.extend({}, nfCommon.config.tooltipConfig, {
-                content: 'You are accessing with limited authority. Log in or request an account to access with additional authority granted to you by an administrator.',
+                content: nf._.msg('nf-common.Message16'),
                 position: {
                     my: 'top right',
                     at: 'bottom left'
@@ -797,9 +797,9 @@
          */
         populateField: function (target, value) {
             if (nfCommon.isUndefined(value) || nfCommon.isNull(value)) {
-                return $('#' + target).addClass('unset').text('No value set');
+                return $('#' + target).addClass('unset').text(nf._.msg('nf-common.Message13'));
             } else if (value === '') {
-                return $('#' + target).addClass('blank').text('Empty string set');
+                return $('#' + target).addClass('blank').text(nf._.msg('nf-common.Message14'));
             } else {
                 return $('#' + target).text(value);
             }
@@ -847,10 +847,10 @@
                     tipContent.push(nfCommon.escapeHtml(propertyDescriptor.description));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.defaultValue)) {
-                    tipContent.push('<b>Default value:</b> ' + nfCommon.escapeHtml(propertyDescriptor.defaultValue));
+                    tipContent.push('<b>' + nf._.msg('nf-summary-table.DefaultValue') + ':</b> ' + nfCommon.escapeHtml(propertyDescriptor.defaultValue));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.supportsEl)) {
-                    tipContent.push('<b>Supports expression language:</b> ' + nfCommon.escapeHtml(propertyDescriptor.supportsEl));
+                    tipContent.push('<b>' + nf._.msg('nf-summary-table.SupportsExpressionLanguage') + ':</b> ' + nfCommon.escapeHtml(propertyDescriptor.supportsEl));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.identifiesControllerService)) {
                     var formattedType = nfCommon.formatType({
@@ -868,7 +868,7 @@
                     $.each(propertyHistory.previousValues, function (_, previousValue) {
                         history.push('<li>' + nfCommon.escapeHtml(previousValue.previousValue) + ' - ' + nfCommon.escapeHtml(previousValue.timestamp) + ' (' + nfCommon.escapeHtml(previousValue.userIdentity) + ')</li>');
                     });
-                    tipContent.push('<b>History:</b><ul class="property-info">' + history.join('') + '</ul>');
+                    tipContent.push('<b>' + nf._.msg('nf-summary-table.History') + ':</b><ul class="property-info">' + history.join('') + '</ul>');
                 }
             }
 
@@ -897,12 +897,12 @@
         formatValue: function (value) {
             if (nfCommon.isDefinedAndNotNull(value)) {
                 if (value === '') {
-                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">Empty string set</span>';
+                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">' + nf._.msg('nf-common.Message27') + '</span>';
                 } else {
                     return nfCommon.escapeHtml(value);
                 }
             } else {
-                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">No value set</span>';
+                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">' + nf._.msg('nf-common.Message28') + '</span>';
             }
         },
 
@@ -1211,7 +1211,7 @@
             }
 
             // default to bytes
-            return parseFloat(dataSize).toFixed(2) + " bytes";
+            return parseFloat(dataSize).toFixed(2) + nf._.msg('nf-common.Bytes');
         },
 
         /**

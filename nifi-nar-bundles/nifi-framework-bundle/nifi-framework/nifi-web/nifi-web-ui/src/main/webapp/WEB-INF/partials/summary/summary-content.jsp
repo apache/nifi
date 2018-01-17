@@ -15,24 +15,26 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="summary">
     <div id="summary-header-and-filter">
-        <div id="summary-header-text">NiFi Summary</div>
+        <div id="summary-header-text"><fmt:message key="partials.summary.summary-content.summary-header-text"/></div>
     </div>
     <div id="summary-tabs" class="tab-container"></div>
     <div id="summary-tabs-content">
         <div id="summary-filter-controls" class="filter-controls">
             <div id="summary-filter-status" class="filter-status">
-                Displaying&nbsp;<span id="displayed-items"></span>&nbsp;of&nbsp;<span id="total-items"></span>
+                <fmt:message key="partials.summary.summary-content.Displaying"/>&nbsp;<span id="displayed-items"></span>&nbsp;<fmt:message key="partials.summary.summary-content.Of"/>&nbsp;<span id="total-items"></span>
             </div>
+            <fmt:message key="partials.summary.summary-content.summary-filter-container" var="filter"/>
             <div id="summary-filter-container" class="filter-container">
-                <input type="text" placeholder="Filter" id="summary-filter" class="filter"/>
+                <input type="text" placeholder="${filter}" id="summary-filter" class="filter"/>
                 <div id="summary-filter-type" class="filter-type"></div>
             </div>
         </div>
         <div id="view-options-container">
-            View:&nbsp;
-            <span id="view-single-node-link" class="link">Single node</span>&nbsp;&nbsp;<span id="view-cluster-link" class="link">Cluster</span>
+            <fmt:message key="partials.summary.summary-content.View"/>&nbsp;
+            <span id="view-single-node-link" class="link"><fmt:message key="partials.summary.summary-content.SingleNode"/></span>&nbsp;&nbsp;<span id="view-cluster-link" class="link"><fmt:message key="partials.summary.summary-content.Cluster"/></span>
         </div>
         <div id="processor-summary-tab-content" class="configuration-tab">
             <div id="processor-summary-table" class="summary-table"></div>
@@ -55,12 +57,13 @@
     </div>
 </div>
 <div id="flow-summary-refresh-container">
-    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+	<fmt:message key="partials.summary.summary-content.Refresh" var="refresh"/>
+    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="${refresh}"></button>
     <div id="summary-last-refreshed-container" class="last-refreshed-container">
-        Last updated:&nbsp;<span id="summary-last-refreshed" class="value-color"></span>
+        <fmt:message key="partials.summary.summary-content.LastUpdated"/>&nbsp;<span id="summary-last-refreshed" class="value-color"></span>
     </div>
     <div id="summary-loading-container" class="loading-container"></div>
     <div id="system-diagnostics-link-container">
-        <span id="system-diagnostics-link" class="link">system diagnostics</span>
+        <span id="system-diagnostics-link" class="link"><fmt:message key="partials.summary.summary-content.SystemDiagnostics"/></span>
     </div>
 </div>

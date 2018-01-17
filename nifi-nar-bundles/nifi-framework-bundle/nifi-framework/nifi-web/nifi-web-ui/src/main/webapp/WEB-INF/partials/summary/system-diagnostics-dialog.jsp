@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="system-diagnostics-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="system-diagnostics-tabs" class="tab-container"></div>
@@ -23,12 +24,12 @@
                 <div class="settings-left">
                     <div class="setting">
                         <input type="hidden" id=""/>
-                        <div class="setting-header">Heap <span id="utilization-heap"></span></div>
+                        <div class="setting-header"><fmt:message key="partials.summary.system-diagnostics-dialog.Heap"/> <span id="utilization-heap"></span></div>
                         <div class="setting-field">
                             <table id="heap-table">
                                 <tbody>
                                 <tr>
-                                    <td class="memory-header setting-name">Max:</td>
+                                    <td class="memory-header setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Max"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="max-heap"></span></td>
@@ -37,7 +38,7 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td class="setting-name">Total:</td>
+                                    <td class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Total"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="total-heap"></span></td>
@@ -46,7 +47,7 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td class="setting-name">Used:</td>
+                                    <td class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Used"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="used-heap"></span></td>
@@ -55,7 +56,7 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td class="setting-name">Free:</td>
+                                    <td class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Free"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="free-heap"></span></td>
@@ -72,12 +73,12 @@
                 <div class="spacer"></div>
                 <div class="settings-right">
                     <div class="setting">
-                        <div class="setting-header">Non-heap <span id="utilization-non-heap"></span></div>
+                        <div class="setting-header"><fmt:message key="partials.summary.system-diagnostics-dialog.NonHeap"/> <span id="utilization-non-heap"></span></div>
                         <div class="setting-field">
                             <table id="non-heap-table">
                                 <tbody>
                                 <tr>
-                                    <td class="memory-header setting-name">Max:</td>
+                                    <td class="memory-header setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Max"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="max-non-heap"></span></td>
@@ -86,7 +87,7 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td class="setting-name">Total:</td>
+                                    <td class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Total"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="total-non-heap"></span></td>
@@ -95,7 +96,7 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td class="setting-name">Used:</td>
+                                    <td class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Used"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="used-non-heap"></span></td>
@@ -104,7 +105,7 @@
                                     <td></td>
                                 </tr>
                                 <tr>
-                                    <td class="setting-name">Free:</td>
+                                    <td class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Free"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="free-non-heap"></span></td>
@@ -120,7 +121,7 @@
                 </div>
                 <div class="clear"></div>
                 <div class="setting">
-                    <div class="setting-header">Garbage Collection</div>
+                    <div class="setting-header"><fmt:message key="partials.summary.system-diagnostics-dialog.GarbageCollection"/></div>
                     <div id="garbage-collection-container" class="setting-field">
                         <table id="garbage-collection-table">
                             <tbody></tbody>
@@ -128,12 +129,12 @@
                     </div>
                 </div>
                 <div class="setting">
-                    <div class="setting-header">Runtime</div>
+                    <div class="setting-header"><fmt:message key="partials.summary.system-diagnostics-dialog.Runtime"/></div>
                     <div id="jvm-runtime-container" class="setting-field">
                         <table id="jvm-runtime-table">
                             <tbody>
                                 <tr>
-                                    <td class="setting-name">Uptime:</td>
+                                    <td class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.Uptime"/>:</td>
                                 </tr>
                                 <tr>
                                     <td><span id="uptime"></span></td>
@@ -149,7 +150,7 @@
             <div id="system-tab-content"class="configuration-tab">
                 <div class="settings-left">
                     <div class="setting">
-                        <div class="setting-name">Available Cores:</div>
+                        <div class="setting-name"><fmt:message key="partials.summary.system-diagnostics-dialog.AvailableProcessors"/>:</div>
                         <div class="setting-field">
                             <div id="available-processors"></div>
                         </div>
@@ -159,8 +160,9 @@
                 <div class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
-                            Core Load Average:
-                            <div class="fa fa-question-circle" alt="Info" title="Core load average for the last minute. Not available on all platforms."></div>
+                            <fmt:message key="partials.summary.system-diagnostics-dialog.ProcessorLoadAverage"/>:
+                            <fmt:message key="partials.summary.system-diagnostics-dialog.ProcessorLoadAverage.title" var="system-diagnostics-dialog_ProcessorLoadAverage"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${system-diagnostics-dialog_ProcessorLoadAverage}"></div>
                         </div>
                         <div class="setting-field">
                             <div id="processor-load-average"></div>
@@ -169,13 +171,13 @@
                 </div>
                 <div class="clear"></div>
                 <div class="setting">
-                    <div class="setting-header">FlowFile Repository Storage</div>
+                    <div class="setting-header"><fmt:message key="partials.summary.system-diagnostics-dialog.FlowFileRepositoryStorageUsage"/></div>
                     <div class="setting-field">
                         <div id="flow-file-repository-storage-usage-container"></div>
                     </div>
                 </div>
                 <div class="setting">
-                    <div class="setting-header">Content Repository Storage</div>
+                    <div class="setting-header"><fmt:message key="partials.summary.system-diagnostics-dialog.ContentRepositoryStorageUsage"/></div>
                     <div class="setting-field">
                         <div id="content-repository-storage-usage-container"></div>
                     </div>
@@ -189,34 +191,35 @@
             </div>
             <div id="version-tab-content" class="configuration-tab">
                 <div class="setting">
-                    <div class="setting-header">NiFi</div>
+                    <div class="setting-header"><fmt:message key="partials.summary.version-tab-content.nifi"/></div>
                     <dl class="setting-attributes-list">
-                        <dt>NiFi Version</dt><dd><span id="version-nifi"></span></dd>
-                        <dt>Tag</dt><dd><span id="version-build-tag"></span></dd>
-                        <dt>Build Date/Time</dt><dd><span id="version-build-timestamp"></span></dd>
-                        <dt>Branch</dt><dd><span id="version-build-branch"></span></dd>
-                        <dt>Revision</dt><dd><span id="version-build-revision"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.nifiVersion"/></dt><dd><span id="version-nifi"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.tag"/></dt><dd><span id="version-build-tag"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.buildDate"/></dt><dd><span id="version-build-timestamp"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.branch"/></dt><dd><span id="version-build-branch"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.revision"/></dt><dd><span id="version-build-revision"></span></dd>
                     </dl>
                 </div>
                 <div class="setting">
                     <div class="setting-header">Java</div>
                     <dl class="setting-attributes-list">
-                        <dt>Version</dt><dd><span id="version-java-version"></span></dd>
-                        <dt>Vendor</dt><dd><span id="version-java-vendor"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.Version"/></dt><dd><span id="version-java-version"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.Vendor"/></dt><dd><span id="version-java-vendor"></span></dd>
                     </dl>
                 </div>
                 <div class="setting">
-                    <div class="setting-header">Operating System</div>
+                    <div class="setting-header"><fmt:message key="partials.summary.version-tab-content.Operating"/></div>
                     <dl class="setting-attributes-list">
-                        <dt>Name</dt><dd><span id="version-os-name"></span></dd>
-                        <dt>Version</dt><dd><span id="version-os-version"></span></dd>
-                        <dt>Architecture</dt><dd><span id="version-os-arch"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.Name"/></dt><dd><span id="version-os-name"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.Version"/></dt><dd><span id="version-os-version"></span></dd>
+                        <dt><fmt:message key="partials.summary.version-tab-content.Architecture"/></dt><dd><span id="version-os-arch"></span></dd>
                     </dl>
                 </div>
             </div>
         </div>
         <div id="system-diagnostics-refresh-container">
-            <button id="system-diagnostics-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+        <fmt:message key="partials.summary.system-diagnostics-refresh-container.refresh" var="refresh"/>
+            <button id="system-diagnostics-refresh-button" class="refresh-button pointer fa fa-refresh" title="${refresh}"></button>
             <div id="system-diagnostics-last-refreshed-container" class="last-refreshed-container">
                 <span id="system-diagnostics-last-refreshed" class="value-color"></span>
             </div>

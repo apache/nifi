@@ -97,7 +97,7 @@
 
             nfDialog.showOkDialog({
                 dialogContent: content,
-                headerText: 'Controller Service'
+                headerText: nf._.msg('nf-controller-service.ControllerService')
             });
         } else {
             nfErrorHandler.handleAjaxError(xhr, status, error);
@@ -431,7 +431,7 @@
      */
     var createReferencingComponents = function (serviceTable, referenceContainer, referencingComponents) {
         if (nfCommon.isEmpty(referencingComponents)) {
-            referenceContainer.append('<div class="unset">No referencing components.</div>');
+            referenceContainer.append('<div class="unset">' + nf._.msg('nf-actions.Message19') + '</div>');
             return;
         }
 
@@ -1117,7 +1117,7 @@
 
         // build the button model
         var buttons = [{
-            buttonText: 'Disable',
+            buttonText: nf._.msg('nf-controller-service.Disable'),
             color: {
                 base: '#728E9B',
                 hover: '#004849',
@@ -1129,7 +1129,7 @@
                 }
             }
         }, {
-            buttonText: 'Cancel',
+            buttonText: nf._.msg('nf-controller-service.Cancel'),
             color: {
                 base: '#E3E8EB',
                 hover: '#C7D2D7',
@@ -1169,7 +1169,7 @@
 
         // build the button model
         var buttons = [{
-            buttonText: 'Enable',
+            buttonText: nf._.msg('nf-controller-service.Enable'),
             color: {
                 base: '#728E9B',
                 hover: '#004849',
@@ -1181,7 +1181,7 @@
                 }
             }
         }, {
-            buttonText: 'Cancel',
+            buttonText: nf._.msg('nf-controller-service.Cancel'),
             color: {
                 base: '#E3E8EB',
                 hover: '#C7D2D7',
@@ -1222,7 +1222,7 @@
 
         // only provide a cancel option
         disableDialog.modal('setButtonModel', [{
-            buttonText: 'Cancel',
+            buttonText: nf._.msg('nf-controller-service.Cancel'),
             color: {
                 base: '#E3E8EB',
                 hover: '#C7D2D7',
@@ -1257,7 +1257,7 @@
         var setCloseButton = function () {
             $('#disable-controller-service-dialog div.controller-service-canceling').hide();
             disableDialog.modal('setButtonModel', [{
-                buttonText: 'Close',
+                buttonText: nf._.msg('nf-controller-service.Close'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -1274,8 +1274,8 @@
             setCloseButton();
 
             nfDialog.showOkDialog({
-                headerText: 'Controller Service',
-                dialogContent: 'Unable to disable due to unauthorized referencing components.'
+                headerText: nf._.msg('nf-controller-service.ControllerService'),
+                dialogContent: nf._.msg('nf-controller-service.Message14')
             });
             return;
         }
@@ -1323,8 +1323,8 @@
             // inform the user if the action was canceled
             if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
                 nfDialog.showOkDialog({
-                    headerText: 'Controller Service',
-                    dialogContent: 'The request to disable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
+                    headerText: nf._.msg('nf-controller-service.ControllerService'),
+                    dialogContent: nf._.msg('nf-controller-service.Message5')
                 });
             }
         });
@@ -1381,7 +1381,7 @@
 
         // only provide a cancel option
         enableDialog.modal('setButtonModel', [{
-            buttonText: 'Cancel',
+            buttonText: nf._.msg('nf-controller-service.Cancel'),
             color: {
                 base: '#E3E8EB',
                 hover: '#C7D2D7',
@@ -1410,7 +1410,7 @@
         var setCloseButton = function () {
             $('#enable-controller-service-dialog div.controller-service-canceling').hide();
             enableDialog.modal('setButtonModel', [{
-                buttonText: 'Close',
+                buttonText: nf._.msg('nf-controller-service.Close'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -1427,8 +1427,8 @@
             setCloseButton();
 
             nfDialog.showOkDialog({
-                headerText: 'Controller Service',
-                dialogContent: 'Unable to enable due to unauthorized referencing components.'
+                headerText: nf._.msg('nf-controller-service.ControllerService'),
+                dialogContent: nf._.msg('nf-controller-service.Message15')
             });
             return;
         }
@@ -1486,8 +1486,8 @@
             // inform the user if the action was canceled
             if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
                 nfDialog.showOkDialog({
-                    headerText: 'Controller Service',
-                    dialogContent: 'The request to enable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
+                    headerText: nf._.msg('nf-controller-service.ControllerService'),
+                    dialogContent: nf._.msg('nf-controller-service.Message2')
                 });
             }
         });
@@ -1524,8 +1524,8 @@
             if (isSaveRequired()) {
                 // see if those changes should be saved
                 nfDialog.showYesNoDialog({
-                    headerText: 'Save',
-                    dialogContent: 'Save changes before going to this Controller Service?',
+                    headerText: nf._.msg('nf-controller-service.Save'),
+                    dialogContent: nf._.msg('nf-controller-service.Message16'),
                     noHandler: function () {
                         deferred.resolve();
                     },
@@ -1643,13 +1643,13 @@
                 selectedTabStyle: 'selected-tab',
                 scrollableTabContentStyle: 'scrollable',
                 tabs: [{
-                    name: 'Settings',
+                    name: nf._.msg('nf-controller-service.Settings'),
                     tabContentId: 'controller-service-standard-settings-tab-content'
                 }, {
-                    name: 'Properties',
+                    name: nf._.msg('nf-controller-service.Properties'),
                     tabContentId: 'controller-service-properties-tab-content'
                 }, {
-                    name: 'Comments',
+                    name: nf._.msg('nf-controller-service.Comments'),
                     tabContentId: 'controller-service-comments-tab-content'
                 }],
                 select: function () {
@@ -1657,7 +1657,7 @@
                     nfUniversalCapture.removeAllPropertyDetailDialogs();
 
                     // update the property table size in case this is the first time its rendered
-                    if ($(this).text() === 'Properties') {
+                    if ($(this).text() === nf._.msg('nf-controller-service.Properties')) {
                         $('#controller-service-properties').propertytable('resetTableSize');
                     }
 
@@ -1672,7 +1672,7 @@
 
             // initialize the conroller service configuration dialog
             $('#controller-service-configuration').modal({
-                headerText: 'Configure Controller Service',
+                headerText: nf._.msg('nf-controller-service.Message7'),
                 scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
@@ -1705,7 +1705,7 @@
 
             // initialize the disable service dialog
             $('#disable-controller-service-dialog').modal({
-                headerText: 'Disable Controller Service',
+                headerText: nf._.msg('nf-controller-service.Message8'),
                 scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
@@ -1738,13 +1738,13 @@
             // initialize the enable scope combo
             $('#enable-controller-service-scope').combo({
                 options: [{
-                    text: 'Service only',
+                    text: nf._.msg('nf-controller-service.ServiceOnle'),
                     value: config.serviceOnly,
-                    description: 'Enable only this controller service'
+                    description: nf._.msg('nf-controller-service.Message12')
                 }, {
-                    text: 'Service and referencing components',
+                    text: nf._.msg('nf-controller-service.Message10'),
                     value: config.serviceAndReferencingComponents,
-                    description: 'Enable this controller service and enable/start all referencing components'
+                    description: nf._.msg('nf-controller-service.Message11')
                 }]
             });
 
@@ -1881,7 +1881,7 @@
                 createReferencingComponents(serviceTable, referenceContainer, controllerService.referencingComponents);
 
                 var buttons = [{
-                    buttonText: 'Apply',
+                    buttonText: nf._.msg('nf-controller-service.Apply'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -1902,7 +1902,7 @@
                         }
                     }
                 }, {
-                    buttonText: 'Cancel',
+                    buttonText: nf._.msg('nf-controller-service.Cancel'),
                     color: {
                         base: '#E3E8EB',
                         hover: '#C7D2D7',
@@ -1918,7 +1918,7 @@
                 // determine if we should show the advanced button
                 if (nfCommon.isDefinedAndNotNull(controllerService.customUiUrl) && controllerService.customUiUrl !== '') {
                     buttons.push({
-                        buttonText: 'Advanced',
+                        buttonText: nf._.msg('nf-controller-service.Advanced'),
                         clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
@@ -1951,8 +1951,8 @@
                                 if (isSaveRequired()) {
                                     // see if those changes should be saved
                                     nfDialog.showYesNoDialog({
-                                        headerText: 'Save',
-                                        dialogContent: 'Save changes before opening the advanced configuration?',
+                                        headerText: nf._.msg('nf-controller-service.Save'),
+                                        dialogContent: nf._.msg('nf-controller-service.Message13'),
                                         noHandler: openCustomUi,
                                         yesHandler: function () {
                                             saveControllerService(serviceTable, controllerServiceEntity).done(function () {
@@ -2062,7 +2062,7 @@
                 createReferencingComponents(serviceTable, referenceContainer, controllerService.referencingComponents);
 
                 var buttons = [{
-                    buttonText: 'Ok',
+                    buttonText: nf._.msg('nf-controller-service.Ok'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -2079,7 +2079,7 @@
                 // determine if we should show the advanced button
                 if (nfCommon.isDefinedAndNotNull(nfCustomUi) && nfCommon.isDefinedAndNotNull(controllerService.customUiUrl) && controllerService.customUiUrl !== '') {
                     buttons.push({
-                        buttonText: 'Advanced',
+                        buttonText: nf._.msg('nf-controller-service.Advanced'),
                         clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',

@@ -628,7 +628,7 @@
                             'y': 5,
                             'class': 'stats-label'
                         })
-                        .text('Queued');
+                        .text(nf._.msg('nf-process-group.Queued'));
 
                     // in label
                     processGroupStatsLabel.append('text')
@@ -639,7 +639,7 @@
                             'y': 24,
                             'class': 'stats-label'
                         })
-                        .text('In');
+                        .text(nf._.msg('nf-process-group.In'));
 
                     // read/write label
                     processGroupStatsLabel.append('text')
@@ -650,7 +650,7 @@
                             'y': 42,
                             'class': 'stats-label'
                         })
-                        .text('Read/Write');
+                        .text(nf._.msg('nf-process-group.ReadWrite'));
 
                     // out label
                     processGroupStatsLabel.append('text')
@@ -661,7 +661,7 @@
                             'y': 60,
                             'class': 'stats-label'
                         })
-                        .text('Out');
+                        .text(nf._.msg('nf-process-group.Out'));
 
                     // stats value container
                     var processGroupStatsValue = details.append('g')
@@ -772,7 +772,7 @@
                             'y': 24,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-process-group.5min'));
 
                     // read/write info
                     processGroupStatsInfo.append('text')
@@ -783,7 +783,7 @@
                             'y': 42,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-process-group.5min'));
 
                     // out info
                     processGroupStatsInfo.append('text')
@@ -794,7 +794,7 @@
                             'y': 60,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-process-group.5min'));
 
                     // --------
                     // comments

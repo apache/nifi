@@ -15,16 +15,17 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="message-pane" class="message-pane hidden">
     <div class="message-pane-message-box">
         <div id="message-title" class="message-pane-title"></div>
         <div id="user-links-container">
             <ul class="links">
                 <li id="user-logout-container" style="display: none;">
-                    <span id="user-logout" class="link">log out</span>
+                    <span id="user-logout" class="link"><fmt:message key="partials.message-pane.logout"/></span>
                 </li>
                 <li>
-                    <span id="user-home" class="link">home</span>
+                    <span id="user-home" class="link"><fmt:message key="partials.message-pane.userhome"/></span>
                 </li>
             </ul>
         </div>

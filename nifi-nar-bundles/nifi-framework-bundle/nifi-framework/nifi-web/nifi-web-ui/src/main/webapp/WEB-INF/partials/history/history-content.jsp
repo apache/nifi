@@ -15,28 +15,32 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="history">
-    <div id="history-header-text">NiFi History</div>
+    <div id="history-header-text"><fmt:message key="partials.history.history-content.history-header-text"/></div>
     <div id="history-filter-container">
         <div id="cluster-history-message" class="hidden">
-            Viewing history for the current node only. Browse to another node to view its history.
+            <fmt:message key="paritals.history.history-content.cluster-history-message"/>
         </div>
         <div style="float: right">
             <div id="history-filter-overview">
-                A filter has been applied.&nbsp;
-                <span id="clear-history-filter" class="link">Clear filter</span>
+                <fmt:message key="partials.history.history-content.history-filter-overview"/>&nbsp;
+                <span id="clear-history-filter" class="link"><fmt:message key="partials.history.history-content.clear-history-filter"/></span>
             </div>
-            <button id="history-filter-button" title="Filter History" class="fa fa-filter"></button>
-            <button id="history-purge-button" title="Purge History" class="fa fa-eraser hidden"></button>
+            <fmt:message key="paritals.history.history-content.history-filter-button.title" var="historyFilter"/>
+            <button id="history-filter-button" title="${historyFilter}" class="fa fa-filter"></button>
+            <fmt:message key="paritals.history.history-content.history-purge-button.title" var="historyPurge"/>
+            <button id="history-purge-button" title="${historyPurge}" class="fa fa-eraser hidden"></button>
         </div>
         <div class="clear"></div>
     </div>
     <div id="history-table"></div>
 </div>
 <div id="history-refresh-container">
-    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+	<fmt:message key="paritals.history.history-content.refresh-button.title" var="historyContentRefresh"/>
+    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="${historyContentRefresh}"></button>
     <div id="history-last-refreshed-container" class="last-refreshed-container">
-        Last updated:&nbsp;<span id="history-last-refreshed" class="value-color"></span>
+        <fmt:message key="paritals.history.history-content.history-last-refreshed-container"/>&nbsp;<span id="history-last-refreshed" class="value-color"></span>
     </div>
     <div id="history-loading-container" class="loading-container"></div>
 </div>

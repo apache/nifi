@@ -55,7 +55,7 @@
     }
 }(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
     'use strict';
-    
+
     var config = {
         urls: {
             api: '../nifi-api',
@@ -77,9 +77,9 @@
 
         $('#search-users-dialog').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Add Users/Groups',
+            headerText: nf._.msg('nf-policy-management.AcessUser'),
             buttons: [{
-                buttonText: 'Add',
+                buttonText: nf._.msg('nf-policy-management.Add'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -116,7 +116,7 @@
                 }
             },
                 {
-                    buttonText: 'Cancel',
+                    buttonText: nf._.msg('nf-policy-management.Cancel'),
                     color: {
                         base: '#E3E8EB',
                         hover: '#C7D2D7',
@@ -186,7 +186,7 @@
 
                 // ensure there were some results
                 if (ul.children().length === 0) {
-                    ul.append('<li class="unset search-no-matches">No users matched the search terms</li>');
+                    ul.append('<li class="unset search-no-matches">' + nf._.msg('nf-policy-management.NoUserSearch') + '</li>');
                 }
             },
             _resizeMenu: function () {
@@ -427,9 +427,9 @@
 
                         // record the action
                         if (globalPolicySupportsWrite(option.value)) {
-                            $('#selected-policy-action').text('write');
+                            $('#selected-policy-action').text(nf._.msg('nf-policy-management.Write'));
                         } else {
-                            $('#selected-policy-action').text('read');
+                            $('#selected-policy-action').text(nf._.msg('nf-policy-management.Read'));
                         }
 
                         // reload the policy
@@ -442,10 +442,10 @@
         // controller policy target
         $('#controller-policy-target').combo({
             options: [{
-                text: 'view',
+                text: nf._.msg('nf-policy-management.View'),
                 value: 'read'
             }, {
-                text: 'modify',
+                text: nf._.msg('nf-policy-management.Modify'),
                 value: 'write'
             }],
             select: function (option) {
@@ -458,69 +458,69 @@
                 }
             }
         });
-        
+
         // component policy target
         $('#component-policy-target').combo({
             options: [{
-                text: 'view the component',
+                text: nf._.msg('nf-policy-management.ViewComponent'),
                 value: 'read-component',
-                description: 'Allows users to view component configuration details'
+                description: nf._.msg('nf-policy-management.Message16')
             }, {
-                text: 'modify the component',
+                text: nf._.msg('nf-policy-management.ModifyComponent'),
                 value: 'write-component',
-                description: 'Allows users to modify component configuration details'
+                description: nf._.msg('nf-policy-management.Message17')
             }, {
-                text: 'view the data',
+                text: nf._.msg('nf-policy-management.ViewData'),
                 value: 'read-data',
-                description: 'Allows users to view metadata and content for this component through provenance data and flowfile queues in outbound connections'
+                description: nf._.msg('nf-policy-management.Message18')
             }, {
-                text: 'modify the data',
+                text: nf._.msg('nf-policy-management.ModifyData'),
                 value: 'write-data',
-                description: 'Allows users to empty flowfile queues in outbound connections and submit replays'
+                description: nf._.msg('nf-policy-management.Message19')
             }, {
-                text: 'receive data via site-to-site',
+                text: nf._.msg('nf-policy-management.ReceiveData'),
                 value: 'write-receive-data',
-                description: 'Allows this port to receive data from these NiFi instances',
+                description: nf._.msg('nf-policy-management.Message20'),
                 disabled: true
             }, {
-                text: 'send data via site-to-site',
+                text: nf._.msg('nf-policy-management.SendData'),
                 value: 'write-send-data',
-                description: 'Allows this port to send data to these NiFi instances',
+                description: nf._.msg('nf-policy-management.Message21'),
                 disabled: true
             }, {
-                text: 'view the policies',
+                text: nf._.msg('nf-policy-management.ViewPolicies'),
                 value: 'read-policies',
-                description: 'Allows users to view the list of users who can view/modify this component'
+                description: nf._.msg('nf-policy-management.Message22')
             }, {
-                text: 'modify the policies',
+                text: nf._.msg('nf-policy-management.ModifyPolicies'),
                 value: 'write-policies',
-                description: 'Allows users to modify the list of users who can view/modify this component'
+                description: nf._.msg('nf-policy-management.Message23')
             }],
             select: function (option) {
                 if (initialized) {
                     var resource = $('#selected-policy-component-type').text();
 
                     if (option.value === 'read-component') {
-                        $('#selected-policy-action').text('read');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Read'));
                     } else if (option.value === 'write-component') {
-                        $('#selected-policy-action').text('write');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Write'));
                     } else if (option.value === 'read-data') {
-                        $('#selected-policy-action').text('read');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Read'));
                         resource = ('data/' + resource);
                     } else if (option.value === 'write-data') {
-                        $('#selected-policy-action').text('write');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Write'));
                         resource = ('data/' + resource);
                     } else if (option.value === 'read-policies') {
-                        $('#selected-policy-action').text('read');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Read'));
                         resource = ('policies/' + resource);
                     } else if (option.value === 'write-policies') {
-                        $('#selected-policy-action').text('write');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Write'));
                         resource = ('policies/' + resource);
                     } else if (option.value === 'write-receive-data') {
-                        $('#selected-policy-action').text('write');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Write'));
                         resource = 'data-transfer/input-ports';
                     } else if (option.value === 'write-send-data') {
-                        $('#selected-policy-action').text('write');
+                        $('#selected-policy-action').text(nf._.msg('nf-policy-management.Write'));
                         resource = 'data-transfer/output-ports';
                     }
 
@@ -540,7 +540,7 @@
                 markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
             }
 
-            markup += nfCommon.escapeHtml(dataContext.component.identity);
+            markup += dataContext.component.identity;
 
             return markup;
         };
@@ -553,7 +553,7 @@
             var currentEntity = $('#policy-table').data('policy');
             var isPolicyEditable = $('#delete-policy-button').is(':disabled') === false;
             if (currentEntity.permissions.canWrite === true && isPolicyEditable) {
-                markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
+                markup += '<div title="' + nf._.msg('nf-policy-management.Remove') + '" class="pointer delete-user fa fa-trash"></div>';
             }
 
             return markup;
@@ -685,8 +685,8 @@
      */
     var promptToRemoveUserFromPolicy = function (item) {
         nfDialog.showYesNoDialog({
-            headerText: 'Update Policy',
-            dialogContent: 'Remove \'' + nfCommon.escapeHtml(item.component.identity) + '\' from this policy?',
+            headerText: nf._.msg('nf-policy-management.UpdatePolicy'),
+            dialogContent: nf._.msg('nf-policy-management.Message3') + nfCommon.escapeHtml(item.component.identity) + nf._.msg('nf-policy-management.Message4'),
             yesHandler: function () {
                 removeUserFromPolicy(item);
             }
@@ -720,8 +720,8 @@
      */
     var promptToDeletePolicy = function () {
         nfDialog.showYesNoDialog({
-            headerText: 'Delete Policy',
-            dialogContent: 'By deleting this policy, the permissions for this component will revert to the inherited policy if applicable.',
+            headerText: nf._.msg('nf-policy-management.DeletePolicy'),
+            dialogContent: nf._.msg('nf-policy-management.Message24'),
             yesText: 'Delete',
             noText: 'Cancel',
             yesHandler: function () {
@@ -735,7 +735,7 @@
      */
     var deletePolicy = function () {
         var currentEntity = $('#policy-table').data('policy');
-        
+
         if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             $.ajax({
                 type: 'DELETE',
@@ -750,8 +750,8 @@
             });
         } else {
             nfDialog.showOkDialog({
-                headerText: 'Delete Policy',
-                dialogContent: 'No policy selected'
+                headerText: nf._.msg('nf-policy-management.DeletePolicy'),
+                dialogContent: nf._.msg('nf-policy-management.Message6')
             });
         }
     };
@@ -820,9 +820,9 @@
      */
     var getResourceMessage = function (resource) {
         if (resource === '/policies') {
-            return $('<span>Showing effective policy inherited from all policies.</span>');
+            return $('<span>' + nf._.msg('nf-policy-management.AllPolicies') + '</span>');
         } else if (resource === '/controller') {
-            return $('<span>Showing effective policy inherited from the controller.</span>');
+            return $('<span>' + nf._.msg('nf-policy-management.Controller') + '</span>');
         } else {
             // extract the group id
             var processGroupId = nfCommon.substringAfterLast(resource, '/');
@@ -933,7 +933,7 @@
                             resetPolicy();
 
                             // show an appropriate message
-                            $('#policy-message').text('No component specific administrators.');
+                            $('#policy-message').text(nf._.msg('nf-policy-management.Text2'));
 
                             if (nfCanvasUtils.isConfigurableAuthorizer()) {
                                 // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
@@ -945,7 +945,7 @@
                         resetPolicy();
 
                         // show an appropriate message
-                        $('#policy-message').text('No component specific administrators.');
+                        $('#policy-message').text(nf._.msg('nf-policy-management.Text2'));
 
                         if (nfCanvasUtils.isConfigurableAuthorizer()) {
                             // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
@@ -960,7 +960,7 @@
                         resetPolicy();
 
                         // show an appropriate message
-                        $('#policy-message').text('No component specific administrators.');
+                        $('#policy-message').text(nf._.msg('nf-policy-management.Text2'));
 
                         if (nfCanvasUtils.isConfigurableAuthorizer()) {
                             // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
@@ -973,7 +973,7 @@
                         resetPolicy();
 
                         // show an appropriate message
-                        $('#policy-message').text('Not authorized to access the policy for the specified resource.');
+                        $('#policy-message').text(nf._.msg('nf-policy-management.Text3'));
 
                         deferred.resolve();
                     } else {
@@ -1008,7 +1008,7 @@
                         resetPolicy();
 
                         // since we cannot read, the policy may be inherited or not... we cannot tell
-                        $('#policy-message').text('Not authorized to view the policy.');
+                        $('#policy-message').text(nf._.msg('nf-policy-management.Text4'));
 
                         if (nfCanvasUtils.isConfigurableAuthorizer()) {
                             // allow option to override because we don't know if it's supported or not
@@ -1023,7 +1023,7 @@
                         resetPolicy();
 
                         // show an appropriate message
-                        $('#policy-message').text('No policy for the specified resource.');
+                        $('#policy-message').text(nf._.msg('nf-policy-management.Text5'));
 
                         if (nfCanvasUtils.isConfigurableAuthorizer()) {
                             // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
@@ -1036,7 +1036,7 @@
                         resetPolicy();
 
                         // show an appropriate message
-                        $('#policy-message').text('Not authorized to access the policy for the specified resource.');
+                        $('#policy-message').text(nf._.msg('nf-policy-management.Text6'));
 
                         deferred.resolve();
                     } else {
@@ -1148,7 +1148,7 @@
                     'userGroups': userGroups
                 }
             };
-    
+
             $.ajax({
                 type: 'PUT',
                 url: currentEntity.uri,
@@ -1176,8 +1176,8 @@
             });
         } else {
             nfDialog.showOkDialog({
-                headerText: 'Update Policy',
-                dialogContent: 'No policy selected'
+                headerText: nf._.msg('nf-policy-management.UpdatePolicy'),
+                dialogContent: nf._.msg('nf-policy-management.Message6')
             });
         }
     };
@@ -1237,7 +1237,7 @@
         $('#selected-policy-action').text('');
         $('#selected-policy-component-id').text('');
         $('#selected-policy-component-type').text('');
-        
+
         // clear the selected component details
         $('div.policy-selected-component-container').hide();
     };
@@ -1343,7 +1343,7 @@
                 $('#policy-selected-reporting-task-container div.policy-selected-component-name').text(d.id);
             }
             $('#policy-selected-reporting-task-container').show();
-            
+
             // populate the initial resource
             $('#selected-policy-component-id').text(d.id);
             $('#selected-policy-component-type').text('reporting-tasks');
@@ -1424,7 +1424,7 @@
 
             // update the visibility
             $('#policy-selected-component-container').show();
-            
+
             var resource;
             if (selection.empty()) {
                 $('#selected-policy-component-id').text(nfCanvasUtils.getGroupId());

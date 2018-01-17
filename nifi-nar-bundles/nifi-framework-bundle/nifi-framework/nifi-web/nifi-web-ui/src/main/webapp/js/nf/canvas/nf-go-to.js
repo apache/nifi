@@ -47,7 +47,7 @@
             processGroups: '../nifi-api/flow/process-groups/'
         }
     };
-    
+
     var currentComponentId;
     var currentComponentLabel;
 
@@ -423,7 +423,7 @@
             $('#connections-dialog').modal({
                 scrollableContentStyle: 'scrollable',
                 buttons: [{
-                    buttonText: 'Close',
+                    buttonText: nf._.msg('nf-go-to.Close'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -477,11 +477,11 @@
 
             // ensure there are downstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No downstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoDownstreamComponents') + '</span>');
             }
 
             // show the downstream dialog
-            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.DownstreamConnections')).modal('show');
         },
 
         /**
@@ -500,7 +500,7 @@
             // record details of the current component
             currentComponentId = processorEntity.id;
             currentComponentLabel = processorLabel;
-            
+
             // populate the upstream dialog
             $('#connections-context')
                 .append('<div class="search-result-icon icon-processor"></div>')
@@ -517,11 +517,11 @@
 
             // ensure there are upstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No upstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoUpstreamComponents') + '</span>');
             }
 
             // show the upstream dialog
-            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.UpstreamConnections')).modal('show');
         },
 
         /**
@@ -545,7 +545,7 @@
             // record details of the current component
             currentComponentId = groupEntity.id;
             currentComponentLabel = groupLabel;
-            
+
             // populate the downstream dialog
             $('#connections-context')
                 .append($('<div class="search-result-icon"></div>').addClass(iconStyle))
@@ -562,11 +562,11 @@
 
             // ensure there are downstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No downstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoDownstreamComponents') + '</span>');
             }
 
             // show the downstream dialog
-            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.DownstreamConnections')).modal('show');
         },
 
         /**
@@ -590,7 +590,7 @@
             // record details of the current component
             currentComponentId = groupEntity.id;
             currentComponentLabel = groupLabel;
-            
+
             // populate the upstream dialog
             $('#connections-context')
                 .append($('<div class="search-result-icon"></div>').addClass(iconStyle))
@@ -607,11 +607,11 @@
 
             // ensure there are upstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No upstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoUpstreamComponents') + '</span>');
             }
 
             // show the dialog
-            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.UpstreamConnections')).modal('show');
         },
 
         /**
@@ -630,7 +630,7 @@
             // record details of the current component
             currentComponentId = portEntity.id;
             currentComponentLabel = portLabel;
-            
+
             // populate the downstream dialog
             $('#connections-context')
                 .append('<div class="search-result-icon icon-port-in"></div>')
@@ -647,11 +647,11 @@
 
             // ensure there are downstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No downstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoDownstreamComponents') + '</span>');
             }
 
             // show the downstream dialog
-            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.DownstreamConnections')).modal('show');
         },
 
         /**
@@ -677,7 +677,7 @@
                 // record details of the current component
                 currentComponentId = portEntity.id;
                 currentComponentLabel = portLabel;
-                
+
                 // populate the upstream dialog
                 $('#connections-context')
                     .append('<div class="search-result-icon icon-group"></div>')
@@ -697,11 +697,11 @@
 
                 // ensure there are upstream components
                 if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No upstream components</span>');
+                    $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoUpstreamComponents') + '</span>');
                 }
 
                 // show the upstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
+                $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.UpstreamConnections')).modal('show');
             }).fail(nfErrorHandler.handleAjaxError);
         },
 
@@ -728,7 +728,7 @@
                 // record details of the current component
                 currentComponentId = portEntity.id;
                 currentComponentLabel = portLabel;
-                
+
                 // populate the downstream dialog
                 $('#connections-context')
                     .append('<div class="search-result-icon icon-group"></div>')
@@ -748,11 +748,11 @@
 
                 // ensure there are downstream components
                 if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No downstream components</span>');
+                    $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.DownstreamConnections') + '</span>');
                 }
 
                 // show the downstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
+                $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.DownstreamConnections')).modal('show');
             }).fail(nfErrorHandler.handleAjaxError);
         },
 
@@ -768,11 +768,11 @@
             var remoteProcessGroups = nfCanvasUtils.getComponentByType('RemoteProcessGroup').get();
 
             var portLabel = getDisplayName(portEntity);
-            
+
             // record details of the current component
             currentComponentId = portEntity.id;
             currentComponentLabel = portLabel;
-            
+
             // populate the upstream dialog
             $('#connections-context')
                 .append('<div class="search-result-icon icon-port-out"></div>')
@@ -789,11 +789,11 @@
 
             // ensure there are upstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No upstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoUpstreamComponents') + '</span>');
             }
 
             // show the upstream dialog
-            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.UpstreamConnections')).modal('show');
         },
 
         /**
@@ -810,7 +810,7 @@
             // record details of the current component
             currentComponentId = funnelEntity.id;
             currentComponentLabel = 'Funnel';
-            
+
             // populate the downstream dialog
             $('#connections-context')
                 .append('<div class="search-result-icon icon-funnel"></div>')
@@ -827,11 +827,11 @@
 
             // ensure there are downstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No downstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoDownstreamComponents') + '</span>');
             }
 
             // show the downstream dialog
-            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.DownstreamConnections')).modal('show');
         },
 
         /**
@@ -848,7 +848,7 @@
             // record details of the current component
             currentComponentId = funnelEntity.id;
             currentComponentLabel = 'Funnel';
-            
+
             // populate the upstream dialog
             $('#connections-context')
                 .append('<div class="search-result-icon icon-funnel"></div>')
@@ -865,11 +865,11 @@
 
             // ensure there are upstream components
             if ($('#connections-container').is(':empty')) {
-                $('#connections-container').html('<span class="unset">No upstream components</span>');
+                $('#connections-container').html('<span class="unset">' + nf._.msg('nf-go-to.NoUpstreamComponents') + '</span>');
             }
 
             // show the upstream dialog
-            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
+            $('#connections-dialog').modal('setHeaderText', nf._.msg('nf-go-to.UpstreamConnections')).modal('show');
         }
     };
 }));

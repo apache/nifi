@@ -709,8 +709,8 @@
                             var destinationComponentId = nfCanvasUtils.getConnectionDestinationComponentId(connectionData);
                             if (sourceComponentId === destinationComponentId && d.component.bends.length <= 2) {
                                 nfDialog.showOkDialog({
-                                    headerText: 'Connection',
-                                    dialogContent: 'Looping connections must have at least two bend points.'
+                                    headerText: nf._.msg('nf-connection.Connection'),
+                                    dialogContent: nf._.msg('nf-connection.Message1')
                                 });
                                 return;
                             }
@@ -861,7 +861,7 @@
                                         'x': 5,
                                         'y': 14
                                     })
-                                    .text('From');
+                                    .text(nf._.msg('nf-connection.From'));
 
                                 connectionFrom.append('text')
                                     .attr({
@@ -970,7 +970,7 @@
                                         'x': 5,
                                         'y': 14
                                     })
-                                    .text('To');
+                                    .text(nf._.msg('nf-connection.To'));
 
                                 connectionTo.append('text')
                                     .attr({
@@ -1082,7 +1082,7 @@
                                         'x': 5,
                                         'y': 14
                                     })
-                                    .text('Name');
+                                    .text(nf._.msg('nf-connection.Name'));
 
                                 connectionName.append('text')
                                     .attr({
@@ -1162,7 +1162,7 @@
                                 'x': 5,
                                 'y': 14
                             })
-                            .text('Queued');
+                            .text(nf._.msg('nf-connection.Queued'));
 
                         var queuedText = queued.append('text')
                             .attr({
@@ -1340,7 +1340,7 @@
                         })
                         .select('title').text(function () {
                         if (d.permissions.canRead) {
-                            return 'Expires FlowFiles older than ' + d.component.flowFileExpiration;
+                            return nf._.msg('nf-connection.FlowFilesOlder') + d.component.flowFileExpiration;
                         } else {
                             return '';
                         }
@@ -1530,7 +1530,7 @@
         }).fail(function (xhr, status, error) {
             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                 nfDialog.showOkDialog({
-                    headerText: 'Connection',
+                    headerText: nf._.msg('nf-connection.Connection'),
                     dialogContent: nfCommon.escapeHtml(xhr.responseText)
                 });
             } else {
@@ -1759,7 +1759,7 @@
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 400 || xhr.status === 401 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
                                     nfDialog.showOkDialog({
-                                        headerText: 'Connection',
+                                        headerText: nf._.msg('nf-connection.Connection'),
                                         dialogContent: nfCommon.escapeHtml(xhr.responseText)
                                     });
 

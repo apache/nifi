@@ -15,21 +15,24 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="settings" class="hidden">
-    <div id="settings-header-text" class="settings-header-text">NiFi Settings</div>
+    <div id="settings-header-text" class="settings-header-text"><fmt:message key="partials.canvas.settings-content.settings-header-text"/></div>
     <div class="settings-container">
         <div>
             <div id="settings-tabs" class="settings-tabs tab-container"></div>
             <div class="clear"></div>
         </div>
         <div id="settings-tabs-content">
-            <button id="new-service-or-task" class="add-button fa fa-plus" title="Create a new reporting task controller service" style="display: block;"></button>
+        	<fmt:message key="partials.canvas.settings-content.new-service-or-task" var="servicetask"/>
+            <button id="new-service-or-task" class="add-button fa fa-plus" title="${servicetask}" style="display: block;"></button>
             <div id="general-settings-tab-content" class="configuration-tab">
                 <div id="general-settings">
                     <div class="setting">
                         <div class="setting-name">
-                            Maximum timer driven thread count
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of threads for timer driven processors available to the system."></div>
+                            <fmt:message key="partials.canvas.settings-content.setting1"/>
+                            <fmt:message key="partials.canvas.settings-content.setting1-title" var="setting1"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${setting1}"></div>
                         </div>
                         <div class="editable setting-field">
                             <input type="text" id="maximum-timer-driven-thread-count-field" class="setting-input"/>
@@ -40,8 +43,9 @@
                     </div>
                     <div class="setting">
                         <div class="setting-name">
-                            Maximum event driven thread count
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of threads for event driven processors available to the system."></div>
+                            <fmt:message key="partials.canvas.settings-content.setting2"/>
+                            <fmt:message key="partials.canvas.settings-content.setting2-title" var="setting2"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${setting2}"></div>
                         </div>
                         <div class="editable setting-field">
                             <input type="text" id="maximum-event-driven-thread-count-field" class="setting-input"/>
@@ -51,7 +55,7 @@
                         </div>
                     </div>
                     <div class="editable settings-buttons">
-                        <div id="settings-save" class="button">Apply</div>
+                        <div id="settings-save" class="button"><fmt:message key="partials.canvas.settings-content.Apply"/></div>
                         <div class="clear"></div>
                     </div>
                 </div>
@@ -68,12 +72,13 @@
         </div>
     </div>
     <div id="settings-refresh-container">
-        <button id="settings-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    	<fmt:message key="partials.canvas.settings-content.Refresh" var="refresh"/>
+        <button id="settings-refresh-button" class="refresh-button pointer fa fa-refresh" title="${refresh}"></button>
         <div id="settings-last-refreshed-container" class="last-refreshed-container">
-            Last updated:&nbsp;<span id="settings-last-refreshed" class="value-color"></span>
+            <fmt:message key="partials.canvas.settings-content.LastUpdated"/>:&nbsp;<span id="settings-last-refreshed" class="value-color"></span>
         </div>
         <div id="settings-loading-container" class="loading-container"></div>
-        <div id="controller-cs-availability" class="hidden">Listed services are available to all Reporting Tasks and services defined in the Controller Settings.</div>
+        <div id="controller-cs-availability" class="hidden"><fmt:message key="partials.canvas.settings-content.container"/></div>
         <div class="clear"></div>
     </div>
 </div>

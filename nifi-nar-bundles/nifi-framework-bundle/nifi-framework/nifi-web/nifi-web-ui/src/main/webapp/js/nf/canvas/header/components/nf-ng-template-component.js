@@ -117,7 +117,7 @@
                     // configure the instantiate template dialog
                     this.getElement().modal({
                         scrollableContentStyle: 'scrollable',
-                        headerText: 'Add Template'
+                        headerText: nf._.msg('nf-template-component.AddTemplate')
                     });
                 },
 
@@ -234,7 +234,7 @@
 
                         // update the button model
                         templateComponent.modal.update('setButtonModel', [{
-                            buttonText: 'Add',
+                            buttonText: nf._.msg('nf-template-component.Add'),
                             color: {
                                 base: '#728E9B',
                                 hover: '#004849',
@@ -255,7 +255,7 @@
                             }
                         },
                             {
-                                buttonText: 'Cancel',
+                                buttonText: nf._.msg('nf-template-component.Cancel'),
                                 color: {
                                     base: '#E3E8EB',
                                     hover: '#C7D2D7',
@@ -272,8 +272,8 @@
                         templateComponent.modal.show();
                     } else {
                         nfDialog.showOkDialog({
-                            headerText: 'Instantiate Template',
-                            dialogContent: 'No templates have been loaded into this NiFi.'
+                            headerText: nf._.msg('nf-template-component.InstantiateTemplate'),
+                            dialogContent: nf._.msg('nf-template-component.InstantiateTemplateContent')
                         });
                     }
 

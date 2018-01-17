@@ -543,7 +543,7 @@
      */
     function createNodeTableColumnModel() {
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<div title="View Details" class="pointer show-node-details fa fa-info-circle" style="margin-top: 2px;"></div>';
+            return '<div title="' + nf._.msg('nf-cluster-table.ViewDetails') + '" class="pointer show-node-details fa fa-info-circle" style="margin-top: 2px;"></div>';
         };
 
         // define a custom formatter for the run status column
@@ -574,7 +574,7 @@
             {
                 id: 'formattedNodeAddress',
                 field: 'formattedNodeAddress',
-                name: 'Node Address',
+                name: nf._.msg('nf-cluster-table.Node Address'),
                 formatter: nodeFormatter,
                 resizable: true,
                 sortable: true
@@ -582,7 +582,7 @@
             {
                 id: 'activeThreadCount',
                 field: 'activeThreadCount',
-                name: 'Active Thread Count',
+                name: nf._.msg('nf-cluster-table.ActiveThreadCount'),
                 resizable: true,
                 sortable: true,
                 defaultSortAsc: false,
@@ -591,7 +591,7 @@
             {
                 id: 'queued',
                 field: 'queued',
-                name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>',
+                name: '<span class="queued-title">' + nf._.msg('nf-cluster-table.Queue') + '</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>',
                 resizable: true,
                 sortable: true,
                 defaultSortAsc: false,
@@ -600,7 +600,7 @@
             {
                 id: 'status',
                 field: 'status',
-                name: 'Status',
+                name: nf._.msg('nf-cluster-table.Status'),
                 formatter: statusFormatter,
                 resizable: true,
                 sortable: true
@@ -608,7 +608,7 @@
             {
                 id: 'uptime',
                 field: 'nodeStartTime',
-                name: 'Started At',
+                name: nf._.msg('nf-cluster-table.Uptime'),
                 formatter: valueFormatter,
                 resizable: true,
                 sortable: true,
@@ -617,7 +617,7 @@
             {
                 id: 'heartbeat',
                 field: 'heartbeat',
-                name: 'Last Heartbeat',
+                name: nf._.msg('nf-cluster-table.LastHeartbeat'),
                 formatter: valueFormatter,
                 resizable: true,
                 sortable: true,
@@ -640,9 +640,9 @@
 
                 // return the appropriate markup
                 if (canConnect) {
-                    return '<div title="Connect" class="pointer prompt-for-connect fa fa-plug" style="margin-top: 2px;"></div><div title="Delete" class="pointer prompt-for-removal fa fa-trash" style="margin-top: 2px;"></div>';
+                    return '<div title="' + nf._.msg('nf-cluster-table.Connect') + '" class="pointer prompt-for-connect fa fa-plug" style="margin-top: 2px;"></div>&nbsp;<div title="' + nf._.msg('nf-cluster-table.Delete') + '" class="pointer prompt-for-removal fa fa-trash" style="margin-top: 2px;"></div>';
                 } else if (canDisconnect) {
-                    return '<div title="Disconnect" class="pointer prompt-for-disconnect fa fa-power-off" style="margin-top: 2px;"></div>';
+                    return '<div title="' + nf._.msg('nf-cluster-table.Disconnect') + '" class="pointer prompt-for-disconnect fa fa-power-off" style="margin-top: 2px;"></div>';
                 } else {
                     return '<div style="width: 16px; height: 16px;">&nbsp;</div>';
                 }

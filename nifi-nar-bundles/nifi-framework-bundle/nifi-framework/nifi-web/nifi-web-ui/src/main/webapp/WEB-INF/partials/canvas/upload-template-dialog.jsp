@@ -15,13 +15,15 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="upload-template-dialog" class="hidden small-dialog">
     <div class="dialog-content">
         <div id="select-template-container">
             <div id="template-browse-container">
-                <span id="select-template-label">Select Template</span>
+                <span id="select-template-label"><fmt:message key="partials.cancas.upload-template-dialog.select-template-label"/></span>
                 <div id="select-template-button">
-                    <button class="fa fa-search" id="template-file-field-button" title="Browse"></button>
+                <fmt:message key="partials.cancas.upload-template-dialog.template-file-field" var="file-field"/>
+                    <button class="fa fa-search" id="template-file-field-button" title="${file-field}"></button>
                     <form id="template-upload-form" enctype="multipart/form-data" method="post">
                         <input type="file" name="template" id="template-file-field"/>
                     </form>

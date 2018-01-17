@@ -378,7 +378,7 @@
                             'y': 9,
                             'class': 'stats-label'
                         })
-                        .text('In');
+                        .text(nf._.msg('nf-processor.In'));
 
                     // read/write label
                     processorStatsLabel.append('text')
@@ -388,7 +388,7 @@
                             'y': 27,
                             'class': 'stats-label'
                         })
-                        .text('Read/Write');
+                        .text(nf._.msg('nf-processor.ReadWrite'));
 
                     // out label
                     processorStatsLabel.append('text')
@@ -398,7 +398,7 @@
                             'y': 46,
                             'class': 'stats-label'
                         })
-                        .text('Out');
+                        .text(nf._.msg('nf-processor.Out'));
 
                     // tasks/time label
                     processorStatsLabel.append('text')
@@ -408,7 +408,7 @@
                             'y': 65,
                             'class': 'stats-label'
                         })
-                        .text('Tasks/Time');
+                        .text(nf._.msg('nf-processor.TasksTime'));
 
                     // stats value container
                     var processorStatsValue = details.append('g')
@@ -488,7 +488,7 @@
                             'y': 9,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-processor.5min-1'));
 
                     // read/write info
                     processorStatsInfo.append('text')
@@ -498,7 +498,7 @@
                             'y': 27,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-processor.5min-1'));
 
                     // out info
                     processorStatsInfo.append('text')
@@ -508,7 +508,7 @@
                             'y': 46,
                             'class': 'stats-info'
                         })
-                        .text('5 min');
+                        .text(nf._.msg('nf-processor.5min-1'));
 
                     // tasks/time info
                     processorStatsInfo.append('text')

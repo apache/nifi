@@ -98,7 +98,7 @@
 
             nfDialog.showOkDialog({
                 dialogContent: content,
-                headerText: 'Reporting Task'
+                headerText: nf._.msg('nf-reporting-task.ReportingTask')
             });
         } else {
             nfErrorHandler.handleAjaxError(xhr, status, error);
@@ -205,13 +205,13 @@
         var reportingTask = details['component'];
 
         if (nfCommon.isBlank(reportingTask['schedulingPeriod'])) {
-            errors.push('Run schedule must be specified');
+            errors.push(nf._.msg('nf-reporting-task.RunScheduleMustBeSpecified'));
         }
 
         if (errors.length > 0) {
             nfDialog.showOkDialog({
                 dialogContent: nfCommon.formatUnorderedList(errors),
-                headerText: 'Reporting Task'
+                headerText: nf._.msg('nf-reporting-task.ReportingTask')
             });
             return false;
         } else {
@@ -274,8 +274,8 @@
             if (isSaveRequired()) {
                 // see if those changes should be saved
                 nfDialog.showYesNoDialog({
-                    headerText: 'Save',
-                    dialogContent: 'Save changes before going to this Controller Service?',
+                    headerText: nf._.msg('nf-reporting-task.Save'),
+                    dialogContent: nf._.msg('nf-reporting-task.Message1'),
                     noHandler: function () {
                         deferred.resolve();
                     },
@@ -357,13 +357,13 @@
                 selectedTabStyle: 'selected-tab',
                 scrollableTabContentStyle: 'scrollable',
                 tabs: [{
-                    name: 'Settings',
+                    name: nf._.msg('nf-reporting-task.Settings'),
                     tabContentId: 'reporting-task-standard-settings-tab-content'
                 }, {
-                    name: 'Properties',
+                    name: nf._.msg('nf-reporting-task.Properties'),
                     tabContentId: 'reporting-task-properties-tab-content'
                 }, {
-                    name: 'Comments',
+                    name: nf._.msg('nf-reporting-task.Comments'),
                     tabContentId: 'reporting-task-comments-tab-content'
                 }],
                 select: function () {
@@ -383,7 +383,7 @@
             // initialize the reporting task configuration dialog
             $('#reporting-task-configuration').data('mode', config.edit).modal({
                 scrollableContentStyle: 'scrollable',
-                headerText: 'Configure Reporting Task',
+                headerText: nf._.msg('nf-reporting-task.ConfigureReportingTask'),
                 handler: {
                     close: function () {
                         // cancel any active edits
@@ -500,13 +500,13 @@
                 // initialize the scheduling strategy
                 $('#reporting-task-scheduling-strategy-combo').combo({
                     options: [{
-                        text: 'Timer driven',
+                        text: nf._.msg('nf-reporting-task.TimerDriven'),
                         value: 'TIMER_DRIVEN',
-                        description: 'Reporting task will be scheduled to run on an interval defined by the run schedule.'
+                        description: nf._.msg('nf-reporting-task.Message2')
                     }, {
-                        text: 'CRON driven',
+                        text: nf._.msg('nf-reporting-task.CRONDriven'),
                         value: 'CRON_DRIVEN',
-                        description: 'Reporting task will be scheduled to run on at specific times based on the specified CRON string.'
+                        description: nf._.msg('nf-reporting-task.Message3')
                     }],
                     selectedOption: {
                         value: reportingTask['schedulingStrategy']
@@ -523,7 +523,7 @@
                 });
 
                 var buttons = [{
-                    buttonText: 'Apply',
+                    buttonText: nf._.msg('nf-reporting-task.Apply'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -546,7 +546,7 @@
                     }
                 },
                     {
-                        buttonText: 'Cancel',
+                        buttonText: nf._.msg('nf-reporting-task.Cancel'),
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -562,7 +562,7 @@
                 // determine if we should show the advanced button
                 if (nfCommon.isDefinedAndNotNull(reportingTask.customUiUrl) && reportingTask.customUiUrl !== '') {
                     buttons.push({
-                        buttonText: 'Advanced',
+                        buttonText: nf._.msg('nf-reporting-task.Advanced'),
                         clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
@@ -597,8 +597,8 @@
                                 if (isSaveRequired()) {
                                     // see if those changes should be saved
                                     nfDialog.showYesNoDialog({
-                                        headerText: 'Save',
-                                        dialogContent: 'Save changes before opening the advanced configuration?',
+                                        headerText: nf._.msg('nf-reporting-task.Save'),
+                                        dialogContent: nf._.msg('nf-reporting-task.Message4'),
                                         noHandler: openCustomUi,
                                         yesHandler: function () {
                                             saveReportingTask(reportingTaskEntity).done(function () {
@@ -694,7 +694,7 @@
                 nfCommon.populateField('read-only-reporting-task-scheduling-period', reportingTask['schedulingPeriod']);
 
                 var buttons = [{
-                    buttonText: 'Ok',
+                    buttonText: nf._.msg('nf-reporting-task.Ok'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',
@@ -711,7 +711,7 @@
                 // determine if we should show the advanced button
                 if (nfCommon.isDefinedAndNotNull(nfCustomUi) && nfCommon.isDefinedAndNotNull(reportingTask.customUiUrl) && reportingTask.customUiUrl !== '') {
                     buttons.push({
-                        buttonText: 'Advanced',
+                        buttonText: nf._.msg('nf-reporting-task.Advanced'),
                         clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',

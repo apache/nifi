@@ -13,17 +13,18 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="user-dialog" class="hidden">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-field">
-                <input id="individual-radio-button" type="radio" name="userOrGroup" value="individual" checked="checked"/> Individual
-                <input id="group-radio-button" type="radio" name="userOrGroup" value="group" style="margin-left: 20px;"/> Group
+                <input id="individual-radio-button" type="radio" name="userOrGroup" value="individual" checked="checked"/> <fmt:message key="partials.users.user-dialog.Individual"/>
+                <input id="group-radio-button" type="radio" name="userOrGroup" value="group" style="margin-left: 20px;"/> <fmt:message key="partials.users.user-dialog.Group"/>
             </div>
             <div class="clear"></div>
         </div>
         <div class="setting">
-            <div class="setting-name">Identity</div>
+            <div class="setting-name"><fmt:message key="partials.users.user-dialog.Identity"/></div>
             <div class="setting-field">
                 <span id="user-id-edit-dialog" class="hidden"></span>
                 <input type="text" id="user-identity-edit-dialog"/>
@@ -31,14 +32,14 @@
             <div class="clear"></div>
         </div>
         <div id="user-groups" class="setting">
-            <div class="setting-name">Member of</div>
+            <div class="setting-name"><fmt:message key="partials.users.user-dialog.user-groups"/></div>
             <div class="setting-field">
                 <ul id="available-groups" class="usersGroupsList"></ul>
             </div>
             <div class="clear"></div>
         </div>
         <div id="group-members" class="setting hidden">
-            <div class="setting-name">Members</div>
+            <div class="setting-name"><fmt:message key="partials.users.user-dialog.group-members"/></div>
             <div class="setting-field">
                 <ul id="available-users" class="usersGroupsList"></ul>
             </div>

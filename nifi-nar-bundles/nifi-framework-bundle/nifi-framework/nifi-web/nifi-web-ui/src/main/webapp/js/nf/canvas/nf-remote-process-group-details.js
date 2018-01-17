@@ -41,10 +41,10 @@
     return {
         init: function () {
             $('#remote-process-group-details').modal({
-                headerText: 'Remote Process Group Details',
+                headerText: nf._.msg('nf-remote-process-group-details.RemoteProcessGroupDetails'),
                 scrollableContentStyle: 'scrollable',
                 buttons: [{
-                    buttonText: 'Ok',
+                    buttonText: nf._.msg('nf-remote-process-group-details.Ok'),
                     color: {
                         base: '#728E9B',
                         hover: '#004849',

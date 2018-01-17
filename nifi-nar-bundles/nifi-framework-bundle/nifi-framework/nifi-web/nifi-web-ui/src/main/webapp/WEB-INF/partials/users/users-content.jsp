@@ -15,16 +15,18 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="users">
     <div id="users-header-and-filter">
-        <div id="users-header-text">NiFi Users</div>
+        <div id="users-header-text"><fmt:message key="partials.users.users-content.users-header-text"/></div>
     </div>
     <div id="users-filter-controls">
         <div id="users-filter-status" class="filter-status">
-            Displaying&nbsp;<span id="displayed-users"></span>&nbsp;of&nbsp;<span id="total-users"></span>
+            <fmt:message key="partials.users.users-content.Displaying"/>&nbsp;<span id="displayed-users"></span>&nbsp;<fmt:message key="partials.users.users-content.Of"/>&nbsp;<span id="total-users"></span>
         </div>
         <div id="users-filter-container">
-            <input type="text" placeholder="Filter" id="users-filter" class="filter"/>
+        <fmt:message key="partials.users.users-content.users-filter-container" var="filter"/>
+            <input type="text" placeholder="${filter}" id="users-filter" class="filter"/>
             <div id="users-filter-type" class="filter-type"></div>
         </div>
         <button id="new-user-button" class="fa fa-user-plus"></button>
@@ -33,9 +35,10 @@
     <div id="users-table"></div>
 </div>
 <div id="users-refresh-container">
-    <button id="user-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+	<fmt:message key="partials.users.users-content.Refresh" var="refresh"/>
+    <button id="user-refresh-button" class="refresh-button pointer fa fa-refresh" title="${refresh}"></button>
     <div id="users-last-refreshed-container" class="last-refreshed-container">
-        Last updated:&nbsp;<span id="users-last-refreshed" class="value-color"></span>
+        <fmt:message key="partials.users.users-content.LastUpdated"/>:&nbsp;<span id="users-last-refreshed" class="value-color"></span>
     </div>
     <div id="users-loading-container" class="loading-container"></div>
 </div>

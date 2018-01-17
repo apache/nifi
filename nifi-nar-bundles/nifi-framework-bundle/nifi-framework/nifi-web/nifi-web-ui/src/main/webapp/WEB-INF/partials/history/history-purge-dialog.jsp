@@ -15,13 +15,15 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="history-purge-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting" style="margin-bottom: 0px;">
             <div class="end-date-setting">
                 <div class="setting-name">
-                    End date
-                    <div class="fa fa-question-circle" alt="Info" title="The purge end date in the format 'mm/dd/yyyy'. Must also specify end time."></div>
+                    <fmt:message key="partials.history.history-purge-dialog.EndDate"/>
+                    <fmt:message key="partials.history.history-purge-dialog.Title1" var="title1"/>
+                    <div class="fa fa-question-circle" alt="Info" title="${title1}"></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-purge-end-date" class="history-small-input"/>
@@ -29,8 +31,9 @@
             </div>
             <div class="end-time-setting">
                 <div class="setting-name">
-                    End time (<span class="timezone"></span>)
-                    <div class="fa fa-question-circle" id="purge-end-time-info" alt="Info" title="The end time in the format 'hh:mm:ss'. Must also specify end date."></div>
+                    <fmt:message key="partials.history.history-purge-dialog.EndTime"/> (<span class="timezone"></span>)
+                    <fmt:message key="partials.history.history-purge-dialog.Title2" var="title2"/>
+                    <div class="fa fa-question-circle" id="purge-end-time-info" alt="Info" title="${title2}"></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-purge-end-time" class="history-small-input"/>

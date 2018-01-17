@@ -56,9 +56,9 @@
 
     var initUserDeleteDialog = function () {
         $('#user-delete-dialog').modal({
-            headerText: 'Delete Account',
+            headerText: nf._.msg('nf-users-table.DeleteAccount'),
             buttons: [{
-                buttonText: 'Delete',
+                buttonText: nf._.msg('nf-users-table.Delete'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -87,7 +87,7 @@
                     }
                 }
             }, {
-                buttonText: 'Cancel',
+                buttonText: nf._.msg('nf-users-table.Cancel'),
                 color: {
                     base: '#E3E8EB',
                     hover: '#C7D2D7',
@@ -394,9 +394,9 @@
      */
     var initUserDialog = function () {
         $('#user-dialog').modal({
-            headerText: 'User/Group',
+            headerText: nf._.msg('nf-users-table.UserGroup'),
             buttons: [{
-                buttonText: 'Ok',
+                buttonText: nf._.msg('nf-users-table.Ok'),
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -453,7 +453,7 @@
                     }
                 }
             }, {
-                buttonText: 'Cancel',
+                buttonText: nf._.msg('nf-users-table.Cancel'),
                 color: {
                     base: '#E3E8EB',
                     hover: '#C7D2D7',
@@ -759,7 +759,7 @@
         // filter type
         $('#users-filter-type').combo({
             options: [{
-                text: 'by user',
+                text: nf._.msg('nf-users-table.ByUser'),
                 value: 'identity'
             }],
             select: function (option) {
@@ -797,9 +797,9 @@
             var markup = '';
 
             // ensure user can modify the user
-            if (configurableUsersAndGroups && dataContext.component.configurable === true && nfCommon.canModifyTenants()) {
-                markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
-                markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
+            if (nfCommon.canModifyTenants()) {
+                markup += '<div title="' + nf._.msg('nf-users-table.Edit') + '" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
+                markup += '<div title="' + nf._.msg('nf-users-table.Remove') + '" class="pointer delete-user fa fa-trash"></div>';
             }
 
             if (!nfCommon.isEmpty(dataContext.component.accessPolicies)) {
@@ -813,7 +813,7 @@
         var usersColumns = [
             {
                 id: 'identity',
-                name: 'User',
+                name: nf._.msg('nf-users-table.User'),
                 sortable: true,
                 resizable: true,
                 formatter: identityFormatter

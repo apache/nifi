@@ -15,8 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="process-group-configuration">
-    <div id="process-group-configuration-header-text" class="settings-header-text">Process Group Configuration</div>
+    <div id="process-group-configuration-header-text" class="settings-header-text"><fmt:message key="partials.canvas.process-group-configuration.process-group-configuration-header-text"/></div>
     <div class="settings-container">
         <div>
             <div id="process-group-configuration-tabs" class="settings-tabs tab-container"></div>
@@ -27,7 +28,7 @@
             <div id="general-process-group-configuration-tab-content" class="configuration-tab">
                 <div id="general-process-group-configuration">
                     <div class="setting">
-                        <div class="setting-name">Process group name</div>
+                        <div class="setting-name"><fmt:message key="partials.canvas.process-group-configuration.ProcessGroupName"/></div>
                         <span id="process-group-id" class="hidden"></span>
                         <div class="editable setting-field">
                             <input type="text" id="process-group-name" class="setting-input"/>
@@ -37,7 +38,7 @@
                         </div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Process group comments</div>
+                        <div class="setting-name"><fmt:message key="partials.canvas.process-group-configuration.Processgroupcomments"/></div>
                         <div class="editable setting-field">
                             <textarea id="process-group-comments" class="setting-input"></textarea>
                         </div>
@@ -46,7 +47,7 @@
                         </div>
                     </div>
                     <div class="editable settings-buttons">
-                        <div id="process-group-configuration-save" class="button">Apply</div>
+                        <div id="process-group-configuration-save" class="button"><fmt:message key="partials.canvas.process-group-configuration.process-group-configuration-save"/></div>
                         <div class="clear"></div>
                     </div>
                 </div>
@@ -57,12 +58,13 @@
         </div>
     </div>
     <div id="process-group-refresh-container">
-        <button id="process-group-configuration-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+        <fmt:message key="partials.canvas.process-group-configuration.process-group-configuration-refresh-button" var="RefreshButton"/>
+        <button id="process-group-configuration-refresh-button" class="refresh-button pointer fa fa-refresh" title="${RefreshButton}"></button>
         <div class="last-refreshed-container">
-            Last updated:&nbsp;<span id="process-group-configuration-last-refreshed" class="last-refreshed"></span>
+            <fmt:message key="partials.canvas.process-group-configuration.last-refreshed-container"/>:&nbsp;<span id="process-group-configuration-last-refreshed" class="last-refreshed"></span>
         </div>
         <div id="process-group-configuration-loading-container" class="loading-container"></div>
-        <div id="flow-cs-availability" class="hidden">Listed services are available to all descendant Processors and services of this Process Group.</div>
+        <div id="flow-cs-availability" class="hidden"><fmt:message key="partials.canvas.process-group-configuration.availability"/></div>
         <div class="clear"></div>
     </div>
 </div>

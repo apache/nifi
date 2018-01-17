@@ -15,6 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <div id="processor-details" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="processor-details-tabs" class="tab-container"></div>
@@ -22,20 +23,20 @@
             <div id="details-standard-settings-tab-content" class="details-tab">
                 <div class="settings-left">
                     <div class="setting">
-                        <div class="setting-name">Name</div>
+                        <div class="setting-name"><fmt:message key="partials.processor-details.read-only-processor-name"/></div>
                         <div class="setting-field">
                             <span id="read-only-processor-name"></span>
                         </div>
                         <div class="clear"></div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Id</div>
+                        <div class="setting-name"><fmt:message key="partials.processor-details.read-only-processor-id"/></div>
                         <div class="setting-field">
                             <span id="read-only-processor-id"></span>
                         </div>
                     </div>
                     <div class="setting">
-                        <div class="setting-name">Type</div>
+                        <div class="setting-name"><fmt:message key="partials.processor-details.read-only-processor-type"/></div>
                         <div id="read-only-processor-type" class="setting-field"></div>
                         <div class="clear"></div>
                     </div>
@@ -47,8 +48,9 @@
                     <div class="setting">
                         <div class="penalty-duration-setting">
                             <div class="setting-name">
-                                Penalty duration
-                                <div class="fa fa-question-circle" alt="Info" title="The amount of time used when this processor penalizes a FlowFile."></div>
+                                <fmt:message key="partials.processor-details.read-only-penalty-duration"/>
+                                <fmt:message key="partials.processor-details.read-only-penalty-duration.title" var="read-only-penalty-duration_title"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${read-only-penalty-duration_title}"></div>
                             </div>
                             <div class="setting-field">
                                 <span id="read-only-penalty-duration"></span>
@@ -56,8 +58,9 @@
                         </div>
                         <div class="yield-duration-setting">
                             <div class="setting-name">
-                                Yield duration
-                                <div class="fa fa-question-circle" alt="Info" title="When a processor yields, it will not be scheduled again until this amount of time elapses."></div>
+                                <fmt:message key="partials.processor-details.read-only-yield-duration"/>
+                                <fmt:message key="partials.processor-details.read-only-yield-duration.title" var="read-only-yield-duration_title"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${read-only-yield-duration_title}"></div>
                             </div>
                             <div class="setting-field">
                                 <span id="read-only-yield-duration"></span>
@@ -68,8 +71,9 @@
                     <div class="setting">
                         <div class="bulletin-setting">
                             <div class="setting-name">
-                                Bulletin level
-                                <div class="fa fa-question-circle" alt="Info" title="The level at which this processor will generate bulletins."></div>
+                                <fmt:message key="partials.processor-details.read-only-bulletin-level"/>
+                                <fmt:message key="partials.processor-details.read-only-bulletin-level.title" var="read-only-bulletin-level_title"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${read-only-bulletin-level_title}"></div>
                             </div>
                             <div class="setting-field">
                                 <span id="read-only-bulletin-level"></span>
@@ -82,8 +86,9 @@
                 <div class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
-                            Automatically terminate relationships
-                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate FlowFiles sent to all relationships in bold."></div>
+                            <fmt:message key="partials.processor-details.read-only-auto-terminate-relationship-names"/>
+                            <fmt:message key="partials.processor-details.read-only-auto-terminate-relationship-names.title" var="read-only-auto-terminate-relationship-names_title"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${read-only-auto-terminate-relationship-names_title}"></div>
                         </div>
                         <div class="setting-field">
                             <div id="read-only-auto-terminate-relationship-names"></div>
@@ -96,8 +101,9 @@
                     <div class="setting">
                         <div class="scheduling-strategy-setting">
                             <div class="setting-name">
-                                Scheduling strategy
-                                <div class="fa fa-question-circle" alt="Info" title="The strategy used to schedule this processor."></div>
+                                <fmt:message key="partials.processor-details.read-only-scheduling-strategy"/>
+                                <fmt:message key="partials.processor-details.read-only-scheduling-strategy.title" var="read-only-scheduling-strategy_title"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${read-only-scheduling-strategy_title}"></div>
                             </div>
                             <div class="setting-field">
                                 <span id="read-only-scheduling-strategy"></span>
@@ -108,8 +114,9 @@
                     <div class="setting">
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">
-                                Concurrent tasks
-                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
+                                <fmt:message key="partials.processor-details.read-only-concurrently-schedulable-tasks"/>
+                                <fmt:message key="partials.processor-details.read-only-concurrently-schedulable-tasks.title" var="read-only-concurrently-schedulable-tasks_title"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${read-only-concurrently-schedulable-tasks_title}"></div>
                             </div>
                             <div class="setting-field">
                                 <span id="read-only-concurrently-schedulable-tasks"></span>
@@ -117,8 +124,9 @@
                         </div>
                         <div id="read-only-run-schedule" class="scheduling-period-setting">
                             <div class="setting-name">
-                                Run schedule
-                                <div class="fa fa-question-circle" alt="Info" title="The minimum number of seconds that should elapse between task executions."></div>
+                                <fmt:message key="partials.processor-details.read-only-scheduling-period"/>
+                                <fmt:message key="partials.processor-details.read-only-scheduling-period.title" var="read-only-scheduling-period_title"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${read-only-scheduling-period_title}"></div>
                             </div>
                             <div class="setting-field">
                                 <span id="read-only-scheduling-period"></span>
@@ -129,8 +137,9 @@
                     <div id="read-only-execution-node-options" class="setting">
                         <div class="execution-node-setting">
                             <div class="setting-name">
-                                Execution
-                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on."></div>
+                                <fmt:message key="partials.processor-details.read-only-execution-node-options"/>
+                                <fmt:message key="partials.processor-details.read-only-execution-node-options.title" var="read-only-execution-node-options_title"/>
+                                <div class="fa fa-question-circle" alt="Info" title="${read-only-execution-node-options_title}"></div>
                             </div>
                             <div class="setting-field">
                                 <span id="read-only-execution-node"></span>
@@ -143,8 +152,9 @@
                 <div class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
-                            Run duration
-                            <div class="fa fa-question-circle" alt="Info" title="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."></div>
+                            <fmt:message key="partials.processor-details.read-only-run-duration"/>
+                            <fmt:message key="partials.processor-details.read-only-run-duration.title" var="read-only-run-duration_title"/>
+                            <div class="fa fa-question-circle" alt="Info" title="${read-only-run-duration_title}"></div>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-run-duration"></span>
@@ -157,7 +167,7 @@
             </div>
             <div id="details-processor-comments-tab-content" class="details-tab">
                 <div class="setting">
-                    <div class="setting-name">Comments</div>
+                    <div class="setting-name"><fmt:message key="partials.processor-details.read-only-processor-comments"/></div>
                     <div class="setting-field">
                         <div id="read-only-processor-comments"></div>
                     </div>

@@ -52,6 +52,7 @@
         <script type="text/javascript" src="assets/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="assets/slickgrid/slick.grid.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/globalization/resources.js"></script>
         ${nf.templates.script.tags}
     </head>
     <body>
