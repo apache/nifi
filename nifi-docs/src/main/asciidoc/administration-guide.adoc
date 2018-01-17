@@ -2645,6 +2645,17 @@ documentation of the proxy for guidance for your deployment environment and use 
 ...
 ....
 
+* Additional NiFi proxy configuration must be updated to allow expected Host and context paths HTTP headers.
+
+** By default, if NiFi is running securely it will only accept HTTP requests with a Host header matching the host[:port] that it is bound to. If NiFi is to accept requests directed to a different
+host[:port] the expected values need to be configured. This may be required when running behind a proxy or in a containerized environment. This is configured in a comma
+separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. localhost:18443, proxyhost:443). IPv6 addressed are accepted. Please refer to
+RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
+
+** NiFi will only accept HTTP requests with a X-ProxyContextPath or X-Forwarded-Context header if the value is whitelisted in the `nifi.web.proxy.context.path` property in
+_nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath or X-Forwarded-Context header value that is not
+present in the whitelist, the "An unexpected error has occurred" page will be shown and an error will be written to the nifi-app.log.
+
 [[kerberos_service]]
 == Kerberos Service
 NiFi can be configured to use Kerberos SPNEGO (or "Kerberos Service") for authentication. In this scenario, users will hit the REST endpoint `/access/kerberos` and the server will respond with a `401` status code and the challenge response header `WWW-Authenticate: Negotiate`. This communicates to the browser to use the GSS-API and load the user's Kerberos ticket and provide it as a Base64-encoded header value in the subsequent request. It will be of the form `Authorization: Negotiate YII...`. NiFi will attempt to validate this ticket with the KDC. If it is successful, the user's _principal_ will be returned as the identity, and the flow will follow login/credential authentication, in that a JWT will be issued in the response to prevent the unnecessary overhead of Kerberos authentication on every subsequent request. If the ticket cannot be validated, it will return with the appropriate error response code. The user will then be able to provide their Kerberos credentials to the login form if the `KerberosLoginIdentityProvider` has been configured. See <<kerberos_login_identity_provider>> login identity provider for more details.
@@ -3083,6 +3094,11 @@ Providing three total network interfaces, including  `nifi.web.https.network.int
 |nifi.web.jetty.working.directory|The location of the Jetty working directory. The default value is `./work/jetty`.
 |nifi.web.jetty.threads|The number of Jetty threads. The default value is `200`.
 |nifi.web.max.header.size|The maximum size allowed for request and response headers. The default value is 16 KB.
+|nifi.web.proxy.host|A comma separated list of allowed HTTP Host header values to consider when NiFi is running securely and will be receiving requests to a different host[:port] than it is bound to.
+For example, when running in a Docker container or behind a proxy (e.g. localhost:18443, proxyhost:443). By default, this value is blank meaning NiFi should only allow requests sent to the
+host[:port] that NiFi is bound to.
+|nifi.web.proxy.context.path|A comma separated list of allowed HTTP X-ProxyContextPath or X-Forwarded-Context header values to consider. By default, this value is
+blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
 |====
 
 === Security Properties
