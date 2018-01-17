@@ -35,7 +35,7 @@ public abstract class AbstractKinesisStreamProcessor extends AbstractBaseKinesis
             .name("kinesis-stream-name")
             .displayName("Amazon Kinesis Stream Name")
             .description("The name of Kinesis Stream")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
