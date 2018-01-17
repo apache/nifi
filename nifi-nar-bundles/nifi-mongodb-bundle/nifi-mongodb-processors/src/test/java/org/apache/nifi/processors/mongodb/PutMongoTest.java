@@ -23,6 +23,7 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -254,6 +255,57 @@ public class PutMongoTest extends MongoWriteTestBase {
             String msg = doc.getString("msg");
             Assert.assertNotNull("Msg was null", msg);
             Assert.assertEquals("Msg had wrong value", msg, "Hi");
+        }
+    }
+
+    /*
+     * Start NIFI-4759 Regression Tests
+     *
+     * 2 issues with ID field:
+     *
+     * * Assumed _id is the update key, causing failures when the user configured a different one in the UI.
+     * * Treated _id as a string even when it is an ObjectID sent from another processor as a string value.
+     *
+     * Expected behavior:
+     *
+     * * update key field should work no matter what (legal) value it is set to be.
+     * * _ids that are ObjectID should become real ObjectIDs when added to Mongo.
+     * * _ids that are arbitrary strings should be still go in as strings.
+     *
+     */
+    @Test
+    public void testNiFi_4759_Regressions() {
+        String[] upserts = new String[]{
+                "{ \"_id\": \"12345\", \"$set\": { \"msg\": \"Hello, world\" } }",
+                "{ \"_id\": \"5a5617b9c1f5de6d8276e87d\", \"$set\": { \"msg\": \"Hello, world\" } }",
+                "{ \"updateKey\": \"12345\", \"$set\": { \"msg\": \"Hello, world\" } }"
+        };
+
+        String[] updateKeyProps = new String[] { "_id", "_id", "updateKey" };
+        Object[] updateKeys = new Object[] { "12345", new ObjectId("5a5617b9c1f5de6d8276e87d"), "12345" };
+        int index = 0;
+
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.UPSERT, "true");
+
+        final int LIMIT = 2;
+
+        for (String upsert : upserts) {
+            runner.setProperty(PutMongo.UPDATE_QUERY_KEY, updateKeyProps[index]);
+            for (int x = 0; x < LIMIT; x++) {
+                runner.enqueue(upsert);
+            }
+            runner.run(LIMIT, true, true);
+            runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+            runner.assertTransferCount(PutMongo.REL_SUCCESS, LIMIT);
+
+            Document query = new Document(updateKeyProps[index], updateKeys[index]);
+            Document result = collection.find(query).first();
+            Assert.assertNotNull("Result was null", result);
+            Assert.assertEquals("Count was wrong", 1, collection.count(query));
+            runner.clearTransferState();
+            index++;
         }
     }
 }
