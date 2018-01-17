@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.controller.repository;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -47,6 +48,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.MinimalLockingWriteAheadLog;
@@ -86,7 +88,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private volatile ScheduledFuture<?> checkpointFuture;
 
     private final long checkpointDelayMillis;
-    private final SortedSet<Path> flowFileRepositoryPaths = new TreeSet<>();
+    private final File flowFileRepositoryPath;
+    private final List<File> recoveryFiles = new ArrayList<>();
     private final int numPartitions;
     private final ScheduledExecutorService checkpointExecutor;
 
@@ -126,16 +129,23 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         checkpointDelayMillis = 0l;
         numPartitions = 0;
         checkpointExecutor = null;
+        flowFileRepositoryPath = null;
     }
 
     public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
         alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC, "false"));
 
         // determine the database file path and ensure it exists
+        final String directoryName = nifiProperties.getProperty(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX);
+        flowFileRepositoryPath = new File(directoryName);
+
+        // We used to use the MinimalLockingWriteAheadLog, but we now use the SequentialAccessWriteAheadLog. Since the
+        // MinimalLockingWriteAheadLog supports multiple partitions, we need to ensure that we recover records from all
+        // partitions, so we build up a List of Files for the recovery files.
         for (final String propertyName : nifiProperties.getPropertyKeys()) {
             if (propertyName.startsWith(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX)) {
-                final String directoryName = nifiProperties.getProperty(propertyName);
-                flowFileRepositoryPaths.add(Paths.get(directoryName));
+                final String dirName = nifiProperties.getProperty(propertyName);
+                recoveryFiles.add(new File(dirName));
             }
         }
 
@@ -149,16 +159,14 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
         this.claimManager = claimManager;
 
-        for (final Path path : flowFileRepositoryPaths) {
-            Files.createDirectories(path);
-        }
+        Files.createDirectories(flowFileRepositoryPath.toPath());
 
         // TODO: Should ensure that only 1 instance running and pointing at a particular path
         // TODO: Allow for backup path that can be used if disk out of space?? Would allow a snapshot to be stored on
         // backup and then the data deleted from the normal location; then can move backup to normal location and
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
         serdeFactory = new RepositoryRecordSerdeFactory(claimManager);
-        wal = new MinimalLockingWriteAheadLog<>(flowFileRepositoryPaths, numPartitions, serdeFactory, this);
+        wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPath, serdeFactory, this);
         logger.info("Initialized FlowFile Repository using {} partitions", numPartitions);
     }
 
@@ -179,22 +187,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public long getStorageCapacity() throws IOException {
-        long capacity = 0L;
-        for (final Path path : flowFileRepositoryPaths) {
-            capacity += Files.getFileStore(path).getTotalSpace();
-        }
-
-        return capacity;
+        return Files.getFileStore(flowFileRepositoryPath.toPath()).getTotalSpace();
     }
 
     @Override
     public long getUsableStorageSpace() throws IOException {
-        long usableSpace = 0L;
-        for (final Path path : flowFileRepositoryPaths) {
-            usableSpace += Files.getFileStore(path).getUsableSpace();
-        }
-
-        return usableSpace;
+        return Files.getFileStore(flowFileRepositoryPath.toPath()).getUsableSpace();
     }
 
     @Override
@@ -371,6 +369,72 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", new Object[]{swapRecords.size(), queue});
     }
 
+
+    @SuppressWarnings("deprecation")
+    private Optional<Collection<RepositoryRecord>> recoverFromOldWriteAheadLog() throws IOException {
+        final List<File> partitionDirs = new ArrayList<>();
+        for (final File recoveryFile : recoveryFiles) {
+            final File[] partitions = recoveryFile.listFiles(file -> file.getName().startsWith("partition-"));
+            for (final File partition : partitions) {
+                partitionDirs.add(partition);
+            }
+        }
+
+        if (partitionDirs == null || partitionDirs.isEmpty()) {
+            return Optional.empty();
+        }
+
+        logger.info("Encountered FlowFile Repository that was written using an old version of the Write-Ahead Log. "
+            + "Will recover from this version and re-write the repository using the new version of the Write-Ahead Log.");
+
+        final SortedSet<Path> paths = recoveryFiles.stream()
+            .map(File::toPath)
+            .collect(Collectors.toCollection(TreeSet::new));
+
+        final Collection<RepositoryRecord> recordList;
+        final MinimalLockingWriteAheadLog<RepositoryRecord> minimalLockingWal = new MinimalLockingWriteAheadLog<>(paths, partitionDirs.size(), serdeFactory, null);
+        try {
+            recordList = minimalLockingWal.recoverRecords();
+        } finally {
+            minimalLockingWal.shutdown();
+        }
+
+        wal.update(recordList, true);
+
+        // Delete the old repository
+        logger.info("Successfully recovered files from existing Write-Ahead Log and transitioned to new implementation. Will now delete old files.");
+        for (final File partitionDir : partitionDirs) {
+            final File[] children = partitionDir.listFiles();
+
+            if (children != null) {
+                for (final File child : children) {
+                    final boolean deleted = child.delete();
+                    if (!deleted) {
+                        logger.warn("Failed to delete old file {}; this file should be cleaned up manually", child);
+                    }
+                }
+            }
+
+            if (!partitionDir.delete()) {
+                logger.warn("Failed to delete old directory {}; this directory should be cleaned up manually", partitionDir);
+            }
+        }
+
+        for (final File recoveryFile : recoveryFiles) {
+            final File snapshotFile = new File(recoveryFile, "snapshot");
+            if (!snapshotFile.delete() && snapshotFile.exists()) {
+                logger.warn("Failed to delete old file {}; this file should be cleaned up manually", snapshotFile);
+            }
+
+            final File partialFile = new File(recoveryFile, "snapshot.partial");
+            if (!partialFile.delete() && partialFile.exists()) {
+                logger.warn("Failed to delete old file {}; this file should be cleaned up manually", partialFile);
+            }
+        }
+
+        return Optional.of(recordList);
+    }
+
     @Override
     public long loadFlowFiles(final QueueProvider queueProvider, final long minimumSequenceNumber) throws IOException {
         final Map<String, FlowFileQueue> queueMap = new HashMap<>();
@@ -378,7 +442,15 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             queueMap.put(queue.getIdentifier(), queue);
         }
         serdeFactory.setQueueMap(queueMap);
-        final Collection<RepositoryRecord> recordList = wal.recoverRecords();
+
+        // Since we used to use the MinimalLockingWriteAheadRepository, we need to ensure that if the FlowFile
+        // Repo was written using that impl, that we properly recover from the implementation.
+        Collection<RepositoryRecord> recordList = wal.recoverRecords();
+
+        if (recordList == null || recordList.isEmpty()) {
+            recordList = recoverFromOldWriteAheadLog().orElse(new ArrayList<>());
+        }
+
         serdeFactory.setQueueMap(null);
 
         for (final RepositoryRecord record : recordList) {
