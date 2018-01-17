@@ -38,6 +38,7 @@
                             <resources>
                                 <resource>
                                     <directory>src/main/markdown</directory>
+                                    <filtering>true</filtering>
                                 </resource>
                             </resources>
                             <outputDirectory>${project.build.directory}/markdown</outputDirectory>

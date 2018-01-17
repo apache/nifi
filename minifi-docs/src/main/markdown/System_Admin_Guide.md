@@ -21,6 +21,8 @@
 
 [MiNiFi Homepage](https://nifi.apache.org/minifi/index.html)
 
+This documentation is for MiNiFi ${project.version}.
+
 # Automatic Warm-Redeploy
 
 When many MiNiFi agents running on the edge, it may not be possible to manually stop, edit the config.yml and then restart every one every time their configuration needs to change. The Config Change Coordinator and its Ingestors were designed to automatically redeploy in response to a configuration update.
