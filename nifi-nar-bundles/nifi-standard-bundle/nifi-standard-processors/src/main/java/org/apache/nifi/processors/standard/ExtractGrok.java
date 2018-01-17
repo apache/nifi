@@ -136,7 +136,6 @@ public class ExtractGrok extends AbstractProcessor {
         .defaultValue("1 MB")
         .build();
 
-
      public static final PropertyDescriptor NAMED_CAPTURES_ONLY = new PropertyDescriptor.Builder()
         .name(NAMED_CAPTURES_ONLY_KEY)
         .description("Only store named captures from grokList")
@@ -145,6 +144,7 @@ public class ExtractGrok extends AbstractProcessor {
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("false")
         .build();
+
     public static final PropertyDescriptor BREAK_ON_FIRST_MATCH = new PropertyDescriptor.Builder()
         .name(SINGLE_MATCH_KEY)
         .description("Stop on first matched expression.")

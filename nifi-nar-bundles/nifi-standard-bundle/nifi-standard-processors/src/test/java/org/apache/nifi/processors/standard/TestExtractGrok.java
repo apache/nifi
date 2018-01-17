@@ -90,7 +90,6 @@ public class TestExtractGrok {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
         final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
-
         assertCommonApacheLog(matched);
         matched.assertAttributeEquals("matched_expression", "%{COMMONAPACHELOG}");
         assertNoUnNamedApacheCaptures(matched);
@@ -163,6 +162,5 @@ public class TestExtractGrok {
         matched.assertAttributeEquals("grok.timestamp", "07/Mar/2004:16:05:49 -0800");
         matched.assertAttributeEquals("grok.request", "/twiki/bin/edit/Main/Double_bounce_sender?topicparent=Main.ConfigurationVariables");
         matched.assertAttributeEquals("grok.httpversion", "1.1");
-
     }
 }
