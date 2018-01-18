@@ -35,6 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ScopedHandler;
@@ -109,7 +110,7 @@ public class HostHeaderHandler extends ScopedHandler {
         // Different from customizer -- empty is ok here
         hosts.add("");
 
-        this.validHosts = new ArrayList<>(new LinkedHashSet<>(hosts));
+        this.validHosts = uniqueList(hosts);
         logger.info("Determined {} valid hostnames and IP addresses for incoming headers: {}", new Object[]{validHosts.size(), StringUtils.join(validHosts, ", ")});
 
         logger.debug("Created " + this.toString());
@@ -117,7 +118,11 @@ public class HostHeaderHandler extends ScopedHandler {
 
     /**
      * Returns the list of parsed custom hostnames from {@code nifi.web.proxy.host} in {@link NiFiProperties}.
-     * This list is not deduplicated (if a host {@code somehost.com} is provided, it will show twice, as the "portless" version is also generated).
+     * This list is deduplicated (if a host {@code somehost.com:1234} is provided, it will show twice, as the "portless"
+     * version {@code somehost.com} is also generated). IPv6 addresses are only modified if they adhere to the strict
+     * formatting using {@code []} around the address as specified in RFC 5952 Section 6 (i.e.
+     * {@code [1234.5678.90AB.CDEF.1234.5678.90AB.CDEF]:1234} will insert
+     * {@code [1234.5678.90AB.CDEF.1234.5678.90AB.CDEF]} as well).
      *
      * @param niFiProperties the properties object
      * @returnj the list of parsed custom hostnames
@@ -126,17 +131,53 @@ public class HostHeaderHandler extends ScopedHandler {
         // Load the custom hostnames from the properties
         List<String> customHostnames = niFiProperties.getWhitelistedHostsAsList();
 
-        // Each is expected to have the port associated, so duplicate the list and trim the port (the port may be different from the port NiFi is running on if provided by a proxy, etc.)
-        List<String> portlessHostnames = customHostnames.stream().map(hostname ->
-                // TODO: Need to implement "splitBeforeLast" for IPv6
-                hostname.split(":", 2)[0]
+        // Each IPv4 address and hostname may have the port associated, so duplicate the list and trim the port (the port may be different from the port NiFi is running on if provided by a proxy, etc.) IPv6 addresses are not modified.
+        List<String> portlessHostnames = customHostnames.stream().map(hostname -> {
+                    if (isIPv6Address(hostname)) {
+                        return hostname;
+                    } else {
+                        return StringUtils.substringBeforeLast(hostname, ":");
+                    }
+                }
         ).collect(Collectors.toList());
 
         customHostnames.addAll(portlessHostnames);
         if (logger.isDebugEnabled()) {
             logger.debug("Parsed {} custom hostnames from nifi.web.proxy.host: {}", new Object[]{customHostnames.size(), StringUtils.join(customHostnames, ", ")});
         }
-        return customHostnames;
+        return uniqueList(customHostnames);
+    }
+
+    /**
+     * Returns a unique {@code List} of the elements maintaining the original order.
+     *
+     * @param duplicateList a list that may contain duplicate elements
+     * @return a list maintaining the original order which no longer contains duplicate elements
+     */
+    private static List<String> uniqueList(List<String> duplicateList) {
+        return new ArrayList<>(new LinkedHashSet<>(duplicateList));
+    }
+
+    /**
+     * Returns true if the provided address is an IPv6 address (or could be interpreted as one). This method is more lenient than {@link InetAddressUtils#isIPv6Address(String)} because of different interpretations of IPv4-mapped IPv6 addresses.
+     *
+     * See RFC 5952 Section 4 for more information on textual representation of the IPv6 addresses.
+     *
+     * @param address the address in text form
+     * @return true if the address is or could be parsed as an IPv6 address
+     */
+    static boolean isIPv6Address(String address) {
+        // Note: InetAddressUtils#isIPv4MappedIPv64Address() fails on addresses that do not compress the leading 0:0:0... to ::
+        // Expanded for debugging purposes
+        boolean isNormalIPv6 = InetAddressUtils.isIPv6Address(address);
+
+        // If the last two hextets are written in IPv4 form, treat it as an IPv6 address as well
+        String everythingAfterLastColon = StringUtils.substringAfterLast(address, ":");
+        boolean isIPv4 = InetAddressUtils.isIPv4Address(everythingAfterLastColon);
+        boolean isIPv4Mapped = InetAddressUtils.isIPv4MappedIPv64Address(everythingAfterLastColon);
+        boolean isCompressable = address.contains("0:0") && !address.contains("::");
+
+        return isNormalIPv6 || isIPv4;
     }
 
     private int determineServerPort(NiFiProperties props) {
@@ -261,7 +302,7 @@ public class HostHeaderHandler extends ScopedHandler {
         }
 
         // Dedupe but maintain order
-        final ArrayList<String> uniqueHosts = new ArrayList<>(new LinkedHashSet<>(validHosts));
+        final List<String> uniqueHosts = uniqueList(validHosts);
         if (logger.isDebugEnabled()) {
             logger.debug("Determined {} valid default hostnames and IP addresses for incoming headers: {}", new Object[]{uniqueHosts.size(), StringUtils.join(uniqueHosts, ", ")});
         }
@@ -294,7 +335,7 @@ public class HostHeaderHandler extends ScopedHandler {
             }
 
             // Dedupe while maintaining order
-            return new ArrayList<>(new LinkedHashSet<>(allIPAddresses));
+            return uniqueList(allIPAddresses);
         }
     }
 

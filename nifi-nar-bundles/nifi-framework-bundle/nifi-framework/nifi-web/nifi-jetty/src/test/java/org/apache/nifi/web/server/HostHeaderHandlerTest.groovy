@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.server
 
+import org.apache.commons.lang3.StringUtils
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.util.NiFiProperties
 import org.junit.After
@@ -150,7 +151,7 @@ class HostHeaderHandlerTest extends GroovyTestCase {
         logger.info("Parsed custom hostnames: ${customHostnames}")
 
         // Assert
-        assert customHostnames.size() == otherHosts.size() * 2
+        assert customHostnames.size() == otherHosts.size() + 2 // Two provided hostnames had ports
         otherHosts.each { String host ->
             logger.debug("Checking ${host}")
             assert customHostnames.contains(host)
@@ -161,25 +162,72 @@ class HostHeaderHandlerTest extends GroovyTestCase {
     }
 
     @Test
-    void testParseCustomHostnamesShouldHandleIPv6() throws Exception {
+    void testParseCustomHostnamesShouldHandleIPv6WithoutPorts() throws Exception {
         // Arrange
         String hostname = DEFAULT_HOSTNAME
         int port = DEFAULT_PORT
         logger.info("Hostname: ${hostname} | port: ${port}")
 
         List<String> ipv6Hosts = ["ABCD:EF01:2345:6789:ABCD:EF01:2345:6789",
-                                   "2001:DB8:0:0:8:800:200C:417A",
-                                   "FF01:0:0:0:0:0:0:101",
-                                   "0:0:0:0:0:0:0:1",
-                                   "0:0:0:0:0:0:0:0",
-                                   "2001:DB8::8:800:200C:417A",
-                                   "FF01::101",
-                                   "::1",
-                                   "::",
-                                   "0:0:0:0:0:0:13.1.68.3",
-                                   "0:0:0:0:0:FFFF:129.144.52.38",
-                                   "::13.1.68.3",
-                                   "FFFF:129.144.52.38",]
+                                  "2001:DB8:0:0:8:800:200C:417A",
+                                  "FF01:0:0:0:0:0:0:101",
+                                  "0:0:0:0:0:0:0:1",
+                                  "0:0:0:0:0:0:0:0",
+                                  "2001:DB8::8:800:200C:417A",
+                                  "FF01::101",
+                                  "::1",
+                                  "::",
+                                  "0:0:0:0:0:0:13.1.68.3",
+                                  "0:0:0:0:0:FFFF:129.144.52.38",
+                                  "::13.1.68.3",
+                                  "FFFF:129.144.52.38",
+                                  "::FFFF:129.144.52.38"]
+        String concatenatedHosts = ipv6Hosts.join(",")
+
+        Properties rawProps = new Properties()
+        rawProps.putAll([
+                (NiFiProperties.WEB_HTTPS_HOST): DEFAULT_HOSTNAME,
+                (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
+                (NiFiProperties.WEB_PROXY_HOST): concatenatedHosts
+        ])
+        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+
+        HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
+        logger.info("Handler: ${handler}")
+
+        // Act
+        List<String> customHostnames = handler.parseCustomHostnames(simpleProperties)
+        logger.info("Parsed custom hostnames: ${customHostnames}")
+
+        // Assert
+        assert customHostnames.size() == ipv6Hosts.size()
+        ipv6Hosts.each { String host ->
+            logger.debug("Checking ${host}")
+            assert customHostnames.contains(host)
+        }
+    }
+
+    @Test
+    void testParseCustomHostnamesShouldHandleIPv6WithPorts() throws Exception {
+        // Arrange
+        String hostname = DEFAULT_HOSTNAME
+        int port = DEFAULT_PORT
+        logger.info("Hostname: ${hostname} | port: ${port}")
+
+        List<String> ipv6Hosts = ["[ABCD:EF01:2345:6789:ABCD:EF01:2345:6789]:1234",
+                                  "[2001:DB8:0:0:8:800:200C:417A]:1234",
+                                  "[FF01:0:0:0:0:0:0:101]:1234",
+                                  "[0:0:0:0:0:0:0:1]:1234",
+                                  "[0:0:0:0:0:0:0:0]:1234",
+                                  "[2001:DB8::8:800:200C:417A]:1234",
+                                  "[FF01::101]:1234",
+                                  "[::1]:1234",
+                                  "[::]:1234",
+                                  "[0:0:0:0:0:0:13.1.68.3]:1234",
+                                  "[0:0:0:0:0:FFFF:129.144.52.38]:1234",
+                                  "[::13.1.68.3]:1234",
+                                  "[FFFF:129.144.52.38]:1234",
+                                  "[::FFFF:129.144.52.38]:1234"]
         String concatenatedHosts = ipv6Hosts.join(",")
 
         Properties rawProps = new Properties()
@@ -202,9 +250,38 @@ class HostHeaderHandlerTest extends GroovyTestCase {
         ipv6Hosts.each { String host ->
             logger.debug("Checking ${host}")
             assert customHostnames.contains(host)
-            String portlessHost = "${host.split(":", 2)[0]}".toString()
+            String portlessHost = "${StringUtils.substringBeforeLast(host, ":")}".toString()
             logger.debug("Checking ${portlessHost}")
             assert customHostnames.contains(portlessHost)
         }
+    }
+
+    @Test
+    void testShouldIdentifyIPv6Addresses() throws Exception {
+        // Arrange
+        List<String> ipv6Hosts = ["ABCD:EF01:2345:6789:ABCD:EF01:2345:6789",
+                                  "2001:DB8:0:0:8:800:200C:417A",
+                                  "FF01:0:0:0:0:0:0:101",
+                                  "0:0:0:0:0:0:0:1",
+                                  "0:0:0:0:0:0:0:0",
+                                  "2001:DB8::8:800:200C:417A",
+                                  "FF01::101",
+                                  "::1",
+                                  "::",
+                                  "0:0:0:0:0:0:13.1.68.3",
+                                  "0:0:0:0:0:FFFF:129.144.52.38",
+                                  "::13.1.68.3",
+                                  "FFFF:129.144.52.38",
+                                  "::FFFF:129.144.52.38"]
+
+        // Act
+        List<Boolean> hostsAreIPv6 = ipv6Hosts.collect { String host ->
+            boolean isIPv6 = HostHeaderHandler.isIPv6Address(host)
+            logger.info("Hostname is IPv6: ${host} | ${isIPv6}")
+            isIPv6
+        }
+
+        // Assert
+        assert hostsAreIPv6.every()
     }
 }
