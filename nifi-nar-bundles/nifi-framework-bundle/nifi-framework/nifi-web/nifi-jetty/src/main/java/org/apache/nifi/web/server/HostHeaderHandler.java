@@ -198,6 +198,7 @@ public class HostHeaderHandler extends ScopedHandler {
     String printValidHosts() {
         StringBuilder sb = new StringBuilder("<ul>");
         for (String vh : validHosts) {
+            if (StringUtils.isNotBlank(vh))
             sb.append("<li>").append(StringEscapeUtils.escapeHtml4(vh)).append("</li>\n");
         }
         return sb.append("</ul>\n").toString();
@@ -231,9 +232,9 @@ public class HostHeaderHandler extends ScopedHandler {
 
         // Sometimes the hostname is left empty but the port is always populated
         validHosts.add("127.0.0.1");
+        validHosts.add("127.0.0.1:" + serverPort);
         validHosts.add("localhost");
         validHosts.add("localhost:" + serverPort);
-        validHosts.add("127.0.0.1:" + serverPort);
         validHosts.add("[::1]");
         validHosts.add("[::1]:" + serverPort);
 
