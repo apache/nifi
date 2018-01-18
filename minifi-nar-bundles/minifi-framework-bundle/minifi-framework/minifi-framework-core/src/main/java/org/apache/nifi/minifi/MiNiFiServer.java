@@ -36,6 +36,7 @@ import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusConfigReporter;
 import org.apache.nifi.minifi.status.StatusRequestException;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FileBasedVariableRegistry;
@@ -106,7 +107,7 @@ public class MiNiFiServer {
                     encryptor,
                     bulletinRepository,
                     variableRegistry,
-                    null
+                    new StandardFlowRegistryClient()
                     );
 
             flowService = StandardFlowService.createStandaloneInstance(
