@@ -115,7 +115,7 @@ public class HostHeaderHandler extends ScopedHandler {
         logger.debug("Created " + this.toString());
     }
 
-    private List<String> parseCustomHostnames(NiFiProperties niFiProperties) {
+    List<String> parseCustomHostnames(NiFiProperties niFiProperties) {
         // Load the custom hostnames from the properties
         List<String> customHostnames = niFiProperties.getWhitelistedHostsAsList();
 

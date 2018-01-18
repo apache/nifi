@@ -69,7 +69,7 @@ public class HostHeaderSanitizationCustomizer implements HttpConfiguration.Custo
         final String hostHeader = request.getHeader("Host");
         logger.debug("Received request [" + request.getRequestURI() + "] with host header: " + hostHeader);
         if (!hostHeaderIsValid(hostHeader)) {
-            logger.warn("Request host header [" + hostHeader + "] different from web hostname [" +
+            logger.debug("Request host header [" + hostHeader + "] different from web hostname [" +
                     serverName + "(:" + serverPort + ")]. Overriding to [" + serverName + ":" +
                     serverPort + request.getRequestURI() + "]");
             request.setAuthority(serverName, serverPort);

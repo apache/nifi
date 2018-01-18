@@ -129,4 +129,37 @@ class HostHeaderHandlerTest extends GroovyTestCase {
             assert handler.hostHeaderIsValid(host)
         }
     }
+
+    @Test
+    void testShouldParseCustomHostnames() throws Exception {
+        // Arrange
+        String hostname = DEFAULT_HOSTNAME
+        int port = DEFAULT_PORT
+        logger.info("Hostname: ${hostname} | port: ${port}")
+
+        List<String> otherHosts = ["someotherhost.com:9999", "yetanotherbadhost.com", "10.10.10.1:1234", "100.100.100.1"]
+        String concatenatedHosts = otherHosts.join(",")
+
+        Properties rawProps = new Properties()
+        rawProps.putAll([
+                (NiFiProperties.WEB_HTTPS_HOST): DEFAULT_HOSTNAME,
+                (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}",
+                (NiFiProperties.WEB_PROXY_HOST): concatenatedHosts
+        ])
+        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+
+        HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
+        logger.info("Handler: ${handler}")
+
+        // Act
+        List<String> customHostnames = handler.parseCustomHostnames(simpleProperties)
+        logger.info("Parsed custom hostnames: ${customHostnames}")
+
+        // Assert
+        assert customHostnames.size() == otherHosts.size()
+        otherHosts.each { String host ->
+            logger.debug("Checking ${host}")
+            assert customHostnames.contains(host)
+        }
+    }
 }
