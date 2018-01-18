@@ -1309,7 +1309,8 @@ public abstract class NiFiProperties {
     }
 
     /**
-     * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string. The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
+     * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string.
+     * The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
      * <p>
      * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_HOST)} will not normalize the hosts.
      *

@@ -89,7 +89,8 @@ public class HostHeaderHandler extends ScopedHandler {
     }
 
     /**
-     * Instantiates a handler which accepts incoming requests with a host header that is empty or contains one of the valid hosts. See the Apache NiFi Admin Guide for instructions on how to set valid hostnames and IP addresses.
+     * Instantiates a handler which accepts incoming requests with a host header that is empty or contains one of the
+     * valid hosts. See the Apache NiFi Admin Guide for instructions on how to set valid hostnames and IP addresses.
      *
      * @param niFiProperties the NiFiProperties
      */
@@ -131,7 +132,10 @@ public class HostHeaderHandler extends ScopedHandler {
         // Load the custom hostnames from the properties
         List<String> customHostnames = niFiProperties.getWhitelistedHostsAsList();
 
-        // Each IPv4 address and hostname may have the port associated, so duplicate the list and trim the port (the port may be different from the port NiFi is running on if provided by a proxy, etc.) IPv6 addresses are not modified.
+        /* Each IPv4 address and hostname may have the port associated, so duplicate the list and trim the port
+        * (the port may be different from the port NiFi is running on if provided by a proxy, etc.) IPv6 addresses
+        * are not modified.
+        */
         List<String> portlessHostnames = customHostnames.stream().map(hostname -> {
                     if (isIPv6Address(hostname)) {
                         return hostname;
@@ -159,7 +163,9 @@ public class HostHeaderHandler extends ScopedHandler {
     }
 
     /**
-     * Returns true if the provided address is an IPv6 address (or could be interpreted as one). This method is more lenient than {@link InetAddressUtils#isIPv6Address(String)} because of different interpretations of IPv4-mapped IPv6 addresses.
+     * Returns true if the provided address is an IPv6 address (or could be interpreted as one). This method is more
+     * lenient than {@link InetAddressUtils#isIPv6Address(String)} because of different interpretations of IPv4-mapped
+     * IPv6 addresses.
      *
      * See RFC 5952 Section 4 for more information on textual representation of the IPv6 addresses.
      *
@@ -310,7 +316,9 @@ public class HostHeaderHandler extends ScopedHandler {
     }
 
     /**
-     * Extracts the list of IP addresses from custom bound network interfaces. If both HTTPS and HTTP interfaces are defined and HTTPS is enabled, only HTTPS interfaces will be returned. If none are defined, an empty list will be returned.
+     * Extracts the list of IP addresses from custom bound network interfaces. If both HTTPS and HTTP interfaces are
+     * defined and HTTPS is enabled, only HTTPS interfaces will be returned. If none are defined, an empty list will be
+     * returned.
      *
      * @param niFiProperties the NiFiProperties object
      * @return the list of IP addresses
