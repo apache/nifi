@@ -187,7 +187,7 @@ public class HostHeaderHandler extends ScopedHandler {
             out.println("<h2>The request contained an invalid host header [" + StringEscapeUtils.escapeHtml4(hostHeader) +
                     "] in the request [" + StringEscapeUtils.escapeHtml4(request.getRequestURI()) +
                     "]. Check for request manipulation or third-party intercept.</h2>");
-            out.println("<h3>Valid host headers are <empty> or: <br/>");
+            out.println("<h3>Valid host headers are [empty] or: <br/>");
             out.println(printValidHosts());
             out.println("</h3>");
 
