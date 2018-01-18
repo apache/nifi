@@ -601,8 +601,6 @@ public class JettyServer implements NiFiServer {
         httpConfiguration.setRequestHeaderSize(headerSize);
         httpConfiguration.setResponseHeaderSize(headerSize);
 
-        addHostHeaderSanitizationCustomizer(httpConfiguration);
-
         if (props.getPort() != null) {
             final Integer port = props.getPort();
             if (port < 0 || (int) Math.pow(2, 16) <= port) {
@@ -651,6 +649,8 @@ public class JettyServer implements NiFiServer {
         }
 
         if (props.getSslPort() != null) {
+            addHostHeaderSanitizationCustomizer(httpConfiguration);
+
             final Integer port = props.getSslPort();
             if (port < 0 || (int) Math.pow(2, 16) <= port) {
                 throw new ServerConfigurationException("Invalid HTTPs port: " + port);
