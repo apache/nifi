@@ -155,28 +155,22 @@ public class JettyServer implements NiFiServer {
         // load wars from the bundle
         Handler warHandlers = loadWars(bundles);
 
-        // Create a handler for the host header and add it to the server
-        String serverName = determineServerHostname();
-        int serverPort = determineServerPort();
-        HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(serverName, serverPort);
-        logger.info("Created HostHeaderHandler [" + hostHeaderHandler.toString() + "]");
-
         HandlerList allHandlers = new HandlerList();
-        allHandlers.addHandler(hostHeaderHandler);
+
+        // Only restrict the host header if running in HTTPS mode
+        if (props.isHTTPSConfigured()) {
+            // Create a handler for the host header and add it to the server
+            HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
+            logger.info("Created HostHeaderHandler [" + hostHeaderHandler.toString() + "]");
+
+            // Add this before the WAR handlers
+            allHandlers.addHandler(hostHeaderHandler);
+        } else {
+            logger.info("Running in HTTP mode; host headers not restricted");
+        }
+
         allHandlers.addHandler(warHandlers);
         server.setHandler(allHandlers);
-    }
-
-    private int determineServerPort() {
-        return props.getSslPort() != null ? props.getSslPort() : props.getPort();
-    }
-
-    private String determineServerHostname() {
-        if (props.getSslPort() != null) {
-            return props.getProperty(NiFiProperties.WEB_HTTPS_HOST, "localhost");
-        } else {
-            return props.getProperty(NiFiProperties.WEB_HTTP_HOST, "localhost");
-        }
     }
 
     private Handler loadWars(final Set<Bundle> bundles) {

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.server
 
+import org.apache.nifi.properties.StandardNiFiProperties
+import org.apache.nifi.util.NiFiProperties
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -32,7 +34,15 @@ class HostHeaderHandlerTest extends GroovyTestCase {
     private static final String DEFAULT_HOSTNAME = "nifi.apache.org"
     private static final String ACTUAL_HOSTNAME = InetAddress.getLocalHost().getHostName().toLowerCase()
     private static final int DEFAULT_PORT = 8080
-    private static final List<String> DEFAULT_HOSTS = [DEFAULT_HOSTNAME, "localhost", ACTUAL_HOSTNAME]
+    private static final List<String> DEFAULT_HOSTS_1_5_0 = [DEFAULT_HOSTNAME, "localhost", ACTUAL_HOSTNAME]
+    private static
+    final List<String> DEFAULT_HOSTS_AND_PORTS_1_5_0 = DEFAULT_HOSTS_1_5_0.collectMany { it -> [it, "${it}:${DEFAULT_PORT}"] }
+
+    // Post 1.5.0 list
+    private static final String ACTUAL_IP = InetAddress.getLocalHost().getHostAddress()
+    private static final String LOOPBACK_IP = InetAddress.getLoopbackAddress().getHostAddress()
+    private static
+    final List<String> DEFAULT_HOSTS = DEFAULT_HOSTS_1_5_0 - DEFAULT_HOSTNAME + ["[::1]", "127.0.0.1", ACTUAL_IP, LOOPBACK_IP]
     private static
     final List<String> DEFAULT_HOSTS_AND_PORTS = DEFAULT_HOSTS.collectMany { it -> [it, "${it}:${DEFAULT_PORT}"] }
 
@@ -67,8 +77,12 @@ class HostHeaderHandlerTest extends GroovyTestCase {
         assert handler.hostHeaderIsValid("${hostname}:${port}")
     }
 
+    /**
+     * The feature was introduced in Apache NiFi 1.5.0 but the behavior was changed following that release to include the actual IP address of the server, IPv6 ::1, and 127.0.0.1.
+     * @throws Exception
+     */
     @Test
-    void testShouldHandleDefaultValues() throws Exception {
+    void testShouldHandle_1_5_0_DefaultValues() throws Exception {
         // Arrange
         String hostname = DEFAULT_HOSTNAME
         int port = DEFAULT_PORT
@@ -76,6 +90,37 @@ class HostHeaderHandlerTest extends GroovyTestCase {
 
         // Act
         HostHeaderHandler handler = new HostHeaderHandler(hostname, port)
+        logger.info("Handler: ${handler}")
+
+        // Assert
+        DEFAULT_HOSTS_AND_PORTS_1_5_0.each { String host ->
+            logger.debug("Validating ${host}")
+            assert handler.hostHeaderIsValid(host)
+        }
+    }
+
+    @Test
+    void testNewConstructorShouldHandleCurrentDefaultValues() throws Exception {
+        // Arrange
+        String hostname = DEFAULT_HOSTNAME
+        int port = DEFAULT_PORT
+        logger.info("Hostname: ${hostname} | port: ${port}")
+
+        NiFiProperties mockProperties = [
+                getSslPort: { -> null },
+                getPort   : { -> DEFAULT_PORT },
+        ] as StandardNiFiProperties
+
+        Properties rawProps = new Properties()
+        rawProps.putAll([
+                (NiFiProperties.WEB_HTTPS_HOST): DEFAULT_HOSTNAME,
+                (NiFiProperties.WEB_HTTPS_PORT): DEFAULT_PORT,
+//                (NiFiProperties.WEB_HTTP_PORT) : null
+        ])
+        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+
+        // Act
+        HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
         logger.info("Handler: ${handler}")
 
         // Assert
