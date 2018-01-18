@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.URL;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,8 +35,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The NiFiProperties class holds all properties which are needed for various
@@ -599,6 +596,7 @@ public abstract class NiFiProperties {
 
     /**
      * Determines the HTTP/HTTPS port NiFi is configured to bind to. Prefers the HTTPS port. Throws an exception if neither is configured.
+     *
      * @return the configured port number
      */
     public Integer getConfiguredHttpOrHttpsPort() throws InvalidPropertiesFormatException {
@@ -1312,7 +1310,7 @@ public abstract class NiFiProperties {
 
     /**
      * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string. The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
-     *
+     * <p>
      * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_HOST)} will not normalize the hosts.
      *
      * @return the hostname(s)
@@ -1337,24 +1335,13 @@ public abstract class NiFiProperties {
         if (host == null || host.equalsIgnoreCase("")) {
             return "";
         } else {
-            String trimmedHost = host.trim();
-            // Try to parse as a URL and then extract the relevant portions
-            try {
-                URL url = new URL(trimmedHost);
-                trimmedHost =
-                        url.getHost() + ":" + url.getPort();
-                return trimmedHost;
-            } catch (Exception e) {
-                Logger logger = LoggerFactory.getLogger(NiFiProperties.class);
-                logger.warn("Encountered an error trying to parse the host [" + trimmedHost +"]");
-                return "";
-            }
+            return host.trim();
         }
     }
 
     /**
      * Returns the whitelisted proxy context paths as a comma-delimited string. The paths have been normalized to the form {@code /some/context/path}.
-     *
+     * <p>
      * Note: Calling {@code NiFiProperties.getProperty(NiFiProperties.WEB_PROXY_CONTEXT_PATH)} will not normalize the paths.
      *
      * @return the path(s)

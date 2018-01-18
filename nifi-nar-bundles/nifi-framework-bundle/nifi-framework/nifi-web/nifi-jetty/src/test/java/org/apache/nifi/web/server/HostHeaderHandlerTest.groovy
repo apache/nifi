@@ -106,16 +106,10 @@ class HostHeaderHandlerTest extends GroovyTestCase {
         int port = DEFAULT_PORT
         logger.info("Hostname: ${hostname} | port: ${port}")
 
-        NiFiProperties mockProperties = [
-                getSslPort: { -> null },
-                getPort   : { -> DEFAULT_PORT },
-        ] as StandardNiFiProperties
-
         Properties rawProps = new Properties()
         rawProps.putAll([
                 (NiFiProperties.WEB_HTTPS_HOST): DEFAULT_HOSTNAME,
-                (NiFiProperties.WEB_HTTPS_PORT): DEFAULT_PORT,
-//                (NiFiProperties.WEB_HTTP_PORT) : null
+                (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
         ])
         NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
 
@@ -143,7 +137,7 @@ class HostHeaderHandlerTest extends GroovyTestCase {
         Properties rawProps = new Properties()
         rawProps.putAll([
                 (NiFiProperties.WEB_HTTPS_HOST): DEFAULT_HOSTNAME,
-                (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}",
+                (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
                 (NiFiProperties.WEB_PROXY_HOST): concatenatedHosts
         ])
         NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
@@ -156,7 +150,7 @@ class HostHeaderHandlerTest extends GroovyTestCase {
         logger.info("Parsed custom hostnames: ${customHostnames}")
 
         // Assert
-        assert customHostnames.size() == otherHosts.size()
+        assert customHostnames.size() == otherHosts.size() * 2
         otherHosts.each { String host ->
             logger.debug("Checking ${host}")
             assert customHostnames.contains(host)
