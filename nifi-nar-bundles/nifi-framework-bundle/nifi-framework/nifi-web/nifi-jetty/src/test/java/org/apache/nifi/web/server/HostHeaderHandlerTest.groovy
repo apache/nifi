@@ -154,6 +154,57 @@ class HostHeaderHandlerTest extends GroovyTestCase {
         otherHosts.each { String host ->
             logger.debug("Checking ${host}")
             assert customHostnames.contains(host)
+            String portlessHost = "${host.split(":", 2)[0]}".toString()
+            logger.debug("Checking ${portlessHost}")
+            assert customHostnames.contains(portlessHost)
+        }
+    }
+
+    @Test
+    void testParseCustomHostnamesShouldHandleIPv6() throws Exception {
+        // Arrange
+        String hostname = DEFAULT_HOSTNAME
+        int port = DEFAULT_PORT
+        logger.info("Hostname: ${hostname} | port: ${port}")
+
+        List<String> ipv6Hosts = ["ABCD:EF01:2345:6789:ABCD:EF01:2345:6789",
+                                   "2001:DB8:0:0:8:800:200C:417A",
+                                   "FF01:0:0:0:0:0:0:101",
+                                   "0:0:0:0:0:0:0:1",
+                                   "0:0:0:0:0:0:0:0",
+                                   "2001:DB8::8:800:200C:417A",
+                                   "FF01::101",
+                                   "::1",
+                                   "::",
+                                   "0:0:0:0:0:0:13.1.68.3",
+                                   "0:0:0:0:0:FFFF:129.144.52.38",
+                                   "::13.1.68.3",
+                                   "FFFF:129.144.52.38",]
+        String concatenatedHosts = ipv6Hosts.join(",")
+
+        Properties rawProps = new Properties()
+        rawProps.putAll([
+                (NiFiProperties.WEB_HTTPS_HOST): DEFAULT_HOSTNAME,
+                (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
+                (NiFiProperties.WEB_PROXY_HOST): concatenatedHosts
+        ])
+        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+
+        HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
+        logger.info("Handler: ${handler}")
+
+        // Act
+        List<String> customHostnames = handler.parseCustomHostnames(simpleProperties)
+        logger.info("Parsed custom hostnames: ${customHostnames}")
+
+        // Assert
+        assert customHostnames.size() == ipv6Hosts.size() * 2
+        ipv6Hosts.each { String host ->
+            logger.debug("Checking ${host}")
+            assert customHostnames.contains(host)
+            String portlessHost = "${host.split(":", 2)[0]}".toString()
+            logger.debug("Checking ${portlessHost}")
+            assert customHostnames.contains(portlessHost)
         }
     }
 }

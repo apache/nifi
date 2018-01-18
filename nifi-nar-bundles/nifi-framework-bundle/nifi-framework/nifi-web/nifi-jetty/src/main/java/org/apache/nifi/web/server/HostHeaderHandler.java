@@ -115,12 +115,20 @@ public class HostHeaderHandler extends ScopedHandler {
         logger.debug("Created " + this.toString());
     }
 
+    /**
+     * Returns the list of parsed custom hostnames from {@code nifi.web.proxy.host} in {@link NiFiProperties}.
+     * This list is not deduplicated (if a host {@code somehost.com} is provided, it will show twice, as the "portless" version is also generated).
+     *
+     * @param niFiProperties the properties object
+     * @returnj the list of parsed custom hostnames
+     */
     List<String> parseCustomHostnames(NiFiProperties niFiProperties) {
         // Load the custom hostnames from the properties
         List<String> customHostnames = niFiProperties.getWhitelistedHostsAsList();
 
         // Each is expected to have the port associated, so duplicate the list and trim the port (the port may be different from the port NiFi is running on if provided by a proxy, etc.)
         List<String> portlessHostnames = customHostnames.stream().map(hostname ->
+                // TODO: Need to implement "splitBeforeLast" for IPv6
                 hostname.split(":", 2)[0]
         ).collect(Collectors.toList());
 
@@ -199,7 +207,7 @@ public class HostHeaderHandler extends ScopedHandler {
         StringBuilder sb = new StringBuilder("<ul>");
         for (String vh : validHosts) {
             if (StringUtils.isNotBlank(vh))
-            sb.append("<li>").append(StringEscapeUtils.escapeHtml4(vh)).append("</li>\n");
+                sb.append("<li>").append(StringEscapeUtils.escapeHtml4(vh)).append("</li>\n");
         }
         return sb.append("</ul>\n").toString();
     }
