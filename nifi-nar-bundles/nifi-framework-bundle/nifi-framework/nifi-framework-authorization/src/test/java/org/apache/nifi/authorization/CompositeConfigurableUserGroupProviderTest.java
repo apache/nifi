@@ -20,11 +20,14 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.authorization.CompositeConfigurableUserGroupProvider.PROP_CONFIGURABLE_USER_GROUP_PROVIDER;
+import static org.apache.nifi.authorization.CompositeUserGroupProvider.PROP_USER_GROUP_PROVIDER_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -62,6 +65,32 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         }, configurationContext -> {
             when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(NOT_CONFIGURABLE_USER_GROUP_PROVIDER, null));
         });
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testDuplicateProviders() throws Exception {
+
+        // Mock UserGroupProviderLookup
+        UserGroupProvider configurableUserGroupProvider = getConfigurableUserGroupProvider();
+        final UserGroupProviderLookup ugpLookup = mock(UserGroupProviderLookup.class);
+        when(ugpLookup.getUserGroupProvider(eq(CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(configurableUserGroupProvider);
+
+        // Mock AuthorizerInitializationContext
+        final AuthorizerInitializationContext initializationContext = mock(AuthorizerInitializationContext.class);
+        when(initializationContext.getUserGroupProviderLookup()).thenReturn(ugpLookup);
+
+        // Mock AuthorizerConfigurationContext to introduce the duplicate provider ids
+        final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
+        when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null));
+        Map<String, String> configurationContextProperties = new HashMap<>();
+        configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "1", CONFIGURABLE_USER_GROUP_PROVIDER);
+        configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "2", NOT_CONFIGURABLE_USER_GROUP_PROVIDER);
+        when(configurationContext.getProperties()).thenReturn(configurationContextProperties);
+
+        // configure (should throw exception)
+        CompositeConfigurableUserGroupProvider provider = new CompositeConfigurableUserGroupProvider();
+        provider.initialize(initializationContext);
+        provider.onConfigured(configurationContext);
     }
 
     @Test
