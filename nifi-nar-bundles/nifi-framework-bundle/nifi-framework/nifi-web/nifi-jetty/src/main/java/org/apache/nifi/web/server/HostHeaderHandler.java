@@ -24,7 +24,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.InvalidPropertiesFormatException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -268,7 +267,7 @@ public class HostHeaderHandler extends ScopedHandler {
         } else {
             try {
                 serverPort = niFiProperties.getConfiguredHttpOrHttpsPort();
-            } catch (InvalidPropertiesFormatException e) {
+            } catch (RuntimeException e) {
                 logger.warn("Cannot fully generate list of default hostnames because the server port is not configured in nifi.properties. Defaulting to port 0 for host header evaluation");
             }
 
