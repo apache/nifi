@@ -649,8 +649,6 @@ public class JettyServer implements NiFiServer {
         }
 
         if (props.getSslPort() != null) {
-            addHostHeaderSanitizationCustomizer(httpConfiguration);
-
             final Integer port = props.getSslPort();
             if (port < 0 || (int) Math.pow(2, 16) <= port) {
                 throw new ServerConfigurationException("Invalid HTTPs port: " + port);
@@ -704,24 +702,11 @@ public class JettyServer implements NiFiServer {
         httpsConfiguration.setSecureScheme("https");
         httpsConfiguration.setSecurePort(props.getSslPort());
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
-        addHostHeaderSanitizationCustomizer(httpsConfiguration);
 
         // build the connector
         return new ServerConnector(server,
                 new SslConnectionFactory(createSslContextFactory(), "http/1.1"),
                 new HttpConnectionFactory(httpsConfiguration));
-    }
-
-    private void addHostHeaderSanitizationCustomizer(HttpConfiguration httpConfiguration) {
-        // Add the HostHeaderCustomizer to the configuration
-        HttpConfiguration.Customizer hostHeaderCustomizer;
-        if (props.getSslPort() != null) {
-            hostHeaderCustomizer = new HostHeaderSanitizationCustomizer(props.getProperty(NiFiProperties.WEB_HTTPS_HOST), props.getSslPort());
-        } else {
-            hostHeaderCustomizer = new HostHeaderSanitizationCustomizer(props.getProperty(NiFiProperties.WEB_HTTP_HOST), props.getPort());
-        }
-        httpConfiguration.addCustomizer(hostHeaderCustomizer);
-        logger.info("Added HostHeaderSanitizationCustomizer to HttpConfiguration: " + hostHeaderCustomizer);
     }
 
     private SslContextFactory createSslContextFactory() {
