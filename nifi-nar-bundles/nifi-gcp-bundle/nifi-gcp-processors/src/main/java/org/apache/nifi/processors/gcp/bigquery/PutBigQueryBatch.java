@@ -206,7 +206,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         
         final BigQuery bq = getCloudService();
         
-        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions(flow).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).getValue();
         final String dataset_str = context.getProperty(DATASET).evaluateAttributeExpressions(flow).getValue();
         final String tablename_str = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flow).getValue();
         final TableId tableId = TableId.of(projectId, dataset_str, tablename_str);

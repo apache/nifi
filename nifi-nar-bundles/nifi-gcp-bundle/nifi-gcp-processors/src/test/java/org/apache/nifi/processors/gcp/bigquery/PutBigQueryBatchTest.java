@@ -18,9 +18,13 @@ package org.apache.nifi.processors.gcp.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
+import com.google.cloud.bigquery.JobStatus;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
@@ -43,15 +47,17 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link PutBigQueryStream}.
+ * Unit tests for {@link PutBigQueryBatch}.
  */
-public class PutBigQueryStreamTest extends AbstractBQTest {
+public class PutBigQueryBatchTest extends AbstractBQTest {
     private static final String TABLENAME = "test_table";
     private static final String TABLE_SCHEMA = "[{ \"mode\": \"NULLABLE\", \"name\": \"data\", \"type\": \"STRING\" }]";
-    private static final String BATCH_SIZE = "100";
-    private static final String MAX_ROW_SIZE = "1 MB";
+    private static final String SOURCE_FILE = "gs://bucket/what";
+    private static final String SOURCE_TYPE = FormatOptions.json().getType();
     private static final String CREATE_DISPOSITION = JobInfo.CreateDisposition.CREATE_IF_NEEDED.name();
-    private static final String TABLE_CACHE_RESET = "1 hours";
+    private static final String WRITE_DISPOSITION = JobInfo.WriteDisposition.WRITE_EMPTY.name();
+    private static final String MAXBAD_RECORDS = "0";
+    private static final String IGNORE_UNKNOWN = "true";
     
     @Mock
     BigQuery bq;
@@ -59,9 +65,15 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
     @Mock
     Table table;
     
-    @Mock 
-    InsertAllResponse response;
-
+    @Mock
+    Job job;
+    
+    @Mock
+    JobStatus jobStatus;
+    
+    @Mock
+    JobStatistics stats;
+    
     @Before
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -69,7 +81,7 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
 
     @Override
     public AbstractBigQueryProcessor getProcessor() {
-        return new PutBigQueryStream() {
+        return new PutBigQueryBatch() {
             @Override
             protected BigQuery getCloudService() {
                 return bq;
@@ -79,25 +91,34 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
 
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
-        runner.setProperty(PutBigQueryStream.DATASET, DATASET);
-        runner.setProperty(PutBigQueryStream.TABLE_NAME, TABLENAME);
-        runner.setProperty(PutBigQueryStream.TABLE_SCHEMA, TABLE_SCHEMA);
-        runner.setProperty(PutBigQueryStream.BATCH_SIZE, BATCH_SIZE);
-        runner.setProperty(PutBigQueryStream.MAX_ROW_SIZE, MAX_ROW_SIZE);
-        runner.setProperty(PutBigQueryStream.CREATE_DISPOSITION, CREATE_DISPOSITION);
-        runner.setProperty(PutBigQueryStream.TABLE_CACHE_RESET, TABLE_CACHE_RESET);
+        runner.setProperty(PutBigQueryBatch.DATASET, DATASET);
+        runner.setProperty(PutBigQueryBatch.TABLE_NAME, TABLENAME);
+        runner.setProperty(PutBigQueryBatch.TABLE_SCHEMA, TABLE_SCHEMA);
+        runner.setProperty(PutBigQueryBatch.SOURCE_FILE, SOURCE_FILE);
+        runner.setProperty(PutBigQueryBatch.SOURCE_TYPE, SOURCE_TYPE);
+        runner.setProperty(PutBigQueryBatch.CREATE_DISPOSITION, CREATE_DISPOSITION);
+        runner.setProperty(PutBigQueryBatch.WRITE_DISPOSITION, WRITE_DISPOSITION);
+        runner.setProperty(PutBigQueryBatch.MAXBAD_RECORDS, MAXBAD_RECORDS);
+        runner.setProperty(PutBigQueryBatch.IGNORE_UNKNOWN, IGNORE_UNKNOWN);
     }
 
     @Test
-    public void testSuccessfulInsert() throws Exception {
+    public void testSuccessfulLoad() throws Exception {
         reset(bq);
         reset(table);
-        reset(response);
+        reset(job);
+        reset(jobStatus);
+        reset(stats);
         
         when(table.exists()).thenReturn(Boolean.TRUE);
-        when(response.getInsertErrors()).thenReturn(Collections.EMPTY_MAP);
-        when(bq.create(ArgumentMatchers.isA(TableInfo.class))).thenReturn(table);
-        when(bq.insertAll(ArgumentMatchers.isA(InsertAllRequest.class))).thenReturn(response);
+        when(bq.create(ArgumentMatchers.isA(JobInfo.class))).thenReturn(job);
+        when(job.waitFor()).thenReturn(job);
+        when(job.getStatus()).thenReturn(jobStatus);
+        when(job.getStatistics()).thenReturn(stats);
+        
+        when(stats.getCreationTime()).thenReturn(0L);
+        when(stats.getStartTime()).thenReturn(1L);
+        when(stats.getEndTime()).thenReturn(2L);
         
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
@@ -108,33 +129,5 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
         runner.run();
         
         runner.assertAllFlowFilesTransferred(PutBigQueryStream.REL_SUCCESS);
-    }
-    
-    @Test
-    public void testFailedInsert() throws Exception {
-        reset(bq);
-        reset(table);
-        reset(response);
-        
-        Map<Long, List<BigQueryError>> resErrors = new HashMap();
-        resErrors.put(0L, Arrays.asList(new BigQueryError("reason", "location", "message")));
-        
-        when(table.exists()).thenReturn(Boolean.TRUE);
-        when(response.getInsertErrors()).thenReturn(resErrors);
-        when(bq.create(ArgumentMatchers.isA(TableInfo.class))).thenReturn(table);
-        when(bq.insertAll(ArgumentMatchers.isA(InsertAllRequest.class))).thenReturn(response);
-        
-        final TestRunner runner = buildNewRunner(getProcessor());
-        addRequiredPropertiesToRunner(runner);
-        runner.assertValid();
-        
-        runner.enqueue("{ \"data\": \"datavalue\" }");
-
-        runner.run();
-        
-        runner.assertAllFlowFilesTransferred(PutBigQueryStream.REL_FAILURE);
-        runner.assertAllFlowFilesContainAttribute(PutBigQueryStream.REL_FAILURE, BigQueryAttributes.JOB_ERROR_LOCATION_ATTR);
-        runner.assertAllFlowFilesContainAttribute(PutBigQueryStream.REL_FAILURE, BigQueryAttributes.JOB_ERROR_MSG_ATTR);
-        runner.assertAllFlowFilesContainAttribute(PutBigQueryStream.REL_FAILURE, BigQueryAttributes.JOB_ERROR_REASON_ATTR);
     }
 }
