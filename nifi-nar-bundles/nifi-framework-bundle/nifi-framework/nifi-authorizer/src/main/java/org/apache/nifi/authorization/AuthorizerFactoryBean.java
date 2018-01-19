@@ -44,6 +44,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -56,9 +57,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Factory bean for loading the configured authorizer.
@@ -123,6 +126,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
                     // create each user group provider
                     for (final org.apache.nifi.authorization.generated.UserGroupProvider userGroupProvider : authorizerConfiguration.getUserGroupProvider()) {
+                        if (userGroupProviders.containsKey(userGroupProvider.getIdentifier())) {
+                            throw new Exception("Duplicate User Group Provider identifier in Authorizers configuration: " + userGroupProvider.getIdentifier());
+                        }
                         userGroupProviders.put(userGroupProvider.getIdentifier(), createUserGroupProvider(userGroupProvider.getIdentifier(), userGroupProvider.getClazz()));
                     }
 
@@ -134,6 +140,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
                     // create each access policy provider
                     for (final org.apache.nifi.authorization.generated.AccessPolicyProvider accessPolicyProvider : authorizerConfiguration.getAccessPolicyProvider()) {
+                        if (accessPolicyProviders.containsKey(accessPolicyProvider.getIdentifier())) {
+                            throw new Exception("Duplicate Access Policy Provider identifier in Authorizers configuration: " + accessPolicyProvider.getIdentifier());
+                        }
                         accessPolicyProviders.put(accessPolicyProvider.getIdentifier(), createAccessPolicyProvider(accessPolicyProvider.getIdentifier(), accessPolicyProvider.getClazz()));
                     }
 
@@ -145,6 +154,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
                     // create each authorizer
                     for (final org.apache.nifi.authorization.generated.Authorizer authorizer : authorizerConfiguration.getAuthorizer()) {
+                        if (authorizers.containsKey(authorizer.getIdentifier())) {
+                            throw new Exception("Duplicate Authorizer identifier in Authorizers configuration: " + authorizer.getIdentifier());
+                        }
                         authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(),authorizer.getClasspath()));
                     }
 
@@ -184,7 +196,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                 unmarshaller.setSchema(schema);
                 final JAXBElement<Authorizers> element = unmarshaller.unmarshal(xsr, Authorizers.class);
                 return element.getValue();
-            } catch (SAXException | JAXBException e) {
+            } catch (XMLStreamException | SAXException | JAXBException e) {
                 throw new Exception("Unable to load the authorizer configuration file at: " + authorizersConfigurationFile.getAbsolutePath(), e);
             }
         } else {
@@ -478,38 +490,44 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     @Override
     public void destroy() throws Exception {
-        if (authorizer != null) {
-            Exception error = null;
+        List<Exception> errors = new ArrayList<>();
 
-            try {
-                authorizer.preDestruction();
-            } catch (final Exception e) {
-                error = e;
-            }
-
-            if (authorizer instanceof ManagedAuthorizer) {
-                final AccessPolicyProvider accessPolicyProvider = ((ManagedAuthorizer) authorizer).getAccessPolicyProvider();
-                if (accessPolicyProvider != null) {
-                    try {
-                        accessPolicyProvider.preDestruction();
-                    } catch (final Exception e) {
-                        error = e;
-                    }
-
-                    final UserGroupProvider userGroupProvider = accessPolicyProvider.getUserGroupProvider();
-                    if (userGroupProvider != null) {
-                        try {
-                            userGroupProvider.preDestruction();
-                        } catch (final Exception e) {
-                            error = e;
-                        }
-                    }
+        if (authorizers != null) {
+            authorizers.forEach((identifier, object) -> {
+                try {
+                    object.preDestruction();
+                } catch (Exception e) {
+                    errors.add(e);
+                    logger.error("Error pre-destructing {}: {}", identifier, e);
                 }
-            }
+            });
+        }
 
-            if (error != null) {
-                throw error;
-            }
+        if (accessPolicyProviders != null) {
+            accessPolicyProviders.forEach((identifier, object) -> {
+                try {
+                    object.preDestruction();
+                } catch (Exception e) {
+                    errors.add(e);
+                    logger.error("Error pre-destructing {}: {}", identifier, e);
+                }
+            });
+        }
+
+        if (userGroupProviders != null) {
+            userGroupProviders.forEach((identifier, object) -> {
+                try {
+                    object.preDestruction();
+                } catch (Exception e) {
+                    errors.add(e);
+                    logger.error("Error pre-destructing {}: {}", identifier, e);
+                }
+            });
+        }
+
+        if (!errors.isEmpty()) {
+            List<String> errorMessages = errors.stream().map(Throwable::toString).collect(Collectors.toList());
+            throw new AuthorizerDestructionException("One or more providers encountered a pre-destruction error: " + StringUtils.join(errorMessages, "; "), errors.get(0));
         }
     }
 

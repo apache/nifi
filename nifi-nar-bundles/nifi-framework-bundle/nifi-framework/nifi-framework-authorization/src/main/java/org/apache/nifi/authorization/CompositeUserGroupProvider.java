@@ -67,6 +67,10 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
                     throw new AuthorizerCreationException(String.format("Unable to locate the configured User Group Provider: %s", userGroupProviderKey));
                 }
 
+                if (userGroupProviders.contains(userGroupProvider)) {
+                    throw new AuthorizerCreationException(String.format("Duplicate provider in Composite User Group Provider configuration: %s", userGroupProviderKey));
+                }
+
                 userGroupProviders.add(userGroupProvider);
             }
         }

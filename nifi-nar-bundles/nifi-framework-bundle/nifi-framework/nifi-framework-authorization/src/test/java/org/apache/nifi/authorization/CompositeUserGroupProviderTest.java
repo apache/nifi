@@ -62,6 +62,12 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
         compositeUserGroupProvider.onConfigured(configurationContext);
     }
 
+    @Test(expected = AuthorizerCreationException.class)
+    public void testDuplicateProviders() throws Exception {
+        UserGroupProvider duplicatedUserGroupProvider = getUserGroupProviderOne();
+        initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null, duplicatedUserGroupProvider, duplicatedUserGroupProvider);
+    }
+
     @Test
     public void testOneProvider() throws Exception {
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null, getUserGroupProviderOne());
