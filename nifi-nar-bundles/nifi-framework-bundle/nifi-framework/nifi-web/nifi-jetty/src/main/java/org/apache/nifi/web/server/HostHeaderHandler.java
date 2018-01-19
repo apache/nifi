@@ -70,15 +70,20 @@ public class HostHeaderHandler extends ScopedHandler {
         this.serverName = Objects.requireNonNull(serverName);
         this.serverPort = serverPort;
 
-        // Default values across generic instances
         validHosts = generateDefaultHostnames(null);
-
-        // specified host:port
         validHosts.add(serverName.toLowerCase());
         validHosts.add(serverName.toLowerCase() + ":" + serverPort);
-
-        // empty is ok here
+        // Sometimes the hostname is left empty but the port is always populated
+        validHosts.add("localhost");
+        validHosts.add("localhost:" + serverPort);
+        // Different from customizer -- empty is ok here
         validHosts.add("");
+        try {
+            validHosts.add(InetAddress.getLocalHost().getHostName().toLowerCase());
+            validHosts.add(InetAddress.getLocalHost().getHostName().toLowerCase() + ":" + serverPort);
+        } catch (final Exception e) {
+            logger.warn("Failed to determine local hostname.", e);
+        }
 
         logger.info("Created " + this.toString());
     }
