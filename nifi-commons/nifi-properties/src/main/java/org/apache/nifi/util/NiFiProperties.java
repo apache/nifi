@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.InvalidPropertiesFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -599,13 +598,13 @@ public abstract class NiFiProperties {
      *
      * @return the configured port number
      */
-    public Integer getConfiguredHttpOrHttpsPort() throws InvalidPropertiesFormatException {
+    public Integer getConfiguredHttpOrHttpsPort() throws RuntimeException {
         if (getSslPort() != null) {
             return getSslPort();
         } else if (getPort() != null) {
             return getPort();
         } else {
-            throw new InvalidPropertiesFormatException("The HTTP or HTTPS port must be configured");
+            throw new RuntimeException("The HTTP or HTTPS port must be configured");
         }
     }
 
