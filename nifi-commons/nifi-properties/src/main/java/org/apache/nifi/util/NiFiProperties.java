@@ -1317,7 +1317,7 @@ public abstract class NiFiProperties {
      * @return the hostname(s)
      */
     public String getWhitelistedHosts() {
-        return StringUtils.join(getWhitelistedContextPathsAsList(), ",");
+        return StringUtils.join(getWhitelistedHostsAsList(), ",");
     }
 
     /**
@@ -1329,7 +1329,7 @@ public abstract class NiFiProperties {
         String rawProperty = getProperty(WEB_PROXY_HOST, "");
         List<String> hosts = Arrays.asList(rawProperty.split(","));
         return hosts.stream()
-                .map(this::normalizeHost).collect(Collectors.toList());
+                .map(this::normalizeHost).filter(host -> !StringUtils.isBlank(host)).collect(Collectors.toList());
     }
 
     String normalizeHost(String host) {
