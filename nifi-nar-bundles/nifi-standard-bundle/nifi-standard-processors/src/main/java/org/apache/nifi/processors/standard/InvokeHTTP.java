@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -148,6 +149,11 @@ public final class InvokeHTTP extends AbstractProcessor {
             EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
 
+    public static final AllowableValue HTTP = new AllowableValue("http", "HTTP",
+            "HTTP Proxy");
+    public static final AllowableValue HTTPS = new AllowableValue("https", "HTTPS",
+            "HTTPS Proxy");
+
     // properties
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
@@ -213,9 +219,19 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections."
+                    + " It is also used to connect to HTTPS Proxy.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor PROP_PROXY_TYPE = new PropertyDescriptor.Builder()
+            .name("Proxy Type")
+            .displayName("Proxy Type")
+            .description("The type of the proxy we are connecting to.")
+            .required(false)
+            .allowableValues(HTTP, HTTPS)
+            .defaultValue(HTTP.getValue())
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_HOST = new PropertyDescriptor.Builder()
@@ -388,6 +404,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_BASIC_AUTH_PASSWORD,
             PROP_PROXY_HOST,
             PROP_PROXY_PORT,
+            PROP_PROXY_TYPE,
             PROP_PROXY_USER,
             PROP_PROXY_PASSWORD,
             PROP_PUT_OUTPUT_IN_ATTRIBUTE,
@@ -513,6 +530,17 @@ public final class InvokeHTTP extends AbstractProcessor {
             results.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
         }
 
+        final boolean proxyTypeSet = validationContext.getProperty(PROP_PROXY_TYPE).isSet();
+
+        if(proxyHostSet && !validationContext.getProperty(PROP_PROXY_TYPE).isSet()) {
+            results.add(new ValidationResult.Builder().subject("Proxy Type").valid(false).explanation("If Proxy Host is set, Proxy Type must be set").build());
+        }
+
+        if(proxyTypeSet && HTTPS.getValue().equals(validationContext.getProperty(PROP_PROXY_TYPE).getValue())
+                && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
+            results.add(new ValidationResult.Builder().subject("SSL Context Service").valid(false).explanation("If Proxy Type is HTTPS, SSL Context Service must be set").build());
+        }
+
         return results;
     }
 
@@ -525,9 +553,12 @@ public final class InvokeHTTP extends AbstractProcessor {
         // Add a proxy if set
         final String proxyHost = context.getProperty(PROP_PROXY_HOST).evaluateAttributeExpressions().getValue();
         final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).evaluateAttributeExpressions().asInteger();
+        final String proxyType = context.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue();
+        boolean isHttpsProxy = false;
         if (proxyHost != null && proxyPort != null) {
             final Proxy proxy = new Proxy(Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
             okHttpClientBuilder.proxy(proxy);
+            isHttpsProxy = HTTPS.getValue().equals(proxyType);
         }
 
         // Set timeouts
@@ -542,7 +573,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
-            setSslSocketFactory(okHttpClientBuilder, sslService, sslContext);
+            setSslSocketFactory(okHttpClientBuilder, sslService, sslContext, isHttpsProxy);
         }
 
         // check the trusted hostname property and override the HostnameVerifier
@@ -566,7 +597,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         In-depth documentation on Java Secure Socket Extension (JSSE) Classes and interfaces:
             https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#JSSEClasses
      */
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext)
+    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext, boolean setAsSocketFactory)
             throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
 
         final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
@@ -622,6 +653,9 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
         okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+        if (setAsSocketFactory) {
+            okHttpClientBuilder.socketFactory(sslSocketFactory);
+        }
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
