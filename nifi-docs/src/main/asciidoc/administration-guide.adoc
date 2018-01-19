@@ -2645,14 +2645,16 @@ documentation of the proxy for guidance for your deployment environment and use 
 ...
 ....
 
-* If NiFi is running securely, configuration must be updated to allow expected Host and context paths HTTP headers.
+* Additional NiFi proxy configuration must be updated to allow expected Host and context paths HTTP headers.
 
-** By default, NiFi will only accept HTTP requests with a Host header matching the host[:port] that it is bound to. If NiFi is to accept requests directed to a different
+** By default, if NiFi is running securely it will only accept HTTP requests with a Host header matching the host[:port] that it is bound to. If NiFi is to accept requests directed to a different
 host[:port] the expected values need to be configured. This may be required when running behind a proxy or in a containerized environment. This is configured in a comma
-separated list in _nifi.properties_ using the `nifi.web.proxy.host` property. (e.g. localhost:18443, proxyhost:443)
+separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. localhost:18443, proxyhost:443). IPv6 addressed are accepted. Please refer to
+RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
 
-** By default, NiFi will accept any HTTP requests with a X-ProxyContextPath or X-Forwarded-Context header. However, NiFi can be set up to only allow specific values by configuring a
-comma separated list in _nifi.properties_ using the `nifi.web.proxy.context.path` property.
+** NiFi will only accept HTTP requests with a X-ProxyContextPath or X-Forwarded-Context header if the value is whitelisted in the `nifi.web.proxy.context.path` property in
+_nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath or X-Forwarded-Context header value that is not
+present in the whitelist, the "An unexpected error has occurred" page will be shown and an error will be written to the nifi-app.log.
 
 [[kerberos_service]]
 == Kerberos Service
@@ -3095,9 +3097,8 @@ Providing three total network interfaces, including  `nifi.web.https.network.int
 |nifi.web.proxy.host|A comma separated list of allowed HTTP Host header values to consider when NiFi is running securely and will be receiving requests to a different host[:port] than it is bound to.
 For example, when running in a Docker container or behind a proxy (e.g. localhost:18443, proxyhost:443). By default, this value is blank meaning NiFi should only allow requests sent to the
 host[:port] that NiFi is bound to.
-|nifi.web.proxy.context.path|A comma separated list of allowed HTTP X-ProxyContextPath or X-Forwarded-Context header values to consider when NiFi is running securely. By default, this value is
-blank meaning any proxy context path is allowed. Configuring this property would result in rejecting of incoming requests where the value of the X-ProxyContextPath or X-Forwarded-Context
-header is not contained in this listing.
+|nifi.web.proxy.context.path|A comma separated list of allowed HTTP X-ProxyContextPath or X-Forwarded-Context header values to consider. By default, this value is
+blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
 |====
 
 === Security Properties
