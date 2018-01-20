@@ -17,6 +17,7 @@
 = Apache NiFi Overview
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
+:linkattrs:
 
 == What is Apache NiFi?
 Put simply NiFi was built to automate the flow of data between systems.  While
@@ -272,18 +273,19 @@ Flexible Scaling Model::
         help.  Use of NiFi's 'site-to-site' feature is also very effective as it is a protocol that allows NiFi and a client (including another NiFi cluster) to talk to each other, share information
         about loading, and to exchange data on specific authorized ports.
     Scale-up & down;;
-        NiFi is also designed to scale-up and down in a very flexible manner. In terms of increasing throughput from the standpoint of the NiFi framework, it is possible to increase the number of concurrent tasks on the processor under the Scheduling tab when configuring. This allows more processes to execute simultaneously, providing greater throughput. On the other side of the spectrum, you can perfectly scale NiFi down to be suitable to run on edge devices where a small footprint is desired due to limited hardware resources. To specifically solve the first mile data collection challenge and edge use cases, you can find more details here: https://cwiki.apache.org/confluence/display/NIFI/MiNiFi regarding a child project effort of Apache NiFi, MiNiFi (pronounced "minify", [min-uh-fahy]).
+        NiFi is also designed to scale-up and down in a very flexible manner. In terms of increasing throughput from the standpoint of the NiFi framework, it is possible to increase the number of concurrent tasks on the processor under the Scheduling tab when configuring. This allows more processes to execute simultaneously, providing greater throughput. On the other side of the spectrum, you can perfectly scale NiFi down to be suitable to run on edge devices where a small footprint is desired due to limited hardware resources. To specifically solve the first mile data collection challenge and edge use cases, you can find more details here: link:https://cwiki.apache.org/confluence/display/NIFI/MiNiFi[https://cwiki.apache.org/confluence/display/NIFI/MiNiFi^] regarding a child project effort of Apache NiFi, MiNiFi (pronounced "minify", [min-uh-fahy]).
 
 
 
 
 == References
 [bibliography]
-- [[[eip]]] Gregor Hohpe. Enterprise Integration Patterns [online].  Retrieved: 27 Dec 2014, from: http://www.enterpriseintegrationpatterns.com/
-- [[[soa]]] Wikipedia. Service Oriented Architecture [online]. Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Service-oriented_architecture
-- [[[api]]] Eric Savitz.  Welcome to the API Economy [online].  Forbes.com. Retrieved: 27 Dec 2014, from: http://www.forbes.com/sites/ciocentral/2012/08/29/welcome-to-the-api-economy/
-- [[[api2]]] Adam Duvander.  The rise of the API economy and consumer-led ecosystems [online]. thenextweb.com.  Retrieved: 27 Dec 2014, from: http://thenextweb.com/dd/2014/03/28/api-economy/
-- [[[iot]]] Wikipedia. Internet of Things [online]. Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Internet_of_Things
-- [[[bigdata]]] Wikipedia.  Big Data [online].  Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Big_data
-- [[[fbp]]] Wikipedia.  Flow Based Programming [online].  Retrieved: 28 Dec 2014, from: http://en.wikipedia.org/wiki/Flow-based_programming#Concepts
-- [[[seda]]] Matt Welsh.  Harvard.  SEDA: An Architecture for Highly Concurrent Server Applications [online].  Retrieved: 28 Dec 2014, from: http://www.eecs.harvard.edu/~mdw/proj/seda/
+- [[[eip]]] Gregor Hohpe. Enterprise Integration Patterns [online].  Retrieved: 27 Dec 2014, from: link:http://www.enterpriseintegrationpatterns.com[http://www.enterpriseintegrationpatterns.com^]
+- [[[soa]]] Wikipedia. Service Oriented Architecture [online]. Retrieved: 27 Dec 2014, from: link:http://en.wikipedia.org/wiki/Service-oriented_architecture[http://en.wikipedia.org/wiki/Service-oriented_architecture^]
+- [[[api]]] Eric Savitz.  Welcome to the API Economy [online].  Forbes.com. Retrieved: 27 Dec 2014, from: link:http://www.forbes.com/sites/ciocentral/2012/08/29/welcome-to-the-api-economy[http://www.forbes.com/sites/ciocentral/2012/08/29/welcome-to-the-api-economy^]
+- [[[api2]]] Adam Duvander.  The rise of the API economy and consumer-led ecosystems [online]. thenextweb.com.  Retrieved: 27 Dec 2014, from: link:http://thenextweb.com/dd/2014/03/28/api-economy[http://thenextweb.com/dd/2014/03/28/api-economy^]
+- [[[iot]]] Wikipedia. Internet of Things [online]. Retrieved: 27 Dec 2014, from: link:http://en.wikipedia.org/wiki/Internet_of_Things[http://en.wikipedia.org/wiki/Internet_of_Things^]
+- [[[bigdata]]] Wikipedia.  Big Data [online].  Retrieved: 27 Dec 2014, from: link:http://en.wikipedia.org/wiki/Big_data[http://en.wikipedia.org/wiki/Big_data^]
+- [[[fbp]]] Wikipedia.  Flow Based Programming [online].  Retrieved: 28 Dec 2014, from: link:http://en.wikipedia.org/wiki/Flow-based_programming#Concepts[http://en.wikipedia.org/wiki/Flow-based_programming#Concepts^]
+- [[[seda]]] Matt Welsh.  Berkeley.  SEDA: An Architecture for Well-Conditioned,
+Scalable Internet Services [online].  Retrieved: 18 Jan 2018, from: link:http://www.mdw.la/papers/seda-sosp01.pdf[http://www.mdw.la/papers/seda-sosp01.pdf^]

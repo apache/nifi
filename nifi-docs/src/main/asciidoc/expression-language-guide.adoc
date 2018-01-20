@@ -17,6 +17,7 @@
 = Apache NiFi Expression Language Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
+:linkattrs:
 
 [[overview]]
 == Overview
@@ -191,7 +192,7 @@ Language supports four different data types:
 - *Decimal*: A Decimal is a numeric value that can support decimals and larger values with minimal loss of precision. More precisely it
     is a double-precision 64-bit IEEE 754 floating point. Due to this minimal loss of precision this data type should not be used for
     very precise values, such as currency. For more documentation on the range of values stored in this data type
-    refer to this https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link]. The following are some examples of the forms of
+    refer to this link:https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link^]. The following are some examples of the forms of
     literal decimals that are supported in expression language (the "E" can also be lower-case):
 
         * 1.1
@@ -262,7 +263,7 @@ subject exists and `false` otherwise.#
 
 [.function]
 === isEmpty
-*Description*: [.description]#The `isEmpty` function returns `true` if the Subject is null, does not contain any characters 
+*Description*: [.description]#The `isEmpty` function returns `true` if the Subject is null, does not contain any characters
 	or contains only white-space (new line, carriage return, space, tab), `false` otherwise.#
 
 *Subject Type*: [.subject]#String#
@@ -1716,7 +1717,7 @@ must be valid for the base being converted from. For example converting "0xFF" f
 [.function]
 === math
 
-*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 8 API can be found here: https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html
+*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 8 API can be found here: link:https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html[https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html^]
  +
 In order to run the correct method, the parameter types must be correct. The Expression Language "Number" (whole number) type is interpreted as a Java "long". The "Decimal" type is interpreted as a Java "double". Running the desired method may require calling "toNumber()" or "toDecimal()" in order to "cast" the value to the desired type. This also is important to remember when cascading "math()" calls since the return type depends on the method that was run.#
 
@@ -1751,7 +1752,7 @@ In order to run the correct method, the parameter types must be correct. The Exp
 
 *Description*: [.description]#Formats a number as a date/time according to the format specified by the argument. The argument
 	must be a String that is a valid Java SimpleDateFormat format. The Subject is expected to be a Number that
-	represents the number of milliseconds since Midnight GMT on January 1, 1970. The number will be evaluated using the local 
+	represents the number of milliseconds since Midnight GMT on January 1, 1970. The number will be evaluated using the local
 	time zone unless specified in the second optional argument.#
 
 *Subject Type*: [.subject]#Number#

@@ -17,6 +17,7 @@
 = NiFi System Administrator's Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
+:linkattrs:
 
 == System Requirements
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
@@ -273,7 +274,7 @@ For a client certificate that can be easily imported into the browser, specify: 
 [[user_authentication]]
 == User Authentication
 
-NiFi supports user authentication via client certificates, via username/password, via Apache Knox, or via OpenId Connect (http://openid.net/connect).
+NiFi supports user authentication via client certificates, via username/password, via Apache Knox, or via link:http://openid.net/connect[OpenId Connect^].
 
 Username/password authentication is performed by a 'Login Identity Provider'. The Login Identity Provider is a pluggable mechanism for
 authenticating users via their username/password. Which Login Identity Provider to use is configured in the _nifi.properties_ file.
@@ -292,7 +293,7 @@ token during authentication.
 NOTE: NiFi can only be configured for username/password, OpenId Connect, or Apache Knox at a given time. It does not support running each of
 these concurrently. NiFi will require client certificates for authenticating users over HTTPS if none of these are configured.
 
-A secured instance of NiFi cannot be accessed anonymously unless configured to use an LDAP or Kerberos Login Identity Provider, which in turn must be configured to explicitly allow anonymous access. Anonymous access is not currently possible by the default FileAuthorizer (see <<authorizer-configuration>>), but is a future effort (https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730]).
+A secured instance of NiFi cannot be accessed anonymously unless configured to use an LDAP or Kerberos Login Identity Provider, which in turn must be configured to explicitly allow anonymous access. Anonymous access is not currently possible by the default FileAuthorizer (see <<authorizer-configuration>>), but is a future effort (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
 
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
 
@@ -404,7 +405,7 @@ To enable authentication via OpenId Connect the following properties must be con
 [options="header,footer"]
 |==================================================================================================================================================
 | Property Name | Description
-|`nifi.security.user.oidc.discovery.url` | The discovery URL for the desired OpenId Connect Provider (http://openid.net/specs/openid-connect-discovery-1_0.html).
+|`nifi.security.user.oidc.discovery.url` | The discovery URL for the desired OpenId Connect Provider (link:http://openid.net/specs/openid-connect-discovery-1_0.html[http://openid.net/specs/openid-connect-discovery-1_0.html^]).
 |`nifi.security.user.oidc.connect.timeout` | Connect timeout when communicating with the OpenId Connect Provider.
 |`nifi.security.user.oidc.read.timeout` | Read timeout when communicating with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.id` | The client id for NiFi after registration with the OpenId Connect Provider.
@@ -1264,7 +1265,7 @@ The `EncryptContent` processor allows for the encryption and decryption of data,
 [[key-derivation-functions]]
 === Key Derivation Functions
 
-Key Derivation Functions (KDF) are mechanisms by which human-readable information, usually a password or other secret information, is translated into a cryptographic key suitable for data protection. For further information, read https://en.wikipedia.org/wiki/Key_derivation_function[the Wikipedia entry on Key Derivation Functions].
+Key Derivation Functions (KDF) are mechanisms by which human-readable information, usually a password or other secret information, is translated into a cryptographic key suitable for data protection. For further information, read the link:https://en.wikipedia.org/wiki/Key_derivation_function[Wikipedia entry on Key Derivation Functions^].
 Currently, KDFs are ingested by `CipherProvider` implementations and return a fully-initialized `Cipher` object to be used for encryption or decryption. Due to the use of a `CipherProviderFactory`, the KDFs are not customizable at this time. Future enhancements will include the ability to provide custom cost parameters to the KDF at initialization time. As a work-around, `CipherProvider` instances can be initialized with custom cost parameters in the constructor but this is not currently supported by the `CipherProviderFactory`.
 Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent` processor for password-based encryption (PBE)) and relevant notes:
 
@@ -1276,16 +1277,16 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 ** This KDF is provided for compatibility with data encrypted using OpenSSL's default PBE, known as `EVP_BytesToKey`. This is a single iteration of MD5 over the concatenation of the password and 8 bytes of random ASCII salt. OpenSSL recommends using `PBKDF2` for key derivation but does not expose the library method necessary to the command-line tool, so this KDF is still the de facto default for command-line encryption.
 * Bcrypt
 ** This KDF was added in v0.5.0.
-** https://en.wikipedia.org/wiki/Bcrypt[Bcrypt] is an adaptive function based on the https://en.wikipedia.org/wiki/Blowfish_(cipher)[Blowfish] cipher. This KDF is strongly recommended as it automatically incorporates a random 16 byte salt, configurable cost parameter (or "work factor"), and is hardened against brute-force attacks using https://en.wikipedia.org/wiki/General-purpose_computing_on_graphics_processing_units[GPGPU] (which share memory between cores) by requiring access to "large" blocks of memory during the key derivation. It is less resistant to https://en.wikipedia.org/wiki/Field-programmable_gate_array[FPGA] brute-force attacks where the gate arrays have access to individual embedded RAM blocks.
+** link:https://en.wikipedia.org/wiki/Bcrypt[Bcrypt^] is an adaptive function based on the link:https://en.wikipedia.org/wiki/Blowfish_(cipher)[Blowfish^] cipher. This KDF is strongly recommended as it automatically incorporates a random 16 byte salt, configurable cost parameter (or "work factor"), and is hardened against brute-force attacks using link:https://en.wikipedia.org/wiki/General-purpose_computing_on_graphics_processing_units[GPGPU^] (which share memory between cores) by requiring access to "large" blocks of memory during the key derivation. It is less resistant to link:https://en.wikipedia.org/wiki/Field-programmable_gate_array[FPGA^] brute-force attacks where the gate arrays have access to individual embedded RAM blocks.
 ** Because the length of a Bcrypt-derived key is always 184 bits, the complete output is then fed to a `SHA-512` digest and truncated to the desired key length. This provides the benefit of the avalanche effect on the formatted input.
 ** The recommended minimum work factor is 12 (2^12^ key derivation rounds) (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `BcryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongWorkFactor()` to calculate safe minimums).
 ** The salt format is `$2a$10$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
-*** `2a` - the version of the format. An extensive explanation can be found http://blog.ircmaxell.com/2012/12/seven-ways-to-screw-up-bcrypt.html[here]. NiFi currently uses `2a` for all salts generated internally.
+*** `2a` - the version of the format. An extensive explanation can be found link:http://blog.ircmaxell.com/2012/12/seven-ways-to-screw-up-bcrypt.html[here^]. NiFi currently uses `2a` for all salts generated internally.
 *** `10` - the work factor. This is actually the log~2~ value, so the total iteration count would be 2^10^ in this case.
 *** `ABCDEFGHIJKLMNOPQRSTUV` - the 22 character, Base64-encoded, unpadded, raw salt value. This decodes to a 16 byte salt used in the key derivation.
 * Scrypt
 ** This KDF was added in v0.5.0.
-** https://en.wikipedia.org/wiki/Scrypt[Scrypt] is an adaptive function designed in response to `bcrypt`. This KDF is recommended as it requires relatively large amounts of memory for each derivation, making it resistant to hardware brute-force attacks.
+** link:https://en.wikipedia.org/wiki/Scrypt[Scrypt^] is an adaptive function designed in response to `bcrypt`. This KDF is recommended as it requires relatively large amounts of memory for each derivation, making it resistant to hardware brute-force attacks.
 ** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
 ** The salt format is `$s0$e0101$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
 *** `s0` - the version of the format. NiFi currently uses `s0` for all salts generated internally.
@@ -1294,7 +1295,7 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 *** `ABCDEFGHIJKLMNOPQRSTUV` - the 12-44 character, Base64-encoded, unpadded, raw salt value. This decodes to a 8-32 byte salt used in the key derivation.
 * PBKDF2
 ** This KDF was added in v0.5.0.
-** https://en.wikipedia.org/wiki/PBKDF2[Password-Based Key Derivation Function 2] is an adaptive derivation function which uses an internal pseudorandom function (PRF) and iterates it many times over a password and salt (at least 16 bytes).
+** link:https://en.wikipedia.org/wiki/PBKDF2[Password-Based Key Derivation Function 2^] is an adaptive derivation function which uses an internal pseudorandom function (PRF) and iterates it many times over a password and salt (at least 16 bytes).
 ** The PRF is recommended to be `HMAC/SHA-256` or `HMAC/SHA-512`. The use of an HMAC cryptographic hash function mitigates a length extension attack.
 ** The recommended minimum number of iterations is 160,000 (as of 2/1/2016 on commodity hardware). This number should be doubled every two years (see schedule below or use `PBKDF2CipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongIterationCount()` to calculate safe minimums).
 ** This KDF is not memory-hard (can be parallelized massively with commodity hardware) but is still recommended as sufficient by http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST SP 800-132 (PDF)] and many cryptographers (when used with a proper iteration count and HMAC cryptographic hash function).
@@ -1304,18 +1305,18 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 
 ==== Additional Resources
 
-* http://stackoverflow.com/a/30308723/70465[Explanation of optimal scrypt cost parameters and relationships]
-* http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST Special Publication 800-132]
-* https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet#Work_Factor[OWASP Password Storage Work Factor Calculations]
-* http://security.stackexchange.com/a/3993/16485[PBKDF2 rounds calculations]
-* http://blog.ircmaxell.com/2014/03/why-i-dont-recommend-scrypt.html[Scrypt as KDF vs password storage vulnerabilities]
-* http://security.stackexchange.com/a/26253/16485[Scrypt vs. Bcrypt (as of 2010)]
-* http://security.stackexchange.com/a/6415/16485[Bcrypt vs PBKDF2]
-* http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/[Choosing a work factor for Bcrypt]
-* https://docs.spring.io/spring-security/site/docs/current/apidocs/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt]
-* https://www.openssl.org/docs/man1.1.0/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5]
-* https://wiki.openssl.org/index.php/Manual:PKCS5_PBKDF2_HMAC(3)[OpenSSL PBKDF2 KDF]
-* http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description]
+* link:http://stackoverflow.com/a/30308723/70465[Explanation of optimal scrypt cost parameters and relationships^]
+* link:http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST Special Publication 800-132^]
+* link:https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet#Work_Factor[OWASP Password Storage Work Factor Calculations^]
+* link:http://security.stackexchange.com/a/3993/16485[PBKDF2 rounds calculations^]
+* link:http://blog.ircmaxell.com/2014/03/why-i-dont-recommend-scrypt.html[Scrypt as KDF vs password storage vulnerabilities^]
+* link:http://security.stackexchange.com/a/26253/16485[Scrypt vs. Bcrypt (as of 2010)^]
+* link:http://security.stackexchange.com/a/6415/16485[Bcrypt vs PBKDF2^]
+* link:http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/[Choosing a work factor for Bcrypt^]
+* link:https://docs.spring.io/spring-security/site/docs/current/apidocs/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt^]
+* link:https://www.openssl.org/docs/man1.1.0/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5^]
+* link:https://wiki.openssl.org/index.php/Manual:PKCS5_PBKDF2_HMAC(3)[OpenSSL PBKDF2 KDF^]
+* link:http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description^]
 
 === Salt and IV Encoding
 
@@ -1347,7 +1348,7 @@ image:pbkdf2-salt.png["PBKDF2 Salt & IV Encoding"]
 
 === Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
 
-Because of US export regulations, default JVMs have http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits[limits imposed on the strength of cryptographic operations] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
+Because of US export regulations, default JVMs have link:http://docs.oracle.com/javase/7/docs/technotes/guides/security/SunProviders.html#importlimits[limits imposed on the strength of cryptographic operations^] available to them. For example, AES operations are limited to `128 bit keys` by default. While `AES-128` is cryptographically safe, this can have unintended consequences, specifically on Password-based Encryption (PBE).
 
 PBE is the process of deriving a cryptographic key for encryption or decryption from _user-provided secret material_, usually a password. Rather than a human remembering a (random-appearing) 32 or 64 character hexadecimal string, a password or passphrase is used.
 
@@ -1426,7 +1427,7 @@ image:allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
 
 On a JVM with limited strength cryptography, some PBE algorithms limit the maximum password length to 7, and in this case it will not be possible to provide a "safe" password. It is recommended to install the JCE Unlimited Strength Jurisdiction Policy files for the JVM to mitigate this issue.
 
-* http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[JCE Unlimited Strength Jurisdiction Policy files for Java 8]
+* link:http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[JCE Unlimited Strength Jurisdiction Policy files for Java 8^]
 
 If on a system where the unlimited strength policies cannot be installed, it is recommended to switch to an algorithm that supports longer passwords (see table above).
 
@@ -1436,7 +1437,7 @@ If on a system where the unlimited strength policies cannot be installed, it is 
 If it is not possible to install the unlimited strength jurisdiction policies, the `Allow Weak Crypto` setting can be changed to `allowed`, but *this is _not_ recommended*. Changing this setting explicitly acknowledges the inherent risk in using weak cryptographic configurations.
 =====================
 
-It is preferable to request upstream/downstream systems to switch to https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption] or use a "strong" https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi].
+It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" link:https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi^].
 
 == Encrypted Passwords in Configuration Files
 
@@ -2126,7 +2127,7 @@ echo 2 > state/zookeeper/myid
 And so on.
 
 For more information on the properties used to administer ZooKeeper, see the
-link:https://zookeeper.apache.org/doc/current/zookeeperAdmin.html[ZooKeeper Admin Guide].
+link:https://zookeeper.apache.org/doc/current/zookeeperAdmin.html[ZooKeeper Admin Guide^].
 
 For information on securing the embedded ZooKeeper Server, see the <<securing_zookeeper>> section below.
 
@@ -2160,8 +2161,7 @@ In order to secure the communications, we need to ensure that both the client an
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
 If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
-https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[_https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html_]
-. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
+link:https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html^]. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
 
 Note, the following procedures for kerberizing an Embedded ZooKeeper server in your NiFi Node and kerberizing a ZooKeeper NiFi client will require that
 Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
@@ -2335,8 +2335,8 @@ Failure to do so, may result in errors similar to the following:
 [source]
 2016-01-08 16:08:57,888 ERROR [pool-26-thread-1-SendThread(localhost:2181)] o.a.zookeeper.client.ZooKeeperSaslClient An error: (java.security.PrivilegedActionException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Server not found in Kerberos database (7) - LOOKING_UP_SERVER)]) occurred when evaluating Zookeeper Quorum Member's  received SASL token. Zookeeper Client will go to AUTH_FAILED state.
 
-If there are problems communicating or authenticating with Kerberos,
-link:http://docs.oracle.com/javase/7/docs/technotes/guides/security/jgss/tutorials/Troubleshooting.html[this Troubleshooting Guide] may be of value.
+If there are problems communicating or authenticating with Kerberos, this
+link:http://docs.oracle.com/javase/7/docs/technotes/guides/security/jgss/tutorials/Troubleshooting.html[Troubleshooting Guide^] may be of value.
 
 One of the most important notes in the above Troubleshooting guide is the mechanism for turning on Debug output for Kerberos.
 This is done by setting the `sun.security.krb5.debug` environment variable.
@@ -2363,7 +2363,7 @@ For example, you may want to use the ZooKeeper Migrator when you are:
 * Migrating from an external ZooKeeper to an embedded ZooKeeper in NiFi 1.x
 
 The NiFi ZooKeeper Migrator is part of the NiFi Toolkit and is downloaded separately from the
-link:https://nifi.apache.org/download.html[Apache NiFi download page].
+link:https://nifi.apache.org/download.html[Apache NiFi download page^].
 
 [[zk_migrator_command_line_parameters]]
 ==== zk-migrator.sh Command Line Parameters
@@ -2676,9 +2676,9 @@ See <<kerberos_properties>> for complete documentation.
 === Notes
 
 * Kerberos is case-sensitive in many places and the error messages (or lack thereof) may not be sufficiently explanatory. Check the case sensitivity of the service principal in your configuration files. Convention is `HTTP/fully.qualified.domain@REALM`.
-* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation] for common browsers.
+* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
 * Some browsers (legacy IE) do not support recent encryption algorithms such as AES, and are restricted to legacy algorithms (DES). This should be noted when generating keytabs.
-* The KDC must be configured and a service principal defined for NiFi and a keytab exported. Comprehensive instructions for Kerberos server configuration and administration are beyond the scope of this document (see link:http://web.mit.edu/kerberos/krb5-current/doc/admin/index.html[MIT Kerberos Admin Guide]), but an example is below:
+* The KDC must be configured and a service principal defined for NiFi and a keytab exported. Comprehensive instructions for Kerberos server configuration and administration are beyond the scope of this document (see link:http://web.mit.edu/kerberos/krb5-current/doc/admin/index.html[MIT Kerberos Admin Guide^]), but an example is below:
 
 
 Adding a service principal for a server at `nifi.nifi.apache.org` and exporting the keytab from the KDC:
