@@ -21,9 +21,12 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.util.StringUtils;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupProvider implements ConfigurableUserGroupProvider {
 
@@ -59,6 +62,17 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
 
         if (!(userGroupProvider instanceof ConfigurableUserGroupProvider)) {
             throw new AuthorizerCreationException(String.format("The Configurable User Group Provider is not configurable: %s", configurableUserGroupProviderKey));
+        }
+
+        // Ensure that the ConfigurableUserGroupProvider is not also listed as one of the providers for the CompositeUserGroupProvider
+        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+            Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
+            if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
+                final String userGroupProviderKey = entry.getValue();
+                if (userGroupProviderKey.equals(configurableUserGroupProviderKey.getValue())) {
+                    throw new AuthorizerCreationException(String.format("Duplicate provider in Composite Configurable User Group Provider configuration: %s", userGroupProviderKey));
+                }
+            }
         }
 
         configurableUserGroupProvider = (ConfigurableUserGroupProvider) userGroupProvider;
