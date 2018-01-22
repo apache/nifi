@@ -155,28 +155,22 @@ public class JettyServer implements NiFiServer {
         // load wars from the bundle
         Handler warHandlers = loadWars(bundles);
 
-        // Create a handler for the host header and add it to the server
-        String serverName = determineServerHostname();
-        int serverPort = determineServerPort();
-        HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(serverName, serverPort);
-        logger.info("Created HostHeaderHandler [" + hostHeaderHandler.toString() + "]");
-
         HandlerList allHandlers = new HandlerList();
-        allHandlers.addHandler(hostHeaderHandler);
+
+        // Only restrict the host header if running in HTTPS mode
+        if (props.isHTTPSConfigured()) {
+            // Create a handler for the host header and add it to the server
+            HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
+            logger.info("Created HostHeaderHandler [" + hostHeaderHandler.toString() + "]");
+
+            // Add this before the WAR handlers
+            allHandlers.addHandler(hostHeaderHandler);
+        } else {
+            logger.info("Running in HTTP mode; host headers not restricted");
+        }
+
         allHandlers.addHandler(warHandlers);
         server.setHandler(allHandlers);
-    }
-
-    private int determineServerPort() {
-        return props.getSslPort() != null ? props.getSslPort() : props.getPort();
-    }
-
-    private String determineServerHostname() {
-        if (props.getSslPort() != null) {
-            return props.getProperty(NiFiProperties.WEB_HTTPS_HOST, "localhost");
-        } else {
-            return props.getProperty(NiFiProperties.WEB_HTTP_HOST, "localhost");
-        }
     }
 
     private Handler loadWars(final Set<Bundle> bundles) {
@@ -607,8 +601,6 @@ public class JettyServer implements NiFiServer {
         httpConfiguration.setRequestHeaderSize(headerSize);
         httpConfiguration.setResponseHeaderSize(headerSize);
 
-        addHostHeaderSanitizationCustomizer(httpConfiguration);
-
         if (props.getPort() != null) {
             final Integer port = props.getPort();
             if (port < 0 || (int) Math.pow(2, 16) <= port) {
@@ -710,24 +702,11 @@ public class JettyServer implements NiFiServer {
         httpsConfiguration.setSecureScheme("https");
         httpsConfiguration.setSecurePort(props.getSslPort());
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
-        addHostHeaderSanitizationCustomizer(httpsConfiguration);
 
         // build the connector
         return new ServerConnector(server,
                 new SslConnectionFactory(createSslContextFactory(), "http/1.1"),
                 new HttpConnectionFactory(httpsConfiguration));
-    }
-
-    private void addHostHeaderSanitizationCustomizer(HttpConfiguration httpConfiguration) {
-        // Add the HostHeaderCustomizer to the configuration
-        HttpConfiguration.Customizer hostHeaderCustomizer;
-        if (props.getSslPort() != null) {
-            hostHeaderCustomizer = new HostHeaderSanitizationCustomizer(props.getProperty(NiFiProperties.WEB_HTTPS_HOST), props.getSslPort());
-        } else {
-            hostHeaderCustomizer = new HostHeaderSanitizationCustomizer(props.getProperty(NiFiProperties.WEB_HTTP_HOST), props.getPort());
-        }
-        httpConfiguration.addCustomizer(hostHeaderCustomizer);
-        logger.info("Added HostHeaderSanitizationCustomizer to HttpConfiguration: " + hostHeaderCustomizer);
     }
 
     private SslContextFactory createSslContextFactory() {

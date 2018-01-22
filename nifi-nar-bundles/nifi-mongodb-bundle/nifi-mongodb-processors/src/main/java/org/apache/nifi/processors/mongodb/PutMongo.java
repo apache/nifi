@@ -34,13 +34,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -155,12 +153,7 @@ public class PutMongo extends AbstractMongoProcessor {
         try {
             // Read the contents of the FlowFile into a byte array
             final byte[] content = new byte[(int) flowFile.getSize()];
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    StreamUtils.fillBuffer(in, content, true);
-                }
-            });
+            session.read(flowFile, in -> StreamUtils.fillBuffer(in, content, true));
 
             // parse
             final Object doc = (mode.equals(MODE_INSERT) || (mode.equals(MODE_UPDATE) && updateMode.equals(UPDATE_WITH_DOC.getValue())))
@@ -173,13 +166,19 @@ public class PutMongo extends AbstractMongoProcessor {
                 // update
                 final boolean upsert = context.getProperty(UPSERT).asBoolean();
                 final String updateKey = context.getProperty(UPDATE_QUERY_KEY).getValue();
-                final Document query = new Document(updateKey, ((Map)doc).get(updateKey));
+
+                Object keyVal = ((Map)doc).get(updateKey);
+                if (updateKey.equals("_id") && ObjectId.isValid(((String)keyVal))) {
+                    keyVal = new ObjectId((String) keyVal);
+                }
+
+                final Document query = new Document(updateKey, keyVal);
 
                 if (updateMode.equals(UPDATE_WITH_DOC.getValue())) {
                     collection.replaceOne(query, (Document)doc, new UpdateOptions().upsert(upsert));
                 } else {
                     BasicDBObject update = (BasicDBObject)doc;
-                    update.remove("_id");
+                    update.remove(updateKey);
                     collection.updateOne(query, update, new UpdateOptions().upsert(upsert));
                 }
                 logger.info("updated {} into MongoDB", new Object[] { flowFile });

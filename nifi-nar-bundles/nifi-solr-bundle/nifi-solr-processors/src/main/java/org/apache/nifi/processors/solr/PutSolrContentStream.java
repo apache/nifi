@@ -192,16 +192,13 @@ public class PutSolrContentStream extends SolrProcessor {
         final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
         final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFile).getValue();
         final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
-
+        final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final MultiMapSolrParams requestParams = new MultiMapSolrParams(getRequestParams(context, flowFile));
 
         StopWatch timer = new StopWatch(true);
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH)
-                        .evaluateAttributeExpressions().getValue();
-
                 ContentStreamUpdateRequest request = new ContentStreamUpdateRequest(contentStreamPath);
                 request.setParams(new ModifiableSolrParams());
 

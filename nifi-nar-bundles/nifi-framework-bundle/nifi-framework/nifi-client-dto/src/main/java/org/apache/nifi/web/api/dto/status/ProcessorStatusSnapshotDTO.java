@@ -94,7 +94,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty(
             value = "The state of the processor.",
-            allowableValues = "RUNNING, STOPPED, DISABLED, INVALID"
+            allowableValues = "Running, Stopped, Disabled, Invalid"
     )
     public String getRunStatus() {
         return runStatus;

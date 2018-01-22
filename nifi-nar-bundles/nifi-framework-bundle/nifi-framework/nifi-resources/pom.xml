@@ -133,6 +133,7 @@
         <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
         <nifi.web.max.header.size>16 KB</nifi.web.max.header.size>
         <nifi.web.proxy.context.path />
+        <nifi.web.proxy.host />
 
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />
