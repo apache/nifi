@@ -85,6 +85,10 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-toolkit-flowanalyzer</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-toolkit-cli</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <scope>compile</scope>
