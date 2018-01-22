@@ -426,6 +426,8 @@ public class MergeContent extends BinFiles {
     protected void setUpBinManager(final BinManager binManager, final ProcessContext context) {
         if (MERGE_STRATEGY_DEFRAGMENT.equals(context.getProperty(MERGE_STRATEGY).getValue())) {
             binManager.setFileCountAttribute(FRAGMENT_COUNT_ATTRIBUTE);
+        } else {
+            binManager.setFileCountAttribute(null);
         }
     }
 
