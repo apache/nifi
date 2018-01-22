@@ -31,6 +31,7 @@
         <module>nifi-toolkit-flowfile-repo</module>
         <module>nifi-toolkit-assembly</module>
         <module>nifi-toolkit-flowanalyzer</module>
+        <module>nifi-toolkit-cli</module>
     </modules>
     <dependencyManagement>
         <dependencies>
