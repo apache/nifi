@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -242,10 +243,11 @@ public class ValidateRecord extends AbstractProcessor {
         final boolean allowExtraFields = context.getProperty(ALLOW_EXTRA_FIELDS).asBoolean();
         final boolean strictTypeChecking = context.getProperty(STRICT_TYPE_CHECKING).asBoolean();
 
-        RecordSetWriter validWriter = null;
-        RecordSetWriter invalidWriter = null;
         FlowFile validFlowFile = null;
         FlowFile invalidFlowFile = null;
+
+        final List<Record> validRecords = new LinkedList<>();
+        final List<InvalidRecord> invalidRecords = new LinkedList<>();
 
         try (final InputStream in = session.read(flowFile);
             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
@@ -255,130 +257,25 @@ public class ValidateRecord extends AbstractProcessor {
             final RecordSchemaValidator validator = new StandardSchemaValidator(validationContext);
 
             int recordCount = 0;
-            int validCount = 0;
-            int invalidCount = 0;
 
-            final Set<String> extraFields = new HashSet<>();
-            final Set<String> missingFields = new HashSet<>();
-            final Set<String> invalidFields = new HashSet<>();
-            final Set<String> otherProblems = new HashSet<>();
-
-            try {
-                Record record;
-                while ((record = reader.nextRecord(false, false)) != null) {
-                    final SchemaValidationResult result = validator.validate(record);
-                    recordCount++;
-
-                    RecordSetWriter writer;
-                    if (result.isValid()) {
-                        validCount++;
-                        if (validFlowFile == null) {
-                            validFlowFile = session.create(flowFile);
-                        }
-
-                        validWriter = writer = createIfNecessary(validWriter, writerFactory, session, validFlowFile, record.getSchema());
-                    } else {
-                        invalidCount++;
-                        logValidationErrors(flowFile, recordCount, result);
-
-                        if (invalidFlowFile == null) {
-                            invalidFlowFile = session.create(flowFile);
-                        }
-
-                        invalidWriter = writer = createIfNecessary(invalidWriter, writerFactory, session, invalidFlowFile, record.getSchema());
-
-                        // Add all of the validation errors to our Set<ValidationError> but only keep up to MAX_VALIDATION_ERRORS because if
-                        // we keep too many then we both use up a lot of heap and risk outputting so much information in the Provenance Event
-                        // that it is too noisy to be useful.
-                        for (final ValidationError validationError : result.getValidationErrors()) {
-                            final Optional<String> fieldName = validationError.getFieldName();
-
-                            switch (validationError.getType()) {
-                                case EXTRA_FIELD:
-                                    if (fieldName.isPresent()) {
-                                        extraFields.add(fieldName.get());
-                                    } else {
-                                        otherProblems.add(validationError.getExplanation());
-                                    }
-                                    break;
-                                case MISSING_FIELD:
-                                    if (fieldName.isPresent()) {
-                                        missingFields.add(fieldName.get());
-                                    } else {
-                                        otherProblems.add(validationError.getExplanation());
-                                    }
-                                    break;
-                                case INVALID_FIELD:
-                                    if (fieldName.isPresent()) {
-                                        invalidFields.add(fieldName.get());
-                                    } else {
-                                        otherProblems.add(validationError.getExplanation());
-                                    }
-                                    break;
-                                case OTHER:
-                                    otherProblems.add(validationError.getExplanation());
-                                    break;
-                            }
-                        }
-                    }
-
-                    if (writer instanceof RawRecordWriter) {
-                        ((RawRecordWriter) writer).writeRawRecord(record);
-                    } else {
-                        writer.write(record);
-                    }
+            Record record;
+            while ((record = reader.nextRecord(false, false)) != null) {
+                recordCount++;
+                final SchemaValidationResult result = validator.validate(record);
+                boolean recordIsValid = result.isValid();
+                if (recordIsValid) {
+                    validRecords.add(record);
+                } else {
+                    invalidRecords.add(new InvalidRecord(record, recordCount, result));
                 }
-
-                if (validWriter != null) {
-                    completeFlowFile(session, validFlowFile, validWriter, REL_VALID, null);
-                }
-
-                if (invalidWriter != null) {
-                    // Build up a String that explains why the records were invalid, so that we can add this to the Provenance Event.
-                    final StringBuilder errorBuilder = new StringBuilder();
-                    errorBuilder.append("Records in this FlowFile were invalid for the following reasons: ");
-                    if (!missingFields.isEmpty()) {
-                        errorBuilder.append("The following ").append(missingFields.size()).append(" fields were missing: ").append(missingFields.toString());
-                    }
-
-                    if (!extraFields.isEmpty()) {
-                        if (errorBuilder.length() > 0) {
-                            errorBuilder.append("; ");
-                        }
-
-                        errorBuilder.append("The following ").append(extraFields.size())
-                            .append(" fields were present in the Record but not in the schema: ").append(extraFields.toString());
-                    }
-
-                    if (!invalidFields.isEmpty()) {
-                        if (errorBuilder.length() > 0) {
-                            errorBuilder.append("; ");
-                        }
-
-                        errorBuilder.append("The following ").append(invalidFields.size())
-                            .append(" fields had values whose type did not match the schema: ").append(invalidFields.toString());
-                    }
-
-                    if (!otherProblems.isEmpty()) {
-                        if (errorBuilder.length() > 0) {
-                            errorBuilder.append("; ");
-                        }
-
-                        errorBuilder.append("The following ").append(otherProblems.size())
-                            .append(" additional problems were encountered: ").append(otherProblems.toString());
-                    }
-
-                    final String validationErrorString = errorBuilder.toString();
-                    completeFlowFile(session, invalidFlowFile, invalidWriter, REL_INVALID, validationErrorString);
-                }
-            } finally {
-                closeQuietly(validWriter);
-                closeQuietly(invalidWriter);
             }
 
+            processValidRecords(validRecords, session, flowFile, writerFactory);
+            processInvalidRecords(invalidRecords, session, flowFile, writerFactory);
+
             session.adjustCounter("Records Validated", recordCount, false);
-            session.adjustCounter("Records Found Valid", validCount, false);
-            session.adjustCounter("Records Found Invalid", invalidCount, false);
+            session.adjustCounter("Records Found Valid", validRecords.size(), false);
+            session.adjustCounter("Records Found Invalid", invalidRecords.size(), false);
         } catch (final IOException | MalformedRecordException | SchemaNotFoundException e) {
             getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
@@ -392,6 +289,158 @@ public class ValidateRecord extends AbstractProcessor {
         }
 
         session.remove(flowFile);
+    }
+
+
+    private void processValidRecords(List<Record> validRecords,
+                                     ProcessSession session,
+                                     FlowFile parentFlowFile,
+                                     RecordSetWriterFactory writerFactory) throws IOException, SchemaNotFoundException {
+        if (validRecords == null || validRecords.isEmpty()) {
+            return;
+        }
+
+        //all valid records will be routed in one success FlowFile
+        FlowFile validFlowFile = session.create(parentFlowFile);
+        final OutputStream out = session.write(validFlowFile);
+        final RecordSetWriter writer = writerFactory.createWriter(getLogger(), validRecords.iterator().next().getSchema(), out);
+
+        try {
+            writer.beginRecordSet();
+            for (Record record : validRecords) {
+                writeRecordIntoRecordWriter(writer, record);
+            }
+
+            completeFlowFile(session, validFlowFile, writer, REL_VALID, null);
+        } finally {
+            closeQuietly(writer);
+        }
+
+    }
+
+    private void processInvalidRecords(List<InvalidRecord> invalidRecords,
+                                       ProcessSession session,
+                                       FlowFile parentFlowFile,
+                                       RecordSetWriterFactory writerFactory)throws IOException, SchemaNotFoundException {
+
+        if (invalidRecords == null || invalidRecords.isEmpty()) {
+            return;
+        }
+
+        //all valid records will be routed in one success FlowFile
+        FlowFile invalidFlowFile = session.create(parentFlowFile);
+        final OutputStream out = session.write(invalidFlowFile);
+        final RecordSetWriter writer = writerFactory.createWriter(getLogger(), invalidRecords.iterator().next().validatedRecord.getSchema(), out);
+
+        try {
+            writer.beginRecordSet();
+
+            for (InvalidRecord invalidRecord: invalidRecords) {
+                Record validatedRecord = invalidRecord.validatedRecord;
+
+                logValidationErrors(parentFlowFile, invalidRecord.positionInInput, invalidRecord.validationResult);
+
+                writeRecordIntoRecordWriter(writer, validatedRecord);
+            }
+
+            completeFlowFile(session, invalidFlowFile, writer, REL_INVALID, createValidationErrorString(invalidRecords));
+        } finally {
+            closeQuietly(writer);
+        }
+
+    }
+
+    //COMMENT: I kept it like this for CR, but clearly, one can negate isPresent and create mapping in map Map and this could be done on few lines.
+    private String createValidationErrorString(List<InvalidRecord> invalidRecords) {
+
+        final Set<String> extraFields = new HashSet<>();
+        final Set<String> missingFields = new HashSet<>();
+        final Set<String> invalidFields = new HashSet<>();
+        final Set<String> otherProblems = new HashSet<>();
+
+        // Add all of the validation errors to our Set<ValidationError> but only keep up to MAX_VALIDATION_ERRORS because if
+        // we keep too many then we both use up a lot of heap and risk outputting so much information in the Provenance Event
+        // that it is too noisy to be useful.
+        for (InvalidRecord invalidRecord : invalidRecords) {
+
+            for (final ValidationError validationError : invalidRecord.validationResult.getValidationErrors()) {
+                final Optional<String> fieldName = validationError.getFieldName();
+
+                switch (validationError.getType()) {
+                    case EXTRA_FIELD:
+                        if (fieldName.isPresent()) {
+                            extraFields.add(fieldName.get());
+                        } else {
+                            otherProblems.add(validationError.getExplanation());
+                        }
+                        break;
+                    case MISSING_FIELD:
+                        if (fieldName.isPresent()) {
+                            missingFields.add(fieldName.get());
+                        } else {
+                            otherProblems.add(validationError.getExplanation());
+                        }
+                        break;
+                    case INVALID_FIELD:
+                        if (fieldName.isPresent()) {
+                            invalidFields.add(fieldName.get());
+                        } else {
+                            otherProblems.add(validationError.getExplanation());
+                        }
+                        break;
+                    case OTHER:
+                        otherProblems.add(validationError.getExplanation());
+                        break;
+                }
+            }
+        }
+
+
+        //--------
+        //Build up a String that explains why the records were invalid, so that we can add this to the Provenance Event.
+        final StringBuilder errorBuilder = new StringBuilder();
+        errorBuilder.append("Records in this FlowFile were invalid for the following reasons: ");
+        if (!missingFields.isEmpty()) {
+            errorBuilder.append("The following ").append(missingFields.size()).append(" fields were missing: ").append(
+                    missingFields.toString());
+        }
+
+        if (!extraFields.isEmpty()) {
+            if (errorBuilder.length() > 0) {
+                errorBuilder.append("; ");
+            }
+
+            errorBuilder.append("The following ").append(extraFields.size())
+                    .append(" fields were present in the Record but not in the schema: ").append(extraFields.toString());
+        }
+
+        if (!invalidFields.isEmpty()) {
+            if (errorBuilder.length() > 0) {
+                errorBuilder.append("; ");
+            }
+
+            errorBuilder.append("The following ").append(invalidFields.size())
+                    .append(" fields had values whose type did not match the schema: ").append(invalidFields.toString());
+        }
+
+        if (!otherProblems.isEmpty()) {
+            if (errorBuilder.length() > 0) {
+                errorBuilder.append("; ");
+            }
+
+            errorBuilder.append("The following ").append(otherProblems.size())
+                    .append(" additional problems were encountered: ").append(otherProblems.toString());
+        }
+
+        return errorBuilder.toString();
+    }
+
+    private void writeRecordIntoRecordWriter(RecordSetWriter writer, Record validatedRecord) throws IOException {
+        if (writer instanceof RawRecordWriter) {
+            ((RawRecordWriter) writer).writeRawRecord(validatedRecord);
+        } else {
+            writer.write(validatedRecord);
+        }
     }
 
     private void closeQuietly(final RecordSetWriter writer) {
@@ -416,18 +465,6 @@ public class ValidateRecord extends AbstractProcessor {
 
         session.transfer(flowFile, relationship);
         session.getProvenanceReporter().route(flowFile, relationship, details);
-    }
-
-    private RecordSetWriter createIfNecessary(final RecordSetWriter writer, final RecordSetWriterFactory factory, final ProcessSession session,
-        final FlowFile flowFile, final RecordSchema inputSchema) throws SchemaNotFoundException, IOException {
-        if (writer != null) {
-            return writer;
-        }
-
-        final OutputStream out = session.write(flowFile);
-        final RecordSetWriter created = factory.createWriter(getLogger(), inputSchema, out);
-        created.beginRecordSet();
-        return created;
     }
 
     private void logValidationErrors(final FlowFile flowFile, final int recordCount, final SchemaValidationResult result) {
@@ -458,6 +495,20 @@ public class ValidateRecord extends AbstractProcessor {
             return AvroTypeUtil.createSchema(avroSchema);
         } else {
             throw new ProcessException("Invalid Schema Access Strategy: " + schemaAccessStrategy);
+        }
+    }
+
+    private static class InvalidRecord {
+
+        private final Record validatedRecord;
+        private final int positionInInput;
+        private final SchemaValidationResult validationResult;
+
+        private InvalidRecord(Record validatedRecord, int positionInInput, SchemaValidationResult validationResult) {
+
+            this.validatedRecord = validatedRecord;
+            this.positionInInput = positionInInput;
+            this.validationResult = validationResult;
         }
     }
 }
