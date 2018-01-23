@@ -46,8 +46,6 @@ public class TestKerberosProperties {
 
     @Test
     public void testWithoutKerberosConfigFile() {
-        final File file = new File("src/test/resources/krb5.conf");
-
         final KerberosProperties kerberosProperties = new KerberosProperties(null);
         Assert.assertNotNull(kerberosProperties);
 

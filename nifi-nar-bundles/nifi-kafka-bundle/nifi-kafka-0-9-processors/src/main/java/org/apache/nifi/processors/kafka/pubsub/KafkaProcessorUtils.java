@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.KerberosUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +125,7 @@ final class KafkaProcessorUtils {
          */
         if (SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol)) {
             String kerberosPrincipal = validationContext.getProperty(KERBEROS_PRINCIPLE).getValue();
+            kerberosPrincipal = KerberosUtils.replaceHostname(kerberosPrincipal);
             if (kerberosPrincipal == null || kerberosPrincipal.trim().length() == 0) {
                 results.add(new ValidationResult.Builder().subject(KERBEROS_PRINCIPLE.getDisplayName()).valid(false)
                         .explanation("The <" + KERBEROS_PRINCIPLE.getDisplayName() + "> property must be set when <"

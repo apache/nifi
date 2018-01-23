@@ -19,6 +19,7 @@ package org.apache.nifi.hadoop;
 import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.util.KerberosUtils;
 
 import java.io.IOException;
 import java.util.Random;
@@ -50,20 +51,18 @@ public class SecurityUtil {
      * {@link org.apache.hadoop.ipc.Client.Connection#handleSaslConnectionFailure(int, int, Exception, Random, UserGroupInformation)}
      * to be able to implicitly relogin the principal.
      *
-     * @param config the configuration instance
+     * @param config    the configuration instance
      * @param principal the principal to authenticate as
-     * @param keyTab the keytab to authenticate with
-     *
+     * @param keyTab    the keytab to authenticate with
      * @return the UGI for the given principal
-     *
      * @throws IOException if login failed
      */
-    public static synchronized UserGroupInformation loginKerberos(final Configuration config, final String principal, final String keyTab)
+    public static synchronized UserGroupInformation loginKerberos(final Configuration config, String principal, final String keyTab)
             throws IOException {
         Validate.notNull(config);
+        principal = KerberosUtils.replaceHostname(principal);
         Validate.notNull(principal);
         Validate.notNull(keyTab);
-
         UserGroupInformation.setConfiguration(config);
         UserGroupInformation.loginUserFromKeytab(principal.trim(), keyTab.trim());
         return UserGroupInformation.getCurrentUser();
@@ -75,9 +74,7 @@ public class SecurityUtil {
      * UserGroupInformation.
      *
      * @param config the configuration instance
-     *
      * @return the UGI for the given principal
-     *
      * @throws IOException if login failed
      */
     public static synchronized UserGroupInformation loginSimple(final Configuration config) throws IOException {
@@ -92,12 +89,11 @@ public class SecurityUtil {
      * All checks for isSecurityEnabled() should happen through this method.
      *
      * @param config the given configuration
-     *
      * @return true if kerberos is enabled on the given configuration, false otherwise
-     *
      */
     public static boolean isSecurityEnabled(final Configuration config) {
         Validate.notNull(config);
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
     }
+
 }

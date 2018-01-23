@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.KerberosUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,6 +145,7 @@ final class KafkaProcessorUtils {
          */
         if (SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol)) {
             String kerberosPrincipal = validationContext.getProperty(KERBEROS_PRINCIPLE).evaluateAttributeExpressions().getValue();
+            kerberosPrincipal = KerberosUtils.replaceHostname(kerberosPrincipal);
             if (kerberosPrincipal == null || kerberosPrincipal.trim().length() == 0) {
                 results.add(new ValidationResult.Builder().subject(KERBEROS_PRINCIPLE.getDisplayName()).valid(false)
                         .explanation("The <" + KERBEROS_PRINCIPLE.getDisplayName() + "> property must be set when <"
@@ -154,6 +156,7 @@ final class KafkaProcessorUtils {
 
             String userKeytab = validationContext.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
             String userPrincipal = validationContext.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
+            userPrincipal = KerberosUtils.replaceHostname(userPrincipal);
             if((StringUtils.isBlank(userKeytab) && !StringUtils.isBlank(userPrincipal))
                     || (!StringUtils.isBlank(userKeytab) && StringUtils.isBlank(userPrincipal))) {
                 results.add(new ValidationResult.Builder().subject(KERBEROS_PRINCIPLE.getDisplayName()).valid(false)
@@ -297,7 +300,9 @@ final class KafkaProcessorUtils {
     private static void setJaasConfig(Map<String, Object> mapToPopulate, ProcessContext context) {
         String keytab = context.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
         String principal = context.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        principal = KerberosUtils.replaceHostname(principal);
         String serviceName = context.getProperty(KERBEROS_PRINCIPLE).evaluateAttributeExpressions().getValue();
+        serviceName = KerberosUtils.replaceHostname(serviceName);
         if(StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
             mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, "com.sun.security.auth.module.Krb5LoginModule required "
                     + "useTicketCache=false "

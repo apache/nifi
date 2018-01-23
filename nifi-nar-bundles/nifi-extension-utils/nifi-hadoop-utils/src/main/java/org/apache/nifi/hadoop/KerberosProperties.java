@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.KerberosUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -114,12 +115,12 @@ public class KerberosProperties {
         return kerberosKeytab;
     }
 
-    public static List<ValidationResult> validatePrincipalAndKeytab(final String subject, final Configuration config, final String principal, final String keytab, final ComponentLog logger) {
+    public static List<ValidationResult> validatePrincipalAndKeytab(final String subject, final Configuration config, String principal, final String keytab, final ComponentLog logger) {
         final List<ValidationResult> results = new ArrayList<>();
 
         // if security is enabled then the keytab and principal are required
         final boolean isSecurityEnabled = SecurityUtil.isSecurityEnabled(config);
-
+        principal = KerberosUtils.replaceHostname(principal);
         final boolean blankPrincipal = (principal == null || principal.isEmpty());
         if (isSecurityEnabled && blankPrincipal) {
             results.add(new ValidationResult.Builder()
