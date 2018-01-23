@@ -155,9 +155,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     @OnScheduled
     public void setup(final ProcessContext context) {
         maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
-        if (!isDynamicTableName && !isDynamicMaxValues) {
-            super.setup(context);
-        }
         if (context.hasIncomingConnection() && !context.hasNonLoopConnection()) {
             getLogger().error("The failure relationship can be used only if there is another incoming connection to this processor.");
         }
@@ -165,6 +162,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        // Fetch the column/table info once (if the table name and max value columns are not dynamic). Otherwise do the setup later
+        if (!isDynamicTableName && !isDynamicMaxValues && !setupComplete.get()) {
+            super.setup(context);
+        }
         ProcessSession session = sessionFactory.createSession();
 
         FlowFile fileToProcess = null;

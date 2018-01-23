@@ -17,6 +17,7 @@
 = Apache NiFi In Depth
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
+:linkattrs:
 
 == Intro
 This advanced level document is aimed at providing an in-depth look at the implementation and design decisions of NiFi. It assumes the reader has read enough of the other documentation to know the basics of NiFi.
@@ -49,7 +50,7 @@ NiFi protects against hardware and system failures by keeping a record of what w
 
 If the Node was in the middle of writing content when it went down, nothing is corrupted, thanks to the Copy On Write (mentioned below) and Immutability (mentioned above) paradigms. Since FlowFile transactions never modify the original content (pointed to by the content pointer), the original is safe. When NiFi goes down, the write claim for the change is orphaned and then cleaned up by the background garbage collection. This provides a “rollback” to the last known stable state.
 
-The Node then restores its state from the FlowFile. For a more in-depth, step-by-step explanation of the process, see this link: https://cwiki.apache.org/confluence/display/NIFI/NiFi%27s+Write-Ahead+Log+Implementation .
+The Node then restores its state from the FlowFile. For a more in-depth, step-by-step explanation of the process, see  link:https://cwiki.apache.org/confluence/display/NIFI/NiFi%27s+Write-Ahead+Log+Implementation[NiFi's Write-Ahead Log Implementation^].
 
 This setup, in terms of transactional units of work, allows NiFi to be very resilient in the face of adversity, ensuring that even if NiFi is suddenly killed, it can pick back up without any loss of data.
 
@@ -84,7 +85,7 @@ Keep in mind, though, that since Provenance is not copying the content in the Co
 
 NOTE: Since provenance events are snapshots of the FlowFile, as it exists in the current flow, changes to the flow may impact the ability to replay provenance events later on. For example, if a Connection is deleted from the flow, the data cannot be replayed from that point in the flow, since there is now nowhere to enqueue the data for processing.
 
-For a look at the design decisions behind the Provenance Repository check out this link: https://cwiki.apache.org/confluence/display/NIFI/Persistent+Provenance+Repository+Design
+For a look at the design decisions behind the Provenance Repository check out link:https://cwiki.apache.org/confluence/display/NIFI/Persistent+Provenance+Repository+Design[Persistent Provenance Repository Design^].
 
 ==== Deeper View: Provenance Log Files
 Each provenance event has two maps, one for the attributes before the event and one for the updated attribute values. In general, provenance events don't store the updated values of the attributes as they existed when the event was emitted, but instead, the attribute values when the session is committed. The events are cached and saved until the session is committed and once the session is committed the events are emitted with the attributes associated with the FlowFile when the session is committed. The exception to this rule is the "SEND" event, in which case the event contains the attributes as they existed when the event was emitted. This is done because if the attributes themselves were also sent, it is important to have an accurate account of exactly what information was sent.
@@ -106,7 +107,7 @@ It is considered a best practice to analyze the contents of a FlowFile as few ti
 
 
 == Life of a FlowFile
-To better understand how the repos interact with one another, the underlying functionality of NiFi, and the life of a FlowFile; this next section will include examples of a FlowFile at different points in a real flow. The flow is a template called "WebCrawler.xml" and is available here: https://cwiki.apache.org/confluence/display/NIFI/Example+Dataflow+Templates.
+To better understand how the repos interact with one another, the underlying functionality of NiFi, and the life of a FlowFile; this next section will include examples of a FlowFile at different points in a real flow. The flow is a template called "WebCrawler.xml" and is available here: link:https://cwiki.apache.org/confluence/display/NIFI/Example+Dataflow+Templates[https://cwiki.apache.org/confluence/display/NIFI/Example+Dataflow+Templates^].
 
 At a high level, this template reaches out to a seed URL configured in the GetHTTP processor, then analyzes the response using the RouteText processor to find instances of a keyword (in this case "nifi"), and potential URLs to hit. Then InvokeHTTP executes a HTTP Get request using the URLs found in the original seed web page. The response is routed based on the status code attribute and only 200-202 status codes are routed back to the original RouteText processor for analysis.
 

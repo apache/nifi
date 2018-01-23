@@ -17,7 +17,7 @@
 = Apache NiFi User Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
-
+:linkattrs:
 
 == Introduction
 Apache NiFi is a dataflow system based on the concepts of flow-based programming. It supports
@@ -147,7 +147,7 @@ When a DFM navigates to the UI for the first time, a blank canvas is provided on
 image::nifi-toolbar-components.png["NiFi Components Toolbar"]
 
 The Components Toolbar runs across the top left portion of your screen. It consists of the components you can drag onto the
-canvas to build your dataflow. Each component is described in more detail in link:building-dataflow.html[Building a Dataflow].
+canvas to build your dataflow. Each component is described in more detail in <<building-dataflow>>.
 
 The Status Bar is under the Components Toolbar. The Status bar provides information about the number of threads that are
 currently active in the flow, the amount of data that currently exists in the flow, how many Remote Process Groups exist
@@ -628,7 +628,7 @@ For example:
 * The string `0 20 14 ? * MON-FRI` indicates that you want to schedule the processor to run at 2:20 PM every Monday through Friday.
 * The string `0 15 10 ? * 6L 2011-2017` indicates that you want to schedule the processor to run at 10:15 AM, on the last Friday of every month, between 2011 and 2017.
 
-For additional information and examples, see the http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial] in the Quartz documentation.
+For additional information and examples, see the link:http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial^] in the Quartz documentation.
 
 Next, the Scheduling Tab provides a configuration option named `Concurrent tasks`. This controls how many threads the Processor
 will use. Said a different way, this controls how many FlowFiles should be processed by this Processor at the same time. Increasing
@@ -1761,7 +1761,7 @@ will remove the selection.
 
 [[versioning_dataflow]]
 == Versioning a DataFlow
-When NiFi is connected to a NiFi Registry, dataflows can be version controlled on the process group level.  For more information about NiFi Registry usage and configuration, see the documentation at https://nifi.apache.org/docs/nifi-registry-docs/index.html.
+When NiFi is connected to a NiFi Registry, dataflows can be version controlled on the process group level.  For more information about NiFi Registry usage and configuration, see the documentation at link:https://nifi.apache.org/docs/nifi-registry-docs/index.html[https://nifi.apache.org/docs/nifi-registry-docs/index.html^].
 
 === Connecting to a NiFi Registry
 To connect NiFi to a Registry, select Controller Settings from the Global Menu.
@@ -1780,7 +1780,7 @@ Click "Add" to complete the registration.
 
 image::registry-client-added.png["Registry Client Added"]
 
-NOTE: Versioned flows are stored and organized in registry buckets. Bucket Policies and Special Privileges configured by the registry administrator determine which buckets a user can import versioned flows from and which buckets a user can save versioned flows to. Information on Bucket Policies and Special Privileges can be found in the NiFi Registry User Guide (https://nifi.apache.org/docs/nifi-registry-docs/html/user-guide.html).
+NOTE: Versioned flows are stored and organized in registry buckets. Bucket Policies and Special Privileges configured by the registry administrator determine which buckets a user can import versioned flows from and which buckets a user can save versioned flows to. Information on Bucket Policies and Special Privileges can be found in the NiFi Registry User Guide (link:https://nifi.apache.org/docs/nifi-registry-docs/html/user-guide.html[https://nifi.apache.org/docs/nifi-registry-docs/html/user-guide.html^]).
 
 [[version_states]]
 === Version States
@@ -2005,7 +2005,7 @@ filter the templates to see only those of interest, export, and delete Templates
 
 [[Export_Template]]
 ==== Exporting a Template
-Once a Template has been created, it can be shared with others in the Template Management page (see <<Manage_Templates>>).
+Once a Template has been created, it can be shared with others in the Template Management page.
 To export a Template, locate the Template in the table. The Filter in the top-right corner
 can be used to help find the appropriate Template if several are available. Then click the Export or Download button (
 image:iconExport.png["Export"]
@@ -2015,8 +2015,7 @@ into other instances of NiFi (see <<Import_Template>>).
 
 ==== Removing a Template
 
-Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page
-(see <<Manage_Templates>>). To delete a Template, locate it in the table (the Filter in the top-right corner
+Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page. To delete a Template, locate it in the table (the Filter in the top-right corner
 may be used to find the appropriate Template if several are available) and click the Delete button (
 image:iconDelete.png["Delete"]
 ). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
@@ -2247,10 +2246,10 @@ When switching between implementation "families" (i.e. `VolatileProvenanceReposi
 ============
 
 * Switching between unencrypted and encrypted repositories
-** If a user has an existing repository (`WriteAheadProvenanceRepository` only -- **not** `PersistentProvenanceRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous events are not accessible through the provenance query interface and new events will overwrite the existing events. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (https://issues.apache.org/jira/browse/NIFI-3722[NIFI-3722]) but NiFi is not intended for long-term storage of provenance events so the impact should be minimal. There are two scenarios for roll-over:
+** If a user has an existing repository (`WriteAheadProvenanceRepository` only -- **not** `PersistentProvenanceRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous events are not accessible through the provenance query interface and new events will overwrite the existing events. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-3722[NIFI-3722^]) but NiFi is not intended for long-term storage of provenance events so the impact should be minimal. There are two scenarios for roll-over:
 *** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see **Key Rotation**)
 *** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these events should be handled seamlessly as the previously recorded events simply need to be read with a plaintext schema record reader and then written back with the encrypted record writer
-** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing provenance repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (https://issues.apache.org/jira/browse/NIFI-3723[NIFI-3723]).
+** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing provenance repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-3723[NIFI-3723^]).
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
 * Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption).
 

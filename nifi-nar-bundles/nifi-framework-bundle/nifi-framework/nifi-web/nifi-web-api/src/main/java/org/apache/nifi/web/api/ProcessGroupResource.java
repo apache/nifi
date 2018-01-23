@@ -755,6 +755,9 @@ public class ProcessGroupResource extends ApplicationResource {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
                     updateVariableRegistryReplicated(groupId, originalUri, activeAffectedProcessors, activeAffectedServices, updateRequest, requestVariableRegistryEntity);
+
+                    // ensure the request is marked complete
+                    updateRequest.setComplete(true);
                 } catch (final Exception e) {
                     logger.error("Failed to update variable registry", e);
 
