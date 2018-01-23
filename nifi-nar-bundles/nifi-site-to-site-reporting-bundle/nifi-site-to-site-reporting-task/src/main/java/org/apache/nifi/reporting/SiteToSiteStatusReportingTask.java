@@ -60,8 +60,6 @@ import org.apache.nifi.remote.TransferDirection;
         + "However, all process groups are recursively searched for matching components, regardless of whether the process group matches the component filters.")
 public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
         .description("The value to use for the platform field in each status record.")
@@ -70,6 +68,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         .defaultValue("nifi")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
+
     static final PropertyDescriptor COMPONENT_TYPE_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("Component Type Filter Regex")
         .description("A regex specifying which component types to report.  Any component type matching this regex will be included.  "
@@ -79,6 +78,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         .defaultValue("(Processor|ProcessGroup|RemoteProcessGroup|RootProcessGroup|Connection|InputPort|OutputPort)")
         .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
         .build();
+
     static final PropertyDescriptor COMPONENT_NAME_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("Component Name Filter Regex")
         .description("A regex specifying which component names to report.  Any component name matching this regex will be included.")
@@ -197,7 +197,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      *            The component name
      * @return Whether the component matches both filters
      */
-    boolean componentMatchesFilters(final String componentType, final String componentName) {
+    private boolean componentMatchesFilters(final String componentType, final String componentName) {
         return componentTypeFilter.matcher(componentType).matches()
                 && componentNameFilter.matcher(componentName).matches();
     }
@@ -221,7 +221,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      * @param parentId
      *            The parent's component id
      */
-    void serializeProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
+    private void serializeProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
             final ProcessGroupStatus status, final DateFormat df,
         final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
@@ -278,7 +278,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializeRemoteProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
+    private void serializeRemoteProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
             final RemoteProcessGroupStatus status, final DateFormat df, final String hostname, final String applicationName,
             final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
@@ -303,7 +303,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializePortStatus(final String componentType, final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final PortStatus status,
+    private void serializePortStatus(final String componentType, final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final PortStatus status,
             final DateFormat df, final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentName = status.getName();
@@ -327,7 +327,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializeConnectionStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ConnectionStatus status, final DateFormat df,
+    private void serializeConnectionStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ConnectionStatus status, final DateFormat df,
             final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Connection";
@@ -355,7 +355,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializeProcessorStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ProcessorStatus status, final DateFormat df,
+    private void serializeProcessorStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ProcessorStatus status, final DateFormat df,
             final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Processor";
@@ -386,7 +386,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    private static void addCommonFields(final JsonObjectBuilder builder, final DateFormat df, final String hostname,
+    private void addCommonFields(final JsonObjectBuilder builder, final DateFormat df, final String hostname,
             final String applicationName, final String platform, final String parentId, final Date currentDate,
             final String componentType, final String componentName) {
         addField(builder, "statusId", UUID.randomUUID().toString());
@@ -400,23 +400,4 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         addField(builder, "application", applicationName);
     }
 
-    private static void addField(final JsonObjectBuilder builder, final String key, final Long value) {
-        if (value != null) {
-            builder.add(key, value.longValue());
-        }
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final Integer value) {
-        if (value != null) {
-            builder.add(key, value.intValue());
-        }
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final String value) {
-        if (value == null) {
-            return;
-        }
-
-        builder.add(key, value);
-    }
 }

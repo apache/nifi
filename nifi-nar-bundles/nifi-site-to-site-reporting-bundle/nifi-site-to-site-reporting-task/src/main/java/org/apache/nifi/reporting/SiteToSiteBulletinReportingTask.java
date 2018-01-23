@@ -67,9 +67,6 @@ import java.util.concurrent.TimeUnit;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-    static final String LAST_EVENT_ID_KEY = "last_event_id";
-
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
         .description("The value to use for the platform field in each provenance event.")
@@ -194,7 +191,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         lastSentBulletinId = currMaxId;
     }
 
-    static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
+    private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
         final String platform, final String nodeIdentifier) {
 
         addField(builder, "objectId", UUID.randomUUID().toString());
@@ -213,19 +210,6 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()));
 
         return builder.build();
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final Long value) {
-        if (value != null) {
-            builder.add(key, value.longValue());
-        }
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final String value) {
-        if (value == null) {
-            return;
-        }
-        builder.add(key, value);
     }
 
 }
