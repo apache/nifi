@@ -454,6 +454,13 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return sf;
     }
 
+    @Override
+    public FlowFile penalize(FlowFile flowFile, long penalizationPeriod) {
+        SessionFile sf = wrap(flowFile);
+        sf.flowFile = onMod(s.penalize(sf.flowFile, penalizationPeriod));
+        return sf;
+    }
+
     /**
      * Updates the given FlowFiles attributes with the given key/value pair. If
      * the key is named {@code uuid}, this attribute will be ignored.

@@ -1303,6 +1303,11 @@ public class MockProcessSession implements ProcessSession {
         return newFlowFile;
     }
 
+    @Override
+    public FlowFile penalize(FlowFile flowFile, long penalizationPeriod) {
+        return penalize(flowFile);
+    }
+
     public byte[] getContentAsByteArray(MockFlowFile flowFile) {
         flowFile = validateState(flowFile);
         return flowFile.getData();

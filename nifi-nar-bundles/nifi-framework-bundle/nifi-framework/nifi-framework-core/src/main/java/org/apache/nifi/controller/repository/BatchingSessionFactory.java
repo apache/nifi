@@ -129,7 +129,13 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
 
         @Override
         public FlowFile penalize(FlowFile flowFile) {
+
             return session.penalize(flowFile);
+        }
+
+        @Override
+        public FlowFile penalize(FlowFile flowFile, long penalizationPeriod) {
+            return session.penalize(flowFile, penalizationPeriod);
         }
 
         @Override
