@@ -18,10 +18,10 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -73,7 +73,7 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.NORMALIZE_NAME
 import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGICAL_TYPES;
 
 
-@EventDriven
+@TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "select", "jdbc", "query", "database"})
 @SeeAlso({GenerateTableFetch.class, ExecuteSQL.class})
@@ -178,11 +178,14 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     @OnScheduled
     public void setup(final ProcessContext context) {
         maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
-        super.setup(context);
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        // Fetch the column/table info once
+        if (!setupComplete.get()) {
+            super.setup(context);
+        }
         ProcessSession session = sessionFactory.createSession();
         final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
 
