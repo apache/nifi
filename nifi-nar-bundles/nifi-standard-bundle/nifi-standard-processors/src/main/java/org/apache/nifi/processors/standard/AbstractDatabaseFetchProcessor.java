@@ -289,13 +289,13 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
 
                     for (String maxValueColumn:maxValueColumnNameList) {
-                        String colKey = getStateKey(tableName, maxValueColumn.trim());
+                        String colKey = getStateKey(tableName, maxValueColumn.trim(), dbAdapter);
                         maxValueQualifiedColumnNameList.add(colKey);
                     }
 
                     for (int i = 1; i <= numCols; i++) {
                         String colName = resultSetMetaData.getColumnName(i).toLowerCase();
-                        String colKey = getStateKey(tableName, colName);
+                        String colKey = getStateKey(tableName, colName, dbAdapter);
 
                         //only include columns that are part of the maximum value tracking column list
                         if (!maxValueQualifiedColumnNameList.contains(colKey)) {
@@ -307,7 +307,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     }
 
                     for (String maxValueColumn:maxValueColumnNameList) {
-                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase());
+                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase(), dbAdapter);
                         if (!columnTypeMap.containsKey(colKey)) {
                             throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
                         }
@@ -506,14 +506,21 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         }
     }
 
-    protected static String getStateKey(String prefix, String columnName) {
+    /**
+     * Construct a key string for a corresponding state value.
+     * @param prefix A prefix may contain database and table name, or just table name, this can be null
+     * @param columnName A column name
+     * @param adapter DatabaseAdapter is used to unwrap identifiers
+     * @return a state key string
+     */
+    protected static String getStateKey(String prefix, String columnName, DatabaseAdapter adapter) {
         StringBuilder sb = new StringBuilder();
         if (prefix != null) {
-            sb.append(prefix.toLowerCase());
+            sb.append(adapter.unwrapIdentifier(prefix.toLowerCase()));
             sb.append(NAMESPACE_DELIMITER);
         }
         if (columnName != null) {
-            sb.append(columnName.toLowerCase());
+            sb.append(adapter.unwrapIdentifier(columnName.toLowerCase()));
         }
         return sb.toString();
     }

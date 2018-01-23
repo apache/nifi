@@ -218,7 +218,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             // If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
             for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
                 String maxPropKey = maxProp.getKey().toLowerCase();
-                String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
+                String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey, dbAdapter);
                 if (!statePropertyMap.containsKey(fullyQualifiedMaxPropKey)) {
                     String newMaxPropValue;
                     // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
@@ -252,13 +252,13 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 String colName = maxValueColumnNameList.get(index);
 
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
+                String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
                 if (!StringUtils.isEmpty(maxValue)) {
-                    if(columnTypeMap.isEmpty() || getColumnType(tableName, colName) == null){
+                    if(columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null){
                         // This means column type cache is clean after instance reboot. We should re-cache column type
                         super.setup(context, false, finalFileToProcess);
                     }
-                    Integer type = getColumnType(tableName, colName);
+                    Integer type = getColumnType(tableName, colName, dbAdapter);
 
                     // Add a condition for the WHERE clause
                     maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
@@ -299,7 +299,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         // Since this column has been aliased lets check the label first,
                         // if there is no label we'll use the column name.
                         String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i)) ? rsmd.getColumnLabel(i) : rsmd.getColumnName(i)).toLowerCase();
-                        String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
+                        String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName, dbAdapter);
                         String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
                         if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
                             // If we can't find the value at the fully-qualified key name and the table name is static, it is possible (under a previous scheme)
@@ -334,13 +334,13 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     String colName = maxValueColumnNameList.get(index);
 
                     maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                    String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
+                    String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
                     if (!StringUtils.isEmpty(maxValue)) {
-                        if(columnTypeMap.isEmpty() || getColumnType(tableName, colName) == null){
+                        if(columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null){
                             // This means column type cache is clean after instance reboot. We should re-cache column type
                             super.setup(context, false, finalFileToProcess);
                         }
-                        Integer type = getColumnType(tableName, colName);
+                        Integer type = getColumnType(tableName, colName, dbAdapter);
 
                         // Add a condition for the WHERE clause
                         maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, dbAdapter.getName()));
@@ -410,23 +410,23 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         }
     }
 
-    private String getColumnStateMaxValue(String tableName, Map<String, String> statePropertyMap, String colName) {
-        final String fullyQualifiedStateKey = getStateKey(tableName, colName);
+    private String getColumnStateMaxValue(String tableName, Map<String, String> statePropertyMap, String colName, DatabaseAdapter adapter) {
+        final String fullyQualifiedStateKey = getStateKey(tableName, colName, adapter);
         String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
         if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
             // If the table name is static and the fully-qualified key was not found, try just the column name
-            maxValue = statePropertyMap.get(getStateKey(null, colName));
+            maxValue = statePropertyMap.get(getStateKey(null, colName, adapter));
         }
 
         return maxValue;
     }
 
-    private Integer getColumnType(String tableName, String colName) {
-        final String fullyQualifiedStateKey = getStateKey(tableName, colName);
+    private Integer getColumnType(String tableName, String colName, DatabaseAdapter adapter) {
+        final String fullyQualifiedStateKey = getStateKey(tableName, colName, adapter);
         Integer type = columnTypeMap.get(fullyQualifiedStateKey);
         if (type == null && !isDynamicTableName) {
             // If the table name is static and the fully-qualified key was not found, try just the column name
-            type = columnTypeMap.get(getStateKey(null, colName));
+            type = columnTypeMap.get(getStateKey(null, colName, adapter));
         }
 
         return type;
