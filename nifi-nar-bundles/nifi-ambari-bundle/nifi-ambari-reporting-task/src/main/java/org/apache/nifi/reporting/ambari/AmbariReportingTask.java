@@ -29,8 +29,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.ambari.api.MetricsBuilder;
-import org.apache.nifi.reporting.ambari.metrics.MetricsService;
+import org.apache.nifi.reporting.util.metrics.MetricsService;
+import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import javax.json.Json;
