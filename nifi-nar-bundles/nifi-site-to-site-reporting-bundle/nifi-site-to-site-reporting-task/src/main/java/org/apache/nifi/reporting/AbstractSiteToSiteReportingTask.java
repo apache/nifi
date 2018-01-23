@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.reporting;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
+import javax.net.ssl.SSLContext;
+
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -24,27 +36,39 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.json.JsonTreeRowRecordReader;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for ReportingTasks that send data over site-to-site.
  */
 public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingTask {
+
+    protected static final String LAST_EVENT_ID_KEY = "last_event_id";
     protected static final String DESTINATION_URL_PATH = "/nifi";
+    protected static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
+    private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
+    private final String timeFormat = RecordFieldType.TIME.getDefaultFormat();
+    private final String timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
 
     static final PropertyDescriptor DESTINATION_URL = new PropertyDescriptor.Builder()
             .name("Destination URL")
@@ -140,8 +164,16 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
+    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("record-writer")
+            .displayName("Record Writer")
+            .description("Specifies the Controller Service to use for writing out the records.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(false)
+            .build();
 
     protected volatile SiteToSiteClient siteToSiteClient;
+    protected volatile RecordSchema recordSchema;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -187,7 +219,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         final SiteToSiteTransportProtocol mode = SiteToSiteTransportProtocol.valueOf(context.getProperty(TRANSPORT_PROTOCOL).getValue());
         final HttpProxy httpProxy = mode.equals(SiteToSiteTransportProtocol.RAW) || StringUtils.isEmpty(context.getProperty(HTTP_PROXY_HOSTNAME).getValue()) ? null
                 : new HttpProxy(context.getProperty(HTTP_PROXY_HOSTNAME).getValue(), context.getProperty(HTTP_PROXY_PORT).asInteger(),
-                context.getProperty(HTTP_PROXY_USERNAME).getValue(), context.getProperty(HTTP_PROXY_PASSWORD).getValue());
+                        context.getProperty(HTTP_PROXY_USERNAME).getValue(), context.getProperty(HTTP_PROXY_PASSWORD).getValue());
 
         siteToSiteClient = new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(destinationUrl))
@@ -214,6 +246,33 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         return this.siteToSiteClient;
     }
 
+    protected byte[] getData(final ReportingContext context, InputStream in, Map<String, String> attributes) {
+        try (final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, getLogger(), recordSchema, dateFormat, timeFormat, timestampFormat)) {
+
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+            final RecordSchema writeSchema = writerFactory.getSchema(null, recordSchema);
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                writer.beginRecordSet();
+
+                Record record;
+                while ((record = reader.nextRecord()) != null) {
+                    writer.write(record);
+                }
+
+                final WriteResult writeResult = writer.finishRecordSet();
+
+                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                attributes.putAll(writeResult.getAttributes());
+            }
+
+            return out.toByteArray();
+        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+            throw new ProcessException("Failed to write metrics using record writer: " + e.getMessage(), e);
+        }
+    }
+
     static class NiFiUrlValidator implements Validator {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
@@ -233,6 +292,36 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                         .explanation(ex.getLocalizedMessage())
                         .build();
             }
+        }
+    }
+
+    protected void addField(final JsonObjectBuilder builder, final String key, final Long value) {
+        if (value != null) {
+            builder.add(key, value.longValue());
+        }
+    }
+
+    protected void addField(final JsonObjectBuilder builder, final String key, final Integer value) {
+        if (value != null) {
+            builder.add(key, value.intValue());
+        }
+    }
+
+    protected void addField(final JsonObjectBuilder builder, final String key, final String value) {
+        if (value == null) {
+            return;
+        }
+
+        builder.add(key, value);
+    }
+
+    protected void addField(final JsonObjectBuilder builder, final String key, final String value, final boolean allowNullValues) {
+        if (value == null) {
+            if (allowNullValues) {
+                builder.add(key, JsonValue.NULL);
+            }
+        } else {
+            builder.add(key, value);
         }
     }
 }
