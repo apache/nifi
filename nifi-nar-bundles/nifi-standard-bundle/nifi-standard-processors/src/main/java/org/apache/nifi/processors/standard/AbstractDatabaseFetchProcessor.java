@@ -255,7 +255,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 }
                 for (int i = 1; i <= numCols; i++) {
                     String colName = resultSetMetaData.getColumnName(i).toLowerCase();
-                    String colKey = getStateKey(tableName, colName);
+                    String colKey = getStateKey(tableName, colName, dbAdapter);
                     int colType = resultSetMetaData.getColumnType(i);
                     columnTypeMap.putIfAbsent(colKey, colType);
                 }
@@ -447,14 +447,21 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         }
     }
 
-    protected static String getStateKey(String prefix, String columnName) {
+    /**
+     * Construct a key string for a corresponding state value.
+     * @param prefix A prefix may contain database and table name, or just table name, this can be null
+     * @param columnName A column name
+     * @param adapter DatabaseAdapter is used to unwrap identifiers
+     * @return a state key string
+     */
+    protected static String getStateKey(String prefix, String columnName, DatabaseAdapter adapter) {
         StringBuilder sb = new StringBuilder();
         if (prefix != null) {
-            sb.append(prefix.toLowerCase());
+            sb.append(adapter.unwrapIdentifier(prefix.toLowerCase()));
             sb.append(NAMESPACE_DELIMITER);
         }
         if (columnName != null) {
-            sb.append(columnName.toLowerCase());
+            sb.append(adapter.unwrapIdentifier(columnName.toLowerCase()));
         }
         return sb.toString();
     }

@@ -79,4 +79,10 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
 
         return query.toString();
     }
+
+    @Override
+    public String unwrapIdentifier(String identifier) {
+        // Remove double quotes and square brackets.
+        return identifier == null ? null : identifier.replaceAll("[\"\\[\\]]", "");
+    }
 }

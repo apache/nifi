@@ -17,12 +17,11 @@
 package org.apache.nifi.processors.standard.db.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
  * A database adapter that generates MS SQL Compatible SQL for version 2008.
  */
-public class MSSQL2008DatabaseAdapter implements DatabaseAdapter {
+public class MSSQL2008DatabaseAdapter extends MSSQLDatabaseAdapter {
     @Override
     public String getName() {
         return "MS SQL 2008";
