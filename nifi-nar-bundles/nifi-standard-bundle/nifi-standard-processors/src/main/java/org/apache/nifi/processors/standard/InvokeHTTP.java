@@ -553,7 +553,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         // Add a proxy if set
         final String proxyHost = context.getProperty(PROP_PROXY_HOST).evaluateAttributeExpressions().getValue();
         final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).evaluateAttributeExpressions().asInteger();
-        final String proxyType = context.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue();
+        final String proxyType = context.getProperty(PROP_PROXY_TYPE).getValue();
         boolean isHttpsProxy = false;
         if (proxyHost != null && proxyPort != null) {
             final Proxy proxy = new Proxy(Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
