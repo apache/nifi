@@ -31,7 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Parser;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -47,8 +49,10 @@ import org.apache.nifi.avro.AvroSchemaValidator;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -167,6 +171,16 @@ public class ValidateRecord extends AbstractProcessor {
         .required(true)
         .build();
 
+
+    static final PropertyDescriptor ATTRIBUTE_NAME_TO_STORE_FAILURE_DESCRIPTION = new PropertyDescriptor.Builder()
+        .name("emit-failure-description-property")
+        .displayName("Variable Describing Parse Failure")
+        .description("If validation fails, validation failure will be stored into variable named according to this setting.")
+        .required(false)
+        .expressionLanguageSupported(false)
+        .addValidator(createAttributeNameValidator())
+        .build();
+
     static final Relationship REL_VALID = new Relationship.Builder()
         .name("valid")
         .description("Records that are valid according to the schema will be routed to this relationship")
@@ -180,6 +194,27 @@ public class ValidateRecord extends AbstractProcessor {
         .description("If the records cannot be read, validated, or written, for any reason, the original FlowFile will be routed to this relationship")
         .build();
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+
+    private static Validator createAttributeNameValidator() {
+        return (subject, input, context) -> {
+            String validAttributeRegex = "^[a-zA-Z_$][a-zA-Z_$0-9]*$";
+            boolean validAttributeName = input == null || input.matches(validAttributeRegex);
+
+            ValidationResult.Builder builder = new ValidationResult.Builder();
+            builder.valid(validAttributeName);
+            builder.input(input);
+            if (!validAttributeName) {
+                builder
+                        .subject("Attribute name")
+                        .explanation(String.format("Attribute '%s' has to have format '%s'",
+                                ATTRIBUTE_NAME_TO_STORE_FAILURE_DESCRIPTION.getDisplayName(),
+                                validAttributeRegex));
+            }
+            return builder.build();
+        };
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -192,6 +227,7 @@ public class ValidateRecord extends AbstractProcessor {
         properties.add(SCHEMA_TEXT);
         properties.add(ALLOW_EXTRA_FIELDS);
         properties.add(STRICT_TYPE_CHECKING);
+        properties.add(ATTRIBUTE_NAME_TO_STORE_FAILURE_DESCRIPTION);
         return properties;
     }
 
@@ -271,7 +307,7 @@ public class ValidateRecord extends AbstractProcessor {
             }
 
             processValidRecords(validRecords, session, flowFile, writerFactory);
-            processInvalidRecords(invalidRecords, session, flowFile, writerFactory);
+            processInvalidRecords(invalidRecords, session, flowFile, writerFactory, context);
 
             session.adjustCounter("Records Validated", recordCount, false);
             session.adjustCounter("Records Found Valid", validRecords.size(), false);
@@ -311,7 +347,8 @@ public class ValidateRecord extends AbstractProcessor {
                 writeRecordIntoRecordWriter(writer, record);
             }
 
-            completeFlowFile(session, validFlowFile, writer, REL_VALID, null);
+            completeFlowFile(session, validFlowFile, writer);
+            transferFlowFile(session, validFlowFile, REL_VALID, null);
         } finally {
             closeQuietly(writer);
         }
@@ -321,7 +358,8 @@ public class ValidateRecord extends AbstractProcessor {
     private void processInvalidRecords(List<InvalidRecord> invalidRecords,
                                        ProcessSession session,
                                        FlowFile parentFlowFile,
-                                       RecordSetWriterFactory writerFactory)throws IOException, SchemaNotFoundException {
+                                       RecordSetWriterFactory writerFactory,
+                                       ProcessContext context) throws IOException, SchemaNotFoundException {
 
         if (invalidRecords == null || invalidRecords.isEmpty()) {
             return;
@@ -343,7 +381,19 @@ public class ValidateRecord extends AbstractProcessor {
                 writeRecordIntoRecordWriter(writer, validatedRecord);
             }
 
-            completeFlowFile(session, invalidFlowFile, writer, REL_INVALID, createValidationErrorString(invalidRecords));
+            completeFlowFile(session, invalidFlowFile, writer);
+
+            PropertyValue property = context.getProperty(ATTRIBUTE_NAME_TO_STORE_FAILURE_DESCRIPTION);
+            if (property.isSet()) {
+                String errorList = objectMapper.writeValueAsString(
+                        invalidRecords.stream()
+                        .map(e -> createValidationErrorString(Collections.singletonList(e)))
+                        .collect(Collectors.toList()));
+
+                session.putAttribute(invalidFlowFile, property.getValue(), errorList);
+            }
+            transferFlowFile(session, invalidFlowFile, REL_INVALID, createValidationErrorString(invalidRecords));
+
         } finally {
             closeQuietly(writer);
         }
@@ -453,7 +503,9 @@ public class ValidateRecord extends AbstractProcessor {
         }
     }
 
-    private void completeFlowFile(final ProcessSession session, final FlowFile flowFile, final RecordSetWriter writer, final Relationship relationship, final String details) throws IOException {
+    private void completeFlowFile(final ProcessSession session,
+                                  final FlowFile flowFile,
+                                  final RecordSetWriter writer) throws IOException {
         final WriteResult writeResult = writer.finishRecordSet();
         writer.close();
 
@@ -462,7 +514,18 @@ public class ValidateRecord extends AbstractProcessor {
         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
         attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
         session.putAllAttributes(flowFile, attributes);
+    }
 
+    private void transferFlowFile(ProcessSession session,
+                                  FlowFile flowFile,
+                                  Relationship relationship) {
+        transferFlowFile(session, flowFile, relationship, null);
+    }
+
+    private void transferFlowFile(ProcessSession session,
+                                  FlowFile flowFile,
+                                  Relationship relationship,
+                                  String details) {
         session.transfer(flowFile, relationship);
         session.getProvenanceReporter().route(flowFile, relationship, details);
     }
