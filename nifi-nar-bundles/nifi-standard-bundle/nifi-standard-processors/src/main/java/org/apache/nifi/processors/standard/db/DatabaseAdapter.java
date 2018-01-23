@@ -37,4 +37,17 @@ public interface DatabaseAdapter {
      * @return A String containing a SQL SELECT statement with the given clauses applied
      */
     String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset);
+
+    /**
+     * <p>Returns a bare identifier string by removing wrapping escape characters
+     * from identifier strings such as table and column names.</p>
+     * <p>The default implementation of this method removes double quotes.
+     * If the target database engine supports different escape characters, then its DatabaseAdapter implementation should override
+     * this method so that such escape characters can be removed properly.</p>
+     * @param identifier An identifier which may be wrapped with escape characters
+     * @return An unwrapped identifier string, or null if the input identifier is null
+     */
+    default String unwrapIdentifier(String identifier) {
+        return identifier == null ? null : identifier.replaceAll("\"", "");
+    }
 }
