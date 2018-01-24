@@ -121,16 +121,16 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
                 String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
                         .evaluateAttributeExpressions(flowFiles.get(i)).getValue();
 
-                if ( ! StringUtils.isBlank(partitionKey) ) {
+                if (StringUtils.isBlank(partitionKey) == false) {
                     record.setPartitionKey(partitionKey);
                 } else {
                     record.setPartitionKey(Integer.toString(randomParitionKeyGenerator.nextInt()));
                 }
 
-                if ( !recordHash.containsKey(streamName) ) {
+                if (recordHash.containsKey(streamName) == false) {
                     recordHash.put(streamName, new ArrayList<>());
                 }
-                if ( !hashFlowFiles.containsKey(streamName) ) {
+                if (hashFlowFiles.containsKey(streamName) == false) {
                     hashFlowFiles.put(streamName, new ArrayList<>());
                 }
 
@@ -142,7 +142,7 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
                 String streamName = entryRecord.getKey();
                 List<PutRecordsRequestEntry> records = entryRecord.getValue();
 
-                if ( records.size() > 0 ) {
+                if (records.size() > 0) {
 
                     PutRecordsRequest putRecordRequest = new PutRecordsRequest();
                     putRecordRequest.setStreamName(streamName);
@@ -158,7 +158,7 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
                         attributes.put(AWS_KINESIS_SHARD_ID, entry.getShardId());
                         attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.getSequenceNumber());
 
-                        if ( ! StringUtils.isBlank(entry.getErrorCode()) ) {
+                        if (StringUtils.isBlank(entry.getErrorCode()) == false) {
                             attributes.put(AWS_KINESIS_ERROR_CODE, entry.getErrorCode());
                             attributes.put(AWS_KINESIS_ERROR_MESSAGE, entry.getErrorMessage());
                             flowFile = session.putAllAttributes(flowFile, attributes);

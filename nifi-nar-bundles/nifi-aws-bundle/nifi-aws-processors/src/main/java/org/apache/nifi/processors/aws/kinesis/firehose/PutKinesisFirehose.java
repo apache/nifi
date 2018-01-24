@@ -109,10 +109,11 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 session.exportTo(flowFile, baos);
 
-                if ( !recordHash.containsKey(firehoseStreamName) )
+                if (recordHash.containsKey(firehoseStreamName) == false) {
                     recordHash.put(firehoseStreamName, new ArrayList<>());
+                }
 
-                if ( !hashFlowFiles.containsKey(firehoseStreamName) ) {
+                if (hashFlowFiles.containsKey(firehoseStreamName) == false) {
                     hashFlowFiles.put(firehoseStreamName, new ArrayList<>());
                 }
 
@@ -124,7 +125,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                 String streamName = entryRecord.getKey();
                 List<Record> records = entryRecord.getValue();
 
-                if ( records.size() > 0 ) {
+                if (records.size() > 0) {
                     // Send the batch
                     PutRecordBatchRequest putRecordBatchRequest = new PutRecordBatchRequest();
                     putRecordBatchRequest.setDeliveryStreamName(streamName);
@@ -141,7 +142,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                         Map<String,String> attributes = new HashMap<>();
                         attributes.put(AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
                         flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
-                        if ( ! StringUtils.isBlank(entry.getErrorCode()) ) {
+                        if (StringUtils.isBlank(entry.getErrorCode()) == false) {
                             attributes.put(AWS_KINESIS_FIREHOSE_ERROR_CODE, entry.getErrorCode());
                             attributes.put(AWS_KINESIS_FIREHOSE_ERROR_MESSAGE, entry.getErrorMessage());
                             flowFile = session.putAllAttributes(flowFile, attributes);
@@ -156,11 +157,11 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
                 }
             }
 
-            if ( failedFlowFiles.size() > 0 ) {
+            if (failedFlowFiles.size() > 0) {
                 session.transfer(failedFlowFiles, REL_FAILURE);
                 getLogger().error("Failed to publish to kinesis firehose {}", new Object[]{failedFlowFiles});
             }
-            if ( successfulFlowFiles.size() > 0 ) {
+            if (successfulFlowFiles.size() > 0) {
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
                 getLogger().info("Successfully published to kinesis firehose {}", new Object[]{successfulFlowFiles});
             }
