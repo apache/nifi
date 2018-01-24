@@ -225,7 +225,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor PROP_PROXY_TYPE = new PropertyDescriptor.Builder()
             .name("Proxy Type")
             .displayName("Proxy Type")
-            .description("The type of the proxy we are connecting to.")
+            .description("The type of the proxy we are connecting to. Must be either " + HTTP + " or " + HTTPS)
             .defaultValue(HTTP)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
