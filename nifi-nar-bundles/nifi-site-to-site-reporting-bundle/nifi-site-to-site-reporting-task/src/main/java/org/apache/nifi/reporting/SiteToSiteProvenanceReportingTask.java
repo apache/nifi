@@ -277,6 +277,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 final Map<String, String> attributes = new HashMap<>();
                 final String transactionId = UUID.randomUUID().toString();
                 attributes.put("reporting.task.transaction.id", transactionId);
+                attributes.put("reporting.task.name", getName());
                 attributes.put("mime.type", "application/json");
 
                 final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);

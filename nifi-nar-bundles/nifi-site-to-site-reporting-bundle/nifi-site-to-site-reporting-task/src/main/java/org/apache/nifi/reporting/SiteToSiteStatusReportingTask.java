@@ -158,6 +158,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 final Map<String, String> attributes = new HashMap<>();
                 final String transactionId = UUID.randomUUID().toString();
                 attributes.put("reporting.task.transaction.id", transactionId);
+                attributes.put("reporting.task.name", getName());
                 attributes.put("mime.type", "application/json");
 
                 JsonArrayBuilder jsonBatchArrayBuilder = factory.createArrayBuilder();
