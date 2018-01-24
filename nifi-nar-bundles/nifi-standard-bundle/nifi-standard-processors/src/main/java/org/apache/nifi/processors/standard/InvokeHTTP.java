@@ -229,7 +229,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .name("Proxy Type")
             .displayName("Proxy Type")
             .description("The type of the proxy we are connecting to.")
-            .required(false)
+            .required(true)
             .allowableValues(HTTP, HTTPS)
             .defaultValue(HTTP.getValue())
             .build();
@@ -530,13 +530,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             results.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
         }
 
-        final boolean proxyTypeSet = validationContext.getProperty(PROP_PROXY_TYPE).isSet();
-
-        if(proxyHostSet && !validationContext.getProperty(PROP_PROXY_TYPE).isSet()) {
-            results.add(new ValidationResult.Builder().subject("Proxy Type").valid(false).explanation("If Proxy Host is set, Proxy Type must be set").build());
-        }
-
-        if(proxyTypeSet && HTTPS.getValue().equals(validationContext.getProperty(PROP_PROXY_TYPE).getValue())
+        if(HTTPS.getValue().equals(validationContext.getProperty(PROP_PROXY_TYPE).getValue())
                 && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
             results.add(new ValidationResult.Builder().subject("SSL Context Service").valid(false).explanation("If Proxy Type is HTTPS, SSL Context Service must be set").build());
         }
