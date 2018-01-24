@@ -232,6 +232,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .required(true)
             .allowableValues(HTTP, HTTPS)
             .defaultValue(HTTP.getValue())
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_HOST = new PropertyDescriptor.Builder()
@@ -530,7 +531,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             results.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
         }
 
-        if(HTTPS.getValue().equals(validationContext.getProperty(PROP_PROXY_TYPE).getValue())
+        if(HTTPS.getValue().equals(validationContext.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue())
                 && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
             results.add(new ValidationResult.Builder().subject("SSL Context Service").valid(false).explanation("If Proxy Type is HTTPS, SSL Context Service must be set").build());
         }
@@ -547,7 +548,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         // Add a proxy if set
         final String proxyHost = context.getProperty(PROP_PROXY_HOST).evaluateAttributeExpressions().getValue();
         final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).evaluateAttributeExpressions().asInteger();
-        final String proxyType = context.getProperty(PROP_PROXY_TYPE).getValue();
+        final String proxyType = context.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue();
         boolean isHttpsProxy = false;
         if (proxyHost != null && proxyPort != null) {
             final Proxy proxy = new Proxy(Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
