@@ -85,7 +85,7 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command")
     .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
     .required(true)
-    .expressionLanguageSupported(false)
+    .expressionLanguageSupported(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
@@ -100,7 +100,7 @@ public class ExecuteProcess extends AbstractProcessor {
     public static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
     .name("Working Directory")
     .description("The directory to use as the current working directory when executing the command")
-    .expressionLanguageSupported(false)
+    .expressionLanguageSupported(true)
     .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
     .required(false)
     .build();
@@ -213,7 +213,7 @@ public class ExecuteProcess extends AbstractProcessor {
 
         final Long batchNanos = context.getProperty(BATCH_DURATION).asTimePeriod(TimeUnit.NANOSECONDS);
 
-        final String command = context.getProperty(COMMAND).getValue();
+        final String command = context.getProperty(COMMAND).evaluateAttributeExpressions().getValue();
         final String arguments = context.getProperty(COMMAND_ARGUMENTS).isSet()
           ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
           : null;
@@ -311,7 +311,7 @@ public class ExecuteProcess extends AbstractProcessor {
         final Boolean redirectErrorStream = context.getProperty(REDIRECT_ERROR_STREAM).asBoolean();
 
         final ProcessBuilder builder = new ProcessBuilder(commandStrings);
-        final String workingDirName = context.getProperty(WORKING_DIR).getValue();
+        final String workingDirName = context.getProperty(WORKING_DIR).evaluateAttributeExpressions().getValue();
         if (workingDirName != null) {
             builder.directory(new File(workingDirName));
         }
