@@ -160,6 +160,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 attributes.put("reporting.task.transaction.id", transactionId);
                 attributes.put("reporting.task.name", getName());
                 attributes.put("reporting.task.uuid", getIdentifier());
+                attributes.put("reporting.task.type", this.getClass().getSimpleName());
                 attributes.put("mime.type", "application/json");
 
                 JsonArrayBuilder jsonBatchArrayBuilder = factory.createArrayBuilder();
