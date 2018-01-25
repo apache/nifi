@@ -34,39 +34,47 @@ public class SchemaRecordWriter {
     public static final int MAX_ALLOWED_UTF_LENGTH = 65_535;
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaRecordWriter.class);
+    private static final int CACHE_BUFFER_SIZE = 65536;
+    private static final ByteArrayCache byteArrayCache = new ByteArrayCache(32, CACHE_BUFFER_SIZE);
 
     public void writeRecord(final Record record, final OutputStream out) throws IOException {
         // write sentinel value to indicate that there is a record. This allows the reader to then read one
         // byte and check if -1. If so, the reader knows there are no more records. If not, then the reader
         // knows that it should be able to continue reading.
         out.write(1);
-        writeRecordFields(record, out);
+
+        final byte[] buffer = byteArrayCache.checkOut();
+        try {
+            writeRecordFields(record, out, buffer);
+        } finally {
+            byteArrayCache.checkIn(buffer);
+        }
     }
 
-    private void writeRecordFields(final Record record, final OutputStream out) throws IOException {
-        writeRecordFields(record, record.getSchema(), out);
+    private void writeRecordFields(final Record record, final OutputStream out, final byte[] buffer) throws IOException {
+        writeRecordFields(record, record.getSchema(), out, buffer);
     }
 
-    private void writeRecordFields(final Record record, final RecordSchema schema, final OutputStream out) throws IOException {
+    private void writeRecordFields(final Record record, final RecordSchema schema, final OutputStream out, final byte[] buffer) throws IOException {
         final DataOutputStream dos = out instanceof DataOutputStream ? (DataOutputStream) out : new DataOutputStream(out);
         for (final RecordField field : schema.getFields()) {
             final Object value = record.getFieldValue(field);
 
             try {
-                writeFieldRepetitionAndValue(field, value, dos);
+                writeFieldRepetitionAndValue(field, value, dos, buffer);
             } catch (final Exception e) {
                 throw new IOException("Failed to write field '" + field.getFieldName() + "'", e);
             }
         }
     }
 
-    private void writeFieldRepetitionAndValue(final RecordField field, final Object value, final DataOutputStream dos) throws IOException {
+    private void writeFieldRepetitionAndValue(final RecordField field, final Object value, final DataOutputStream dos, final byte[] buffer) throws IOException {
         switch (field.getRepetition()) {
             case EXACTLY_ONE: {
                 if (value == null) {
                     throw new IllegalArgumentException("Record does not have a value for the '" + field.getFieldName() + "' but the field is required");
                 }
-                writeFieldValue(field, value, dos);
+                writeFieldValue(field, value, dos, buffer);
                 break;
             }
             case ZERO_OR_MORE: {
@@ -83,7 +91,7 @@ public class SchemaRecordWriter {
                 final Collection<?> collection = (Collection<?>) value;
                 dos.writeInt(collection.size());
                 for (final Object fieldValue : collection) {
-                    writeFieldValue(field, fieldValue, dos);
+                    writeFieldValue(field, fieldValue, dos, buffer);
                 }
                 break;
             }
@@ -93,14 +101,25 @@ public class SchemaRecordWriter {
                     break;
                 }
                 dos.write(1);
-                writeFieldValue(field, value, dos);
+                writeFieldValue(field, value, dos, buffer);
                 break;
             }
         }
     }
 
+    private boolean allSingleByteInUtf8(final String value) {
+        for (int i = 0; i < value.length(); i++) {
+            final char ch = value.charAt(i);
+            if (ch < 1 || ch > 127) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
-    private void writeFieldValue(final RecordField field, final Object value, final DataOutputStream out) throws IOException {
+    private void writeFieldValue(final RecordField field, final Object value, final DataOutputStream out, final byte[] buffer) throws IOException {
         switch (field.getFieldType()) {
             case BOOLEAN:
                 out.writeBoolean((boolean) value);
@@ -120,9 +139,27 @@ public class SchemaRecordWriter {
                 writeUTFLimited(out, (String) value, field.getFieldName());
                 break;
             case LONG_STRING:
-                final byte[] charArray = ((String) value).getBytes(StandardCharsets.UTF_8);
-                out.writeInt(charArray.length);
-                out.write(charArray);
+                // In many cases, we will see a String value that consists solely of values in the range of
+                // 1-127, which means that in UTF-8 they will translate into a single byte each. If all characters
+                // in the string adhere to this, then we can skip calling String.getBytes() because that will allocate
+                // a new byte[] every time, which results in a lot of pressure on the garbage collector.
+                final String string = (String) value;
+                final int length = string.length();
+
+                if (length <= buffer.length && allSingleByteInUtf8(string)) {
+                    out.writeInt(length);
+
+                    for (int i = 0; i < length; i++) {
+                        final char ch = string.charAt(i);
+                        buffer[i] = (byte) ch;
+                    }
+
+                    out.write(buffer, 0, length);
+                } else {
+                    final byte[] charArray = ((String) value).getBytes(StandardCharsets.UTF_8);
+                    out.writeInt(charArray.length);
+                    out.write(charArray);
+                }
                 break;
             case MAP:
                 final Map<Object, Object> map = (Map<Object, Object>) value;
@@ -132,19 +169,19 @@ public class SchemaRecordWriter {
                 final RecordField valueField = subFields.get(1);
 
                 for (final Map.Entry<Object, Object> entry : map.entrySet()) {
-                    writeFieldRepetitionAndValue(keyField, entry.getKey(), out);
-                    writeFieldRepetitionAndValue(valueField, entry.getValue(), out);
+                    writeFieldRepetitionAndValue(keyField, entry.getKey(), out, buffer);
+                    writeFieldRepetitionAndValue(valueField, entry.getValue(), out, buffer);
                 }
                 break;
             case UNION:
                 final NamedValue namedValue = (NamedValue) value;
                 writeUTFLimited(out, namedValue.getName(), field.getFieldName());
                 final Record childRecord = (Record) namedValue.getValue();
-                writeRecordFields(childRecord, out);
+                writeRecordFields(childRecord, out, buffer);
                 break;
             case COMPLEX:
                 final Record record = (Record) value;
-                writeRecordFields(record, out);
+                writeRecordFields(record, out, buffer);
                 break;
         }
     }
