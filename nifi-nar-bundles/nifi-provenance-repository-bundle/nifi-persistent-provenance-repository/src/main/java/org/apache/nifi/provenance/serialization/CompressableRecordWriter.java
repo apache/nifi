@@ -56,7 +56,7 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
 
         this.compressed = compressed;
         this.fos = new FileOutputStream(file);
-        rawOutStream = new ByteCountingOutputStream(fos);
+        rawOutStream = new ByteCountingOutputStream(new BufferedOutputStream(fos));
         this.uncompressedBlockSize = uncompressedBlockSize;
         this.idGenerator = idGenerator;
     }
@@ -68,7 +68,7 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
 
         this.compressed = compressed;
         this.uncompressedBlockSize = uncompressedBlockSize;
-        this.rawOutStream = new ByteCountingOutputStream(out);
+        this.rawOutStream = new ByteCountingOutputStream(new BufferedOutputStream(out));
         this.idGenerator = idGenerator;
     }
 
@@ -114,7 +114,6 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
             final long byteOffset = (byteCountingOut == null) ? rawOutStream.getBytesWritten() : byteCountingOut.getBytesWritten();
             final TocWriter tocWriter = getTocWriter();
 
-            final OutputStream writableStream;
             if (compressed) {
                 // because of the way that GZIPOutputStream works, we need to call close() on it in order for it
                 // to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
@@ -128,16 +127,16 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
                     tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
                 }
 
-                writableStream = new BufferedOutputStream(new GZIPOutputStream(new NonCloseableOutputStream(rawOutStream), 1), 65536);
+                final OutputStream writableStream = new BufferedOutputStream(new GZIPOutputStream(new NonCloseableOutputStream(rawOutStream), 1), 65536);
+                this.byteCountingOut = new ByteCountingOutputStream(writableStream, byteOffset);
             } else {
                 if (tocWriter != null && eventId != null) {
                     tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
                 }
 
-                writableStream = new BufferedOutputStream(rawOutStream, 65536);
+                this.byteCountingOut = rawOutStream;
             }
 
-            this.byteCountingOut = new ByteCountingOutputStream(writableStream, byteOffset);
             this.out = new DataOutputStream(byteCountingOut);
             resetDirtyFlag();
         } catch (final IOException ioe) {
