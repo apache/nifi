@@ -37,6 +37,7 @@ import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATT
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Mockito.when;
 
@@ -160,4 +161,136 @@ public class TestHive2JDBC {
         assertEquals("tableB1", ref.get(ATTR_NAME));
         assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
     }
+
+    /**
+     * A Hive connection URL can have connection strings delimited by semicolons.
+     */
+    @Test
+    public void testTableLineageWithDefaultTableNameWithConnectionParams() {
+        final String processorName = "PutHiveQL";
+        final String transitUri = "jdbc:hive2://0.example.com:10000;transportMode=http;httpPath=cliservice";
+        final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
+        when(record.getComponentType()).thenReturn(processorName);
+        when(record.getTransitUri()).thenReturn(transitUri);
+        when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
+        // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+
+        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
+        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+
+        final AnalysisContext context = Mockito.mock(AnalysisContext.class);
+        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+
+        final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
+        assertNotNull(analyzer);
+
+        final DataSetRefs refs = analyzer.analyze(context, record);
+        assertEquals(2, refs.getInputs().size());
+        // QualifiedName : Name
+        final Map<String, String> expectedInputRefs = new HashMap<>();
+        expectedInputRefs.put("default.tableA1@cluster1", "tableA1");
+        expectedInputRefs.put("default.tableA2@cluster1", "tableA2");
+        for (Referenceable ref : refs.getInputs()) {
+            final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
+            assertTrue(expectedInputRefs.containsKey(qName));
+            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+        }
+
+        assertEquals(1, refs.getOutputs().size());
+        Referenceable ref = refs.getOutputs().iterator().next();
+        assertEquals("hive_table", ref.getTypeName());
+        assertEquals("tableB1", ref.get(ATTR_NAME));
+        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+    }
+
+    /**
+     * Hive connection URL can have multiple zookeeper host ports
+     * and multiple parameters delimited with semicolons.
+     * Database name can be omitted.
+     */
+    @Test
+    public void testTableLineageWithZookeeperDiscovery() {
+        final String processorName = "PutHiveQL";
+        final String transitUri = "jdbc:hive2://0.example.com:2181,1.example.com:2181,2.example.com:2181/;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2";
+        final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
+        when(record.getComponentType()).thenReturn(processorName);
+        when(record.getTransitUri()).thenReturn(transitUri);
+        when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
+        // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+
+        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
+        when(clusterResolvers.fromHostNames(eq("0.example.com"), eq("1.example.com"), eq("2.example.com"))).thenReturn("cluster1");
+
+        final AnalysisContext context = Mockito.mock(AnalysisContext.class);
+        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+
+        final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
+        assertNotNull(analyzer);
+
+        final DataSetRefs refs = analyzer.analyze(context, record);
+        assertEquals(2, refs.getInputs().size());
+        // QualifiedName : Name
+        final Map<String, String> expectedInputRefs = new HashMap<>();
+        expectedInputRefs.put("default.tableA1@cluster1", "tableA1");
+        expectedInputRefs.put("default.tableA2@cluster1", "tableA2");
+        for (Referenceable ref : refs.getInputs()) {
+            final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
+            assertTrue(expectedInputRefs.containsKey(qName));
+            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+        }
+
+        assertEquals(1, refs.getOutputs().size());
+        Referenceable ref = refs.getOutputs().iterator().next();
+        assertEquals("hive_table", ref.getTypeName());
+        assertEquals("tableB1", ref.get(ATTR_NAME));
+        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+    }
+
+    /**
+     * Hive connection URL using zookeeper and database name.
+     */
+    @Test
+    public void testTableLineageWithZookeeperDiscoverySpecificDatabase() {
+        final String processorName = "PutHiveQL";
+        final String transitUri = "jdbc:hive2://0.example.com:2181,1.example.com:2181/some_database;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2";
+        final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
+        when(record.getComponentType()).thenReturn(processorName);
+        when(record.getTransitUri()).thenReturn(transitUri);
+        when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
+        // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+
+        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
+        when(clusterResolvers.fromHostNames(eq("0.example.com"), eq("1.example.com"))).thenReturn("cluster1");
+
+        final AnalysisContext context = Mockito.mock(AnalysisContext.class);
+        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+
+        final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
+        assertNotNull(analyzer);
+
+        final DataSetRefs refs = analyzer.analyze(context, record);
+        assertEquals(2, refs.getInputs().size());
+        // QualifiedName : Name
+        final Map<String, String> expectedInputRefs = new HashMap<>();
+        expectedInputRefs.put("some_database.tableA1@cluster1", "tableA1");
+        expectedInputRefs.put("some_database.tableA2@cluster1", "tableA2");
+        for (Referenceable ref : refs.getInputs()) {
+            final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
+            assertTrue(expectedInputRefs.containsKey(qName));
+            assertEquals(expectedInputRefs.get(qName), ref.get(ATTR_NAME));
+        }
+
+        assertEquals(1, refs.getOutputs().size());
+        Referenceable ref = refs.getOutputs().iterator().next();
+        assertEquals("hive_table", ref.getTypeName());
+        assertEquals("tableB1", ref.get(ATTR_NAME));
+        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+    }
+
 }

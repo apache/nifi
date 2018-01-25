@@ -21,10 +21,14 @@ import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATTR_INPUT_TABLES;
 import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.ATTR_OUTPUT_TABLES;
@@ -49,17 +53,41 @@ import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.par
  */
 public class Hive2JDBC extends AbstractHiveAnalyzer {
 
+    private static final Logger logger = LoggerFactory.getLogger(Hive2JDBC.class);
+
+    // jdbc:hive2://<host1>:<port1>,<host2>:<port2>/dbName;initFile=<file>;sess_var_list?hive_conf_list#hive_var_list
+    // Group 1 = <host1>:<port1>,<host2>:<port2>
+    // Group 2 = dbName;initFile=<file>;sess_var_list?hive_conf_list#hive_var_list
+    private static final String URI_PATTERN_STR = "jdbc:hive2://([^/]+)/?(.*)$";
+    private static final Pattern URI_PATTERN = Pattern.compile(URI_PATTERN_STR);
+
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
 
         // Replace the colon so that the schema in the URI can be parsed correctly.
-        final String transitUri = event.getTransitUri().replaceFirst("^jdbc:hive2", "jdbc-hive2");
-        final URI uri = parseUri(transitUri);
-        final String clusterName = context.getClusterResolver().fromHostNames(uri.getHost());
-        // Remove the heading '/'
-        final String path = uri.getPath();
-        // If uri does not contain database name, then use 'default' as database name.
-        final String connectedDatabaseName = path == null || path.isEmpty() ? "default" : path.substring(1);
+        final String transitUri = event.getTransitUri();
+        if (transitUri == null) {
+            return null;
+        }
+
+        final Matcher uriMatcher = URI_PATTERN.matcher(transitUri);
+        if (!uriMatcher.matches()) {
+            logger.warn("Unexpected transit URI: {}", new Object[]{transitUri});
+            return null;
+        }
+
+        final String clusterName = context.getClusterResolver().fromHostNames(splitHostNames(uriMatcher.group(1)));
+        String connectedDatabaseName = null;
+        if (uriMatcher.groupCount() > 1) {
+            // Try to find connected database name from connection parameters.
+            final String[] connectionParams = uriMatcher.group(2).split(";");
+            connectedDatabaseName = connectionParams[0];
+        }
+
+        if (StringUtils.isEmpty(connectedDatabaseName)) {
+            // If not found, then use "default".
+            connectedDatabaseName = "default";
+        }
 
         final Set<Tuple<String, String>> inputTables = parseTableNames(connectedDatabaseName, event.getAttribute(ATTR_INPUT_TABLES));
         final Set<Tuple<String, String>> outputTables = parseTableNames(connectedDatabaseName, event.getAttribute(ATTR_OUTPUT_TABLES));
@@ -97,6 +125,6 @@ public class Hive2JDBC extends AbstractHiveAnalyzer {
 
     @Override
     public String targetTransitUriPattern() {
-        return "^jdbc:hive2://.+$";
+        return URI_PATTERN_STR;
     }
 }
