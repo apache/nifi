@@ -105,7 +105,8 @@ public class TestExecuteProcess {
     @Test
     public void validateProcessInterruptOnStop() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
-        runner.setProperty(ExecuteProcess.COMMAND, "ping");
+        runner.setVariable("command", "ping");
+        runner.setProperty(ExecuteProcess.COMMAND, "${command}");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "nifi.apache.org");
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "500 millis");
 
@@ -127,6 +128,10 @@ public class TestExecuteProcess {
             fail();
         }
 
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
+        if(!flowFiles.isEmpty()) {
+            assertTrue(flowFiles.get(0).getAttribute("command").equals("ping"));
+        }
     }
 
     // @Test
