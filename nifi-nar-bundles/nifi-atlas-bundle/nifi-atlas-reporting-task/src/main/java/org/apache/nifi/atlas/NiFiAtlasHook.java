@@ -255,7 +255,11 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
             }
             return new Tuple<>(refQualifiedName, typedQualifiedNameToRef.get(toTypedQualifiedName(typeName, refQualifiedName)));
         }).filter(Objects::nonNull).filter(tuple -> tuple.getValue() != null)
-                .collect(Collectors.toMap(Tuple::getKey, Tuple::getValue));
+                // If duplication happens, use new value.
+                .collect(Collectors.toMap(Tuple::getKey, Tuple::getValue, (oldValue, newValue) -> {
+                    logger.warn("Duplicated qualified name was found, use the new one. oldValue={}, newValue={}", new Object[]{oldValue, newValue});
+                    return newValue;
+                }));
     }
 
     @SuppressWarnings("unchecked")

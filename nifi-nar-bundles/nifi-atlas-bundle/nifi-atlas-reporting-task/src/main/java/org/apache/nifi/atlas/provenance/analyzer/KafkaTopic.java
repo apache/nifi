@@ -62,14 +62,8 @@ public class KafkaTopic extends AbstractNiFiProvenanceEventAnalyzer {
             return null;
         }
 
-        String clusterName = null;
-        for (String broker : uriMatcher.group(1).split(",")) {
-            final String brokerHostname = broker.split(":")[0].trim();
-            clusterName = context.getClusterResolver().fromHostNames(brokerHostname);
-            if (clusterName != null && !clusterName.isEmpty()) {
-                break;
-            }
-        }
+        final String[] hostNames = splitHostNames(uriMatcher.group(1));
+        final String clusterName = context.getClusterResolver().fromHostNames(hostNames);
 
         final String topicName = uriMatcher.group(2);
 
