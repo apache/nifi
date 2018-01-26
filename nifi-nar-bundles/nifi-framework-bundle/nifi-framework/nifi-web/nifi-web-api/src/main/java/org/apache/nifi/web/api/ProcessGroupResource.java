@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api;
 
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -3349,6 +3351,16 @@ public class ProcessGroupResource extends ApplicationResource {
             response = TemplateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}")
+            }
+    )
+    @ApiImplicitParams(
+            value = {
+                    @ApiImplicitParam(
+                            name = "template",
+                            value = "The binary content of the template file being uploaded.",
+                            required = true,
+                            type = "file",
+                            paramType = "formData")
             }
     )
     @ApiResponses(
