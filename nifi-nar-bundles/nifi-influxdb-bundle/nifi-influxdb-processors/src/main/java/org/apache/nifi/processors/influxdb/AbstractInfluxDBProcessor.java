@@ -72,6 +72,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("influxdb-password")
             .displayName("Password")
+            .required(false)
             .description("Password for user")
             .addValidator(Validator.VALID)
             .sensitive(true)
@@ -95,9 +96,6 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
     public static final String INFLUX_DB_ERROR_MESSAGE = "influxdb.error.message";
 
     protected InfluxDB influxDB;
-    protected String influxDbUrl;
-    protected String username;
-    protected String password;
     protected long maxRecordsSize;
 
     /**
@@ -110,33 +108,37 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        username = context.getProperty(USERNAME).getValue();
-        password = context.getProperty(PASSWORD).getValue();
-        influxDbUrl = context.getProperty(INFLUX_DB_URL).getValue();
+        String username = context.getProperty(USERNAME).getValue();
+        String password = context.getProperty(PASSWORD).getValue();
+        String influxDbUrl = context.getProperty(INFLUX_DB_URL).getValue();
 
         maxRecordsSize = context.getProperty(MAX_RECORDS_SIZE).asDataSize(DataUnit.B).longValue();
 
         try {
-            influxDB = makeConnection();
+            influxDB = makeConnection(username, password, influxDbUrl);
         } catch(Exception e) {
-            getLogger().error("Error while getting connection " + e.getLocalizedMessage(),e);
+            getLogger().error("Error while getting connection {}", new Object[] { e.getLocalizedMessage() },e);
             throw new RuntimeException("Error while getting connection" + e.getLocalizedMessage(),e);
         }
-        getLogger().info("InfluxDB connection created for host",
+        getLogger().info("InfluxDB connection created for host {}",
                 new Object[] {influxDbUrl});
     }
 
-    protected InfluxDB makeConnection() {
-        if ( StringUtils.isBlank(username) || StringUtils.isBlank(password) )
+    protected InfluxDB makeConnection(String username, String password, String influxDbUrl) {
+        if ( StringUtils.isBlank(username) || StringUtils.isBlank(password) ) {
             return InfluxDBFactory.connect(influxDbUrl);
-        else
+        } else {
             return InfluxDBFactory.connect(influxDbUrl, username, password);
+        }
     }
 
     @OnStopped
     public void close() {
-        getLogger().info("Closing connection");
-        if ( influxDB != null )
+        if (getLogger().isDebugEnabled()) {
+            getLogger().info("Closing connection");
+        }
+        if ( influxDB != null ) {
             influxDB.close();
+        }
     }
 }

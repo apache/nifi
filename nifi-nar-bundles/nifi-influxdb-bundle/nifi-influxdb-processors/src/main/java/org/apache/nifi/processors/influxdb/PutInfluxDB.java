@@ -47,7 +47,7 @@ import java.util.Set;
 @SupportsBatching
 @Tags({"influxdb", "measurement","insert", "write", "put", "timeseries"})
 @CapabilityDescription("Processor to write the content of a FlowFile (in line protocol https://docs.influxdata.com/influxdb/v1.3/write_protocols/line_protocol_tutorial/) to InfluxDB (https://www.influxdb.com/). "
-        + "  The flow file can contain single measurement point or multiple measurement points separated by line seperator")
+        + "  The flow file can contain single measurement point or multiple measurement points separated by line seperator.  The timestamp (last field) should be in nano-seconds resolution.")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractInfluxDBProcessor.INFLUX_DB_ERROR_MESSAGE, description = "InfluxDB error message"),
     })
@@ -65,7 +65,7 @@ public class PutInfluxDB extends AbstractInfluxDBProcessor {
             .required(true)
             .defaultValue(CONSISTENCY_LEVEL_ONE.getValue())
             .expressionLanguageSupported(true)
-            .allowableValues(CONSISTENCY_LEVEL_ONE,CONSISTENCY_LEVEL_ANY,CONSISTENCY_LEVEL_ALL,CONSISTENCY_LEVEL_QUORUM)
+            .allowableValues(CONSISTENCY_LEVEL_ONE, CONSISTENCY_LEVEL_ANY, CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
             .build();
 
     public static final PropertyDescriptor RETENTION_POLICY = new PropertyDescriptor.Builder()
@@ -153,7 +153,7 @@ public class PutInfluxDB extends AbstractInfluxDBProcessor {
 
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile,
-                    new StringBuilder("influxdb://").append(influxDbUrl).append("/").append(database).toString(),
+                    new StringBuilder("influxdb://").append(context.getProperty(INFLUX_DB_URL).getValue()).append("/").append(database).toString(),
                     (endTimeMillis - startTimeMillis));
 
         } catch (Exception exception) {

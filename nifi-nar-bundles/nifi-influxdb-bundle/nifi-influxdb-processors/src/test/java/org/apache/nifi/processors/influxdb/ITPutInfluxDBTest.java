@@ -27,7 +27,6 @@ import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -35,7 +34,6 @@ import org.junit.Test;
  * on local host with default port and has database test with table test. Please set user
  * and password if applicable before running the integration tests.
  */
-@Ignore("Comment this out for running tests against a real instance of InfluxDB")
 public class ITPutInfluxDBTest {
     private TestRunner runner;
     private InfluxDB influxDB;
@@ -64,6 +62,7 @@ public class ITPutInfluxDBTest {
             checkError(result);
             result = influxDB.query(new Query("DROP measurement testm", dbName));
             checkError(result);
+            Thread.sleep(2000);
         } else {
             influxDB.createDatabase(dbName);
             int max = 10;
@@ -77,15 +76,17 @@ public class ITPutInfluxDBTest {
     }
 
     protected void checkError(QueryResult result) {
-        if ( result.hasError() )
+        if ( result.hasError() ) {
             throw new IllegalStateException("Error while dropping measurements " + result.getError());
+        }
     }
 
     @After
     public void tearDown() throws Exception {
         runner = null;
-        if ( influxDB != null )
+        if ( influxDB != null ) {
             influxDB.close();
+        }
     }
 
     @Test

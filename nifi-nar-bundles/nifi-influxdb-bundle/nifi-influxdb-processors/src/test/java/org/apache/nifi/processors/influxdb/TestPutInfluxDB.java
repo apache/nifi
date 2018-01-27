@@ -35,7 +35,7 @@ public class TestPutInfluxDB {
     public void setUp() throws Exception {
         mockPutInfluxDB = new PutInfluxDB() {
             @Override
-            protected InfluxDB makeConnection() {
+            protected InfluxDB makeConnection(String username, String password, String influxDbUrl) {
                 return null;
             }
 
@@ -80,7 +80,7 @@ public class TestPutInfluxDB {
 
     @Test
     public void testEmptyUsername() {
-        runner.setProperty(PutInfluxDB.USERNAME, "");
+        runner.setProperty(PutInfluxDB.USERNAME,"");
         runner.assertValid();
     }
 
@@ -147,7 +147,7 @@ public class TestPutInfluxDB {
     public void testWriteThrowsException() {
         mockPutInfluxDB = new PutInfluxDB() {
             @Override
-            protected InfluxDB makeConnection() {
+            protected InfluxDB makeConnection(String username, String password, String influxDbUrl) {
                 return null;
             }
 
@@ -182,7 +182,7 @@ public class TestPutInfluxDB {
     public void testMakeConnectionThrowsException() {
         mockPutInfluxDB = new PutInfluxDB() {
             @Override
-            protected InfluxDB makeConnection() {
+            protected InfluxDB makeConnection(String username, String password, String influxDbUrl) {
                 throw new RuntimeException("testException");
             }
         };
