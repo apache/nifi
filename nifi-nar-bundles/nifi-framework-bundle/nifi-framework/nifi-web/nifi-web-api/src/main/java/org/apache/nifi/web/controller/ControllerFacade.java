@@ -1518,6 +1518,10 @@ public class ControllerFacade implements Authorizable {
         return results;
     }
 
+    public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {
+        flowController.verifyComponentTypesInSnippet(versionedFlow);
+    }
+
     /*
      * setters
      */
