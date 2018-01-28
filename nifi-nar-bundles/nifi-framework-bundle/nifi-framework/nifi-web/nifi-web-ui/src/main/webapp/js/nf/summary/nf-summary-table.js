@@ -310,25 +310,25 @@
             if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
                 activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
             }
-            var classes = nfCommon.escapeHtml(value.toLowerCase());
-            switch (nfCommon.escapeHtml(value.toLowerCase())) {
+            var classes;
+            switch (value.toLowerCase()) {
                 case 'running':
-                    classes += ' fa fa-play running';
+                    classes = 'fa fa-play running';
                     break;
                 case 'stopped':
-                    classes += ' fa fa-stop stopped';
+                    classes = 'fa fa-stop stopped';
                     break;
                 case 'enabled':
-                    classes += ' fa fa-flash enabled';
+                    classes = 'fa fa-flash enabled';
                     break;
                 case 'disabled':
-                    classes += ' icon icon-enable-false disabled';
+                    classes = 'icon icon-enable-false disabled';
                     break;
                 case 'invalid':
-                    classes += ' fa fa-warning invalid';
+                    classes = 'fa fa-warning invalid';
                     break;
                 default:
-                    classes += '';
+                    classes = '';
             }
             var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
             return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nfCommon.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
@@ -413,6 +413,15 @@
                 resizable: true,
                 formatter: nfCommon.genericValueFormatter
             },
+            {
+                id: 'parentGroup',
+                field: 'parentProcessGroupName',
+                name: 'Process Group',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter,
+                toolTip: 'Parent Process Group name'
+            },
             runStatusColumn,
             inputColumn,
             ioColumn,
@@ -430,7 +439,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor in ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + '" style="margin-right: 3px;"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
@@ -1032,6 +1041,37 @@
             formatter: nfCommon.genericValueFormatter
         };
 
+        // define how the column is formatted
+        var versionStateFormatter = function (row, cell, value, columnDef, dataContext) {
+            var classes, label;
+            switch (value) {
+                case 'UP_TO_DATE':
+                    classes = 'fa fa-check up-to-date';
+                    label = 'Up to date';
+                    break;
+                case 'LOCALLY_MODIFIED':
+                    classes = 'fa fa-asterisk locally-modified';
+                    label = 'Locally modified';
+                    break;
+                case 'STALE':
+                    classes = 'fa fa-arrow-circle-up stale';
+                    label = 'Stale';
+                    break;
+                case 'LOCALLY_MODIFIED_AND_STALE':
+                    classes = 'fa fa-exclamation-circle locally-modified-and-stale';
+                    label = 'Locally modified and stale';
+                    break;
+                case 'SYNC_FAILURE':
+                    classes = 'fa fa-question sync-failure';
+                    label = 'Sync failure';
+                    break;
+                default:
+                    classes = '';
+                    label = '';
+            }
+            return '<div layout="row"><div class="' + classes + '"></div><div class="status-text" style="margin-top: 4px;">' + label + '</div></div>';
+        };
+
         // define the column model for the summary table
         var processGroupsColumnModel = [
             moreDetailsColumn,
@@ -1042,6 +1082,14 @@
                 sortable: true,
                 resizable: true,
                 formatter: valueFormatter
+            },
+            {
+                id: 'versionedFlowState',
+                field: 'versionedFlowState',
+                name: 'Version State',
+                sortable: true,
+                resizable: true,
+                formatter: versionStateFormatter
             },
             transferredColumn,
             inputColumn,
@@ -2523,12 +2571,21 @@
      * @argument {array} inputPortItems                 The input port data
      * @argument {array} outputPortItems                The input port data
      * @argument {array} remoteProcessGroupItems        The remote process group data
-     * @argument {object} aggregateSnapshot            The process group status
+     * @argument {object} aggregateSnapshot             The process group status
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
      */
-    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot) {
+    var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, ancestorsSnapshot) {
         // add the processors to the summary grid
         $.each(aggregateSnapshot.processorStatusSnapshots, function (i, procStatusEntity) {
-            processorItems.push(procStatusEntity.processorStatusSnapshot);
+            var currentProcessorStatusSnapshot = procStatusEntity.processorStatusSnapshot;
+
+            currentProcessorStatusSnapshot.parentProcessGroupName = aggregateSnapshot.name;
+            // construct a 'path' based on hierarchical group levels
+            currentProcessorStatusSnapshot.processGroupNamePath = ancestorsSnapshot.reduce(function(tempGroupNamesPath, ancestorGroup) {
+                return tempGroupNamesPath + '/' + ancestorGroup.name;
+            }, '');
+
+            processorItems.push(currentProcessorStatusSnapshot);
         });
 
         // add the processors to the summary grid
@@ -2556,8 +2613,21 @@
 
         // add any child group's status
         $.each(aggregateSnapshot.processGroupStatusSnapshots, function (i, childProcessGroupEntity) {
-            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupEntity.processGroupStatusSnapshot);
+            var childProcessGroupStatusSnapshot = childProcessGroupEntity.processGroupStatusSnapshot;
+            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupStatusSnapshot, createUpdatedAncestorsSnapshot(ancestorsSnapshot, childProcessGroupStatusSnapshot));
         });
+    };
+
+    /**
+     * Creates a new process group hierarchy.
+     *
+     * @argument {array} ancestorsSnapshot              The process group hierarchy
+     * @argument {object} newAncestor                   The process group to add
+     */
+    var createUpdatedAncestorsSnapshot = function(ancestorsSnapshot, newAncestor) {
+        var snapshotCopy = ancestorsSnapshot.slice();
+        snapshotCopy.push(newAncestor);
+        return snapshotCopy;
     };
 
     /**
@@ -3105,7 +3175,7 @@
                     var remoteProcessGroupItems = [];
 
                     // populate the tables
-                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot);
+                    populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, [aggregateSnapshot]);
 
                     // update the processors
                     processorsData.setItems(processorItems);

@@ -84,19 +84,6 @@
     // --------------------------
 
     /**
-     * Gets the process group comments.
-     *
-     * @param {object} d
-     */
-    var getProcessGroupComments = function (d) {
-        if (nfCommon.isBlank(d.component.comments)) {
-            return 'No comments specified';
-        } else {
-            return d.component.comments;
-        }
-    };
-
-    /**
      * Selects the remote process group elements against the current remote process group map.
      */
     var select = function () {
@@ -181,9 +168,6 @@
         // always support selection
         remoteProcessGroup.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
     };
-
-    // attempt of space between component count and icon for process group contents
-    var CONTENTS_SPACER = 5;
 
     /**
      * Updates the process groups in the specified selection.
@@ -302,18 +286,6 @@
                             'x': 0,
                             'y': 85,
                             'fill': '#ffffff'
-                        });
-
-                    // border
-                    details.append('rect')
-                        .attr({
-                            'width': function () {
-                                return remoteProcessGroupData.dimensions.width;
-                            },
-                            'height': 1,
-                            'x': 0,
-                            'y': 103,
-                            'fill': '#c7d2d7'
                         });
 
                     // -----
@@ -438,20 +410,6 @@
                         })
                         .text('5 min');
 
-                    // --------
-                    // comments
-                    // --------
-
-                    // process group comments
-                    details.append('text')
-                        .attr({
-                            'x': 10,
-                            'y': 121,
-                            'width': 342,
-                            'height': 22,
-                            'class': 'remote-process-group-comments'
-                        });
-
                     // -------------------
                     // last refreshed time
                     // -------------------
@@ -471,9 +429,20 @@
 
                     details.append('text')
                         .attr({
-                            'x': 370,
+                            'x': 10,
                             'y': 150,
                             'class': 'remote-process-group-last-refresh'
+                        });
+
+                    // --------
+                    // comments
+                    // --------
+
+                    details.append('path')
+                        .attr({
+                            'class': 'component-comments',
+                            'transform': 'translate(' + (remoteProcessGroupData.dimensions.width - 2) + ', ' + (remoteProcessGroupData.dimensions.height - 10) + ')',
+                            'd': 'm0,0 l0,8 l-8,0 z'
                         });
 
                     // -------------------
@@ -518,7 +487,7 @@
                             'x': function () {
                                 return remoteProcessGroupData.dimensions.width - 17;
                             },
-                            'y': 50
+                            'y': 49
                         })
                         .text('\uf24a');
                 }
@@ -579,21 +548,36 @@
                     // update comments
                     // ---------------
 
-                    // update the process group comments
-                    details.select('text.remote-process-group-comments')
-                        .each(function (d) {
-                            var remoteProcessGroupComments = d3.select(this);
+                    // update the remote process group comments
+                    details.select('path.component-comments')
+                        .style('visibility', nfCommon.isBlank(remoteProcessGroupData.component.comments) ? 'hidden' : 'visible')
+                        .each(function () {
+                            // get the tip
+                            var tip = d3.select('#comments-tip-' + remoteProcessGroupData.id);
 
-                            // reset the processor name to handle any previous state
-                            remoteProcessGroupComments.text(null).selectAll('tspan, title').remove();
+                            // if there are validation errors generate a tooltip
+                            if (nfCommon.isBlank(remoteProcessGroupData.component.comments)) {
+                                // remove the tip if necessary
+                                if (!tip.empty()) {
+                                    tip.remove();
+                                }
+                            } else {
+                                // create the tip if necessary
+                                if (tip.empty()) {
+                                    tip = d3.select('#remote-process-group-tooltips').append('div')
+                                        .attr('id', function () {
+                                            return 'comments-tip-' + remoteProcessGroupData.id;
+                                        })
+                                        .attr('class', 'tooltip nifi-tooltip');
+                                }
 
-                            // apply ellipsis to the port name as necessary
-                            nfCanvasUtils.ellipsis(remoteProcessGroupComments, getProcessGroupComments(d));
-                        }).classed('unset', function (d) {
-                        return nfCommon.isBlank(d.component.comments);
-                    }).append('title').text(function (d) {
-                        return getProcessGroupComments(d);
-                    });
+                                // update the tip
+                                tip.text(remoteProcessGroupData.component.comments);
+
+                                // add the tooltip
+                                nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                            }
+                        });
 
                     // --------------
                     // last refreshed
@@ -628,14 +612,17 @@
                     // clear the transmission secure icon
                     details.select('text.remote-process-group-transmission-secure').text(null);
 
-                    // clear the process group comments
-                    details.select('text.remote-process-group-comments').text(null);
+                    // clear the comments
+                    details.select('path.component-comments').style('visibility', 'hidden');
 
                     // clear the last refresh
                     details.select('text.remote-process-group-last-refresh').text(null);
 
                     // clear the name
                     remoteProcessGroup.select('text.remote-process-group-name').text(null);
+
+                    // clear tooltips
+                    remoteProcessGroup.call(removeTooltips);
                 }
 
                 // populate the stats
@@ -853,6 +840,7 @@
             $('#bulletin-tip-' + d.id).remove();
             $('#authorization-issues-' + d.id).remove();
             $('#transmission-secure-' + d.id).remove();
+            $('#comments-tip-' + d.id).remove();
         });
     };
 

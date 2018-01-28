@@ -19,9 +19,9 @@ package org.apache.nifi.hadoop;
 import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.nifi.logging.ComponentLog;
 
 import java.io.IOException;
+import java.util.Random;
 
 /**
  * Provides synchronized access to UserGroupInformation to avoid multiple processors/services from
@@ -35,6 +35,20 @@ public class SecurityUtil {
      * Initializes UserGroupInformation with the given Configuration and performs the login for the given principal
      * and keytab. All logins should happen through this class to ensure other threads are not concurrently modifying
      * UserGroupInformation.
+     * <p/>
+     * As of Apache NiFi 1.5.0, this method uses {@link UserGroupInformation#loginUserFromKeytab(String, String)} to
+     * authenticate the given <code>principal</code>, which sets the static variable <code>loginUser</code> in the
+     * {@link UserGroupInformation} instance.  Setting <code>loginUser</code> is necessary for
+     * {@link org.apache.hadoop.ipc.Client.Connection#handleSaslConnectionFailure(int, int, Exception, Random, UserGroupInformation)}
+     * to be able to attempt a relogin during a connection failure.  The <code>handleSaslConnectionFailure</code> method
+     * calls <code>UserGroupInformation.getLoginUser().reloginFromKeytab()</code> statically, which can return null
+     * if <code>loginUser</code> is not set, resulting in failure of the hadoop operation.
+     * <p/>
+     * In previous versions of NiFi, {@link UserGroupInformation#loginUserFromKeytabAndReturnUGI(String, String)} was
+     * used to authenticate the <code>principal</code>, which does not set <code>loginUser</code>, making it impossible
+     * for a
+     * {@link org.apache.hadoop.ipc.Client.Connection#handleSaslConnectionFailure(int, int, Exception, Random, UserGroupInformation)}
+     * to be able to implicitly relogin the principal.
      *
      * @param config the configuration instance
      * @param principal the principal to authenticate as
@@ -51,7 +65,8 @@ public class SecurityUtil {
         Validate.notNull(keyTab);
 
         UserGroupInformation.setConfiguration(config);
-        return UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal.trim(), keyTab.trim());
+        UserGroupInformation.loginUserFromKeytab(principal.trim(), keyTab.trim());
+        return UserGroupInformation.getCurrentUser();
     }
 
     /**
@@ -85,32 +100,4 @@ public class SecurityUtil {
         Validate.notNull(config);
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
     }
-
-    /**
-     * Start a thread that periodically attempts to renew the current Kerberos user's ticket.
-     *
-     * Callers of this method should store the reference to the KerberosTicketRenewer and call stop() to stop the thread.
-     *
-     * @param id
-     *          The unique identifier to use for the thread, can be the class name that started the thread
-     *              (i.e. PutHDFS, etc)
-     * @param ugi
-     *          The current Kerberos user.
-     * @param renewalPeriod
-     *          The amount of time between attempting renewals.
-     * @param logger
-     *          The logger to use with in the renewer
-     *
-     * @return the KerberosTicketRenewer Runnable
-     */
-    public static KerberosTicketRenewer startTicketRenewalThread(final String id, final UserGroupInformation ugi, final long renewalPeriod, final ComponentLog logger) {
-        final KerberosTicketRenewer renewer = new KerberosTicketRenewer(ugi, renewalPeriod, logger);
-
-        final Thread t = new Thread(renewer);
-        t.setName("Kerberos Ticket Renewal [" + id + "]");
-        t.start();
-
-        return renewer;
-    }
-
 }

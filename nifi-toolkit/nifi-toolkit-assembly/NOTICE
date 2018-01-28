@@ -15,6 +15,11 @@ The following binary components are provided under the Apache Software License v
       Apache NiFi
       Copyright 2014-2016 The Apache Software Foundation
 
+  (ASLv2) Apache Commons BeanUtils
+    The following NOTICE information applies:
+      Apache Commons BeanUtils
+      Copyright 2000-2016 The Apache Software Foundation
+
   (ASLv2) Apache Commons CLI
     The following NOTICE information applies:
       Apache Commons CLI
@@ -36,6 +41,11 @@ The following binary components are provided under the Apache Software License v
       with permission from the original authors.
       Original source copyright:
       Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons Configuration
+    The following NOTICE information applies:
+      Apache Commons Configuration
+      Copyright 2001-2017 The Apache Software Foundation
 
   (ASLv2) Apache Commons IO
     The following NOTICE information applies:

@@ -29,6 +29,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
 
@@ -61,9 +62,21 @@ public class PublisherLease implements Closeable {
             tracker = new InFlightMessageTracker();
         }
 
-        try (final StreamDemarcator demarcator = new StreamDemarcator(flowFileContent, demarcatorBytes, maxMessageSize)) {
+        try {
             byte[] messageContent;
-            try {
+            if (demarcatorBytes == null || demarcatorBytes.length == 0) {
+                if (flowFile.getSize() > maxMessageSize) {
+                    tracker.fail(flowFile, new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of " + maxMessageSize + " bytes."));
+                    return;
+                }
+                // Send FlowFile content as it is, to support sending 0 byte message.
+                messageContent = new byte[(int) flowFile.getSize()];
+                StreamUtils.fillBuffer(flowFileContent, messageContent);
+                publish(flowFile, messageKey, messageContent, topic, tracker);
+                return;
+            }
+
+            try (final StreamDemarcator demarcator = new StreamDemarcator(flowFileContent, demarcatorBytes, maxMessageSize)) {
                 while ((messageContent = demarcator.nextToken()) != null) {
                     publish(flowFile, messageKey, messageContent, topic, tracker);
 
@@ -72,6 +85,7 @@ public class PublisherLease implements Closeable {
                         return;
                     }
                 }
+                tracker.trackEmpty(flowFile);
             } catch (final TokenTooLargeException ttle) {
                 tracker.fail(flowFile, ttle);
             }

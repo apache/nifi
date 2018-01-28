@@ -18,10 +18,11 @@ package org.apache.nifi.groups;
 
 public class ProcessGroupCounts {
 
-    private final int inputPortCount, outputPortCount, runningCount, stoppedCount, invalidCount, disabledCount, activeRemotePortCount, inactiveRemotePortCount;
+    private final int inputPortCount, outputPortCount, runningCount, stoppedCount, invalidCount, disabledCount, activeRemotePortCount, inactiveRemotePortCount,
+            upToDateCount, locallyModifiedCount, staleCount, locallyModifiedAndStaleCount, syncFailureCount;
 
-    public ProcessGroupCounts(final int inputPortCount, final int outputPortCount, final int runningCount,
-            final int stoppedCount, final int invalidCount, final int disabledCount, final int activeRemotePortCount, final int inactiveRemotePortCount) {
+    public ProcessGroupCounts(int inputPortCount, int outputPortCount, int runningCount, int stoppedCount, int invalidCount, int disabledCount, int activeRemotePortCount,
+                              int inactiveRemotePortCount, int upToDateCount, int locallyModifiedCount, int staleCount, int locallyModifiedAndStaleCount, int syncFailureCount) {
         this.inputPortCount = inputPortCount;
         this.outputPortCount = outputPortCount;
         this.runningCount = runningCount;
@@ -30,6 +31,11 @@ public class ProcessGroupCounts {
         this.disabledCount = disabledCount;
         this.activeRemotePortCount = activeRemotePortCount;
         this.inactiveRemotePortCount = inactiveRemotePortCount;
+        this.upToDateCount = upToDateCount;
+        this.locallyModifiedCount = locallyModifiedCount;
+        this.staleCount = staleCount;
+        this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
+        this.syncFailureCount = syncFailureCount;
     }
 
     public int getInputPortCount() {
@@ -62,5 +68,25 @@ public class ProcessGroupCounts {
 
     public int getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
+    }
+
+    public int getUpToDateCount() {
+        return upToDateCount;
+    }
+
+    public int getLocallyModifiedCount() {
+        return locallyModifiedCount;
+    }
+
+    public int getStaleCount() {
+        return staleCount;
+    }
+
+    public int getLocallyModifiedAndStaleCount() {
+        return locallyModifiedAndStaleCount;
+    }
+
+    public int getSyncFailureCount() {
+        return syncFailureCount;
     }
 }

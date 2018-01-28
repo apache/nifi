@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -74,6 +75,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.queryrecord.FlowFileTable;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -256,6 +258,20 @@ public class QueryRecord extends AbstractProcessor {
         final Map<FlowFile, Relationship> transformedFlowFiles = new HashMap<>();
         final Set<FlowFile> createdFlowFiles = new HashSet<>();
 
+        // Determine the Record Reader's schema
+        final RecordSchema readerSchema;
+        try (final InputStream rawIn = session.read(original)) {
+            final Map<String, String> originalAttributes = original.getAttributes();
+            final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, getLogger());
+            final RecordSchema inputSchema = reader.getSchema();
+
+            readerSchema = recordSetWriterFactory.getSchema(originalAttributes, inputSchema);
+        } catch (final Exception e) {
+            getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
+            session.transfer(original, REL_FAILURE);
+            return;
+        }
+
         // Determine the schema for writing the data
         final Map<String, String> originalAttributes = original.getAttributes();
         int recordsRead = 0;
@@ -294,7 +310,7 @@ public class QueryRecord extends AbstractProcessor {
                                 final RecordSchema writeSchema;
 
                                 try {
-                                    recordSet = new ResultSetRecordSet(rs);
+                                    recordSet = new ResultSetRecordSet(rs, readerSchema);
                                     final RecordSchema resultSetSchema = recordSet.getSchema();
                                     writeSchema = recordSetWriterFactory.getSchema(originalAttributes, resultSetSchema);
                                 } catch (final SQLException | SchemaNotFoundException e) {

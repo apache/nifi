@@ -30,6 +30,7 @@ import java.security.PrivilegedExceptionAction;
  * relogin attempts this thread will sleep for the provided amount of time.
  *
  */
+@Deprecated
 public class KerberosTicketRenewer implements Runnable {
 
     private final UserGroupInformation ugi;

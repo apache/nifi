@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -198,6 +199,21 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addFlowControllerFingerprint(final StringBuilder builder, final Element flowControllerElem, final FlowController controller) {
+        // registries
+        final Element registriesElement = DomUtils.getChild(flowControllerElem, "registries");
+        if (registriesElement == null) {
+            builder.append("NO_VALUE");
+        } else {
+            final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+            if (flowRegistryElems.isEmpty()) {
+                builder.append("NO_VALUE");
+            } else {
+                for (final Element flowRegistryElement : flowRegistryElems) {
+                    addFlowRegistryFingerprint(builder, flowRegistryElement);
+                }
+            }
+        }
+
         // root group
         final Element rootGroupElem = (Element) DomUtils.getChildNodesByTagName(flowControllerElem, "rootGroup").item(0);
         addProcessGroupFingerprint(builder, rootGroupElem, controller);
@@ -265,9 +281,25 @@ public class FingerprintFactory {
         return builder;
     }
 
+    private StringBuilder addFlowRegistryFingerprint(final StringBuilder builder, final Element flowRegistryElement) {
+        Stream.of("id", "name", "url", "description").forEach(elementName -> appendFirstValue(builder, DomUtils.getChildNodesByTagName(flowRegistryElement, elementName)));
+        return builder;
+    }
+
     private StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final Element processGroupElem, final FlowController controller) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "versionedComponentId"));
+
+        final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");
+        if (versionControlInfo == null) {
+            builder.append("NO_VERSION_CONTROL_INFORMATION");
+        } else {
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "registryId"));
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "bucketId"));
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "flowId"));
+            appendFirstValue(builder, DomUtils.getChildNodesByTagName(versionControlInfo, "version"));
+        }
 
         // processors
         final List<Element> processorElems = DomUtils.getChildElementsByTagName(processGroupElem, "processor");
@@ -344,6 +376,7 @@ public class FingerprintFactory {
     private StringBuilder addFlowFileProcessorFingerprint(final StringBuilder builder, final Element processorElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "versionedComponentId"));
         // class
         final NodeList childNodes = DomUtils.getChildNodesByTagName(processorElem, "class");
         final String className = childNodes.item(0).getTextContent();
@@ -435,6 +468,7 @@ public class FingerprintFactory {
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "versionedComponentId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(portElem, "name"));
 
         final NodeList userAccessControlNodeList = DomUtils.getChildNodesByTagName(portElem, "userAccessControl");
@@ -471,13 +505,14 @@ public class FingerprintFactory {
 
     private StringBuilder addLabelFingerprint(final StringBuilder builder, final Element labelElem) {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(labelElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(labelElem, "versionedComponentId"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(labelElem, "value"));
         return builder;
     }
 
     private StringBuilder addRemoteProcessGroupFingerprint(final StringBuilder builder, final Element remoteProcessGroupElem) throws FingerprintException {
 
-        for (String tagName : new String[]{"id", "urls", "networkInterface", "timeout", "yieldPeriod",
+        for (String tagName : new String[] {"id", "versionedComponentId", "urls", "networkInterface", "timeout", "yieldPeriod",
                 "transportProtocol", "proxyHost", "proxyPort", "proxyUser", "proxyPassword"}) {
             final String value = getFirstValue(DomUtils.getChildNodesByTagName(remoteProcessGroupElem, tagName));
             if (isEncrypted(value)) {
@@ -544,7 +579,7 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final Element remoteGroupPortElement) {
-        for (final String childName : new String[] {"id", "targetId", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
+        for (final String childName : new String[] {"id", "targetId", "versionedComponentId", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
             appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteGroupPortElement, childName));
         }
 
@@ -555,6 +590,7 @@ public class FingerprintFactory {
     private StringBuilder addConnectionFingerprint(final StringBuilder builder, final Element connectionElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "versionedComponentId"));
         // source id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "sourceId"));
         // source group id
@@ -583,11 +619,13 @@ public class FingerprintFactory {
     private StringBuilder addFunnelFingerprint(final StringBuilder builder, final Element funnelElem) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(funnelElem, "id"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(funnelElem, "versionedComponentId"));
         return builder;
     }
 
     private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto) {
         builder.append(dto.getId());
+        builder.append(dto.getVersionedComponentId());
         builder.append(dto.getType());
         builder.append(dto.getName());
 

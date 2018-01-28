@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -43,7 +44,6 @@ import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
-import static java.util.Objects.requireNonNull;
 
 public class MockProcessContext extends MockControllerServiceLookup implements SchedulingContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -154,7 +154,12 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
 
     public boolean removeProperty(final PropertyDescriptor descriptor) {
         Objects.requireNonNull(descriptor);
-        final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(descriptor.getName());
+        return removeProperty(descriptor.getName());
+    }
+
+    public boolean removeProperty(final String property) {
+        Objects.requireNonNull(property);
+        final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(property);
         String value = null;
 
         if ((value = properties.remove(fullyPopulatedDescriptor)) != null) {

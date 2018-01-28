@@ -75,10 +75,73 @@
             },
 
             /**
+             * Updates the version control information for the specified process group.
+             *
+             * @param processGroupId
+             * @param versionControlInformation
+             */
+            updateVersionControlInformation: function (processGroupId, versionControlInformation) {
+                $.each(this.breadcrumbs, function (_, breadcrumbEntity) {
+                    if (breadcrumbEntity.id === processGroupId) {
+                        breadcrumbEntity.breadcrumb.versionControlInformation = versionControlInformation;
+                        return false;
+                    }
+                });
+            },
+
+            /**
              * Reset the breadcrumbs.
              */
             resetBreadcrumbs: function () {
                 this.breadcrumbs = [];
+            },
+
+            /**
+             * Whether this crumb is tracking.
+             *
+             * @param breadcrumbEntity
+             * @returns {*}
+             */
+            isTracking: function (breadcrumbEntity) {
+                return nfCommon.isDefinedAndNotNull(breadcrumbEntity.versionedFlowState);
+            },
+
+            /**
+             * Returns the class string to use for the version control of the specified breadcrumb.
+             *
+             * @param breadcrumbEntity
+             * @returns {string}
+             */
+            getVersionControlClass: function (breadcrumbEntity) {
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.versionedFlowState)) {
+                    var vciState = breadcrumbEntity.versionedFlowState;
+                    if (vciState === 'SYNC_FAILURE') {
+                        return 'breadcrumb-version-control-gray fa fa-question'
+                    } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
+                        return 'breadcrumb-version-control-red fa fa-exclamation-circle';
+                    } else if (vciState === 'STALE') {
+                        return 'breadcrumb-version-control-red fa fa-arrow-circle-up';
+                    } else if (vciState === 'LOCALLY_MODIFIED') {
+                        return 'breadcrumb-version-control-gray fa fa-asterisk';
+                    } else {
+                        return 'breadcrumb-version-control-green fa fa-check';
+                    }
+                } else {
+                    return '';
+                }
+            },
+
+            /**
+             * Gets the content for the version control tooltip for the specified breadcrumb.
+             *
+             * @param breadcrumbEntity
+             */
+            getVersionControlTooltip: function (breadcrumbEntity) {
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.versionedFlowState) && breadcrumbEntity.permissions.canRead) {
+                    return nfCommon.getVersionControlTooltip(breadcrumbEntity.breadcrumb.versionControlInformation);
+                } else {
+                    return 'This Process Group is not under version control.'
+                }
             },
 
             /**

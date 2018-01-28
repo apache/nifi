@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -39,6 +40,9 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 /**
@@ -50,7 +54,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
  * <p>
  * MUST BE THREAD-SAFE</p>
  */
-public interface ProcessGroup extends ComponentAuthorizable, Positionable {
+public interface ProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
 
     /**
      * Predicate for filtering schedulable Processors.
@@ -458,11 +462,11 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
 
     /**
      * @param id of the Controller Service
-     * @return the Controller Service with the given ID, if it exists as a child or
-     *         descendant of this ProcessGroup. This performs a recursive search of all
-     *         descendant ProcessGroups
+     * @param includeDescendantGroups whether or not to include descendant process groups
+     * @param includeAncestorGroups whether or not to include ancestor process groups
+     * @return the Controller Service with the given ID
      */
-    ControllerServiceNode findControllerService(String id);
+    ControllerServiceNode findControllerService(String id, boolean includeDescendantGroups, boolean includeAncestorGroups);
 
     /**
      * @return a List of all Controller Services contained within this ProcessGroup and any child Process Groups
@@ -772,6 +776,20 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
     void move(final Snippet snippet, final ProcessGroup destination);
 
     /**
+     * Updates the Process Group to match the proposed flow
+     *
+     * @param proposedSnapshot the proposed flow
+     * @param componentIdSeed a seed value to use when generating ID's for new components
+     * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If this value is <code>true</code>,
+     *            and the Process Group has been modified since it was last synchronized with the Flow Registry, then this method will
+     *            throw an IllegalStateException
+     * @param updateSettings whether or not to update the process group's name and positions
+     * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
+     *            update the contents of that Process Group
+     */
+    void updateFlow(VersionedFlowSnapshot proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
+
+    /**
      * Verifies a template with the specified name can be created.
      *
      * @param name name of the template
@@ -830,6 +848,39 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @throws IllegalStateException if one or more variables that are listed cannot be updated at this time
      */
     void verifyCanUpdateVariables(Map<String, String> updatedVariables);
+
+    /**
+     * Ensures that the contents of the Process Group can be update to match the given new flow
+     *
+     * @param updatedFlow the updated version of the flow
+     * @param verifyConnectionRemoval whether or not to verify that connections that are not present in the updated flow can be removed
+     * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If <code>true</code> and the Process Group has been changed since
+     *            it was last synchronized with the FlowRegistry, then this method will throw an IllegalStateException
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow the update
+     */
+    void verifyCanUpdate(VersionedFlowSnapshot updatedFlow, boolean verifyConnectionRemoval, boolean verifyNotDirty);
+
+    /**
+     * Ensures that the Process Group can have any local changes reverted
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow local changes to be reverted
+     */
+    void verifyCanRevertLocalModifications();
+
+    /**
+     * Ensures that the Process Group can have its local modifications shown
+     *
+     * @throws IllegalStateException if the Process Group is not in a state that will allow local modifications to be shown
+     */
+    void verifyCanShowLocalModifications();
+
+    /**
+     * Ensure that the contents of the Process Group can be saved to a Flow Registry in its current state
+     *
+     * @throws IllegalStateException if the Process Group cannot currently be saved to a Flow Registry
+     */
+    void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId);
 
     /**
      * Adds the given template to this Process Group
@@ -894,4 +945,40 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      * @return a set of all components that are affected by the variable with the given name
      */
     Set<ConfiguredComponent> getComponentsAffectedByVariable(String variableName);
+
+    /**
+     * @return the version control information that indicates where this flow is stored in a Flow Registry,
+     *         or <code>null</code> if this Process Group is not under version control.
+     */
+    VersionControlInformation getVersionControlInformation();
+
+    /**
+     * Updates the Version Control Information for this Process Group
+     *
+     * @param versionControlInformation specification of where the flow is tracked in Version Control
+     * @param versionedComponentIds a mapping of component ID's to Versioned Component ID's. This is used to update the components in the
+     *            Process Group so that the components that exist in the Process Group can be associated with the corresponding components in the
+     *            Version Controlled flow
+     */
+    void setVersionControlInformation(VersionControlInformation versionControlInformation, Map<String, String> versionedComponentIds);
+
+    /**
+     * Disconnects this Process Group from version control. If not currently under version control, this method does nothing.
+     */
+    void disconnectVersionControl(boolean removeVersionedComponentIds);
+
+    /**
+     * Synchronizes the Process Group with the given Flow Registry, determining whether or not the local flow
+     * is up to date with the newest version of the flow in the Registry and whether or not the local flow has been
+     * modified since it was last synced with the Flow Registry. If this Process Group is not under Version Control,
+     * this method will have no effect.
+     *
+     * @param flowRegistry the Flow Registry to synchronize with
+     */
+    void synchronizeWithFlowRegistry(FlowRegistryClient flowRegistry);
+
+    /**
+     * Called whenever a component within this group or the group itself is modified
+     */
+    void onComponentModified();
 }

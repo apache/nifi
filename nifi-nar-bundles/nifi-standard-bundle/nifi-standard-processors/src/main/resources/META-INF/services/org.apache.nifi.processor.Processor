@@ -19,6 +19,7 @@ org.apache.nifi.processors.standard.ControlRate
 org.apache.nifi.processors.standard.ConvertCharacterSet
 org.apache.nifi.processors.standard.ConvertJSONToSQL
 org.apache.nifi.processors.standard.ConvertRecord
+org.apache.nifi.processors.standard.CountText
 org.apache.nifi.processors.standard.DebugFlow
 org.apache.nifi.processors.standard.DetectDuplicate
 org.apache.nifi.processors.standard.DistributeLoad
@@ -33,6 +34,7 @@ org.apache.nifi.processors.standard.ExecuteProcess
 org.apache.nifi.processors.standard.ExtractText
 org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FetchFile
+org.apache.nifi.processors.standard.FlattenJson
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GetFile
 org.apache.nifi.processors.standard.GetFTP

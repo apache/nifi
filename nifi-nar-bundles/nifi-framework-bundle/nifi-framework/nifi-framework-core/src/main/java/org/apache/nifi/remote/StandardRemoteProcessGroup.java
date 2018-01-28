@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -67,8 +68,8 @@ import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
@@ -103,12 +104,14 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final EventReporter eventReporter;
     private final NiFiProperties nifiProperties;
     private final long remoteContentsCacheExpiration;
+    private volatile boolean initialized = false;
 
     private final AtomicReference<String> name = new AtomicReference<>();
     private final AtomicReference<Position> position = new AtomicReference<>(new Position(0D, 0D));
     private final AtomicReference<String> comments = new AtomicReference<>();
     private final AtomicReference<ProcessGroup> processGroup;
     private final AtomicBoolean transmitting = new AtomicBoolean(false);
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final SSLContext sslContext;
 
     private volatile String communicationsTimeout = "30 sec";
@@ -135,7 +138,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     // Maps a Port Name to a PullingPort that can be used to receive files from that port
     private final Map<String, StandardRemoteGroupPort> outputPorts = new HashMap<>();
 
-    private ProcessGroupCounts counts = new ProcessGroupCounts(0, 0, 0, 0, 0, 0, 0, 0);
+    private RemoteProcessGroupCounts counts = new RemoteProcessGroupCounts(0, 0);
     private Long refreshContentsTimestamp = null;
     private Boolean destinationSecure;
     private Integer listeningPort;
@@ -175,9 +178,16 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
         };
 
-        final Runnable checkAuthorizations = new InitializationTask();
-        backgroundThreadExecutor = new FlowEngine(1, "Remote Process Group " + id);
-        backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 5L, 30L, TimeUnit.SECONDS);
+        backgroundThreadExecutor = new FlowEngine(1, "Remote Process Group " + id, true);
+    }
+
+    @Override
+    public void initialize() {
+        if (initialized) {
+            return;
+        }
+
+        initialized = true;
         backgroundThreadExecutor.submit(() -> {
             try {
                 refreshFlowContents();
@@ -185,11 +195,20 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 logger.warn("Unable to communicate with remote instance {}", new Object[] {this, e});
             }
         });
+
+        final Runnable checkAuthorizations = new InitializationTask();
+        backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 0L, 60L, TimeUnit.SECONDS);
     }
 
     @Override
     public void setTargetUris(final String targetUris) {
         requireNonNull(targetUris);
+
+        // only attempt to update the target uris if they have changed
+        if (targetUris.equals(this.targetUris)) {
+            return;
+        }
+
         verifyCanUpdate();
 
         this.targetUris = targetUris;
@@ -427,11 +446,13 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * and started.
      *
      * @param ports the new ports
+     * @param pruneUnusedPorts if true, any ports that are not included in the given set of ports
+     *            and that do not have any incoming connections will be removed.
      *
      * @throws NullPointerException if the given argument is null
      */
     @Override
-    public void setInputPorts(final Set<RemoteProcessGroupPortDescriptor> ports) {
+    public void setInputPorts(final Set<RemoteProcessGroupPortDescriptor> ports, final boolean pruneUnusedPorts) {
         writeLock.lock();
         try {
             final List<String> newPortTargetIds = new ArrayList<>();
@@ -470,16 +491,18 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
             // See if we have any ports that no longer exist; cannot be removed within the loop because it would cause
             // a ConcurrentModificationException.
-            final Iterator<StandardRemoteGroupPort> itr = inputPorts.values().iterator();
-            while (itr.hasNext()) {
-                final StandardRemoteGroupPort port = itr.next();
-                if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
-                    port.setTargetExists(false);
-                    port.setTargetRunning(false);
+            if (pruneUnusedPorts) {
+                final Iterator<StandardRemoteGroupPort> itr = inputPorts.values().iterator();
+                while (itr.hasNext()) {
+                    final StandardRemoteGroupPort port = itr.next();
+                    if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
+                        port.setTargetExists(false);
+                        port.setTargetRunning(false);
 
-                    // If port has incoming connection, it will be cleaned up when the connection is removed
-                    if (!port.hasIncomingConnection()) {
-                        itr.remove();
+                        // If port has incoming connection, it will be cleaned up when the connection is removed
+                        if (!port.hasIncomingConnection()) {
+                            itr.remove();
+                        }
                     }
                 }
             }
@@ -513,11 +536,13 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * and started.
      *
      * @param ports the new ports
+     * @param pruneUnusedPorts if true, will remove any ports that are not in the given list and that have
+     *            no outgoing connections
      *
      * @throws NullPointerException if the given argument is null
      */
     @Override
-    public void setOutputPorts(final Set<RemoteProcessGroupPortDescriptor> ports) {
+    public void setOutputPorts(final Set<RemoteProcessGroupPortDescriptor> ports, final boolean pruneUnusedPorts) {
         writeLock.lock();
         try {
             final List<String> newPortTargetIds = new ArrayList<>();
@@ -527,7 +552,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 final Map<String, StandardRemoteGroupPort> outputPortByTargetId = outputPorts.values().stream()
                     .collect(Collectors.toMap(StandardRemoteGroupPort::getTargetIdentifier, Function.identity()));
 
-                final Map<String, StandardRemoteGroupPort> outputPortByName = inputPorts.values().stream()
+                final Map<String, StandardRemoteGroupPort> outputPortByName = outputPorts.values().stream()
                     .collect(Collectors.toMap(StandardRemoteGroupPort::getName, Function.identity()));
 
                 // Check if we have a matching port already and add the port if not. We determine a matching port
@@ -556,16 +581,18 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
             // See if we have any ports that no longer exist; cannot be removed within the loop because it would cause
             // a ConcurrentModificationException.
-            final Iterator<StandardRemoteGroupPort> itr = outputPorts.values().iterator();
-            while (itr.hasNext()) {
-                final StandardRemoteGroupPort port = itr.next();
-                if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
-                    port.setTargetExists(false);
-                    port.setTargetRunning(false);
+            if (pruneUnusedPorts) {
+                final Iterator<StandardRemoteGroupPort> itr = outputPorts.values().iterator();
+                while (itr.hasNext()) {
+                    final StandardRemoteGroupPort port = itr.next();
+                    if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
+                        port.setTargetExists(false);
+                        port.setTargetRunning(false);
 
-                    // If port has connections, it will be cleaned up when connections are removed
-                    if (port.getConnections().isEmpty()) {
-                        itr.remove();
+                        // If port has connections, it will be cleaned up when connections are removed
+                        if (port.getConnections().isEmpty()) {
+                            itr.remove();
+                        }
                     }
                 }
             }
@@ -609,53 +636,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
-    @Override
-    public void removeAllNonExistentPorts() {
-        writeLock.lock();
-        try {
-            final Set<String> inputPortIds = new HashSet<>();
-            final Set<String> outputPortIds = new HashSet<>();
-
-            for (final Map.Entry<String, StandardRemoteGroupPort> entry : inputPorts.entrySet()) {
-                final RemoteGroupPort port = entry.getValue();
-
-                if (port.getTargetExists()) {
-                    continue;
-                }
-
-                // If there's a connection, we don't remove it.
-                if (port.hasIncomingConnection()) {
-                    continue;
-                }
-
-                inputPortIds.add(entry.getKey());
-            }
-
-            for (final Map.Entry<String, StandardRemoteGroupPort> entry : outputPorts.entrySet()) {
-                final RemoteGroupPort port = entry.getValue();
-
-                if (port.getTargetExists()) {
-                    continue;
-                }
-
-                // If there's a connection, we don't remove it.
-                if (!port.getConnections().isEmpty()) {
-                    continue;
-                }
-
-                outputPortIds.add(entry.getKey());
-            }
-
-            for (final String id : inputPortIds) {
-                inputPorts.remove(id);
-            }
-            for (final String id : outputPortIds) {
-                outputPorts.remove(id);
-            }
-        } finally {
-            writeLock.unlock();
-        }
-    }
 
     /**
      * Adds an Output Port to this Remote Process Group that is described by
@@ -772,6 +752,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             if (!StringUtils.isBlank(descriptor.getBatchDuration())) {
                 port.setBatchDuration(descriptor.getBatchDuration());
             }
+            port.setVersionedComponentId(descriptor.getVersionedComponentId());
 
             inputPorts.put(descriptor.getId(), port);
             return port;
@@ -820,7 +801,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public ProcessGroupCounts getCounts() {
+    public RemoteProcessGroupCounts getCounts() {
         readLock.lock();
         try {
             return counts;
@@ -829,7 +810,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
-    private void setCounts(final ProcessGroupCounts counts) {
+    private void setCounts(final RemoteProcessGroupCounts counts) {
         writeLock.lock();
         try {
             this.counts = counts;
@@ -850,41 +831,26 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     @Override
     public void refreshFlowContents() throws CommunicationsException {
+        if (!initialized) {
+            return;
+        }
+
         try {
             // perform the request
             final ControllerDTO dto;
             try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
                 dto = apiClient.getController(targetUris);
             } catch (IOException e) {
-                writeLock.lock();
-                try {
-                    for (final Iterator<StandardRemoteGroupPort> iter = inputPorts.values().iterator(); iter.hasNext();) {
-                        final StandardRemoteGroupPort inputPort = iter.next();
-                        if (!inputPort.hasIncomingConnection()) {
-                            iter.remove();
-                        }
-                    }
-
-                    for (final Iterator<StandardRemoteGroupPort> iter = outputPorts.values().iterator(); iter.hasNext();) {
-                        final StandardRemoteGroupPort outputPort = iter.next();
-                        if (outputPort.getConnections().isEmpty()) {
-                            iter.remove();
-                        }
-                    }
-                } finally {
-                    writeLock.unlock();
-                }
-
                 throw new CommunicationsException("Unable to communicate with Remote NiFi at URI " + targetUris + " due to: " + e.getMessage());
             }
 
             writeLock.lock();
             try {
                 if (dto.getInputPorts() != null) {
-                    setInputPorts(convertRemotePort(dto.getInputPorts()));
+                    setInputPorts(convertRemotePort(dto.getInputPorts()), true);
                 }
                 if (dto.getOutputPorts() != null) {
-                    setOutputPorts(convertRemotePort(dto.getOutputPorts()));
+                    setOutputPorts(convertRemotePort(dto.getOutputPorts()), true);
                 }
 
                 // set the controller details
@@ -901,39 +867,12 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 if (dto.getOutputPortCount() != null) {
                     outputPortCount = dto.getOutputPortCount();
                 }
-                int runningCount = 0;
-                if (dto.getRunningCount() != null) {
-                    runningCount = dto.getRunningCount();
-                }
-                int stoppedCount = 0;
-                if (dto.getStoppedCount() != null) {
-                    stoppedCount = dto.getStoppedCount();
-                }
-                int invalidCount = 0;
-                if (dto.getInvalidCount() != null) {
-                    invalidCount = dto.getInvalidCount();
-                }
-                int disabledCount = 0;
-                if (dto.getDisabledCount() != null) {
-                    disabledCount = dto.getDisabledCount();
-                }
-
-                int activeRemotePortCount = 0;
-                if (dto.getActiveRemotePortCount() != null) {
-                    activeRemotePortCount = dto.getActiveRemotePortCount();
-                }
-
-                int inactiveRemotePortCount = 0;
-                if (dto.getInactiveRemotePortCount() != null) {
-                    inactiveRemotePortCount = dto.getInactiveRemotePortCount();
-                }
 
                 this.listeningPort = dto.getRemoteSiteListeningPort();
                 this.listeningHttpPort = dto.getRemoteSiteHttpListeningPort();
                 this.destinationSecure = dto.isSiteToSiteSecure();
 
-                final ProcessGroupCounts newCounts = new ProcessGroupCounts(inputPortCount, outputPortCount,
-                        runningCount, stoppedCount, invalidCount, disabledCount, activeRemotePortCount, inactiveRemotePortCount);
+                final RemoteProcessGroupCounts newCounts = new RemoteProcessGroupCounts(inputPortCount, outputPortCount);
                 setCounts(newCounts);
                 this.refreshContentsTimestamp = System.currentTimeMillis();
             } finally {
@@ -1229,6 +1168,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
         @Override
         public void run() {
+            if (!initialized) {
+                return;
+            }
+
             try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
                 try {
                     final ControllerDTO dto = apiClient.getController(targetUris);
@@ -1419,4 +1362,26 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         return new File(stateDir, getIdentifier() + ".peers");
     }
 
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
+            }
+        }
+    }
 }

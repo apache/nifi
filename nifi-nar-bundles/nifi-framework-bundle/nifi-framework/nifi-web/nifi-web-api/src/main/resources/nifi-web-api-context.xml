@@ -52,7 +52,6 @@
         <property name="entityFactory" ref="entityFactory"/>
         <property name="authorizer" ref="authorizer"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
-        <property name="properties" ref="nifiProperties"/>
     </bean>
 
     <!-- snippet utils -->
@@ -61,6 +60,20 @@
         <property name="flowController" ref="flowController"/>
         <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
     </bean>
+    
+    <bean id="clusterComponentLifecycle" class="org.apache.nifi.web.util.ClusterReplicationComponentLifecycle">
+        <property name="clusterCoordinator" ref="clusterCoordinator" />
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="serviceFacade" ref="serviceFacade" />
+        <property name="dtoFactory" ref="dtoFactory" />
+    </bean>
+
+    <bean id="localComponentLifecycle" class="org.apache.nifi.web.util.LocalComponentLifecycle">
+        <property name="serviceFacade" ref="serviceFacade" />
+        <property name="revisionManager" ref="revisionManager" />
+        <property name="dtoFactory" ref="dtoFactory" />
+    </bean>
+
 
     <!-- nifi component dao initialization -->
     <bean id="processGroupDAO" class="org.apache.nifi.web.dao.impl.StandardProcessGroupDAO">
@@ -109,6 +122,9 @@
     <bean id="snippetDAO" class="org.apache.nifi.web.dao.impl.StandardSnippetDAO">
         <property name="flowController" ref="flowController"/>
         <property name="snippetUtils" ref="snippetUtils"/>
+    </bean>
+    <bean id="flowRegistryDAO" class="org.apache.nifi.web.dao.impl.FlowRegistryDAO">
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
     </bean>
     <bean id="policyBasedAuthorizerDAO" class="org.apache.nifi.web.dao.impl.StandardPolicyBasedAuthorizerDAO">
         <constructor-arg ref="authorizer"/>
@@ -172,6 +188,8 @@
         <property name="heartbeatMonitor" ref="heartbeatMonitor" />
         <property name="bulletinRepository" ref="bulletinRepository"/>
         <property name="leaderElectionManager" ref="leaderElectionManager" />
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
+        <property name="registryDAO" ref="flowRegistryDAO" />
     </bean>
     
     <!-- component ui extension configuration context -->
@@ -290,6 +308,17 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer"/>
         <property name="flowController" ref="flowController" />
+        <property name="dtoFactory" ref="dtoFactory" />
+    </bean>
+    <bean id="versionsResource" class="org.apache.nifi.web.api.VersionsResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade" />
+        <property name="properties" ref="nifiProperties"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="flowController" ref="flowController" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="clusterComponentLifecycle" ref="clusterComponentLifecycle" />
+        <property name="localComponentLifecycle" ref="localComponentLifecycle" />
         <property name="dtoFactory" ref="dtoFactory" />
     </bean>
     <bean id="processorResource" class="org.apache.nifi.web.api.ProcessorResource" scope="singleton">

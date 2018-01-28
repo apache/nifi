@@ -287,8 +287,6 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     private List<PropertyDescriptor> propertyDescriptors;
     private Set<Relationship> relationships;
 
-    private static final long TICKET_RENEWAL_PERIOD = 60000;
-
     protected KerberosProperties kerberosProperties;
     private volatile File kerberosConfigFile = null;
 
@@ -374,7 +372,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
             log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{principal, keyTab});
             try {
-                ugi = hiveConfigurator.authenticate(hiveConfig, principal, keyTab, TICKET_RENEWAL_PERIOD, log);
+                ugi = hiveConfigurator.authenticate(hiveConfig, principal, keyTab);
             } catch (AuthenticationFailedException ae) {
                 throw new ProcessException("Kerberos authentication failed for Hive Streaming", ae);
             }
@@ -865,7 +863,6 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         }
 
         ugi = null;
-        hiveConfigurator.stopRenewer();
     }
 
     private void setupHeartBeatTimer(int heartbeatInterval) {

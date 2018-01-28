@@ -57,6 +57,21 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
+import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
+import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
+import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
+import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
+
 @Tags({"Apache", "Solr", "Put", "Send"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends the contents of a FlowFile as a ContentStream to Solr")
@@ -177,16 +192,13 @@ public class PutSolrContentStream extends SolrProcessor {
         final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
         final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFile).getValue();
         final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
-
+        final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final MultiMapSolrParams requestParams = new MultiMapSolrParams(getRequestParams(context, flowFile));
 
         StopWatch timer = new StopWatch(true);
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH)
-                        .evaluateAttributeExpressions().getValue();
-
                 ContentStreamUpdateRequest request = new ContentStreamUpdateRequest(contentStreamPath);
                 request.setParams(new ModifiableSolrParams());
 

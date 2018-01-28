@@ -102,6 +102,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     @Override
     protected Map<String, String> createAttributes(BlobInfo entity, ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
+        attributes.put("azure.container", entity.getContainerName());
         attributes.put("azure.etag", entity.getEtag());
         attributes.put("azure.primaryUri", entity.getPrimaryUri());
         attributes.put("azure.secondaryUri", entity.getSecondaryUri());
@@ -151,7 +152,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         }
         final List<BlobInfo> listing = new ArrayList<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger());
+            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), null);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
@@ -162,6 +163,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
                     Builder builder = new BlobInfo.Builder()
                                               .primaryUri(uri.getPrimaryUri().toString())
+                                              .containerName(containerName)
                                               .contentType(properties.getContentType())
                                               .contentLanguage(properties.getContentLanguage())
                                               .etag(properties.getEtag())

@@ -22,6 +22,7 @@ import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.HelpFormatter
+import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
@@ -57,6 +58,8 @@ class ConfigEncryptionTool {
     public String outputNiFiPropertiesPath
     public String loginIdentityProvidersPath
     public String outputLoginIdentityProvidersPath
+    public String authorizersPath
+    public String outputAuthorizersPath
     public String flowXmlPath
     public String outputFlowXmlPath
 
@@ -73,6 +76,7 @@ class ConfigEncryptionTool {
 
     private NiFiProperties niFiProperties
     private String loginIdentityProviders
+    private String authorizers
     private String flowXml
 
     private boolean usingPassword = true
@@ -81,6 +85,7 @@ class ConfigEncryptionTool {
     private boolean isVerbose = false
     private boolean handlingNiFiProperties = false
     private boolean handlingLoginIdentityProviders = false
+    private boolean handlingAuthorizers = false
     private boolean handlingFlowXml = false
     private boolean ignorePropertiesFiles = false
 
@@ -88,9 +93,11 @@ class ConfigEncryptionTool {
     private static final String VERBOSE_ARG = "verbose"
     private static final String BOOTSTRAP_CONF_ARG = "bootstrapConf"
     private static final String NIFI_PROPERTIES_ARG = "niFiProperties"
-    private static final String LOGIN_IDENTITY_PROVIDERS_ARG = "loginIdentityProviders"
     private static final String OUTPUT_NIFI_PROPERTIES_ARG = "outputNiFiProperties"
+    private static final String LOGIN_IDENTITY_PROVIDERS_ARG = "loginIdentityProviders"
     private static final String OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG = "outputLoginIdentityProviders"
+    private static final String AUTHORIZERS_ARG = "authorizers"
+    private static final String OUTPUT_AUTHORIZERS_ARG = "outputAuthorizers"
     private static final String FLOW_XML_ARG = "flowXml"
     private static final String OUTPUT_FLOW_XML_ARG = "outputFlowXml"
     private static final String KEY_ARG = "key"
@@ -133,9 +140,38 @@ class ConfigEncryptionTool {
             "plain value with the protected value in the same file (or write to a new file if " +
             "specified). It can also be used to migrate already-encrypted values in those " +
             "files or in flow.xml.gz to be encrypted with a new key."
+
     private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.ldap.LdapProvider"
-    private static
-    final String LDAP_PROVIDER_REGEX = /<provider>[\s\S]*?<class>\s*org\.apache\.nifi\.ldap\.LdapProvider[\s\S]*?<\/provider>/
+    private static final String LDAP_PROVIDER_REGEX = /(?s)<provider>(?:(?!<provider>).)*?<class>\s*org\.apache\.nifi\.ldap\.LdapProvider.*?<\/provider>/
+    /* Explanation of LDAP_PROVIDER_REGEX:
+     *   (?s)                             -> single-line mode (i.e., `.` in regex matches newlines)
+     *   <provider>                       -> find occurrence of `<provider>` literally (case-sensitive)
+     *   (?: ... )                        -> group but do not capture submatch
+     *   (?! ... )                        -> negative lookahead
+     *   (?:(?!<provider>).)*?            -> find everything until a new `<provider>` starts. This is for not selecting multiple providers in one match
+     *   <class>                          -> find occurrence of `<class>` literally (case-sensitive)
+     *   \s*                              -> find any whitespace
+     *   org\.apache\.nifi\.ldap\.LdapProvider
+     *                                    -> find occurrence of `org.apache.nifi.ldap.LdapProvider` literally (case-sensitive)
+     *   .*?</provider>                   -> find everything as needed up until and including occurrence of `</provider>`
+     */
+
+    private static final String LDAP_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.ldap.tenants.LdapUserGroupProvider"
+    private static final String LDAP_USER_GROUP_PROVIDER_REGEX =
+            /(?s)<userGroupProvider>(?:(?!<userGroupProvider>).)*?<class>\s*org\.apache\.nifi\.ldap\.tenants\.LdapUserGroupProvider.*?<\/userGroupProvider>/
+    /* Explanation of LDAP_USER_GROUP_PROVIDER_REGEX:
+     *   (?s)                             -> single-line mode (i.e., `.` in regex matches newlines)
+     *   <userGroupProvider>              -> find occurrence of `<userGroupProvider>` literally (case-sensitive)
+     *   (?: ... )                        -> group but do not capture submatch
+     *   (?! ... )                        -> negative lookahead
+     *   (?:(?!<userGroupProvider>).)*?   -> find everything until a new `<userGroupProvider>` starts. This is for not selecting multiple userGroupProviders in one match
+     *   <class>                          -> find occurrence of `<class>` literally (case-sensitive)
+     *   \s*                              -> find any whitespace
+     *   org\.apache\.nifi\.ldap\.tenants\.LdapUserGroupProvider
+     *                                    -> find occurrence of `org.apache.nifi.ldap.tenants.LdapUserGroupProvider` literally (case-sensitive)
+     *   .*?</userGroupProvider>          -> find everything as needed up until and including occurrence of '</userGroupProvider>'
+     */
+
     private static final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
     private static final String WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX = /enc\{[a-fA-F0-9]+?\}/
 
@@ -154,32 +190,38 @@ class ConfigEncryptionTool {
     private final String header
 
 
-    public ConfigEncryptionTool() {
+    ConfigEncryptionTool() {
         this(DEFAULT_DESCRIPTION)
     }
 
-    public ConfigEncryptionTool(String description) {
+    ConfigEncryptionTool(String description) {
         this.header = buildHeader(description)
         this.options = new Options()
-        options.addOption("h", HELP_ARG, false, "Prints this usage message")
-        options.addOption("v", VERBOSE_ARG, false, "Sets verbose mode (default false)")
-        options.addOption("n", NIFI_PROPERTIES_ARG, true, "The nifi.properties file containing unprotected config values (will be overwritten)")
-        options.addOption("l", LOGIN_IDENTITY_PROVIDERS_ARG, true, "The login-identity-providers.xml file containing unprotected config values (will be overwritten)")
-        options.addOption("f", FLOW_XML_ARG, true, "The flow.xml.gz file currently protected with old password (will be overwritten)")
-        options.addOption("b", BOOTSTRAP_CONF_ARG, true, "The bootstrap.conf file to persist master key")
-        options.addOption("o", OUTPUT_NIFI_PROPERTIES_ARG, true, "The destination nifi.properties file containing protected config values (will not modify input nifi.properties)")
-        options.addOption("i", OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG, true, "The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)")
-        options.addOption("g", OUTPUT_FLOW_XML_ARG, true, "The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)")
-        options.addOption("k", KEY_ARG, true, "The raw hexadecimal key to use to encrypt the sensitive properties")
-        options.addOption("e", KEY_MIGRATION_ARG, true, "The old raw hexadecimal key to use during key migration")
-        options.addOption("p", PASSWORD_ARG, true, "The password from which to derive the key to use to encrypt the sensitive properties")
-        options.addOption("w", PASSWORD_MIGRATION_ARG, true, "The old password from which to derive the key during migration")
-        options.addOption("r", USE_KEY_ARG, false, "If provided, the secure console will prompt for the raw key value in hexadecimal form")
-        options.addOption("m", MIGRATION_ARG, false, "If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key")
-        options.addOption("x", DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG, false, "If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified")
-        options.addOption("s", PROPS_KEY_ARG, true, "The password or key to use to encrypt the sensitive processor properties in flow.xml.gz")
-        options.addOption("A", NEW_FLOW_ALGORITHM_ARG, true, "The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz")
-        options.addOption("P", NEW_FLOW_PROVIDER_ARG, true, "The security provider to use to encrypt the sensitive processor properties in flow.xml.gz")
+        options.addOption(Option.builder("h").longOpt(HELP_ARG).hasArg(false).desc("Show usage information (this message)").build())
+        options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).hasArg(false).desc("Sets verbose mode (default false)").build())
+        options.addOption(Option.builder("n").longOpt(NIFI_PROPERTIES_ARG).hasArg(true).argName("file").desc("The nifi.properties file containing unprotected config values (will be overwritten unless -o is specified)").build())
+        options.addOption(Option.builder("o").longOpt(OUTPUT_NIFI_PROPERTIES_ARG).hasArg(true).argName("file").desc("The destination nifi.properties file containing protected config values (will not modify input nifi.properties)").build())
+        options.addOption(Option.builder("l").longOpt(LOGIN_IDENTITY_PROVIDERS_ARG).hasArg(true).argName("file").desc("The login-identity-providers.xml file containing unprotected config values (will be overwritten unless -i is specified)").build())
+        options.addOption(Option.builder("i").longOpt(OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG).hasArg(true).argName("file").desc("The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)").build())
+        options.addOption(Option.builder("a").longOpt(AUTHORIZERS_ARG).hasArg(true).argName("file").desc("The authorizers.xml file containing unprotected config values (will be overwritten unless -u is specified)").build())
+        options.addOption(Option.builder("u").longOpt(OUTPUT_AUTHORIZERS_ARG).hasArg(true).argName("file").desc("The destination authorizers.xml file containing protected config values (will not modify input authorizers.xml)").build())
+        options.addOption(Option.builder("f").longOpt(FLOW_XML_ARG).hasArg(true).argName("file").desc("The flow.xml.gz file currently protected with old password (will be overwritten unless -g is specified)").build())
+        options.addOption(Option.builder("g").longOpt(OUTPUT_FLOW_XML_ARG).hasArg(true).argName("file").desc("The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)").build())
+        options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF_ARG).hasArg(true).argName("file").desc("The bootstrap.conf file to persist master key").build())
+        options.addOption(Option.builder("k").longOpt(KEY_ARG).hasArg(true).argName("keyhex").desc("The raw hexadecimal key to use to encrypt the sensitive properties").build())
+        options.addOption(Option.builder("e").longOpt(KEY_MIGRATION_ARG).hasArg(true).argName("keyhex").desc("The old raw hexadecimal key to use during key migration").build())
+        options.addOption(Option.builder("p").longOpt(PASSWORD_ARG).hasArg(true).argName("password").desc("The password from which to derive the key to use to encrypt the sensitive properties").build())
+        options.addOption(Option.builder("w").longOpt(PASSWORD_MIGRATION_ARG).hasArg(true).argName("password").desc("The old password from which to derive the key during migration").build())
+        options.addOption(Option.builder("r").longOpt(USE_KEY_ARG).hasArg(false).desc("If provided, the secure console will prompt for the raw key value in hexadecimal form").build())
+        options.addOption(Option.builder("m").longOpt(MIGRATION_ARG).hasArg(false).desc("If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key").build())
+        options.addOption(Option.builder("x").longOpt(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG).hasArg(false).desc("If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified").build())
+        options.addOption(Option.builder("s").longOpt(PROPS_KEY_ARG).hasArg(true).argName("password|keyhex").desc("The password or key to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+        options.addOption(Option.builder("A").longOpt(NEW_FLOW_ALGORITHM_ARG).hasArg(true).argName("algorithm").desc("The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+        options.addOption(Option.builder("P").longOpt(NEW_FLOW_PROVIDER_ARG).hasArg(true).argName("algorithm").desc("The security provider to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+    }
+
+    static Options getCliOptions() {
+        return new ConfigEncryptionTool().options
     }
 
     /**
@@ -187,19 +229,20 @@ class ConfigEncryptionTool {
      *
      * @param errorMessage the optional error message
      */
-    public void printUsage(String errorMessage) {
+    void printUsage(String errorMessage) {
         if (errorMessage) {
             System.out.println(errorMessage)
             System.out.println()
         }
         HelpFormatter helpFormatter = new HelpFormatter()
         helpFormatter.setWidth(160)
+        helpFormatter.setOptionComparator(null) // preserve manual ordering of options when printing instead of alphabetical
         helpFormatter.printHelp(ConfigEncryptionTool.class.getCanonicalName(), header, options, FOOTER, true)
     }
 
     protected void printUsageAndThrow(String errorMessage, ExitCode exitCode) throws CommandLineParseException {
-        printUsage(errorMessage);
-        throw new CommandLineParseException(errorMessage, exitCode);
+        printUsage(errorMessage)
+        throw new CommandLineParseException(errorMessage, exitCode)
     }
 
     // TODO: Refactor component steps into methods
@@ -220,6 +263,7 @@ class ConfigEncryptionTool {
             if (commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)) {
                 handlingNiFiProperties = false
                 handlingLoginIdentityProviders = false
+                handlingAuthorizers = false
                 ignorePropertiesFiles = true
             } else {
                 if (commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG)) {
@@ -233,6 +277,19 @@ class ConfigEncryptionTool {
                     if (loginIdentityProvidersPath == outputLoginIdentityProvidersPath) {
                         // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
                         logger.warn("The source login-identity-providers.xml and destination login-identity-providers.xml are identical [${outputLoginIdentityProvidersPath}] so the original will be overwritten")
+                    }
+                }
+                if (commandLine.hasOption(AUTHORIZERS_ARG)) {
+                    if (isVerbose) {
+                        logger.info("Handling encryption of authorizers.xml")
+                    }
+                    authorizersPath = commandLine.getOptionValue(AUTHORIZERS_ARG)
+                    outputAuthorizersPath = commandLine.getOptionValue(OUTPUT_AUTHORIZERS_ARG, authorizersPath)
+                    handlingAuthorizers = true
+
+                    if (authorizersPath == outputAuthorizersPath) {
+                        // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
+                        logger.warn("The source authorizers.xml and destination authorizers.xml are identical [${outputAuthorizersPath}] so the original will be overwritten")
                     }
                 }
             }
@@ -275,17 +332,28 @@ class ConfigEncryptionTool {
             }
 
             if (isVerbose) {
-                logger.info("       bootstrap.conf:               \t${bootstrapConfPath}")
-                logger.info("(src)  nifi.properties:              \t${niFiPropertiesPath}")
-                logger.info("(dest) nifi.properties:              \t${outputNiFiPropertiesPath}")
-                logger.info("(src)  login-identity-providers.xml: \t${loginIdentityProvidersPath}")
-                logger.info("(dest) login-identity-providers.xml: \t${outputLoginIdentityProvidersPath}")
-                logger.info("(src)  flow.xml.gz: \t\t\t\t\t${flowXmlPath}")
-                logger.info("(dest) flow.xml.gz: \t\t\t\t\t${outputFlowXmlPath}")
+                logger.info("       bootstrap.conf:               ${bootstrapConfPath}")
+                logger.info("(src)  nifi.properties:              ${niFiPropertiesPath}")
+                logger.info("(dest) nifi.properties:              ${outputNiFiPropertiesPath}")
+                logger.info("(src)  login-identity-providers.xml: ${loginIdentityProvidersPath}")
+                logger.info("(dest) login-identity-providers.xml: ${outputLoginIdentityProvidersPath}")
+                logger.info("(src)  authorizers.xml:              ${authorizersPath}")
+                logger.info("(dest) authorizers.xml:              ${outputAuthorizersPath}")
+                logger.info("(src)  flow.xml.gz:                  ${flowXmlPath}")
+                logger.info("(dest) flow.xml.gz:                  ${outputFlowXmlPath}")
             }
 
-            if (!commandLine.hasOption(NIFI_PROPERTIES_ARG) && !commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG) && !commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)) {
-                printUsageAndThrow("One or both of '-n'/'--${NIFI_PROPERTIES_ARG}' or '-l'/'--${LOGIN_IDENTITY_PROVIDERS_ARG}' must be provided unless '-x'/--'${DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified", ExitCode.INVALID_ARGS)
+            if (!commandLine.hasOption(NIFI_PROPERTIES_ARG)
+                    && !commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG)
+                    && !commandLine.hasOption(AUTHORIZERS_ARG)
+                    && !commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)
+            ) {
+                printUsageAndThrow("One or more of [" +
+                        "'-n'/'--${NIFI_PROPERTIES_ARG}', " +
+                        "'-l'/'--${LOGIN_IDENTITY_PROVIDERS_ARG}', " +
+                        "'-a'/'--${AUTHORIZERS_ARG}'" +
+                        "] must be provided unless " +
+                        "'-x'/--'${DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified", ExitCode.INVALID_ARGS)
             }
 
             if (commandLine.hasOption(MIGRATION_ARG)) {
@@ -416,7 +484,7 @@ class ConfigEncryptionTool {
      *
      * @return 128 , [192, 256]
      */
-    public static List<Integer> getValidKeyLengths() {
+    static List<Integer> getValidKeyLengths() {
         Cipher.getMaxAllowedKeyLength("AES") > 128 ? [128, 192, 256] : [128]
     }
 
@@ -457,19 +525,47 @@ class ConfigEncryptionTool {
         File loginIdentityProvidersFile
         if (loginIdentityProvidersPath && (loginIdentityProvidersFile = new File(loginIdentityProvidersPath)).exists()) {
             try {
-                String xmlContent = loginIdentityProvidersFile.text
                 List<String> lines = loginIdentityProvidersFile.readLines()
-                logger.info("Loaded LoginIdentityProviders content (${lines.size()} lines)")
+                String xmlContent = lines.join("\n")
+                logger.info("Loaded login identity providers content (${lines.size()} lines)")
                 String decryptedXmlContent = decryptLoginIdentityProviders(xmlContent, existingKeyHex)
                 return decryptedXmlContent
             } catch (RuntimeException e) {
                 if (isVerbose) {
                     logger.error("Encountered an error", e)
                 }
-                throw new IOException("Cannot load LoginIdentityProviders from [${loginIdentityProvidersPath}]", e)
+                throw new IOException("Cannot load login identity providers from [${loginIdentityProvidersPath}]", e)
             }
         } else {
-            printUsageAndThrow("Cannot load LoginIdentityProviders from [${loginIdentityProvidersPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+            printUsageAndThrow("Cannot load login identity providers from [${loginIdentityProvidersPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+        }
+    }
+
+    /**
+     * Loads the authorizers configuration from the provided file path.
+     *
+     * @param existingKeyHex the key used to encrypt the configs (defaults to the current key)
+     *
+     * @return the file content
+     * @throw IOException if the authorizers.xml file cannot be read
+     */
+    private String loadAuthorizers(String existingKeyHex = keyHex) throws IOException {
+        File authorizersFile
+        if (authorizersPath && (authorizersFile = new File(authorizersPath)).exists()) {
+            try {
+                List<String> lines = authorizersFile.readLines()
+                String xmlContent = lines.join("\n")
+                logger.info("Loaded authorizers content (${lines.size()} lines)")
+                String decryptedXmlContent = decryptAuthorizers(xmlContent, existingKeyHex)
+                return decryptedXmlContent
+            } catch (RuntimeException e) {
+                if (isVerbose) {
+                    logger.error("Encountered an error", e)
+                }
+                throw new IOException("Cannot load authorizers from [${authorizersPath}]", e)
+            }
+        } else {
+            printUsageAndThrow("Cannot load authorizers from [${authorizersPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
         }
     }
 
@@ -480,8 +576,7 @@ class ConfigEncryptionTool {
      * @throw IOException if the flow.xml.gz file cannot be read
      */
     private String loadFlowXml() throws IOException {
-        File flowXmlFile
-        if (flowXmlPath && (flowXmlFile = new File(flowXmlPath)).exists()) {
+        if (flowXmlPath && (new File(flowXmlPath)).exists()) {
             try {
                 new FileInputStream(flowXmlPath).withCloseable {
                     new GZIPInputStream(it).withCloseable {
@@ -730,6 +825,43 @@ class ConfigEncryptionTool {
         }
     }
 
+    String decryptAuthorizers(String encryptedXml, String existingKeyHex = keyHex) {
+        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
+
+        try {
+            def doc = new XmlSlurper().parseText(encryptedXml)
+            // Find the provider element by class even if it has been renamed
+            def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }.property.findAll {
+                it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+            }
+
+            if (passwords.isEmpty()) {
+                if (isVerbose) {
+                    logger.info("No encrypted password property elements found in authorizers.xml")
+                }
+                return encryptedXml
+            }
+
+            passwords.each { password ->
+                // TODO: Capture the raw password, and only display it in the log if the decrypted value is different (to avoid possibly printing an incorrectly provided plaintext password)
+                if (isVerbose) {
+                    logger.info("Attempting to decrypt ${password.text()}")
+                }
+                String decryptedValue = sensitivePropertyProvider.unprotect(password.text().trim())
+                password.replaceNode {
+                    property(name: password.@name, encryption: "none", decryptedValue)
+                }
+            }
+
+            // Does not preserve whitespace formatting or comments
+            String updatedXml = XmlUtil.serialize(doc)
+            logger.info("Updated XML content: ${updatedXml}")
+            updatedXml
+        } catch (Exception e) {
+            printUsageAndThrow("Cannot decrypt authorizers XML content", ExitCode.SERVICE_ERROR)
+        }
+    }
+
     String encryptLoginIdentityProviders(String plainXml, String newKeyHex = keyHex) {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
 
@@ -769,6 +901,48 @@ class ConfigEncryptionTool {
                 logger.error("Encountered exception", e)
             }
             printUsageAndThrow("Cannot encrypt login identity providers XML content", ExitCode.SERVICE_ERROR)
+        }
+    }
+
+    String encryptAuthorizers(String plainXml, String newKeyHex = keyHex) {
+        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
+
+        // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
+        try {
+            def doc = new XmlSlurper().parseText(plainXml)
+            // Find the provider element by class even if it has been renamed
+            def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
+                    .property.findAll {
+                // Only operate on un-encrypted passwords
+                it.@name =~ "Password" && (it.@encryption == "none" || it.@encryption == "") && it.text()
+            }
+
+            if (passwords.isEmpty()) {
+                if (isVerbose) {
+                    logger.info("No unencrypted password property elements found in authorizers.xml")
+                }
+                return plainXml
+            }
+
+            passwords.each { password ->
+                if (isVerbose) {
+                    logger.info("Attempting to encrypt ${password.name()}")
+                }
+                String encryptedValue = sensitivePropertyProvider.protect(password.text().trim())
+                password.replaceNode {
+                    property(name: password.@name, encryption: sensitivePropertyProvider.identifierKey, encryptedValue)
+                }
+            }
+
+            // Does not preserve whitespace formatting or comments
+            String updatedXml = XmlUtil.serialize(doc)
+            logger.info("Updated XML content: ${updatedXml}")
+            updatedXml
+        } catch (Exception e) {
+            if (isVerbose) {
+                logger.error("Encountered exception", e)
+            }
+            printUsageAndThrow("Cannot encrypt authorizers XML content", ExitCode.SERVICE_ERROR)
         }
     }
 
@@ -907,6 +1081,8 @@ class ConfigEncryptionTool {
                 if (loginIdentityProvidersFile.exists() && loginIdentityProvidersFile.canRead()) {
                     // Instead of just writing the XML content to a file, this method attempts to maintain the structure of the original file and preserves comments
                     updatedXmlContent = serializeLoginIdentityProvidersAndPreserveFormat(loginIdentityProviders, loginIdentityProvidersFile).join("\n")
+                } else {
+                    updatedXmlContent = loginIdentityProviders
                 }
 
                 // Write the updated values back to the file
@@ -918,6 +1094,41 @@ class ConfigEncryptionTool {
             }
         } else {
             throw new IOException("The login-identity-providers.xml file at ${outputLoginIdentityProvidersPath} must be writable by the user running this tool")
+        }
+    }
+
+    /**
+     * Writes the contents of the authorizers configuration file with encrypted values to the output {@code authorizers.xml} file.
+     *
+     * @throw IOException if there is a problem reading or writing the authorizers.xml file
+     */
+    private void writeAuthorizers() throws IOException {
+        if (!outputAuthorizersPath) {
+            throw new IllegalArgumentException("Cannot write encrypted properties to empty authorizers.xml path")
+        }
+
+        File outputAuthorizersFile = new File(outputAuthorizersPath)
+
+        if (isSafeToWrite(outputAuthorizersFile)) {
+            try {
+                String updatedXmlContent
+                File authorizersFile = new File(authorizersPath)
+                if (authorizersFile.exists() && authorizersFile.canRead()) {
+                    // Instead of just writing the XML content to a file, this method attempts to maintain the structure of the original file and preserves comments
+                    updatedXmlContent = serializeAuthorizersAndPreserveFormat(authorizers, authorizersFile).join("\n")
+                } else {
+                    updatedXmlContent = authorizers
+                }
+
+                // Write the updated values back to the file
+                outputAuthorizersFile.text = updatedXmlContent
+            } catch (IOException e) {
+                def msg = "Encountered an exception updating the authorizers.xml file with the encrypted values"
+                logger.error(msg, e)
+                throw e
+            }
+        } else {
+            throw new IOException("The authorizers.xml file at ${outputAuthorizersPath} must be writable by the user running this tool")
         }
     }
 
@@ -1016,7 +1227,30 @@ class ConfigEncryptionTool {
                 throw new SAXException("No ldap-provider element found")
             }
         } catch (SAXException e) {
-            logger.error("No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out")
+            logger.error("No provider element with class {} found in XML content; " +
+                    "the file could be empty or the element may be missing or commented out", LDAP_PROVIDER_CLASS)
+            return fileContents.split("\n")
+        }
+    }
+
+    static List<String> serializeAuthorizersAndPreserveFormat(String xmlContent, File originalAuthorizersFile) {
+        // Find the provider element of the new XML in the file contents
+        String fileContents = originalAuthorizersFile.text
+        try {
+            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
+            if (provider) {
+                def serializedProvider = new XmlUtil().serialize(provider)
+                // Remove XML declaration from top
+                serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
+                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, serializedProvider)
+                return fileContents.split("\n")
+            } else {
+                throw new SAXException("No ldap-user-group-provider element found")
+            }
+        } catch (SAXException e) {
+            logger.error("No provider element with class {} found in XML content; " +
+                    "the file could be empty or the element may be missing or commented out", LDAP_USER_GROUP_PROVIDER_CLASS)
             return fileContents.split("\n")
         }
     }
@@ -1087,7 +1321,7 @@ class ConfigEncryptionTool {
      *
      * @param args the command-line arguments
      */
-    public static void main(String[] args) {
+    static void main(String[] args) {
         Security.addProvider(new BouncyCastleProvider())
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
@@ -1155,6 +1389,15 @@ class ConfigEncryptionTool {
                         tool.printUsageAndThrow("Cannot migrate key if no previous encryption occurred", ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS)
                     }
                     tool.loginIdentityProviders = tool.encryptLoginIdentityProviders(tool.loginIdentityProviders)
+                }
+
+                if (tool.handlingAuthorizers) {
+                    try {
+                        tool.authorizers = tool.loadAuthorizers(existingKeyHex)
+                    } catch (Exception e) {
+                        tool.printUsageAndThrow("Cannot migrate key if no previous encryption occurred", ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS)
+                    }
+                    tool.authorizers = tool.encryptAuthorizers(tool.authorizers)
                 }
 
                 if (tool.handlingFlowXml) {
@@ -1237,6 +1480,9 @@ class ConfigEncryptionTool {
                     }
                     if (tool.handlingLoginIdentityProviders) {
                         tool.writeLoginIdentityProviders()
+                    }
+                    if (tool.handlingAuthorizers) {
+                        tool.writeAuthorizers()
                     }
                 }
             } catch (Exception e) {

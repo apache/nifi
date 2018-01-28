@@ -59,7 +59,7 @@ public class WildcardIndexPath extends RecordPathSegment {
                     return map.entrySet().stream()
                         .map(entry -> {
                             final DataType valueType = ((MapDataType) fieldValue.getField().getDataType()).getValueType();
-                            final RecordField elementField = new RecordField(fieldValue.getField().getFieldName() + "['" + entry.getKey() + "']", valueType);
+                            final RecordField elementField = new RecordField(fieldValue.getField().getFieldName(), valueType);
                             return new MapEntryFieldValue(entry.getValue(), elementField, fieldValue, entry.getKey());
                         });
                 } else {
@@ -67,7 +67,7 @@ public class WildcardIndexPath extends RecordPathSegment {
                     return IntStream.range(0, array.length)
                         .mapToObj(index -> {
                             final DataType elementDataType = ((ArrayDataType) fieldValue.getField().getDataType()).getElementType();
-                            final RecordField elementField = new RecordField(fieldValue.getField().getFieldName() + "[" + index + "]", elementDataType);
+                            final RecordField elementField = new RecordField(fieldValue.getField().getFieldName(), elementDataType);
                             return new ArrayIndexFieldValue(array[index], elementField, fieldValue, index);
                         });
                 }

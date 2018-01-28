@@ -50,7 +50,11 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
 
     public void setAnnotationData(String data);
 
-    public void setProperties(Map<String, String> properties);
+    public default void setProperties(Map<String, String> properties) {
+        setProperties(properties, false);
+    }
+
+    public void setProperties(Map<String, String> properties, boolean allowRemovalOfRequiredProperties);
 
     public Map<PropertyDescriptor, String> getProperties();
 

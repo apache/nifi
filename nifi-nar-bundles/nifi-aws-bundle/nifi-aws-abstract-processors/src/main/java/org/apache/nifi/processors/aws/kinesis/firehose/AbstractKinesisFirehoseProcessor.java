@@ -34,7 +34,7 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKines
     public static final PropertyDescriptor KINESIS_FIREHOSE_DELIVERY_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Kinesis Firehose Delivery Stream Name")
             .description("The name of kinesis firehose delivery stream")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

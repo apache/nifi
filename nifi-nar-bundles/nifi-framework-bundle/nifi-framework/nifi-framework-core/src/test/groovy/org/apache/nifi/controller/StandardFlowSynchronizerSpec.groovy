@@ -127,6 +127,8 @@ class StandardFlowSynchronizerSpec extends Specification {
                     }
                 }
             }
+			_ * processGroup.findAllRemoteProcessGroups() >> []
+            
             positionableMocksById.put(pgId, processGroup)
             return processGroup
         }

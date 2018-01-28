@@ -78,6 +78,7 @@
                                 'revision': nfClient.getRevision(remoteProcessGroupData),
                                 'component': {
                                     id: remoteProcessGroupId,
+                                    targetUris: $('#remote-process-group-urls').val(),
                                     communicationsTimeout: $('#remote-process-group-timeout').val(),
                                     yieldDuration: $('#remote-process-group-yield-duration').val(),
                                     transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
@@ -145,7 +146,7 @@
                         // clear the remote process group details
                         $('#remote-process-group-id').text('');
                         $('#remote-process-group-name').text('');
-                        $('#remote-process-group-urls').text('');
+                        $('#remote-process-group-urls').val('');
                         $('#remote-process-group-timeout').val('');
                         $('#remote-process-group-yield-duration').val('');
                         $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
@@ -184,7 +185,7 @@
                 // populate the port settings
                 $('#remote-process-group-id').text(selectionData.id);
                 $('#remote-process-group-name').text(selectionData.component.name);
-                $('#remote-process-group-urls').text(selectionData.component.targetUris);
+                $('#remote-process-group-urls').val(selectionData.component.targetUris);
 
                 // populate the text fields
                 $('#remote-process-group-timeout').val(selectionData.component.communicationsTimeout);

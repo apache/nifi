@@ -175,7 +175,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
 
             byte[] plainBytes = unprotectedValue.getBytes(StandardCharsets.UTF_8);
             byte[] cipherBytes = cipher.doFinal(plainBytes);
-            logger.info(getName() + " encrypted a sensitive value successfully");
+            logger.debug(getName() + " encrypted a sensitive value successfully");
             return base64Encode(iv) + DELIMITER + base64Encode(cipherBytes);
             // return Base64.toBase64String(iv) + DELIMITER + Base64.toBase64String(cipherBytes);
         } catch (BadPaddingException | IllegalBlockSizeException | EncoderException | InvalidAlgorithmParameterException | InvalidKeyException e) {
@@ -238,7 +238,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
 
             cipher.init(Cipher.DECRYPT_MODE, this.key, new IvParameterSpec(iv));
             byte[] plainBytes = cipher.doFinal(cipherBytes);
-            logger.info(getName() + " decrypted a sensitive value successfully");
+            logger.debug(getName() + " decrypted a sensitive value successfully");
             return new String(plainBytes, StandardCharsets.UTF_8);
         } catch (BadPaddingException | IllegalBlockSizeException | DecoderException | InvalidAlgorithmParameterException | InvalidKeyException e) {
             final String msg = "Error decrypting a protected value";

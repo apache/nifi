@@ -17,6 +17,7 @@
 = Getting Started with Apache NiFi
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
+:linkattrs:
 
 
 == Who is This Guide For?
@@ -57,7 +58,7 @@ dataflows.
 
 == Downloading and Installing NiFi
 
-NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads Page]. There are two packaging options
+NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads Page^]. There are two packaging options
 available: a "tarball" that is tailored more to Linux and a zip file that is more applicable for Windows users. Mac OS X users
 may also use the tarball or can install via Homebrew.
 
@@ -111,7 +112,7 @@ and `sudo service nifi stop`. Additionally, the running status can be checked vi
 == I Started NiFi. Now What?
 
 Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
-To get started, open a web browser and navigate to `http://localhost:8080/nifi`. The port can be changed by
+To get started, open a web browser and navigate to link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^]. The port can be changed by
 editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 8080.
 
 This will bring up the User Interface, which at this point is a blank canvas for orchestrating a dataflow:
@@ -741,14 +742,14 @@ addition to this Getting Started Guide:
 - link:developer-guide.html[Developer's Guide] - While not an exhaustive guide to All Things NiFi Development, this guide does provide a
   comprehensive overview of the different API's available and how they should be used. In addition, it provides Best Practices for developing
 	NiFi components and common Processor idioms to help aid in understanding the logic behind many of the existing NiFi components.
-- link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[Contributor's Guide] - A guide for explaining how to contribute
+- link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[Contributor's Guide^] - A guide for explaining how to contribute
   work back to the Apache NiFi community so that others can make use of it.
 
 Several blog postings have also been added to the Apache NiFi blog site:
-link:https://blogs.apache.org/nifi/[https://blogs.apache.org/nifi/]
+link:https://blogs.apache.org/nifi/[https://blogs.apache.org/nifi/^]
 
 In addition to the blog and guides provided here, you can browse the different
-link:https://nifi.apache.org/mailing_lists.html[NiFi Mailing Lists] or send an e-mail to one of the mailing lists at
+link:https://nifi.apache.org/mailing_lists.html[NiFi Mailing Lists^] or send an e-mail to one of the mailing lists at
 link:mailto:users@nifi.apache.org[users@nifi.apache.org] or
 link:mailto:dev@nifi.apache.org[dev@nifi.apache.org].
 

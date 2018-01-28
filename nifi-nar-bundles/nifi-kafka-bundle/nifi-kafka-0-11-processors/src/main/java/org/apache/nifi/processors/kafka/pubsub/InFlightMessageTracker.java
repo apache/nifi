@@ -45,6 +45,10 @@ public class InFlightMessageTracker {
         }
     }
 
+    /**
+     * This method guarantees that the specified FlowFile to be transferred to
+     * 'success' relationship even if it did not derive any Kafka message.
+     */
     public void trackEmpty(final FlowFile flowFile) {
         messageCountsByFlowFile.putIfAbsent(flowFile, new Counts());
     }

@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.5.0-SNAPSHOT</version>
+        <version>1.6.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -241,7 +241,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.5.0-SNAPSHOT</version>
+            <version>1.6.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -284,7 +284,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.5.0-SNAPSHOT</version>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
@@ -301,6 +301,11 @@
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.github.wnameless</groupId>
+            <artifactId>json-flattener</artifactId>
+            <version>0.4.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.bval</groupId>
@@ -390,6 +395,7 @@
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
+                        <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
@@ -488,6 +494,7 @@
                         <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
@@ -501,6 +508,10 @@
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-streets.json</exclude>
                         <!-- This file is copied from https://github.com/jeremyh/jBCrypt
                             because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>

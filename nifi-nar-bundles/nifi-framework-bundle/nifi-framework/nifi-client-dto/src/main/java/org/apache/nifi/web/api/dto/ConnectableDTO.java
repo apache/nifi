@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ConnectableDTO {
 
     private String id;
+    private String versionedComponentId;
     private String type;
     private String groupId;
     private String name;
@@ -49,6 +50,16 @@ public class ConnectableDTO {
     public void setId(String id) {
         this.id = id;
     }
+
+    @ApiModelProperty("The ID of the corresponding component that is under version control")
+    public String getVersionedComponentId() {
+        return versionedComponentId;
+    }
+
+    public void setVersionedComponentId(final String id) {
+        this.versionedComponentId = id;
+    }
+
 
     /**
      * @return type of this connectable component

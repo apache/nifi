@@ -37,7 +37,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
      */
     @ApiModelProperty(
             value = "The action associated with this access policy.",
-            allowableValues = "READ, WRITE"
+            allowableValues = "read, write"
     )
     public String getAction() {
         return action;

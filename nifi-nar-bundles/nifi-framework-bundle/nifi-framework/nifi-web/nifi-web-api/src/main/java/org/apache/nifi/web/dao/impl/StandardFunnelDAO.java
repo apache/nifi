@@ -91,6 +91,8 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
             }
         }
 
+        funnel.getProcessGroup().onComponentModified();
+
         return funnel;
     }
 

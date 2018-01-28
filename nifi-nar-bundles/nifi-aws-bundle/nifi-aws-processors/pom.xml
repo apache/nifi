@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-aws-bundle</artifactId>
-        <version>1.5.0-SNAPSHOT</version>
+        <version>1.6.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-aws-processors</artifactId>
     <packaging>jar</packaging>
@@ -34,12 +34,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-abstract-processors</artifactId>
-            <version>1.5.0-SNAPSHOT</version>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-service-api</artifactId>
-            <version>1.5.0-SNAPSHOT</version>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -64,6 +64,16 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
         </dependency>
+
+        <!-- Test Dependencies for testing interaction with AWS -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.6.6</version>
+            <scope>test</scope>
+        </dependency>
+
+
     </dependencies>
     <build>
         <plugins>

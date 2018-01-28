@@ -19,3 +19,12 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Couchbase Java SDK
         Copyright 2012 Netflix, Inc.
+
+    (ASLv2) Apache Commons Lang
+      The following NOTICE information applies:
+        Apache Commons Lang
+        Copyright 2001-2017 The Apache Software Foundation
+
+        This product includes software from the Spring Framework,
+        under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+

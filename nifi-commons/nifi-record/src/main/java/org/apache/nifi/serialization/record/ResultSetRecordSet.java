@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -45,10 +46,10 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     private final Set<String> rsColumnNames;
     private boolean moreRows;
 
-    public ResultSetRecordSet(final ResultSet rs) throws SQLException {
+    public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         this.rs = rs;
         moreRows = rs.next();
-        this.schema = createSchema(rs);
+        this.schema = createSchema(rs, readerSchema);
 
         rsColumnNames = new HashSet<>();
         final ResultSetMetaData metadata = rs.getMetaData();
@@ -118,7 +119,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return value;
     }
 
-    private static RecordSchema createSchema(final ResultSet rs) throws SQLException {
+    private static RecordSchema createSchema(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         final ResultSetMetaData metadata = rs.getMetaData();
         final int numCols = metadata.getColumnCount();
         final List<RecordField> fields = new ArrayList<>(numCols);
@@ -127,7 +128,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             final int column = i + 1;
             final int sqlType = metadata.getColumnType(column);
 
-            final DataType dataType = getDataType(sqlType, rs, column);
+            final DataType dataType = getDataType(sqlType, rs, column, readerSchema);
             final String fieldName = metadata.getColumnLabel(column);
 
             final int nullableFlag = metadata.isNullable(column);
@@ -145,7 +146,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return new SimpleRecordSchema(fields);
     }
 
-    private static DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex) throws SQLException {
+    private static DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex, final RecordSchema readerSchema) throws SQLException {
         switch (sqlType) {
             case Types.ARRAY:
                 // The JDBC API does not allow us to know what the base type of an array is through the metadata.
@@ -168,10 +169,16 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
-            case Types.OTHER:
+            case Types.OTHER: {
                 // If we have no records to inspect, we can't really know its schema so we simply use the default data type.
                 if (rs.isAfterLast()) {
                     return RecordFieldType.RECORD.getDataType();
+                }
+
+                final String columnName = rs.getMetaData().getColumnName(columnIndex);
+                Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                if (dataType.isPresent()) {
+                    return dataType.get();
                 }
 
                 final Object obj = rs.getObject(columnIndex);
@@ -188,8 +195,16 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 final Record record = (Record) obj;
                 final RecordSchema recordSchema = record.getSchema();
                 return RecordFieldType.RECORD.getRecordDataType(recordSchema);
-            default:
+            }
+            default: {
+                final String columnName = rs.getMetaData().getColumnName(columnIndex);
+                Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                if (dataType.isPresent()) {
+                    return dataType.get();
+                }
+
                 return getFieldType(sqlType).getDataType();
+            }
         }
     }
 
@@ -286,7 +301,8 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.TIMESTAMP.getDataType();
             }
             if (valueToLookAt instanceof Record) {
-                return RecordFieldType.RECORD.getDataType();
+                final Record record = (Record) valueToLookAt;
+                return RecordFieldType.RECORD.getRecordDataType(record.getSchema());
             }
         }
 

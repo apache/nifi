@@ -46,7 +46,7 @@ import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"distributed", "cache", "state", "map", "cluster","hbase"})
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheClient", "org.apache.nifi.hbase.HBase_1_1_2_ClientService"})
+@SeeAlso(classNames = {"org.apache.nifi.hbase.HBase_1_1_2_ClientService"})
 @CapabilityDescription("Provides the ability to use an HBase table as a cache, in place of a DistributedMapCache."
     + " Uses a HBase_1_1_2_ClientService controller to communicate with HBase.")
 

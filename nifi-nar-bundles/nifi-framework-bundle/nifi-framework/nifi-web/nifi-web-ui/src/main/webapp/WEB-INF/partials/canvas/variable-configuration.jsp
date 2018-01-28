@@ -80,6 +80,7 @@
             </div>
         </div>
     </div>
+    <div id="variable-message">Variables do not support sensitive values and will be included when versioning a Process Group.</div>
 </div>
 <div id="new-variable-dialog" class="dialog cancellable small-dialog hidden">
     <div class="dialog-content">

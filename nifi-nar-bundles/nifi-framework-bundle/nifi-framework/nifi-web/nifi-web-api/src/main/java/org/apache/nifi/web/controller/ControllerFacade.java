@@ -48,6 +48,7 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -74,6 +75,7 @@ import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.ReportingTask;
@@ -156,6 +158,10 @@ public class ControllerFacade implements Authorizable {
         } else {
             return processor.getProcessGroup().getIdentifier();
         }
+    }
+
+    public ControllerServiceProvider getControllerServiceProvider() {
+        return flowController;
     }
 
     /**
@@ -574,6 +580,11 @@ public class ControllerFacade implements Authorizable {
         controllerStatus.setDisabledCount(counts.getDisabledCount());
         controllerStatus.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         controllerStatus.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
+        controllerStatus.setUpToDateCount(counts.getUpToDateCount());
+        controllerStatus.setLocallyModifiedCount(counts.getLocallyModifiedCount());
+        controllerStatus.setStaleCount(counts.getStaleCount());
+        controllerStatus.setLocallyModifiedAndStaleCount(counts.getLocallyModifiedAndStaleCount());
+        controllerStatus.setSyncFailureCount(counts.getSyncFailureCount());
 
         return controllerStatus;
     }

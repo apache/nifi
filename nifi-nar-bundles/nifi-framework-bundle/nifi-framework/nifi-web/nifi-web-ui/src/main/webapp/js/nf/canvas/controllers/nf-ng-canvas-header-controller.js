@@ -118,7 +118,7 @@
             this.logoutCtrl = {
                 logout: function () {
                     nfStorage.removeItem("jwt");
-                    window.location = '/nifi';
+                    window.location = '../nifi/login';
                 }
             };
         }

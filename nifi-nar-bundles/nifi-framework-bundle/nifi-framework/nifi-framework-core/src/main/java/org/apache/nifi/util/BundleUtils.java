@@ -19,6 +19,7 @@ package org.apache.nifi.util;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.List;
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
  * Utility class for Bundles.
  */
 public final class BundleUtils {
-
     private static BundleCoordinate findBundleForType(final String type, final BundleCoordinate desiredCoordinate) {
         final List<Bundle> bundles = ExtensionManager.getBundles(type);
         if (bundles.isEmpty()) {
@@ -140,4 +140,50 @@ public final class BundleUtils {
         }
     }
 
+
+    /**
+     * Discovers the compatible bundle details for the components in the specified Versioned Process Group and updates the Versioned Process Group
+     * to reflect the appropriate bundles.
+     *
+     * @param versionedGroup the versioned group
+     */
+    public static void discoverCompatibleBundles(final VersionedProcessGroup versionedGroup) {
+        if (versionedGroup.getProcessors() != null) {
+            versionedGroup.getProcessors().forEach(processor -> {
+                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(processor.getType(), createBundleDto(processor.getBundle()));
+
+                final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
+                bundle.setArtifact(coordinate.getId());
+                bundle.setGroup(coordinate.getGroup());
+                bundle.setVersion(coordinate.getVersion());
+                processor.setBundle(bundle);
+            });
+        }
+
+        if (versionedGroup.getControllerServices() != null) {
+            versionedGroup.getControllerServices().forEach(controllerService -> {
+                final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(controllerService.getType(), createBundleDto(controllerService.getBundle()));
+
+                final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
+                bundle.setArtifact(coordinate.getId());
+                bundle.setGroup(coordinate.getGroup());
+                bundle.setVersion(coordinate.getVersion());
+                controllerService.setBundle(bundle);
+            });
+        }
+
+        if (versionedGroup.getProcessGroups() != null) {
+            versionedGroup.getProcessGroups().forEach(processGroup -> {
+                discoverCompatibleBundles(processGroup);
+            });
+        }
+    }
+
+    public static BundleDTO createBundleDto(final org.apache.nifi.registry.flow.Bundle bundle) {
+        final BundleDTO dto = new BundleDTO();
+        dto.setArtifact(bundle.getArtifact());
+        dto.setGroup(dto.getGroup());
+        dto.setVersion(dto.getVersion());
+        return dto;
+    }
 }

@@ -626,6 +626,7 @@ public class AvroTypeUtil {
         final Map<String, Object> values = new HashMap<>(recordSchema.getFieldCount());
 
         for (final RecordField recordField : recordSchema.getFields()) {
+
             Object value = avroRecord.get(recordField.getFieldName());
             if (value == null) {
                 for (final String alias : recordField.getAliases()) {
@@ -637,6 +638,7 @@ public class AvroTypeUtil {
             }
 
             final String fieldName = recordField.getFieldName();
+            try {
             final Field avroField = avroRecord.getSchema().getField(fieldName);
             if (avroField == null) {
                 values.put(fieldName, null);
@@ -650,6 +652,10 @@ public class AvroTypeUtil {
             final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType, fieldName);
 
             values.put(fieldName, coercedValue);
+            } catch (Exception ex) {
+                logger.debug("fail to convert field " + fieldName, ex );
+                throw ex;
+            }
         }
 
         return values;
@@ -716,6 +722,10 @@ public class AvroTypeUtil {
                     return true;
                 }
                 break;
+            case MAP:
+                if (value instanceof Map) {
+                    return true;
+                }
         }
 
         return DataTypeUtils.isCompatibleDataType(value, dataType);
@@ -822,13 +832,7 @@ public class AvroTypeUtil {
                     map.put(key, obj);
                 }
 
-                final DataType elementType = AvroTypeUtil.determineDataType(avroSchema.getValueType());
-                final List<RecordField> mapFields = new ArrayList<>();
-                for (final String key : map.keySet()) {
-                    mapFields.add(new RecordField(key, elementType, true));
-                }
-                final RecordSchema mapSchema = new SimpleRecordSchema(mapFields);
-                return new MapRecord(mapSchema, map);
+                return map;
         }
 
         return value;

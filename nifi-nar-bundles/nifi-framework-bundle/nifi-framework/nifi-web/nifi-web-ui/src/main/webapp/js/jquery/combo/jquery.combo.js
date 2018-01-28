@@ -176,6 +176,10 @@
                             if (maxHeight > 0) {
                                 comboOptions.css('max-height', maxHeight + 'px');
                             }
+                        } else {
+                            var windowHeight = $(window).height();
+                            maxHeight = windowHeight - (position.top + Math.round(combo.outerHeight())) - 32;
+                            comboOptions.css('max-height', maxHeight + 'px');
                         }
 
                         // create the list that will contain the options

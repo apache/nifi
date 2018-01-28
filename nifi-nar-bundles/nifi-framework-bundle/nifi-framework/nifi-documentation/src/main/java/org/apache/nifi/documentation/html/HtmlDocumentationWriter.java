@@ -287,7 +287,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
             if (componentNames.length > 0 || classNames.length > 0) {
                 // Write alternatives
-                iterateAndLinkComponents(xmlStreamWriter, componentNames, classNames, ",");
+                iterateAndLinkComponents(xmlStreamWriter, componentNames, classNames, ",", configurableComponent.getClass().getSimpleName());
             } else {
                 xmlStreamWriter.writeCharacters("No alternative components suggested.");
             }
@@ -314,7 +314,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             String[] classNames = seeAlso.classNames();
             if (componentNames.length > 0 || classNames.length > 0) {
                 // Write alternatives
-                iterateAndLinkComponents(xmlStreamWriter, componentNames, classNames, ", ");
+                iterateAndLinkComponents(xmlStreamWriter, componentNames, classNames, ", ", configurableComponent.getClass().getSimpleName());
             } else {
                 xmlStreamWriter.writeCharacters("No tags provided.");
             }
@@ -643,7 +643,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             if (implementations.length > 0) {
                 final String title = implementations.length > 1 ? "Implementations: " : "Implementation: ";
                 writeSimpleElement(xmlStreamWriter, "strong", title);
-                iterateAndLinkComponents(xmlStreamWriter, implementations, null,  "<br>");
+                iterateAndLinkComponents(xmlStreamWriter, implementations, null, "<br>", controllerServiceClass.getSimpleName());
             } else {
                 xmlStreamWriter.writeCharacters("No implementations found.");
             }
@@ -762,21 +762,23 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      * @param separator a separator used to split the values (in case more than 1. If the separator is enclosed in
      *                  between "<" and ">" (.e.g "<br>" it is treated as a tag and written to the xmlStreamWriter as an
      *                  empty tag
+     * @param sourceContextName the source context/name of the item being linked
      * @throws XMLStreamException thrown if there is a problem writing the XML
      */
-    protected void iterateAndLinkComponents(final XMLStreamWriter xmlStreamWriter, final Class<? extends ConfigurableComponent>[] linkedComponents, String[] classNames, String separator)
+    protected void iterateAndLinkComponents(final XMLStreamWriter xmlStreamWriter, final Class<? extends ConfigurableComponent>[] linkedComponents,
+            final String[] classNames, final String separator, final String sourceContextName)
             throws XMLStreamException {
-
+        String effectiveSeparator = separator;
         // Treat the the possible separators
         boolean separatorIsElement;
 
-        if (separator.startsWith("<") && separator.endsWith(">")) {
+        if (effectiveSeparator.startsWith("<") && effectiveSeparator.endsWith(">")) {
             separatorIsElement = true;
         } else {
             separatorIsElement = false;
         }
         // Whatever the result, strip the possible < and > characters
-        separator = separator.replaceAll("\\<([^>]*)>","$1");
+        effectiveSeparator = effectiveSeparator.replaceAll("\\<([^>]*)>","$1");
 
         int index = 0;
         for (final Class<? extends ConfigurableComponent> linkedComponent : linkedComponents ) {
@@ -794,16 +796,16 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 if (index != 0) {
                     if (separatorIsElement) {
-                        xmlStreamWriter.writeEmptyElement(separator);
+                        xmlStreamWriter.writeEmptyElement(effectiveSeparator);
                     } else {
-                        xmlStreamWriter.writeCharacters(separator);
+                        xmlStreamWriter.writeCharacters(effectiveSeparator);
                     }
                 }
                 writeLink(xmlStreamWriter, linkedComponent.getSimpleName(), "../../../../../components/" + group + "/" + id + "/" + version + "/" + linkedComponent.getCanonicalName() + "/index.html");
 
                 ++index;
             } else {
-                LOGGER.warn("Could not link to {} because no bundles were found", new Object[] {linkedComponentName});
+                LOGGER.warn("Could not link to {} because no bundles were found for {}", new Object[] {linkedComponentName, sourceContextName});
             }
         }
 
@@ -811,9 +813,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             for (final String className : classNames) {
                 if (index != 0) {
                     if (separatorIsElement) {
-                        xmlStreamWriter.writeEmptyElement(separator);
+                        xmlStreamWriter.writeEmptyElement(effectiveSeparator);
                     } else {
-                        xmlStreamWriter.writeCharacters(separator);
+                        xmlStreamWriter.writeCharacters(effectiveSeparator);
                     }
                 }
 
@@ -835,7 +837,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                     ++index;
                 } else {
-                    LOGGER.warn("Could not link to {} because no bundles were found", new Object[] {className});
+                    LOGGER.warn("Could not link to {} because no bundles were found for {}", new Object[] {className, sourceContextName});
                 }
             }
         }

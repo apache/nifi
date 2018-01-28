@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -33,12 +32,13 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
     /**
      * @return variable referencing components that is being serialized
      */
+    @Override
     public AffectedComponentDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(AffectedComponentDTO component) {
         this.component = component;
     }
-
 }

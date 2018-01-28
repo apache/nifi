@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
@@ -120,6 +121,11 @@ public class StatusMerger {
         if (targetReadablePermission && !toMergeReadablePermission) {
             target.setId(toMerge.getId());
             target.setName(toMerge.getName());
+        }
+
+        // if the versioned flow state to merge is sync failure allow it to take precedence
+        if (VersionedFlowState.SYNC_FAILURE.name().equals(toMerge.getVersionedFlowState())) {
+            target.setVersionedFlowState(VersionedFlowState.SYNC_FAILURE.name());
         }
 
         target.setBytesIn(target.getBytesIn() + toMerge.getBytesIn());
