@@ -94,6 +94,8 @@ public class MockFlowFile implements FlowFileRecord {
         final byte[] dataToCopy = ((MockFlowFile) toCopy).data;
         this.data = new byte[dataToCopy.length];
         System.arraycopy(dataToCopy, 0, this.data, 0, dataToCopy.length);
+
+        this.penalized = toCopy.isPenalized();
     }
 
     void setPenalized() {
