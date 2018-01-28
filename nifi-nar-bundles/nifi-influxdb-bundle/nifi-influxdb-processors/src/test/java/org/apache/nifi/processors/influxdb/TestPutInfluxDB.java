@@ -80,14 +80,32 @@ public class TestPutInfluxDB {
 
     @Test
     public void testEmptyUsername() {
-        runner.setProperty(PutInfluxDB.USERNAME,"");
+        runner = TestRunners.newTestRunner(mockPutInfluxDB);
+        runner.setProperty(PutInfluxDB.DB_NAME, "test");
+        runner.setProperty(PutInfluxDB.PASSWORD, "password");
+        runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "http://dbUrl");
+        runner.setProperty(PutInfluxDB.CHARSET, "UTF-8");
+        runner.setProperty(PutInfluxDB.CONSISTENCY_LEVEL,PutInfluxDB.CONSISTENCY_LEVEL_ONE.getValue());
+        runner.setProperty(PutInfluxDB.RETENTION_POLICY,"autogen");
+        runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "1 KB");
         runner.assertValid();
+        runner.setProperty(PutInfluxDB.USERNAME, "");
+        runner.assertNotValid();
     }
 
     @Test
     public void testEmptyPassword() {
-        runner.setProperty(PutInfluxDB.PASSWORD, "");
+        runner = TestRunners.newTestRunner(mockPutInfluxDB);
+        runner.setProperty(PutInfluxDB.DB_NAME, "test");
+        runner.setProperty(PutInfluxDB.USERNAME, "username");
+        runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "http://dbUrl");
+        runner.setProperty(PutInfluxDB.CHARSET, "UTF-8");
+        runner.setProperty(PutInfluxDB.CONSISTENCY_LEVEL,PutInfluxDB.CONSISTENCY_LEVEL_ONE.getValue());
+        runner.setProperty(PutInfluxDB.RETENTION_POLICY,"autogen");
+        runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "1 KB");
         runner.assertValid();
+        runner.setProperty(PutInfluxDB.PASSWORD, "");
+        runner.assertNotValid();
     }
 
     @Test
