@@ -89,6 +89,18 @@ public class TestMockProcessSession {
         session.transfer(ff1);
     }
 
+    @Test
+    public void testKeepPenalizedStatusAfterPuttingAttribute(){
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        ff1 = session.penalize(ff1);
+        assertEquals(true, ff1.isPenalized());
+        ff1 = session.putAttribute(ff1, "hello", "world");
+        // adding attribute to flow file should not override the original penalized status
+        assertEquals(true, ff1.isPenalized());
+    }
+
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {
 
         private static final Relationship REL_FAILURE = new Relationship.Builder()
