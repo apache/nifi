@@ -75,6 +75,7 @@ public class GetMongoTest {
         runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
+        runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.YES_PP);
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 
@@ -258,5 +259,25 @@ public class GetMongoTest {
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
         Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
+    }
+
+    @Test
+    public void testConfigurablePrettyPrint() {
+        runner.setProperty(GetMongo.JSON_TYPE, GetMongo.JSON_STANDARD);
+        runner.setProperty(GetMongo.LIMIT, "1");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
+        String json = new String(raw);
+        Assert.assertTrue("JSON did not have new lines.", json.contains("\n"));
+        runner.clearTransferState();
+        runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.NO_PP);
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        raw = runner.getContentAsByteArray(flowFiles.get(0));
+        json = new String(raw);
+        Assert.assertFalse("New lines detected", json.contains("\n"));
     }
 }
