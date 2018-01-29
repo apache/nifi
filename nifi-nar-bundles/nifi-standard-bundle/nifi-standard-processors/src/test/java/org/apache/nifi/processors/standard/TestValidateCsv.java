@@ -313,4 +313,22 @@ public class TestValidateCsv {
         runner.assertValid();
     }
 
+    @Test
+    public void testMultipleRuns() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "false");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_LINES_INDIVIDUALLY);
+
+        runner.setProperty(ValidateCsv.SCHEMA, "Unique()");
+
+        runner.enqueue("John\r\nBob\r\nTom");
+        runner.enqueue("John\r\nBob\r\nTom");
+        runner.run(2);
+
+        runner.assertTransferCount(ValidateCsv.REL_VALID, 2);
+        runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
+    }
 }
