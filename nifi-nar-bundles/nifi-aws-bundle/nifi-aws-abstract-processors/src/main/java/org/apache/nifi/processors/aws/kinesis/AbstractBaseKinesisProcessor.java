@@ -64,16 +64,16 @@ public abstract class AbstractBaseKinesisProcessor<ClientType extends AmazonWebS
     public static final int MAX_MESSAGE_SIZE = 1000 * 1024;
 
     protected FlowFile handleFlowFileTooBig(final ProcessSession session, FlowFile flowFileCandidate,
-            final String streamName, String message) {
+                                            String message) {
         flowFileCandidate = session.putAttribute(flowFileCandidate, message,
-            "record too big " + flowFileCandidate.getSize() + " max allowed " + MAX_MESSAGE_SIZE );
+                "record too big " + flowFileCandidate.getSize() + " max allowed " + MAX_MESSAGE_SIZE );
         session.transfer(flowFileCandidate, REL_FAILURE);
-        getLogger().error("Failed to publish to kinesis {} records {} because the size was greater than {} bytes",
-            new Object[]{streamName, flowFileCandidate, MAX_MESSAGE_SIZE});
+        getLogger().error("Failed to publish to kinesis records {} because the size was greater than {} bytes",
+                new Object[]{flowFileCandidate, MAX_MESSAGE_SIZE});
         return flowFileCandidate;
     }
 
-    protected List<FlowFile> filterMessagesByMaxSize(final ProcessSession session, final int batchSize, final long maxBufferSizeBytes, final String streamName, String message) {
+    protected List<FlowFile> filterMessagesByMaxSize(final ProcessSession session, final int batchSize, final long maxBufferSizeBytes, String message) {
         List<FlowFile> flowFiles = new ArrayList<FlowFile>(batchSize);
 
         long currentBufferSizeBytes = 0;
@@ -85,7 +85,7 @@ public abstract class AbstractBaseKinesisProcessor<ClientType extends AmazonWebS
                 break;
 
             if (flowFileCandidate.getSize() > MAX_MESSAGE_SIZE) {
-                flowFileCandidate = handleFlowFileTooBig(session, flowFileCandidate, streamName, message);
+                flowFileCandidate = handleFlowFileTooBig(session, flowFileCandidate, message);
                 continue;
             }
 
