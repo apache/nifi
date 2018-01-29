@@ -106,7 +106,8 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         attributes.put("azure.etag", entity.getEtag());
         attributes.put("azure.primaryUri", entity.getPrimaryUri());
         attributes.put("azure.secondaryUri", entity.getSecondaryUri());
-        attributes.put("azure.blobname", entity.getName());
+        attributes.put("azure.blobname", entity.getBlobName());
+        attributes.put("filename", entity.getName());
         attributes.put("azure.blobtype", entity.getBlobType());
         attributes.put("azure.length", String.valueOf(entity.getLength()));
         attributes.put("azure.timestamp", String.valueOf(entity.getTimestamp()));
@@ -163,6 +164,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
                     Builder builder = new BlobInfo.Builder()
                                               .primaryUri(uri.getPrimaryUri().toString())
+                                              .blobName(cloudBlob.getName())
                                               .containerName(containerName)
                                               .contentType(properties.getContentType())
                                               .contentLanguage(properties.getContentLanguage())
