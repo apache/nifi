@@ -175,40 +175,25 @@ public class BinManager {
                     continue;
                 }
 
-                final List<Bin> currentBins = groupBinMap.get(groupIdentifier);
-                if (currentBins == null) { // this is a new group we need to register
-                    final List<Bin> bins = new ArrayList<>();
-                    final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
-                        maxEntries.get(), fileCountAttribute.get());
-                    bins.add(bin);
-                    groupBinMap.put(groupIdentifier, bins);
-                    binCount++;
-
-                    final boolean added = bin.offer(flowFile, session);
-                    if (!added) {
-                        unbinned.add(flowFile);
+                final List<Bin> currentBins = groupBinMap.computeIfAbsent(groupIdentifier, k -> new ArrayList<>());
+                for (final Bin bin : currentBins) {
+                    final boolean accepted = bin.offer(flowFile, session);
+                    if (accepted) {
+                        continue flowFileLoop;
                     }
-                    continue;
-                } else {
-                    for (final Bin bin : currentBins) {
-                        final boolean accepted = bin.offer(flowFile, session);
-                        if (accepted) {
-                            continue flowFileLoop;
-                        }
-                    }
-
-                    //if we've reached this point then we couldn't fit it into any existing bins - gotta make a new one
-                    final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
-                        maxEntries.get(), fileCountAttribute.get());
-                    currentBins.add(bin);
-                    binCount++;
-                    final boolean added = bin.offer(flowFile, session);
-                    if (!added) {
-                        unbinned.add(flowFile);
-                    }
-
-                    continue;
                 }
+
+                // if we've reached this point then the groupIdentifier was a brand new one,
+                // or we couldn't fit it into any existing bins - gotta make a new one
+                final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
+                    maxEntries.get(), fileCountAttribute.get());
+                currentBins.add(bin);
+                binCount++;
+                final boolean added = bin.offer(flowFile, session);
+                if (!added) {
+                    unbinned.add(flowFile);
+                }
+
             }
         } finally {
             wLock.unlock();
