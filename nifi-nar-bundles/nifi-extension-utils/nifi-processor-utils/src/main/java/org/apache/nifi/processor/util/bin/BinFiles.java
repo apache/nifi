@@ -255,7 +255,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         int flowFilesBinned = 0;
-        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger().intValue()) {
+        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger()) {
             if (!isScheduled()) {
                 break;
             }
@@ -287,6 +287,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                     bin.offer(flowFile, session);
                     this.readyBins.add(bin);
                 }
+                flowFilesBinned += entry.getValue().size();
             }
         }
 
