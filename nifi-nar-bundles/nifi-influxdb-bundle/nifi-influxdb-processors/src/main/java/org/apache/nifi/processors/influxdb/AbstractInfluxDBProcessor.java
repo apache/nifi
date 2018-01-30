@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.influxdb;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -23,10 +26,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
+
+import okhttp3.OkHttpClient;
+import okhttp3.OkHttpClient.Builder;
 
 /**
  * Abstract base class for InfluxDB processors
@@ -45,15 +50,26 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor INFLUX_DB_URL = new PropertyDescriptor.Builder()
             .name("influxdb-url")
-            .displayName("InfluxDB connection url")
-            .description("InfluxDB url to connect to")
+            .displayName("InfluxDB connection URL")
+            .description("InfluxDB URL to connect to. Eg: http://influxdb:8086")
+            .defaultValue("http://localhost:8086")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor INFLUX_DB_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("InfluxDB Max Connection Time Out (seconds)")
+            .description("The maximum time for establishing connection to the InfluxDB")
+            .defaultValue("0 seconds")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .sensitive(false)
             .build();
 
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
             .name("influxdb-dbname")
-            .displayName("DB Name")
+            .displayName("Database Name")
             .description("InfluxDB database to connect to")
             .required(true)
             .expressionLanguageSupported(true)
@@ -81,53 +97,51 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .name("influxdb-max-records-size")
             .displayName("Max size of records")
             .description("Maximum size of records allowed to be posted in one batch")
+            .expressionLanguageSupported(true)
             .defaultValue("1 MB")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
-    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("Sucessful FlowFiles are routed to this relationship").build();
-
-    static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("Failed FlowFiles are routed to this relationship").build();
-
     public static final String INFLUX_DB_ERROR_MESSAGE = "influxdb.error.message";
 
-    protected InfluxDB influxDB;
+    protected AtomicReference<InfluxDB> influxDB = new AtomicReference<>();
     protected long maxRecordsSize;
 
     /**
-     * Helper method to help testability
+     * Helper method to create InfluxDB instance
      * @return InfluxDB instance
      */
-    protected InfluxDB getInfluxDB() {
-        return influxDB;
+    protected synchronized InfluxDB getInfluxDB(ProcessContext context) {
+        if ( influxDB.get() == null ) {
+            String username = context.getProperty(USERNAME).getValue();
+            String password = context.getProperty(PASSWORD).getValue();
+            long connectionTimeout = context.getProperty(INFLUX_DB_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS);
+            String influxDbUrl = context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue();
+
+            try {
+                influxDB.set(makeConnection(username, password, influxDbUrl, connectionTimeout));
+            } catch(Exception e) {
+                getLogger().error("Error while getting connection {}", new Object[] { e.getLocalizedMessage() },e);
+                throw new RuntimeException("Error while getting connection" + e.getLocalizedMessage(),e);
+            }
+            getLogger().info("InfluxDB connection created for host {}",
+                    new Object[] {influxDbUrl});
+        }
+        return influxDB.get();
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        String username = context.getProperty(USERNAME).getValue();
-        String password = context.getProperty(PASSWORD).getValue();
-        String influxDbUrl = context.getProperty(INFLUX_DB_URL).getValue();
-
-        maxRecordsSize = context.getProperty(MAX_RECORDS_SIZE).asDataSize(DataUnit.B).longValue();
-
-        try {
-            influxDB = makeConnection(username, password, influxDbUrl);
-        } catch(Exception e) {
-            getLogger().error("Error while getting connection {}", new Object[] { e.getLocalizedMessage() },e);
-            throw new RuntimeException("Error while getting connection" + e.getLocalizedMessage(),e);
-        }
-        getLogger().info("InfluxDB connection created for host {}",
-                new Object[] {influxDbUrl});
+        maxRecordsSize = context.getProperty(MAX_RECORDS_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
     }
 
-    protected InfluxDB makeConnection(String username, String password, String influxDbUrl) {
+    protected InfluxDB makeConnection(String username, String password, String influxDbUrl, long connectionTimeout) {
+        Builder builder = new OkHttpClient.Builder().connectTimeout(connectionTimeout, TimeUnit.SECONDS);
         if ( StringUtils.isBlank(username) || StringUtils.isBlank(password) ) {
-            return InfluxDBFactory.connect(influxDbUrl);
+            return InfluxDBFactory.connect(influxDbUrl, builder);
         } else {
-            return InfluxDBFactory.connect(influxDbUrl, username, password);
+            return InfluxDBFactory.connect(influxDbUrl, username, password, builder);
         }
     }
 
@@ -136,8 +150,9 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
         if (getLogger().isDebugEnabled()) {
             getLogger().info("Closing connection");
         }
-        if ( influxDB != null ) {
-            influxDB.close();
+        if ( influxDB.get() != null ) {
+            influxDB.get().close();
+            influxDB.set(null);;
         }
     }
 }

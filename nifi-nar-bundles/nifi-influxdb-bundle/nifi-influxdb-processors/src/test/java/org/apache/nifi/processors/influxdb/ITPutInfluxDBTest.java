@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.influxdb;
-
 import static org.junit.Assert.assertEquals;
 import java.util.List;
 import org.apache.nifi.util.MockFlowFile;
@@ -35,6 +34,7 @@ import org.junit.Test;
  * and password if applicable before running the integration tests.
  */
 public class ITPutInfluxDBTest {
+
     private TestRunner runner;
     private InfluxDB influxDB;
     private String dbName = "test";
@@ -54,24 +54,22 @@ public class ITPutInfluxDBTest {
         runner.setProperty(PutInfluxDB.RETENTION_POLICY,"autogen");
         runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "1 KB");
         runner.assertValid();
-
         influxDB = InfluxDBFactory.connect(dbUrl,user,password);
-
         if ( influxDB.databaseExists(dbName) ) {
             QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
             checkError(result);
             result = influxDB.query(new Query("DROP measurement testm", dbName));
             checkError(result);
-            Thread.sleep(2000);
-        } else {
-            influxDB.createDatabase(dbName);
-            int max = 10;
-            while (!influxDB.databaseExists(dbName) && (max-- < 0)) {
-                Thread.sleep(5);
-            }
-            if ( ! influxDB.databaseExists(dbName) ) {
-                throw new Exception("unable to create database " + dbName);
-            }
+            result = influxDB.query(new Query("DROP database " + dbName, dbName));
+            Thread.sleep(1000);
+        }
+        influxDB.createDatabase(dbName);
+        int max = 10;
+        while (!influxDB.databaseExists(dbName) && (max-- < 0)) {
+            Thread.sleep(5);
+        }
+        if ( ! influxDB.databaseExists(dbName) ) {
+            throw new Exception("unable to create database " + dbName);
         }
     }
 
@@ -96,11 +94,9 @@ public class ITPutInfluxDBTest {
         runner.enqueue(bytes);
         runner.run(1,true,true);
         runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_SUCCESS, 1);
-
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE));
-
         QueryResult result = influxDB.query(new Query("select * from water", dbName));
         assertEquals("size should be same", 1, result.getResults().iterator().next().getSeries().size());
         List<List<Object>> values = result.getResults().iterator().next().getSeries().iterator().next().getValues();
@@ -116,11 +112,29 @@ public class ITPutInfluxDBTest {
         runner.enqueue(bytes);
         runner.run(1,true,true);
         runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_SUCCESS, 1);
-
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE));
+        result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
+        assertEquals("size should be same", 1, result.getResults().iterator().next().getSeries().size());
+        List<List<Object>> values = result.getResults().iterator().next().getSeries().iterator().next().getValues();
+        assertEquals("size should be same", 1, values.size());
+    }
 
+    @Test
+    public void testValidSinglePointWithTimeAndUrlExpression() {
+        runner.setVariable("influxDBUrl", "http://localhost:8086");
+        runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "${influxDBUrl}");
+        QueryResult result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
+        assertEquals("Should have no results", null, result.getResults().iterator().next().getSeries());
+        String message = "water,country=US,city=sf rain=1,humidity=0.6 1501002274856668652";
+        byte [] bytes = message.getBytes();
+        runner.enqueue(bytes);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_SUCCESS);
+        assertEquals("Value should be equal", 1, flowFiles.size());
+        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE));
         result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
         assertEquals("size should be same", 1, result.getResults().iterator().next().getSeries().size());
         List<List<Object>> values = result.getResults().iterator().next().getSeries().iterator().next().getValues();
@@ -131,16 +145,13 @@ public class ITPutInfluxDBTest {
     public void testValidTwoPointWithSameMeasurement() {
         String message = "water,country=US,city=newark rain=1,humidity=0.6" + System.lineSeparator()
                 + "water,country=US,city=nyc rain=2,humidity=0.7" + System.lineSeparator();
-
         byte [] bytes = message.getBytes();
         runner.enqueue(bytes);
         runner.run(1,true,true);
         runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_SUCCESS, 1);
-
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE));
-
         QueryResult result = influxDB.query(new Query("select * from water", dbName));
         assertEquals("size should be same", 1, result.getResults().iterator().next().getSeries().size());
         List<List<Object>> values = result.getResults().iterator().next().getSeries().iterator().next().getValues();
@@ -151,17 +162,14 @@ public class ITPutInfluxDBTest {
     public void testValidTwoPointWithSameMeasurementBadFormat() {
         String message = "water,country=US,city=newark rain=1,humidity=0.6" + System.lineSeparator()
                 + "water,country=US,city=nyc,rain=2,humidity=0.7" + System.lineSeparator();
-
         byte [] bytes = message.getBytes();
         runner.enqueue(bytes);
         runner.run(1,true,true);
         runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_FAILURE, 1);
-
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_FAILURE);
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal","{\"error\":\"partial write: unable to parse 'water,country=US,city=nyc,rain=2,humidity=0.7': missing fields dropped=0\"}\n",
             flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE));
-
         QueryResult result = influxDB.query(new Query("select * from water", dbName));
         assertEquals("size should be same", 1, result.getResults().iterator().next().getSeries().size());
         List<List<Object>> values = result.getResults().iterator().next().getSeries().iterator().next().getValues();
@@ -172,16 +180,13 @@ public class ITPutInfluxDBTest {
     public void testValidTwoPointWithDifferentMeasurement() {
         String message = "water,country=US,city=newark rain=1,humidity=0.6" + System.lineSeparator()
                 + "testm,country=US,city=chicago rain=10,humidity=0.9" + System.lineSeparator();
-
         byte [] bytes = message.getBytes();
         runner.enqueue(bytes);
         runner.run(1,true,true);
         runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_SUCCESS, 1);
-
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE));
-
         QueryResult result = influxDB.query(new Query("select * from water, testm", dbName));
         assertEquals("size should be same", 2, result.getResults().iterator().next().getSeries().size());
         List<List<Object>> values = result.getResults().iterator().next().getSeries().iterator().next().getValues();
