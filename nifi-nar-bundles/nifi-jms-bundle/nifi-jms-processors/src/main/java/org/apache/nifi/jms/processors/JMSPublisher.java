@@ -27,10 +27,8 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.Topic;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.core.SessionCallback;
@@ -41,45 +39,22 @@ import org.springframework.jms.support.JmsHeaders;
  */
 final class JMSPublisher extends JMSWorker {
 
-    private final static Logger logger = LoggerFactory.getLogger(JMSPublisher.class);
-
-
-    /**
-     * Creates an instance of this publisher
-     *
-     * @param jmsTemplate
-     *            instance of {@link JmsTemplate}
-     * @param processLog
-     *            instance of {@link ComponentLog}
-     */
-    JMSPublisher(JmsTemplate jmsTemplate, ComponentLog processLog) {
-        super(jmsTemplate, processLog);
-        if (logger.isInfoEnabled()) {
-            logger.info("Created Message Publisher for '" + jmsTemplate.toString() + "'.");
-        }
+    JMSPublisher(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog processLog) {
+        super(connectionFactory, jmsTemplate, processLog);
+        processLog.debug("Created Message Publisher for {}", new Object[] {jmsTemplate});
     }
 
-    /**
-     *
-     * @param messageBytes byte array representing contents of the message
-     */
     void publish(String destinationName, byte[] messageBytes) {
         this.publish(destinationName, messageBytes, null);
     }
 
-    /**
-     *
-     * @param messageBytes
-     *            byte array representing contents of the message
-     * @param flowFileAttributes
-     *            Map representing {@link FlowFile} attributes.
-     */
     void publish(final String destinationName, final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
         this.jmsTemplate.send(destinationName, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 BytesMessage message = session.createBytesMessage();
                 message.writeBytes(messageBytes);
+
                 if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
                     // set message headers and properties
                     for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
@@ -121,18 +96,12 @@ final class JMSPublisher extends JMSWorker {
         });
     }
 
-    /**
-     *
-     */
+
     private void logUnbuildableDestination(String destinationName, String headerName) {
-        this.processLog.warn("Failed to determine destination type from destination name '" + destinationName
-                + "'. The '"
-                + headerName + "' will not be set.");
+        this.processLog.warn("Failed to determine destination type from destination name '{}'. The '{}' header will not be set.", new Object[] {destinationName, headerName});
     }
 
-    /**
-     *
-     */
+
     private Destination buildDestination(final String destinationName) {
         Destination destination;
         if (destinationName.toLowerCase().contains("topic")) {
@@ -152,6 +121,7 @@ final class JMSPublisher extends JMSWorker {
         } else {
             destination = null;
         }
+
         return destination;
     }
 }

@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 
 public class PublishJMSTest {
 
-    @Test
+    @Test(timeout = 10000)
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
@@ -60,7 +60,7 @@ public class PublishJMSTest {
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
         runner.enqueue("Hey dude!".getBytes(), attributes);
-        runner.run(1, false);
+        runner.run(1, false); // Run once but don't shut down because we want the Connection Factory left in tact so that we can use it.
 
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
@@ -72,6 +72,8 @@ public class PublishJMSTest {
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
+
+        runner.run(1, true); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
 
     @Test
@@ -96,7 +98,7 @@ public class PublishJMSTest {
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
         runner.enqueue("Hey dude!".getBytes(), attributes);
-        runner.run(1, false);
+        runner.run(1, false); // Run once but don't shut down because we want the Connection Factory left in tact so that we can use it.
 
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
@@ -108,6 +110,8 @@ public class PublishJMSTest {
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
+
+        runner.run(1, true); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
 
     @Test

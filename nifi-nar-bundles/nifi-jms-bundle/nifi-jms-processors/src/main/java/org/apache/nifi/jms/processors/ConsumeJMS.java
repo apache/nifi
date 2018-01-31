@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.jms.processors;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,8 +42,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
 /**
@@ -146,35 +144,34 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * 'success' {@link Relationship}.
      */
     @Override
-    protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
+    protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSConsumer consumer) throws ProcessException {
         final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
         final Boolean durableBoolean = context.getProperty(DURABLE_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
         final boolean durable = durableBoolean == null ? false : durableBoolean;
         final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
         final boolean shared = sharedBoolean == null ? false : sharedBoolean;
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
-        this.targetResource.consume(destinationName, durable, shared, subscriptionName, new ConsumerCallback(){
+
+        consumer.consume(destinationName, durable, shared, subscriptionName, new ConsumerCallback() {
             @Override
             public void accept(final JMSResponse response) {
-                if (response != null){
-                    FlowFile flowFile = processSession.create();
-                    flowFile = processSession.write(flowFile, new OutputStreamCallback() {
-                        @Override
-                        public void process(final OutputStream out) throws IOException {
-                            out.write(response.getMessageBody());
-                        }
-                    });
-                    Map<String, Object> jmsHeaders = response.getMessageHeaders();
-                    Map<String, Object> jmsProperties = Collections.<String, Object>unmodifiableMap(response.getMessageProperties());
-                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
-                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
-                    flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
-                    processSession.getProvenanceReporter().receive(flowFile, destinationName);
-                    processSession.transfer(flowFile, REL_SUCCESS);
-                    processSession.commit();
-                } else {
-                    context.yield();
+                if (response == null) {
+                    return;
                 }
+
+                FlowFile flowFile = processSession.create();
+                flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
+
+                final Map<String, String> jmsHeaders = response.getMessageHeaders();
+                final Map<String, String> jmsProperties = response.getMessageProperties();
+
+                flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
+                flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
+                flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
+
+                processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                processSession.transfer(flowFile, REL_SUCCESS);
+                processSession.commit();
             }
         });
     }
@@ -183,23 +180,17 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * Will create an instance of {@link JMSConsumer}
      */
     @Override
-    protected JMSConsumer finishBuildingTargetResource(JmsTemplate jmsTemplate, ProcessContext processContext) {
+    protected JMSConsumer finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
         int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
         jmsTemplate.setSessionAcknowledgeMode(ackMode);
-        return new JMSConsumer(jmsTemplate, this.getLogger());
+        return new JMSConsumer(connectionFactory, jmsTemplate, this.getLogger());
     }
 
-    /**
-     *
-     */
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
 
-    /**
-     *
-     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return thisPropertyDescriptors;
@@ -211,11 +202,12 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * copied values of JMS attributes will be "stringified" via
      * String.valueOf(attribute).
      */
-    private FlowFile updateFlowFileAttributesWithJMSAttributes(Map<String, Object> jmsAttributes, FlowFile flowFile, ProcessSession processSession) {
-        Map<String, String> attributes = new HashMap<String, String>();
-        for (Entry<String, Object> entry : jmsAttributes.entrySet()) {
-            attributes.put(entry.getKey(), String.valueOf(entry.getValue()));
+    private FlowFile updateFlowFileAttributesWithJMSAttributes(Map<String, String> jmsAttributes, FlowFile flowFile, ProcessSession processSession) {
+        Map<String, String> attributes = new HashMap<>();
+        for (Entry<String, String> entry : jmsAttributes.entrySet()) {
+            attributes.put(entry.getKey(), entry.getValue());
         }
+
         flowFile = processSession.putAllAttributes(flowFile, attributes);
         return flowFile;
     }
