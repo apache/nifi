@@ -35,7 +35,10 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 
 public class TestInvokeGroovy extends BaseScriptTest {
 
@@ -47,8 +50,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and stores the value in an attribute of the outgoing flowfile.
      *
-     * @throws Exception
-     *             Any error encountered while testing
+     * @throws Exception Any error encountered while testing
      */
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
@@ -69,8 +71,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and stores the value in an attribute of the outgoing flowfile.
      *
-     * @throws Exception
-     *             Any error encountered while testing
+     * @throws Exception Any error encountered while testing
      */
     @Test
     public void testScriptDefinedAttribute() throws Exception {
@@ -103,8 +104,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and stores the value in an attribute of the outgoing flowfile.
      *
-     * @throws Exception
-     *             Any error encountered while testing
+     * @throws Exception Any error encountered while testing
      */
     @Test
     public void testScriptDefinedRelationship() throws Exception {
@@ -136,8 +136,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that throws a ProcessException within. The expected result is that the exception will be propagated
      *
-     * @throws Exception
-     *             Any error encountered while testing
+     * @throws Exception Any error encountered while testing
      */
     @Test(expected = AssertionError.class)
     public void testInvokeScriptCausesException() throws Exception {
@@ -154,8 +153,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that routes the FlowFile to failure.
      *
-     * @throws Exception
-     *             Any error encountered while testing
+     * @throws Exception Any error encountered while testing
      */
     @Test
     public void testScriptRoutesToFailure() throws Exception {
@@ -174,8 +172,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     /**
      * Tests a script that derive from AbstractProcessor as base class
      *
-     * @throws Exception
-     *             Any error encountered while testing
+     * @throws Exception Any error encountered while testing
      */
     @Test
     public void testAbstractProcessorImplementationWithBodyScriptFile() throws Exception {
