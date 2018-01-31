@@ -49,9 +49,7 @@ abstract class JMSWorker {
         this.processLog = processLog;
     }
 
-    /**
-     *
-     */
+
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "[destination:" + this.jmsTemplate.getDefaultDestinationName()

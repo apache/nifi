@@ -60,7 +60,7 @@ public class PublishJMSTest {
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
         runner.enqueue("Hey dude!".getBytes(), attributes);
-        runner.run(1, false);
+        runner.run();
 
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
@@ -96,7 +96,7 @@ public class PublishJMSTest {
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
         runner.enqueue("Hey dude!".getBytes(), attributes);
-        runner.run(1, false);
+        runner.run();
 
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
