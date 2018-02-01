@@ -57,8 +57,6 @@ public class PullHttpChangeIngestorTest extends PullHttpChangeIngestorCommonTest
         properties.put(PullHttpChangeIngestor.PULL_HTTP_POLLING_PERIOD_KEY, "30000");
 
         pullHttpChangeIngestor = new PullHttpChangeIngestor();
-
-
         pullHttpChangeIngestor.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), testNotifier);
         pullHttpChangeIngestor.setDifferentiator(mockDifferentiator);
     }

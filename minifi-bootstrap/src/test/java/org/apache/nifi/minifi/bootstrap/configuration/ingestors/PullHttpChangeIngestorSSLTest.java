@@ -75,6 +75,7 @@ public class PullHttpChangeIngestorSSLTest extends PullHttpChangeIngestorCommonT
         port = ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
         properties.put(PullHttpChangeIngestor.PORT_KEY, String.valueOf(port));
         properties.put(PullHttpChangeIngestor.HOST_KEY, "localhost");
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
 
         pullHttpChangeIngestor = new PullHttpChangeIngestor();
 

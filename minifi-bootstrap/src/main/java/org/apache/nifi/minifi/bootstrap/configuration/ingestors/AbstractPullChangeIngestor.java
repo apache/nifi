@@ -27,11 +27,9 @@ import java.util.Properties;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractPullChangeIngestor implements Runnable, ChangeIngestor {
-
 
     // 5 minute default pulling period
     protected static final String DEFAULT_POLLING_PERIOD = "300000";
@@ -40,10 +38,12 @@ public abstract class AbstractPullChangeIngestor implements Runnable, ChangeInge
     protected final AtomicInteger pollingPeriodMS = new AtomicInteger();
     private final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
     protected volatile ConfigurationChangeNotifier configurationChangeNotifier;
+    protected final AtomicReference<Properties> properties = new AtomicReference<>();
 
     @Override
     public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         this.configurationChangeNotifier = configurationChangeNotifier;
+        this.properties.set(properties);
     }
 
     @Override
@@ -56,5 +56,6 @@ public abstract class AbstractPullChangeIngestor implements Runnable, ChangeInge
         scheduledThreadPoolExecutor.shutdownNow();
     }
 
+    @Override
     public abstract void run();
 }

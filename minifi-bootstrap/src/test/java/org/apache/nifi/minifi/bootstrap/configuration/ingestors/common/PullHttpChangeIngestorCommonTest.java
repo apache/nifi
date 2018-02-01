@@ -17,11 +17,18 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors.common;
 
+import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor;
+import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
+import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
+import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
+import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
+import org.apache.nifi.util.file.FileUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -30,12 +37,14 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
@@ -44,6 +53,8 @@ import java.util.Collections;
 import java.util.Properties;
 
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PATH_KEY;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -89,6 +100,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     @Test
     public void testNewUpdate() throws IOException {
         Properties properties = new Properties();
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
@@ -98,10 +110,31 @@ public abstract class PullHttpChangeIngestorCommonTest {
         verify(testNotifier, Mockito.times(1)).notifyListeners(Mockito.eq(configBuffer.asReadOnlyBuffer()));
     }
 
+    @Test
+    public void testSecurityOverride() throws IOException, SchemaLoaderException {
+        Properties properties = new Properties();
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "false");
+        properties.put(RunMiNiFi.MINIFI_CONFIG_FILE_KEY, "src/test/resources/config.yml");
+        properties.put(PATH_KEY, "/config-minimal.yml");
+        pullHttpChangeIngestorInit(properties);
+        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
+
+        pullHttpChangeIngestor.run();
+
+        ArgumentCaptor<ByteBuffer> argument = ArgumentCaptor.forClass(ByteBuffer.class);
+        verify(testNotifier, Mockito.times(1)).notifyListeners(argument.capture());
+
+        ConvertableSchema<ConfigSchema> configSchema = SchemaLoader.loadConvertableSchemaFromYaml(new ByteBufferInputStream(argument.getValue()));
+        ConfigSchema newSchema = configSchema.convert();
+
+        assertNotNull(newSchema.getSecurityProperties().getKeystore());
+        assertEquals(newSchema.getProcessGroupSchema().getProcessors().size(), 2);
+    }
 
     @Test
     public void testNoUpdate() throws IOException {
         Properties properties = new Properties();
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
@@ -114,6 +147,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     @Test
     public void testUseEtag() throws IOException {
         Properties properties = new Properties();
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setLastEtag("");
 
@@ -135,6 +169,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     public void testNewUpdateWithPath() throws IOException {
         Properties properties = new Properties();
         properties.put(PATH_KEY, "/config.yml");
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
@@ -147,6 +182,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     @Test
     public void testNoUpdateWithPath() throws IOException {
         Properties properties = new Properties();
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         properties.put(PATH_KEY, "/config.yml");
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
@@ -160,6 +196,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     @Test
     public void testUseEtagWithPath() throws IOException {
         Properties properties = new Properties();
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         properties.put(PATH_KEY, "/config.yml");
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setLastEtag("");
@@ -187,7 +224,6 @@ public abstract class PullHttpChangeIngestorCommonTest {
             this.pathResponse = pathResponse;
         }
 
-
         @Override
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
                 throws IOException, ServletException {
@@ -199,9 +235,10 @@ public abstract class PullHttpChangeIngestorCommonTest {
                 if (QUOTED_ETAG.equals(baseRequest.getHeader("If-None-Match"))){
                     writeOutput(response, null, 304);
                 } else {
-
                     if ("/config.yml".equals(baseRequest.getPathInfo())) {
                         writeOutput(response, pathResponse, 200);
+                    } else if ("/config-minimal.yml".equals(baseRequest.getPathInfo())) {
+                        writeFileOutput(response, new File("src/test/resources/config-minimal.yml"), 200);
                     } else {
                         writeOutput(response, configResponse, 200);
                     }
@@ -224,6 +261,17 @@ public abstract class PullHttpChangeIngestorCommonTest {
                     writer.print(responseBuffer);
                     writer.flush();
                 }
+            }
+        }
+
+        private void writeFileOutput(HttpServletResponse response, File file, int responseCode) throws IOException {
+            response.setStatus(responseCode);
+            response.setHeader("ETag", ETAG);
+            if (file != null) {
+                response.setContentType("text/plain");
+                response.setContentLength((int) file.length());
+                response.setCharacterEncoding(StandardCharsets.UTF_8.displayName());
+                FileUtils.copyFile(file, response.getOutputStream(), true, true);
             }
         }
 
