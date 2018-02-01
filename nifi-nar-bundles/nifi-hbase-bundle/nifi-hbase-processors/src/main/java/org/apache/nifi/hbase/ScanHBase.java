@@ -70,10 +70,11 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "hbase.resultset", description = "A JSON document/s representing the row/s. This property is only written when a Destination of flowfile-attributes is selected."),
         @WritesAttribute(attribute = "mime.type", description = "Set to application/json when using a Destination of flowfile-content, not set or modified otherwise"),
         @WritesAttribute(attribute = "hbase.rows.count", description = "Number of rows in the content of given flow file"),
-        @WritesAttribute(attribute = "scanhbase.results.found", description = "Indicates whether at least one row has been found in given hbase table with provided conditions. <br/>Could be null (not present) if transfered to FAILURE")
+        @WritesAttribute(attribute = "scanhbase.results.found", description = "Indicates whether at least one row has been found in given hbase table with provided conditions. <br/>"
+                + "Could be null (not present) if transfered to FAILURE")
 })
 public class ScanHBase extends AbstractProcessor {
-	//enhanced regex for columns to allow "-" in column qualifier names
+    //enhanced regex for columns to allow "-" in column qualifier names
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:(\\w|-)+)?(?:,\\w+(:(\\w|-)+)?)*");
     static final byte[] nl = System.lineSeparator().getBytes();
 
@@ -102,7 +103,7 @@ public class ScanHBase extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    
+
     static final PropertyDescriptor END_ROW = new PropertyDescriptor.Builder()
             .displayName("End rowkey")
             .name("scanhbase-end-rowkey")
@@ -111,7 +112,7 @@ public class ScanHBase extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    
+
     static final PropertyDescriptor TIME_RANGE_MIN = new PropertyDescriptor.Builder()
             .displayName("Time range min")
             .name("scanhbase-time-range-min")
@@ -120,7 +121,7 @@ public class ScanHBase extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
-    
+
     static final PropertyDescriptor TIME_RANGE_MAX = new PropertyDescriptor.Builder()
             .displayName("Time range max")
             .name("scanhbase-time-range-max")
@@ -129,7 +130,7 @@ public class ScanHBase extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
-    
+
     static final PropertyDescriptor LIMIT_ROWS = new PropertyDescriptor.Builder()
             .displayName("Limit rows")
             .name("scanhbase-limit")
@@ -138,7 +139,7 @@ public class ScanHBase extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
-    
+
     static final PropertyDescriptor BULK_SIZE = new PropertyDescriptor.Builder()
             .displayName("Max rows per flow file")
             .name("scanhbase-bulk-size")
@@ -148,8 +149,7 @@ public class ScanHBase extends AbstractProcessor {
             .defaultValue("0")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
-    
-    
+
     static final PropertyDescriptor REVERSED_SCAN = new PropertyDescriptor.Builder()
             .displayName("Reversed order")
             .name("scanhbase-reversed-order")
@@ -158,13 +158,14 @@ public class ScanHBase extends AbstractProcessor {
             .allowableValues("true", "false")
             .required(false)
             .defaultValue("false")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
-    
+
     static final PropertyDescriptor FILTER_EXPRESSION = new PropertyDescriptor.Builder()
             .displayName("Filter expression")
             .name("scanhbase-filter-expression")
-            .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property.")
+            .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property.<br/>"
+                    + "Example: \"ValueFilter( =, 'binaryprefix:commit' )\"")
             .required(false)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -261,21 +262,20 @@ public class ScanHBase extends AbstractProcessor {
     private volatile Charset decodeCharset;
     private volatile Charset encodeCharset;
     private RowSerializer serializer = null;
-    
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         this.decodeCharset = Charset.forName(context.getProperty(DECODE_CHARSET).getValue());
         this.encodeCharset = Charset.forName(context.getProperty(ENCODE_CHARSET).getValue());
-        
-    	final String jsonFormat = context.getProperty(JSON_FORMAT).getValue();
+
+        final String jsonFormat = context.getProperty(JSON_FORMAT).getValue();
         if (jsonFormat.equals(JSON_FORMAT_FULL_ROW.getValue())) {
             this.serializer = new JsonFullRowSerializer(decodeCharset, encodeCharset);
         } else {
             this.serializer = new JsonQualifierAndValueRowSerializer(decodeCharset, encodeCharset);
         }
     }
-    
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -298,10 +298,9 @@ public class ScanHBase extends AbstractProcessor {
             problems.add(new ValidationResult.Builder()
                     .subject(FILTER_EXPRESSION.getDisplayName())
                     .input(filter).valid(false)
-                    .explanation("a filter expression can not be used in conjunction with the Columns property")
+                    .explanation("A filter expression can not be used in conjunction with the Columns property")
                     .build());
         }
-        
 
         return problems;
     }
@@ -312,123 +311,122 @@ public class ScanHBase extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
-        
-	    try{
-	        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-	        if (StringUtils.isBlank(tableName)) {
-	            getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
-	            session.transfer(session.penalize(flowFile), REL_FAILURE);
-	            return;
-	        }
-	
-	        final String startRow = context.getProperty(START_ROW).evaluateAttributeExpressions(flowFile).getValue();
-	        final String endRow = context.getProperty(END_ROW).evaluateAttributeExpressions(flowFile).getValue();
-	        
-	        final String filterExpression = context.getProperty(FILTER_EXPRESSION).evaluateAttributeExpressions(flowFile).getValue();
 
-	        //evaluate and validate time range min and max values. They both should be either empty or provided.
-	        Long timerangeMin = null;
-	        Long timerangeMax = null;
+        try{
+            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            if (StringUtils.isBlank(tableName)) {
+                getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+                return;
+            }
 
-	        try{
-		        timerangeMin = context.getProperty(TIME_RANGE_MIN).evaluateAttributeExpressions(flowFile).asLong();
-	        }catch(Exception e){
-	            getLogger().error("Time range min value is not a number ({}) for {}, transferring to failure", 
-	            		new Object[] {context.getProperty(TIME_RANGE_MIN).evaluateAttributeExpressions(flowFile).getValue(), flowFile});
-	            session.transfer(session.penalize(flowFile), REL_FAILURE);
-	            return;
-	        }
-	        try{
-		        timerangeMax = context.getProperty(TIME_RANGE_MAX).evaluateAttributeExpressions(flowFile).asLong();
-	        }catch(Exception e){
-	            getLogger().error("Time range max value is not a number ({}) for {}, transferring to failure", 
-	            		new Object[] {context.getProperty(TIME_RANGE_MAX).evaluateAttributeExpressions(flowFile).getValue(), flowFile});
-	            session.transfer(session.penalize(flowFile), REL_FAILURE);
-	            return;
-	        }
-	        if (timerangeMin == null && timerangeMax != null) {
-	        	getLogger().error("Time range min value cannot be blank when max value provided for {}, transferring to failure", new Object[] {flowFile});
-	            session.transfer(session.penalize(flowFile), REL_FAILURE);
-	            return;
-	        }else if (timerangeMin != null && timerangeMax == null) {
-	        	getLogger().error("Time range max value cannot be blank when min value provided for {}, transferring to failure", new Object[] {flowFile});
-	            session.transfer(session.penalize(flowFile), REL_FAILURE);
-	            return;
-	        }
-	        
-	        final Integer limitRows = context.getProperty(LIMIT_ROWS).evaluateAttributeExpressions(flowFile).asInteger();
-	        
-	        final Boolean isReversed = context.getProperty(REVERSED_SCAN).asBoolean();
-	        
-	        final Integer bulkSize = context.getProperty(BULK_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
-	
-	        final List<Column> columns = getColumns(context.getProperty(COLUMNS).evaluateAttributeExpressions(flowFile).getValue());
-	        final HBaseClientService hBaseClientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
-	        
-	        final AtomicReference<Long> rowsPulledHolder = new AtomicReference<>(0L);
-	        final AtomicReference<Long> ffCountHolder = new AtomicReference<>(0L);
-	        ScanHBaseResultHandler handler = new ScanHBaseResultHandler(context, session, flowFile, rowsPulledHolder, ffCountHolder, hBaseClientService, tableName, bulkSize);
-	        
-	        try {
-	            hBaseClientService.scan(tableName, 
-	            						filterExpression,
-	            						startRow, endRow,
-	            						timerangeMin, timerangeMax,
-	            						limitRows,
-	            						isReversed,
-	            						columns, 
-	            						handler);
-	        } catch (IOException e) {
-	            getLogger().error("Unable to fetch rows from HBase table {} due to {}", new Object[] {tableName, e});
-	            flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
-	            session.transfer(flowFile, REL_FAILURE);
-	            return;
-	        }
-	        
-	        LinkedList<Tuple<byte[], ResultCell[]>> hangingRows = handler.getHangingRows();
-	        if (!handler.isHandledAny() || 														// no rows found in hbase 
-	        		(handler.isHandledAny() && (hangingRows == null || hangingRows.isEmpty())) 	// all the rows are flushed to FF inside handlers
-	        	){
-	        	flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
-	        	session.transfer(flowFile, REL_ORIGINAL);
-	        	session.commit();
-	        	return;
-	        }
-	        
-	        if (hangingRows != null && !hangingRows.isEmpty()) {
-	        	FlowFile lastFF = session.create(flowFile);
-		        final Map<String, String> attributes = new HashMap<>();
-		        attributes.put(HBASE_TABLE_ATTR, tableName);
-	            attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(rowsPulledHolder.get()));
-		        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+            final String startRow = context.getProperty(START_ROW).evaluateAttributeExpressions(flowFile).getValue();
+            final String endRow = context.getProperty(END_ROW).evaluateAttributeExpressions(flowFile).getValue();
+
+            final String filterExpression = context.getProperty(FILTER_EXPRESSION).evaluateAttributeExpressions(flowFile).getValue();
+
+            //evaluate and validate time range min and max values. They both should be either empty or provided.
+            Long timerangeMin = null;
+            Long timerangeMax = null;
+
+            try{
+                timerangeMin = context.getProperty(TIME_RANGE_MIN).evaluateAttributeExpressions(flowFile).asLong();
+            }catch(Exception e){
+                getLogger().error("Time range min value is not a number ({}) for {}, transferring to failure",
+                        new Object[] {context.getProperty(TIME_RANGE_MIN).evaluateAttributeExpressions(flowFile).getValue(), flowFile});
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+                return;
+            }
+            try{
+                timerangeMax = context.getProperty(TIME_RANGE_MAX).evaluateAttributeExpressions(flowFile).asLong();
+            }catch(Exception e){
+                getLogger().error("Time range max value is not a number ({}) for {}, transferring to failure",
+                        new Object[] {context.getProperty(TIME_RANGE_MAX).evaluateAttributeExpressions(flowFile).getValue(), flowFile});
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+                return;
+            }
+            if (timerangeMin == null && timerangeMax != null) {
+                getLogger().error("Time range min value cannot be blank when max value provided for {}, transferring to failure", new Object[] {flowFile});
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+                return;
+            }else if (timerangeMin != null && timerangeMax == null) {
+                getLogger().error("Time range max value cannot be blank when min value provided for {}, transferring to failure", new Object[] {flowFile});
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
+                return;
+            }
+
+            final Integer limitRows = context.getProperty(LIMIT_ROWS).evaluateAttributeExpressions(flowFile).asInteger();
+
+            final Boolean isReversed = context.getProperty(REVERSED_SCAN).asBoolean();
+
+            final Integer bulkSize = context.getProperty(BULK_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+
+            final List<Column> columns = getColumns(context.getProperty(COLUMNS).evaluateAttributeExpressions(flowFile).getValue());
+            final HBaseClientService hBaseClientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
+
+            final AtomicReference<Long> rowsPulledHolder = new AtomicReference<>(0L);
+            final AtomicReference<Long> ffCountHolder = new AtomicReference<>(0L);
+            ScanHBaseResultHandler handler = new ScanHBaseResultHandler(context, session, flowFile, rowsPulledHolder, ffCountHolder, hBaseClientService, tableName, bulkSize);
+
+            try {
+                hBaseClientService.scan(tableName,
+                                        filterExpression,
+                                        startRow, endRow,
+                                        timerangeMin, timerangeMax,
+                                        limitRows,
+                                        isReversed,
+                                        columns,
+                                        handler);
+            } catch (IOException e) {
+                getLogger().error("Unable to fetch rows from HBase table {} due to {}", new Object[] {tableName, e});
+                flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+
+            LinkedList<Tuple<byte[], ResultCell[]>> hangingRows = handler.getHangingRows();
+            if (!handler.isHandledAny() ||                                                         // no rows found in hbase
+                    (handler.isHandledAny() && (hangingRows == null || hangingRows.isEmpty()))     // all the rows are flushed to FF inside handlers
+                ){
+                flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
+                session.transfer(flowFile, REL_ORIGINAL);
+                session.commit();
+                return;
+            }
+
+            if (hangingRows != null && !hangingRows.isEmpty()) {
+                FlowFile lastFF = session.create(flowFile);
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put(HBASE_TABLE_ATTR, tableName);
+                attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(rowsPulledHolder.get()));
+                attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
                 attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(hangingRows.size()));
                 lastFF = session.putAllAttributes(lastFF, attributes);
-		        
+
                 final AtomicReference<IOException> ioe = new AtomicReference<>(null);
-                session.write(lastFF, (out) -> { 
-	                for (Iterator<Tuple<byte[], ResultCell[]>> iter = hangingRows.iterator(); iter.hasNext();){
-	                	Tuple<byte[], ResultCell[]> r = iter.next();
-						serializer.serialize(r.getKey(), r.getValue(), out);
-						if (iter.hasNext()){
-							out.write(nl);
-						}
-	                }
+                session.write(lastFF, (out) -> {
+                    for (Iterator<Tuple<byte[], ResultCell[]>> iter = hangingRows.iterator(); iter.hasNext();){
+                        Tuple<byte[], ResultCell[]> r = iter.next();
+                        serializer.serialize(r.getKey(), r.getValue(), out);
+                        if (iter.hasNext()){
+                            out.write(nl);
+                        }
+                    }
                 });
-                
-                
+
                 Relationship rel = REL_SUCCESS;
                 IOException error = ioe.get();
                 if (error != null){
-                	lastFF = session.putAttribute(lastFF, "scanhbase.error", error.toString());
-                	rel = REL_FAILURE;
+                    lastFF = session.putAttribute(lastFF, "scanhbase.error", error.toString());
+                    rel = REL_FAILURE;
                 }
-		        session.transfer(lastFF, rel);
-		        flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
-		        session.transfer(flowFile, REL_ORIGINAL);
-	        }
-	        session.commit();
-	
-	    }catch (final Exception e) {
+                session.transfer(lastFF, rel);
+                flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
+                session.transfer(flowFile, REL_ORIGINAL);
+            }
+            session.commit();
+
+        }catch (final Exception e) {
             getLogger().error("Failed to receive data from HBase due to {}", e);
             session.rollback();
             // if we failed, we want to yield so that we don't hammer hbase.
@@ -459,106 +457,106 @@ public class ScanHBase extends AbstractProcessor {
 
         return columnsList;
     }
-    
+
     /**
      * @return number of rows to be committed to session.
      */
     protected int getBatchSize(){
-    	return 500;
+        return 500;
     }
 
     /**
-     * Result Handler for Scan operation 
+     * Result Handler for Scan operation
      */
     private class ScanHBaseResultHandler implements ResultHandler {
-    	
-    	final private ProcessSession session;
-    	final private FlowFile origFF;
-    	final private AtomicReference<Long> rowsPulledHolder;
-    	final private AtomicReference<Long> ffCountHolder;
-    	final private HBaseClientService hBaseClientService;
-    	final private String tableName;
-    	final private Integer bulkSize;
 
-    	private boolean handledAny = false;
-    	private LinkedList<Tuple<byte[], ResultCell[]>> rows = null;
-    	
-    	ScanHBaseResultHandler(final ProcessContext context, final ProcessSession session, 
-    			final FlowFile origFF, final AtomicReference<Long> rowsPulledHolder, final AtomicReference<Long> ffCountHolder, final HBaseClientService hBaseClientService, 
-    			final String tableName, final Integer bulkSize){
-    		this.session = session;
-    		this.rowsPulledHolder = rowsPulledHolder;
-    		this.ffCountHolder = ffCountHolder;
-    		this.hBaseClientService = hBaseClientService;
-    		this.tableName = tableName;
-    		this.bulkSize = bulkSize;
-    		this.origFF = origFF;
-    	}
-    	
+        final private ProcessSession session;
+        final private FlowFile origFF;
+        final private AtomicReference<Long> rowsPulledHolder;
+        final private AtomicReference<Long> ffCountHolder;
+        final private HBaseClientService hBaseClientService;
+        final private String tableName;
+        final private Integer bulkSize;
+
+        private boolean handledAny = false;
+        private LinkedList<Tuple<byte[], ResultCell[]>> rows = null;
+
+        ScanHBaseResultHandler(final ProcessContext context, final ProcessSession session,
+                final FlowFile origFF, final AtomicReference<Long> rowsPulledHolder, final AtomicReference<Long> ffCountHolder, final HBaseClientService hBaseClientService,
+                final String tableName, final Integer bulkSize){
+            this.session = session;
+            this.rowsPulledHolder = rowsPulledHolder;
+            this.ffCountHolder = ffCountHolder;
+            this.hBaseClientService = hBaseClientService;
+            this.tableName = tableName;
+            this.bulkSize = bulkSize;
+            this.origFF = origFF;
+        }
+
         @Override
         public void handle(final byte[] rowKey, final ResultCell[] resultCells) {
-        	handledAny = true;
+            handledAny = true;
             final String rowKeyString = new String(rowKey, StandardCharsets.UTF_8);
 
             long rowsPulled = rowsPulledHolder.get();
             long ffUncommittedCount = ffCountHolder.get();
-            
+
             if (rows == null) rows = new LinkedList<>();
             rows.add(new Tuple<byte[], ResultCell[]>(rowKey, resultCells));
 
             rowsPulled++;
-            
-            // bulkSize controls number of records per flow file. 
+
+            // bulkSize controls number of records per flow file.
             if (bulkSize>0 && rowsPulled >= bulkSize) {
-            	FlowFile flowFile = session.create(origFF);
+                FlowFile flowFile = session.create(origFF);
                 final Map<String, String> attributes = new HashMap<>();
                 attributes.put(HBASE_TABLE_ATTR, tableName);
                 attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
                 attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(rowsPulled));
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                
+
                 final AtomicReference<IOException> ioe = new AtomicReference<>(null);
-                session.write(flowFile, (out) -> { 
-	                for (Iterator<Tuple<byte[], ResultCell[]>> iter = rows.iterator(); iter.hasNext();){
-	                	Tuple<byte[], ResultCell[]> r = iter.next();
-						serializer.serialize(r.getKey(), r.getValue(), out);
-						if (iter.hasNext()){
-							out.write(nl);
-						}
-	                }
+                session.write(flowFile, (out) -> {
+                    for (Iterator<Tuple<byte[], ResultCell[]>> iter = rows.iterator(); iter.hasNext();){
+                        Tuple<byte[], ResultCell[]> r = iter.next();
+                        serializer.serialize(r.getKey(), r.getValue(), out);
+                        if (iter.hasNext()){
+                            out.write(nl);
+                        }
+                    }
                 });
-                
+
                 Relationship rel = REL_SUCCESS;
                 IOException error = ioe.get();
                 if (error != null){
-                	flowFile = session.putAttribute(flowFile, "scanhbase.error", error.toString());
-                	rel = REL_FAILURE;
+                    flowFile = session.putAttribute(flowFile, "scanhbase.error", error.toString());
+                    rel = REL_FAILURE;
                 }
-                
+
                 session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
                 session.transfer(flowFile, rel);
                 rowsPulledHolder.set(0L);
                 rows.clear();
-                
+
                 // we could potentially have a huge number of rows. If we get to batchSize, go ahead and commit the
                 // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
                 if (getBatchSize()>0 && ffUncommittedCount*bulkSize > getBatchSize()) {
-                	session.commit();
-                	ffCountHolder.set(0L);
+                    session.commit();
+                    ffCountHolder.set(0L);
                 }else{
-                	ffCountHolder.set(ffUncommittedCount++);
+                    ffCountHolder.set(ffUncommittedCount++);
                 }
             }else{
-            	rowsPulledHolder.set(rowsPulled);
+                rowsPulledHolder.set(rowsPulled);
             }
         }
-        
+
         public LinkedList<Tuple<byte[], ResultCell[]>> getHangingRows(){
-        	return rows;
+            return rows;
         }
-        
+
         public boolean isHandledAny(){
-        	return handledAny;
+            return handledAny;
         }
     }
 }

@@ -116,14 +116,13 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_FAILURE, 0);
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
-        
+
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_ORIGINAL).get(0);
         flowFile.assertAttributeEquals("scanhbase.results.found", Boolean.FALSE.toString());
 
-
         Assert.assertEquals(1, hBaseClientService.getNumScans());
     }
-    
+
     @Test
     public void testScanToContentWithStringValues() {
         final Map<String, String> cells = new HashMap<>();
@@ -154,17 +153,17 @@ public class TestScanHBase {
         flowFile.assertContentEquals("{\"row\":\"row1\", \"cells\": [" +
                 "{\"fam\":\"nifi\",\"qual\":\"cq1\",\"val\":\"val1\",\"ts\":" + ts1 + "}, " +
                 "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}\n"
-                		+ "{\"row\":\"row2\", \"cells\": [" +
+                        + "{\"row\":\"row2\", \"cells\": [" +
                 "{\"fam\":\"nifi\",\"qual\":\"cq1\",\"val\":\"val1\",\"ts\":" + ts1 + "}, " +
                 "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
         flowFile.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "2");
-        
+
         flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_ORIGINAL).get(0);
         flowFile.assertAttributeEquals("scanhbase.results.found", Boolean.TRUE.toString());
 
         Assert.assertEquals(1, hBaseClientService.getNumScans());
     }
-    
+
     @Test
     public void testScanBulkSize(){
         final Map<String, String> cells = new HashMap<>();
@@ -172,10 +171,9 @@ public class TestScanHBase {
         cells.put("cq2", "val2");
 
         for (int i = 0; i < 15; i++){
-        	hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
+            hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
         }
-        
-        
+
         runner.setProperty(ScanHBase.TABLE_NAME, "${hbase.table}");
         runner.setProperty(ScanHBase.START_ROW, "${hbase.row}1");
         runner.setProperty(ScanHBase.END_ROW, "${hbase.row}2");
@@ -200,10 +198,10 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_FAILURE, 0);
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 2);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
-        
+
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "10");
-        
+
         flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(1);
         flowFile.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "5");
     }
@@ -215,10 +213,9 @@ public class TestScanHBase {
         cells.put("cq2", "val2");
 
         for (int i = 0; i < 1000; i++){
-        	hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
+            hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
         }
-        
-        
+
         runner.setProperty(ScanHBase.TABLE_NAME, "${hbase.table}");
         runner.setProperty(ScanHBase.START_ROW, "${hbase.row}1");
         runner.setProperty(ScanHBase.END_ROW, "${hbase.row}2");
@@ -243,11 +240,10 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_FAILURE, 0);
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 10);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
-        
-        
+
         runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).forEach(ff ->{
-        	ff.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "100");
-        	Assert.assertNotEquals(0, ff.getId()); // since total amount of rows is a multiplication of bulkSize, original FF (with id=0) shouldn't be present on output. 
+            ff.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "100");
+            Assert.assertNotEquals(0, ff.getId()); // since total amount of rows is a multiplication of bulkSize, original FF (with id=0) shouldn't be present on output.
         });
     }
 
@@ -258,10 +254,9 @@ public class TestScanHBase {
         cells.put("cq2", "val2");
 
         for (int i = 0; i < 1102; i++){
-        	hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
+            hBaseClientService.addResult("row"+i, cells, System.currentTimeMillis());
         }
-        
-        
+
         runner.setProperty(ScanHBase.TABLE_NAME, "${hbase.table}");
         runner.setProperty(ScanHBase.START_ROW, "${hbase.row}1");
         runner.setProperty(ScanHBase.END_ROW, "${hbase.row}2");
@@ -286,12 +281,11 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_FAILURE, 0);
         runner.assertTransferCount(ScanHBase.REL_SUCCESS, 11);
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
-        
-        
+
         List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS);
         int i = 0;
-		for (MockFlowFile ff : ffs)
-        	ff.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, new String (i++ < 10 ? "110" : "2")); //last ff should have only 2
+        for (MockFlowFile ff : ffs)
+            ff.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, new String(i++ < 10 ? "110" : "2")); //last ff should have only 2
     }
 
     @Test

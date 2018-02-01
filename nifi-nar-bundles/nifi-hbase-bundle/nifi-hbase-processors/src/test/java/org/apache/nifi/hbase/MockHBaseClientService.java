@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.hbase.put.PutColumn;
-import org.apache.nifi.hbase.put.PutFlowFile;
-import org.apache.nifi.hbase.scan.Column;
-import org.apache.nifi.hbase.scan.ResultCell;
-import org.apache.nifi.hbase.scan.ResultHandler;
-
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -38,7 +24,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.hbase.put.PutColumn;
+import org.apache.nifi.hbase.put.PutFlowFile;
+import org.apache.nifi.hbase.scan.Column;
+import org.apache.nifi.hbase.scan.ResultCell;
+import org.apache.nifi.hbase.scan.ResultHandler;
 
 public class MockHBaseClientService extends AbstractControllerService implements HBaseClientService {
 
@@ -125,10 +118,10 @@ public class MockHBaseClientService extends AbstractControllerService implements
         numScans++;
     }
 
-	@Override
-	public void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin,
-			Long timerangeMax, Integer limitRows, Boolean isReversed, Collection<Column> columns, ResultHandler handler)
-			throws IOException {
+    @Override
+    public void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin,
+            Long timerangeMax, Integer limitRows, Boolean isReversed, Collection<Column> columns, ResultHandler handler)
+            throws IOException {
         if (throwException) {
             throw new IOException("exception");
         }
@@ -138,10 +131,10 @@ public class MockHBaseClientService extends AbstractControllerService implements
             handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());
         }
 
-		// delegate to the handler
-		
-		numScans++;
-	}
+        // delegate to the handler
+
+        numScans++;
+    }
 
     public void addResult(final String rowKey, final Map<String, String> cells, final long timestamp) {
         final byte[] rowArray = rowKey.getBytes(StandardCharsets.UTF_8);
