@@ -245,7 +245,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                 String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
                 if (!StringUtils.isEmpty(maxValue)) {
-                    if(columnTypeMap.isEmpty()){
+                    if(columnTypeMap.isEmpty() || getColumnType(tableName, colName) == null){
                         // This means column type cache is clean after instance reboot. We should re-cache column type
                         super.setup(context, false, finalFileToProcess);
                     }
@@ -327,7 +327,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                     String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
                     if (!StringUtils.isEmpty(maxValue)) {
-                        if(columnTypeMap.isEmpty()){
+                        if(columnTypeMap.isEmpty() || getColumnType(tableName, colName) == null){
                             // This means column type cache is clean after instance reboot. We should re-cache column type
                             super.setup(context, false, finalFileToProcess);
                         }
@@ -418,10 +418,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         if (type == null && !isDynamicTableName) {
             // If the table name is static and the fully-qualified key was not found, try just the column name
             type = columnTypeMap.get(getStateKey(null, colName));
-        }
-        if (type == null) {
-            // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled or when the first maximum is observed
-            throw new ProcessException("No column type cache found for: " + colName);
         }
 
         return type;
