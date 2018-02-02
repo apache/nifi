@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -68,9 +70,11 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.ActiveThreadInfo;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -78,6 +82,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
@@ -93,6 +98,8 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
+import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
@@ -153,6 +160,16 @@ import org.apache.nifi.web.api.dto.action.details.ConfigureDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ConnectDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.MoveDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.PurgeDetailsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ClassLoaderDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ControllerServiceDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GCDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GarbageCollectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.RepositoryUsageDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ThreadDumpDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
@@ -193,8 +210,10 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
-import javax.ws.rs.WebApplicationException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.text.Collator;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -3114,6 +3133,312 @@ public final class DtoFactory {
         dto.setIdentifier(resource.getIdentifier());
         dto.setName(resource.getName());
         return dto;
+    }
+
+    /**
+     * Creates a ProcessorDiagnosticsDTO from the given Processor and status information with some additional supporting information
+     *
+     * @param procNode the processor to create diagnostics for
+     * @param procStatus the status of given processor
+     * @param bulletinRepo the bulletin repository
+     * @param flowController flowController
+     * @param serviceEntityFactory function for creating a ControllerServiceEntity from a given ID
+     * @return ProcessorDiagnosticsDTO for the given Processor
+     */
+    public ProcessorDiagnosticsDTO createProcessorDiagnosticsDto(final ProcessorNode procNode, final ProcessorStatus procStatus, final BulletinRepository bulletinRepo,
+            final FlowController flowController, final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+
+        final ProcessorDiagnosticsDTO procDiagnostics = new ProcessorDiagnosticsDTO();
+
+        procDiagnostics.setClassLoaderDiagnostics(createClassLoaderDiagnosticsDto(procNode));
+        procDiagnostics.setIncomingConnections(procNode.getIncomingConnections().stream()
+            .map(this::createConnectionDiagnosticsDto)
+            .collect(Collectors.toSet()));
+        procDiagnostics.setOutgoingConnections(procNode.getConnections().stream()
+            .map(this::createConnectionDiagnosticsDto)
+            .collect(Collectors.toSet()));
+        procDiagnostics.setJvmDiagnostics(createJvmDiagnosticsDto(flowController));
+        procDiagnostics.setProcessor(createProcessorDto(procNode));
+        procDiagnostics.setProcessorStatus(createProcessorStatusDto(procStatus));
+        procDiagnostics.setThreadDumps(createThreadDumpDtos(procNode));
+
+        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = createReferencedServiceDiagnostics(procNode.getProperties(), flowController, serviceEntityFactory);
+        procDiagnostics.setReferencedControllerServices(referencedServiceDiagnostics);
+
+        return procDiagnostics;
+    }
+
+    private Set<ControllerServiceDiagnosticsDTO> createReferencedServiceDiagnostics(final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider serviceProvider,
+        final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+
+        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = new HashSet<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() == null) {
+                continue;
+            }
+
+            final String serviceId = entry.getValue();
+            final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(serviceId);
+            if (serviceNode == null) {
+                continue;
+            }
+
+            final ControllerServiceDiagnosticsDTO serviceDiagnostics = createControllerServiceDiagnosticsDto(serviceNode, serviceEntityFactory, serviceProvider);
+            if (serviceDiagnostics != null) {
+                referencedServiceDiagnostics.add(serviceDiagnostics);
+            }
+        }
+
+        return referencedServiceDiagnostics;
+    }
+
+    /**
+     * Creates a ControllerServiceDiagnosticsDTO from the given Controller Service with some additional supporting information
+     *
+     * @param serviceNode the controller service to create diagnostics for
+     * @param bulletinRepo the bulletin repository
+     * @param serviceProvider the controller service provider
+     * @return ControllerServiceDiagnosticsDTO for the given Controller Service
+     */
+    public ControllerServiceDiagnosticsDTO createControllerServiceDiagnosticsDto(final ControllerServiceNode serviceNode, final Function<String, ControllerServiceEntity> serviceEntityFactory,
+            final ControllerServiceProvider serviceProvider) {
+
+        final ControllerServiceDiagnosticsDTO serviceDiagnostics = new ControllerServiceDiagnosticsDTO();
+        final ControllerServiceEntity serviceEntity = serviceEntityFactory.apply(serviceNode.getIdentifier());
+        serviceDiagnostics.setControllerService(serviceEntity);
+
+        serviceDiagnostics.setClassLoaderDiagnostics(createClassLoaderDiagnosticsDto(serviceNode));
+        return serviceDiagnostics;
+    }
+
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ControllerServiceNode serviceNode) {
+        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(serviceNode.getIdentifier());
+        if (componentClassLoader == null) {
+            componentClassLoader = serviceNode.getControllerServiceImplementation().getClass().getClassLoader();
+        }
+
+        return createClassLoaderDiagnosticsDto(componentClassLoader);
+    }
+
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ProcessorNode procNode) {
+        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(procNode.getIdentifier());
+        if (componentClassLoader == null) {
+            componentClassLoader = procNode.getProcessor().getClass().getClassLoader();
+        }
+
+        return createClassLoaderDiagnosticsDto(componentClassLoader);
+    }
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ClassLoader classLoader) {
+        final ClassLoaderDiagnosticsDTO dto = new ClassLoaderDiagnosticsDTO();
+
+        final Bundle bundle = ExtensionManager.getBundle(classLoader);
+        if (bundle != null) {
+            dto.setBundle(createBundleDto(bundle.getBundleDetails().getCoordinate()));
+        }
+
+        final Set<String> filesLoaded = new HashSet<>();
+        if (classLoader instanceof URLClassLoader) {
+            final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
+            final URL[] urls = urlClassLoader.getURLs();
+
+            for (final URL url : urls) {
+                final String path = url.getPath();
+                final int lastSlash = path.lastIndexOf("/");
+                final String filename;
+                if (lastSlash >= 0) {
+                    filename = path.substring(lastSlash + 1);
+                } else {
+                    filename = path;
+                }
+
+                if (!filename.isEmpty()) { // filter out directories
+                    filesLoaded.add(filename);
+                }
+            }
+        }
+
+        dto.setLoadedFiles(filesLoaded);
+
+        final ClassLoader parentClassLoader = classLoader.getParent();
+        if (parentClassLoader != null) {
+            dto.setParentClassLoader(createClassLoaderDiagnosticsDto(parentClassLoader));
+        }
+
+        return dto;
+    }
+
+    private ConnectionDiagnosticsDTO createConnectionDiagnosticsDto(final Connection connection) {
+        final ConnectionDiagnosticsDTO dto = new ConnectionDiagnosticsDTO();
+        dto.setConnection(createConnectionDto(connection));
+
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+        final QueueSize totalSize = queue.size();
+        dto.setTotalByteCount(totalSize.getByteCount());
+        dto.setTotalFlowFileCount(totalSize.getObjectCount());
+
+        final QueueSize activeSize = queue.getActiveQueueSize();
+        dto.setActiveQueueByteCount(activeSize.getByteCount());
+        dto.setActiveQueueFlowFileCount(activeSize.getObjectCount());
+
+        final QueueSize inFlightSize = queue.getUnacknowledgedQueueSize();
+        dto.setInFlightByteCount(inFlightSize.getByteCount());
+        dto.setInFlightFlowFileCount(inFlightSize.getObjectCount());
+
+        final QueueSize swapSize = queue.getSwapQueueSize();
+        dto.setSwapByteCount(swapSize.getByteCount());
+        dto.setSwapFlowFileCount(swapSize.getObjectCount());
+
+        dto.setSwapFiles(queue.getSwapFileCount());
+        dto.setAllActiveQueueFlowFilesPenalized(queue.isAllActiveFlowFilesPenalized());
+        dto.setAnyActiveQueueFlowFilesPenalized(queue.isAnyActiveFlowFilePenalized());
+
+        return dto;
+    }
+
+    private JVMDiagnosticsDTO createJvmDiagnosticsDto(final FlowController flowController) {
+        final JVMDiagnosticsDTO dto = new JVMDiagnosticsDTO();
+        dto.setAggregateSnapshot(createJvmDiagnosticsSnapshotDto(flowController));
+        dto.setClustered(flowController.isClustered());
+        dto.setConnected(flowController.isConnected());
+        return dto;
+    }
+
+    private JVMDiagnosticsSnapshotDTO createJvmDiagnosticsSnapshotDto(final FlowController flowController) {
+        final JVMDiagnosticsSnapshotDTO dto = new JVMDiagnosticsSnapshotDTO();
+
+        final SystemDiagnostics systemDiagnostics = flowController.getSystemDiagnostics();
+
+        final Set<BundleDTO> bundlesLoaded = ExtensionManager.getAllBundles().stream()
+            .map(bundle -> bundle.getBundleDetails().getCoordinate())
+            .sorted((a, b) -> a.getCoordinate().compareTo(b.getCoordinate()))
+            .map(this::createBundleDto)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        dto.setMaxOpenFileDescriptors(systemDiagnostics.getMaxOpenFileHandles());
+        dto.setOpenFileDescriptors(systemDiagnostics.getOpenFileHandles());
+        dto.setPhysicalMemoryBytes(systemDiagnostics.getTotalPhysicalMemory());
+        dto.setPhysicalMemory(FormatUtils.formatDataSize(systemDiagnostics.getTotalPhysicalMemory()));
+
+        final NumberFormat percentageFormat = NumberFormat.getPercentInstance();
+        percentageFormat.setMaximumFractionDigits(2);
+
+        final Set<RepositoryUsageDTO> contentRepoUsage = new HashSet<>();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getContentRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
+            usageDto.setName(repoName);
+
+            usageDto.setFileStore(flowController.getContentRepoFileStoreName(repoName));
+            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
+            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            usageDto.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            usageDto.setUtilization(utilization);
+            contentRepoUsage.add(usageDto);
+        }
+
+        final Set<RepositoryUsageDTO> provRepoUsage = new HashSet<>();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
+            usageDto.setName(repoName);
+
+            usageDto.setFileStore(flowController.getProvenanceRepoFileStoreName(repoName));
+            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
+            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            usageDto.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            usageDto.setUtilization(utilization);
+            provRepoUsage.add(usageDto);
+        }
+
+        final RepositoryUsageDTO flowFileRepoUsage = new RepositoryUsageDTO();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            flowFileRepoUsage.setName(repoName);
+
+            flowFileRepoUsage.setFileStore(flowController.getFlowRepoFileStoreName());
+            flowFileRepoUsage.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            flowFileRepoUsage.setFreeSpaceBytes(usage.getFreeSpace());
+            flowFileRepoUsage.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            flowFileRepoUsage.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            flowFileRepoUsage.setUtilization(utilization);
+        }
+
+        dto.setActiveEventDrivenThreads(flowController.getActiveEventDrivenThreadCount());
+        dto.setActiveTimerDrivenThreads(flowController.getActiveTimerDrivenThreadCount());
+        dto.setBundlesLoaded(bundlesLoaded);
+        dto.setClusterCoordinator(flowController.isClusterCoordinator());
+        dto.setContentRepositoryStorageUsage(contentRepoUsage);
+        dto.setCpuCores(systemDiagnostics.getAvailableProcessors());
+        dto.setCpuLoadAverage(systemDiagnostics.getProcessorLoadAverage());
+        dto.setFlowFileRepositoryStorageUsage(flowFileRepoUsage);
+        dto.setMaxHeapBytes(systemDiagnostics.getMaxHeap());
+        dto.setMaxHeap(FormatUtils.formatDataSize(systemDiagnostics.getMaxHeap()));
+        dto.setMaxEventDrivenThreads(flowController.getMaxEventDrivenThreadCount());
+        dto.setMaxTimerDrivenThreads(flowController.getMaxTimerDrivenThreadCount());
+        dto.setPrimaryNode(flowController.isPrimary());
+        dto.setProvenanceRepositoryStorageUsage(provRepoUsage);
+        dto.setTimeZone(System.getProperty("user.timezone"));
+        dto.setUptime(FormatUtils.formatHoursMinutesSeconds(systemDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
+
+        // Create the Garbage Collection History info
+        final GarbageCollectionHistory gcHistory = flowController.getGarbageCollectionHistory();
+        final List<GarbageCollectionDiagnosticsDTO> gcDiagnostics = new ArrayList<>();
+        for (final String memoryManager : gcHistory.getMemoryManagerNames()) {
+            final List<GarbageCollectionStatus> statuses = gcHistory.getGarbageCollectionStatuses(memoryManager);
+
+            final List<GCDiagnosticsSnapshotDTO> gcSnapshots = new ArrayList<>();
+            for (final GarbageCollectionStatus status : statuses) {
+                final GCDiagnosticsSnapshotDTO snapshotDto = new GCDiagnosticsSnapshotDTO();
+                snapshotDto.setTimestamp(status.getTimestamp());
+                snapshotDto.setCollectionCount(status.getCollectionCount());
+                snapshotDto.setCollectionMillis(status.getCollectionMillis());
+                gcSnapshots.add(snapshotDto);
+            }
+
+            final GarbageCollectionDiagnosticsDTO gcDto = new GarbageCollectionDiagnosticsDTO();
+            gcDto.setMemoryManagerName(memoryManager);
+            gcDto.setSnapshots(gcSnapshots);
+            gcDiagnostics.add(gcDto);
+        }
+
+        dto.setGarbageCollectionDiagnostics(gcDiagnostics);
+        return dto;
+    }
+
+    private List<ThreadDumpDTO> createThreadDumpDtos(final ProcessorNode procNode) {
+        final List<ThreadDumpDTO> threadDumps = new ArrayList<>();
+
+        final List<ActiveThreadInfo> activeThreads = procNode.getActiveThreads();
+        for (final ActiveThreadInfo threadInfo : activeThreads) {
+            final ThreadDumpDTO dto = new ThreadDumpDTO();
+            dto.setStackTrace(threadInfo.getStackTrace());
+            dto.setThreadActiveMillis(threadInfo.getActiveMillis());
+            dto.setThreadName(threadInfo.getThreadName());
+            threadDumps.add(dto);
+        }
+
+        return threadDumps;
     }
 
     /**

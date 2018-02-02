@@ -1972,6 +1972,11 @@ public class TestStandardProcessSession {
         }
 
         @Override
+        public String getFileStoreName() {
+            return null;
+        }
+
+        @Override
         public boolean isVolatile() {
             return false;
         }
@@ -2088,6 +2093,11 @@ public class TestStandardProcessSession {
         @Override
         public long getContainerUsableSpace(String containerName) throws IOException {
             return 0;
+        }
+
+        @Override
+        public String getContainerFileStoreName(String containerName) {
+            return null;
         }
 
         @Override

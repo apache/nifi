@@ -218,8 +218,54 @@ public class StandardFlowFileQueue implements FlowFileQueue {
         return queueSize.activeQueueCount == 0 && queueSize.swappedCount == 0;
     }
 
+    @Override
     public QueueSize getActiveQueueSize() {
         return size.get().activeQueueSize();
+    }
+
+    @Override
+    public QueueSize getSwapQueueSize() {
+        return size.get().swapQueueSize();
+    }
+
+    @Override
+    public int getSwapFileCount() {
+        readLock.lock();
+        try {
+            return this.swapLocations.size();
+        } finally {
+            readLock.unlock("getSwapFileCount");
+        }
+    }
+
+    @Override
+    public boolean isAllActiveFlowFilesPenalized() {
+        readLock.lock();
+        try {
+            // If there are no elements then we return false
+            if (activeQueue.isEmpty()) {
+                return false;
+            }
+
+            // If the first element on the queue is penalized, then we know they all are,
+            // because our Comparator will put Penalized FlowFiles at the end. If the first
+            // FlowFile is not penalized, then we also know that they are not all penalized,
+            // so we can simplify this by looking solely at the first FlowFile in the queue.
+            final FlowFileRecord first = activeQueue.peek();
+            return first.isPenalized();
+        } finally {
+            readLock.unlock("isAllActiveFlowFilesPenalized");
+        }
+    }
+
+    @Override
+    public boolean isAnyActiveFlowFilePenalized() {
+        readLock.lock();
+        try {
+            return activeQueue.stream().anyMatch(FlowFileRecord::isPenalized);
+        } finally {
+            readLock.unlock("isAnyActiveFlowFilePenalized");
+        }
     }
 
     @Override
@@ -1368,7 +1414,6 @@ public class StandardFlowFileQueue implements FlowFileQueue {
     public QueueSize getUnacknowledgedQueueSize() {
         return size.get().unacknowledgedQueueSize();
     }
-
 
     private void incrementActiveQueueSize(final int count, final long bytes) {
         boolean updated = false;
