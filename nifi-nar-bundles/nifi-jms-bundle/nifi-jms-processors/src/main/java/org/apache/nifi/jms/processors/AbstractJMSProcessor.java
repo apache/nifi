@@ -18,9 +18,13 @@ package org.apache.nifi.jms.processors;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.ConnectionFactory;
 
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
@@ -38,9 +42,7 @@ import org.springframework.jms.core.JmsTemplate;
 /**
  * Base JMS processor to support implementation of JMS producers and consumers.
  *
- * @param <T>
- *            the type of {@link JMSWorker} which could be {@link JMSPublisher}
- *            or {@link JMSConsumer}
+ * @param <T> the type of {@link JMSWorker} which could be {@link JMSPublisher} or {@link JMSConsumer}
  * @see PublishJMS
  * @see ConsumeJMS
  * @see JMSConnectionFactoryProviderDefinition
@@ -48,7 +50,6 @@ import org.springframework.jms.core.JmsTemplate;
 abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcessor {
 
     static final String QUEUE = "QUEUE";
-
     static final String TOPIC = "TOPIC";
 
     static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
@@ -90,14 +91,13 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .build();
     static final PropertyDescriptor SESSION_CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("Session Cache size")
-            .description("The maximum limit for the number of cached Sessions.")
-            .required(true)
+            .description("This property is deprecated and no longer has any effect on the Processor. It will be removed in a later version.")
+            .required(false)
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
 
-    // ConnectionFactoryProvider ControllerService
     static final PropertyDescriptor CF_SERVICE = new PropertyDescriptor.Builder()
             .name("Connection Factory Service")
             .description("The Controller Service that is used to obtain ConnectionFactory")
@@ -106,11 +106,9 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .build();
 
     static final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
+    private volatile BlockingQueue<T> workerPool;
+    private final AtomicInteger clientIdCounter = new AtomicInteger(1);
 
-    /*
-     * Will ensure that list of PropertyDescriptors is build only once, since
-     * all other lifecycle methods are invoked multiple times.
-     */
     static {
         propertyDescriptors.add(CF_SERVICE);
         propertyDescriptors.add(DESTINATION);
@@ -121,47 +119,35 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         propertyDescriptors.add(SESSION_CACHE_SIZE);
     }
 
-    protected volatile T targetResource;
-
-    private volatile CachingConnectionFactory cachingConnectionFactory;
-
-    /**
-     *
-     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propertyDescriptors;
     }
 
-    /**
-     * Builds target resource ({@link JMSPublisher} or {@link JMSConsumer}) upon
-     * first invocation while delegating to the sub-classes ( {@link PublishJMS}
-     * or {@link ConsumeJMS}) via
-     * {@link #rendezvousWithJms(ProcessContext, ProcessSession)} method.
-     */
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        synchronized (this) {
-            this.buildTargetResource(context);
+        T worker = workerPool.poll();
+        if (worker == null) {
+            worker = buildTargetResource(context);
         }
-        this.rendezvousWithJms(context, session);
+
+        rendezvousWithJms(context, session, worker);
+        workerPool.offer(worker);
     }
 
-    /**
-     * Will destroy the instance of {@link CachingConnectionFactory} and sets
-     * 'targetResource' to null;
-     */
+    @OnScheduled
+    public void setupWorkerPool(final ProcessContext context) {
+        workerPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
+    }
+
+
     @OnStopped
     public void close() {
-        if (this.cachingConnectionFactory != null) {
-            this.cachingConnectionFactory.destroy();
+        T worker;
+        while ((worker = workerPool.poll()) != null) {
+            worker.shutdown();
         }
-        this.targetResource = null;
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " - " + this.targetResource;
     }
 
     /**
@@ -169,23 +155,16 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
      * {@link #onTrigger(ProcessContext, ProcessSession)} operation. It is
      * implemented by sub-classes to perform {@link Processor} specific
      * functionality.
-     *
-     * @param context
-     *            instance of {@link ProcessContext}
-     * @param session
-     *            instance of {@link ProcessSession}
      */
-    protected abstract void rendezvousWithJms(ProcessContext context, ProcessSession session) throws ProcessException;
+    protected abstract void rendezvousWithJms(ProcessContext context, ProcessSession session, T jmsWorker) throws ProcessException;
 
     /**
      * Finishes building one of the {@link JMSWorker} subclasses T.
      *
-     * @param jmsTemplate instance of {@link JmsTemplate}
-     *
      * @see JMSPublisher
      * @see JMSConsumer
      */
-    protected abstract T finishBuildingTargetResource(JmsTemplate jmsTemplate, ProcessContext processContext);
+    protected abstract T finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext);
 
     /**
      * This method essentially performs initialization of this Processor by
@@ -195,30 +174,30 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
      * in an instance of the {@link CachingConnectionFactory} used to construct
      * {@link JmsTemplate} used by this Processor.
      */
-    private void buildTargetResource(ProcessContext context) {
-        if (this.targetResource == null) {
-            JMSConnectionFactoryProviderDefinition cfProvider = context.getProperty(CF_SERVICE).asControllerService(JMSConnectionFactoryProviderDefinition.class);
-            ConnectionFactory connectionFactory = cfProvider.getConnectionFactory();
+    private T buildTargetResource(ProcessContext context) {
+        final JMSConnectionFactoryProviderDefinition cfProvider = context.getProperty(CF_SERVICE).asControllerService(JMSConnectionFactoryProviderDefinition.class);
+        final ConnectionFactory connectionFactory = cfProvider.getConnectionFactory();
 
-            UserCredentialsConnectionFactoryAdapter cfCredentialsAdapter = new UserCredentialsConnectionFactoryAdapter();
-            cfCredentialsAdapter.setTargetConnectionFactory(connectionFactory);
-            cfCredentialsAdapter.setUsername(context.getProperty(USER).getValue());
-            cfCredentialsAdapter.setPassword(context.getProperty(PASSWORD).getValue());
+        final UserCredentialsConnectionFactoryAdapter cfCredentialsAdapter = new UserCredentialsConnectionFactoryAdapter();
+        cfCredentialsAdapter.setTargetConnectionFactory(connectionFactory);
+        cfCredentialsAdapter.setUsername(context.getProperty(USER).getValue());
+        cfCredentialsAdapter.setPassword(context.getProperty(PASSWORD).getValue());
 
-            this.cachingConnectionFactory = new CachingConnectionFactory(cfCredentialsAdapter);
-            this.cachingConnectionFactory.setSessionCacheSize(Integer.parseInt(context.getProperty(SESSION_CACHE_SIZE).getValue()));
-            String clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
-            if (clientId != null) {
-                this.cachingConnectionFactory.setClientId(clientId);
-            }
-            JmsTemplate jmsTemplate = new JmsTemplate();
-            jmsTemplate.setConnectionFactory(this.cachingConnectionFactory);
-            jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
+        final CachingConnectionFactory cachingFactory = new CachingConnectionFactory(cfCredentialsAdapter);
 
-            // set of properties that may be good candidates for exposure via configuration
-            jmsTemplate.setReceiveTimeout(1000);
-
-            this.targetResource = this.finishBuildingTargetResource(jmsTemplate, context);
+        String clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
+        if (clientId != null) {
+            clientId = clientId + "-" + clientIdCounter.getAndIncrement();
+            cachingFactory.setClientId(clientId);
         }
+
+        JmsTemplate jmsTemplate = new JmsTemplate();
+        jmsTemplate.setConnectionFactory(cachingFactory);
+        jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
+
+        // set of properties that may be good candidates for exposure via configuration
+        jmsTemplate.setReceiveTimeout(1000);
+
+        return finishBuildingJmsWorker(cachingFactory, jmsTemplate, context);
     }
 }

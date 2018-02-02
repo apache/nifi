@@ -23,7 +23,9 @@ import static org.mockito.Mockito.mock;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
@@ -48,16 +50,18 @@ public class JMSPublisherConsumerTest {
         final String destinationName = "testQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
-        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
-        publisher.publish(destinationName, "hellomq".getBytes());
+        try {
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
+            publisher.publish(destinationName, "hellomq".getBytes());
 
-        Message receivedMessage = jmsTemplate.receive(destinationName);
-        assertTrue(receivedMessage instanceof BytesMessage);
-        byte[] bytes = new byte[7];
-        ((BytesMessage) receivedMessage).readBytes(bytes);
-        assertEquals("hellomq", new String(bytes));
-
-        ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+            Message receivedMessage = jmsTemplate.receive(destinationName);
+            assertTrue(receivedMessage instanceof BytesMessage);
+            byte[] bytes = new byte[7];
+            ((BytesMessage) receivedMessage).readBytes(bytes);
+            assertEquals("hellomq", new String(bytes));
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
     }
 
     @Test
@@ -65,19 +69,22 @@ public class JMSPublisherConsumerTest {
         final String destinationName = "testQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
-        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
-        Map<String, String> flowFileAttributes = new HashMap<>();
-        flowFileAttributes.put("foo", "foo");
-        flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
-        publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
+        try {
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
+            Map<String, String> flowFileAttributes = new HashMap<>();
+            flowFileAttributes.put("foo", "foo");
+            flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
+            publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
-        Message receivedMessage = jmsTemplate.receive(destinationName);
-        assertTrue(receivedMessage instanceof BytesMessage);
-        assertEquals("foo", receivedMessage.getStringProperty("foo"));
-        assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
-        assertEquals("myTopic", ((Topic) receivedMessage.getJMSReplyTo()).getTopicName());
+            Message receivedMessage = jmsTemplate.receive(destinationName);
+            assertTrue(receivedMessage instanceof BytesMessage);
+            assertEquals("foo", receivedMessage.getStringProperty("foo"));
+            assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
+            assertEquals("myTopic", ((Topic) receivedMessage.getJMSReplyTo()).getTopicName());
 
-        ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
     }
 
     /**
@@ -91,15 +98,15 @@ public class JMSPublisherConsumerTest {
         final String destinationName = "testQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
-        jmsTemplate.send(destinationName, new MessageCreator() {
-            @Override
-            public Message createMessage(Session session) throws JMSException {
-                return session.createObjectMessage();
-            }
-        });
-
-        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         try {
+            jmsTemplate.send(destinationName, new MessageCreator() {
+                @Override
+                public Message createMessage(Session session) throws JMSException {
+                    return session.createObjectMessage();
+                }
+            });
+
+            JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
@@ -116,102 +123,182 @@ public class JMSPublisherConsumerTest {
         final String destinationName = "testQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
-        jmsTemplate.send(destinationName, new MessageCreator() {
-            @Override
-            public Message createMessage(Session session) throws JMSException {
-                TextMessage message = session.createTextMessage("hello from the other side");
-                message.setStringProperty("foo", "foo");
-                message.setBooleanProperty("bar", false);
-                message.setJMSReplyTo(session.createQueue("fooQueue"));
-                return message;
-            }
-        });
+        try {
+            jmsTemplate.send(destinationName, new MessageCreator() {
+                @Override
+                public Message createMessage(Session session) throws JMSException {
+                    TextMessage message = session.createTextMessage("hello from the other side");
+                    message.setStringProperty("foo", "foo");
+                    message.setBooleanProperty("bar", false);
+                    message.setJMSReplyTo(session.createQueue("fooQueue"));
+                    return message;
+                }
+            });
 
-        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
-        final AtomicBoolean callbackInvoked = new AtomicBoolean();
-        consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
-            @Override
-            public void accept(JMSResponse response) {
-                callbackInvoked.set(true);
-                assertEquals("hello from the other side", new String(response.getMessageBody()));
-                assertEquals("fooQueue", response.getMessageHeaders().get(JmsHeaders.REPLY_TO));
-                assertEquals("foo", response.getMessageProperties().get("foo"));
-                assertEquals("false", response.getMessageProperties().get("bar"));
-            }
-        });
-        assertTrue(callbackInvoked.get());
+            JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
+            final AtomicBoolean callbackInvoked = new AtomicBoolean();
+            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                @Override
+                public void accept(JMSResponse response) {
+                    callbackInvoked.set(true);
+                    assertEquals("hello from the other side", new String(response.getMessageBody()));
+                    assertEquals("fooQueue", response.getMessageHeaders().get(JmsHeaders.REPLY_TO));
+                    assertEquals("foo", response.getMessageProperties().get("foo"));
+                    assertEquals("false", response.getMessageProperties().get("bar"));
+                }
+            });
+            assertTrue(callbackInvoked.get());
 
-        ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
     }
 
-    @Test
+
+    @Test(timeout = 2000000)
+    public void testMultipleThreads() throws Exception {
+        String destinationName = "testQueue";
+        JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(4);
+
+        try {
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) publishTemplate.getConnectionFactory(), publishTemplate, mock(ComponentLog.class));
+            for (int i = 0; i < 4000; i++) {
+                publisher.publish(destinationName, String.valueOf(i).getBytes(StandardCharsets.UTF_8));
+            }
+
+            final AtomicInteger msgCount = new AtomicInteger(0);
+
+            final ConsumerCallback callback = new ConsumerCallback() {
+                @Override
+                public void accept(JMSResponse response) {
+                    msgCount.incrementAndGet();
+                }
+            };
+
+            final Thread[] threads = new Thread[4];
+            for (int i = 0; i < 4; i++) {
+                final Thread t = new Thread(() -> {
+                    JmsTemplate consumeTemplate = CommonTest.buildJmsTemplateForDestination(false);
+
+                    try {
+                        JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
+
+                        for (int j = 0; j < 1000 && msgCount.get() < 4000; j++) {
+                            consumer.consume(destinationName, false, false, null, callback);
+                        }
+                    } finally {
+                        ((CachingConnectionFactory) consumeTemplate.getConnectionFactory()).destroy();
+                        consumerTemplateCloseCount.countDown();
+                    }
+                });
+
+                threads[i] = t;
+                t.start();
+            }
+
+            int iterations = 0;
+            while (msgCount.get() < 4000) {
+                Thread.sleep(10L);
+                if (++iterations % 100 == 0) {
+                    System.out.println(msgCount.get() + " messages received so far");
+                }
+            }
+        } finally {
+            ((CachingConnectionFactory) publishTemplate.getConnectionFactory()).destroy();
+
+            consumerTemplateCloseCount.await();
+        }
+    }
+
+
+    @Test(timeout = 10000)
     public void validateMessageRedeliveryWhenNotAcked() throws Exception {
         String destinationName = "testQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
-        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
-        publisher.publish(destinationName, "1".getBytes(StandardCharsets.UTF_8));
-        publisher.publish(destinationName, "2".getBytes(StandardCharsets.UTF_8));
-
-        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
-        final AtomicBoolean callbackInvoked = new AtomicBoolean();
         try {
-            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
-                @Override
-                public void accept(JMSResponse response) {
-                    callbackInvoked.set(true);
-                    assertEquals("1", new String(response.getMessageBody()));
-                    throw new RuntimeException("intentional to avoid explicit ack");
-                }
-            });
-        } catch (Exception e) {
-            // ignore
-        }
-        assertTrue(callbackInvoked.get());
-        callbackInvoked.set(false);
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
+            publisher.publish(destinationName, "1".getBytes(StandardCharsets.UTF_8));
+            publisher.publish(destinationName, "2".getBytes(StandardCharsets.UTF_8));
 
-        // should receive the same message, but will process it successfully
-        try {
-            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
-                @Override
-                public void accept(JMSResponse response) {
-                    callbackInvoked.set(true);
-                    assertEquals("1", new String(response.getMessageBody()));
-                }
-            });
-        } catch (Exception e) {
-            // ignore
-        }
-        assertTrue(callbackInvoked.get());
-        callbackInvoked.set(false);
+            JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
+            final AtomicBoolean callbackInvoked = new AtomicBoolean();
+            try {
+                consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                    @Override
+                    public void accept(JMSResponse response) {
+                        callbackInvoked.set(true);
+                        assertEquals("1", new String(response.getMessageBody()));
+                        throw new RuntimeException("intentional to avoid explicit ack");
+                    }
+                });
+            } catch (Exception e) {
+                // expected
+            }
 
-        // receiving next message and fail again
-        try {
-            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
-                @Override
-                public void accept(JMSResponse response) {
-                    callbackInvoked.set(true);
-                    assertEquals("2", new String(response.getMessageBody()));
-                    throw new RuntimeException("intentional to avoid explicit ack");
-                }
-            });
-        } catch (Exception e) {
-            // ignore
-        }
-        assertTrue(callbackInvoked.get());
-        callbackInvoked.set(false);
+            assertTrue(callbackInvoked.get());
+            callbackInvoked.set(false);
 
-        // should receive the same message, but will process it successfully
-        try {
-            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
-                @Override
-                public void accept(JMSResponse response) {
-                    callbackInvoked.set(true);
-                    assertEquals("2", new String(response.getMessageBody()));
+            // should receive the same message, but will process it successfully
+            while (!callbackInvoked.get()) {
+                consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                    @Override
+                    public void accept(JMSResponse response) {
+                        if (response == null) {
+                            return;
+                        }
+
+                        callbackInvoked.set(true);
+                        assertEquals("1", new String(response.getMessageBody()));
+                    }
+                });
+            }
+
+            assertTrue(callbackInvoked.get());
+            callbackInvoked.set(false);
+
+            // receiving next message and fail again
+            try {
+                while (!callbackInvoked.get()) {
+                    consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                        @Override
+                        public void accept(JMSResponse response) {
+                            if (response == null) {
+                                return;
+                            }
+
+                            callbackInvoked.set(true);
+                            assertEquals("2", new String(response.getMessageBody()));
+                            throw new RuntimeException("intentional to avoid explicit ack");
+                        }
+                    });
                 }
-            });
-        } catch (Exception e) {
-            // ignore
+            } catch (Exception e) {
+                // ignore
+            }
+            assertTrue(callbackInvoked.get());
+            callbackInvoked.set(false);
+
+            // should receive the same message, but will process it successfully
+            try {
+                while (!callbackInvoked.get()) {
+                    consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                        @Override
+                        public void accept(JMSResponse response) {
+                            if (response == null) {
+                                return;
+                            }
+
+                            callbackInvoked.set(true);
+                            assertEquals("2", new String(response.getMessageBody()));
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }
-        ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
     }
 }
