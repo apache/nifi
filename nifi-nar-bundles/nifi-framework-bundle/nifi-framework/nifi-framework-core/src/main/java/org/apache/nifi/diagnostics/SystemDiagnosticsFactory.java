@@ -24,6 +24,7 @@ import java.lang.management.MemoryUsage;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
+import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -153,6 +154,30 @@ public class SystemDiagnosticsFactory {
             garbageCollection.put(garbageCollector.getName(), garbageCollectionEntry);
         }
         systemDiagnostics.setGarbageCollection(garbageCollection);
+
+        // This information is available only for *nix systems.
+        final OperatingSystemMXBean osStats = ManagementFactory.getOperatingSystemMXBean();
+        try {
+            final Class<?> unixOsMxBeanClass = Class.forName("com.sun.management.UnixOperatingSystemMXBean");
+            if (unixOsMxBeanClass.isAssignableFrom(osStats.getClass())) {
+                final Method totalPhysicalMemory = unixOsMxBeanClass.getMethod("getTotalPhysicalMemorySize");
+                totalPhysicalMemory.setAccessible(true);
+                final Long ramBytes = (Long) totalPhysicalMemory.invoke(osStats);
+                systemDiagnostics.setTotalPhysicalMemory(ramBytes);
+
+                final Method maxFileDescriptors = unixOsMxBeanClass.getMethod("getMaxFileDescriptorCount");
+                maxFileDescriptors.setAccessible(true);
+                final Long maxOpenFileDescriptors = (Long) maxFileDescriptors.invoke(osStats);
+                systemDiagnostics.setMaxOpenFileHandles(maxOpenFileDescriptors);
+
+                final Method openFileDescriptors = unixOsMxBeanClass.getMethod("getOpenFileDescriptorCount");
+                openFileDescriptors.setAccessible(true);
+                final Long openDescriptorCount = (Long) openFileDescriptors.invoke(osStats);
+                systemDiagnostics.setOpenFileHandles(openDescriptorCount);
+            }
+        } catch (final Throwable t) {
+            // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
+        }
 
         // set the creation timestamp
         systemDiagnostics.setCreationTimestamp(new Date().getTime());

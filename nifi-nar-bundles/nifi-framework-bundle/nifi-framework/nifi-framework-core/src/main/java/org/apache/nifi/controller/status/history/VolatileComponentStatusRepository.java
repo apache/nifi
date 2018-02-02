@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -28,9 +32,6 @@ import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Date;
-import java.util.Map;
 
 public class VolatileComponentStatusRepository implements ComponentStatusRepository {
 
@@ -51,19 +52,20 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     public VolatileComponentStatusRepository(final NiFiProperties nifiProperties) {
         final int numDataPoints = nifiProperties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
-
         captures = new RingBuffer<>(numDataPoints);
     }
 
     @Override
-    public void capture(final ProcessGroupStatus rootGroupStatus) {
-        capture(rootGroupStatus, new Date());
+    public void capture(final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus) {
+        capture(rootGroupStatus, gcStatus, new Date());
     }
 
     @Override
-    public synchronized void capture(final ProcessGroupStatus rootGroupStatus, final Date timestamp) {
-        captures.add(new Capture(timestamp, ComponentStatusReport.fromProcessGroupStatus(rootGroupStatus, ComponentType.PROCESSOR,
-                ComponentType.CONNECTION, ComponentType.PROCESS_GROUP, ComponentType.REMOTE_PROCESS_GROUP)));
+    public synchronized void capture(final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus, final Date timestamp) {
+        final ComponentStatusReport statusReport = ComponentStatusReport.fromProcessGroupStatus(rootGroupStatus, ComponentType.PROCESSOR,
+            ComponentType.CONNECTION, ComponentType.PROCESS_GROUP, ComponentType.REMOTE_PROCESS_GROUP);
+
+        captures.add(new Capture(timestamp, statusReport, gcStatus));
         logger.debug("Captured metrics for {}", this);
         lastCaptureTime = Math.max(lastCaptureTime, timestamp.getTime());
     }
@@ -221,15 +223,41 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         return history;
     }
 
+    @Override
+    public GarbageCollectionHistory getGarbageCollectionHistory(final Date start, final Date end) {
+        final StandardGarbageCollectionHistory history = new StandardGarbageCollectionHistory();
 
+        captures.forEach(new ForEachEvaluator<Capture>() {
+            @Override
+            public boolean evaluate(final Capture capture) {
+                if (capture.getCaptureDate().before(start)) {
+                    return true;
+                }
+                if (capture.getCaptureDate().after(end)) {
+                    return false;
+                }
+
+                final List<GarbageCollectionStatus> statuses = capture.getGarbageCollectionStatus();
+                if (statuses != null) {
+                    statuses.stream().forEach(history::addGarbageCollectionStatus);
+                }
+
+                return true;
+            }
+        });
+
+        return history;
+    }
 
     private static class Capture {
         private final Date captureDate;
         private final ComponentStatusReport statusReport;
+        private final List<GarbageCollectionStatus> gcStatus;
 
-        public Capture(final Date date, final ComponentStatusReport statusReport) {
+        public Capture(final Date date, final ComponentStatusReport statusReport, final List<GarbageCollectionStatus> gcStatus) {
             this.captureDate = date;
             this.statusReport = statusReport;
+            this.gcStatus = gcStatus;
         }
 
         public Date getCaptureDate() {
@@ -238,6 +266,10 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
         public ComponentStatusReport getStatusReport() {
             return statusReport;
+        }
+
+        public List<GarbageCollectionStatus> getGarbageCollectionStatus() {
+            return gcStatus;
         }
     }
 }
