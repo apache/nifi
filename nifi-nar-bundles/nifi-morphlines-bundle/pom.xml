@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.5.0-SNAPSHOT</version>
+        <version>1.6.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-morphlines-bundle</artifactId>
-    <version>1.5.0-SNAPSHOT</version>
+    <version>1.6.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -34,8 +34,5 @@
 
     <properties>
         <kite.version>1.1.0</kite.version>
-        <nifi.version>1.5.0-SNAPSHOT</nifi.version>
-        <skipNexusStaginDeployMojo>true</skipNexusStaginDeployMojo>
     </properties>
-
 </project>

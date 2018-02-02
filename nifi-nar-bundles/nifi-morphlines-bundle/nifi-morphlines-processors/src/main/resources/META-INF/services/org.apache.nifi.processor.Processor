@@ -1,1 +1,1 @@
-org.apache.nifi.processors.morphlines.ImplementMorphlines
+org.apache.nifi.processors.morphlines.ExecuteMorphline

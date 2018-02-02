@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.4.0-SNAPSHOT</version>
+        <version>1.6.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-nar-bundles</artifactId>
@@ -34,6 +34,7 @@
         <module>nifi-update-attribute-bundle</module>
         <module>nifi-kafka-bundle</module>
         <module>nifi-kite-bundle</module>
+        <module>nifi-kudu-bundle</module>
         <module>nifi-solr-bundle</module>
         <module>nifi-confluent-platform-bundle</module>
         <module>nifi-aws-bundle</module>
@@ -74,6 +75,7 @@
         <module>nifi-ignite-bundle</module>
         <module>nifi-rethinkdb-bundle</module>
         <module>nifi-email-bundle</module>
+        <module>nifi-groovyx-bundle</module>
     	<module>nifi-ranger-bundle</module>
         <module>nifi-websocket-bundle</module>
         <module>nifi-tcp-bundle</module>
@@ -85,8 +87,12 @@
         <module>nifi-cybersecurity-bundle</module>
         <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
-        <module>nifi-grpc-bundle</module>
         <module>nifi-redis-bundle</module>
+        <module>nifi-metrics-reporting-bundle</module>
+        <module>nifi-spark-bundle</module>
+        <module>nifi-atlas-bundle</module>
+        <module>nifi-druid-bundle</module>
+        <module>nifi-morphlines-bundle</module>
   </modules>
 
     <build>
@@ -132,6 +138,18 @@
                 <buildBranch />
             </properties>
         </profile>
+        <profile>
+            <id>include-grpc</id>
+            <!-- This profile handles the inclusion of grpc artifacts. They are notoriously
+            environment specific in terms of build such as not working in os/arch=ppc64le
+            or in Centos6 due to requiring a newer version of GLIBC. -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>nifi-grpc-bundle</module>
+            </modules>
+        </profile>
     </profiles>
 
   <dependencyManagement>
@@ -139,105 +157,117 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record-serialization-service-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-schema-registry-service-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-load-distribution-service-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
              <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-lookup-service-api</artifactId>
+                <version>1.6.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-mongodb-client-service-api</artifactId>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-protocol</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-server</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-volatile-provenance-repository</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
             <!-- The following dependencies are marked provided because they must be provided by the container.  Nars can assume they are there-->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-api</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-utils</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
-                <version>1.4.0-SNAPSHOT</version>
+                <version>1.6.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
         </dependencies>

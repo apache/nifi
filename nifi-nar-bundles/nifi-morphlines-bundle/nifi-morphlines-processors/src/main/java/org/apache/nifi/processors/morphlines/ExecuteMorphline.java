@@ -23,14 +23,13 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -56,12 +55,13 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Tags({"kitesdk", "morphlines", "ETL", "HDFS", "avro", "Solr", "HBase"})
-@CapabilityDescription("Implements Morphlines (http://kitesdk.org/docs/1.1.0/morphlines/) framework, which performs in-memory container of transformation "
+@CapabilityDescription("Executes Morphlines (http://kitesdk.org/docs/1.1.0/morphlines/) framework, which performs in-memory container of transformation "
     + "commands in oder to perform tasks such as loading, parsing, transforming, or otherwise processing a single record.")
 @DynamicProperty(name = "Relationship Name", value = "A Regular Expression", supportsExpressionLanguage = true, description = "Adds the dynamic property key and value "
     + "as key-value pair to Morphlines content.")
+@Restricted("Provides operator the ability to read/write to any file that NiFi has access to.")
 
-public class ImplementMorphlines extends AbstractProcessor {
+public class ExecuteMorphline extends AbstractProcessor {
     public static final PropertyDescriptor MORPHLINES_ID = new PropertyDescriptor
         .Builder().name("Morphlines ID")
         .description("Identifier of the morphlines context")
