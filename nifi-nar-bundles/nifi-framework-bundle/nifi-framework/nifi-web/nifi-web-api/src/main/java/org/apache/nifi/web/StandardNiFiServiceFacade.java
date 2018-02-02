@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.web;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -79,6 +81,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
@@ -183,6 +186,11 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ControllerServiceDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
@@ -225,6 +233,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
@@ -275,8 +284,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
+import com.google.common.collect.Sets;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -297,6 +306,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -4524,6 +4534,99 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         history.setPropertyHistory(propertyHistoryDtos);
 
         return history;
+    }
+
+    private ControllerServiceEntity createControllerServiceEntity(final String serviceId, final NiFiUser user) {
+        final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
+        return createControllerServiceEntity(serviceNode, Collections.emptySet(), user);
+    }
+
+    @Override
+    public ProcessorDiagnosticsEntity getProcessorDiagnostics(final String id) {
+        final ProcessorNode processor = processorDAO.getProcessor(id);
+        final ProcessorStatus processorStatus = controllerFacade.getProcessorStatus(id);
+
+        // Generate Processor Diagnostics
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final ProcessorDiagnosticsDTO dto = controllerFacade.getProcessorDiagnostics(processor, processorStatus, bulletinRepository, serviceId -> createControllerServiceEntity(serviceId, user));
+
+        // Filter anything out of diagnostics that the user is not authorized to see.
+        final List<JVMDiagnosticsSnapshotDTO> jvmDiagnosticsSnaphots = new ArrayList<>();
+        final JVMDiagnosticsDTO jvmDiagnostics = dto.getJvmDiagnostics();
+        jvmDiagnosticsSnaphots.add(jvmDiagnostics.getAggregateSnapshot());
+
+        // filter controller-related information
+        final boolean canReadController = authorizableLookup.getController().isAuthorized(authorizer, RequestAction.READ, user);
+        if (!canReadController) {
+            for (final JVMDiagnosticsSnapshotDTO snapshot : jvmDiagnosticsSnaphots) {
+                snapshot.setControllerDiagnostics(null);
+            }
+        }
+
+        // filter system diagnostics information
+        final boolean canReadSystem = authorizableLookup.getSystem().isAuthorized(authorizer, RequestAction.READ, user);
+        if (!canReadSystem) {
+            for (final JVMDiagnosticsSnapshotDTO snapshot : jvmDiagnosticsSnaphots) {
+                snapshot.setSystemDiagnosticsDto(null);
+            }
+        }
+
+        final boolean canReadFlow = authorizableLookup.getFlow().isAuthorized(authorizer, RequestAction.READ, user);
+        if (!canReadFlow) {
+            for (final JVMDiagnosticsSnapshotDTO snapshot : jvmDiagnosticsSnaphots) {
+                snapshot.setFlowDiagnosticsDto(null);
+            }
+        }
+
+        // filter connections
+        final Predicate<ConnectionDiagnosticsDTO> connectionAuthorized = connectionDiagnostics -> {
+            final String connectionId = connectionDiagnostics.getConnection().getId();
+            return authorizableLookup.getConnection(connectionId).getAuthorizable().isAuthorized(authorizer, RequestAction.READ, user);
+        };
+
+        // Filter incoming connections by what user is authorized to READ
+        final Set<ConnectionDiagnosticsDTO> incoming = dto.getIncomingConnections();
+        final Set<ConnectionDiagnosticsDTO> filteredIncoming = incoming.stream()
+            .filter(connectionAuthorized)
+            .collect(Collectors.toSet());
+
+        dto.setIncomingConnections(filteredIncoming);
+
+        // Filter outgoing connections by what user is authorized to READ
+        final Set<ConnectionDiagnosticsDTO> outgoing = dto.getOutgoingConnections();
+        final Set<ConnectionDiagnosticsDTO> filteredOutgoing = outgoing.stream()
+            .filter(connectionAuthorized)
+            .collect(Collectors.toSet());
+        dto.setOutgoingConnections(filteredOutgoing);
+
+        // Filter out any controller services that are referenced by the Processor
+        final Set<ControllerServiceDiagnosticsDTO> referencedServices = dto.getReferencedControllerServices();
+        final Set<ControllerServiceDiagnosticsDTO> filteredReferencedServices = referencedServices.stream()
+            .filter(csDiagnostics -> {
+                final String csId = csDiagnostics.getControllerService().getId();
+                return authorizableLookup.getControllerService(csId).getAuthorizable().isAuthorized(authorizer, RequestAction.READ, user);
+            })
+            .map(csDiagnostics -> {
+                // Filter out any referencing components because those are generally not relevant from this context.
+                final ControllerServiceDTO serviceDto = csDiagnostics.getControllerService().getComponent();
+                if (serviceDto != null) {
+                    serviceDto.setReferencingComponents(null);
+                }
+                return csDiagnostics;
+            })
+            .collect(Collectors.toSet());
+        dto.setReferencedControllerServices(filteredReferencedServices);
+
+        final Revision revision = revisionManager.getRevision(id);
+        final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(revision);
+        final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(processor);
+        final List<BulletinEntity> bulletins = bulletinRepository.findBulletinsForSource(id).stream()
+            .map(bulletin -> dtoFactory.createBulletinDto(bulletin))
+            .map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissionsDto.getCanRead()))
+            .collect(Collectors.toList());
+
+        final ProcessorStatusDTO processorStatusDto = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
+        return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
     }
 
     @Override

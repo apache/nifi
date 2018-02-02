@@ -57,6 +57,11 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
+    public String getFileStoreName() {
+        return null;
+    }
+
+    @Override
     public void close() throws IOException {
     }
 

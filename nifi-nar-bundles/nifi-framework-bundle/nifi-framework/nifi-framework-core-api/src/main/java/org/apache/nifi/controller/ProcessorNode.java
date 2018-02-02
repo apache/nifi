@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -67,6 +68,8 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
     public abstract boolean isHighThroughputSupported();
 
     public abstract Requirement getInputRequirement();
+
+    public abstract List<ActiveThreadInfo> getActiveThreads();
 
     @Override
     public abstract boolean isValid();

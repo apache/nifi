@@ -613,6 +613,11 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return maxSize - ringBuffer.getSize();
     }
 
+    public String getContainerFileStoreName(String containerName) {
+        return null;
+    }
+
+
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType, final Long eventId) {
         final String userId = user.getIdentity();
         final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, 1, userId);

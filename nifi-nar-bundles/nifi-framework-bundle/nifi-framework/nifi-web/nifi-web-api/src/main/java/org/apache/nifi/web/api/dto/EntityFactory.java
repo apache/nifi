@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import org.apache.nifi.web.api.dto.action.ActionDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
@@ -54,6 +55,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
@@ -76,6 +78,23 @@ import java.util.Date;
 import java.util.List;
 
 public final class EntityFactory {
+
+    public ProcessorDiagnosticsEntity createProcessorDiagnosticsEntity(final ProcessorDiagnosticsDTO dto, final RevisionDTO revision, final PermissionsDTO processorPermissions,
+        final ProcessorStatusDTO status, final List<BulletinEntity> bulletins) {
+        final ProcessorDiagnosticsEntity entity = new ProcessorDiagnosticsEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(processorPermissions);
+            entity.setId(dto.getProcessor().getId());
+            if (processorPermissions != null && processorPermissions.getCanRead()) {
+                entity.setComponent(dto);
+                entity.setBulletins(bulletins);
+            }
+        }
+
+        entity.setBulletins(bulletins);
+        return entity;
+    }
 
     public StatusHistoryEntity createStatusHistoryEntity(final StatusHistoryDTO statusHistory, final PermissionsDTO permissions) {
         final StatusHistoryEntity entity = new StatusHistoryEntity();

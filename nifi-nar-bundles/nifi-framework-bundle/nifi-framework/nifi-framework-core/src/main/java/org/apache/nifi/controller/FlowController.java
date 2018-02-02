@@ -122,6 +122,9 @@ import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
+import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
+import org.apache.nifi.controller.status.history.StandardGarbageCollectionStatus;
 import org.apache.nifi.controller.status.history.StatusHistoryUtil;
 import org.apache.nifi.controller.tasks.ExpireFlowFiles;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
@@ -230,6 +233,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -612,7 +617,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                componentStatusRepository.capture(getControllerStatus());
+                componentStatusRepository.capture(getControllerStatus(), getGarbageCollectionStatus());
             }
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
 
@@ -1639,6 +1644,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return maxEventDrivenThreads.get();
     }
 
+    public int getActiveEventDrivenThreadCount() {
+        return eventDrivenEngineRef.get().getActiveCount();
+    }
+
+    public int getActiveTimerDrivenThreadCount() {
+        return timerDrivenEngineRef.get().getActiveCount();
+    }
+
     public void setMaxTimerDrivenThreadCount(final int maxThreadCount) {
         writeLock.lock();
         try {
@@ -1716,6 +1729,18 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public SystemDiagnostics getSystemDiagnostics() {
         final SystemDiagnosticsFactory factory = new SystemDiagnosticsFactory();
         return factory.create(flowFileRepository, contentRepository, provenanceRepository);
+    }
+
+    public String getContentRepoFileStoreName(final String containerName) {
+        return contentRepository.getContainerFileStoreName(containerName);
+    }
+
+    public String getFlowRepoFileStoreName() {
+        return flowFileRepository.getFileStoreName();
+    }
+
+    public String getProvenanceRepoFileStoreName(final String containerName) {
+        return provenanceRepository.getContainerFileStoreName(containerName);
     }
 
     //
@@ -2641,6 +2666,26 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public Funnel getFunnel(final String id) {
         return allFunnels.get(id);
     }
+
+    public List<GarbageCollectionStatus> getGarbageCollectionStatus() {
+        final List<GarbageCollectionStatus> statuses = new ArrayList<>();
+
+        final Date now = new Date();
+        for (final GarbageCollectorMXBean mbean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            final String managerName = mbean.getName();
+            final long count = mbean.getCollectionCount();
+            final long millis = mbean.getCollectionTime();
+            final GarbageCollectionStatus status = new StandardGarbageCollectionStatus(managerName, now, count, millis);
+            statuses.add(status);
+        }
+
+        return statuses;
+    }
+
+    public GarbageCollectionHistory getGarbageCollectionHistory() {
+        return componentStatusRepository.getGarbageCollectionHistory(new Date(0L), new Date());
+    }
+
     /**
      * Returns the status of all components in the controller. This request is
      * not in the context of a user so the results will be unfiltered.
@@ -4061,6 +4106,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     @Override
     public boolean isPrimary() {
         return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE);
+    }
+
+    public boolean isClusterCoordinator() {
+        return isClustered() && leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR);
     }
 
     public void setPrimary(final boolean primary) {

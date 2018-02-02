@@ -59,6 +59,8 @@ public interface FlowFileQueue {
      */
     void purgeSwapFiles();
 
+    int getSwapFileCount();
+
     /**
      * Resets the comparator used by this queue to maintain order.
      *
@@ -115,6 +117,10 @@ public interface FlowFileQueue {
      */
     QueueSize getUnacknowledgedQueueSize();
 
+    QueueSize getActiveQueueSize();
+
+    QueueSize getSwapQueueSize();
+
     void acknowledge(FlowFileRecord flowFile);
 
     void acknowledge(Collection<FlowFileRecord> flowFiles);
@@ -124,6 +130,10 @@ public interface FlowFileQueue {
      *         otherwise
      */
     boolean isFull();
+
+    boolean isAnyActiveFlowFilePenalized();
+
+    boolean isAllActiveFlowFilesPenalized();
 
     /**
      * places the given file into the queue

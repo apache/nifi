@@ -242,6 +242,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     @Override
+    public String getFileStoreName() {
+        final Path path = flowFileRepositoryPaths.iterator().next().toPath();
+
+        try {
+            return Files.getFileStore(path).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
     public void updateRepository(final Collection<RepositoryRecord> records) throws IOException {
         updateRepository(records, alwaysSync);
     }

@@ -549,6 +549,21 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Map<String, File> map = configuration.getStorageDirectories();
+        final File container = map.get(containerName);
+        if (container == null) {
+            return null;
+        }
+
+        try {
+            return Files.getFileStore(container.toPath()).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
     public long getContainerUsableSpace(String containerName) throws IOException {
         Map<String, File> map = configuration.getStorageDirectories();
 
@@ -2478,7 +2493,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public Collection<Path> getAllLogFiles() {
         final SortedMap<Long, Path> map = idToPathMap.get();
-        return map == null ? new ArrayList<Path>() : map.values();
+        return map == null ? new ArrayList<>() : map.values();
     }
 
     private static class PathMapComparator implements Comparator<Long> {

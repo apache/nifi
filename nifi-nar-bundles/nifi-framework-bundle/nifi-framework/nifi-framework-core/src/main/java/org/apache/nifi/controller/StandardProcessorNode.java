@@ -18,6 +18,9 @@ package org.apache.nifi.controller;
 
 import static java.util.Objects.requireNonNull;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,6 +41,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -87,6 +93,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.apache.nifi.util.ThreadUtils;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +142,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                                    // ??????? NOT any more
     private ExecutionNode executionNode;
     private final long onScheduleTimeoutMillis;
+    private final Map<Thread, Long> activeThreads = new HashMap<>(48);
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
@@ -1127,8 +1135,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         final Processor processor = processorRef.get().getProcessor();
+
+        activateThread();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             processor.onTrigger(context, sessionFactory);
+        } finally {
+            deactivateThread();
         }
     }
 
@@ -1329,6 +1341,44 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    private synchronized void activateThread() {
+        final Thread thread = Thread.currentThread();
+        final Long timestamp = System.currentTimeMillis();
+        activeThreads.put(thread, timestamp);
+    }
+
+    private synchronized void deactivateThread() {
+        activeThreads.remove(Thread.currentThread());
+    }
+
+    @Override
+    public synchronized List<ActiveThreadInfo> getActiveThreads() {
+        final long now = System.currentTimeMillis();
+        final ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
+        final ThreadInfo[] infos = mbean.dumpAllThreads(true, true);
+        final long[] deadlockedThreadIds = mbean.findDeadlockedThreads();
+        final long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
+
+        final Map<Long, ThreadInfo> threadInfoMap = Stream.of(infos)
+            .collect(Collectors.toMap(info -> info.getThreadId(), Function.identity(), (a, b) -> a));
+
+        final List<ActiveThreadInfo> threadList = new ArrayList<>(activeThreads.size());
+        for (final Map.Entry<Thread, Long> entry : activeThreads.entrySet()) {
+            final Thread thread = entry.getKey();
+            final Long timestamp = entry.getValue();
+            final long activeMillis = now - timestamp;
+            final ThreadInfo threadInfo = threadInfoMap.get(thread.getId());
+
+            final String stackTrace = ThreadUtils.createStackTrace(thread, threadInfo, deadlockedThreadIds, monitorDeadlockThreadIds, activeMillis);
+
+            final ActiveThreadInfo activeThreadInfo = new ActiveThreadInfo(thread.getName(), stackTrace, activeMillis);
+            threadList.add(activeThreadInfo);
+        }
+
+        return threadList;
+    }
+
+
     private void initiateStart(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis,
             final ProcessContext processContext, final SchedulingAgentCallback schedulingAgentCallback) {
 
@@ -1343,7 +1393,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                 try {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);
+                    activateThread();
+                    try {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);
+                    } finally {
+                        deactivateThread();
+                    }
 
                     if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
                         LOG.debug("Successfully completed the @OnScheduled methods of {}; will now start triggering processor to run", processor);
@@ -1352,10 +1407,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         LOG.debug("Successfully invoked @OnScheduled methods of {} but scheduled state is no longer STARTING so will stop processor now", processor);
 
                         // can only happen if stopProcessor was called before service was transitioned to RUNNING state
+                        activateThread();
                         try {
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
-                        } finally {
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+                        } finally {
+                            deactivateThread();
                         }
 
                         scheduledState.set(ScheduledState.STOPPED);
@@ -1369,10 +1426,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
                 // If processor's task completed Exceptionally, then we want to retry initiating the start (if Processor is still scheduled to run).
                 try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
+                    activateThread();
                     try {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
-                    } finally {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+                    } finally {
+                        deactivateThread();
                     }
                 }
 
@@ -1460,8 +1519,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     try {
                         if (scheduleState.isScheduled()) {
                             schedulingAgent.unschedule(StandardProcessorNode.this, scheduleState);
+
+                            activateThread();
                             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                            } finally {
+                                deactivateThread();
                             }
                         }
 
@@ -1469,8 +1532,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         // performing the lifecycle actions counts as 1 thread.
                         final boolean allThreadsComplete = scheduleState.getActiveThreadCount() == 1;
                         if (allThreadsComplete) {
+                            activateThread();
                             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+                            } finally {
+                                deactivateThread();
                             }
 
                             scheduleState.decrementActiveThreadCount();
