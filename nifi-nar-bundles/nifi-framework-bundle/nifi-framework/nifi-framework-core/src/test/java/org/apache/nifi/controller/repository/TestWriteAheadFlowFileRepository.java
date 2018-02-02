@@ -113,6 +113,11 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public int getSwapFileCount() {
+                return 0;
+            }
+
+            @Override
             public void setPriorities(List<FlowFilePrioritizer> newPriorities) {
             }
 
@@ -155,11 +160,31 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public QueueSize getActiveQueueSize() {
+                return size();
+            }
+
+            @Override
+            public QueueSize getSwapQueueSize() {
+                return null;
+            }
+
+            @Override
             public void acknowledge(FlowFileRecord flowFile) {
             }
 
             @Override
             public void acknowledge(Collection<FlowFileRecord> flowFiles) {
+            }
+
+            @Override
+            public boolean isAllActiveFlowFilesPenalized() {
+                return false;
+            }
+
+            @Override
+            public boolean isAnyActiveFlowFilePenalized() {
+                return false;
             }
 
             @Override

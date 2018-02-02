@@ -39,6 +39,10 @@ public class SystemDiagnostics implements Cloneable {
     private int totalThreads;
     private int daemonThreads;
 
+    private Long totalPhysicalMemory;
+    private Long maxOpenFileHandles;
+    private Long openFileHandles;
+
     private long uptime;
 
     private StorageUsage flowFileRepositoryStorageUsage;
@@ -200,6 +204,30 @@ public class SystemDiagnostics implements Cloneable {
         this.uptime = uptime;
     }
 
+    public long getTotalPhysicalMemory() {
+        return totalPhysicalMemory;
+    }
+
+    public void setTotalPhysicalMemory(long totalPhysicalMemory) {
+        this.totalPhysicalMemory = totalPhysicalMemory;
+    }
+
+    public long getMaxOpenFileHandles() {
+        return maxOpenFileHandles;
+    }
+
+    public void setMaxOpenFileHandles(long maxOpenFileHandles) {
+        this.maxOpenFileHandles = maxOpenFileHandles;
+    }
+
+    public long getOpenFileHandles() {
+        return openFileHandles;
+    }
+
+    public void setOpenFileHandles(long openFileHandles) {
+        this.openFileHandles = openFileHandles;
+    }
+
     @Override
     public SystemDiagnostics clone() {
         final SystemDiagnostics clonedObj = new SystemDiagnostics();
@@ -239,6 +267,9 @@ public class SystemDiagnostics implements Cloneable {
         clonedObj.usedNonHeap = usedNonHeap;
         clonedObj.creationTimestamp = creationTimestamp;
         clonedObj.uptime = uptime;
+        clonedObj.totalPhysicalMemory = totalPhysicalMemory;
+        clonedObj.openFileHandles = openFileHandles;
+        clonedObj.maxOpenFileHandles = maxOpenFileHandles;
 
         return clonedObj;
     }

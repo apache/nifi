@@ -42,6 +42,7 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -108,6 +109,22 @@ public class ProcessorResource extends ApplicationResource {
             populateRemainingProcessorContent(processorEntity.getComponent());
         }
         return processorEntity;
+    }
+
+    /**
+     * Populate the uri's for the specified processors and their relationships.
+     *
+     * @param processorDiagnosticsEntity processor's diagnostics entity
+     * @return processor diagnostics entity
+     */
+    public ProcessorDiagnosticsEntity populateRemainingProcessorDiagnosticsEntityContent(ProcessorDiagnosticsEntity processorDiagnosticsEntity) {
+        processorDiagnosticsEntity.setUri(generateResourceUri("processors", processorDiagnosticsEntity.getId(), "diagnostics"));
+
+        // populate remaining content
+        if (processorDiagnosticsEntity.getComponent() != null && processorDiagnosticsEntity.getComponent().getProcessor() != null) {
+            populateRemainingProcessorContent(processorDiagnosticsEntity.getComponent().getProcessor());
+        }
+        return processorDiagnosticsEntity;
     }
 
     /**
@@ -187,6 +204,43 @@ public class ProcessorResource extends ApplicationResource {
         // get the specified processor
         final ProcessorEntity entity = serviceFacade.getProcessor(id);
         populateRemainingProcessorEntityContent(entity);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/diagnostics")
+    @ApiOperation(value = "Gets diagnostics information about a processor",
+        response = ProcessorEntity.class,
+        notes = NON_GUARANTEED_ENDPOINT,
+        authorizations = { @Authorization(value = "Read - /processors/{uuid}")}
+    )
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getProcessorDiagnostics(
+        @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String id) throws InterruptedException {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
+            processor.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the specified processor's diagnostics
+        final ProcessorDiagnosticsEntity entity = serviceFacade.getProcessorDiagnostics(id);
+        populateRemainingProcessorDiagnosticsEntityContent(entity);
 
         // generate the response
         return generateOkResponse(entity).build();
