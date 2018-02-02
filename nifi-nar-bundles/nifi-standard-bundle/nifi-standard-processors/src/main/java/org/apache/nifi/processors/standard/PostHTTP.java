@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
-import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
@@ -47,7 +43,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
@@ -118,8 +113,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -276,7 +269,7 @@ public class PostHTTP extends AbstractProcessor {
 
     private final AtomicReference<DestinationAccepts> acceptsRef = new AtomicReference<>();
     private final AtomicReference<StreamThrottler> throttlerRef = new AtomicReference<>();
-    private final ConcurrentMap<String, Config> configMap = new ConcurrentHashMap<>();
+    private final AtomicReference<Config> connectionConfigRef = new AtomicReference<>();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -349,12 +342,8 @@ public class PostHTTP extends AbstractProcessor {
     public void onStopped() {
         this.acceptsRef.set(null);
 
-        for (final Map.Entry<String, Config> entry : configMap.entrySet()) {
-            final Config config = entry.getValue();
-            config.getConnectionManager().shutdown();
-        }
-
-        configMap.clear();
+        connectionConfigRef.get().getConnectionManager().shutdown();
+        connectionConfigRef.set(null);
 
         final StreamThrottler throttler = throttlerRef.getAndSet(null);
         if (throttler != null) {
@@ -372,18 +361,8 @@ public class PostHTTP extends AbstractProcessor {
         this.throttlerRef.set(bytesPerSecond == null ? null : new LeakyBucketStreamThrottler(bytesPerSecond.intValue()));
     }
 
-    private String getBaseUrl(final String url) {
-        final int index = url.indexOf("/", 9);
-        if (index < 0) {
-            return url;
-        }
-
-        return url.substring(0, index);
-    }
-
-    private Config getConfig(final String url, final ProcessContext context) {
-        final String baseUrl = getBaseUrl(url);
-        Config config = configMap.get(baseUrl);
+    private Config getConfig(final ProcessContext context) {
+        Config config = connectionConfigRef.get();
         if (config != null) {
             return config;
         }
@@ -415,9 +394,8 @@ public class PostHTTP extends AbstractProcessor {
         conMan.setDefaultMaxPerRoute(context.getMaxConcurrentTasks());
         conMan.setMaxTotal(context.getMaxConcurrentTasks());
         config = new Config(conMan);
-        final Config existingConfig = configMap.putIfAbsent(baseUrl, config);
-
-        return existingConfig == null ? config : existingConfig;
+        connectionConfigRef.set(config);
+        return connectionConfigRef.get();
     }
 
     private SSLContext createSSLContext(final SSLContextService service)
@@ -469,96 +447,36 @@ public class PostHTTP extends AbstractProcessor {
 
         final List<FlowFile> toSend = new ArrayList<>();
         DestinationAccepts destinationAccepts = null;
-        CloseableHttpClient client = null;
         final String transactionId = UUID.randomUUID().toString();
+        final Config config = getConfig(context);
 
         final AtomicReference<String> dnHolder = new AtomicReference<>("none");
-        while (true) {
-            FlowFile flowFile = session.get();
-            if (flowFile == null) {
-                break;
-            }
-
-            final String url = context.getProperty(URL).evaluateAttributeExpressions(flowFile).getValue();
-            try {
-                new java.net.URL(url);
-            } catch (final MalformedURLException e) {
-                logger.error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
-                        new Object[]{flowFile, url});
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-                continue;
-            }
-
-            // If this FlowFile doesn't have the same url, throw it back on the queue and stop grabbing FlowFiles
-            if (lastUrl != null && !lastUrl.equals(url)) {
-                session.transfer(flowFile);
-                break;
-            }
-
-            lastUrl = url;
-            toSend.add(flowFile);
-
-            if (client == null || destinationAccepts == null) {
-                final Config config = getConfig(url, context);
-                final HttpClientConnectionManager conMan = config.getConnectionManager();
-
-                final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
-                clientBuilder.setConnectionManager(conMan);
-                clientBuilder.setUserAgent(userAgent);
-                clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
-                    @Override
-                    public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
-                        final HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
-                        final ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
-                        if (!conn.isOpen()) {
-                            return;
-                        }
-
-                        final SSLSession sslSession = conn.getSSLSession();
-
-                        if (sslSession != null) {
-                            final Certificate[] certChain = sslSession.getPeerCertificates();
-                            if (certChain == null || certChain.length == 0) {
-                                throw new SSLPeerUnverifiedException("No certificates found");
-                            }
-
-                            try {
-                                final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
-                                dnHolder.set(cert.getSubjectDN().getName().trim());
-                            } catch (CertificateException e) {
-                                final String msg = "Could not extract subject DN from SSL session peer certificate";
-                                logger.warn(msg);
-                                throw new SSLPeerUnverifiedException(msg);
-                            }
-                        }
-                    }
-                });
-
-                clientBuilder.disableAutomaticRetries();
-                clientBuilder.disableContentCompression();
-
-                final String username = context.getProperty(USERNAME).getValue();
-                final String password = context.getProperty(PASSWORD).getValue();
-                // set the credentials if appropriate
-                if (username != null) {
-                    final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                    if (password == null) {
-                        credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
-                    } else {
-                        credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                    }
-                    clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+        try (final CloseableHttpClient client = createHttpClient(context, userAgent, config, dnHolder)) {
+            while (true) {
+                FlowFile flowFile = session.get();
+                if (flowFile == null) {
+                    break;
                 }
 
-                // Set the proxy if specified
-                if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
-                    final String host = context.getProperty(PROXY_HOST).getValue();
-                    final int port = context.getProperty(PROXY_PORT).asInteger();
-                    clientBuilder.setProxy(new HttpHost(host, port));
+                final String url = context.getProperty(URL).evaluateAttributeExpressions(flowFile).getValue();
+                try {
+                    new java.net.URL(url);
+                } catch (final MalformedURLException e) {
+                    logger.error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
+                            new Object[]{flowFile, url});
+                    flowFile = session.penalize(flowFile);
+                    session.transfer(flowFile, REL_FAILURE);
+                    continue;
                 }
 
-                client = clientBuilder.build();
+                // If this FlowFile doesn't have the same url, throw it back on the queue and stop grabbing FlowFiles
+                if (lastUrl != null && !lastUrl.equals(url)) {
+                    session.transfer(flowFile);
+                    break;
+                }
+
+                lastUrl = url;
+                toSend.add(flowFile);
 
                 // determine whether or not destination accepts flowfile/gzip
                 destinationAccepts = config.getDestinationAccepts();
@@ -575,201 +493,188 @@ public class PostHTTP extends AbstractProcessor {
                         return;
                     }
                 }
-            }
 
-            bytesToSend += flowFile.getSize();
-            if (bytesToSend > maxBatchBytes.longValue()) {
-                break;
-            }
-
-            // if we are not sending as flowfile, or if the destination doesn't accept V3 or V2 (streaming) format,
-            // then only use a single FlowFile
-            if (!sendAsFlowFile || !destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted()) {
-                break;
-            }
-        }
-
-        if (toSend.isEmpty()) {
-            return;
-        }
-
-        final String url = lastUrl;
-        final HttpPost post = new HttpPost(url);
-        final List<FlowFile> flowFileList = toSend;
-        final DestinationAccepts accepts = destinationAccepts;
-        final boolean isDestinationLegacyNiFi = accepts.getProtocolVersion() == null;
-
-        final EntityTemplate entity = new EntityTemplate(new ContentProducer() {
-            @Override
-            public void writeTo(final OutputStream rawOut) throws IOException {
-                final OutputStream throttled = throttler == null ? rawOut : throttler.newThrottledOutputStream(rawOut);
-                OutputStream wrappedOut = new BufferedOutputStream(throttled);
-                if (compressionLevel > 0 && accepts.isGzipAccepted()) {
-                    wrappedOut = new GZIPOutputStream(wrappedOut, compressionLevel);
+                bytesToSend += flowFile.getSize();
+                if (bytesToSend > maxBatchBytes.longValue()) {
+                    break;
                 }
 
-                try (final OutputStream out = wrappedOut) {
-                    for (final FlowFile flowFile : flowFileList) {
-                        session.read(flowFile, new InputStreamCallback() {
-                            @Override
-                            public void process(final InputStream rawIn) throws IOException {
-                                try (final InputStream in = new BufferedInputStream(rawIn)) {
-
-                                    FlowFilePackager packager = null;
-                                    if (!sendAsFlowFile) {
-                                        packager = null;
-                                    } else if (accepts.isFlowFileV3Accepted()) {
-                                        packager = new FlowFilePackagerV3();
-                                    } else if (accepts.isFlowFileV2Accepted()) {
-                                        packager = new FlowFilePackagerV2();
-                                    } else if (accepts.isFlowFileV1Accepted()) {
-                                        packager = new FlowFilePackagerV1();
-                                    }
-
-                                    // if none of the above conditions is met, we should never get here, because
-                                    // we will have already verified that at least 1 of the FlowFile packaging
-                                    // formats is acceptable if sending as FlowFile.
-                                    if (packager == null) {
-                                        StreamUtils.copy(in, out);
-                                    } else {
-                                        final Map<String, String> flowFileAttributes;
-                                        if (isDestinationLegacyNiFi) {
-                                            // Old versions of NiFi expect nf.file.name and nf.file.path to indicate filename & path;
-                                            // in order to maintain backward compatibility, we copy the filename & path to those attribute keys.
-                                            flowFileAttributes = new HashMap<>(flowFile.getAttributes());
-                                            flowFileAttributes.put("nf.file.name", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-                                            flowFileAttributes.put("nf.file.path", flowFile.getAttribute(CoreAttributes.PATH.key()));
-                                        } else {
-                                            flowFileAttributes = flowFile.getAttributes();
-                                        }
-
-                                        packager.packageFlowFile(in, out, flowFileAttributes, flowFile.getSize());
-                                    }
-                                }
-                            }
-                        });
-                    }
-
-                    out.flush();
+                // if we are not sending as flowfile, or if the destination doesn't accept V3 or V2 (streaming) format,
+                // then only use a single FlowFile
+                if (!sendAsFlowFile || !destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted()) {
+                    break;
                 }
             }
-        }) {
 
-            @Override
-            public long getContentLength() {
-                if (compressionLevel == 0 && !sendAsFlowFile && !context.getProperty(CHUNKED_ENCODING).asBoolean()) {
-                    return toSend.get(0).getSize();
-                } else {
-                    return -1;
-                }
-            }
-        };
-
-        if (context.getProperty(CHUNKED_ENCODING).isSet()) {
-            entity.setChunked(context.getProperty(CHUNKED_ENCODING).asBoolean());
-        }
-        post.setEntity(entity);
-        post.setConfig(requestConfig);
-
-        final String contentType;
-        if (sendAsFlowFile) {
-            if (accepts.isFlowFileV3Accepted()) {
-                contentType = APPLICATION_FLOW_FILE_V3;
-            } else if (accepts.isFlowFileV2Accepted()) {
-                contentType = APPLICATION_FLOW_FILE_V2;
-            } else if (accepts.isFlowFileV1Accepted()) {
-                contentType = APPLICATION_FLOW_FILE_V1;
-            } else {
-                logger.error("Cannot send data to {} because the destination does not accept FlowFiles and this processor is "
-                        + "configured to deliver FlowFiles; rolling back session", new Object[]{url});
-                session.rollback();
-                context.yield();
-                IOUtils.closeQuietly(client);
+            if (toSend.isEmpty()) {
                 return;
             }
-        } else {
-            final String contentTypeValue = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(toSend.get(0)).getValue();
-            contentType = StringUtils.isBlank(contentTypeValue) ? DEFAULT_CONTENT_TYPE : contentTypeValue;
-        }
 
-        final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
-        if (attributeHeaderRegex != null && !sendAsFlowFile && flowFileList.size() == 1) {
-            final Pattern pattern = Pattern.compile(attributeHeaderRegex);
+            final String url = lastUrl;
+            final HttpPost post = new HttpPost(url);
+            final List<FlowFile> flowFileList = toSend;
+            final DestinationAccepts accepts = destinationAccepts;
+            final boolean isDestinationLegacyNiFi = accepts.getProtocolVersion() == null;
 
-            final Map<String, String> attributes = flowFileList.get(0).getAttributes();
-            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-                final String key = entry.getKey();
-                if (pattern.matcher(key).matches()) {
-                    post.setHeader(entry.getKey(), entry.getValue());
+            final EntityTemplate entity = new EntityTemplate(new ContentProducer() {
+                @Override
+                public void writeTo(final OutputStream rawOut) throws IOException {
+                    final OutputStream throttled = throttler == null ? rawOut : throttler.newThrottledOutputStream(rawOut);
+                    OutputStream wrappedOut = new BufferedOutputStream(throttled);
+                    if (compressionLevel > 0 && accepts.isGzipAccepted()) {
+                        wrappedOut = new GZIPOutputStream(wrappedOut, compressionLevel);
+                    }
+
+                    try (final OutputStream out = wrappedOut) {
+                        for (final FlowFile flowFile : flowFileList) {
+                            session.read(flowFile, new InputStreamCallback() {
+                                @Override
+                                public void process(final InputStream rawIn) throws IOException {
+                                    try (final InputStream in = new BufferedInputStream(rawIn)) {
+
+                                        FlowFilePackager packager = null;
+                                        if (!sendAsFlowFile) {
+                                            packager = null;
+                                        } else if (accepts.isFlowFileV3Accepted()) {
+                                            packager = new FlowFilePackagerV3();
+                                        } else if (accepts.isFlowFileV2Accepted()) {
+                                            packager = new FlowFilePackagerV2();
+                                        } else if (accepts.isFlowFileV1Accepted()) {
+                                            packager = new FlowFilePackagerV1();
+                                        }
+
+                                        // if none of the above conditions is met, we should never get here, because
+                                        // we will have already verified that at least 1 of the FlowFile packaging
+                                        // formats is acceptable if sending as FlowFile.
+                                        if (packager == null) {
+                                            StreamUtils.copy(in, out);
+                                        } else {
+                                            final Map<String, String> flowFileAttributes;
+                                            if (isDestinationLegacyNiFi) {
+                                                // Old versions of NiFi expect nf.file.name and nf.file.path to indicate filename & path;
+                                                // in order to maintain backward compatibility, we copy the filename & path to those attribute keys.
+                                                flowFileAttributes = new HashMap<>(flowFile.getAttributes());
+                                                flowFileAttributes.put("nf.file.name", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+                                                flowFileAttributes.put("nf.file.path", flowFile.getAttribute(CoreAttributes.PATH.key()));
+                                            } else {
+                                                flowFileAttributes = flowFile.getAttributes();
+                                            }
+
+                                            packager.packageFlowFile(in, out, flowFileAttributes, flowFile.getSize());
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        out.flush();
+                    }
                 }
-            }
-        }
+            }) {
 
-        post.setHeader(CONTENT_TYPE_HEADER, contentType);
-        post.setHeader(FLOWFILE_CONFIRMATION_HEADER, "true");
-        post.setHeader(PROTOCOL_VERSION_HEADER, PROTOCOL_VERSION);
-        post.setHeader(TRANSACTION_ID_HEADER, transactionId);
-        if (compressionLevel > 0 && accepts.isGzipAccepted()) {
+                @Override
+                public long getContentLength() {
+                    if (compressionLevel == 0 && !sendAsFlowFile && !context.getProperty(CHUNKED_ENCODING).asBoolean()) {
+                        return toSend.get(0).getSize();
+                    } else {
+                        return -1;
+                    }
+                }
+            };
+
+            if (context.getProperty(CHUNKED_ENCODING).isSet()) {
+                entity.setChunked(context.getProperty(CHUNKED_ENCODING).asBoolean());
+            }
+            post.setEntity(entity);
+            post.setConfig(requestConfig);
+
+            final String contentType;
             if (sendAsFlowFile) {
-                post.setHeader(GZIPPED_HEADER, "true");
-            } else {
-                post.setHeader(CONTENT_ENCODING_HEADER, CONTENT_ENCODING_GZIP_VALUE);
-            }
-        }
-
-        // Do the actual POST
-        final String flowFileDescription = toSend.size() <= 10 ? toSend.toString() : toSend.size() + " FlowFiles";
-
-        final String uploadDataRate;
-        final long uploadMillis;
-        CloseableHttpResponse response = null;
-        try {
-            final StopWatch stopWatch = new StopWatch(true);
-            response = client.execute(post);
-
-            // consume input stream entirely, ignoring its contents. If we
-            // don't do this, the Connection will not be returned to the pool
-            EntityUtils.consume(response.getEntity());
-            stopWatch.stop();
-            uploadDataRate = stopWatch.calculateDataRate(bytesToSend);
-            uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-        } catch (final IOException e) {
-            logger.error("Failed to Post {} due to {}; transferring to failure", new Object[]{flowFileDescription, e});
-            context.yield();
-            for (FlowFile flowFile : toSend) {
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-            }
-            return;
-        } finally {
-            if (response != null) {
-                try {
-                    response.close();
-                } catch (final IOException e) {
-                    getLogger().warn("Failed to close HTTP Response due to {}", new Object[]{e});
+                if (accepts.isFlowFileV3Accepted()) {
+                    contentType = APPLICATION_FLOW_FILE_V3;
+                } else if (accepts.isFlowFileV2Accepted()) {
+                    contentType = APPLICATION_FLOW_FILE_V2;
+                } else if (accepts.isFlowFileV1Accepted()) {
+                    contentType = APPLICATION_FLOW_FILE_V1;
+                } else {
+                    logger.error("Cannot send data to {} because the destination does not accept FlowFiles and this processor is "
+                            + "configured to deliver FlowFiles; rolling back session", new Object[]{url});
+                    session.rollback();
+                    context.yield();
+                    return;
                 }
+            } else {
+                final String contentTypeValue = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(toSend.get(0)).getValue();
+                contentType = StringUtils.isBlank(contentTypeValue) ? DEFAULT_CONTENT_TYPE : contentTypeValue;
             }
-        }
 
-        // If we get a 'SEE OTHER' status code and an HTTP header that indicates that the intent
-        // of the Location URI is a flowfile hold, we will store this holdUri. This prevents us
-        // from posting to some other webservice and then attempting to delete some resource to which
-        // we are redirected
-        final int responseCode = response.getStatusLine().getStatusCode();
-        final String responseReason = response.getStatusLine().getReasonPhrase();
-        String holdUri = null;
-        if (responseCode == HttpServletResponse.SC_SEE_OTHER) {
-            final Header locationUriHeader = response.getFirstHeader(LOCATION_URI_INTENT_NAME);
-            if (locationUriHeader != null) {
-                if (LOCATION_URI_INTENT_VALUE.equals(locationUriHeader.getValue())) {
-                    final Header holdUriHeader = response.getFirstHeader(LOCATION_HEADER_NAME);
-                    if (holdUriHeader != null) {
-                        holdUri = holdUriHeader.getValue();
+            final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
+            if (attributeHeaderRegex != null && !sendAsFlowFile && flowFileList.size() == 1) {
+                final Pattern pattern = Pattern.compile(attributeHeaderRegex);
+
+                final Map<String, String> attributes = flowFileList.get(0).getAttributes();
+                for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+                    final String key = entry.getKey();
+                    if (pattern.matcher(key).matches()) {
+                        post.setHeader(entry.getKey(), entry.getValue());
                     }
                 }
             }
 
-            if (holdUri == null) {
+            post.setHeader(CONTENT_TYPE_HEADER, contentType);
+            post.setHeader(FLOWFILE_CONFIRMATION_HEADER, "true");
+            post.setHeader(PROTOCOL_VERSION_HEADER, PROTOCOL_VERSION);
+            post.setHeader(TRANSACTION_ID_HEADER, transactionId);
+            if (compressionLevel > 0 && accepts.isGzipAccepted()) {
+                if (sendAsFlowFile) {
+                    post.setHeader(GZIPPED_HEADER, "true");
+                } else {
+                    post.setHeader(CONTENT_ENCODING_HEADER, CONTENT_ENCODING_GZIP_VALUE);
+                }
+            }
+
+            // Do the actual POST
+            final String flowFileDescription = toSend.size() <= 10 ? toSend.toString() : toSend.size() + " FlowFiles";
+
+            final int responseCode;
+            final String responseReason;
+            String holdUri = null;
+            final StopWatch stopWatch = new StopWatch(true);
+            try (final CloseableHttpResponse response = client.execute(post)) {
+                // consume input stream entirely, ignoring its contents. If we
+                // don't do this, the Connection will not be returned to the pool
+                EntityUtils.consume(response.getEntity());
+                responseCode = response.getStatusLine().getStatusCode();
+                responseReason = response.getStatusLine().getReasonPhrase();
+
+                if (responseCode == HttpServletResponse.SC_SEE_OTHER) {
+                    final Header locationUriHeader = response.getFirstHeader(LOCATION_URI_INTENT_NAME);
+                    if (locationUriHeader != null && LOCATION_URI_INTENT_VALUE.equals(locationUriHeader.getValue())) {
+                        final Header holdUriHeader = response.getFirstHeader(LOCATION_HEADER_NAME);
+                        if (holdUriHeader != null) {
+                            holdUri = holdUriHeader.getValue();
+                        }
+                    }
+                }
+
+            } catch (final IOException e) {
+                logger.error("Failed to Post {} due to {}; transferring to failure", new Object[]{flowFileDescription, e});
+                context.yield();
+                for (FlowFile flowFile : toSend) {
+                    flowFile = session.penalize(flowFile);
+                    session.transfer(flowFile, REL_FAILURE);
+                }
+                return;
+            }
+            stopWatch.stop();
+            final String uploadDataRate = stopWatch.calculateDataRate(bytesToSend);
+            final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+
+            // If we get a 'SEE OTHER' status code and an HTTP header that indicates that the intent
+            // of the Location URI is a flowfile hold, we will store this holdUri. This prevents us
+            // from posting to some other webservice and then attempting to delete some resource to which
+            // we are redirected
+            if (responseCode == HttpServletResponse.SC_SEE_OTHER) {
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     logger.error("Failed to Post {} to {}: sent content and received status code {}:{} but no Hold URI",
@@ -778,117 +683,186 @@ public class PostHTTP extends AbstractProcessor {
                 }
                 return;
             }
-        }
 
-        if (holdUri == null) {
-            if (responseCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
-                for (FlowFile flowFile : toSend) {
-                    flowFile = session.penalize(flowFile);
-                    logger.error("Failed to Post {} to {}: response code was {}:{}; will yield processing, "
-                                    + "since the destination is temporarily unavailable",
-                            new Object[]{flowFile, url, responseCode, responseReason});
-                    session.transfer(flowFile, REL_FAILURE);
+            if (holdUri == null) {
+                if (responseCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
+                    for (FlowFile flowFile : toSend) {
+                        flowFile = session.penalize(flowFile);
+                        logger.error("Failed to Post {} to {}: response code was {}:{}; will yield processing, "
+                                        + "since the destination is temporarily unavailable",
+                                new Object[]{flowFile, url, responseCode, responseReason});
+                        session.transfer(flowFile, REL_FAILURE);
+                    }
+                    context.yield();
+                    return;
                 }
-                context.yield();
+
+                if (responseCode >= 300) {
+                    for (FlowFile flowFile : toSend) {
+                        flowFile = session.penalize(flowFile);
+                        logger.error("Failed to Post {} to {}: response code was {}:{}",
+                                new Object[]{flowFile, url, responseCode, responseReason});
+                        session.transfer(flowFile, REL_FAILURE);
+                    }
+                    return;
+                }
+
+                logger.info("Successfully Posted {} to {} in {} at a rate of {}",
+                        new Object[]{flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate});
+
+                for (final FlowFile flowFile : toSend) {
+                    session.getProvenanceReporter().send(flowFile, url, "Remote DN=" + dnHolder.get(), uploadMillis, true);
+                    session.transfer(flowFile, REL_SUCCESS);
+                }
                 return;
             }
 
-            if (responseCode >= 300) {
-                for (FlowFile flowFile : toSend) {
-                    flowFile = session.penalize(flowFile);
-                    logger.error("Failed to Post {} to {}: response code was {}:{}",
-                            new Object[]{flowFile, url, responseCode, responseReason});
-                    session.transfer(flowFile, REL_FAILURE);
+            //
+            // the response indicated a Hold URI; delete the Hold.
+            //
+            // determine the full URI of the Flow File's Hold; Unfortunately, the responses that are returned have
+            // changed over the past, so we have to take into account a few different possibilities.
+            String fullHoldUri = holdUri;
+            if (holdUri.startsWith("/contentListener")) {
+                // If the Hold URI that we get starts with /contentListener, it may not really be /contentListener,
+                // as this really indicates that it should be whatever we posted to -- if posting directly to the
+                // ListenHTTP component, it will be /contentListener, but if posting to a proxy/load balancer, we may
+                // be posting to some other URL.
+                fullHoldUri = url + holdUri.substring(16);
+            } else if (holdUri.startsWith("/")) {
+                // URL indicates the full path but not hostname or port; use the same hostname & port that we posted
+                // to but use the full path indicated by the response.
+                int firstSlash = url.indexOf("/", 8);
+                if (firstSlash < 0) {
+                    firstSlash = url.length();
                 }
-                return;
+                final String beforeSlash = url.substring(0, firstSlash);
+                fullHoldUri = beforeSlash + holdUri;
+            } else if (!holdUri.startsWith("http")) {
+                // Absolute URL
+                fullHoldUri = url + (url.endsWith("/") ? "" : "/") + holdUri;
             }
 
-            logger.info("Successfully Posted {} to {} in {} at a rate of {}",
-                    new Object[]{flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate});
+            final HttpDelete delete = new HttpDelete(fullHoldUri);
+            delete.setHeader(TRANSACTION_ID_HEADER, transactionId);
 
-            for (final FlowFile flowFile : toSend) {
-                session.getProvenanceReporter().send(flowFile, url, "Remote DN=" + dnHolder.get(), uploadMillis, true);
-                session.transfer(flowFile, REL_SUCCESS);
-            }
-            return;
-        }
+            while (true) {
+                try (final CloseableHttpResponse holdResponse = client.execute(delete)) {
+                    EntityUtils.consume(holdResponse.getEntity());
+                    final int holdStatusCode = holdResponse.getStatusLine().getStatusCode();
+                    final String holdReason = holdResponse.getStatusLine().getReasonPhrase();
+                    if (holdStatusCode >= 300) {
+                        logger.error("Failed to delete Hold that destination placed on {}: got response code {}:{}; routing to failure",
+                                new Object[]{flowFileDescription, holdStatusCode, holdReason});
 
-        //
-        // the response indicated a Hold URI; delete the Hold.
-        //
-        // determine the full URI of the Flow File's Hold; Unfortunately, the responses that are returned have
-        // changed over the past, so we have to take into account a few different possibilities.
-        String fullHoldUri = holdUri;
-        if (holdUri.startsWith("/contentListener")) {
-            // If the Hold URI that we get starts with /contentListener, it may not really be /contentListener,
-            // as this really indicates that it should be whatever we posted to -- if posting directly to the
-            // ListenHTTP component, it will be /contentListener, but if posting to a proxy/load balancer, we may
-            // be posting to some other URL.
-            fullHoldUri = url + holdUri.substring(16);
-        } else if (holdUri.startsWith("/")) {
-            // URL indicates the full path but not hostname or port; use the same hostname & port that we posted
-            // to but use the full path indicated by the response.
-            int firstSlash = url.indexOf("/", 8);
-            if (firstSlash < 0) {
-                firstSlash = url.length();
-            }
-            final String beforeSlash = url.substring(0, firstSlash);
-            fullHoldUri = beforeSlash + holdUri;
-        } else if (!holdUri.startsWith("http")) {
-            // Absolute URL
-            fullHoldUri = url + (url.endsWith("/") ? "" : "/") + holdUri;
-        }
+                        for (FlowFile flowFile : toSend) {
+                            flowFile = session.penalize(flowFile);
+                            session.transfer(flowFile, REL_FAILURE);
+                        }
+                        return;
+                    }
 
-        final HttpDelete delete = new HttpDelete(fullHoldUri);
-        delete.setHeader(TRANSACTION_ID_HEADER, transactionId);
+                    logger.info("Successfully Posted {} to {} in {} milliseconds at a rate of {}", new Object[]{flowFileDescription, url, uploadMillis, uploadDataRate});
 
-        while (true) {
-            try {
-                final HttpResponse holdResponse = client.execute(delete);
-                EntityUtils.consume(holdResponse.getEntity());
-                final int holdStatusCode = holdResponse.getStatusLine().getStatusCode();
-                final String holdReason = holdResponse.getStatusLine().getReasonPhrase();
-                if (holdStatusCode >= 300) {
-                    logger.error("Failed to delete Hold that destination placed on {}: got response code {}:{}; routing to failure",
-                            new Object[]{flowFileDescription, holdStatusCode, holdReason});
+                    for (final FlowFile flowFile : toSend) {
+                        session.getProvenanceReporter().send(flowFile, url);
+                        session.transfer(flowFile, REL_SUCCESS);
+                    }
+                    return;
+                } catch (final IOException e) {
+                    logger.warn("Failed to delete Hold that destination placed on {} due to {}", new Object[]{flowFileDescription, e});
+                }
 
+                if (!isScheduled()) {
+                    context.yield();
+                    logger.warn("Failed to delete Hold that destination placed on {}; Processor has been stopped so routing FlowFile(s) to failure", new Object[]{flowFileDescription});
                     for (FlowFile flowFile : toSend) {
                         flowFile = session.penalize(flowFile);
                         session.transfer(flowFile, REL_FAILURE);
                     }
                     return;
                 }
-
-                logger.info("Successfully Posted {} to {} in {} milliseconds at a rate of {}", new Object[]{flowFileDescription, url, uploadMillis, uploadDataRate});
-
-                for (final FlowFile flowFile : toSend) {
-                    session.getProvenanceReporter().send(flowFile, url);
-                    session.transfer(flowFile, REL_SUCCESS);
-                }
-                return;
-            } catch (final IOException e) {
-                logger.warn("Failed to delete Hold that destination placed on {} due to {}", new Object[]{flowFileDescription, e});
             }
-
-            if (!isScheduled()) {
-                context.yield();
-                logger.warn("Failed to delete Hold that destination placed on {}; Processor has been stopped so routing FlowFile(s) to failure", new Object[]{flowFileDescription});
-                for (FlowFile flowFile : toSend) {
-                    flowFile = session.penalize(flowFile);
-                    session.transfer(flowFile, REL_FAILURE);
-                }
-                return;
-            }
+        } catch (final IOException e) {
+            logger.error("Failed to execute POST HTTP due to {}", new Object[] {e.getMessage()}, e);
         }
     }
 
-    private DestinationAccepts getDestinationAcceptance(final boolean sendAsFlowFile, final HttpClient client, final String uri,
+    /**
+     * Configure and construct an HTTP Client
+     *
+     * @param context The processor {@link ProcessContext}
+     * @param userAgent the user agent reported when we connect to the remote server
+     * @param config the processor config
+     * @param dnHolder a reference to hold DNs extracted from requests
+     * @return a constructed HttpClient
+     */
+    private CloseableHttpClient createHttpClient(final ProcessContext context, final String userAgent,
+                                                 final Config config, final AtomicReference<String> dnHolder) {
+        final ComponentLog logger = getLogger();
+        final HttpClientConnectionManager conMan = config.getConnectionManager();
+
+        final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
+        clientBuilder.setConnectionManager(conMan);
+        clientBuilder.setUserAgent(userAgent);
+        clientBuilder.addInterceptorFirst((HttpResponseInterceptor) (response, httpContext) -> {
+            final HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
+            final ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
+            if (!conn.isOpen()) {
+                return;
+            }
+
+            final SSLSession sslSession = conn.getSSLSession();
+
+            if (sslSession != null) {
+                final Certificate[] certChain = sslSession.getPeerCertificates();
+                if (certChain == null || certChain.length == 0) {
+                    throw new SSLPeerUnverifiedException("No certificates found");
+                }
+
+                try {
+                    final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
+                    dnHolder.set(cert.getSubjectDN().getName().trim());
+                } catch (CertificateException e) {
+                    final String msg = "Could not extract subject DN from SSL session peer certificate";
+                    logger.warn(msg);
+                    throw new SSLPeerUnverifiedException(msg);
+                }
+            }
+        });
+
+        clientBuilder.disableAutomaticRetries();
+        clientBuilder.disableContentCompression();
+
+        final String username = context.getProperty(USERNAME).getValue();
+        final String password = context.getProperty(PASSWORD).getValue();
+        // set the credentials if appropriate
+        if (username != null) {
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            if (password == null) {
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
+            } else {
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
+            }
+            clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+        }
+
+        // Set the proxy if specified
+        if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
+            final String host = context.getProperty(PROXY_HOST).getValue();
+            final int port = context.getProperty(PROXY_PORT).asInteger();
+            clientBuilder.setProxy(new HttpHost(host, port));
+        }
+
+        return clientBuilder.build();
+    }
+
+    private DestinationAccepts getDestinationAcceptance(final boolean sendAsFlowFile, final CloseableHttpClient client, final String uri,
                                                         final ComponentLog logger, final String transactionId) throws IOException {
         final HttpHead head = new HttpHead(uri);
         if (sendAsFlowFile) {
             head.addHeader(TRANSACTION_ID_HEADER, transactionId);
         }
-        final HttpResponse response = client.execute(head);
 
         // we assume that the destination can support FlowFile v1 always when the processor is also configured to send as a FlowFile
         // otherwise, we do not bother to make any determinations concerning this compatibility
@@ -898,66 +872,68 @@ public class PostHTTP extends AbstractProcessor {
         boolean acceptsGzip = false;
         Integer protocolVersion = null;
 
-        final int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode == Status.METHOD_NOT_ALLOWED.getStatusCode()) {
-            return new DestinationAccepts(acceptsFlowFileV3, acceptsFlowFileV2, acceptsFlowFileV1, false, null);
-        } else if (statusCode == Status.OK.getStatusCode()) {
-            Header[] headers = response.getHeaders(ACCEPT);
-            // If configured to send as a flowfile, determine the capabilities of the endpoint
-            if (sendAsFlowFile) {
+        try (final CloseableHttpResponse response = client.execute(head)) {
+            final int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode == Status.METHOD_NOT_ALLOWED.getStatusCode()) {
+                return new DestinationAccepts(acceptsFlowFileV3, acceptsFlowFileV2, acceptsFlowFileV1, false, null);
+            } else if (statusCode == Status.OK.getStatusCode()) {
+                Header[] headers = response.getHeaders(ACCEPT);
+                // If configured to send as a flowfile, determine the capabilities of the endpoint
+                if (sendAsFlowFile) {
+                    if (headers != null) {
+                        for (final Header header : headers) {
+                            for (final String accepted : header.getValue().split(",")) {
+                                final String trimmed = accepted.trim();
+                                if (trimmed.equals(APPLICATION_FLOW_FILE_V3)) {
+                                    acceptsFlowFileV3 = true;
+                                } else if (trimmed.equals(APPLICATION_FLOW_FILE_V2)) {
+                                    acceptsFlowFileV2 = true;
+                                }
+                            }
+                        }
+                    }
+
+                    final Header destinationVersion = response.getFirstHeader(PROTOCOL_VERSION_HEADER);
+                    if (destinationVersion != null) {
+                        try {
+                            protocolVersion = Integer.valueOf(destinationVersion.getValue());
+                        } catch (final NumberFormatException e) {
+                            // nothing to do here really.... it's an invalid value, so treat the same as if not specified
+                        }
+                    }
+
+                    if (acceptsFlowFileV3) {
+                        logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V3 + " if sending data as FlowFile");
+                    } else if (acceptsFlowFileV2) {
+                        logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V2 + " if sending data as FlowFile");
+                    } else if (acceptsFlowFileV1) {
+                        logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V1 + " if sending data as FlowFile");
+                    }
+                }
+
+                headers = response.getHeaders(ACCEPT_ENCODING);
                 if (headers != null) {
                     for (final Header header : headers) {
                         for (final String accepted : header.getValue().split(",")) {
-                            final String trimmed = accepted.trim();
-                            if (trimmed.equals(APPLICATION_FLOW_FILE_V3)) {
-                                acceptsFlowFileV3 = true;
-                            } else if (trimmed.equals(APPLICATION_FLOW_FILE_V2)) {
-                                acceptsFlowFileV2 = true;
+                            if (accepted.equalsIgnoreCase("gzip")) {
+                                acceptsGzip = true;
                             }
                         }
                     }
                 }
 
-                final Header destinationVersion = response.getFirstHeader(PROTOCOL_VERSION_HEADER);
-                if (destinationVersion != null) {
-                    try {
-                        protocolVersion = Integer.valueOf(destinationVersion.getValue());
-                    } catch (final NumberFormatException e) {
-                        // nothing to do here really.... it's an invalid value, so treat the same as if not specified
-                    }
+                if (acceptsGzip) {
+                    logger.debug("Connection to URI " + uri + " indicates that inline GZIP compression is supported");
+                } else {
+                    logger.debug("Connection to URI " + uri + " indicates that it does NOT support inline GZIP compression");
                 }
 
-                if (acceptsFlowFileV3) {
-                    logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V3 + " if sending data as FlowFile");
-                } else if (acceptsFlowFileV2) {
-                    logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V2 + " if sending data as FlowFile");
-                } else if (acceptsFlowFileV1) {
-                    logger.debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V1 + " if sending data as FlowFile");
-                }
-            }
-
-            headers = response.getHeaders(ACCEPT_ENCODING);
-            if (headers != null) {
-                for (final Header header : headers) {
-                    for (final String accepted : header.getValue().split(",")) {
-                        if (accepted.equalsIgnoreCase("gzip")) {
-                            acceptsGzip = true;
-                        }
-                    }
-                }
-            }
-
-            if (acceptsGzip) {
-                logger.debug("Connection to URI " + uri + " indicates that inline GZIP compression is supported");
+                return new DestinationAccepts(acceptsFlowFileV3, acceptsFlowFileV2, acceptsFlowFileV1, acceptsGzip, protocolVersion);
             } else {
-                logger.debug("Connection to URI " + uri + " indicates that it does NOT support inline GZIP compression");
+                logger.warn("Unable to communicate with destination; when attempting to perform an HTTP HEAD, got unexpected response code of "
+                        + statusCode + ": " + response.getStatusLine().getReasonPhrase());
+                return new DestinationAccepts(false, false, false, false, null);
             }
-
-            return new DestinationAccepts(acceptsFlowFileV3, acceptsFlowFileV2, acceptsFlowFileV1, acceptsGzip, protocolVersion);
-        } else {
-            logger.warn("Unable to communicate with destination; when attempting to perform an HTTP HEAD, got unexpected response code of "
-                    + statusCode + ": " + response.getStatusLine().getReasonPhrase());
-            return new DestinationAccepts(false, false, false, false, null);
         }
     }
 
