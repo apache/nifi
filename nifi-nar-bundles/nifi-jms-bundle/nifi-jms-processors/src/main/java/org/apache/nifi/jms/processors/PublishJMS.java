@@ -36,6 +36,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
@@ -118,8 +119,8 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      * Will create an instance of {@link JMSPublisher}
      */
     @Override
-    protected JMSPublisher finishBuildingJmsWorker(JmsTemplate jmsTemplate, ProcessContext processContext) {
-        return new JMSPublisher(jmsTemplate, this.getLogger());
+    protected JMSPublisher finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
+        return new JMSPublisher(connectionFactory, jmsTemplate, this.getLogger());
     }
 
     /**

@@ -40,7 +40,7 @@ public class ConsumeJMSTest {
         final String  destinationName = "cooQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
-            JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
+            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final Map<String, String> senderAttributes = new HashMap<>();
             senderAttributes.put("filename", "message.txt");
             senderAttributes.put("attribute_from_sender", "some value");

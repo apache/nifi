@@ -106,7 +106,6 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .build();
 
     static final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
-    private volatile CachingConnectionFactory connectionFactory;
     private volatile BlockingQueue<T> workerPool;
     private final AtomicInteger clientIdCounter = new AtomicInteger(1);
 
@@ -145,8 +144,9 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
     @OnStopped
     public void close() {
-        if (connectionFactory != null) {
-            connectionFactory.destroy();
+        T worker;
+        while ((worker = workerPool.poll()) != null) {
+            worker.shutdown();
         }
     }
 
@@ -164,7 +164,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
      * @see JMSPublisher
      * @see JMSConsumer
      */
-    protected abstract T finishBuildingJmsWorker(JmsTemplate jmsTemplate, ProcessContext processContext);
+    protected abstract T finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext);
 
     /**
      * This method essentially performs initialization of this Processor by
@@ -198,6 +198,6 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         // set of properties that may be good candidates for exposure via configuration
         jmsTemplate.setReceiveTimeout(1000);
 
-        return finishBuildingJmsWorker(jmsTemplate, context);
+        return finishBuildingJmsWorker(cachingFactory, jmsTemplate, context);
     }
 }

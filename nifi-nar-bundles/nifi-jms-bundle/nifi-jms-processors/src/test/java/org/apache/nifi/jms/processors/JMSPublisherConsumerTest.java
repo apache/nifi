@@ -51,7 +51,7 @@ public class JMSPublisherConsumerTest {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
-            JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             publisher.publish(destinationName, "hellomq".getBytes());
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
@@ -70,7 +70,7 @@ public class JMSPublisherConsumerTest {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
-            JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             Map<String, String> flowFileAttributes = new HashMap<>();
             flowFileAttributes.put("foo", "foo");
             flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
@@ -106,7 +106,7 @@ public class JMSPublisherConsumerTest {
                 }
             });
 
-            JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
+            JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
@@ -135,7 +135,7 @@ public class JMSPublisherConsumerTest {
                 }
             });
 
-            JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
+            JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
             consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
                 @Override
@@ -162,7 +162,7 @@ public class JMSPublisherConsumerTest {
         final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(4);
 
         try {
-            JMSPublisher publisher = new JMSPublisher(publishTemplate, mock(ComponentLog.class));
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) publishTemplate.getConnectionFactory(), publishTemplate, mock(ComponentLog.class));
             for (int i = 0; i < 4000; i++) {
                 publisher.publish(destinationName, String.valueOf(i).getBytes(StandardCharsets.UTF_8));
             }
@@ -182,7 +182,7 @@ public class JMSPublisherConsumerTest {
                     JmsTemplate consumeTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
                     try {
-                        JMSConsumer consumer = new JMSConsumer(consumeTemplate, mock(ComponentLog.class));
+                        JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
 
                         for (int j = 0; j < 1000 && msgCount.get() < 4000; j++) {
                             consumer.consume(destinationName, false, false, null, callback);
@@ -217,11 +217,11 @@ public class JMSPublisherConsumerTest {
         String destinationName = "testQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
-            JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             publisher.publish(destinationName, "1".getBytes(StandardCharsets.UTF_8));
             publisher.publish(destinationName, "2".getBytes(StandardCharsets.UTF_8));
 
-            JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
+            JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
             try {
                 consumer.consume(destinationName, false, false, null, new ConsumerCallback() {

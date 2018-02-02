@@ -43,6 +43,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
 /**
@@ -179,10 +180,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * Will create an instance of {@link JMSConsumer}
      */
     @Override
-    protected JMSConsumer finishBuildingJmsWorker(JmsTemplate jmsTemplate, ProcessContext processContext) {
+    protected JMSConsumer finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
         int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
         jmsTemplate.setSessionAcknowledgeMode(ackMode);
-        return new JMSConsumer(jmsTemplate, this.getLogger());
+        return new JMSConsumer(connectionFactory, jmsTemplate, this.getLogger());
     }
 
     @Override

@@ -33,6 +33,7 @@ import javax.jms.Topic;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.SessionCallback;
 import org.springframework.jms.support.JmsHeaders;
@@ -43,8 +44,8 @@ import org.springframework.jms.support.JmsUtils;
  */
 final class JMSConsumer extends JMSWorker {
 
-    JMSConsumer(JmsTemplate jmsTemplate, ComponentLog logger) {
-        super(jmsTemplate, logger);
+    JMSConsumer(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog logger) {
+        super(connectionFactory, jmsTemplate, logger);
         logger.debug("Created Message Consumer for '{}'", new Object[] {jmsTemplate});
     }
 

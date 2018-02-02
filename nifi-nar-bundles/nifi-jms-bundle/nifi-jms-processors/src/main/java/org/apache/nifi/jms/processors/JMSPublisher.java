@@ -28,6 +28,7 @@ import javax.jms.Session;
 import javax.jms.Topic;
 
 import org.apache.nifi.logging.ComponentLog;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.core.SessionCallback;
@@ -38,8 +39,8 @@ import org.springframework.jms.support.JmsHeaders;
  */
 final class JMSPublisher extends JMSWorker {
 
-    JMSPublisher(JmsTemplate jmsTemplate, ComponentLog processLog) {
-        super(jmsTemplate, processLog);
+    JMSPublisher(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog processLog) {
+        super(connectionFactory, jmsTemplate, processLog);
         processLog.debug("Created Message Publisher for {}", new Object[] {jmsTemplate});
     }
 
