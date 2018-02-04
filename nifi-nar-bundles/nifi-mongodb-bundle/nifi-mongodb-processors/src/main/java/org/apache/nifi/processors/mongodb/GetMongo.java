@@ -25,8 +25,11 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -46,6 +49,7 @@ import org.bson.json.JsonWriterSettings;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,7 +61,19 @@ import java.util.Set;
 @Tags({ "mongodb", "read", "get" })
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB")
+@WritesAttributes( value = {
+    @WritesAttribute(attribute = "progress.estimate", description = "The estimated total documents that match the query. Written if estimation is enabled."),
+    @WritesAttribute(attribute = "progress.segment.start", description = "Where the first part of the segment is in the total result set. Written if estimation is enabled."),
+    @WritesAttribute(attribute = "progress.segment.end", description = "Where the last part of the segment is in the total result set. Written if estimation is enabled."),
+    @WritesAttribute(attribute = "progress.index", description = "When results are written one-by-one to flowfiles, this is set to indicate estimated progress. Written if estimation is enabled.")
+})
 public class GetMongo extends AbstractMongoProcessor {
+    static final AllowableValue GM_TRUE = new AllowableValue("true", "True");
+    static final AllowableValue GM_FALSE = new AllowableValue("false", "False");
+    static final String PROGRESS_ESTIMATE = "progress.estimate";
+    static final String PROGRESS_START    = "progress.segment.start";
+    static final String PROGRESS_END      = "progress.segment.end";
+    static final String PROGRESS_INDEX    = "progress.index";
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -118,19 +134,46 @@ public class GetMongo extends AbstractMongoProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+    static final PropertyDescriptor ESTIMATE_PROGRESS = new PropertyDescriptor.Builder()
+        .name("estimate-progress")
+        .displayName("Estimate Progress")
+        .description("If enabled, a count query will be run first, using the configured query, and attributes will be added to each flowfile showing how far they are into the result set.")
+        .required(true)
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues(GM_TRUE, GM_FALSE)
+        .defaultValue(GM_FALSE.getValue())
+        .build();
 
-    static final AllowableValue YES_PP = new AllowableValue("true", "True");
-    static final AllowableValue NO_PP  = new AllowableValue("false", "False");
     static final PropertyDescriptor USE_PRETTY_PRINTING = new PropertyDescriptor.Builder()
-            .name("use-pretty-printing")
-            .displayName("Pretty Print Results JSON")
-            .description("Choose whether or not to pretty print the JSON from the results of the query. " +
-                    "Choosing yes can greatly increase the space requirements on disk depending on the complexity of the JSON document")
-            .required(true)
-            .defaultValue(YES_PP.getValue())
-            .allowableValues(YES_PP, NO_PP)
-            .addValidator(Validator.VALID)
-            .build();
+        .name("use-pretty-printing")
+        .displayName("Pretty Print Results JSON")
+        .description("Choose whether or not to pretty print the JSON from the results of the query. " +
+                "Choosing yes can greatly increase the space requirements on disk depending on the complexity of the JSON document")
+        .required(true)
+        .defaultValue(GM_TRUE.getValue())
+        .allowableValues(GM_TRUE, GM_FALSE)
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .build();
+
+
+    static final AllowableValue MODE_ONE_COMMIT = new AllowableValue("all-at-once", "Full Query Fetch",
+            "Fetch the entire query result and then make it available to downstream processors.");
+    static final AllowableValue MODE_MANY_COMMITS = new AllowableValue("streaming", "Stream Query Results",
+            "As soon as the query start sending results to the downstream processors at regular intervals.");
+
+    static final PropertyDescriptor OPERATION_MODE = new PropertyDescriptor.Builder()
+        .name("mongo-operation-mode")
+        .displayName("Operation Mode")
+        .allowableValues(MODE_ONE_COMMIT, MODE_MANY_COMMITS)
+        .defaultValue(MODE_ONE_COMMIT.getValue())
+        .required(true)
+        .description("This option controls when results are made available to downstream processors. If streaming mode is enabled, " +
+                "provenance will not be tracked relative to the input flowfile if an input flowfile is received and starts the query. In streaming mode " +
+                "errors will be handled by sending a new flowfile with the original content and attributes of the input flowfile to the failure " +
+                "relationship. Streaming should only be used if there is reliable connectivity between MongoDB and NiFi.")
+        .addValidator(Validator.VALID)
+        .build();
+
 
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -140,6 +183,7 @@ public class GetMongo extends AbstractMongoProcessor {
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(JSON_TYPE);
         _propertyDescriptors.add(USE_PRETTY_PRINTING);
+        _propertyDescriptors.add(OPERATION_MODE);
         _propertyDescriptors.add(CHARSET);
         _propertyDescriptors.add(QUERY);
         _propertyDescriptors.add(QUERY_ATTRIBUTE);
@@ -148,6 +192,7 @@ public class GetMongo extends AbstractMongoProcessor {
         _propertyDescriptors.add(LIMIT);
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
+        _propertyDescriptors.add(ESTIMATE_PROGRESS);
         _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
         _propertyDescriptors.add(CLIENT_AUTH);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
@@ -189,8 +234,40 @@ public class GetMongo extends AbstractMongoProcessor {
     }
 
     private ObjectWriter getObjectWriter(ObjectMapper mapper, String ppSetting) {
-        return ppSetting.equals(YES_PP.getValue()) ? mapper.writerWithDefaultPrettyPrinter()
+        return ppSetting.equals(GM_TRUE.getValue()) ? mapper.writerWithDefaultPrettyPrinter()
                 : mapper.writer();
+    }
+
+    protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session, Map<String,String> attributes,
+                            Long count, long index, int batchSize) throws UnsupportedEncodingException {
+        Map<String, String> attrs = new HashMap<>();
+        attrs.putAll(attributes);
+        if (count != null) {
+            attrs.put(PROGRESS_START, String.valueOf(index - batchSize));
+            attrs.put(PROGRESS_END, String.valueOf(index));
+            attrs.put(PROGRESS_ESTIMATE, String.valueOf(count));
+        }
+
+        boolean isManyMode = queryMode.equals(MODE_MANY_COMMITS.getValue());
+
+        super.writeBatch(payload, isManyMode ? null : parent, context, session, attrs, REL_SUCCESS);
+
+        if (isManyMode) {
+            session.commit();
+        }
+    }
+
+    String queryMode;
+
+    @OnScheduled
+    public void setup(ProcessContext context) {
+        queryMode = context.getProperty(OPERATION_MODE).getValue();
+    }
+
+    private void transferInputIfStreaming(FlowFile input, ProcessSession session) {
+        if (input != null && queryMode.equals(MODE_MANY_COMMITS.getValue())) {
+            session.transfer(input, REL_ORIGINAL);
+        }
     }
 
     @Override
@@ -213,6 +290,13 @@ public class GetMongo extends AbstractMongoProcessor {
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue());
 
         String queryStr;
+
+        Map<String, String> originalAttributes = input != null ? input.getAttributes() : null;
+        if (originalAttributes != null) {
+            attributes.putAll(originalAttributes);
+        }
+        byte[] originalContent = null;
+
         if (context.getProperty(QUERY).isSet()) {
             queryStr = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
             query = Document.parse(queryStr);
@@ -224,6 +308,7 @@ public class GetMongo extends AbstractMongoProcessor {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 session.exportTo(input, out);
                 out.close();
+                originalContent = out.toByteArray();
                 queryStr = new String(out.toByteArray());
                 query = Document.parse(queryStr);
             } catch (Exception ex) {
@@ -248,12 +333,16 @@ public class GetMongo extends AbstractMongoProcessor {
                 ? Document.parse(context.getProperty(SORT).evaluateAttributeExpressions(input).getValue()) : null;
         final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
         final String usePrettyPrint  = context.getProperty(USE_PRETTY_PRINTING).getValue();
+        final boolean estimateCount = context.getProperty(ESTIMATE_PROGRESS).asBoolean();
+
         configureMapper(jsonTypeSetting);
 
 
         final MongoCollection<Document> collection = getCollection(context, input);
 
         try {
+            final Long count = estimateCount ? collection.count(query) : null;
+
             final FindIterable<Document> it = query != null ? collection.find(query) : collection.find();
             if (projection != null) {
                 it.projection(projection);
@@ -272,35 +361,45 @@ public class GetMongo extends AbstractMongoProcessor {
             ComponentLog log = getLogger();
             try {
                 FlowFile outgoingFlowFile;
-                if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
+                if (context.getProperty(RESULTS_PER_FLOWFILE).isSet() && context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger() > 1) {
+                    transferInputIfStreaming(input, session);
+
                     int ceiling = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
                     List<Document> batch = new ArrayList<>();
 
+                    long index = 0;
+
                     while (cursor.hasNext()) {
                         batch.add(cursor.next());
+                        index++;
                         if (batch.size() == ceiling) {
                             try {
                                 if (log.isDebugEnabled()) {
                                     log.debug("Writing batch...");
                                 }
                                 String payload = buildBatch(batch, jsonTypeSetting, usePrettyPrint);
-                                writeBatch(payload, input, context, session, attributes, REL_SUCCESS);
+                                writeBatch(payload, input, context, session, attributes, count, index, batch.size());
                                 batch = new ArrayList<>();
-                            } catch (Exception ex) {
+                            } catch (IOException ex) {
                                 getLogger().error("Error building batch", ex);
                             }
                         }
                     }
                     if (batch.size() > 0) {
                         try {
-                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
+                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, count, index, batch.size());
                         } catch (Exception ex) {
                             getLogger().error("Error sending remainder of batch", ex);
                         }
                     }
                 } else {
+                    transferInputIfStreaming(input, session);
+                    long index = 0;
+                    int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).isSet() ? context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger()
+                            : 100;
+                    int current = 0;
                     while (cursor.hasNext()) {
-                        outgoingFlowFile = (input == null) ? session.create() : session.create(input);
+                        outgoingFlowFile = session.create();
                         outgoingFlowFile = session.write(outgoingFlowFile, out -> {
                             String json;
                             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
@@ -310,14 +409,24 @@ public class GetMongo extends AbstractMongoProcessor {
                             }
                             out.write(json.getBytes(charset));
                         });
+
+                        if (estimateCount) {
+                            attributes.put(PROGRESS_ESTIMATE, String.valueOf(count));
+                            attributes.put(PROGRESS_INDEX, String.valueOf(++index));
+                        }
                         outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
 
                         session.getProvenanceReporter().receive(outgoingFlowFile, getURI(context));
                         session.transfer(outgoingFlowFile, REL_SUCCESS);
+                        if (current + 1 == batchSize) {
+                            session.commit();
+                            current = 0;
+                        }
+                        current++;
                     }
                 }
 
-                if (input != null) {
+                if (input != null && queryMode.equals(MODE_ONE_COMMIT.getValue())) {
                     session.transfer(input, REL_ORIGINAL);
                 }
 
@@ -326,8 +435,16 @@ public class GetMongo extends AbstractMongoProcessor {
             }
 
         } catch (final RuntimeException e) {
-            if (input != null) {
+            if (input != null && queryMode.equals(MODE_ONE_COMMIT.getValue())) {
                 session.transfer(input, REL_FAILURE);
+            } else if (input != null && queryMode.equals(MODE_MANY_COMMITS.getValue())) {
+                FlowFile copy = session.create();
+                copy = session.putAllAttributes(copy, originalAttributes);
+                if (originalContent != null) {
+                    final byte[] contentPtr = originalContent;
+                    copy = session.write(copy, out -> out.write(contentPtr));
+                }
+                session.transfer(copy, REL_FAILURE);
             }
             context.yield();
             logger.error("Failed to execute query {} due to {}", new Object[] { query, e }, e);

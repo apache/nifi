@@ -142,6 +142,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("1")
             .build();
 
@@ -150,6 +151,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .displayName("Batch Size")
             .description("The number of elements returned from the server in one batch.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("100")
             .build();

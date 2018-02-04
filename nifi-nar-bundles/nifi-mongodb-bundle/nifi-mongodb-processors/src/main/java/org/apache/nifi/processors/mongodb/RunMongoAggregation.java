@@ -145,8 +145,8 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         final String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
         final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
-        final Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        final Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
+        final Integer batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+        final Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(flowFile).asInteger();
         final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
 
         configureMapper(jsonTypeSetting);

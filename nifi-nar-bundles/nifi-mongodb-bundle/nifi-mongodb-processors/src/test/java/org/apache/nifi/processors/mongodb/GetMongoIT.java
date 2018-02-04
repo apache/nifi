@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -44,6 +45,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class GetMongoIT {
     private static final String MONGO_URI = "mongodb://localhost";
@@ -67,20 +69,22 @@ public class GetMongoIT {
 
     @Before
     public void setup() {
-        runner = TestRunners.newTestRunner(GetMongo.class);
+        runner = TestRunners.newTestRunner(TestGetMongo.class);
         runner.setVariable("uri", MONGO_URI);
         runner.setVariable("db", DB_NAME);
         runner.setVariable("collection", COLLECTION_NAME);
         runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
-        runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.YES_PP);
+        runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.GM_TRUE);
         runner.setIncomingConnection(false);
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 
         MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
         collection.insertMany(DOCUMENTS);
+
+        TestGetMongo.setThrowError(false);
     }
 
     @After
@@ -136,7 +140,7 @@ public class GetMongoIT {
         // invalid projection
         runner.setVariable("projection", "{a: x,y,z}");
         runner.setProperty(GetMongo.QUERY, "{\"a\": 1}");
-        runner.setProperty(GetMongo.PROJECTION, "{a: z}");
+        runner.setProperty(GetMongo.PROJECTION, "{\"a\": z");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
@@ -190,7 +194,7 @@ public class GetMongoIT {
 
     @Test
     public void testReadMultipleDocuments() throws Exception {
-        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": true}}");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 3);
@@ -214,8 +218,8 @@ public class GetMongoIT {
 
     @Test
     public void testSort() throws Exception {
-        runner.setVariable("sort", "{a: -1, b: -1, c: 1}");
-        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
+        runner.setVariable("sort", "{\"a\": -1, \"b\": -1, \"c\": 1}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": true}}");
         runner.setProperty(GetMongo.SORT, "${sort}");
         runner.run();
 
@@ -228,7 +232,7 @@ public class GetMongoIT {
 
     @Test
     public void testLimit() throws Exception {
-        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": true}}");
         runner.setProperty(GetMongo.LIMIT, "${limit}");
         runner.setVariable("limit", "1");
         runner.run();
@@ -250,6 +254,18 @@ public class GetMongoIT {
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
         Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
+
+        runner.clearTransferState();
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "1");
+        runner.enqueue("{}");
+        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS);
+        results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        for (MockFlowFile flowFile : results) {
+            byte[] raw = runner.getContentAsByteArray(flowFile);
+            String json = new String(raw);
+            Assert.assertNotNull("JSON was null", json);
+            Assert.assertTrue("Did not start with open object character.", json.startsWith("{"));
+        }
     }
 
     @Test
@@ -281,8 +297,9 @@ public class GetMongoIT {
         String json = new String(raw);
         Assert.assertTrue("JSON did not have new lines.", json.contains("\n"));
         runner.clearTransferState();
-        runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.NO_PP);
+        runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.GM_FALSE);
         runner.enqueue("{}");
+
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
@@ -468,4 +485,103 @@ public class GetMongoIT {
     /*
      * End query read behavior tests
      */
+    @Test
+    public void testEstimates() {
+        String keyBase = "est_%s";
+        MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
+        collection.deleteMany(Document.parse("{}"));
+        for (int x = 0; x < 1000; x++) {
+            collection.insertOne(new Document("_id", String.format(keyBase, x)).append("val", UUID.randomUUID()));
+        }
+
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "100");
+        runner.setProperty(GetMongo.QUERY, "{}");
+        runner.setProperty(GetMongo.ESTIMATE_PROGRESS, GetMongo.GM_TRUE);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 10);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        for (int x = 1; x <= flowFiles.size(); x++) {
+            MockFlowFile flowFile = flowFiles.get(x - 1);
+            String startAttr = flowFile.getAttribute(GetMongo.PROGRESS_START);
+            String endAttr   = flowFile.getAttribute(GetMongo.PROGRESS_END);
+            String estimate  = flowFile.getAttribute(GetMongo.PROGRESS_ESTIMATE);
+            Assert.assertNotNull("Missing start attribute", startAttr);
+            Assert.assertNotNull("Missing end attribute", endAttr);
+            Assert.assertNotNull("Missing estimate attribute", estimate);
+
+            Integer start = (x - 1) * 100;
+            Integer end   = x * 100;
+
+            Assert.assertEquals("Start didn't match", start, Integer.valueOf(startAttr));
+            Assert.assertEquals("End didn't match", end, Integer.valueOf(endAttr));
+            Assert.assertEquals("Progress didn't match", Integer.valueOf(1000), Integer.valueOf(estimate));
+        }
+
+        runner.clearTransferState();
+        runner.removeProperty(GetMongo.RESULTS_PER_FLOWFILE);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1000);
+
+        flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+
+        for (int x = 1; x <= flowFiles.size(); x++) {
+            MockFlowFile mockFlowFile = flowFiles.get(x - 1);
+            String estimateProgress = mockFlowFile.getAttribute(GetMongo.PROGRESS_INDEX);
+            String estimateTotal    = mockFlowFile.getAttribute(GetMongo.PROGRESS_ESTIMATE);
+            Assert.assertNotNull("Missing estimate", estimateProgress);
+            Assert.assertNotNull("Missing total", estimateTotal);
+            Assert.assertEquals(String.format("Wrong total: %s", estimateTotal), estimateTotal, "1000");
+        }
+    }
+
+    @Test
+    public void testProgressiveCommits() {
+        String keyBase = "est_%s";
+        MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
+        collection.deleteMany(Document.parse("{}"));
+        for (int x = 0; x < 1000; x++) {
+            collection.insertOne(new Document("_id", String.format(keyBase, x)).append("val", UUID.randomUUID()));
+        }
+
+        AllowableValue[] values = new AllowableValue[] { GetMongo.MODE_ONE_COMMIT, GetMongo.MODE_MANY_COMMITS };
+        for (AllowableValue value : values) {
+            runner.setProperty(GetMongo.OPERATION_MODE, value);
+            runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "100");
+            runner.setProperty(GetMongo.QUERY, "{}");
+            runner.setProperty(GetMongo.ESTIMATE_PROGRESS, GetMongo.GM_TRUE);
+            runner.setIncomingConnection(true);
+            runner.enqueue("test");
+            runner.run();
+            runner.assertTransferCount(GetMongo.REL_SUCCESS, 10);
+            runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+            runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+
+            runner.clearTransferState();
+        }
+
+        //Test errors
+        TestGetMongo.setThrowError(true);
+        runner.enqueue("test");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.clearTransferState();
+
+        TestGetMongo.setThrowError(false);
+
+        //Test one flowfile/result
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "1");
+        runner.removeProperty(GetMongo.QUERY);
+        runner.enqueue("{}");
+        runner.run();
+
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1000);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+    }
 }
