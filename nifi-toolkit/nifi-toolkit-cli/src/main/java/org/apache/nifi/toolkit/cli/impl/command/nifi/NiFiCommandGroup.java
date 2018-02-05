@@ -20,7 +20,10 @@ import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.CurrentUser;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetRootId;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGChangeVersion;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetAllVersions;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVars;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVersion;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGImport;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStart;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStop;
@@ -36,8 +39,10 @@ import java.util.List;
  */
 public class NiFiCommandGroup extends AbstractCommandGroup {
 
+    public static final String NIFI_COMMAND_GROUP = "nifi";
+
     public NiFiCommandGroup() {
-        super("nifi");
+        super(NIFI_COMMAND_GROUP);
     }
 
     @Override
@@ -52,6 +57,9 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGStart());
         commands.add(new PGStop());
         commands.add(new PGGetVars());
+        commands.add(new PGGetVersion());
+        commands.add(new PGChangeVersion());
+        commands.add(new PGGetAllVersions());
         return new ArrayList<>(commands);
     }
 }

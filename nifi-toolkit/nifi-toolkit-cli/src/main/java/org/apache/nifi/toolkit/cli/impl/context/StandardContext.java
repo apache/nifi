@@ -34,12 +34,14 @@ public class StandardContext implements Context {
     private final ClientFactory<NiFiRegistryClient> niFiRegistryClientFactory;
     private final Session session;
     private final PrintStream output;
+    private final boolean isInteractive;
 
     private StandardContext(final Builder builder) {
         this.niFiClientFactory = builder.niFiClientFactory;
         this.niFiRegistryClientFactory = builder.niFiRegistryClientFactory;
         this.session = builder.session;
         this.output = builder.output;
+        this.isInteractive = builder.isInteractive;
 
         Validate.notNull(this.niFiClientFactory);
         Validate.notNull(this.niFiRegistryClientFactory);
@@ -67,11 +69,17 @@ public class StandardContext implements Context {
         return output;
     }
 
+    @Override
+    public boolean isInteractive() {
+        return isInteractive;
+    }
+
     public static class Builder {
         private ClientFactory<NiFiClient> niFiClientFactory;
         private ClientFactory<NiFiRegistryClient> niFiRegistryClientFactory;
         private Session session;
         private PrintStream output;
+        private boolean isInteractive;
 
         public Builder nifiClientFactory(final ClientFactory<NiFiClient> niFiClientFactory) {
             this.niFiClientFactory = niFiClientFactory;
@@ -90,6 +98,11 @@ public class StandardContext implements Context {
 
         public Builder output(final PrintStream output) {
             this.output = output;
+            return this;
+        }
+
+        public Builder interactive(final boolean isInteractive) {
+            this.isInteractive = isInteractive;
             return this;
         }
 

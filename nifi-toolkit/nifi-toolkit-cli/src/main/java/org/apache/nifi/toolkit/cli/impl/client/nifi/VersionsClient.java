@@ -14,26 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.cli.api;
+package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
-import org.apache.nifi.registry.client.NiFiRegistryClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
+import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 
-import java.io.PrintStream;
+import java.io.IOException;
 
-/**
- * Context for the CLI which will be passed to each command.
- */
-public interface Context {
+public interface VersionsClient {
 
-    ClientFactory<NiFiClient> getNiFiClientFactory();
+    VersionControlInformationEntity getVersionControlInfo(String processGroupId) throws IOException, NiFiClientException;
 
-    ClientFactory<NiFiRegistryClient> getNiFiRegistryClientFactory();
+    VersionedFlowUpdateRequestEntity updateVersionControlInfo(String processGroupId, VersionControlInformationEntity entity)
+            throws IOException, NiFiClientException;
 
-    Session getSession();
+    VersionedFlowUpdateRequestEntity getUpdateRequest(String updateRequestId) throws IOException, NiFiClientException;
 
-    PrintStream getOutput();
-
-    boolean isInteractive();
+    VersionedFlowUpdateRequestEntity deleteUpdateRequest(String updateRequestId) throws IOException, NiFiClientException;
 
 }

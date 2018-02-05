@@ -27,6 +27,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
@@ -157,6 +158,23 @@ public class JerseyNiFiClient implements NiFiClient {
     public ProcessGroupClient getProcessGroupClientForToken(String base64token) {
         final Map<String,String> headers = getHeadersWithToken(base64token);
         return new JerseyProcessGroupClient(baseTarget, headers);
+    }
+
+    @Override
+    public VersionsClient getVersionsClient() {
+        return new JerseyVersionsClient(baseTarget);
+    }
+
+    @Override
+    public VersionsClient getVersionsClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String,String> headers = getHeaders(proxiedEntity);
+        return new JerseyVersionsClient(baseTarget, headers);
+    }
+
+    @Override
+    public VersionsClient getVersionsClientForToken(String base64token) {
+        final Map<String,String> headers = getHeadersWithToken(base64token);
+        return new JerseyVersionsClient(baseTarget, headers);
     }
 
     @Override
