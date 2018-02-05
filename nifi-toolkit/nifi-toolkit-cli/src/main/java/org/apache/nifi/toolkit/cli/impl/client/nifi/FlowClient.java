@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import java.io.IOException;
 
@@ -26,6 +27,11 @@ import java.io.IOException;
  * Client for FlowResource.
  */
 public interface FlowClient {
+
+    /**
+     * @return the entity representing the current user accessing the NiFi instance
+     */
+    CurrentUserEntity getCurrentUser() throws NiFiClientException, IOException;
 
     /**
      * @return the id of the root process group
@@ -53,8 +59,14 @@ public interface FlowClient {
             String processGroupId, ScheduleComponentsEntity scheduleComponentsEntity) throws NiFiClientException, IOException;
 
     /**
-     * @return the entity representing the current user accessing the NiFi instance
+     * Gets the possible versions for the given flow in the given bucket in the given registry.
+     *
+     * @param registryId the id of the registry client
+     * @param bucketId the bucket id
+     * @param flowId the flow id
+     * @return the set of snapshot metadata entities
      */
-    CurrentUserEntity getCurrentUser() throws NiFiClientException, IOException;
+    VersionedFlowSnapshotMetadataSetEntity getVersions(String registryId, String bucketId, String flowId)
+            throws NiFiClientException, IOException;
 
 }
