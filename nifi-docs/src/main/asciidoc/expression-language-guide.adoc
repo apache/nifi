@@ -1642,11 +1642,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === toRadix
 
-*Description*: [.description]#Converts the Subject from a Base 10 number to a different Radix (or number base). An optional
-	second argument can be used to indicate the minimum number of characters to be used. If the converted value
-	has fewer than this number of characters, the number will be padded with leading zeroes.
-
-	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
+*Description*: [.description]#Converts the Subject from a Base 10 number to a different Radix (or number base). An optional second argument can be used to indicate the minimum number of characters to be used. If the converted value has fewer than this number of characters, the number will be padded with leading zeroes. If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
 
 *Subject Type*: [.subject]#Number#
 
@@ -1676,10 +1672,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === fromRadix
 
-*Description*: [.description]#Converts the Subject from a specified Radix (or number base) to a base ten whole number. The subject will converted as is, without interpretation, and all characters
-must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to "x" being a invalid hex character.
-
-	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
+*Description*: [.description]#Converts the Subject from a specified Radix (or number base) to a base ten whole number. The subject will converted as is, without interpretation, and all characters must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to "x" being a invalid hex character. If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
 
 *Subject Type*: [.subject]#String#
 
