@@ -36,7 +36,7 @@ import java.util.List;
 public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
 
     public NiFiRegistryCommandGroup() {
-        super("nifi-reg");
+        super("registry");
     }
 
     @Override
