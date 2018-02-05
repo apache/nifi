@@ -64,6 +64,13 @@ public interface NiFiClient extends Closeable {
 
     ProcessGroupClient getProcessGroupClientForToken(String token);
 
+    // ----- VersionsClient -----
+
+    VersionsClient getVersionsClient();
+
+    VersionsClient getVersionsClientForProxiedEntities(String ... proxiedEntity);
+
+    VersionsClient getVersionsClientForToken(String token);
 
     /**
      * The builder interface that implementations should provide for obtaining the client.

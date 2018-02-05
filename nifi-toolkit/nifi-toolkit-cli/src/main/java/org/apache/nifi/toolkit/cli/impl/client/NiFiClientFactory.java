@@ -25,6 +25,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
@@ -162,6 +163,21 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public ProcessGroupClient getProcessGroupClientForToken(String token) {
             return wrappedClient.getProcessGroupClientForToken(token);
+        }
+
+        @Override
+        public VersionsClient getVersionsClient() {
+            return wrappedClient.getVersionsClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public VersionsClient getVersionsClientForProxiedEntities(String... proxiedEntity) {
+            return wrappedClient.getVersionsClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public VersionsClient getVersionsClientForToken(String token) {
+            return wrappedClient.getVersionsClientForToken(token);
         }
 
         @Override
