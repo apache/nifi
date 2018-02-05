@@ -22,6 +22,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -100,6 +101,33 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
             return getRequestBuilder(target).put(
                     Entity.entity(scheduleComponentsEntity, MediaType.APPLICATION_JSON_TYPE),
                     ScheduleComponentsEntity.class);
+        });
+    }
+
+    @Override
+    public VersionedFlowSnapshotMetadataSetEntity getVersions(final String registryId, final String bucketId, final String flowId)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(registryId)) {
+            throw new IllegalArgumentException("Registry id cannot be null");
+        }
+
+        if (StringUtils.isBlank(bucketId)) {
+            throw new IllegalArgumentException("Bucket id cannot be null");
+        }
+
+        if (StringUtils.isBlank(flowId)) {
+            throw new IllegalArgumentException("Flow id cannot be null");
+        }
+
+        return executeAction("Error retrieving versions", () -> {
+            final WebTarget target = flowTarget
+                    .path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
+                    .resolveTemplate("registry-id", registryId)
+                    .resolveTemplate("bucket-id", bucketId)
+                    .resolveTemplate("flow-id", flowId);
+
+            return getRequestBuilder(target).get(VersionedFlowSnapshotMetadataSetEntity.class);
         });
     }
 }

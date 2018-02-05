@@ -21,6 +21,7 @@ import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.Session;
+import org.apache.nifi.toolkit.cli.impl.command.registry.NiFiRegistryCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.context.StandardContext;
 import org.apache.nifi.toolkit.cli.impl.session.InMemorySession;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariables;
@@ -92,7 +93,7 @@ public class TestCLICompleter {
 
     @Test
     public void testCompletionWithWordIndexOneAndMatching() {
-        final String topCommand = "nifi-reg";
+        final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
 
         final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
                 "", Collections.singletonList(topCommand), 1, -1, -1);
@@ -116,7 +117,7 @@ public class TestCLICompleter {
 
     @Test
     public void testCompletionWithWordIndexTwoAndMatching() {
-        final String topCommand = "nifi-reg";
+        final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "list-buckets";
 
         final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
@@ -130,7 +131,7 @@ public class TestCLICompleter {
 
     @Test
     public void testCompletionWithWordIndexTwoAndNotMatching() {
-        final String topCommand = "nifi-reg";
+        final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "NOT-A-TOP-LEVEL-COMMAND";
 
         final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
@@ -143,7 +144,7 @@ public class TestCLICompleter {
 
     @Test
     public void testCompletionWithMultipleArguments() {
-        final String topCommand = "nifi-reg";
+        final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "list-buckets";
 
         final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(
@@ -157,7 +158,7 @@ public class TestCLICompleter {
 
     @Test
     public void testCompletionWithFileArguments() {
-        final String topCommand = "nifi-reg";
+        final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "list-buckets";
 
         final DefaultParser.ArgumentList parsedLine = new DefaultParser.ArgumentList(

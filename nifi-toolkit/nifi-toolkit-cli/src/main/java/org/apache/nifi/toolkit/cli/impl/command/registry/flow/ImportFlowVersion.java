@@ -64,7 +64,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand {
 
             // determine the bucket for the provided flow id
             final String bucketId = getBucketId(client, flowId);
-            
+
             // determine the latest existing version in the destination system
             Integer version;
             try {

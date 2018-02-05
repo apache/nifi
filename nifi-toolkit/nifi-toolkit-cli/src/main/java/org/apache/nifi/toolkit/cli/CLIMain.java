@@ -74,7 +74,7 @@ public class CLIMain {
     }
 
     /**
-     * Runs the interactive CLIE.
+     * Runs the interactive CLI.
      *
      * @throws IOException if an error occurs
      */
@@ -191,6 +191,7 @@ public class CLIMain {
                 .session(session)
                 .nifiClientFactory(niFiClientFactory)
                 .nifiRegistryClientFactory(nifiRegClientFactory)
+                .interactive(isInteractive)
                 .build();
     }
 
