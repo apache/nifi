@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import com.jayway.jsonpath.JsonPath;
+import net.minidev.json.JSONArray;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -27,9 +29,13 @@ import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Jersey implementation of FlowClient.
@@ -76,6 +82,41 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
 
             return getRequestBuilder(target).get(ProcessGroupFlowEntity.class);
         });
+    }
+
+    @Override
+    public PgBox getSuggestedProcessGroupCoordinates(String parentId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(parentId)) {
+            throw new IllegalArgumentException("Process group id cannot be null");
+        }
+
+        return executeAction("Error retrieving process group flow", () -> {
+            final WebTarget target = flowTarget
+                    .path("process-groups/{id}")
+                    .resolveTemplate("id", parentId);
+
+            Response response = getRequestBuilder(target).get();
+
+            String json = response.readEntity(String.class);
+
+            JSONArray jsonArray = JsonPath.compile("$..position").read(json);
+
+            if (jsonArray.isEmpty()) {
+                // it's an empty nifi canvas, nice to align
+                return PgBox.CANVAS_CENTER;
+            }
+
+            List<PgBox> coords = new HashSet<>(jsonArray) // de-dup the initial set
+                    .stream().map(Map.class::cast)
+                    .map(m -> new PgBox(Double.valueOf(m.get("x").toString()).intValue(),
+                                         Double.valueOf(m.get("y").toString()).intValue()))
+                    .collect(Collectors.toList());
+
+            PgBox freeSpot = coords.get(0).findFreeSpace(coords);
+
+            return freeSpot;
+        });
+
     }
 
     @Override
