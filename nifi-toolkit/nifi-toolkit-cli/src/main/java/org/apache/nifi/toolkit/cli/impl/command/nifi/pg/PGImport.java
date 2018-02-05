@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.PgBox;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -62,14 +63,15 @@ public class PGImport extends AbstractNiFiCommand {
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final Integer flowVersion = getRequiredIntArg(properties, CommandOption.FLOW_VERSION);
 
+        // TODO - do we actually want the client to deal with X/Y coordinates? drop the args from API?
         Integer posX = getIntArg(properties, CommandOption.POS_X);
         if (posX == null) {
-            posX = new Integer(0);
+            posX = 0;
         }
 
         Integer posY = getIntArg(properties, CommandOption.POS_Y);
         if (posY == null) {
-            posY = new Integer(0);
+            posY = 0;
         }
 
         // get the optional id of the parent PG, otherwise fallback to the root group
@@ -85,12 +87,15 @@ public class PGImport extends AbstractNiFiCommand {
         versionControlInfo.setFlowId(flowId);
         versionControlInfo.setVersion(flowVersion);
 
+        PgBox pgBox = client.getFlowClient().getSuggestedProcessGroupCoordinates(parentPgId);
+
         final PositionDTO posDto = new PositionDTO();
-        posDto.setX(posX.doubleValue());
-        posDto.setY(posY.doubleValue());
+        posDto.setX(Integer.valueOf(pgBox.x).doubleValue());
+        posDto.setY(Integer.valueOf(pgBox.y).doubleValue());
 
         final ProcessGroupDTO pgDto = new ProcessGroupDTO();
         pgDto.setVersionControlInformation(versionControlInfo);
+        pgDto.setPosition(posDto);
 
         final ProcessGroupEntity pgEntity = new ProcessGroupEntity();
         pgEntity.setComponent(pgDto);
