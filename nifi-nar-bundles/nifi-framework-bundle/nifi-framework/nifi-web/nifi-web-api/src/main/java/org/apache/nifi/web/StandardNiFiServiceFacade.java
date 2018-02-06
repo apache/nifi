@@ -122,6 +122,7 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
@@ -3965,6 +3966,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
             .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
+            .filter(FlowDifferenceFilters.FILTER_ADDED_REMOTE_PORTS)
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
@@ -3998,6 +4000,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final FlowDifference difference : comparison.getDifferences()) {
             // Ignore these as local differences for now because we can't do anything with it
             if (difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
+                continue;
+            }
+
+            // Ignore differences for adding remote ports
+            if (FlowDifferenceFilters.isAddedRemotePort(difference)) {
                 continue;
             }
 

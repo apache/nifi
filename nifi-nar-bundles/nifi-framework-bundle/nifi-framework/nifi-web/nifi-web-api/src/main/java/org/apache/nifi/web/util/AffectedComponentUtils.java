@@ -17,8 +17,6 @@
 
 package org.apache.nifi.web.util;
 
-import java.util.Optional;
-
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -30,6 +28,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+
+import java.util.Optional;
 
 public class AffectedComponentUtils {
 
@@ -81,4 +81,5 @@ public class AffectedComponentUtils {
 
         return null;
     }
+
 }
