@@ -2659,6 +2659,10 @@ RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link
 _nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath or X-Forwarded-Context header value that is not
 present in the whitelist, the "An unexpected error has occurred" page will be shown and an error will be written to the nifi-app.log.
 
+* Additional configurations at both proxy server and NiFi cluster are required to make NiFi Site-to-Site work behind reverse proxies. See <<site_to_site_reverse_proxy_properties>> for details.
+
+** In order to transfer data via Site-to-Site protocol through reverse proxies, both proxy and Site-to-Site client NiFi users need to have following policies, 'retrieve site-to-site details', 'receive data via site-to-site' for input ports, and 'send data via site-to-site' for output ports.
+
 [[kerberos_service]]
 == Kerberos Service
 NiFi can be configured to use Kerberos SPNEGO (or "Kerberos Service") for authentication. In this scenario, users will hit the REST endpoint `/access/kerberos` and the server will respond with a `401` status code and the challenge response header `WWW-Authenticate: Negotiate`. This communicates to the browser to use the GSS-API and load the user's Kerberos ticket and provide it as a Base64-encoded header value in the subsequent request. It will be of the form `Authorization: Negotiate YII...`. NiFi will attempt to validate this ticket with the KDC. If it is successful, the user's _principal_ will be returned as the identity, and the flow will follow login/credential authentication, in that a JWT will be issued in the response to prevent the unnecessary overhead of Kerberos authentication on every subsequent request. If the ticket cannot be validated, it will return with the appropriate error response code. The user will then be able to provide their Kerberos credentials to the login form if the `KerberosLoginIdentityProvider` has been configured. See <<kerberos_login_identity_provider>> login identity provider for more details.
@@ -3068,6 +3072,259 @@ If a Site-to-Site client hasn’t proceeded to the next action after this period
 responses from the remote system for `30 secs`. This allows NiFi to avoid constantly making HTTP requests to the remote system, which is particularly important when this instance of NiFi +
 has many instances of Remote Process Groups.
 |====
+
+[[site_to_site_reverse_proxy_properties]]
+=== Site to Site Routing Properties for Reverse Proxies
+
+Site-to-Site requires peer-to-peer communication between a client and a remote NiFi node. E.g. if a remote NiFi cluster has 3 nodes, nifi0, nifi1 and nifi2, then a client requests have to be reachable to each of those remote node.
+
+If a NiFi cluster is planned to receive/transfer data from/to Site-to-Site clients over the internet or a company firewall, a reverse proxy server can be deployed in front of the NiFi cluster nodes as a gateway to route client requests to upstream NiFi nodes, to reduce number of servers and ports those have to be exposed.
+
+In such environment, the same NiFi cluster would also be expected to be accessed by Site-to-Site clients within the same network. Sending FlowFiles to itself for load distribution among NiFi cluster nodes can be a typical example. In this case, client requests should be routed directly to a node without going through the reverse proxy.
+
+In order to support such deployments, remote NiFi clusters need to expose its Site-to-Site endpoints dynamically based on client request contexts. Following properties configure how peers should be exposed to clients. A routing definition consists of 4 properties, 'when', 'hostname', 'port', and 'secure', grouped by 'protocol' and 'name'. Multiple routing definitions can be configured. 'protocol' represents Site-to-Site transport protocol, i.e. raw or http.
+
+|====
+|*Property*|*Description*
+|nifi.remote.route.{protocol}.{name}.when|Boolean value, 'true' or 'false'. Controls whether the routing definition for this name should be used.
+|nifi.remote.route.{protocol}.{name}.hostname|Specify hostname that will be introduced to Site-to-Site clients for further communications.
+|nifi.remote.route.{protocol}.{name}.port|Specify port number that will be introduced to Site-to-Site clients for further communications.
+|nifi.remote.route.{protocol}.{name}.secure|Boolean value, 'true' or 'false'. Specify whether the remote peer should be accessed via secure protocol. Defaults to 'false'.
+|====
+
+All of above routing properties can use NiFi Expression Language to compute target peer description from request context. Available variables are:
+
+|===
+|*Variable name*|*Description*
+|s2s.{source\|target}.hostname|Hostname of the source where the request came from, and the original target.
+|s2s.{source\|target}.port|Same as above, for ports. Source port may not be useful as it is just a client side TCP port.
+|s2s.{source\|target}.secure|Same as above, for secure or not.
+|s2s.protocol|The name of Site-to-Site protocol being used, RAW or HTTP.
+|s2s.request|The name of current request type, SiteToSiteDetail or Peers. See Site-to-Site protocol sequence below for detail.
+|HTTP request headers|HTTP request header values can be referred by its name.
+|===
+
+==== Site to Site protocol sequence
+
+Configuring these properties correctly would require some understandings on Site-to-Site protocol sequence.
+
+1. A client initiates Site-to-Site protocol by sending a HTTP(S) request to the specified remote URL to get remote cluster Site-to-Site information. Specifically, to '/nifi-api/site-to-site'. This request is called 'SiteToSiteDetail'.
+2. A remote NiFi node responds with its input and output ports, and TCP port numbers for RAW and TCP transport protocols.
+3. The client sends another request to get remote peers using the TCP port number returned at #2. From this request, raw socket communication is used for RAW transport protocol, while HTTP keeps using HTTP(S). This request is called 'Peers'.
+4. A remote NiFi node responds with list of available remote peers containing hostname, port, secure and workload such as the number of queued FlowFiles. From this point, further communication is done between the client and the remote NiFi node.
+5. The client decides which peer to transfer data from/to, based on workload information.
+6. The client sends a request to create a transaction to a remote NiFi node.
+7. The remote NiFi node accepts the transaction.
+8. Data is sent to the target peer. Multiple Data packets can be sent in batch manner.
+9. When there is no more data to send, or reached to batch limit, the transaction is confirmed on both end by calculating CRC32 hash of sent data.
+10. The transaction is committed on both end.
+
+==== Reverse Proxy Configurations
+
+Most reverse proxy software implement HTTP and TCP proxy mode. For NiFi RAW Site-to-Site protocol, both HTTP and TCP proxy configurations are required, and at least 2 ports needed to be opened. NiFi HTTP Site-to-Site protocol can minimize the required number of open ports at the reverse proxy to 1.
+
+Setting correct HTTP headers at reverse proxies are crucial for NiFi to work correctly, not only routing requests but also authorize client requests. See also <<proxy_configuration>> for details.
+
+There are two types of requests-to-NiFi-node mapping techniques those can be applied at reverse proxy servers. One is 'Server name to Node' and the other is 'Port number to Node'.
+
+With 'Server name to Node', the same port can be used to route requests to different upstream NiFi nodes based on the requested server name (e.g. nifi0.example.com, nifi1.example.com). Host name resolution should be configured to map different host names to the same reverse proxy address, that can be done by adding /etc/hosts file or DNS server entries. Also, if clients to reverse proxy uses HTTPS, reverse proxy server certificate should have wildcard common name or SAN to be accessed by different host names.
+
+Some reverse proxy technologies do not support server name routing rules, in such case, use 'Port number to Node' technique. 'Port number to Node' mapping requires N open port at a reverse proxy for a NiFi cluster consists of N nodes.
+
+Refer following examples for actual configurations.
+
+==== Site to Site and Reverse Proxy Examples
+
+Here are some example reverse proxy and NiFi setups to illustrate how configuration files look like.
+
+Client1 in the following diagrams represents a client that does not have direct access to NiFi nodes, and it accesses through the reverse proxy, while Client2 has direct access.
+
+In this example, Nginx is used as a reverse proxy.
+
+===== Example 1: RAW - Server name to Node mapping
+
+image:s2s-rproxy-servername.svg["Server name to Node mapping"]
+
+1. Client1 initiates Site-to-Site protocol, the request is routed to one of upstream NiFi nodes. The NiFi node computes Site-to-Site port for RAW. By the routing rule 'example1' in nifi.properties shown below, port 10443 is returned.
+2. Client1 asks peers to 'nifi.example.com:10443', the request is routed to 'nifi0:8081'. The NiFi node computes available peers, by 'example1' routing rule, 'nifi0:8081' is converted to 'nifi0.example.com:10443', so are nifi1 and nifi2. As a result, 'nifi0.example.com:10443', 'nifi1.example.com:10443' and 'nifi2.example.com:10443' are returned.
+3. Client1 decides to use 'nifi2.example.com:10443' for further communication.
+4. On the other hand, Client2 has two URIs for Site-to-Site bootstrap URIs, and initiates the protocol using one of them. The 'example1' routing does not match this for this request, and port 8081 is returned.
+5. Client2 asks peers from 'nifi1:8081'. The 'example1' does not match, so the original 'nifi0:8081', 'nifi1:8081' and 'nifi2:8081' are returned as they are.
+6. Client2 decides to use 'nifi2:8081' for further communication.
+
+Routing rule 'example1' is defined in nifi.properties (all node has the same routing configuration):
+....
+# S2S Routing for RAW, using server name to node
+nifi.remote.route.raw.example1.when=\
+${X-ProxyHost:equals('nifi.example.com'):or(\
+${s2s.source.hostname:equals('nifi.example.com'):or(\
+${s2s.source.hostname:equals('192.168.99.100')})})}
+nifi.remote.route.raw.example1.hostname=${s2s.target.hostname}.example.com
+nifi.remote.route.raw.example1.port=10443
+nifi.remote.route.raw.example1.secure=true
+....
+
+
+nginx.conf
+....
+http {
+
+    upstream nifi {
+        server nifi0:8443;
+        server nifi1:8443;
+        server nifi2:8443;
+    }
+
+    # Use dnsmasq so that hostnames such as 'nifi0' can be resolved by /etc/hosts
+    resolver 127.0.0.1;
+
+    server {
+        listen 443 ssl;
+        server_name nifi.example.com;
+        ssl_certificate /etc/nginx/nginx.crt;
+        ssl_certificate_key /etc/nginx/nginx.key;
+
+        proxy_ssl_certificate /etc/nginx/nginx.crt;
+        proxy_ssl_certificate_key /etc/nginx/nginx.key;
+        proxy_ssl_trusted_certificate /etc/nginx/nifi-cert.pem;
+
+        location / {
+            proxy_pass https://nifi;
+            proxy_set_header X-ProxyScheme https;
+            proxy_set_header X-ProxyHost nginx.example.com;
+            proxy_set_header X-ProxyPort 17590;
+            proxy_set_header X-ProxyContextPath /;
+            proxy_set_header X-ProxiedEntitiesChain $ssl_client_s_dn;
+        }
+    }
+}
+
+stream {
+
+    map $ssl_preread_server_name $nifi {
+        nifi0.example.com nifi0;
+        nifi1.example.com nifi1;
+        nifi2.example.com nifi2;
+        default nifi0;
+    }
+
+    resolver 127.0.0.1;
+
+    server {
+        listen 10443;
+        proxy_pass $nifi:8081;
+    }
+}
+....
+
+===== Example 2: RAW - Port number to Node mapping
+
+image:s2s-rproxy-portnumber.svg["Port number to Node mapping"]
+
+The 'example2' routing maps original host names (nifi0, 1 and 2) to different proxy ports (10443, 10444 and 10445) using 'equals and 'ifElse' expressions.
+
+nifi.properties (all node has the same routing configuration)
+....
+# S2S Routing for RAW, using port number to node
+nifi.remote.route.raw.example2.when=\
+${X-ProxyHost:equals('nifi.example.com'):or(\
+${s2s.source.hostname:equals('nifi.example.com'):or(\
+${s2s.source.hostname:equals('192.168.99.100')})})}
+nifi.remote.route.raw.example2.hostname=nifi.example.com
+nifi.remote.route.raw.example2.port=\
+${s2s.target.hostname:equals('nifi0'):ifElse('10443',\
+${s2s.target.hostname:equals('nifi1'):ifElse('10444',\
+${s2s.target.hostname:equals('nifi2'):ifElse('10445',\
+'undefined')})})}
+nifi.remote.route.raw.example2.secure=true
+....
+
+nginx.conf
+....
+http {
+    # Same as example 1.
+}
+
+stream {
+
+    map $ssl_preread_server_name $nifi {
+        nifi0.example.com nifi0;
+        nifi1.example.com nifi1;
+        nifi2.example.com nifi2;
+        default nifi0;
+    }
+
+    resolver 127.0.0.1;
+
+    server {
+        listen 10443;
+        proxy_pass nifi0:8081;
+    }
+    server {
+        listen 10444;
+        proxy_pass nifi1:8081;
+    }
+    server {
+        listen 10445;
+        proxy_pass nifi2:8081;
+    }
+}
+....
+
+===== Example 3: HTTP - Server name to Node mapping
+
+image:s2s-rproxy-http.svg["Server name to Node mapping"]
+
+nifi.properties (all node has the same routing configuration)
+....
+# S2S Routing for HTTP
+nifi.remote.route.http.example3.when=${X-ProxyHost:contains('.example.com')}
+nifi.remote.route.http.example3.hostname=${s2s.target.hostname}.example.com
+nifi.remote.route.http.example3.port=443
+nifi.remote.route.http.example3.secure=true
+....
+
+nginx.conf
+....
+http {
+    upstream nifi_cluster {
+        server nifi0:8443;
+        server nifi1:8443;
+        server nifi2:8443;
+    }
+
+    # If target node is not specified, use one from cluster.
+    map $http_host $nifi {
+        nifi0.example.com:443 "nifi0:8443";
+        nifi1.example.com:443 "nifi1:8443";
+        nifi2.example.com:443 "nifi2:8443";
+        default "nifi_cluster";
+    }
+
+    resolver 127.0.0.1;
+
+    server {
+        listen 443 ssl;
+        server_name ~^(.+\.example\.com)$;
+        ssl_certificate /etc/nginx/nginx.crt;
+        ssl_certificate_key /etc/nginx/nginx.key;
+
+        proxy_ssl_certificate /etc/nginx/nginx.crt;
+        proxy_ssl_certificate_key /etc/nginx/nginx.key;
+        proxy_ssl_trusted_certificate /etc/nginx/nifi-cert.pem;
+
+        location / {
+            proxy_pass https://$nifi;
+            proxy_set_header X-ProxyScheme https;
+            proxy_set_header X-ProxyHost $1;
+            proxy_set_header X-ProxyPort 443;
+            proxy_set_header X-ProxyContextPath /;
+            proxy_set_header X-ProxiedEntitiesChain $ssl_client_s_dn;
+        }
+    }
+}
+....
+
 
 === Web Properties
 
