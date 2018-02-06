@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -291,14 +292,39 @@ public class TestAvroTypeUtil {
         expects.put(new BigDecimal("0.123456789012345678"), "0.12345679");
 
 
+        // String to BigDecimal
+        expects.put("123", "123.00000000");
+        expects.put("1234567890.12345678", "1234567890.12345678");
+        expects.put("123456789012345678", "123456789012345678.00000000");
+        expects.put("0.1234567890123456", "0.12345679");
+        expects.put("Not a number", "java.lang.NumberFormatException");
+
+        // Integer to BigDecimal
+        expects.put(123, "123.00000000");
+        expects.put(-1234567, "-1234567.00000000");
+
+        // Long to BigDecimal
+        expects.put(123L, "123.00000000");
+        expects.put(123456789012345678L, "123456789012345678.00000000");
+
         expects.forEach((rawValue, expect) -> {
-            final Object convertedValue = AvroTypeUtil.convertToAvroObject(rawValue, fieldSchema);
+            final Object convertedValue;
+            try {
+                convertedValue = AvroTypeUtil.convertToAvroObject(rawValue, fieldSchema);
+            } catch (Exception e) {
+                if (expect.equals(e.getClass().getCanonicalName())) {
+                    // Expected behavior.
+                    return;
+                }
+                fail(String.format("Unexpected exception, %s with %s %s while expecting %s", e, rawValue.getClass().getSimpleName(), rawValue, expect));
+                return;
+            }
 
             assertTrue(convertedValue instanceof ByteBuffer);
             final ByteBuffer serializedBytes = (ByteBuffer) convertedValue;
 
             final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema, decimalType);
-            assertEquals(String.format("%s should be converted to %s", rawValue, expect), expect, bigDecimal.toString());
+            assertEquals(String.format("%s %s should be converted to %s", rawValue.getClass().getSimpleName(), rawValue, expect), expect, bigDecimal.toString());
         });
 
     }
