@@ -533,8 +533,19 @@ public class AvroTypeUtil {
                     final BigDecimal rawDecimal;
                     if (rawValue instanceof BigDecimal) {
                         rawDecimal = (BigDecimal) rawValue;
+
                     } else if (rawValue instanceof Double) {
                         rawDecimal = BigDecimal.valueOf((Double) rawValue);
+
+                    } else if (rawValue instanceof String) {
+                        rawDecimal = new BigDecimal((String) rawValue);
+
+                    } else if (rawValue instanceof Integer) {
+                        rawDecimal = new BigDecimal((Integer) rawValue);
+
+                    } else if (rawValue instanceof Long) {
+                        rawDecimal = new BigDecimal((Long) rawValue);
+
                     } else {
                         throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a logical decimal");
                     }
