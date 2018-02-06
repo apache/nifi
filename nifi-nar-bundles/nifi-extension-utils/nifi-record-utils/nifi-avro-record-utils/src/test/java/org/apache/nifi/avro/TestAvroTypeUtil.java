@@ -21,11 +21,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.apache.avro.Conversions;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
@@ -257,6 +263,44 @@ public class TestAvroTypeUtil {
             GenericRecord n= r.next();
             AvroTypeUtil.convertAvroRecordToMap(n, recordASchema);
         }
+    }
+
+    @Test
+    public void testToDecimalConversion() {
+        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
+        final Schema fieldSchema = Schema.create(Type.BYTES);
+        decimalType.addToSchema(fieldSchema);
+
+        final Map<Object, String> expects = new HashMap<>();
+
+        // Double to Decimal
+        expects.put(123d, "123.00000000");
+        // Double can not represent exact 1234567890.12345678, so use 1 less digit to test here.
+        expects.put(1234567890.12345678d, "1234567890.12345670");
+        expects.put(123456789.12345678d, "123456789.12345678");
+        expects.put(1234567890123456d, "1234567890123456.00000000");
+        // ROUND HALF UP.
+        expects.put(0.1234567890123456d, "0.12345679");
+
+
+        // BigDecimal to BigDecimal
+        expects.put(new BigDecimal("123"), "123.00000000");
+        expects.put(new BigDecimal("1234567890.12345678"), "1234567890.12345678");
+        expects.put(new BigDecimal("123456789012345678"), "123456789012345678.00000000");
+        // ROUND HALF UP.
+        expects.put(new BigDecimal("0.123456789012345678"), "0.12345679");
+
+
+        expects.forEach((rawValue, expect) -> {
+            final Object convertedValue = AvroTypeUtil.convertToAvroObject(rawValue, fieldSchema);
+
+            assertTrue(convertedValue instanceof ByteBuffer);
+            final ByteBuffer serializedBytes = (ByteBuffer) convertedValue;
+
+            final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema, decimalType);
+            assertEquals(String.format("%s should be converted to %s", rawValue, expect), expect, bigDecimal.toString());
+        });
+
     }
 
 }
