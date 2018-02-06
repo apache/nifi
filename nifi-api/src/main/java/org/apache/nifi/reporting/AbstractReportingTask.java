@@ -18,7 +18,9 @@ package org.apache.nifi.reporting;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
@@ -73,6 +75,15 @@ public abstract class AbstractReportingTask extends AbstractConfigurableComponen
      */
     protected String getName() {
         return name;
+    }
+
+    /**
+     * Sets various component information using the given context
+     * @param context the context to use for this reporting task
+     */
+    @OnScheduled
+    public void setComponentInfo(ConfigurationContext context) {
+        this.name = context.getName();
     }
 
     /**

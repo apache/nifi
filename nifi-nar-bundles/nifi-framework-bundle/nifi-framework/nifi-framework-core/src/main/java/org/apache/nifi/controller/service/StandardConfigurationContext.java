@@ -100,4 +100,9 @@ public class StandardConfigurationContext implements ConfigurationContext {
     public Long getSchedulingPeriod(final TimeUnit timeUnit) {
         return schedulingNanos == null ? null : timeUnit.convert(schedulingNanos, TimeUnit.NANOSECONDS);
     }
+
+    @Override
+    public String getName() {
+        return component.getName();
+    }
 }
