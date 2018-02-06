@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +41,9 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -117,7 +121,7 @@ public class ValidateCsv extends AbstractProcessor {
                     + allowedOperators.toString() + ". Note: cell processors cannot be nested except with Optional.")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
@@ -207,6 +211,31 @@ public class ValidateCsv extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+
+        PropertyValue schemaProp = context.getProperty(SCHEMA);
+        String schema = schemaProp.getValue();
+        String subject = SCHEMA.getName();
+
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(schema)) {
+            return Collections.singletonList(new ValidationResult.Builder().subject(subject).input(schema).explanation("Expression Language Present").valid(true).build());
+        }
+        // If no Expression Language is present, try parsing the schema
+        try {
+            this.parseSchema(schema);
+        } catch (Exception e) {
+            final List<ValidationResult> problems = new ArrayList<>(1);
+            problems.add(new ValidationResult.Builder().subject(subject)
+                    .input(schema)
+                    .valid(false)
+                    .explanation("Error while parsing the schema: " + e.getMessage())
+                    .build());
+            return problems;
+        }
+        return super.customValidate(context);
     }
 
     public CsvPreference getPreference(final ProcessContext context, final FlowFile flowFile) {
