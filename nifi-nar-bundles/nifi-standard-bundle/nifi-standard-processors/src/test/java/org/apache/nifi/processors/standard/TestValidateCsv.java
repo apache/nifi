@@ -264,7 +264,9 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
         runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
         runner.setProperty(ValidateCsv.HEADER, "false");
+        runner.assertNotValid();
 
+        // We
         runner.setProperty(ValidateCsv.SCHEMA, "RequireSubString(\"test\")");
         runner.assertNotValid();
 
