@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command;
 
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.api.Context;
 
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
 
@@ -65,8 +67,27 @@ public abstract class AbstractCommandGroup implements CommandGroup {
     }
 
     @Override
-    public void printUsage() {
-        commands.stream().forEach(c -> output.println("\t" + getName() + " " + c.getName()));
+    public void printUsage(final boolean verbose) {
+        if (verbose) {
+            final PrintWriter printWriter = new PrintWriter(output);
+
+            final int width = 80;
+            final HelpFormatter hf = new HelpFormatter();
+            hf.setWidth(width);
+
+            commands.stream().forEach(c -> {
+                hf.printWrapped(printWriter, width, "-------------------------------------------------------------------------------");
+                hf.printWrapped(printWriter, width, "COMMAND: " + getName() + " " + c.getName());
+                hf.printWrapped(printWriter, width, "");
+                hf.printWrapped(printWriter, width, "- " + c.getDescription());
+                hf.printWrapped(printWriter, width, "");
+            });
+
+            printWriter.flush();
+
+        } else {
+            commands.stream().forEach(c -> output.println("\t" + getName() + " " + c.getName()));
+        }
         output.flush();
     }
 

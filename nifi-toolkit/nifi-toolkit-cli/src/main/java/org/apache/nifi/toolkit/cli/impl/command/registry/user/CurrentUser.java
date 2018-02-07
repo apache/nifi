@@ -20,6 +20,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.UserClient;
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 
 import java.io.IOException;
@@ -35,9 +36,16 @@ public class CurrentUser extends AbstractNiFiRegistryCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns information about the user accessing NiFi Registry. " +
+                "This provides a way to test if the CLI is accessing NiFi Registry as the expected user.";
+    }
+
+    @Override
     protected void doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
         final UserClient userClient = client.getUserClient();
-        writeResult(properties, userClient.getAccessStatus());
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeCurrentUser(userClient.getAccessStatus(), getContext().getOutput());
     }
 }

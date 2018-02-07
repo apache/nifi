@@ -17,17 +17,17 @@
 package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 
 import org.apache.commons.cli.ParseException;
-import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
+import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
+import java.io.OutputStream;
 import java.util.Properties;
 
 public class ExportFlowVersion extends AbstractNiFiRegistryCommand {
@@ -41,6 +41,12 @@ public class ExportFlowVersion extends AbstractNiFiRegistryCommand {
         addOption(CommandOption.FLOW_ID.createOption());
         addOption(CommandOption.FLOW_VERSION.createOption());
         addOption(CommandOption.OUTPUT_FILE.createOption());
+    }
+
+    @Override
+    public String getDescription() {
+        return "Exports a specific version of a flow. The --" + CommandOption.OUTPUT_FILE.getLongName()
+                + " can be used to export to a file, otherwise the content will be written to terminal or standard out.";
     }
 
     @Override
@@ -66,25 +72,17 @@ public class ExportFlowVersion extends AbstractNiFiRegistryCommand {
         versionedFlowSnapshot.getSnapshotMetadata().setFlowIdentifier(null);
         versionedFlowSnapshot.getSnapshotMetadata().setLink(null);
 
-        writeResult(properties, versionedFlowSnapshot);
-    }
-
-    /*
-     * NOTE: This will bring back every item in the registry. We should create an end-point on the registry side
-     * to retrieve a flow by id and remove this later.
-     */
-    private String getBucketId(final NiFiRegistryClient client, final String flowId) throws IOException, NiFiRegistryException {
-        final List<BucketItem> items = client.getItemsClient().getAll();
-
-        final Optional<BucketItem> matchingItem = items.stream()
-                .filter(i ->  i.getIdentifier().equals(flowId))
-                .findFirst();
-
-        if (!matchingItem.isPresent()) {
-            throw new NiFiRegistryException("Versioned flow does not exist with id " + flowId);
+        // currently export doesn't use the ResultWriter concept, it always writes JSON
+        // destination will be a file if outputFile is specified, otherwise it will be the output stream of the CLI
+        if (properties.containsKey(CommandOption.OUTPUT_FILE.getLongName())) {
+            final String outputFile = properties.getProperty(CommandOption.OUTPUT_FILE.getLongName());
+            try (final OutputStream resultOut = new FileOutputStream(outputFile)) {
+                JacksonUtils.write(versionedFlowSnapshot, resultOut);
+            }
+        } else {
+            final OutputStream output = getContext().getOutput();
+            JacksonUtils.write(versionedFlowSnapshot, output);
         }
-
-        return matchingItem.get().getBucketIdentifier();
     }
 
 }

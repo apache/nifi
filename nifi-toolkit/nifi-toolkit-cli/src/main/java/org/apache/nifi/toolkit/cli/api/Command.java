@@ -37,6 +37,11 @@ public interface Command {
     String getName();
 
     /**
+     * @return the description of the command to be printed in help messages
+     */
+    String getDescription();
+
+    /**
      * @return the CLI options of the command
      */
     Options getOptions();

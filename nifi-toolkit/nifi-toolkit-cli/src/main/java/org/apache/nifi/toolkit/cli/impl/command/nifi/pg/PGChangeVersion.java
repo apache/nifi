@@ -44,6 +44,13 @@ public class PGChangeVersion extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Changes the version for a version controlled process group. " +
+                "This can be used to upgrade to a new version, or revert to a previous version. " +
+                "If no version is specified, the latest version will be used.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.FLOW_VERSION.createOption());
@@ -77,8 +84,11 @@ public class PGChangeVersion extends AbstractNiFiCommand {
         // update the version in the existing DTO to the new version so we can submit it back
         existingVersionControlDTO.setVersion(newVersion);
 
+        // initiate the version change which creates an update request that must be checked for completion
         final VersionedFlowUpdateRequestEntity initialUpdateRequest = versionsClient.updateVersionControlInfo(pgId, existingVersionControlInfo);
 
+        // poll the update request for up to 30 seconds to see if it has completed
+        // if it doesn't complete then an exception will be thrown, but in either case the request will be deleted
         final String updateRequestId = initialUpdateRequest.getRequest().getRequestId();
         try {
             boolean completed = false;
@@ -89,7 +99,10 @@ public class PGChangeVersion extends AbstractNiFiCommand {
                     break;
                 } else {
                     try {
-                        Thread.sleep(1000);
+                        if (getContext().isInteractive()) {
+                            println("Waiting for update request to complete...");
+                        }
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }

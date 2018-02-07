@@ -43,6 +43,6 @@ public interface CommandGroup {
     /**
      * Prints the usage for this group.
      */
-    void printUsage();
+    void printUsage(boolean verbose);
 
 }

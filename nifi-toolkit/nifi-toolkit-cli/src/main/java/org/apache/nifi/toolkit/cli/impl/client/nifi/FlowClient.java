@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.PgBox;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
@@ -52,12 +51,11 @@ public interface FlowClient {
     /**
      * Suggest a location for the new process group on a canvas, within a given process group.
      * Will locate to the right and then bottom and offset for the size of the PG box.
-     * @param parentId
-     * @return
-     * @throws NiFiClientException
-     * @throws IOException
+     *
+     * @param parentId the id of the parent process group where the new process group will be located
+     * @return the process group box where a new process group can be placed
      */
-    PgBox getSuggestedProcessGroupCoordinates(String parentId) throws NiFiClientException, IOException;
+    ProcessGroupBox getSuggestedProcessGroupCoordinates(String parentId) throws NiFiClientException, IOException;
 
     /**
      * Schedules the components of a process group.

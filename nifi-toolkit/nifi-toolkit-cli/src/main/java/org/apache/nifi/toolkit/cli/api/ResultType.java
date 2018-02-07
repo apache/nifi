@@ -16,26 +16,9 @@
  */
 package org.apache.nifi.toolkit.cli.api;
 
-import org.apache.nifi.registry.client.NiFiRegistryClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
+public enum ResultType {
 
-import java.io.PrintStream;
-
-/**
- * Context for the CLI which will be passed to each command.
- */
-public interface Context {
-
-    ClientFactory<NiFiClient> getNiFiClientFactory();
-
-    ClientFactory<NiFiRegistryClient> getNiFiRegistryClientFactory();
-
-    Session getSession();
-
-    PrintStream getOutput();
-
-    boolean isInteractive();
-
-    ResultWriter getResultWriter(ResultType resultType);
+    SIMPLE,
+    JSON;
 
 }

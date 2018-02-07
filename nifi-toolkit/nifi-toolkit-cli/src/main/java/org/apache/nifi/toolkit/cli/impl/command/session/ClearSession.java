@@ -28,6 +28,11 @@ public class ClearSession extends AbstractCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Clears all values in the session.";
+    }
+
+    @Override
     public void execute(final CommandLine cli) throws CommandException {
         try {
             getContext().getSession().clear();

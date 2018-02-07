@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.ParseException;
-import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -26,11 +26,10 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
+import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -40,6 +39,12 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand {
 
     public ImportFlowVersion() {
         super("import-flow-version");
+    }
+
+    @Override
+    public String getDescription() {
+        return "Imports a version of a flow that was previously exported. The imported version automatically becomes " +
+                "the next version of the given flow.";
     }
 
     @Override
@@ -57,7 +62,8 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand {
         try (final FileInputStream in = new FileInputStream(inputFile)) {
             final FlowSnapshotClient snapshotClient = client.getFlowSnapshotClient();
 
-            final VersionedFlowSnapshot deserializedSnapshot = MAPPER.readValue(in, VersionedFlowSnapshot.class);
+            final ObjectMapper objectMapper = JacksonUtils.getObjectMapper();
+            final VersionedFlowSnapshot deserializedSnapshot = objectMapper.readValue(in, VersionedFlowSnapshot.class);
             if (deserializedSnapshot == null) {
                 throw new IOException("Unable to deserialize flow version from " + inputFile);
             }
@@ -95,21 +101,4 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand {
         }
     }
 
-    /*
-     * NOTE: This will bring back every item in the registry. We should create an end-point on the registry side
-     * to retrieve a flow by id and remove this later.
-     */
-    private String getBucketId(final NiFiRegistryClient client, final String flowId) throws IOException, NiFiRegistryException {
-        final List<BucketItem> items = client.getItemsClient().getAll();
-
-        final Optional<BucketItem> matchingItem = items.stream()
-                .filter(i ->  i.getIdentifier().equals(flowId))
-                .findFirst();
-
-        if (!matchingItem.isPresent()) {
-            throw new NiFiRegistryException("Versioned flow does not exist with id " + flowId);
-        }
-
-        return matchingItem.get().getBucketIdentifier();
-    }
 }

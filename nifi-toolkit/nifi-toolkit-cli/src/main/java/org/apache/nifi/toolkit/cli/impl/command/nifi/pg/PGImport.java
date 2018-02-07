@@ -22,8 +22,8 @@ import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.PgBox;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -44,14 +44,18 @@ public class PGImport extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Creates a new process group by importing a versioned flow from a registry. If no process group id is " +
+                "specified, then the created process group will be placed in the root group.";
+    }
+
+    @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());
         addOption(CommandOption.BUCKET_ID.createOption());
         addOption(CommandOption.FLOW_ID.createOption());
         addOption(CommandOption.FLOW_VERSION.createOption());
-        addOption(CommandOption.POS_X.createOption());
-        addOption(CommandOption.POS_Y.createOption());
     }
 
     @Override
@@ -62,17 +66,6 @@ public class PGImport extends AbstractNiFiCommand {
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final Integer flowVersion = getRequiredIntArg(properties, CommandOption.FLOW_VERSION);
-
-        // TODO - do we actually want the client to deal with X/Y coordinates? drop the args from API?
-        Integer posX = getIntArg(properties, CommandOption.POS_X);
-        if (posX == null) {
-            posX = 0;
-        }
-
-        Integer posY = getIntArg(properties, CommandOption.POS_Y);
-        if (posY == null) {
-            posY = 0;
-        }
 
         // get the optional id of the parent PG, otherwise fallback to the root group
         String parentPgId = getArg(properties, CommandOption.PG_ID);
@@ -87,11 +80,11 @@ public class PGImport extends AbstractNiFiCommand {
         versionControlInfo.setFlowId(flowId);
         versionControlInfo.setVersion(flowVersion);
 
-        PgBox pgBox = client.getFlowClient().getSuggestedProcessGroupCoordinates(parentPgId);
+        final ProcessGroupBox pgBox = client.getFlowClient().getSuggestedProcessGroupCoordinates(parentPgId);
 
         final PositionDTO posDto = new PositionDTO();
-        posDto.setX(Integer.valueOf(pgBox.x).doubleValue());
-        posDto.setY(Integer.valueOf(pgBox.y).doubleValue());
+        posDto.setX(Integer.valueOf(pgBox.getX()).doubleValue());
+        posDto.setY(Integer.valueOf(pgBox.getY()).doubleValue());
 
         final ProcessGroupDTO pgDto = new ProcessGroupDTO();
         pgDto.setVersionControlInformation(versionControlInfo);

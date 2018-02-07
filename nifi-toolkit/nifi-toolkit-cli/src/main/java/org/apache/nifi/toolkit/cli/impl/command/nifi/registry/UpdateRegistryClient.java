@@ -40,6 +40,11 @@ public class UpdateRegistryClient extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Updates the given registry client with a new name, url, or description.";
+    }
+
+    @Override
     public void doInitialize(final Context context) {
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_NAME.createOption());

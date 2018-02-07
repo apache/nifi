@@ -38,6 +38,11 @@ public class CreateFlow extends AbstractNiFiRegistryCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Creates a flow in the given bucket with the given name and description.";
+    }
+
+    @Override
     public void doInitialize(final Context context) {
         addOption(CommandOption.BUCKET_ID.createOption());
         addOption(CommandOption.FLOW_NAME.createOption());
