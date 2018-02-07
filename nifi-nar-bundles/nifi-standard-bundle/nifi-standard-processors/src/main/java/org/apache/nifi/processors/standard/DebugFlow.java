@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.http.annotation.ThreadSafe;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -51,7 +50,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-@ThreadSafe()
 @EventDriven()
 @Tags({"test", "debug", "processor", "utility", "flow", "FlowFile"})
 @CapabilityDescription("The DebugFlow processor aids testing and debugging the FlowFile framework by allowing various "
