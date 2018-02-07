@@ -154,8 +154,7 @@ public class JMSPublisherConsumerTest {
         }
     }
 
-
-    @Test(timeout = 2000000)
+    @Test(timeout = 20000)
     public void testMultipleThreads() throws Exception {
         String destinationName = "testQueue";
         JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
