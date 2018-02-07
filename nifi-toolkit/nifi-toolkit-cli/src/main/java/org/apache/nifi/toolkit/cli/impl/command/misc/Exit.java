@@ -38,6 +38,11 @@ public class Exit implements Command {
     }
 
     @Override
+    public String getDescription() {
+        return "";
+    }
+
+    @Override
     public Options getOptions() {
         return new Options();
     }

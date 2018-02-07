@@ -21,6 +21,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
+import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -116,6 +117,74 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
                     .resolveTemplate("id", processGroupId);
 
             return getRequestBuilder(target).get(VariableRegistryEntity.class);
+        });
+    }
+
+    @Override
+    public VariableRegistryUpdateRequestEntity updateVariableRegistry(
+            final String processGroupId, final VariableRegistryEntity variableRegistryEntity)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (variableRegistryEntity == null) {
+            throw new IllegalArgumentException("Variable registry entity cannot be null");
+        }
+
+        return executeAction("Error getting variable registry update request", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{processGroupId}/variable-registry/update-requests")
+                    .resolveTemplate("processGroupId", processGroupId);
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(variableRegistryEntity, MediaType.APPLICATION_JSON_TYPE),
+                    VariableRegistryUpdateRequestEntity.class
+            );
+        });
+    }
+
+    @Override
+    public VariableRegistryUpdateRequestEntity getVariableRegistryUpdateRequest(
+            final String processGroupId, final String requestId) throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting variable registry update request", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{processGroupId}/variable-registry/update-requests/{updateId}")
+                    .resolveTemplate("processGroupId", processGroupId)
+                    .resolveTemplate("updateId", requestId);
+
+            return getRequestBuilder(target).get(VariableRegistryUpdateRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VariableRegistryUpdateRequestEntity deleteVariableRegistryUpdateRequest(
+            final String processGroupId, final String requestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting variable registry update request", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{processGroupId}/variable-registry/update-requests/{updateId}")
+                    .resolveTemplate("processGroupId", processGroupId)
+                    .resolveTemplate("updateId", requestId);
+
+            return getRequestBuilder(target).delete(VariableRegistryUpdateRequestEntity.class);
         });
     }
 }

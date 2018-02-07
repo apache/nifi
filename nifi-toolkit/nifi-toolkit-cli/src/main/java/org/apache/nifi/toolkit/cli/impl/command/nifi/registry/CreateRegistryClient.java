@@ -38,6 +38,11 @@ public class CreateRegistryClient extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Creates a registry client using the provided information.";
+    }
+
+    @Override
     public void doInitialize(final Context context) {
         addOption(CommandOption.REGISTRY_CLIENT_NAME.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_URL.createOption());

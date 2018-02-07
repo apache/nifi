@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
@@ -29,10 +24,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Properties;
@@ -41,16 +35,6 @@ import java.util.Properties;
  * Base class for all commands.
  */
 public abstract class AbstractCommand implements Command {
-
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
-    static {
-        MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        MAPPER.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
-        MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector(MAPPER.getTypeFactory()));
-        MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    }
-
-    protected static final ObjectWriter OBJECT_WRITER = MAPPER.writerWithDefaultPrettyPrinter();
 
     private final String name;
     private final Options options;
@@ -78,6 +62,7 @@ public abstract class AbstractCommand implements Command {
 
         this.options.addOption(CommandOption.PROXIED_ENTITY.createOption());
 
+        this.options.addOption(CommandOption.OUTPUT_TYPE.createOption());
         this.options.addOption(CommandOption.VERBOSE.createOption());
         this.options.addOption(CommandOption.HELP.createOption());
     }
@@ -124,8 +109,13 @@ public abstract class AbstractCommand implements Command {
 
         final PrintWriter printWriter = new PrintWriter(output);
 
+        final int width = 160;
         final HelpFormatter hf = new HelpFormatter();
-        hf.setWidth(160);
+        hf.setWidth(width);
+
+        hf.printWrapped(printWriter, width, getDescription());
+        hf.printWrapped(printWriter, width, "");
+
         hf.printHelp(printWriter, hf.getWidth(), getName(), null, getOptions(),
                 hf.getLeftPadding(), hf.getDescPadding(), null, false);
 
@@ -146,37 +136,24 @@ public abstract class AbstractCommand implements Command {
         output.println();
     }
 
-    protected void writeResult(final Properties properties, final Object result) throws IOException {
-        if (properties.containsKey(CommandOption.OUTPUT_FILE.getLongName())) {
-            final String outputFile = properties.getProperty(CommandOption.OUTPUT_FILE.getLongName());
-            try (final OutputStream resultOut = new FileOutputStream(outputFile)) {
-                OBJECT_WRITER.writeValue(resultOut, result);
-            }
+    protected ResultWriter getResultWriter(final Properties properties) {
+        final ResultType resultType = getResultType(properties);
+        return context.getResultWriter(resultType);
+    }
+
+    protected ResultType getResultType(final Properties properties) {
+        final ResultType resultType;
+        if (properties.containsKey(CommandOption.OUTPUT_TYPE.getLongName())) {
+            final String outputTypeValue = properties.getProperty(CommandOption.OUTPUT_TYPE.getLongName());
+            resultType = ResultType.valueOf(outputTypeValue.toUpperCase());
         } else {
-            OBJECT_WRITER.writeValue(new OutputStream() {
-                @Override
-                public void write(byte[] b) throws IOException {
-                    output.write(b);
-                }
-
-                @Override
-                public void write(byte[] b, int off, int len) throws IOException {
-                    output.write(b, off, len);
-                }
-
-                @Override
-                public void write(int b) throws IOException {
-                    output.write(b);
-                }
-
-                @Override
-                public void close() throws IOException {
-                    // DON'T close the output stream here
-                    output.flush();
-                }
-            }, result);
+            if (getContext().isInteractive()) {
+                resultType = ResultType.SIMPLE;
+            } else {
+                resultType = ResultType.JSON;
+            }
         }
-
+        return resultType;
     }
 
     protected String getArg(final Properties properties, final CommandOption option) {

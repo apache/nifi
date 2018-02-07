@@ -39,6 +39,11 @@ public class PGStop extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Stops the given process group which stops any running components in the given group.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }

@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
@@ -38,6 +39,11 @@ public class PGGetVersion extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the current version information for a version controlled process group.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }
@@ -50,7 +56,9 @@ public class PGGetVersion extends AbstractNiFiCommand {
         if (entity.getVersionControlInformation() == null) {
             throw new NiFiClientException("Process group is not under version control");
         }
-        writeResult(properties, entity);
+
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeVersionControlInfo(entity, getContext().getOutput());
     }
 
 }

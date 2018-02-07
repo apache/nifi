@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.command.registry;
 
 import org.apache.commons.cli.ParseException;
+import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
@@ -25,6 +26,8 @@ import org.apache.nifi.toolkit.cli.impl.command.AbstractPropertyCommand;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariables;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -59,5 +62,23 @@ public abstract class AbstractNiFiRegistryCommand extends AbstractPropertyComman
      */
     protected abstract void doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException;
+
+    /*
+     * NOTE: This will bring back every item in the registry. We should create an end-point on the registry side
+     * to retrieve a flow by id and remove this later.
+     */
+    protected String getBucketId(final NiFiRegistryClient client, final String flowId) throws IOException, NiFiRegistryException {
+        final List<BucketItem> items = client.getItemsClient().getAll();
+
+        final Optional<BucketItem> matchingItem = items.stream()
+                .filter(i ->  i.getIdentifier().equals(flowId))
+                .findFirst();
+
+        if (!matchingItem.isPresent()) {
+            throw new NiFiRegistryException("Versioned flow does not exist with id " + flowId);
+        }
+
+        return matchingItem.get().getBucketIdentifier();
+    }
 
 }

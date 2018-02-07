@@ -34,6 +34,11 @@ public class GetRootId extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the id of the root process group of the given NiFi instance.";
+    }
+
+    @Override
     protected void doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();

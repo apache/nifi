@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -39,6 +40,10 @@ public class PGGetAllVersions extends AbstractNiFiCommand {
 
     public PGGetAllVersions() {
         super("pg-get-all-versions");
+    }
+    @Override
+    public String getDescription() {
+        return "Returns all of the available versions for a version controlled process group.";
     }
 
     @Override
@@ -70,6 +75,8 @@ public class PGGetAllVersions extends AbstractNiFiCommand {
             throw new NiFiClientException("No versions available");
         }
 
-        writeResult(properties, versions);
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeSnapshotMetadata(versions, getContext().getOutput());
     }
+
 }

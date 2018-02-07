@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
-import com.jayway.jsonpath.JsonPath;
-import net.minidev.json.JSONArray;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
+import org.apache.nifi.web.api.dto.PositionDTO;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
@@ -29,12 +32,12 @@ import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -85,38 +88,35 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
-    public PgBox getSuggestedProcessGroupCoordinates(String parentId) throws NiFiClientException, IOException {
+    public ProcessGroupBox getSuggestedProcessGroupCoordinates(final String parentId) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(parentId)) {
             throw new IllegalArgumentException("Process group id cannot be null");
         }
 
-        return executeAction("Error retrieving process group flow", () -> {
-            final WebTarget target = flowTarget
-                    .path("process-groups/{id}")
-                    .resolveTemplate("id", parentId);
+        final ProcessGroupFlowEntity processGroup = getProcessGroup(parentId);
+        final ProcessGroupFlowDTO processGroupFlowDTO = processGroup.getProcessGroupFlow();
+        final FlowDTO flowDTO = processGroupFlowDTO.getFlow();
 
-            Response response = getRequestBuilder(target).get();
+        final List<ComponentEntity> pgComponents = new ArrayList<>();
+        pgComponents.addAll(flowDTO.getProcessGroups());
+        pgComponents.addAll(flowDTO.getProcessors());
+        pgComponents.addAll(flowDTO.getRemoteProcessGroups());
+        pgComponents.addAll(flowDTO.getConnections());
+        pgComponents.addAll(flowDTO.getFunnels());
+        pgComponents.addAll(flowDTO.getInputPorts());
+        pgComponents.addAll(flowDTO.getOutputPorts());
+        pgComponents.addAll(flowDTO.getLabels());
 
-            String json = response.readEntity(String.class);
+        final Set<PositionDTO> positions = pgComponents.stream()
+                .map(c -> c.getPosition())
+                .collect(Collectors.toSet());
 
-            JSONArray jsonArray = JsonPath.compile("$..position").read(json);
+        final List<ProcessGroupBox> coords = positions.stream()
+                .map(p -> new ProcessGroupBox(p.getX().intValue(), p.getY().intValue()))
+                .collect(Collectors.toList());
 
-            if (jsonArray.isEmpty()) {
-                // it's an empty nifi canvas, nice to align
-                return PgBox.CANVAS_CENTER;
-            }
-
-            List<PgBox> coords = new HashSet<>(jsonArray) // de-dup the initial set
-                    .stream().map(Map.class::cast)
-                    .map(m -> new PgBox(Double.valueOf(m.get("x").toString()).intValue(),
-                                         Double.valueOf(m.get("y").toString()).intValue()))
-                    .collect(Collectors.toList());
-
-            PgBox freeSpot = coords.get(0).findFreeSpace(coords);
-
-            return freeSpot;
-        });
-
+        final ProcessGroupBox freeSpot = coords.get(0).findFreeSpace(coords);
+        return freeSpot;
     }
 
     @Override

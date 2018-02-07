@@ -31,6 +31,11 @@ public class ShowKeys extends AbstractCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the available variable names that can be set in the session.";
+    }
+
+    @Override
     public void execute(CommandLine cli) throws CommandException {
         println();
         for (final SessionVariables variable : SessionVariables.values()) {

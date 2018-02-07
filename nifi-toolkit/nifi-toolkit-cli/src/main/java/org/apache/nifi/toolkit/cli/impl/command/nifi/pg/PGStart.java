@@ -39,6 +39,11 @@ public class PGStart extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Starts the given process group which starts any enabled and valid components contained in that group.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }

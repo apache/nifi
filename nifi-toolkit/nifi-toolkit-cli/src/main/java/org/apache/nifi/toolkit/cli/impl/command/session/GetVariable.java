@@ -33,6 +33,11 @@ public class GetVariable extends AbstractCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the value of the given variable in the session.";
+    }
+
+    @Override
     public void execute(final CommandLine commandLine) throws CommandException {
         final String[] args = commandLine.getArgs();
 

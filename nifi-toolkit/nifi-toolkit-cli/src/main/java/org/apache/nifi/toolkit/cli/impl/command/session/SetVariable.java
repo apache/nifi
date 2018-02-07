@@ -34,6 +34,12 @@ public class SetVariable extends AbstractCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Sets the given variable in the session. " +
+                "Use the 'keys' command to show the variable names that are supported.";
+    }
+
+    @Override
     public void execute(final CommandLine commandLine) throws CommandException {
         final String[] args = commandLine.getArgs();
 
