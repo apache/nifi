@@ -217,48 +217,45 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
 
     private int processBins(final ProcessContext context) {
-        final Bin bin = readyBins.poll();
-        if (bin == null) {
-            return 0;
-        }
-
-        final List<Bin> bins = new ArrayList<>();
-        bins.add(bin);
-
         final ComponentLog logger = getLogger();
+        int processedBins = 0;
+        Bin bin;
+        while ((bin = readyBins.poll()) != null) {
+            boolean binAlreadyCommitted;
+            try {
+                binAlreadyCommitted = this.processBin(bin, context);
+            } catch (final ProcessException e) {
+                logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
 
-        boolean binAlreadyCommitted = false;
-        try {
-            binAlreadyCommitted = this.processBin(bin, context);
-        } catch (final ProcessException e) {
-            logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
+                final ProcessSession binSession = bin.getSession();
+                for (final FlowFile flowFile : bin.getContents()) {
+                    binSession.transfer(flowFile, REL_FAILURE);
+                }
+                binSession.commit();
+                continue;
+            } catch (final Exception e) {
+                logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
 
-            final ProcessSession binSession = bin.getSession();
-            for (final FlowFile flowFile : bin.getContents()) {
-                binSession.transfer(flowFile, REL_FAILURE);
+                bin.getSession().rollback();
+                continue;
             }
-            binSession.commit();
-            return 1;
-        } catch (final Exception e) {
-            logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
 
-            bin.getSession().rollback();
-            return 1;
+            // If this bin's session has been committed, move on.
+            if (!binAlreadyCommitted) {
+                final ProcessSession binSession = bin.getSession();
+                binSession.transfer(bin.getContents(), REL_ORIGINAL);
+                binSession.commit();
+            }
+
+            processedBins++;
         }
 
-        // If this bin's session has been committed, move on.
-        if (!binAlreadyCommitted) {
-            final ProcessSession binSession = bin.getSession();
-            binSession.transfer(bin.getContents(), REL_ORIGINAL);
-            binSession.commit();
-        }
-
-        return 1;
+        return processedBins;
     }
 
     private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         int flowFilesBinned = 0;
-        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger().intValue()) {
+        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger()) {
             if (!isScheduled()) {
                 break;
             }
@@ -290,6 +287,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                     bin.offer(flowFile, session);
                     this.readyBins.add(bin);
                 }
+                flowFilesBinned += entry.getValue().size();
             }
         }
 
