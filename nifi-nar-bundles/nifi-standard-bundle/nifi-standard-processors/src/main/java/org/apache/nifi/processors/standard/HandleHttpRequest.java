@@ -485,7 +485,15 @@ public class HandleHttpRequest extends AbstractProcessor {
             }
         } catch (Exception e) {
             context.yield();
-            throw new ProcessException("Failed to initialize the server",e);
+
+            try {
+                // shutdown to release any resources allocated during the failed initialization
+                shutdown();
+            } catch (final Exception shutdownException) {
+                getLogger().debug("Failed to shutdown following a failed initialization: " + shutdownException);
+            }
+
+            throw new ProcessException("Failed to initialize the server", e);
         }
 
         HttpRequestContainer container;
