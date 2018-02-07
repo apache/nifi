@@ -17,6 +17,7 @@
 package org.apache.nifi.jms.processors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -73,12 +74,17 @@ public class JMSPublisherConsumerTest {
             JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             Map<String, String> flowFileAttributes = new HashMap<>();
             flowFileAttributes.put("foo", "foo");
+            flowFileAttributes.put("illegal-property", "value");
+            flowFileAttributes.put("another.illegal", "value");
             flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
+            flowFileAttributes.put(JmsHeaders.EXPIRATION, "never"); // value expected to be integer, make sure non-integer doesn't cause problems
             publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
             assertTrue(receivedMessage instanceof BytesMessage);
             assertEquals("foo", receivedMessage.getStringProperty("foo"));
+            assertFalse(receivedMessage.propertyExists("illegal-property"));
+            assertFalse(receivedMessage.propertyExists("another.illegal"));
             assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
             assertEquals("myTopic", ((Topic) receivedMessage.getJMSReplyTo()).getTopicName());
 

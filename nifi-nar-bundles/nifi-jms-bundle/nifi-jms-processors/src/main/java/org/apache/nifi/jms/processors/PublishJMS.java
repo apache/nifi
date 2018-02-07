@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.jms.processors;
 
+import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,6 +25,7 @@ import java.util.Set;
 import javax.jms.Destination;
 import javax.jms.Message;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -53,7 +56,8 @@ import org.springframework.jms.support.JmsHeaders;
 @Tags({ "jms", "put", "message", "send", "publish" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Creates a JMS Message from the contents of a FlowFile and sends it to a "
-        + "JMS Destination (queue or topic) as JMS BytesMessage. FlowFile attributes will be added as JMS headers and/or properties to the outgoing JMS message.")
+        + "JMS Destination (queue or topic) as JMS BytesMessage or TextMessage. "
+        + "FlowFile attributes will be added as JMS headers and/or properties to the outgoing JMS message.")
 @SeeAlso(value = { ConsumeJMS.class, JMSConnectionFactoryProvider.class })
 public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
@@ -96,7 +100,15 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         if (flowFile != null) {
             try {
                 String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
-                publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes());
+                switch (context.getProperty(MESSAGE_BODY).getValue()) {
+                    case TEXT_MESSAGE:
+                        publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession), flowFile.getAttributes());
+                        break;
+                    case BYTES_MESSAGE:
+                    default:
+                        publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes());
+                        break;
+                }
                 processSession.transfer(flowFile, REL_SUCCESS);
                 processSession.getProvenanceReporter().send(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             } catch (Exception e) {
@@ -130,5 +142,11 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         final byte[] messageContent = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;
+    }
+
+    private String extractTextMessageBody(FlowFile flowFile, ProcessSession session) {
+        final StringWriter writer = new StringWriter();
+        session.read(flowFile, in -> IOUtils.copy(in, writer, Charset.defaultCharset()));
+        return writer.toString();
     }
 }

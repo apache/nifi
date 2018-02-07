@@ -51,6 +51,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
     static final String QUEUE = "QUEUE";
     static final String TOPIC = "TOPIC";
+    static final String TEXT_MESSAGE = "text";
+    static final String BYTES_MESSAGE = "bytes";
 
     static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
             .name("User Name")
@@ -96,6 +98,13 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
+    static final PropertyDescriptor MESSAGE_BODY = new PropertyDescriptor.Builder()
+            .name("Message Body Type")
+            .description("The type of JMS message body to construct. When using a text message, the flowfile will be converted using the JVM default character encoding.")
+            .required(true)
+            .defaultValue(BYTES_MESSAGE)
+            .allowableValues(BYTES_MESSAGE, TEXT_MESSAGE)
+            .build();
 
 
     static final PropertyDescriptor CF_SERVICE = new PropertyDescriptor.Builder()
@@ -117,6 +126,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         propertyDescriptors.add(PASSWORD);
         propertyDescriptors.add(CLIENT_ID);
         propertyDescriptors.add(SESSION_CACHE_SIZE);
+        propertyDescriptors.add(MESSAGE_BODY);
     }
 
     @Override
