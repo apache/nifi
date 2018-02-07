@@ -19,7 +19,6 @@ package org.apache.nifi.avro;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -472,7 +471,7 @@ public class AvroTypeUtil {
 
     /**
      * Convert a raw value to an Avro object to serialize in Avro type system.
-     * The counter-part method which reads an Avro object back to a raw value is {@link #normalizeValue(Object, Schema)}.
+     * The counter-part method which reads an Avro object back to a raw value is {@link #normalizeValue(Object, Schema, String)}.
      */
     public static Object convertToAvroObject(final Object rawValue, final Schema fieldSchema) {
         return convertToAvroObject(rawValue, fieldSchema, fieldSchema.getName());
@@ -531,18 +530,18 @@ public class AvroTypeUtil {
                 final LogicalType logicalType = fieldSchema.getLogicalType();
                 if (logicalType != null && LOGICAL_TYPE_DECIMAL.equals(logicalType.getName())) {
                     final LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
-                    final BigDecimal decimal;
+                    final BigDecimal rawDecimal;
                     if (rawValue instanceof BigDecimal) {
-                        final BigDecimal rawDecimal = (BigDecimal) rawValue;
-                        final int desiredScale = decimalType.getScale();
-                        // If the desired scale is different than this value's coerce scale.
-                        decimal = rawDecimal.scale() == desiredScale ? rawDecimal : rawDecimal.setScale(desiredScale, BigDecimal.ROUND_HALF_UP);
+                        rawDecimal = (BigDecimal) rawValue;
                     } else if (rawValue instanceof Double) {
-                        // Scale is adjusted based on precision. If double was 123.456 and precision is 5, then decimal would be 123.46.
-                        decimal = new BigDecimal((Double) rawValue, new MathContext(decimalType.getPrecision()));
+                        rawDecimal = BigDecimal.valueOf((Double) rawValue);
                     } else {
                         throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a logical decimal");
                     }
+                    // If the desired scale is different than this value's coerce scale.
+                    final int desiredScale = decimalType.getScale();
+                    final BigDecimal decimal = rawDecimal.scale() == desiredScale
+                            ? rawDecimal : rawDecimal.setScale(desiredScale, BigDecimal.ROUND_HALF_UP);
                     return new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType);
                 }
                 if (rawValue instanceof byte[]) {
