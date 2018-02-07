@@ -44,66 +44,34 @@
              * Zoom in on the canvas.
              */
             this.zoomIn = function () {
-                nfCanvasUtils.zoomCanvasViewIn();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                nfCanvasUtils.zoomInCanvas();
             };
 
             /**
              * Zoom out on the canvas.
              */
             this.zoomOut = function () {
-                nfCanvasUtils.zoomCanvasViewOut();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                nfCanvasUtils.zoomOutCanvas();
             };
 
             /**
              * Zoom fit on the canvas.
              */
             this.zoomFit = function () {
-                nfCanvasUtils.fitCanvasView();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                nfCanvasUtils.fitCanvas();
             };
 
             /**
              * Zoom actual size on the canvas.
              */
             this.zoomActualSize = function () {
-                nfCanvasUtils.actualSizeCanvasView();
-
-                // hide the context menu
-                nfContextMenu.hide();
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
+                nfCanvasUtils.actualSizeCanvas();
             };
         }
 
         NavigateCtrl.prototype = {
             constructor: NavigateCtrl
-        }
+        };
 
         var navigateCtrl = new NavigateCtrl();
         return navigateCtrl;

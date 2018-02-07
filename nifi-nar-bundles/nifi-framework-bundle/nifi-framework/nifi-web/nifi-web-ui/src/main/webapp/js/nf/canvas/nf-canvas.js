@@ -91,7 +91,6 @@
     var canvas = null;
 
     var canvasClicked = false;
-    var panning = false;
 
     var config = {
         urls: {
@@ -305,7 +304,7 @@
             defs.selectAll('marker')
                 .data(['normal', 'ghost', 'unauthorized', 'full'])
                 .enter().append('marker')
-                .attr({
+                .attrs({
                     'id': function (d) {
                         return d;
                     },
@@ -332,7 +331,7 @@
 
             // filter for drop shadow
             var componentDropShadowFilter = defs.append('filter')
-                .attr({
+                .attrs({
                     'id': 'component-drop-shadow',
                     'height': '140%',
                     'y': '-20%'
@@ -340,7 +339,7 @@
 
             // blur
             componentDropShadowFilter.append('feGaussianBlur')
-                .attr({
+                .attrs({
                     'in': 'SourceAlpha',
                     'stdDeviation': 3,
                     'result': 'blur'
@@ -348,7 +347,7 @@
 
             // offset
             componentDropShadowFilter.append('feOffset')
-                .attr({
+                .attrs({
                     'in': 'blur',
                     'dx': 0,
                     'dy': 1,
@@ -357,7 +356,7 @@
 
             // color/opacity
             componentDropShadowFilter.append('feFlood')
-                .attr({
+                .attrs({
                     'flood-color': '#000000',
                     'flood-opacity': 0.4,
                     'result': 'offsetColor'
@@ -365,7 +364,7 @@
 
             // combine
             componentDropShadowFilter.append('feComposite')
-                .attr({
+                .attrs({
                     'in': 'offsetColor',
                     'in2': 'offsetBlur',
                     'operator': 'in',
@@ -381,7 +380,7 @@
 
             // filter for drop shadow
             var connectionFullDropShadowFilter = defs.append('filter')
-                .attr({
+                .attrs({
                     'id': 'connection-full-drop-shadow',
                     'height': '140%',
                     'y': '-20%'
@@ -389,7 +388,7 @@
 
             // blur
             connectionFullDropShadowFilter.append('feGaussianBlur')
-                .attr({
+                .attrs({
                     'in': 'SourceAlpha',
                     'stdDeviation': 3,
                     'result': 'blur'
@@ -397,7 +396,7 @@
 
             // offset
             connectionFullDropShadowFilter.append('feOffset')
-                .attr({
+                .attrs({
                     'in': 'blur',
                     'dx': 0,
                     'dy': 1,
@@ -406,7 +405,7 @@
 
             // color/opacity
             connectionFullDropShadowFilter.append('feFlood')
-                .attr({
+                .attrs({
                     'flood-color': '#ba554a',
                     'flood-opacity': 1,
                     'result': 'offsetColor'
@@ -414,7 +413,7 @@
 
             // combine
             connectionFullDropShadowFilter.append('feComposite')
-                .attr({
+                .attrs({
                     'in': 'offsetColor',
                     'in2': 'offsetBlur',
                     'operator': 'in',
@@ -430,7 +429,7 @@
 
             // create the canvas element
             canvas = svg.append('g')
-                .attr({
+                .attrs({
                     'transform': 'translate(' + TRANSLATE + ') scale(' + SCALE + ')',
                     'pointer-events': 'all',
                     'id': 'canvas'
@@ -455,14 +454,14 @@
                         .attr('ry', 6)
                         .attr('x', position[0])
                         .attr('y', position[1])
-                        .attr('class', 'selection')
+                        .attr('class', 'component-selection')
                         .attr('width', 0)
                         .attr('height', 0)
                         .attr('stroke-width', function () {
-                            return 1 / nfCanvas.View.scale();
+                            return 1 / nfCanvas.View.getScale();
                         })
                         .attr('stroke-dasharray', function () {
-                            return 4 / nfCanvas.View.scale();
+                            return 4 / nfCanvas.View.getScale();
                         })
                         .datum(position);
 
@@ -474,106 +473,100 @@
                     d3.event.preventDefault();
                 }
             })
-                .on('mousemove.selection', function () {
-                    // update selection box if shift is held down
-                    if (d3.event.shiftKey) {
-                        // get the selection box
-                        var selectionBox = d3.select('rect.selection');
-                        if (!selectionBox.empty()) {
-                            // get the original position
-                            var originalPosition = selectionBox.datum();
-                            var position = d3.mouse(canvas.node());
-
-                            var d = {};
-                            if (originalPosition[0] < position[0]) {
-                                d.x = originalPosition[0];
-                                d.width = position[0] - originalPosition[0];
-                            } else {
-                                d.x = position[0];
-                                d.width = originalPosition[0] - position[0];
-                            }
-
-                            if (originalPosition[1] < position[1]) {
-                                d.y = originalPosition[1];
-                                d.height = position[1] - originalPosition[1];
-                            } else {
-                                d.y = position[1];
-                                d.height = originalPosition[1] - position[1];
-                            }
-
-                            // update the selection box
-                            selectionBox.attr(d);
-
-                            // prevent further propagation (to parents)
-                            d3.event.stopPropagation();
-                        }
-                    }
-                })
-                .on('mouseup.selection', function () {
-                    // ensure this originated from clicking the canvas, not a component.
-                    // when clicking on a component, the event propagation is stopped so
-                    // it never reaches the canvas. we cannot do this however on up events
-                    // since the drag events break down
-                    if (canvasClicked === false) {
-                        return;
-                    }
-
-                    // reset the canvas click flag
-                    canvasClicked = false;
-
+            .on('mousemove.selection', function () {
+                // update selection box if shift is held down
+                if (d3.event.shiftKey) {
                     // get the selection box
-                    var selectionBox = d3.select('rect.selection');
+                    var selectionBox = d3.select('rect.component-selection');
                     if (!selectionBox.empty()) {
-                        var selectionBoundingBox = {
-                            x: parseInt(selectionBox.attr('x'), 10),
-                            y: parseInt(selectionBox.attr('y'), 10),
-                            width: parseInt(selectionBox.attr('width'), 10),
-                            height: parseInt(selectionBox.attr('height'), 10)
-                        };
+                        // get the original position
+                        var originalPosition = selectionBox.datum();
+                        var position = d3.mouse(canvas.node());
 
-                        // see if a component should be selected or not
-                        d3.selectAll('g.component').classed('selected', function (d) {
-                            // consider it selected if its already selected or enclosed in the bounding box
-                            return d3.select(this).classed('selected') ||
-                                d.position.x >= selectionBoundingBox.x && (d.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
-                                d.position.y >= selectionBoundingBox.y && (d.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
-                        });
+                        var d = {};
+                        if (originalPosition[0] < position[0]) {
+                            d.x = originalPosition[0];
+                            d.width = position[0] - originalPosition[0];
+                        } else {
+                            d.x = position[0];
+                            d.width = originalPosition[0] - position[0];
+                        }
 
-                        // see if a connection should be selected or not
-                        d3.selectAll('g.connection').classed('selected', function (d) {
-                            // consider all points
-                            var points = [d.start].concat(d.bends, [d.end]);
+                        if (originalPosition[1] < position[1]) {
+                            d.y = originalPosition[1];
+                            d.height = position[1] - originalPosition[1];
+                        } else {
+                            d.y = position[1];
+                            d.height = originalPosition[1] - position[1];
+                        }
 
-                            // determine the bounding box
-                            var x = d3.extent(points, function (pt) {
-                                return pt.x;
-                            });
-                            var y = d3.extent(points, function (pt) {
-                                return pt.y;
-                            });
+                        // update the selection box
+                        selectionBox.attrs(d);
 
-                            // consider it selected if its already selected or enclosed in the bounding box
-                            return d3.select(this).classed('selected') ||
-                                x[0] >= selectionBoundingBox.x && x[1] <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
-                                y[0] >= selectionBoundingBox.y && y[1] <= (selectionBoundingBox.y + selectionBoundingBox.height);
-                        });
-
-                        // remove the selection box
-                        selectionBox.remove();
-
-                        // update URL deep linking params
-                        nfCanvasUtils.setURLParameters();
-                    } else if (panning === false) {
-                        // deselect as necessary if we are not panning
-                        nfCanvasUtils.getSelection().classed('selected', false);
-
-                        // update URL deep linking params
-                        nfCanvasUtils.setURLParameters();
+                        // prevent further propagation (to parents)
+                        d3.event.stopPropagation();
                     }
+                }
+            })
+            .on('mouseup.selection', function () {
+                // ensure this originated from clicking the canvas, not a component.
+                // when clicking on a component, the event propagation is stopped so
+                // it never reaches the canvas. we cannot do this however on up events
+                // since the drag events break down
+                if (canvasClicked === false) {
+                    return;
+                }
 
-                    // inform Angular app values have changed
-                    nfNgBridge.digest();
-                });
+                // reset the canvas click flag
+                canvasClicked = false;
+
+                // get the selection box
+                var selectionBox = d3.select('rect.component-selection');
+                if (!selectionBox.empty()) {
+                    var selectionBoundingBox = {
+                        x: parseInt(selectionBox.attr('x'), 10),
+                        y: parseInt(selectionBox.attr('y'), 10),
+                        width: parseInt(selectionBox.attr('width'), 10),
+                        height: parseInt(selectionBox.attr('height'), 10)
+                    };
+
+                    // see if a component should be selected or not
+                    d3.selectAll('g.component').classed('selected', function (d) {
+                        // consider it selected if its already selected or enclosed in the bounding box
+                        return d3.select(this).classed('selected') ||
+                            d.position.x >= selectionBoundingBox.x && (d.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
+                            d.position.y >= selectionBoundingBox.y && (d.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
+                    });
+
+                    // see if a connection should be selected or not
+                    d3.selectAll('g.connection').classed('selected', function (d) {
+                        // consider all points
+                        var points = [d.start].concat(d.bends, [d.end]);
+
+                        // determine the bounding box
+                        var x = d3.extent(points, function (pt) {
+                            return pt.x;
+                        });
+                        var y = d3.extent(points, function (pt) {
+                            return pt.y;
+                        });
+
+                        // consider it selected if its already selected or enclosed in the bounding box
+                        return d3.select(this).classed('selected') ||
+                            x[0] >= selectionBoundingBox.x && x[1] <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
+                            y[0] >= selectionBoundingBox.y && y[1] <= (selectionBoundingBox.y + selectionBoundingBox.height);
+                    });
+
+                    // remove the selection box
+                    selectionBox.remove();
+
+                    // update URL deep linking params
+                    nfCanvasUtils.setURLParameters();
+                }
+
+                // inform Angular app values have changed
+                nfNgBridge.digest();
+            });
 
             // define a function for update the graph dimensions
             var updateGraphSize = function () {
@@ -594,7 +587,7 @@
                     'height': canvasHeight + 'px',
                     'bottom': bottom + 'px'
                 });
-                svg.attr({
+                svg.attrs({
                     'height': canvasContainer.height(),
                     'width': $(window).width()
                 });
@@ -972,22 +965,63 @@
 
             // initialize the zoom behavior
             var behavior;
+            var x = 0, y = 0, k = SCALE;
 
             return {
+
                 init: function () {
                     var refreshed;
+
                     var zoomed = false;
+                    var panning = false;
+
+                    // filters zoom events as programmatically modifying the translate or scale now triggers the handlers
+                    var isBirdseyeEvent = function(sourceEvent) {
+                        if (nfCommon.isDefinedAndNotNull(sourceEvent)) {
+                            if (nfCommon.isDefinedAndNotNull(sourceEvent.subject)) {
+                                return sourceEvent.subject.source === 'birdseye';
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    };
+
+                    // see if the scale has changed during this zoom event,
+                    // we want to only transition when zooming in/out as running
+                    // the transitions during pan events is undesirable
+                    var shouldTransition = function(sourceEvent) {
+                        if (nfCommon.isDefinedAndNotNull(sourceEvent)) {
+                            if (isBirdseyeEvent(sourceEvent)) {
+                                return false;
+                            }
+
+                            return sourceEvent.type === 'wheel' || sourceEvent.type === 'mousewheel';
+                        } else {
+                            return true;
+                        }
+                    };
 
                     // define the behavior
-                    behavior = d3.behavior.zoom()
+                    behavior = d3.zoom()
                         .scaleExtent([MIN_SCALE, MAX_SCALE])
-                        .translate(TRANSLATE)
-                        .scale(SCALE)
-                        .on('zoomstart', function () {
+                        .on('start', function () {
                             // hide the context menu
                             nfContextMenu.hide();
                         })
                         .on('zoom', function () {
+                            // update the current translation and scale
+                            if (!isNaN(d3.event.transform.x)) {
+                                x = d3.event.transform.x;
+                            }
+                            if (!isNaN(d3.event.transform.y)) {
+                                y = d3.event.transform.y;
+                            }
+                            if (!isNaN(d3.event.transform.k)) {
+                                k = d3.event.transform.k;
+                            }
+
                             // if we have zoomed, indicate that we are panning
                             // to prevent deselection elsewhere
                             if (zoomed) {
@@ -996,34 +1030,39 @@
                                 zoomed = true;
                             }
 
-                            // see if the scale has changed during this zoom event,
-                            // we want to only transition when zooming in/out as running
-                            // the transitions during pan events is
-                            var transition = d3.event.sourceEvent.type === 'wheel' || d3.event.sourceEvent.type === 'mousewheel';
-
                             // refresh the canvas
                             refreshed = nfCanvas.View.refresh({
                                 persist: false,
-                                transition: transition,
+                                transition: shouldTransition(d3.event.sourceEvent),
                                 refreshComponents: false,
                                 refreshBirdseye: false
                             });
                         })
-                        .on('zoomend', function () {
-                            // ensure the canvas was actually refreshed
-                            if (nfCommon.isDefinedAndNotNull(refreshed)) {
-                                nfGraph.updateVisibility();
+                        .on('end', function () {
+                            if (!isBirdseyeEvent(d3.event.sourceEvent)) {
+                                // ensure the canvas was actually refreshed
+                                if (nfCommon.isDefinedAndNotNull(refreshed)) {
+                                    nfGraph.updateVisibility();
 
-                                // refresh the birdseye
-                                refreshed.done(function () {
-                                    nfBirdseye.refresh();
-                                });
+                                    // refresh the birdseye
+                                    refreshed.done(function () {
+                                        nfBirdseye.refresh();
+                                    });
 
-                                // persist the users view
-                                nfCanvasUtils.persistUserView();
+                                    // persist the users view
+                                    nfCanvasUtils.persistUserView();
 
-                                // reset the refreshed deferred
-                                refreshed = null;
+                                    // reset the refreshed deferred
+                                    refreshed = null;
+                                }
+
+                                if (panning === false) {
+                                    // deselect as necessary if we are not panning
+                                    nfCanvasUtils.getSelection().classed('selected', false);
+
+                                    // update URL deep linking params
+                                    nfCanvasUtils.setURLParameters();
+                                }
                             }
 
                             panning = false;
@@ -1040,91 +1079,71 @@
                  * @returns {Boolean}
                  */
                 shouldRenderPerScale: function () {
-                    return nfCanvas.View.scale() >= MIN_SCALE_TO_RENDER;
+                    return nfCanvas.View.getScale() >= MIN_SCALE_TO_RENDER;
                 },
 
                 /**
-                 * Sets/gets the current translation.
+                 * Translates by the specified [x, y].
                  *
-                 * @param {array} translate     [x, y]
+                 * @param {array} translate     [x, y] to translate by
                  */
                 translate: function (translate) {
-                    if (nfCommon.isUndefined(translate)) {
-                        return behavior.translate();
-                    } else {
-                        behavior.translate(translate);
-                    }
+                    behavior.translateBy(svg, translate[0], translate[1]);
                 },
 
                 /**
-                 * Sets/gets the current scale.
+                 * Scales by the specified scale.
                  *
-                 * @param {number} scale        The new scale
+                 * @param {number} scale        The factor to scale by
                  */
                 scale: function (scale) {
-                    if (nfCommon.isUndefined(scale)) {
-                        return behavior.scale();
-                    } else {
-                        behavior.scale(scale);
-                    }
+                    behavior.scaleBy(svg, scale);
+                },
+
+                /**
+                 * Sets the current transform.
+                 *
+                 * @param translate
+                 * @param scale
+                 */
+                transform: function (translate, scale) {
+                    behavior.transform(svg, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+                },
+
+                /**
+                 * Gets the current translate.
+                 */
+                getTranslate: function () {
+                    return [x, y];
+                },
+
+                /**
+                 * Gets the current scale.
+                 */
+                getScale: function () {
+                    return k;
                 },
 
                 /**
                  * Zooms in a single zoom increment.
                  */
                 zoomIn: function () {
-                    var translate = nfCanvas.View.translate();
-                    var scale = nfCanvas.View.scale();
-                    var newScale = Math.min(scale * INCREMENT, MAX_SCALE);
-
-                    // get the canvas normalized width and height
-                    var canvasContainer = $('#canvas-container');
-                    var screenWidth = canvasContainer.width() / scale;
-                    var screenHeight = canvasContainer.height() / scale;
-
-                    // adjust the scale
-                    nfCanvas.View.scale(newScale);
-
-                    // center around the center of the screen accounting for the translation accordingly
-                    nfCanvasUtils.centerBoundingBox({
-                        x: (screenWidth / 2) - (translate[0] / scale),
-                        y: (screenHeight / 2) - (translate[1] / scale),
-                        width: 1,
-                        height: 1
-                    });
+                    nfCanvas.View.scale(INCREMENT);
                 },
 
                 /**
                  * Zooms out a single zoom increment.
                  */
                 zoomOut: function () {
-                    var translate = nfCanvas.View.translate();
-                    var scale = nfCanvas.View.scale();
-                    var newScale = Math.max(scale / INCREMENT, MIN_SCALE);
-
-                    // get the canvas normalized width and height
-                    var canvasContainer = $('#canvas-container');
-                    var screenWidth = canvasContainer.width() / scale;
-                    var screenHeight = canvasContainer.height() / scale;
-
-                    // adjust the scale
-                    nfCanvas.View.scale(newScale);
-
-                    // center around the center of the screen accounting for the translation accordingly
-                    nfCanvasUtils.centerBoundingBox({
-                        x: (screenWidth / 2) - (translate[0] / scale),
-                        y: (screenHeight / 2) - (translate[1] / scale),
-                        width: 1,
-                        height: 1
-                    });
+                    nfCanvas.View.scale(1 / INCREMENT);
                 },
 
                 /**
                  * Zooms to fit the entire graph on the canvas.
                  */
                 fit: function () {
-                    var translate = nfCanvas.View.translate();
-                    var scale = nfCanvas.View.scale();
+                    var translate = nfCanvas.View.getTranslate();
+                    var scale = nfCanvas.View.getScale();
                     var newScale;
 
                     // get the canvas normalized width and height
@@ -1138,7 +1157,6 @@
                     var graphHeight = graphBox.height / scale;
                     var graphLeft = graphBox.left / scale;
                     var graphTop = (graphBox.top - nfCanvas.CANVAS_OFFSET) / scale;
-
 
                     // adjust the scale to ensure the entire graph is visible
                     if (graphWidth > canvasWidth || graphHeight > canvasHeight) {
@@ -1154,15 +1172,13 @@
                         graphTop -= 50;
                     }
 
-                    // set the new scale
-                    nfCanvas.View.scale(newScale);
-
                     // center as appropriate
                     nfCanvasUtils.centerBoundingBox({
                         x: graphLeft - (translate[0] / scale),
                         y: graphTop - (translate[1] / scale),
                         width: canvasWidth / newScale,
-                        height: canvasHeight / newScale
+                        height: canvasHeight / newScale,
+                        scale: newScale
                     });
                 },
 
@@ -1170,14 +1186,11 @@
                  * Zooms to the actual size (1 to 1).
                  */
                 actualSize: function () {
-                    var translate = nfCanvas.View.translate();
-                    var scale = nfCanvas.View.scale();
+                    var translate = nfCanvas.View.getTranslate();
+                    var scale = nfCanvas.View.getScale();
 
                     // get the first selected component
                     var selection = nfCanvasUtils.getSelection();
-
-                    // set the updated scale
-                    nfCanvas.View.scale(1);
 
                     // box to zoom towards
                     var box;
@@ -1192,7 +1205,8 @@
                             x: (selectionBox.left / scale) - (translate[0] / scale),
                             y: ((selectionBox.top - nfCanvas.CANVAS_OFFSET) / scale) - (translate[1] / scale),
                             width: selectionBox.width / scale,
-                            height: selectionBox.height / scale
+                            height: selectionBox.height / scale,
+                            scale: 1
                         };
                     } else {
                         // get the offset
@@ -1207,7 +1221,8 @@
                             x: (screenWidth / 2) - (translate[0] / scale),
                             y: (screenHeight / 2) - (translate[1] / scale),
                             width: 1,
-                            height: 1
+                            height: 1,
+                            scale: 1
                         };
                     }
 
@@ -1246,14 +1261,17 @@
                             nfCanvasUtils.persistUserView();
                         }
 
+                        var t = nfCanvas.View.getTranslate();
+                        var s = nfCanvas.View.getScale();
+
                         // update the canvas
                         if (transition === true) {
                             canvas.transition()
                                 .duration(500)
                                 .attr('transform', function () {
-                                    return 'translate(' + behavior.translate() + ') scale(' + behavior.scale() + ')';
+                                    return 'translate(' + t + ') scale(' + s + ')';
                                 })
-                                .each('end', function () {
+                                .on('end', function () {
                                     // refresh birdseye if appropriate
                                     if (refreshBirdseye === true) {
                                         nfBirdseye.refresh();
@@ -1263,7 +1281,7 @@
                                 });
                         } else {
                             canvas.attr('transform', function () {
-                                return 'translate(' + behavior.translate() + ') scale(' + behavior.scale() + ')';
+                                return 'translate(' + t + ') scale(' + s + ')';
                             });
 
                             // refresh birdseye if appropriate

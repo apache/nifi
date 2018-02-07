@@ -69,7 +69,7 @@
                 provenance: '../nifi-api/provenance',
                 provenanceEvents: '../nifi-api/provenance-events/',
                 clusterSearch: '../nifi-api/flow/cluster/search-results',
-                d3Script: 'js/d3/d3.min.js',
+                d3Script: 'js/d3/build/d3.min.js',
                 lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
                 uiExtensionToken: '../nifi-api/access/ui-extension-token',
                 downloadToken: '../nifi-api/access/download-token'

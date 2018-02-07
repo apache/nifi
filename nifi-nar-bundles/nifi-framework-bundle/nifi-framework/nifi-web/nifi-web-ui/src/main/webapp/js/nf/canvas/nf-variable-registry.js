@@ -920,7 +920,7 @@
                         })
                         .map(bulletins, d3.map);
 
-                    bulletinsBySource.forEach(function (sourceId, sourceBulletins) {
+                    bulletinsBySource.each(function (sourceBulletins, sourceId) {
                         $('div.' + sourceId + '-affected-bulletins').each(function () {
                             var bulletinIcon = $(this);
 

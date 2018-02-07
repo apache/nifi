@@ -115,7 +115,7 @@
                     });
 
                     // refresh all component types as necessary (handle components that have been removed)
-                    componentMap.forEach(function (type, ids) {
+                    componentMap.each(function (ids, type) {
                         nfCanvasUtils.getComponentByType(type).remove(ids);
                     });
 
@@ -576,7 +576,10 @@
          * @param {type} boundingBox
          */
         centerBoundingBox: function (boundingBox) {
-            var scale = nfCanvas.View.scale();
+            var scale = nfCanvas.View.getScale();
+            if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
+                scale = boundingBox.scale;
+            }
 
             // get the canvas normalized width and height
             var canvasContainer = $('#canvas-container');
@@ -587,7 +590,7 @@
             var center = [(screenWidth / 2) - (boundingBox.width / 2), (screenHeight / 2) - (boundingBox.height / 2)];
 
             // calculate the difference between the center point and the position of this component and convert to screen space
-            nfCanvas.View.translate([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale]);
+            nfCanvas.View.transform([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale], scale);
         },
 
         /**
@@ -701,7 +704,7 @@
 
             var line = [];
             var tspan = selection.append('tspan')
-                .attr({
+                .attrs({
                     'x': x,
                     'y': y,
                     'width': width
@@ -726,7 +729,7 @@
 
                     // create the tspan for the next line
                     tspan = selection.append('tspan')
-                        .attr({
+                        .attrs({
                             'x': x,
                             'dy': '1.2em',
                             'width': width
@@ -1560,9 +1563,9 @@
             var name = config.storage.namePrefix + nfCanvas.getGroupId();
 
             // create the item to store
-            var translate = nfCanvas.View.translate();
+            var translate = nfCanvas.View.getTranslate();
             var item = {
-                scale: nfCanvas.View.scale(),
+                scale: nfCanvas.View.getScale(),
                 translateX: translate[0],
                 translateY: translate[1]
             };
@@ -1652,13 +1655,7 @@
                 if (nfCommon.isDefinedAndNotNull(item)) {
                     if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
                         // restore previous view
-                        nfCanvas.View.translate([item.translateX, item.translateY]);
-                        nfCanvas.View.scale(item.scale);
-
-                        // refresh the canvas
-                        nfCanvas.View.refresh({
-                            transition: true
-                        });
+                        nfCanvas.View.transform([item.translateX, item.translateY], item.scale);
 
                         // mark the view was restore
                         viewRestored = true;
@@ -1902,57 +1899,53 @@
         },
 
         /**
-         * Refreshes the view based on the configured translation and scale.
-         *
-         * @param {object} options Options for the refresh operation
+         * Gets the current scale.
          */
-        refreshCanvasView: function (options) {
-            return nfCanvas.View.refresh(options);
+        getCanvasScale: function () {
+            return nfCanvas.View.getScale();
         },
 
         /**
-         * Sets/gets the current scale.
-         *
-         * @param {number} scale        The new scale
+         * Gets the current translation.
          */
-        scaleCanvasView: function (scale) {
-            return nfCanvas.View.scale(scale);
+        getCanvasTranslate: function () {
+            return nfCanvas.View.getTranslate();
         },
 
         /**
-         * Sets/gets the current translation.
+         * Translate the canvas by the specified [x, y]
          *
-         * @param {array} translate     [x, y]
+         * @param {array} translate     [x, y] to translate by
          */
-        translateCanvasView: function (translate) {
-            return nfCanvas.View.translate(translate);
+        translateCanvas: function (translate) {
+            nfCanvas.View.translate(translate);
         },
 
         /**
          * Zooms to fit the entire graph on the canvas.
          */
-        fitCanvasView: function () {
+        fitCanvas: function () {
             return nfCanvas.View.fit();
         },
 
         /**
          * Zooms in a single zoom increment.
          */
-        zoomCanvasViewIn: function () {
+        zoomInCanvas: function () {
             return nfCanvas.View.zoomIn();
         },
 
         /**
          * Zooms out a single zoom increment.
          */
-        zoomCanvasViewOut: function () {
+        zoomOutCanvas: function () {
             return nfCanvas.View.zoomOut();
         },
 
         /**
          * Zooms to the actual size (1 to 1).
          */
-        actualSizeCanvasView: function () {
+        actualSizeCanvas: function () {
             return nfCanvas.View.actualSize();
         },
 
