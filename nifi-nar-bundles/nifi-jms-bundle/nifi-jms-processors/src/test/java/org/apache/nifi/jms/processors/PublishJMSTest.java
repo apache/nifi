@@ -73,7 +73,7 @@ public class PublishJMSTest {
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
 
-        runner.run(1, true); // Run once just so that we can trigger the shutdown of the Connection Factory
+        runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
 
     @Test
@@ -111,7 +111,7 @@ public class PublishJMSTest {
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
 
-        runner.run(1, true); // Run once just so that we can trigger the shutdown of the Connection Factory
+        runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
 
     @Test
