@@ -17,6 +17,7 @@
 package org.apache.nifi.jms.processors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -73,12 +74,17 @@ public class JMSPublisherConsumerIT {
             JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             Map<String, String> flowFileAttributes = new HashMap<>();
             flowFileAttributes.put("foo", "foo");
+            flowFileAttributes.put("illegal-property", "value");
+            flowFileAttributes.put("another.illegal", "value");
             flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
+            flowFileAttributes.put(JmsHeaders.EXPIRATION, "never"); // value expected to be integer, make sure non-integer doesn't cause problems
             publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
             assertTrue(receivedMessage instanceof BytesMessage);
             assertEquals("foo", receivedMessage.getStringProperty("foo"));
+            assertFalse(receivedMessage.propertyExists("illegal-property"));
+            assertFalse(receivedMessage.propertyExists("another.illegal"));
             assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
             assertEquals("myTopic", ((Topic) receivedMessage.getJMSReplyTo()).getTopicName());
 
@@ -107,7 +113,7 @@ public class JMSPublisherConsumerIT {
             });
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     // noop
@@ -137,7 +143,7 @@ public class JMSPublisherConsumerIT {
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
-            consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+            consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     callbackInvoked.set(true);
@@ -184,7 +190,7 @@ public class JMSPublisherConsumerIT {
                         JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
 
                         for (int j = 0; j < 1000 && msgCount.get() < 4000; j++) {
-                            consumer.consume(destinationName, false, false, null, callback);
+                            consumer.consume(destinationName, false, false, null, "UTF-8", callback);
                         }
                     } finally {
                         ((CachingConnectionFactory) consumeTemplate.getConnectionFactory()).destroy();
@@ -223,7 +229,7 @@ public class JMSPublisherConsumerIT {
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
             try {
-                consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
                     @Override
                     public void accept(JMSResponse response) {
                         callbackInvoked.set(true);
@@ -240,7 +246,7 @@ public class JMSPublisherConsumerIT {
 
             // should receive the same message, but will process it successfully
             while (!callbackInvoked.get()) {
-                consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
                     @Override
                     public void accept(JMSResponse response) {
                         if (response == null) {
@@ -259,7 +265,7 @@ public class JMSPublisherConsumerIT {
             // receiving next message and fail again
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                    consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
                         @Override
                         public void accept(JMSResponse response) {
                             if (response == null) {
@@ -281,7 +287,7 @@ public class JMSPublisherConsumerIT {
             // should receive the same message, but will process it successfully
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consume(destinationName, false, false, null, new ConsumerCallback() {
+                    consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
                         @Override
                         public void accept(JMSResponse response) {
                             if (response == null) {
