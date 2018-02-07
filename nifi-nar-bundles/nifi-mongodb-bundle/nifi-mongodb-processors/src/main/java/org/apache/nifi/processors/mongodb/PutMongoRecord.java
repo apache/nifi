@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -35,14 +34,18 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.bson.Document;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @EventDriven
@@ -117,13 +120,16 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         int added   = 0;
         boolean error = false;
 
-        try (RecordReader reader = recordParserFactory.createRecordReader(flowFile, session.read(flowFile), getLogger())) {
+        try (final InputStream inStream = session.read(flowFile);
+             final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
             RecordSchema schema = reader.getSchema();
             Record record;
             while ((record = reader.nextRecord()) != null) {
+                // Convert each Record to HashMap and put into the Mongo document
+                Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
                 Document document = new Document();
                 for (String name : schema.getFieldNames()) {
-                    document.put(name, record.getValue(name));
+                    document.put(name, contentMap.get(name));
                 }
                 inserts.add(document);
                 if (inserts.size() == ceiling) {
@@ -141,26 +147,11 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             error = true;
         } finally {
             if (!error) {
-                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue(), String.format("Added %d documents to MongoDB.", added));
+                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).evaluateAttributeExpressions().getValue(), String.format("Added %d documents to MongoDB.", added));
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
             }
         }
         session.commit();
-/*        final ComponentLog logger = getLogger();
-
-        if (inserts.size() > 0) {
-            try {
-                collection.insertMany(inserts);
-
-                session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue());
-                session.transfer(flowFile, REL_SUCCESS);
-
-            } catch (Exception e) {
-                logger.error("Failed to insert {} into MongoDB due to {}", new Object[]{flowFile, e}, e);
-                session.transfer(flowFile, REL_FAILURE);
-                context.yield();
-            }
-        }*/
     }
 }
