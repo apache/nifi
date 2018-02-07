@@ -25,6 +25,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.Queue;
 import javax.jms.Session;
+import javax.jms.TextMessage;
 import javax.jms.Topic;
 
 import org.apache.nifi.logging.ComponentLog;
@@ -54,48 +55,69 @@ final class JMSPublisher extends JMSWorker {
             public Message createMessage(Session session) throws JMSException {
                 BytesMessage message = session.createBytesMessage();
                 message.writeBytes(messageBytes);
-
-                if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
-                    // set message headers and properties
-                    for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
-                        if (!entry.getKey().startsWith(JmsHeaders.PREFIX) && !entry.getKey().contains("-") && !entry.getKey().contains(".")) {// '-' and '.' are illegal char in JMS prop names
-                            message.setStringProperty(entry.getKey(), entry.getValue());
-                        } else if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
-                            message.setJMSDeliveryMode(Integer.parseInt(entry.getValue()));
-                        } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
-                            message.setJMSExpiration(Integer.parseInt(entry.getValue()));
-                        } else if (entry.getKey().equals(JmsHeaders.PRIORITY)) {
-                            message.setJMSPriority(Integer.parseInt(entry.getValue()));
-                        } else if (entry.getKey().equals(JmsHeaders.REDELIVERED)) {
-                            message.setJMSRedelivered(Boolean.parseBoolean(entry.getValue()));
-                        } else if (entry.getKey().equals(JmsHeaders.TIMESTAMP)) {
-                            message.setJMSTimestamp(Long.parseLong(entry.getValue()));
-                        } else if (entry.getKey().equals(JmsHeaders.CORRELATION_ID)) {
-                            message.setJMSCorrelationID(entry.getValue());
-                        } else if (entry.getKey().equals(JmsHeaders.TYPE)) {
-                            message.setJMSType(entry.getValue());
-                        } else if (entry.getKey().equals(JmsHeaders.REPLY_TO)) {
-                            Destination destination = buildDestination(entry.getValue());
-                            if (destination != null) {
-                                message.setJMSReplyTo(destination);
-                            } else {
-                                logUnbuildableDestination(entry.getKey(), JmsHeaders.REPLY_TO);
-                            }
-                        } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
-                            Destination destination = buildDestination(entry.getValue());
-                            if (destination != null) {
-                                message.setJMSDestination(destination);
-                            } else {
-                                logUnbuildableDestination(entry.getKey(), JmsHeaders.DESTINATION);
-                            }
-                        }
-                    }
-                }
+                setMessageHeaderAndProperties(message, flowFileAttributes);
                 return message;
             }
         });
     }
 
+    void publish(String destinationName, String messageText) {
+        this.publish(destinationName, messageText, null);
+    }
+
+    void publish(String destinationName, String messageText, final Map<String, String> flowFileAttributes) {
+        this.jmsTemplate.send(destinationName, new MessageCreator() {
+            @Override
+            public Message createMessage(Session session) throws JMSException {
+                TextMessage message = session.createTextMessage(messageText);
+                setMessageHeaderAndProperties(message, flowFileAttributes);
+                return message;
+            }
+        });
+    }
+
+    void setMessageHeaderAndProperties(final Message message, final Map<String, String> flowFileAttributes) throws JMSException {
+        if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
+            for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
+                try {
+                    if (!entry.getKey().startsWith(JmsHeaders.PREFIX) && !entry.getKey().contains("-") && !entry.getKey().contains(".")) {// '-' and '.' are illegal char in JMS prop names
+                        message.setStringProperty(entry.getKey(), entry.getValue());
+                    } else if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
+                        message.setJMSDeliveryMode(Integer.parseInt(entry.getValue()));
+                    } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
+                        message.setJMSExpiration(Integer.parseInt(entry.getValue()));
+                    } else if (entry.getKey().equals(JmsHeaders.PRIORITY)) {
+                        message.setJMSPriority(Integer.parseInt(entry.getValue()));
+                    } else if (entry.getKey().equals(JmsHeaders.REDELIVERED)) {
+                        message.setJMSRedelivered(Boolean.parseBoolean(entry.getValue()));
+                    } else if (entry.getKey().equals(JmsHeaders.TIMESTAMP)) {
+                        message.setJMSTimestamp(Long.parseLong(entry.getValue()));
+                    } else if (entry.getKey().equals(JmsHeaders.CORRELATION_ID)) {
+                        message.setJMSCorrelationID(entry.getValue());
+                    } else if (entry.getKey().equals(JmsHeaders.TYPE)) {
+                        message.setJMSType(entry.getValue());
+                    } else if (entry.getKey().equals(JmsHeaders.REPLY_TO)) {
+                        Destination destination = buildDestination(entry.getValue());
+                        if (destination != null) {
+                            message.setJMSReplyTo(destination);
+                        } else {
+                            logUnbuildableDestination(entry.getKey(), JmsHeaders.REPLY_TO);
+                        }
+                    } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
+                        Destination destination = buildDestination(entry.getValue());
+                        if (destination != null) {
+                            message.setJMSDestination(destination);
+                        } else {
+                            logUnbuildableDestination(entry.getKey(), JmsHeaders.DESTINATION);
+                        }
+                    }
+                } catch (NumberFormatException ne) {
+                    this.processLog.warn("Incompatible value for attribute " + entry.getKey()
+                            + " [" + entry.getValue() + "] is not a number. Ignoring this attribute.");
+                }
+            }
+        }
+    }
 
     private void logUnbuildableDestination(String destinationName, String headerName) {
         this.processLog.warn("Failed to determine destination type from destination name '{}'. The '{}' header will not be set.", new Object[] {destinationName, headerName});
