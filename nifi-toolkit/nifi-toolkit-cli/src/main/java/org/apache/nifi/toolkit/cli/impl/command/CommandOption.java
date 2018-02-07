@@ -50,10 +50,8 @@ public enum CommandOption {
     // NiFi - PGs
     PG_ID("pgid", "processGroupId", "The id of a process group", true),
     PG_NAME("pgn", "processGroupName", "The name of a process group", true),
-
-    // NiFi - Pos
-    POS_X("px", "posX", "The X coordinate", true),
-    POS_Y("py", "posY", "The Y coordinate", true),
+    PG_VAR_NAME("var", "varName", "The name of a variable", true),
+    PG_VAR_VALUE("val", "varValue", "The value of a variable", true),
 
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),
@@ -67,6 +65,7 @@ public enum CommandOption {
     PROTOCOL("pro", "protocol", "The security protocol to use, such as TLSv.1.2", true),
 
     // Miscellaneous
+    OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),
     HELP("h", "help", "Help", false)
     ;

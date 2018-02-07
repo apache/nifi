@@ -52,6 +52,10 @@ public class CommandProcessor {
     }
 
     public void printBasicUsage(String errorMessage) {
+        printBasicUsage(errorMessage, false);
+    }
+
+    public void printBasicUsage(String errorMessage, boolean verbose) {
         out.println();
 
         if (errorMessage != null) {
@@ -62,7 +66,8 @@ public class CommandProcessor {
         out.println("commands:");
         out.println();
 
-        commandGroups.entrySet().stream().forEach(e -> e.getValue().printUsage());
+        commandGroups.entrySet().stream().forEach(e -> e.getValue().printUsage(verbose));
+        out.println("-------------------------------------------------------------------------------");
         topLevelCommands.keySet().stream().forEach(k -> out.println("\t" + k));
         out.println();
     }
@@ -81,10 +86,19 @@ public class CommandProcessor {
     }
 
     public void process(String[] args) {
-        if (args == null || args.length == 0
-                || (args.length == 1 && CommandOption.HELP.getLongName().equalsIgnoreCase(args[0]))) {
+        if (args == null || args.length == 0) {
             printBasicUsage(null);
             return;
+        }
+
+        if (CommandOption.HELP.getLongName().equalsIgnoreCase(args[0])) {
+            if (args.length == 2 && "-v".equalsIgnoreCase(args[1])) {
+                printBasicUsage(null, true);
+                return;
+            } else {
+                printBasicUsage(null);
+                return;
+            }
         }
 
         final String commandStr = args[0];
@@ -139,7 +153,11 @@ public class CommandProcessor {
 
         final String commandStr = args[1];
         final CommandGroup commandGroup = commandGroups.get(commandGroupStr);
-        final Command command = commandGroup.getCommands().stream().filter(c -> c.getName().equals(commandStr)).findFirst().orElse(null);
+
+        final Command command = commandGroup.getCommands().stream()
+                .filter(c -> c.getName().equals(commandStr))
+                .findFirst()
+                .orElse(null);
 
         if (command == null) {
             printBasicUsage("Unknown command '" + commandGroupStr + " " + commandStr + "'");

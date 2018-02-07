@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.flow;
 
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -34,9 +35,16 @@ public class CurrentUser extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns information about the user accessing NiFi. " +
+                "This provides a way to test if the CLI is accessing NiFi as the expected user.";
+    }
+
+    @Override
     protected void doExecute(NiFiClient client, Properties properties)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();
-        writeResult(properties, flowClient.getCurrentUser());
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeCurrentUser(flowClient.getCurrentUser(), getContext().getOutput());
     }
 }

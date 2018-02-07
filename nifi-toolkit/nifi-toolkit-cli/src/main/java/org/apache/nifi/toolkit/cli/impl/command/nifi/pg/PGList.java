@@ -17,46 +17,68 @@
 package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 
 import org.apache.commons.cli.MissingOptionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ResultWriter;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.web.api.entity.VariableRegistryEntity;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
- * Commands to get the variables of a process group.
+ * Command to list process-groups for a given parent process group.
  */
-public class PGGetVars extends AbstractNiFiCommand {
+public class PGList extends AbstractNiFiCommand {
 
-    public PGGetVars() {
-        super("pg-get-vars");
+    public PGList() {
+        super("pg-list");
     }
 
     @Override
     public String getDescription() {
-        return "Returns the variable registry for a given process group.";
+        return "Returns the process groups contained in the specified process group. If no process group is specified, " +
+                "then the root group will be used.";
     }
 
     @Override
-    protected void doInitialize(final Context context) {
+    protected void doInitialize(Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }
 
     @Override
     protected void doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
-        final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
-        final ProcessGroupClient pgClient = client.getProcessGroupClient();
-        final VariableRegistryEntity varEntity = pgClient.getVariables(pgId);
+
+        final FlowClient flowClient = client.getFlowClient();
+
+        // get the optional id of the parent PG, otherwise fallback to the root group
+        String parentPgId = getArg(properties, CommandOption.PG_ID);
+        if (StringUtils.isBlank(parentPgId)) {
+            parentPgId = flowClient.getRootGroupId();
+        }
+
+        final ProcessGroupFlowEntity processGroupFlowEntity = flowClient.getProcessGroup(parentPgId);
+        final ProcessGroupFlowDTO processGroupFlowDTO = processGroupFlowEntity.getProcessGroupFlow();
+        final FlowDTO flowDTO = processGroupFlowDTO.getFlow();
+
+        final List<ProcessGroupEntity> processGroups = new ArrayList<>();
+        if (flowDTO.getProcessGroups() != null) {
+            flowDTO.getProcessGroups().stream().forEach(pg -> processGroups.add(pg));
+        }
 
         final ResultWriter resultWriter = getResultWriter(properties);
-        resultWriter.writeVariables(varEntity, getContext().getOutput());
+        resultWriter.writeProcessGroups(processGroups, getContext().getOutput());
     }
+
 }

@@ -88,4 +88,38 @@ will auto-complete the path being typed:
     #> session set nifi.props /tmp/
     dir1/   dir2/   dir3/
     
+## Output
+
+All commands (except export-flow-version) support the ability to specify an <code>--outputType</code> argument, 
+or <code>-ot</code> for short.
+
+Currently the output type may be <code>simple</code> or <code>json</code>.
+
+The default output type in interactive mode is <code>simple</code>, 
+and the default output type in standalone mode is <code>json</code>.
+
+Example of simple output for list-buckets:
+
+    #> registry list-buckets -ot simple
     
+    My Bucket - 3c7b7467-0012-4d8f-a918-6aa42b6b9d39
+
+Example of json output for list-buckets:
+
+    #> registry list-buckets -ot json
+    [ {
+      "identifier" : "3c7b7467-0012-4d8f-a918-6aa42b6b9d39",
+      "name" : "My Bucket",
+      "createdTimestamp" : 1516718733854,
+      "permissions" : {
+        "canRead" : true,
+        "canWrite" : true,
+        "canDelete" : true
+      },
+      "link" : {
+        "params" : {
+          "rel" : "self"
+        },
+        "href" : "buckets/3c7b7467-0012-4d8f-a918-6aa42b6b9d39"
+      }
+    } ]
