@@ -14,7 +14,8 @@
     "jsonlint": "1.6.2",
     "JSON2": "0.1.0",
     "reset.css": "2.0.2",
-    "d3": "3.5.17",
+    "d3": "4.13.0",
+    "d3-selection-multi": "1.0.1",
     "url-search-params": "0.6.1"
   },
   "description": "Apache NiFi 3rd party client side resources.",

@@ -101,14 +101,15 @@
      *
      * @param {selection} entered           The selection of labels to be rendered
      * @param {boolean} selected            Whether the label should be selected
+     * @return the entered selection
      */
     var renderLabels = function (entered, selected) {
         if (entered.empty()) {
-            return;
+            return entered;
         }
 
         var label = entered.append('g')
-            .attr({
+            .attrs({
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -119,7 +120,7 @@
 
         // label border
         label.append('rect')
-            .attr({
+            .attrs({
                 'class': 'border',
                 'fill': 'transparent',
                 'stroke': 'transparent'
@@ -127,7 +128,7 @@
 
         // label 
         label.append('rect')
-            .attr({
+            .attrs({
                 'class': 'body',
                 'filter': 'url(#component-drop-shadow)',
                 'stroke-width': 0
@@ -135,7 +136,7 @@
 
         // label value
         label.append('text')
-            .attr({
+            .attrs({
                 'xml:space': 'preserve',
                 'font-weight': 'bold',
                 'fill': 'black',
@@ -144,6 +145,8 @@
 
         // always support selecting
         label.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
+
+        return label;
     };
 
     /**
@@ -158,7 +161,7 @@
 
         // update the border using the configured color
         updated.select('rect.border')
-            .attr({
+            .attrs({
                 'width': function (d) {
                     return d.dimensions.width;
                 },
@@ -172,7 +175,7 @@
 
         // update the body fill using the configured color
         updated.select('rect.body')
-            .attr({
+            .attrs({
                 'width': function (d) {
                     return d.dimensions.width;
                 },
@@ -266,8 +269,8 @@
                     var points = labelPoint.data(pointData);
 
                     // create a point for the end
-                    points.enter().append('rect')
-                        .attr({
+                    var pointsEntered = points.enter().append('rect')
+                        .attrs({
                             'class': 'labelpoint',
                             'width': 10,
                             'height': 10
@@ -275,7 +278,7 @@
                         .call(labelPointDrag);
 
                     // update the midpoints
-                    points.attr('transform', function (p) {
+                    points.merge(pointsEntered).attr('transform', function (p) {
                         return 'translate(' + (p.x - 10) + ', ' + (p.y - 10) + ')';
                     });
 
@@ -329,14 +332,14 @@
 
             // create the label container
             labelContainer = d3.select('#canvas').append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'all',
                     'class': 'labels'
                 });
 
             // handle bend point drag events
-            labelPointDrag = d3.behavior.drag()
-                .on('dragstart', function () {
+            labelPointDrag = d3.drag()
+                .on('start', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
                 })
@@ -351,7 +354,7 @@
                     // redraw this connection
                     updateLabels(label);
                 })
-                .on('dragend', function () {
+                .on('end', function () {
                     var label = d3.select(this.parentNode);
                     var labelData = label.datum();
 
@@ -448,10 +451,14 @@
                 add(labelEntities);
             }
 
-            // apply the selection and handle new labels
+            // select
             var selection = select();
-            selection.enter().call(renderLabels, selectAll);
-            selection.call(updateLabels);
+
+            // enter
+            var entered = renderLabels(selection.enter(), selectAll);
+
+            // update
+            updateLabels(selection.merge(entered));
         },
 
         /**
@@ -500,10 +507,17 @@
                 set(labelEntities);
             }
 
-            // apply the selection and handle all new labels
+            // select
             var selection = select();
-            selection.enter().call(renderLabels, selectAll);
-            selection.call(updateLabels).call(nfCanvasUtils.position, transition);
+
+            // enter
+            var entered = renderLabels(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updateLabels).call(nfCanvasUtils.position, transition);
+
+            // exit
             selection.exit().call(removeLabels);
         },
 
@@ -599,7 +613,7 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.forEach(function (id, entryTimestamp) {
+                cache.each(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
                         cache.remove(id);
                     }

@@ -566,7 +566,7 @@
                 text: 'all groups',
                 value: ''
             }];
-            groups.forEach(function (group) {
+            groups.each(function (group) {
                 options.push({
                     text: group,
                     value: group
@@ -1339,7 +1339,7 @@
                     .key(function(d) { return d.sourceId; })
                     .map(controllerServiceBulletins, d3.map);
 
-                controllerServiceBulletinsBySource.forEach(function(sourceId, sourceBulletins) {
+                controllerServiceBulletinsBySource.each(function(sourceBulletins, sourceId) {
                     var controllerService = controllerServicesData.getItemById(sourceId);
                     if (nfCommon.isDefinedAndNotNull(controllerService)) {
                         controllerServicesData.updateItem(sourceId, $.extend(controllerService, {

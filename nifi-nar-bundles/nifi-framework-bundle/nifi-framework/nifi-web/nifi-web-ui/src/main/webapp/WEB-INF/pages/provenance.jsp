@@ -33,7 +33,8 @@
         <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="assets/angular-material/angular-material.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
-        <script type="text/javascript" src="assets/d3/d3.min.js"></script>
+        <script type="text/javascript" src="assets/d3/build/d3.min.js"></script>
+        <script type="text/javascript" src="assets/d3-selection-multi/build/d3-selection-multi.min.js"></script>
         <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>

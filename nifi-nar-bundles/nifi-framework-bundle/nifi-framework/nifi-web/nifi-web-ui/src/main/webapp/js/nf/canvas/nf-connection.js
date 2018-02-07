@@ -274,13 +274,20 @@
         });
     };
 
+    /**
+     * Renders the connections in the specified selection.
+     *
+     * @param {selection} entered           The selection of connections to be rendered
+     * @param {boolean} selected             Whether the element should be selected
+     * @return the entered selection
+     */
     var renderConnections = function (entered, selected) {
         if (entered.empty()) {
-            return;
+            return entered;
         }
 
         var connection = entered.append('g')
-            .attr({
+            .attrs({
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -290,21 +297,21 @@
 
         // create a connection between the two components
         connection.append('path')
-            .attr({
+            .attrs({
                 'class': 'connection-path',
                 'pointer-events': 'none'
             });
 
         // path to show when selection
         connection.append('path')
-            .attr({
+            .attrs({
                 'class': 'connection-selection-path',
                 'pointer-events': 'none'
             });
 
         // path to make selection easier
         connection.append('path')
-            .attr({
+            .attrs({
                 'class': 'connection-path-selectable',
                 'pointer-events': 'stroke'
             })
@@ -316,6 +323,8 @@
                 nfCanvasUtils.setURLParameters();
             })
             .call(nfContextMenu.activate);
+
+        return connection;
     };
 
     // determines whether the specified connection contains an unsupported relationship
@@ -584,21 +593,21 @@
 
                 // update the connection paths
                 nfCanvasUtils.transition(connection.select('path.connection-path'), transition)
-                    .attr({
+                    .attrs({
                         'd': function () {
                             var datum = [d.start].concat(d.bends, [d.end]);
                             return lineGenerator(datum);
                         }
                     });
                 nfCanvasUtils.transition(connection.select('path.connection-selection-path'), transition)
-                    .attr({
+                    .attrs({
                         'd': function () {
                             var datum = [d.start].concat(d.bends, [d.end]);
                             return lineGenerator(datum);
                         }
                     });
                 nfCanvasUtils.transition(connection.select('path.connection-path-selectable'), transition)
-                    .attr({
+                    .attrs({
                         'd': function () {
                             var datum = [d.start].concat(d.bends, [d.end]);
                             return lineGenerator(datum);
@@ -624,8 +633,8 @@
                     startpoints = startpoints.data([d.start]);
 
                     // create a point for the start
-                    startpoints.enter().append('rect')
-                        .attr({
+                    var startpointsEntered = startpoints.enter().append('rect')
+                        .attrs({
                             'class': 'startpoint linepoint',
                             'pointer-events': 'all',
                             'width': 8,
@@ -641,7 +650,7 @@
                         .call(nfContextMenu.activate);
 
                     // update the start point
-                    nfCanvasUtils.transition(startpoints, transition)
+                    nfCanvasUtils.transition(startpoints.merge(startpointsEntered), transition)
                         .attr('transform', function (p) {
                             return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
                         });
@@ -656,9 +665,9 @@
                     var endpoints = endpoints.data([d.end]);
 
                     // create a point for the end
-                    endpoints.enter().append('rect')
+                    var endpointsEntered = endpoints.enter().append('rect')
                         .call(endpointDrag)
-                        .attr({
+                        .attrs({
                             'class': 'endpoint linepoint',
                             'pointer-events': 'all',
                             'width': 8,
@@ -674,7 +683,7 @@
                         .call(nfContextMenu.activate);
 
                     // update the end point
-                    nfCanvasUtils.transition(endpoints, transition)
+                    nfCanvasUtils.transition(endpoints.merge(endpointsEntered), transition)
                         .attr('transform', function (p) {
                             return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
                         });
@@ -689,8 +698,8 @@
                     var midpoints = midpoints.data(d.bends);
 
                     // create a point for the end
-                    midpoints.enter().append('rect')
-                        .attr({
+                    var midpointsEntered = midpoints.enter().append('rect')
+                        .attrs({
                             'class': 'midpoint linepoint',
                             'pointer-events': 'all',
                             'width': 8,
@@ -757,7 +766,7 @@
                         .call(nfContextMenu.activate);
 
                     // update the midpoints
-                    nfCanvasUtils.transition(midpoints, transition)
+                    nfCanvasUtils.transition(midpoints.merge(midpointsEntered), transition)
                         .attr('transform', function (p) {
                             return 'translate(' + (p.x - 4) + ', ' + (p.y - 4) + ')';
                         });
@@ -783,7 +792,7 @@
                     if (connectionLabelContainer.empty()) {
                         // connection label container
                         connectionLabelContainer = connection.insert('g', 'rect.startpoint')
-                            .attr({
+                            .attrs({
                                 'class': 'connection-label-container',
                                 'pointer-events': 'all'
                             })
@@ -798,7 +807,7 @@
 
                         // connection label
                         connectionLabelContainer.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'body',
                                 'width': dimensions.width,
                                 'x': 0,
@@ -807,7 +816,7 @@
 
                         // processor border
                         connectionLabelContainer.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'border',
                                 'width': dimensions.width,
                                 'fill': 'transparent',
@@ -835,13 +844,13 @@
                             // see if the connection from label is already rendered
                             if (connectionFrom.empty()) {
                                 connectionFrom = connectionLabelContainer.append('g')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-from-container'
                                     });
 
                                 // background
                                 backgrounds.push(connectionFrom.append('rect')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-label-background',
                                         'width': dimensions.width,
                                         'height': rowHeight
@@ -849,14 +858,14 @@
 
                                 // border
                                 borders.push(connectionFrom.append('rect')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-label-border',
                                         'width': dimensions.width,
                                         'height': 1
                                     }));
 
                                 connectionFrom.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'stats-label',
                                         'x': 5,
                                         'y': 14
@@ -864,7 +873,7 @@
                                     .text('From');
 
                                 connectionFrom.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'stats-value connection-from',
                                         'x': 43,
                                         'y': 14,
@@ -872,7 +881,7 @@
                                     });
 
                                 connectionFrom.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-from-run-status',
                                         'x': 185,
                                         'y': 14
@@ -944,13 +953,13 @@
                             // see if the connection to label is already rendered
                             if (connectionTo.empty()) {
                                 connectionTo = connectionLabelContainer.append('g')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-to-container'
                                     });
 
                                 // background
                                 backgrounds.push(connectionTo.append('rect')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-label-background',
                                         'width': dimensions.width,
                                         'height': rowHeight
@@ -958,14 +967,14 @@
 
                                 // border
                                 borders.push(connectionTo.append('rect')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-label-border',
                                         'width': dimensions.width,
                                         'height': 1
                                     }));
 
                                 connectionTo.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'stats-label',
                                         'x': 5,
                                         'y': 14
@@ -973,7 +982,7 @@
                                     .text('To');
 
                                 connectionTo.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'stats-value connection-to',
                                         'x': 25,
                                         'y': 14,
@@ -981,7 +990,7 @@
                                     });
 
                                 connectionTo.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-to-run-status',
                                         'x': 185,
                                         'y': 14
@@ -1056,13 +1065,13 @@
                             // see if the connection name label is already rendered
                             if (connectionName.empty()) {
                                 connectionName = connectionLabelContainer.append('g')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-name-container'
                                     });
 
                                 // background
                                 backgrounds.push(connectionName.append('rect')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-label-background',
                                         'width': dimensions.width,
                                         'height': rowHeight
@@ -1070,14 +1079,14 @@
 
                                 // border
                                 borders.push(connectionName.append('rect')
-                                    .attr({
+                                    .attrs({
                                         'class': 'connection-label-border',
                                         'width': dimensions.width,
                                         'height': 1
                                     }));
 
                                 connectionName.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'stats-label',
                                         'x': 5,
                                         'y': 14
@@ -1085,7 +1094,7 @@
                                     .text('Name');
 
                                 connectionName.append('text')
-                                    .attr({
+                                    .attrs({
                                         'class': 'stats-value connection-name',
                                         'x': 45,
                                         'y': 14,
@@ -1136,13 +1145,13 @@
                     var queued = connectionLabelContainer.select('g.queued-container');
                     if (queued.empty()) {
                         queued = connectionLabelContainer.append('g')
-                            .attr({
+                            .attrs({
                                 'class': 'queued-container'
                             });
 
                         // background
                         backgrounds.push(queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'connection-label-background',
                                 'width': dimensions.width,
                                 'height': rowHeight + HEIGHT_FOR_BACKPRESSURE
@@ -1150,14 +1159,14 @@
 
                         // border
                         borders.push(queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'connection-label-border',
                                 'width': dimensions.width,
                                 'height': 1
                             }));
 
                         queued.append('text')
-                            .attr({
+                            .attrs({
                                 'class': 'stats-label',
                                 'x': 5,
                                 'y': 14
@@ -1165,7 +1174,7 @@
                             .text('Queued');
 
                         var queuedText = queued.append('text')
-                            .attr({
+                            .attrs({
                                 'class': 'stats-value queued',
                                 'x': 55,
                                 'y': 14
@@ -1173,19 +1182,19 @@
 
                         // queued count
                         queuedText.append('tspan')
-                            .attr({
+                            .attrs({
                                 'class': 'count'
                             });
 
                         // queued size
                         queuedText.append('tspan')
-                            .attr({
+                            .attrs({
                                 'class': 'size'
                             });
 
                         // expiration icon
                         queued.append('text')
-                            .attr({
+                            .attrs({
                                 'class': 'expiration-icon',
                                 'x': 185,
                                 'y': 14
@@ -1201,7 +1210,7 @@
 
                         // start
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-tick object',
                                 'width': 1,
                                 'height': 3,
@@ -1212,7 +1221,7 @@
                         // bar
                         var backpressureCountOffset = 6;
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-object',
                                 'width': backpressureBarWidth,
                                 'height': 3,
@@ -1223,7 +1232,7 @@
 
                         // end
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-tick object',
                                 'width': 1,
                                 'height': 3,
@@ -1233,7 +1242,7 @@
 
                         // percent full
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-percent object',
                                 'width': 0,
                                 'height': 3,
@@ -1245,7 +1254,7 @@
 
                         // start
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-tick data-size',
                                 'width': 1,
                                 'height': 3,
@@ -1256,7 +1265,7 @@
                         // bar
                         var backpressureDataSizeOffset = (dimensions.width / 2) + 10 + 1;
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-data-size',
                                 'width': backpressureBarWidth,
                                 'height': 3,
@@ -1267,7 +1276,7 @@
 
                         // end
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-tick data-size',
                                 'width': 1,
                                 'height': 3,
@@ -1277,7 +1286,7 @@
 
                         // percent full
                         queued.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'backpressure-percent data-size',
                                 'width': 0,
                                 'height': 3,
@@ -1411,7 +1420,7 @@
             var backpressurePercentDataSize = updated.select('rect.backpressure-percent.data-size');
             backpressurePercentDataSize.transition()
                 .duration(400)
-                .attr({
+                .attrs({
                     'width': function (d) {
                         if (nfCommon.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseBytes)) {
                             return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseBytes) / 100;
@@ -1419,7 +1428,7 @@
                             return 0;
                         }
                     }
-                }).each('end', function () {
+                }).on('end', function () {
                 backpressurePercentDataSize
                     .classed('warning', function (d) {
                         return isWarningBytes(d);
@@ -1451,7 +1460,7 @@
             var backpressurePercentObject = updated.select('rect.backpressure-percent.object');
             backpressurePercentObject.transition()
                 .duration(400)
-                .attr({
+                .attrs({
                     'width': function (d) {
                         if (nfCommon.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseCount)) {
                             return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseCount) / 100;
@@ -1459,7 +1468,7 @@
                             return 0;
                         }
                     }
-                }).each('end', function () {
+                }).on('end', function () {
                 backpressurePercentObject
                     .classed('warning', function (d) {
                         return isWarningCount(d);
@@ -1487,7 +1496,7 @@
                 .classed('full', function (d) {
                     return isFullCount(d) || isFullBytes(d);
                 })
-                .attr({
+                .attrs({
                     'marker-end': getEndMarker
                 });
 
@@ -1499,7 +1508,7 @@
 
             // drop shadow
             updated.select('rect.body')
-                .attr({
+                .attrs({
                     'filter': getDropShadow
                 });
         });
@@ -1575,24 +1584,24 @@
 
             // create the connection container
             connectionContainer = d3.select('#canvas').append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'stroke',
                     'class': 'connections'
                 });
 
             // define the line generator
-            lineGenerator = d3.svg.line()
+            lineGenerator = d3.line()
                 .x(function (d) {
                     return d.x;
                 })
                 .y(function (d) {
                     return d.y;
                 })
-                .interpolate('linear');
+                .curve(d3.curveLinear);
 
             // handle bend point drag events
-            bendPointDrag = d3.behavior.drag()
-                .on('dragstart', function () {
+            bendPointDrag = d3.drag()
+                .on('start', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
                 })
@@ -1606,7 +1615,7 @@
                         'updateLabel': false
                     });
                 })
-                .on('dragend', function () {
+                .on('end', function () {
                     var connection = d3.select(this.parentNode);
                     var connectionData = connection.datum();
                     var bends = connection.selectAll('rect.midpoint').data();
@@ -1649,8 +1658,8 @@
                 });
 
             // handle endpoint drag events
-            endpointDrag = d3.behavior.drag()
-                .on('dragstart', function (d) {
+            endpointDrag = d3.drag()
+                .on('start', function (d) {
                     // indicate that dragging has begun
                     d.dragging = true;
 
@@ -1672,7 +1681,7 @@
                         'updateLabel': false
                     });
                 })
-                .on('dragend', function (d) {
+                .on('end', function (d) {
                     // indicate that dragging as stopped
                     d.dragging = false;
 
@@ -1780,8 +1789,8 @@
                 });
 
             // label drag behavior
-            labelDrag = d3.behavior.drag()
-                .on('dragstart', function (d) {
+            labelDrag = d3.drag()
+                .on('start', function (d) {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
                 })
@@ -1806,10 +1815,10 @@
                                 .attr('width', width)
                                 .attr('height', height)
                                 .attr('stroke-width', function () {
-                                    return 1 / nfCanvasUtils.scaleCanvasView();
+                                    return 1 / nfCanvasUtils.getCanvasScale();
                                 })
                                 .attr('stroke-dasharray', function () {
-                                    return 4 / nfCanvasUtils.scaleCanvasView();
+                                    return 4 / nfCanvasUtils.getCanvasScale();
                                 })
                                 .datum({
                                     x: position.x,
@@ -1864,7 +1873,7 @@
                         });
                     }
                 })
-                .on('dragend', function (d) {
+                .on('end', function (d) {
                     if (d.bends.length > 1) {
                         // get the drag selection
                         var drag = d3.select('rect.label-drag');
@@ -1935,10 +1944,15 @@
                 add(connectionEntities);
             }
 
-            // apply the selection and handle new connections
+            // select
             var selection = select();
-            selection.enter().call(renderConnections, selectAll);
-            selection.call(updateConnections, {
+
+            // enter
+            var entered = renderConnections(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updateConnections, {
                 'updatePath': true,
                 'updateLabel': false
             }).call(sort);
@@ -1955,6 +1969,7 @@
             if (selection.empty()) {
                 return false;
             }
+
             var connections = d3.map();
             var components = d3.map();
             var isDisconnected = true;
@@ -1980,12 +1995,11 @@
                     }
                 });
             });
+
             if (isDisconnected) {
-
                 // go through each connection to ensure its source and destination are included
-                connections.forEach(function (id, connection) {
+                connections.each(function (connection, id) {
                     if (isDisconnected) {
-
                         // determine whether this connection and its components are included within the selection
                         isDisconnected = components.has(nfCanvasUtils.getConnectionSourceComponentId(connection)) && components.has(nfCanvasUtils.getConnectionDestinationComponentId(connection));
                     }
@@ -2041,14 +2055,21 @@
                 set(connectionEntities);
             }
 
-            // apply the selection and handle all new connection
+            // select
             var selection = select();
-            selection.enter().call(renderConnections, selectAll);
-            selection.call(updateConnections, {
+
+            // enter
+            var entered = renderConnections(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updateConnections, {
                 'updatePath': true,
                 'updateLabel': true,
                 'transition': transition
             }).call(sort);
+
+            // exit
             selection.exit().call(removeConnections);
         },
 
@@ -2159,7 +2180,7 @@
          */
         getComponentConnections: function (id) {
             var connections = [];
-            connectionMap.forEach(function (_, entry) {
+            connectionMap.each(function (entry, _) {
                 // see if this component is the source or destination of this connection
                 if (nfCanvasUtils.getConnectionSourceComponentId(entry) === id || nfCanvasUtils.getConnectionDestinationComponentId(entry) === id) {
                     connections.push(entry);
@@ -2189,7 +2210,7 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.forEach(function (id, entryTimestamp) {
+                cache.each(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
                         cache.remove(id);
                     }

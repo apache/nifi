@@ -150,7 +150,7 @@ g.component.connectable-destination rect.border {
     stroke-width: 3;
 }
 
-rect.selection, rect.drag-selection, rect.label-drag {
+rect.component-selection, rect.drag-selection, rect.label-drag {
     stroke: #444444;
     stroke-opacity: 0.5;
     fill: transparent;

@@ -108,14 +108,15 @@
      *
      * @param {selection} entered           The selection of process groups to be rendered
      * @param {boolean} selected            Whether the process group should be selected
+     * @return the entered selection
      */
     var renderProcessGroups = function (entered, selected) {
         if (entered.empty()) {
-            return;
+            return entered;
         }
 
         var processGroup = entered.append('g')
-            .attr({
+            .attrs({
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -130,7 +131,7 @@
 
         // process group border
         processGroup.append('rect')
-            .attr({
+            .attrs({
                 'class': 'border',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -144,7 +145,7 @@
 
         // process group body
         processGroup.append('rect')
-            .attr({
+            .attrs({
                 'class': 'body',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -158,7 +159,7 @@
 
         // process group name background
         processGroup.append('rect')
-            .attr({
+            .attrs({
                 'width': function (d) {
                     return d.dimensions.width;
                 },
@@ -168,7 +169,7 @@
 
         // process group name
         processGroup.append('text')
-            .attr({
+            .attrs({
                 'x': 10,
                 'y': 20,
                 'width': 316,
@@ -178,7 +179,7 @@
 
         // process group name
         processGroup.append('text')
-            .attr({
+            .attrs({
                 'x': 10,
                 'y': 21,
                 'class': 'version-control'
@@ -228,6 +229,8 @@
             })
             .call(nfDraggable.activate)
             .call(nfConnectable.activate);
+
+        return processGroup;
     };
 
     // attempt of space between component count and icon for process group contents
@@ -273,7 +276,7 @@
                     // -------------------
 
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'x': 0,
                             'y': 32,
                             'width': function () {
@@ -284,7 +287,7 @@
                         });
 
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'x': 0,
                             'y': function () {
                                 return processGroupData.dimensions.height - 24;
@@ -302,7 +305,7 @@
 
                     // transmitting icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'x': 10,
                             'y': 49,
                             'class': 'process-group-transmitting process-group-contents-icon',
@@ -315,14 +318,14 @@
 
                     // transmitting count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-transmitting-count process-group-contents-count'
                         });
 
                     // not transmitting icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-not-transmitting process-group-contents-icon',
                             'font-family': 'flowfont'
@@ -333,14 +336,14 @@
 
                     // not transmitting count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-not-transmitting-count process-group-contents-count'
                         });
 
                     // running icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-running process-group-contents-icon',
                             'font-family': 'FontAwesome'
@@ -351,14 +354,14 @@
 
                     // running count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-running-count process-group-contents-count'
                         });
 
                     // stopped icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-stopped process-group-contents-icon',
                             'font-family': 'FontAwesome'
@@ -369,14 +372,14 @@
 
                     // stopped count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-stopped-count process-group-contents-count'
                         });
 
                     // invalid icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-invalid process-group-contents-icon',
                             'font-family': 'FontAwesome'
@@ -387,14 +390,14 @@
 
                     // invalid count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-invalid-count process-group-contents-count'
                         });
 
                     // disabled icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-disabled process-group-contents-icon',
                             'font-family': 'flowfont'
@@ -405,14 +408,14 @@
 
                     // disabled count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': 49,
                             'class': 'process-group-disabled-count process-group-contents-count'
                         });
 
                     // up to date icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'x': 10,
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
@@ -426,7 +429,7 @@
 
                     // up to date count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -435,7 +438,7 @@
 
                     // locally modified icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -448,7 +451,7 @@
 
                     // locally modified count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -457,7 +460,7 @@
 
                     // stale icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -470,7 +473,7 @@
 
                     // stale count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -479,7 +482,7 @@
 
                     // locally modified and stale icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -492,7 +495,7 @@
 
                     // locally modified and stale count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -501,7 +504,7 @@
 
                     // sync failure icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -514,7 +517,7 @@
 
                     // sync failure count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'y': function () {
                                 return processGroupData.dimensions.height - 7;
                             },
@@ -527,7 +530,7 @@
 
                     // queued
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processGroupData.dimensions.width;
                             },
@@ -539,7 +542,7 @@
 
                     // border
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processGroupData.dimensions.width;
                             },
@@ -551,7 +554,7 @@
 
                     // in
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processGroupData.dimensions.width;
                             },
@@ -563,7 +566,7 @@
 
                     // border
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processGroupData.dimensions.width;
                             },
@@ -575,7 +578,7 @@
 
                     // read/write
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processGroupData.dimensions.width;
                             },
@@ -587,7 +590,7 @@
 
                     // border
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processGroupData.dimensions.width;
                             },
@@ -599,7 +602,7 @@
 
                     // out
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'width': function () {
                                 return processGroupData.dimensions.width;
                             },
@@ -615,13 +618,13 @@
 
                     // stats label container
                     var processGroupStatsLabel = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(6, 75)'
                         });
 
                     // queued label
                     processGroupStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -632,7 +635,7 @@
 
                     // in label
                     processGroupStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -643,7 +646,7 @@
 
                     // read/write label
                     processGroupStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -654,7 +657,7 @@
 
                     // out label
                     processGroupStatsLabel.append('text')
-                        .attr({
+                        .attrs({
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -665,13 +668,13 @@
 
                     // stats value container
                     var processGroupStatsValue = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(95, 75)'
                         });
 
                     // queued value
                     var queuedText = processGroupStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -681,19 +684,19 @@
 
                     // queued count
                     queuedText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'count'
                         });
 
                     // queued size
                     queuedText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'size'
                         });
 
                     // in value
                     var inText = processGroupStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -703,25 +706,25 @@
 
                     // in count
                     inText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'count'
                         });
 
                     // in size
                     inText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'size'
                         });
 
                     // in
                     inText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'ports'
                         });
 
                     // read/write value
                     processGroupStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -731,7 +734,7 @@
 
                     // out value
                     var outText = processGroupStatsValue.append('text')
-                        .attr({
+                        .attrs({
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -741,31 +744,31 @@
 
                     // out ports
                     outText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'ports'
                         });
 
                     // out count
                     outText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'count'
                         });
 
                     // out size
                     outText.append('tspan')
-                        .attr({
+                        .attrs({
                             'class': 'size'
                         });
 
                     // stats value container
                     var processGroupStatsInfo = details.append('g')
-                        .attr({
+                        .attrs({
                             'transform': 'translate(335, 75)'
                         });
 
                     // in info
                     processGroupStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'x': 4,
@@ -776,7 +779,7 @@
 
                     // read/write info
                     processGroupStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'x': 4,
@@ -787,7 +790,7 @@
 
                     // out info
                     processGroupStatsInfo.append('text')
-                        .attr({
+                        .attrs({
                             'width': 25,
                             'height': 10,
                             'x': 4,
@@ -801,7 +804,7 @@
                     // --------
 
                     details.append('path')
-                        .attr({
+                        .attrs({
                             'class': 'component-comments',
                             'transform': 'translate(' + (processGroupData.dimensions.width - 2) + ', ' + (processGroupData.dimensions.height - 10) + ')',
                             'd': 'm0,0 l0,8 l-8,0 z'
@@ -813,7 +816,7 @@
 
                     // active thread count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count-icon',
                             'y': 20
                         })
@@ -821,7 +824,7 @@
 
                     // active thread icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count',
                             'y': 20
                         });
@@ -832,7 +835,7 @@
 
                     // bulletin background
                     details.append('rect')
-                        .attr({
+                        .attrs({
                             'class': 'bulletin-background',
                             'x': function () {
                                 return processGroupData.dimensions.width - 24;
@@ -844,7 +847,7 @@
 
                     // bulletin icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'bulletin-icon',
                             'x': function () {
                                 return processGroupData.dimensions.width - 17;
@@ -1090,7 +1093,7 @@
 
                 // update version control information
                 var versionControl = processGroup.select('text.version-control')
-                    .style({
+                    .styles({
                         'visibility': isUnderVersionControl(processGroupData) ? 'visible' : 'hidden',
                         'fill': function () {
                             if (isUnderVersionControl(processGroupData)) {
@@ -1198,7 +1201,7 @@
 
                     // update the process group name
                     processGroup.select('text.process-group-name')
-                        .attr({
+                        .attrs({
                             'x': function () {
                                 if (isUnderVersionControl(processGroupData)) {
                                     var versionControlX = parseInt(versionControl.attr('x'), 10);
@@ -1236,7 +1239,7 @@
 
                     // clear the process group name
                     processGroup.select('text.process-group-name')
-                        .attr({
+                        .attrs({
                             'x': 10,
                             'width': 316
                         })
@@ -1414,7 +1417,7 @@
 
             // create the process group container
             processGroupContainer = d3.select('#canvas').append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'all',
                     'class': 'process-groups'
                 });
@@ -1454,10 +1457,14 @@
                 add(processGroupEntities);
             }
 
-            // apply the selection and handle new process groups
+            // select
             var selection = select();
-            selection.enter().call(renderProcessGroups, selectAll);
-            selection.call(updateProcessGroups);
+
+            // enter
+            var entered = renderProcessGroups(selection.enter(), selectAll);
+
+            // update
+            updateProcessGroups(selection.merge(entered));
         },
 
         /**
@@ -1508,10 +1515,17 @@
                 set(processGroupEntities);
             }
 
-            // apply the selection and handle all new process group
+            // select
             var selection = select();
-            selection.enter().call(renderProcessGroups, selectAll);
-            selection.call(updateProcessGroups).call(nfCanvasUtils.position, transition);
+
+            // enter
+            var entered = renderProcessGroups(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updateProcessGroups).call(nfCanvasUtils.position, transition);
+
+            // exit
             selection.exit().call(removeProcessGroups);
         },
 
@@ -1614,7 +1628,7 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.forEach(function (id, entryTimestamp) {
+                cache.each(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
                         cache.remove(id);
                     }
@@ -1646,12 +1660,7 @@
 
                 // if the view was not restore attempt to fit
                 if (viewRestored === false) {
-                    nfCanvasUtils.fitCanvasView();
-
-                    // refresh the canvas
-                    nfCanvasUtils.refreshCanvasView({
-                        transition: true
-                    });
+                    nfCanvasUtils.fitCanvas();
                 }
 
                 // update URL deep linking params
