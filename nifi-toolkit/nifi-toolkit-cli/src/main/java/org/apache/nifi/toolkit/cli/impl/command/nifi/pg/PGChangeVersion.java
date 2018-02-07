@@ -77,8 +77,11 @@ public class PGChangeVersion extends AbstractNiFiCommand {
         // update the version in the existing DTO to the new version so we can submit it back
         existingVersionControlDTO.setVersion(newVersion);
 
+        // initiate the version change which creates an update request that must be checked for completion
         final VersionedFlowUpdateRequestEntity initialUpdateRequest = versionsClient.updateVersionControlInfo(pgId, existingVersionControlInfo);
 
+        // poll the update request for up to 30 seconds to see if it has completed
+        // if it doesn't complete then an exception will be thrown, but in either case the request will be deleted
         final String updateRequestId = initialUpdateRequest.getRequest().getRequestId();
         try {
             boolean completed = false;
@@ -89,7 +92,10 @@ public class PGChangeVersion extends AbstractNiFiCommand {
                     break;
                 } else {
                     try {
-                        Thread.sleep(1000);
+                        if (getContext().isInteractive()) {
+                            println("Waiting for update request to complete...");
+                        }
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }

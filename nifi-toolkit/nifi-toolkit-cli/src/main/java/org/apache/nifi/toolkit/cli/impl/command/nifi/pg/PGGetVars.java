@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
@@ -49,6 +50,8 @@ public class PGGetVars extends AbstractNiFiCommand {
         final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
         final ProcessGroupClient pgClient = client.getProcessGroupClient();
         final VariableRegistryEntity varEntity = pgClient.getVariables(pgId);
-        writeResult(properties, varEntity);
+
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeVariables(varEntity, getContext().getOutput());
     }
 }

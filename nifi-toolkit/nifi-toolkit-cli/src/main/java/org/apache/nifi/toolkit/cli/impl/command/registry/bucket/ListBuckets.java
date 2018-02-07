@@ -20,6 +20,7 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 
 import java.io.IOException;
@@ -39,6 +40,7 @@ public class ListBuckets extends AbstractNiFiRegistryCommand {
     protected void doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, MissingOptionException {
         final List<Bucket> buckets = client.getBucketClient().getAll();
-        writeResult(properties, buckets);
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeBuckets(buckets, getContext().getOutput());
     }
 }

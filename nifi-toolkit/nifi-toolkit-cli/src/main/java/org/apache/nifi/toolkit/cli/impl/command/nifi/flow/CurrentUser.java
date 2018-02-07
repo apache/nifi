@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.flow;
 
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -37,6 +38,7 @@ public class CurrentUser extends AbstractNiFiCommand {
     protected void doExecute(NiFiClient client, Properties properties)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();
-        writeResult(properties, flowClient.getCurrentUser());
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeCurrentUser(flowClient.getCurrentUser(), getContext().getOutput());
     }
 }

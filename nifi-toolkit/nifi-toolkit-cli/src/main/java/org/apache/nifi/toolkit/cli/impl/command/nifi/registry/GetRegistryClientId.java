@@ -16,30 +16,49 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.registry;
 
-import org.apache.nifi.toolkit.cli.api.ResultWriter;
+import org.apache.commons.cli.MissingOptionException;
+import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 
 import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Lists the registry clients defined in the given NiFi instance.
+ * Command to get the id of a registry client by name.
  */
-public class ListRegistryClients extends AbstractNiFiCommand {
+public class GetRegistryClientId extends AbstractNiFiCommand {
 
-    public ListRegistryClients() {
-        super("list-reg-clients");
+    public GetRegistryClientId() {
+        super("get-reg-client-id");
     }
 
     @Override
-    protected void doExecute(final NiFiClient client, final Properties properties) throws NiFiClientException, IOException {
-        final RegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
-
-        final ResultWriter resultWriter = getResultWriter(properties);
-        resultWriter.writeRegistryClients(registries, getContext().getOutput());
+    protected void doInitialize(final Context context) {
+        addOption(CommandOption.REGISTRY_CLIENT_NAME.createOption());
     }
 
+    @Override
+    protected void doExecute(final NiFiClient client, final Properties properties)
+            throws NiFiClientException, IOException, MissingOptionException {
+        final String regClientName = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
+
+        final RegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
+
+        final RegistryDTO registry = registries.getRegistries().stream()
+                .map(r -> r.getComponent())
+                .filter(r -> r.getName().equalsIgnoreCase(regClientName))
+                .findFirst()
+                .orElse(null);
+
+        if (registry == null) {
+            throw new NiFiClientException("No registry client exists with the name '" + regClientName + "'");
+        } else {
+            println(registry.getId());
+        }
+    }
 }

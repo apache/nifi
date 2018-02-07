@@ -22,6 +22,7 @@ import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 
@@ -50,6 +51,9 @@ public class ListFlows extends AbstractNiFiRegistryCommand {
 
         final FlowClient flowClient = client.getFlowClient();
         final List<VersionedFlow> flows = flowClient.getByBucket(bucketId);
-        writeResult(properties, flows);
+
+        final ResultWriter resultWriter = getResultWriter(properties);
+        resultWriter.writeFlows(flows, getContext().getOutput());
     }
+
 }
