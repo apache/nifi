@@ -240,8 +240,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        // If the max-value columns have changed, we need to re-fetch the column info from the DB
-        if (MAX_VALUE_COLUMN_NAMES.equals(descriptor) && newValue != null && !newValue.equals(oldValue)) {
+        // If the max-value columns or table name has changed, we need to re-fetch the column info from the DB
+        if ((TABLE_NAME.equals(descriptor) || MAX_VALUE_COLUMN_NAMES.equals(descriptor))
+                && newValue != null && !newValue.equals(oldValue)) {
             setupComplete.set(false);
         }
     }
@@ -260,57 +261,54 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 return;
             }
 
-        // Try to fill the columnTypeMap with the types of the desired max-value columns
-        final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
+            // Try to fill the columnTypeMap with the types of the desired max-value columns
+            final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
 
             final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
             try (final Connection con = dbcpService.getConnection();
                  final Statement st = con.createStatement()) {
 
-            // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
-            // to use DatabaseMetaData.getColumns(), but not all drivers support this, notably the schema-on-read
-            // approach as in Apache Drill
-            String query;
+                // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
+                // to use DatabaseMetaData.getColumns(), but not all drivers support this, notably the schema-on-read
+                // approach as in Apache Drill
+                String query;
 
-            if(StringUtils.isEmpty(sqlQuery)) {
-                query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
-            } else {
-                StringBuilder sbQuery = getWrappedQuery(sqlQuery, tableName);
-                sbQuery.append(" WHERE 1=0");
+                if(StringUtils.isEmpty(sqlQuery)) {
+                    query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
+                } else {
+                    StringBuilder sbQuery = getWrappedQuery(sqlQuery, tableName);
+                    sbQuery.append(" WHERE 1=0");
 
-                query = sbQuery.toString();
-            }
-
-            ResultSet resultSet = st.executeQuery(query);
-            ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-            int numCols = resultSetMetaData.getColumnCount();
-            if (numCols > 0) {
-                if (shouldCleanCache){
-                    columnTypeMap.clear();
-                }
-                for (int i = 1; i <= numCols; i++) {
-                    String colName = resultSetMetaData.getColumnName(i).toLowerCase();
-                    String colKey = getStateKey(tableName, colName);
-                    int colType = resultSetMetaData.getColumnType(i);
-                    columnTypeMap.putIfAbsent(colKey, colType);
+                    query = sbQuery.toString();
                 }
 
-                List<String> maxValueColumnNameList = org.apache.commons.lang3.StringUtils.isEmpty(maxValueColumnNames)
-                        ? null
-                        : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
-
-                for(String maxValueColumn:maxValueColumnNameList){
-                    String colKey = getStateKey(tableName, maxValueColumn.toLowerCase());
-                    if(!columnTypeMap.containsKey(colKey)){
-                        throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
+                ResultSet resultSet = st.executeQuery(query);
+                ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                int numCols = resultSetMetaData.getColumnCount();
+                if (numCols > 0) {
+                    if (shouldCleanCache){
+                        columnTypeMap.clear();
                     }
-                }
-            } else {
-                throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
-            }
+                    for (int i = 1; i <= numCols; i++) {
+                        String colName = resultSetMetaData.getColumnName(i).toLowerCase();
+                        String colKey = getStateKey(tableName, colName);
+                        int colType = resultSetMetaData.getColumnType(i);
+                        columnTypeMap.putIfAbsent(colKey, colType);
+                    }
 
+                    List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.split(","));
+
+                    for(String maxValueColumn:maxValueColumnNameList){
+                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase());
+                        if(!columnTypeMap.containsKey(colKey)){
+                            throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
+                        }
+                    }
+                } else {
+                    throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
+                }
             } catch (SQLException e) {
                 throw new ProcessException("Unable to communicate with database in order to determine column types", e);
             }
