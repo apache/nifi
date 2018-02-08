@@ -17,18 +17,24 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.servlet.ServletHandler;
@@ -441,4 +447,116 @@ public class TestPostHTTP {
         Assert.assertTrue(runner.getProcessContext().getProperty(PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
     }
 
+    @Test
+    public void testBatchWithMultipleUrls() throws Exception {
+        CaptureServlet servletA, servletB;
+        TestServer serverA, serverB;
+
+        { // setup test servers
+            setup(null);
+            servletA = servlet;
+            serverA = server;
+
+            // set up second web service
+            ServletHandler handler = new ServletHandler();
+            handler.addServletWithMapping(CaptureServlet.class, "/*");
+
+            // create the second service
+            serverB = new TestServer(null);
+            serverB.addHandler(handler);
+            serverB.startServer();
+
+            servletB = (CaptureServlet) handler.getServlets()[0].getServlet();
+        }
+
+        runner.setProperty(PostHTTP.URL, "${url}"); // use EL for the URL
+        runner.setProperty(PostHTTP.SEND_AS_FLOWFILE, "true");
+        runner.setProperty(PostHTTP.MAX_BATCH_SIZE, "10 b");
+
+        Set<String> expectedContentA = new HashSet<>();
+        Set<String> expectedContentB = new HashSet<>();
+
+        Set<String> actualContentA = new HashSet<>();
+        Set<String> actualContentB = new HashSet<>();
+
+        // enqueue 9 FlowFiles
+        for (int i = 0; i < 9; i++) {
+            enqueueWithURL("a" + i, serverA.getUrl());
+            enqueueWithURL("b" + i, serverB.getUrl());
+
+            expectedContentA.add("a" + i);
+            expectedContentB.add("b" + i);
+        }
+
+        // MAX_BATCH_SIZE is 10 bytes, each file is 2 bytes, so 18 files should produce 4 batches
+        for (int i = 0; i < 4; i++) {
+            runner.run(1);
+            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+            final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(PostHTTP.REL_SUCCESS);
+            assertFalse(successFiles.isEmpty());
+
+            MockFlowFile mff = successFiles.get(0);
+            final String urlAttr = mff.getAttribute("url");
+
+            if (serverA.getUrl().equals(urlAttr)) {
+                checkBatch(serverA, servletA, actualContentA, (actualContentA.isEmpty() ? 5 : 4));
+            } else if (serverB.getUrl().equals(urlAttr)) {
+                checkBatch(serverB, servletB, actualContentB, (actualContentB.isEmpty() ? 5 : 4));
+            } else {
+                fail("unexpected url attribute");
+            }
+        }
+
+        assertEquals(expectedContentA, actualContentA);
+        assertEquals(expectedContentB, actualContentB);
+
+        // make sure everything transferred, nothing more to do
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 0);
+    }
+
+    private void enqueueWithURL(String data, String url) {
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("url", url);
+        runner.enqueue(data.getBytes(), attrs);
+    }
+
+    private void checkBatch(TestServer server, CaptureServlet servlet, Set<String> actualContent, int expectedCount) throws Exception {
+        FlowFileUnpackagerV3 unpacker = new FlowFileUnpackagerV3();
+        Set<String> actualFFContent = new HashSet<>();
+        Set<String> actualPostContent = new HashSet<>();
+
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, expectedCount);
+
+        // confirm that all FlowFiles transferred to 'success' have the same URL
+        // also accumulate content to verify later
+        final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PostHTTP.REL_SUCCESS);
+        for (int i = 0; i < expectedCount; i++) {
+            MockFlowFile mff = successFlowFiles.get(i);
+            mff.assertAttributeEquals("url", server.getUrl());
+            String content = new String(mff.toByteArray());
+            actualFFContent.add(content);
+        }
+
+        // confirm that all FlowFiles POSTed to server have the same URL
+        // also accumulate content to verify later
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(servlet.getLastPost());
+            ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            for (int i = 0; i < expectedCount; i++) {
+                Map<String, String> receivedAttrs = unpacker.unpackageFlowFile(bais, baos);
+                String receivedContent = new String(baos.toByteArray());
+                actualPostContent.add(receivedContent);
+                assertEquals(server.getUrl(), receivedAttrs.get("url"));
+                assertTrue(unpacker.hasMoreData() || i == (expectedCount - 1));
+                baos.reset();
+            }
+        }
+
+        // confirm that the transferred and POSTed content match
+        assertEquals(actualFFContent, actualPostContent);
+
+        // accumulate actial content
+        actualContent.addAll(actualPostContent);
+        runner.clearTransferState();
+    }
 }
