@@ -194,4 +194,9 @@ public class StandardHttpContextMap extends AbstractControllerService implements
             }
         }
     }
+
+    @Override
+    public long getRequestTimeout(final TimeUnit timeUnit) {
+        return timeUnit.convert(maxRequestNanos, TimeUnit.NANOSECONDS);
+    }
 }

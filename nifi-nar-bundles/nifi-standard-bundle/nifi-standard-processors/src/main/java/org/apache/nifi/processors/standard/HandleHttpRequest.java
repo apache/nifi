@@ -281,6 +281,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String host = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).asInteger();
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
+        final HttpContextMap httpContextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
+        final long requestTimeout = httpContextMap.getRequestTimeout(TimeUnit.MILLISECONDS);
 
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
         final boolean need;
@@ -404,7 +406,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                 // Right now, that information, though, is only in the ProcessSession, not the ProcessContext,
                 // so it is not known to us. Should see if it can be added to the ProcessContext.
                 final AsyncContext async = baseRequest.startAsync();
-                async.setTimeout(Long.MAX_VALUE); // timeout is handled by HttpContextMap
+                async.setTimeout(requestTimeout);
                 final boolean added = containerQueue.offer(new HttpRequestContainer(request, response, async));
 
                 if (added) {
