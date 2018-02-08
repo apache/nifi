@@ -39,9 +39,9 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
@@ -120,7 +120,8 @@ public class ValidateCsv extends AbstractProcessor {
                     + "processors to apply. The following cell processors are allowed in the schema definition: "
                     + allowedOperators.toString() + ". Note: cell processors cannot be nested except with Optional.")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
@@ -139,6 +140,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Character used as 'quote' in the incoming data. Example: \"")
             .required(true)
             .defaultValue("\"")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -148,6 +150,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Character used as 'delimiter' in the incoming data. Example: ,")
             .required(true)
             .defaultValue(",")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -157,6 +160,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Symbols used as 'end of line' in the incoming data. Example: \\n")
             .required(true)
             .defaultValue("\\n")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -181,8 +185,6 @@ public class ValidateCsv extends AbstractProcessor {
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
-    private final AtomicReference<CellProcessor[]> processors = new AtomicReference<CellProcessor[]>();
-    private final AtomicReference<CsvPreference> preference = new AtomicReference<CsvPreference>();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -212,31 +214,38 @@ public class ValidateCsv extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        String schema = validationContext.getProperty(SCHEMA).getValue();
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+
+        PropertyValue schemaProp = context.getProperty(SCHEMA);
+        String schema = schemaProp.getValue();
+        String subject = SCHEMA.getName();
+
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(schema)) {
+            return Collections.singletonList(new ValidationResult.Builder().subject(subject).input(schema).explanation("Expression Language Present").valid(true).build());
+        }
+        // If no Expression Language is present, try parsing the schema
         try {
-            this.parseSchema(validationContext.getProperty(SCHEMA).getValue());
+            this.parseSchema(schema);
         } catch (Exception e) {
             final List<ValidationResult> problems = new ArrayList<>(1);
-            problems.add(new ValidationResult.Builder().subject(SCHEMA.getName())
+            problems.add(new ValidationResult.Builder().subject(subject)
                     .input(schema)
                     .valid(false)
                     .explanation("Error while parsing the schema: " + e.getMessage())
                     .build());
             return problems;
         }
-        return super.customValidate(validationContext);
+        return super.customValidate(context);
     }
 
-    @OnScheduled
-    public void setPreference(final ProcessContext context) {
+    public CsvPreference getPreference(final ProcessContext context, final FlowFile flowFile) {
         // When going from the UI to Java, the characters are escaped so that what you
         // input is transferred over to Java as is. So when you type the characters "\"
         // and "n" into the UI the Java string will end up being those two characters
         // not the interpreted value "\n".
-        final String msgDemarcator = context.getProperty(END_OF_LINE_CHARACTER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-        this.preference.set(new CsvPreference.Builder(context.getProperty(QUOTE_CHARACTER).getValue().charAt(0),
-                context.getProperty(DELIMITER_CHARACTER).getValue().charAt(0), msgDemarcator).build());
+        final String msgDemarcator = context.getProperty(END_OF_LINE_CHARACTER).evaluateAttributeExpressions(flowFile).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+        return new CsvPreference.Builder(context.getProperty(QUOTE_CHARACTER).evaluateAttributeExpressions(flowFile).getValue().charAt(0),
+                context.getProperty(DELIMITER_CHARACTER).evaluateAttributeExpressions(flowFile).getValue().charAt(0), msgDemarcator).build();
     }
 
     /**
@@ -244,15 +253,15 @@ public class ValidateCsv extends AbstractProcessor {
      * to a list of cell processors used to validate the CSV data.
      * @param schema Schema to parse
      */
-    private void parseSchema(String schema) {
-        List<CellProcessor> processorsList = new ArrayList<CellProcessor>();
+    private CellProcessor[] parseSchema(String schema) {
+        List<CellProcessor> processorsList = new ArrayList<>();
 
         String remaining = schema;
         while(remaining.length() > 0) {
             remaining = setProcessor(remaining, processorsList);
         }
 
-        this.processors.set(processorsList.toArray(new CellProcessor[processorsList.size()]));
+        return processorsList.toArray(new CellProcessor[processorsList.size()]);
     }
 
     private String setProcessor(String remaining, List<CellProcessor> processorsList) {
@@ -431,10 +440,11 @@ public class ValidateCsv extends AbstractProcessor {
             return;
         }
 
-        final CsvPreference csvPref = this.preference.get();
+        final CsvPreference csvPref = getPreference(context, flowFile);
         final boolean header = context.getProperty(HEADER).asBoolean();
         final ComponentLog logger = getLogger();
-        final CellProcessor[] cellProcs = this.processors.get();
+        final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions(flowFile).getValue();
+        final CellProcessor[] cellProcs = this.parseSchema(schema);
         final boolean isWholeFFValidation = context.getProperty(VALIDATION_STRATEGY).getValue().equals(VALIDATE_WHOLE_FLOWFILE.getValue());
 
         final AtomicReference<Boolean> valid = new AtomicReference<Boolean>(true);
