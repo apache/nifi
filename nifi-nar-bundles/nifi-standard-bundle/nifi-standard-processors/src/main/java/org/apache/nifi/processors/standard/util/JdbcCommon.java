@@ -280,7 +280,7 @@ public class JdbcCommon {
                             InputStream is = clob.getAsciiStream();
                             int index = 0;
                             int c = is.read();
-                            while (c > 0) {
+                            while (c >= 0) {
                                 buffer[index++] = (char) c;
                                 c = is.read();
                             }
@@ -316,7 +316,7 @@ public class JdbcCommon {
                             InputStream is = blob.getBinaryStream();
                             int index = 0;
                             int c = is.read();
-                            while (c > 0) {
+                            while (c >= 0) {
                                 buffer[index++] = (byte) c;
                                 c = is.read();
                             }

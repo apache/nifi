@@ -476,11 +476,13 @@ public class TestJdbcCommon {
     public void testClob() throws Exception {
         try (final Statement stmt = con.createStatement()) {
             stmt.executeUpdate("CREATE TABLE clobtest (id INT, text CLOB(64 K))");
-            stmt.execute("INSERT INTO blobtest VALUES (41, NULL)");
+            stmt.execute("INSERT INTO clobtest VALUES (41, NULL)");
             PreparedStatement ps = con.prepareStatement("INSERT INTO clobtest VALUES (?, ?)");
             ps.setInt(1, 42);
             final char[] buffer = new char[4002];
             IntStream.range(0, 4002).forEach((i) -> buffer[i] = String.valueOf(i % 10).charAt(0));
+            // Put a zero-byte in to test the buffer building logic
+            buffer[1] = 0;
             ReaderInputStream isr = new ReaderInputStream(new CharArrayReader(buffer), Charset.defaultCharset());
 
             // - set the value of the input parameter to the input stream
@@ -513,7 +515,10 @@ public class TestJdbcCommon {
                         assertNull(o);
                     } else {
                         assertNotNull(o);
-                        assertEquals(4002, o.toString().length());
+                        final String text = o.toString();
+                        assertEquals(4002, text.length());
+                        // Third character should be '2'
+                        assertEquals('2', text.charAt(2));
                     }
                 }
             }
@@ -529,6 +534,8 @@ public class TestJdbcCommon {
             ps.setInt(1, 42);
             final byte[] buffer = new byte[4002];
             IntStream.range(0, 4002).forEach((i) -> buffer[i] = (byte) ((i % 10) + 65));
+            // Put a zero-byte in to test the buffer building logic
+            buffer[1] = 0;
             ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
 
             // - set the value of the input parameter to the input stream
@@ -562,7 +569,10 @@ public class TestJdbcCommon {
                     } else {
                         assertNotNull(o);
                         assertTrue(o instanceof ByteBuffer);
-                        assertEquals(4002, ((ByteBuffer) o).array().length);
+                        final byte[] blob = ((ByteBuffer) o).array();
+                        assertEquals(4002, blob.length);
+                        // Third byte should be 67 ('C')
+                        assertEquals('C', blob[2]);
                     }
                 }
             }
