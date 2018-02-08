@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -303,6 +304,11 @@ public class TestHandleHttpRequest {
 
         public void setRegisterSuccessfully(boolean registerSuccessfully) {
             this.registerSuccessfully = registerSuccessfully;
+        }
+
+        @Override
+        public long getRequestTimeout(TimeUnit timeUnit) {
+            return timeUnit.convert(30000, TimeUnit.MILLISECONDS);
         }
     }
 }
