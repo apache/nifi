@@ -107,4 +107,9 @@ public class ByteCountingInputStream extends InputStream {
     public void close() throws IOException {
         in.close();
     }
+
+    @Override
+    public int available() throws IOException {
+        return in.available();
+    }
 }
