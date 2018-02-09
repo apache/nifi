@@ -17,15 +17,14 @@
 package org.apache.nifi.stream.io;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import junit.framework.TestCase;
 
 public class ByteCountingInputStreamTest extends TestCase {
 
-    final java.io.ByteArrayInputStream reader = new java.io.ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes());
-
     public void testReset() throws Exception {
 
-        final ByteArrayInputStream reader = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes());
+        final ByteArrayInputStream reader = new ByteArrayInputStream("abcdefghijklmnopqrstuvwxyz".getBytes(StandardCharsets.UTF_8));
         final ByteCountingInputStream bcis = new ByteCountingInputStream(reader);
         int tmp;
 
@@ -57,7 +56,7 @@ public class ByteCountingInputStreamTest extends TestCase {
     public void testAvailableShouldReturnCorrectCount() throws Exception {
         // Arrange
         final String ALPHABET = "abcdefghijklmnopqrstuvwxyz";
-        final ByteArrayInputStream inputStream = new ByteArrayInputStream(ALPHABET.getBytes());
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(ALPHABET.getBytes(StandardCharsets.UTF_8));
         final ByteCountingInputStream bcis = new ByteCountingInputStream(inputStream);
         int tmp;
         int initialAvailableBytes = bcis.available();
