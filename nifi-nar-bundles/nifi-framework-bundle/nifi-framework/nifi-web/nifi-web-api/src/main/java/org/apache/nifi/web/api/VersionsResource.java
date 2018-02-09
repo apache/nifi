@@ -1539,7 +1539,9 @@ public class VersionsResource extends ApplicationResource {
         for (final AffectedComponentEntity original : originalEntities) {
             try {
                 final AffectedComponentEntity updatedEntity = AffectedComponentUtils.updateEntity(original, serviceFacade, dtoFactory, user);
-                entities.add(updatedEntity);
+                if (updatedEntity != null) {
+                    entities.add(updatedEntity);
+                }
             } catch (final ResourceNotFoundException rnfe) {
                 // Component was removed. Just continue on without adding anything to the entities.
                 // We do this because the intent is to get updated versions of the entities with current
