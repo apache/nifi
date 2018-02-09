@@ -17,12 +17,22 @@
 
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
@@ -75,21 +85,6 @@ import org.apache.nifi.web.util.LifecycleManagementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -104,6 +99,13 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 
 @Path("/versions")
 @Api(value = "/versions", description = "Endpoint for managing version control for a flow")
@@ -1491,6 +1493,36 @@ public class VersionsResource extends ApplicationResource {
 
                 // Step 14. Restart all components
                 final Set<AffectedComponentEntity> componentsToStart = getUpdatedEntities(runningComponents, user);
+
+                // If there are any Remote Group Ports that are supposed to be started and have no connections, we want to remove those from our Set.
+                // This will happen if the Remote Group Port is transmitting when the version change happens but the new flow version does not have
+                // a connection to the port. In such a case, the Port still is included in the Updated Entities because we do not remove them
+                // when updating the flow (they are removed in the background).
+                final Set<AffectedComponentEntity> avoidStarting = new HashSet<>();
+                for (final AffectedComponentEntity componentEntity : componentsToStart) {
+                    final AffectedComponentDTO componentDto = componentEntity.getComponent();
+                    final String referenceType = componentDto.getReferenceType();
+                    if (!AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT.equals(referenceType)
+                        && !AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT.equals(referenceType)) {
+                        continue;
+                    }
+
+                    boolean startComponent;
+                    try {
+                        startComponent = serviceFacade.isRemoteGroupPortConnected(componentDto.getProcessGroupId(), componentDto.getId());
+                    } catch (final ResourceNotFoundException rnfe) {
+                        // Could occur if RPG is refreshed at just the right time.
+                        startComponent = false;
+                    }
+
+                    // We must add the components to avoid starting to a separate Set and then remove them below,
+                    // rather than removing the component here, because doing so would result in a ConcurrentModificationException.
+                    if (!startComponent) {
+                        avoidStarting.add(componentEntity);
+                    }
+                }
+                componentsToStart.removeAll(avoidStarting);
+
                 final CancellableTimedPause startComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
                 asyncRequest.setCancelCallback(startComponentsPause::cancel);
                 logger.info("Restarting {} Processors", componentsToStart.size());

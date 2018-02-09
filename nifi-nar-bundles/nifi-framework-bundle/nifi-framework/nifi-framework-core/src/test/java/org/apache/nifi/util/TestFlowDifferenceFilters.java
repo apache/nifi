@@ -35,7 +35,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -47,7 +47,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, remoteGroupPort, null, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -71,6 +71,6 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, versionedProcessor, null, null, "");
 
         // predicate should return true because we do want to include changes for adding a non-port
-        Assert.assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 }
