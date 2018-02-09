@@ -39,6 +39,11 @@ public class PGGetVersion extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the current version information for a version controlled process group.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }

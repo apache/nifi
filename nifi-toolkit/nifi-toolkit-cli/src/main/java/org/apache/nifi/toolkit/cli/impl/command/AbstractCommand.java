@@ -109,8 +109,13 @@ public abstract class AbstractCommand implements Command {
 
         final PrintWriter printWriter = new PrintWriter(output);
 
+        final int width = 160;
         final HelpFormatter hf = new HelpFormatter();
-        hf.setWidth(160);
+        hf.setWidth(width);
+
+        hf.printWrapped(printWriter, width, getDescription());
+        hf.printWrapped(printWriter, width, "");
+
         hf.printHelp(printWriter, hf.getWidth(), getName(), null, getOptions(),
                 hf.getLeftPadding(), hf.getDescPadding(), null, false);
 

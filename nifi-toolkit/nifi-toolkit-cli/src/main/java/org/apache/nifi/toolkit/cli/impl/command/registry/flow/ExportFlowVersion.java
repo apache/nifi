@@ -44,6 +44,12 @@ public class ExportFlowVersion extends AbstractNiFiRegistryCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Exports a specific version of a flow. The --" + CommandOption.OUTPUT_FILE.getLongName()
+                + " can be used to export to a file, otherwise the content will be written to terminal or standard out.";
+    }
+
+    @Override
     public void doExecute(final NiFiRegistryClient client, final Properties properties)
             throws ParseException, IOException, NiFiRegistryException {
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);

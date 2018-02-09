@@ -39,6 +39,12 @@ public class GetRegistryClientId extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the id of the first registry client found with the given name or url. " +
+                "Only one of name or url can be specified.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.REGISTRY_CLIENT_NAME.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_URL.createOption());

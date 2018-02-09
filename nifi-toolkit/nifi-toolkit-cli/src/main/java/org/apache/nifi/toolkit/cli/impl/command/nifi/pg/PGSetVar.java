@@ -44,6 +44,11 @@ public class PGSetVar extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Sets the value of a variable in the variable registry for the specified process group.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.PG_VAR_NAME.createOption());

@@ -38,6 +38,11 @@ public class CreateBucket extends AbstractNiFiRegistryCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Creates a bucket using the given name and description.";
+    }
+
+    @Override
     public void doInitialize(final Context context) {
         addOption(CommandOption.BUCKET_NAME.createOption());
         addOption(CommandOption.BUCKET_DESC.createOption());

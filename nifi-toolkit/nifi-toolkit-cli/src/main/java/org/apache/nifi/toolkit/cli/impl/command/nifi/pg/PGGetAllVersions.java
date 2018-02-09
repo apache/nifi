@@ -41,6 +41,10 @@ public class PGGetAllVersions extends AbstractNiFiCommand {
     public PGGetAllVersions() {
         super("pg-get-all-versions");
     }
+    @Override
+    public String getDescription() {
+        return "Returns all of the available versions for a version controlled process group.";
+    }
 
     @Override
     protected void doInitialize(final Context context) {

@@ -40,6 +40,11 @@ public class PGGetVars extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the variable registry for a given process group.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }

@@ -34,6 +34,11 @@ public class ShowSession extends AbstractCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns all of the variables and values in the session.";
+    }
+
+    @Override
     public void execute(final CommandLine cli) throws CommandException {
         try {
             final Session session = getContext().getSession();

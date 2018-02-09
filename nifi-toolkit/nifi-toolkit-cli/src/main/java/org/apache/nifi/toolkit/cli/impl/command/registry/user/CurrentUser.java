@@ -36,6 +36,12 @@ public class CurrentUser extends AbstractNiFiRegistryCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns information about the user accessing NiFi Registry. " +
+                "This provides a way to test if the CLI is accessing NiFi Registry as the expected user.";
+    }
+
+    @Override
     protected void doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
         final UserClient userClient = client.getUserClient();

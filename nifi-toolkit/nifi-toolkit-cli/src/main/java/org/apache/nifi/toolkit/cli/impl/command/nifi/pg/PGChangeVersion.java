@@ -44,6 +44,13 @@ public class PGChangeVersion extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Changes the version for a version controlled process group. " +
+                "This can be used to upgrade to a new version, or revert to a previous version. " +
+                "If no version is specified, the latest version will be used.";
+    }
+
+    @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.FLOW_VERSION.createOption());

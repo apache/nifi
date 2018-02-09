@@ -65,8 +65,15 @@ public abstract class AbstractCommandGroup implements CommandGroup {
     }
 
     @Override
-    public void printUsage() {
-        commands.stream().forEach(c -> output.println("\t" + getName() + " " + c.getName()));
+    public void printUsage(final boolean verbose) {
+        if (verbose) {
+            commands.stream().forEach(c -> {{
+                output.println("\t" + getName() + " " + c.getName());
+                output.println("\t\t" + c.getDescription());
+            }});
+        } else {
+            commands.stream().forEach(c -> output.println("\t" + getName() + " " + c.getName()));
+        }
         output.flush();
     }
 

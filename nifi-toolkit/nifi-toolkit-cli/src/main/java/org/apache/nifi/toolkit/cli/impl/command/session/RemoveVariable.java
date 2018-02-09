@@ -32,6 +32,11 @@ public class RemoveVariable extends AbstractCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Removes the given variable from the session.";
+    }
+
+    @Override
     public void execute(final CommandLine commandLine) throws CommandException {
         final String[] args = commandLine.getArgs();
 

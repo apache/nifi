@@ -44,6 +44,12 @@ public class PGImport extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Creates a new process group by importing a versioned flow from a registry. If no process group id is " +
+                "specified, then the created process group will be placed in the root group.";
+    }
+
+    @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());

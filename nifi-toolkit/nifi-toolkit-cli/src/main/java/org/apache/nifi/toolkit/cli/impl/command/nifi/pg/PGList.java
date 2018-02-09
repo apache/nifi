@@ -46,6 +46,12 @@ public class PGList extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the process groups contained in the specified process group. If no process group is specified, " +
+                "then the root group will be used.";
+    }
+
+    @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }

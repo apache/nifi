@@ -35,6 +35,11 @@ public class ListRegistryClients extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns the registry clients defined in the given NiFi instance.";
+    }
+
+    @Override
     protected void doExecute(final NiFiClient client, final Properties properties) throws NiFiClientException, IOException {
         final RegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
 

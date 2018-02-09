@@ -35,6 +35,12 @@ public class CurrentUser extends AbstractNiFiCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Returns information about the user accessing NiFi. " +
+                "This provides a way to test if the CLI is accessing NiFi as the expected user.";
+    }
+
+    @Override
     protected void doExecute(NiFiClient client, Properties properties)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();

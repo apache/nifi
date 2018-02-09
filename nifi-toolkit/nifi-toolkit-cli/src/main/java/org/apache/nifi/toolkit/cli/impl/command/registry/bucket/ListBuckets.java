@@ -37,6 +37,11 @@ public class ListBuckets extends AbstractNiFiRegistryCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Lists the buckets that the current user has access to.";
+    }
+
+    @Override
     protected void doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, MissingOptionException {
         final List<Bucket> buckets = client.getBucketClient().getAll();

@@ -40,6 +40,11 @@ public class ListFlowVersions extends AbstractNiFiRegistryCommand {
     }
 
     @Override
+    public String getDescription() {
+        return "Lists all of the flows for the given bucket.";
+    }
+
+    @Override
     public void doInitialize(final Context context) {
         addOption(CommandOption.FLOW_ID.createOption());
     }
