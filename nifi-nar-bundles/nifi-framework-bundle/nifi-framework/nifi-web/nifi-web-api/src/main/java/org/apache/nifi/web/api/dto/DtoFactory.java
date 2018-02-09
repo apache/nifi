@@ -1535,6 +1535,7 @@ public final class DtoFactory {
 
         final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
         dto.setId(port.getIdentifier());
+        dto.setGroupId(port.getRemoteProcessGroup().getIdentifier());
         dto.setTargetId(port.getTargetIdentifier());
         dto.setName(port.getName());
         dto.setComments(port.getComments());
@@ -2227,7 +2228,7 @@ public final class DtoFactory {
             }
 
             // Ignore differences for adding remote ports
-            if (FlowDifferenceFilters.isAddedRemotePort(difference)) {
+            if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
                 continue;
             }
 

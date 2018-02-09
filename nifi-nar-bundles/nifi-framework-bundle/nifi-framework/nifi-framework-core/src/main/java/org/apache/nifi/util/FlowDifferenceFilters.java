@@ -29,12 +29,12 @@ public class FlowDifferenceFilters {
     /**
      * Predicate that returns true if the difference is NOT a remote port being added, and false if it is.
      */
-    public static Predicate<FlowDifference> FILTER_ADDED_REMOTE_PORTS =  (fd) -> {
-        return !isAddedRemotePort(fd);
+    public static Predicate<FlowDifference> FILTER_ADDED_REMOVED_REMOTE_PORTS =  (fd) -> {
+        return !isAddedOrRemovedRemotePort(fd);
     };
 
-    public static boolean isAddedRemotePort(final FlowDifference fd) {
-        if (fd.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
+    public static boolean isAddedOrRemovedRemotePort(final FlowDifference fd) {
+        if (fd.getDifferenceType() == DifferenceType.COMPONENT_ADDED || fd.getDifferenceType() == DifferenceType.COMPONENT_REMOVED) {
             VersionedComponent component = fd.getComponentA();
             if (component == null || fd.getComponentB() instanceof InstantiatedVersionedComponent) {
                 component = fd.getComponentB();
