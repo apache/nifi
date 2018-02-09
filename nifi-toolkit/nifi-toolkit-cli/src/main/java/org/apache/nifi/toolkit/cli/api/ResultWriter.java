@@ -21,6 +21,7 @@ import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
@@ -54,6 +55,8 @@ public interface ResultWriter {
     void writeSnapshotMetadata(VersionedFlowSnapshotMetadataSetEntity versionedFlowSnapshotMetadataSetEntity, PrintStream output) throws IOException;
 
     void writeVersionControlInfo(VersionControlInformationEntity versionControlInformationEntity, PrintStream output) throws IOException;
+
+    void writeProcessGroups(List<ProcessGroupEntity> processGroupEntities, PrintStream output) throws IOException;
 
     void writeCurrentUser(CurrentUserEntity currentUserEntity, PrintStream output) throws IOException;
 

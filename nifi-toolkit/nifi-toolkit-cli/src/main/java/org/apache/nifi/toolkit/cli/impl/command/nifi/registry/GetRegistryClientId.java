@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.registry;
 
-import org.apache.commons.cli.MissingOptionException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -29,7 +30,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command to get the id of a registry client by name.
+ * Command to get the id of a registry client by name or url.
  */
 public class GetRegistryClientId extends AbstractNiFiCommand {
 
@@ -40,25 +41,54 @@ public class GetRegistryClientId extends AbstractNiFiCommand {
     @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.REGISTRY_CLIENT_NAME.createOption());
+        addOption(CommandOption.REGISTRY_CLIENT_URL.createOption());
     }
 
     @Override
     protected void doExecute(final NiFiClient client, final Properties properties)
-            throws NiFiClientException, IOException, MissingOptionException {
-        final String regClientName = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
+            throws NiFiClientException, IOException, CommandException {
+        final String regClientName = getArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
+        final String regClientUrl = getArg(properties, CommandOption.REGISTRY_CLIENT_URL);
+
+        if (!StringUtils.isBlank(regClientName) && !StringUtils.isBlank(regClientUrl)) {
+            throw new CommandException("Name and URL cannot be specified at the same time");
+        }
+
+        if (StringUtils.isBlank(regClientName) && StringUtils.isBlank(regClientUrl)) {
+            throw new CommandException("Name or URL must be specified");
+        }
 
         final RegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
 
-        final RegistryDTO registry = registries.getRegistries().stream()
-                .map(r -> r.getComponent())
-                .filter(r -> r.getName().equalsIgnoreCase(regClientName))
-                .findFirst()
-                .orElse(null);
+        RegistryDTO registry;
+
+        if (!StringUtils.isBlank(regClientName)) {
+            registry = registries.getRegistries().stream()
+                    .map(r -> r.getComponent())
+                    .filter(r -> r.getName().equalsIgnoreCase(regClientName.trim()))
+                    .findFirst()
+                    .orElse(null);
+        } else {
+            registry = registries.getRegistries().stream()
+                    .map(r -> r.getComponent())
+                    .filter(r -> r.getUri().equalsIgnoreCase(regClientUrl.trim()))
+                    .findFirst()
+                    .orElse(null);
+        }
 
         if (registry == null) {
             throw new NiFiClientException("No registry client exists with the name '" + regClientName + "'");
         } else {
             println(registry.getId());
         }
+    }
+
+    private RegistryDTO getByName(final RegistryClientsEntity registries, final String regClientName) {
+        return registries.getRegistries().stream()
+                .map(r -> r.getComponent())
+                .filter(r -> r.getName().equalsIgnoreCase(regClientName))
+                .findFirst()
+                .orElse(null);
+
     }
 }

@@ -21,11 +21,13 @@ import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultWriter;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.VariableDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
@@ -33,6 +35,7 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -174,6 +177,18 @@ public class SimpleResultWriter implements ResultWriter {
         }
 
         output.println(dto.getRegistryName() + " - " + dto.getBucketName() + " - " + dto.getFlowName() + " - " + dto.getVersion());
+    }
+
+    @Override
+    public void writeProcessGroups(List<ProcessGroupEntity> processGroupEntities, PrintStream output) throws IOException {
+        if (processGroupEntities == null) {
+            return;
+        }
+
+        final List<ProcessGroupDTO> dtos = processGroupEntities.stream().map(e -> e.getComponent()).collect(Collectors.toList());
+        Collections.sort(dtos, Comparator.comparing(ProcessGroupDTO::getName));
+
+        dtos.stream().forEach(dto -> output.println(dto.getName() + " - " + dto.getId()));
     }
 
     @Override

@@ -23,6 +23,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
@@ -86,6 +87,11 @@ public class JsonResultWriter implements ResultWriter {
     @Override
     public void writeVersionControlInfo(VersionControlInformationEntity versionControlInformationEntity, PrintStream output) throws IOException {
         write(versionControlInformationEntity, output);
+    }
+
+    @Override
+    public void writeProcessGroups(List<ProcessGroupEntity> processGroupEntities, PrintStream output) throws IOException {
+        write(processGroupEntities, output);
     }
 
     @Override

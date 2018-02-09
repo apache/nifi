@@ -25,6 +25,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetAllVersions;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVars;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVersion;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGImport;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGList;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGSetVar;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStart;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStop;
@@ -64,6 +65,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGGetVersion());
         commands.add(new PGChangeVersion());
         commands.add(new PGGetAllVersions());
+        commands.add(new PGList());
         return new ArrayList<>(commands);
     }
 }
