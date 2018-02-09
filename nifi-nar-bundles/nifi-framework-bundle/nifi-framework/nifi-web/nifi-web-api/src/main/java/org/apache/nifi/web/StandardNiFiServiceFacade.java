@@ -3982,7 +3982,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
             .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
-            .filter(FlowDifferenceFilters.FILTER_ADDED_REMOTE_PORTS)
+            .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
@@ -4020,7 +4020,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             // Ignore differences for adding remote ports
-            if (FlowDifferenceFilters.isAddedRemotePort(difference)) {
+            if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
                 continue;
             }
 

@@ -2228,7 +2228,7 @@ public final class DtoFactory {
             }
 
             // Ignore differences for adding remote ports
-            if (FlowDifferenceFilters.isAddedRemotePort(difference)) {
+            if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
                 continue;
             }
 
