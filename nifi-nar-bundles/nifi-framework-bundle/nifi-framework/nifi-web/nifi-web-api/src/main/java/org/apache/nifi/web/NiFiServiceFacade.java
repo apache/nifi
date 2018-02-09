@@ -1118,6 +1118,18 @@ public interface NiFiServiceFacade {
     RemoteProcessGroupEntity createRemoteProcessGroup(Revision revision, String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO);
 
     /**
+     * Determines whether or not the Remote Port with the given remotePortId is connected (i.e., there are incoming Connections if it's an Input Port
+     * or there are outgoing Connections if it's an Output Port).
+     *
+     * @param remoteProcessGroupId the ID of the Remote Process Group
+     * @param remotePortId the ID of the Port
+     * @return <code>true</code> if remote port identified is connected, <code>false</code> if the port is not connected
+     *
+     * @throws ResourceNotFoundException if the port cannot be found
+     */
+    boolean isRemoteGroupPortConnected(String remoteProcessGroupId, String remotePortId);
+
+    /**
      * Gets a remote process group.
      *
      * @param remoteProcessGroupId The id of the remote process group

@@ -3270,11 +3270,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                     continue;
                 }
 
-                // Ignore differences for adding a remote port
-                if (FlowDifferenceFilters.isAddedRemotePort(diff)) {
-                    continue;
-                }
-
                 // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
                 // and if so compare our VersionedControllerService to the existing service.
                 if (diff.getDifferenceType() == DifferenceType.COMPONENT_ADDED) {
@@ -3909,9 +3904,17 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 final RemoteProcessGroup rpg = rpgOption.get();
-                return rpg.getInputPorts().stream()
+                final Optional<RemoteGroupPort> portByIdOption = rpg.getInputPorts().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .findAny();
+
+                if (portByIdOption.isPresent()) {
+                    return portByIdOption.get();
+                }
+
+                return rpg.getInputPorts().stream()
+                    .filter(component -> connectableComponent.getName().equals(component.getName()))
                     .findAny()
                     .orElse(null);
             }
@@ -3928,9 +3931,17 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 final RemoteProcessGroup rpg = rpgOption.get();
-                return rpg.getOutputPorts().stream()
+                final Optional<RemoteGroupPort> portByIdOption = rpg.getOutputPorts().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .findAny();
+
+                if (portByIdOption.isPresent()) {
+                    return portByIdOption.get();
+                }
+
+                return rpg.getOutputPorts().stream()
+                    .filter(component -> connectableComponent.getName().equals(component.getName()))
                     .findAny()
                     .orElse(null);
             }

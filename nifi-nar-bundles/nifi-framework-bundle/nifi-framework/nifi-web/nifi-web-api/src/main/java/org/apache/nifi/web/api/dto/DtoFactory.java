@@ -1535,6 +1535,7 @@ public final class DtoFactory {
 
         final RemoteProcessGroupPortDTO dto = new RemoteProcessGroupPortDTO();
         dto.setId(port.getIdentifier());
+        dto.setGroupId(port.getRemoteProcessGroup().getIdentifier());
         dto.setTargetId(port.getTargetIdentifier());
         dto.setName(port.getName());
         dto.setComments(port.getComments());
