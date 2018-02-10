@@ -146,7 +146,11 @@ public class TlsHelper {
     }
 
     public static byte[] calculateHMac(String token, PublicKey publicKey) throws GeneralSecurityException {
-        SecretKeySpec keySpec = new SecretKeySpec(token.getBytes(StandardCharsets.UTF_8), "RAW");
+    	byte[] tokenBytes = token.getBytes(StandardCharsets.UTF_8);
+        if (tokenBytes.length < 16) {
+        	throw new GeneralSecurityException("Token does not meet minimum size of 16 bytes.");
+        }
+    	SecretKeySpec keySpec = new SecretKeySpec(tokenBytes, "RAW");
         Mac mac = Mac.getInstance("Hmac-SHA256", BouncyCastleProvider.PROVIDER_NAME);
         mac.init(keySpec);
         return mac.doFinal(getKeyIdentifier(publicKey));
