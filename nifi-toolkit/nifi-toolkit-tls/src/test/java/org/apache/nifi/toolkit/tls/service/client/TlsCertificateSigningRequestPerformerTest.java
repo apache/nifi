@@ -95,7 +95,7 @@ public class TlsCertificateSigningRequestPerformerTest {
         objectMapper = new ObjectMapper();
         keyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
 
-        testToken = "testToken";
+        testToken = "testTokenTestToken";
         testCaHostname = "testCaHostname";
         testPort = 8993;
         certificates = new ArrayList<>();

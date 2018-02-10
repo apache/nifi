@@ -43,6 +43,7 @@ import java.security.KeyStoreSpi;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -52,7 +53,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
@@ -169,6 +169,41 @@ public class TlsHelperTest {
 
     private Date inFuture(int days) {
         return new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days));
+    }
+
+    @Test
+    public void testTokenLengthInCalculateHmac() throws CertificateException, NoSuchAlgorithmException {
+        List<String> badTokens = new ArrayList<>();
+        List<String> goodTokens = new ArrayList<>();
+        badTokens.add(null);
+        badTokens.add("");
+        badTokens.add("123");
+        goodTokens.add("0123456789abcdefghijklm");
+        goodTokens.add("0123456789abcdef");
+
+        String dn = "CN=testDN,O=testOrg";
+        X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), dn, signingAlgorithm, days);
+        PublicKey pubKey = x509Certificate.getPublicKey();
+
+        for (String token : badTokens) {
+            try {
+                TlsHelper.calculateHMac(token, pubKey);
+                fail("HMAC was calculated with a token that was too short.");
+            } catch (GeneralSecurityException e) {
+                assertEquals("Token does not meet minimum size of 16 bytes.", e.getMessage());
+            } catch (IllegalArgumentException e) {
+                assertEquals("Token cannot be null", e.getMessage());
+            }
+        }
+
+        for (String token : goodTokens) {
+            try {
+                byte[] hmac = TlsHelper.calculateHMac(token, pubKey);
+                assertTrue("HMAC length ok", hmac.length > 0);
+            } catch (GeneralSecurityException e) {
+                fail(e.getMessage());
+            }
+        }
     }
 
     @Test

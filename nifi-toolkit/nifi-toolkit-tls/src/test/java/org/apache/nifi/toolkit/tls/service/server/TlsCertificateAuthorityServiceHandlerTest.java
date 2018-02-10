@@ -98,7 +98,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
 
     @Before
     public void setup() throws Exception {
-        testToken = "testToken";
+        testToken = "testTokenTestToken";
         testPemEncodedSignedCertificate = "testPemEncodedSignedCertificate";
         keyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
         objectMapper = new ObjectMapper();
