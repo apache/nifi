@@ -174,39 +174,41 @@ public class TlsHelperTest {
 
     @Test
     public void testTokenLengthInCalculateHmac() throws CertificateException, NoSuchAlgorithmException {
-    	List<String> badTokens = new ArrayList<String>();
-    	List<String> goodTokens = new ArrayList<String>();
-    	badTokens.add(null);
-    	badTokens.add("");
-    	badTokens.add("123");
-    	goodTokens.add("0123456789abcdefghijklm");    	
-    	goodTokens.add("0123456789abcdef");
-    	
-    	String dn = "CN=testDN,O=testOrg";
+        List<String> badTokens = new ArrayList<>();
+        List<String> goodTokens = new ArrayList<>();
+        badTokens.add(null);
+        badTokens.add("");
+        badTokens.add("123");
+        goodTokens.add("0123456789abcdefghijklm");
+        goodTokens.add("0123456789abcdef");
+
+        String dn = "CN=testDN,O=testOrg";
         X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), dn, signingAlgorithm, days);
         PublicKey pubKey = x509Certificate.getPublicKey();
-        
+
         for (String token : badTokens) {
-        	try {
-        		TlsHelper.calculateHMac(token, pubKey);
-        		fail("HMAC was calculated with a token that was too short.");
-        	} catch (GeneralSecurityException e) {
-        		assertEquals("Token does not meet minimum size of 16 bytes.", e.getMessage());
-        	}
+            try {
+                TlsHelper.calculateHMac(token, pubKey);
+                fail("HMAC was calculated with a token that was too short.");
+            } catch (GeneralSecurityException e) {
+                assertEquals("Token does not meet minimum size of 16 bytes.", e.getMessage());
+            } catch (IllegalArgumentException e) {
+                assertEquals("Token cannot be null", e.getMessage());
+            }
         }
-        
+
         for (String token : goodTokens) {
-        	try {
-        		byte[] hmac = TlsHelper.calculateHMac(token, pubKey);
-        		assertTrue("HMAC length ok", hmac.length > 0);
-        	} catch (GeneralSecurityException e) {
-        		fail(e.getMessage());
-        	}
+            try {
+                byte[] hmac = TlsHelper.calculateHMac(token, pubKey);
+                assertTrue("HMAC length ok", hmac.length > 0);
+            } catch (GeneralSecurityException e) {
+                fail(e.getMessage());
+            }
         }
-    	
-    	
+
+
     }
-    
+
     @Test
     public void testGenerateSelfSignedCert() throws GeneralSecurityException, IOException, OperatorCreationException {
         String dn = "CN=testDN,O=testOrg";
