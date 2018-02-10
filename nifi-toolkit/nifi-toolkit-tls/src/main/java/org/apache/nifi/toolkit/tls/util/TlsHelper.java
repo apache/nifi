@@ -100,7 +100,7 @@ public class TlsHelper {
         logger.warn("resulting client certificate: " + fileToString);
         logger.warn("");
         logger.warn("openssl pkcs12 -in '" + fileToString + "' -out '/tmp/" + fileName + "'");
-        logger.warn("openssl pkcs12 -export -in '/tmp/"  + fileName + "' -out '" + fileToString + "'");
+        logger.warn("openssl pkcs12 -export -in '/tmp/" + fileName + "' -out '" + fileToString + "'");
         logger.warn("rm -f '/tmp/" + fileName + "'");
         logger.warn("");
         logger.warn("**********************************************************************************");
@@ -146,7 +146,14 @@ public class TlsHelper {
     }
 
     public static byte[] calculateHMac(String token, PublicKey publicKey) throws GeneralSecurityException {
-        SecretKeySpec keySpec = new SecretKeySpec(token.getBytes(StandardCharsets.UTF_8), "RAW");
+        if (token == null) {
+            throw new IllegalArgumentException("Token cannot be null");
+        }
+        byte[] tokenBytes = token.getBytes(StandardCharsets.UTF_8);
+        if (tokenBytes.length < 16) {
+            throw new GeneralSecurityException("Token does not meet minimum size of 16 bytes.");
+        }
+        SecretKeySpec keySpec = new SecretKeySpec(tokenBytes, "RAW");
         Mac mac = Mac.getInstance("Hmac-SHA256", BouncyCastleProvider.PROVIDER_NAME);
         mac.init(keySpec);
         return mac.doFinal(getKeyIdentifier(publicKey));
@@ -197,7 +204,7 @@ public class TlsHelper {
     }
 
     public static JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, String domainAlternativeNames,
-            KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
+                                                                             KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
         JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(requestedDn), keyPair.getPublic());
 
         // add Subject Alternative Name(s)
@@ -221,13 +228,13 @@ public class TlsHelper {
             throw new IOException("Failed to extract CN from request DN: " + requestedDn, e);
         }
 
-        if(StringUtils.isNotBlank(domainAlternativeNames)) {
-            for(String alternativeName : domainAlternativeNames.split(",")) {
+        if (StringUtils.isNotBlank(domainAlternativeNames)) {
+            for (String alternativeName : domainAlternativeNames.split(",")) {
                 namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
             }
         }
 
-        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray(new GeneralName [] {}));
+        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray(new GeneralName[]{}));
         ExtensionsGenerator extGen = new ExtensionsGenerator();
         extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
         return extGen.generate();
