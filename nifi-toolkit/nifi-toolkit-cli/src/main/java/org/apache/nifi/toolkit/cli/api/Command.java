@@ -20,7 +20,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 
 /**
- * Represents a command to execute against NiFi registry.
+ * Represents a command to execute.
  */
 public interface Command {
 
@@ -32,7 +32,7 @@ public interface Command {
     void initialize(Context context);
 
     /**
-     * @return the name of the command that will be specified as the first argument to the tool
+     * @return the name of the command
      */
     String getName();
 

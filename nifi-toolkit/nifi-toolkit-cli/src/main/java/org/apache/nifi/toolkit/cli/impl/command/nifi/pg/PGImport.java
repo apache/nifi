@@ -30,9 +30,12 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RegistryClientEntity;
+import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 
 import java.io.IOException;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Command for importing a flow to NiFi from NiFi Registry.
@@ -46,7 +49,8 @@ public class PGImport extends AbstractNiFiCommand {
     @Override
     public String getDescription() {
         return "Creates a new process group by importing a versioned flow from a registry. If no process group id is " +
-                "specified, then the created process group will be placed in the root group.";
+                "specified, then the created process group will be placed in the root group. If only one registry client " +
+                "exists in NiFi, then it does not need to be specified and will be automatically selected.";
     }
 
     @Override
@@ -62,10 +66,28 @@ public class PGImport extends AbstractNiFiCommand {
     protected void doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException {
 
-        final String registryId = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_ID);
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final Integer flowVersion = getRequiredIntArg(properties, CommandOption.FLOW_VERSION);
+
+        // if a registry client is specified use it, otherwise see if there is only one available and use that,
+        // if more than one is available then throw an exception because we don't know which one to use
+        String registryId = getArg(properties, CommandOption.REGISTRY_CLIENT_ID);
+        if (StringUtils.isBlank(registryId)) {
+            final RegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
+
+            final Set<RegistryClientEntity> entities = registries.getRegistries();
+            if (entities == null || entities.isEmpty()) {
+                throw new NiFiClientException("No registry clients available");
+            }
+
+            if (entities.size() == 1) {
+                registryId = entities.stream().findFirst().get().getId();
+            } else {
+                throw new MissingOptionException(CommandOption.REGISTRY_CLIENT_ID.getLongName()
+                        + " must be provided when there is more than one available");
+            }
+        }
 
         // get the optional id of the parent PG, otherwise fallback to the root group
         String parentPgId = getArg(properties, CommandOption.PG_ID);
