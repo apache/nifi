@@ -123,3 +123,32 @@ Example of json output for list-buckets:
         "href" : "buckets/3c7b7467-0012-4d8f-a918-6aa42b6b9d39"
       }
     } ]
+    
+## Adding Commands
+
+To add a NiFi command, create a new class that extends AbstractNiFiCommand:
+
+    public class MyCommand extends AbstractNiFiCommand {
+    
+      public MyCommand() {
+          super("my-command");
+      }
+      
+      @Override
+      protected void doExecute(NiFiClient client, Properties properties) 
+              throws NiFiClientException, IOException, MissingOptionException, CommandException {
+          // TODO implement        
+      }
+  
+      @Override
+      public String getDescription() {
+          return "This is my new command";
+      }
+    }
+    
+Add the new command to NiFiCommandGroup:
+
+    commands.add(new MyCommand());
+
+To add a NiFi Registry command, perform the same steps, but extend from 
+AbstractNiFiRegistryCommand, and add the command to NiFiRegistryCommandGroup.

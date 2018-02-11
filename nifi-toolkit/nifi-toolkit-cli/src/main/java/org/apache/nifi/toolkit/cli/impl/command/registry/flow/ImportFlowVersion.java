@@ -48,7 +48,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand {
 
     @Override
     public String getDescription() {
-        return "Imports a version of a flow that was previously exported. The imported version automatically becomes " +
+        return "Imports a version of a flow from a local file, or a URL. The imported version automatically becomes " +
                 "the next version of the given flow.";
     }
 

@@ -65,6 +65,7 @@ public enum CommandOption {
     PROTOCOL("pro", "protocol", "The security protocol to use, such as TLSv.1.2", true),
 
     // Miscellaneous
+    FORCE("force", "force", "Indicates to force a delete operation", false),
     OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),
     HELP("h", "help", "Help", false)
