@@ -48,7 +48,7 @@ public class CLICompleter implements Completer {
     static {
         final Set<String> args = new HashSet<>();
         args.add("-" + CommandOption.PROPERTIES.getShortName());
-        args.add("-" + CommandOption.INPUT_FILE.getShortName());
+        args.add("-" + CommandOption.INPUT_SOURCE.getShortName());
         args.add("-" + CommandOption.OUTPUT_FILE.getShortName());
         FILE_COMPLETION_ARGS = Collections.unmodifiableSet(args);
     }

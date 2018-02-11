@@ -108,8 +108,12 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         pgComponents.addAll(flowDTO.getLabels());
 
         final Set<PositionDTO> positions = pgComponents.stream()
-                .map(c -> c.getPosition())
+                .map(ComponentEntity::getPosition)
                 .collect(Collectors.toSet());
+
+        if (positions.isEmpty()) {
+            return ProcessGroupBox.CANVAS_CENTER;
+        }
 
         final List<ProcessGroupBox> coords = positions.stream()
                 .map(p -> new ProcessGroupBox(p.getX().intValue(), p.getY().intValue()))
