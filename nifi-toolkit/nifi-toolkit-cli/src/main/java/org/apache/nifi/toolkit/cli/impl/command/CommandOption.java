@@ -25,7 +25,7 @@ public enum CommandOption {
 
     // General
     URL("u", "baseUrl", "The URL to execute the command against", true),
-    INPUT_FILE("i", "inputFile", "A file to read as input, must contain full path and filename", true),
+    INPUT_SOURCE("i", "input", "A local file to read as input contents, or a public URL to fetch", true),
     OUTPUT_FILE("o", "outputFile", "A file to write output to, must contain full path and filename", true),
     PROPERTIES("p", "properties", "A properties file to load arguments from, " +
             "command line values will override anything in the properties file, must contain full path to file", true),

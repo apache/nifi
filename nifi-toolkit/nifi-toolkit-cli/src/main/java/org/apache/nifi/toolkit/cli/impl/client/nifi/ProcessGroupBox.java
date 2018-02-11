@@ -58,7 +58,7 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
 
 
     public boolean intersects(ProcessGroupBox other) {
-        // adapted for java.awt Rectangle, we don't want to import it
+        // adapted from java.awt Rectangle, we don't want to import it
         // assume everything to be of the PG size for simplicity
         int tw = PG_SIZE_WIDTH;
         int th = PG_SIZE_HEIGHT;
