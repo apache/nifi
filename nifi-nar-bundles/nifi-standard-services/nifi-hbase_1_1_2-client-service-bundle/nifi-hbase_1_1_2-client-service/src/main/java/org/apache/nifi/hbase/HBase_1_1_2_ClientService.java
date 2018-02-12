@@ -91,6 +91,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     private volatile Connection connection;
     private volatile UserGroupInformation ugi;
+    private volatile String masterAddress;
 
     private List<PropertyDescriptor> properties;
     private KerberosProperties kerberosProperties;
@@ -212,6 +213,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final Admin admin = this.connection.getAdmin();
             if (admin != null) {
                 admin.listTableNames();
+                masterAddress = admin.getClusterStatus().getMaster().getHostAndPort();
             }
         }
     }
@@ -549,11 +551,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             logger.warn("Connection has not been established, could not create a transit URI. Returning null.");
             return null;
         }
-        try {
-            final String masterAddress = connection.getAdmin().getClusterStatus().getMaster().getHostAndPort();
-            return "hbase://" + masterAddress + "/" + tableName + (rowKey != null && !rowKey.isEmpty() ? "/" + rowKey : "");
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to get HBase Admin interface, due to " + e, e);
-        }
+        final String transitUriMasterAddress = StringUtils.isEmpty(masterAddress) ? "unknown" : masterAddress;
+        return "hbase://" + transitUriMasterAddress + "/" + tableName + (StringUtils.isEmpty(rowKey) ? "" : "/" + rowKey);
     }
 }

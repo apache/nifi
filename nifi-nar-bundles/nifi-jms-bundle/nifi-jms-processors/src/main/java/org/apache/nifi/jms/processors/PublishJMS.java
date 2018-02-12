@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.jms.processors;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -37,8 +35,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
@@ -91,20 +89,19 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      * Upon success the incoming {@link FlowFile} is transferred to the'success'
      * {@link Relationship} and upon failure FlowFile is penalized and
      * transferred to the 'failure' {@link Relationship}
-     *
      */
     @Override
-    protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession) throws ProcessException {
+    protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
         FlowFile flowFile = processSession.get();
         if (flowFile != null) {
             try {
                 String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
-                this.targetResource.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes());
+                publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes());
                 processSession.transfer(flowFile, REL_SUCCESS);
                 processSession.getProvenanceReporter().send(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             } catch (Exception e) {
                 processSession.transfer(flowFile, REL_FAILURE);
-                this.getLogger().error("Failed while sending message to JMS via " + this.targetResource, e);
+                this.getLogger().error("Failed while sending message to JMS via " + publisher, e);
                 context.yield();
             }
         }
@@ -122,8 +119,8 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      * Will create an instance of {@link JMSPublisher}
      */
     @Override
-    protected JMSPublisher finishBuildingTargetResource(JmsTemplate jmsTemplate, ProcessContext processContext) {
-        return new JMSPublisher(jmsTemplate, this.getLogger());
+    protected JMSPublisher finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
+        return new JMSPublisher(connectionFactory, jmsTemplate, this.getLogger());
     }
 
     /**
@@ -131,12 +128,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      */
     private byte[] extractMessageBody(FlowFile flowFile, ProcessSession session) {
         final byte[] messageContent = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, messageContent, true);
-            }
-        });
+        session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;
     }
 }

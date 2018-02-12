@@ -57,7 +57,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestMergeContent {
@@ -911,7 +910,6 @@ public class TestMergeContent {
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
     }
 
-    @Ignore("this test appears to be faulty")
     @Test
     public void testDefragmentMultipleMingledSegments() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -941,7 +939,7 @@ public class TestMergeContent {
         attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
         runner.enqueue("Panama".getBytes("UTF-8"), attributes);
 
-        runner.run(2);
+        runner.run(1);
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 2);
         final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
@@ -1007,7 +1005,6 @@ public class TestMergeContent {
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
     }
 
-    @Ignore("This test appears to be a fail...is retuning 1 instead of 2...needs work")
     @Test
     public void testMergeBasedOnCorrelation() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -1028,7 +1025,7 @@ public class TestMergeContent {
         attributes.put("attr", "b");
         runner.enqueue("Panama".getBytes("UTF-8"), attributes);
 
-        runner.run(2);
+        runner.run(1);
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 2);
 

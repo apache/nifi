@@ -110,6 +110,7 @@ import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
@@ -1647,6 +1648,18 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Funnel funnel = group.getFunnel(identifier);
         if (funnel != null) {
             return funnel;
+        }
+
+        for (final RemoteProcessGroup remoteProcessGroup : group.getRemoteProcessGroups()) {
+            final RemoteGroupPort remoteInputPort = remoteProcessGroup.getInputPort(identifier);
+            if (remoteInputPort != null) {
+                return remoteInputPort;
+            }
+
+            final RemoteGroupPort remoteOutputPort = remoteProcessGroup.getOutputPort(identifier);
+            if (remoteOutputPort != null) {
+                return remoteOutputPort;
+            }
         }
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
@@ -3891,9 +3904,17 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 final RemoteProcessGroup rpg = rpgOption.get();
-                return rpg.getInputPorts().stream()
+                final Optional<RemoteGroupPort> portByIdOption = rpg.getInputPorts().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .findAny();
+
+                if (portByIdOption.isPresent()) {
+                    return portByIdOption.get();
+                }
+
+                return rpg.getInputPorts().stream()
+                    .filter(component -> connectableComponent.getName().equals(component.getName()))
                     .findAny()
                     .orElse(null);
             }
@@ -3901,7 +3922,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String rpgId = connectableComponent.getGroupId();
                 final Optional<RemoteProcessGroup> rpgOption = group.getRemoteProcessGroups().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
-                    .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .filter(component -> rpgId.equals(component.getVersionedComponentId().get()))
                     .findAny();
 
                 if (!rpgOption.isPresent()) {
@@ -3910,9 +3931,17 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 final RemoteProcessGroup rpg = rpgOption.get();
-                return rpg.getOutputPorts().stream()
+                final Optional<RemoteGroupPort> portByIdOption = rpg.getOutputPorts().stream()
                     .filter(component -> component.getVersionedComponentId().isPresent())
                     .filter(component -> id.equals(component.getVersionedComponentId().get()))
+                    .findAny();
+
+                if (portByIdOption.isPresent()) {
+                    return portByIdOption.get();
+                }
+
+                return rpg.getOutputPorts().stream()
+                    .filter(component -> connectableComponent.getName().equals(component.getName()))
                     .findAny()
                     .orElse(null);
             }
@@ -4197,8 +4226,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorGroupServiceIds(), new EvolvingDifferenceDescriptor());
         final FlowComparison comparison = flowComparator.compare();
         final Set<FlowDifference> differences = comparison.getDifferences().stream()
-            .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
-            .collect(Collectors.toCollection(HashSet::new));
+                .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
+                .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
+                .collect(Collectors.toCollection(HashSet::new));
 
         LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
         return differences;

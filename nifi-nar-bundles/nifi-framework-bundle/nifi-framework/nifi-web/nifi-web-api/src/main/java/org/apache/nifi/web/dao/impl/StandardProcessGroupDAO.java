@@ -167,12 +167,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         connectable.getProcessGroup().startOutputPort((Port) connectable);
                         break;
                     case REMOTE_INPUT_PORT:
-                        final RemoteGroupPort remoteInputPort = group.findRemoteGroupPort(componentId);
-                        remoteInputPort.getRemoteProcessGroup().startTransmitting(remoteInputPort);
-                        break;
                     case REMOTE_OUTPUT_PORT:
-                        final RemoteGroupPort remoteOutputPort = group.findRemoteGroupPort(componentId);
-                        remoteOutputPort.getRemoteProcessGroup().startTransmitting(remoteOutputPort);
+                        final RemoteGroupPort remotePort = group.findRemoteGroupPort(componentId);
+                        remotePort.getRemoteProcessGroup().startTransmitting(remotePort);
                         break;
                 }
             } else {
@@ -188,12 +185,9 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         connectable.getProcessGroup().stopOutputPort((Port) connectable);
                         break;
                     case REMOTE_INPUT_PORT:
-                        final RemoteGroupPort remoteInputPort = group.findRemoteGroupPort(componentId);
-                        remoteInputPort.getRemoteProcessGroup().stopTransmitting(remoteInputPort);
-                        break;
                     case REMOTE_OUTPUT_PORT:
-                        final RemoteGroupPort remoteOutputPort = group.findRemoteGroupPort(componentId);
-                        remoteOutputPort.getRemoteProcessGroup().stopTransmitting(remoteOutputPort);
+                        final RemoteGroupPort remotePort = group.findRemoteGroupPort(componentId);
+                        remotePort.getRemoteProcessGroup().stopTransmitting(remotePort);
                         break;
                 }
             }

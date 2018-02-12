@@ -122,6 +122,7 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
@@ -1850,6 +1851,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(remoteProcessGroup.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createRemoteProcessGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, status, bulletinEntities);
+    }
+
+    @Override
+    public boolean isRemoteGroupPortConnected(final String remoteProcessGroupId, final String remotePortId) {
+        final RemoteProcessGroup rpg = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
+        RemoteGroupPort port = rpg.getInputPort(remotePortId);
+        if (port != null) {
+            return port.hasIncomingConnection();
+        }
+
+        port = rpg.getOutputPort(remotePortId);
+        if (port != null) {
+            return !port.getConnections().isEmpty();
+        }
+
+        throw new ResourceNotFoundException("Could not find Port with ID " + remotePortId + " as a child of RemoteProcessGroup with ID " + remoteProcessGroupId);
     }
 
     @Override
@@ -3965,6 +3982,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<AffectedComponentEntity> affectedComponents = comparison.getDifferences().stream()
             .filter(difference -> difference.getDifferenceType() != DifferenceType.COMPONENT_ADDED) // components that are added are not components that will be affected in the local flow.
             .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
+            .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
@@ -3998,6 +4016,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final FlowDifference difference : comparison.getDifferences()) {
             // Ignore these as local differences for now because we can't do anything with it
             if (difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
+                continue;
+            }
+
+            // Ignore differences for adding remote ports
+            if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
                 continue;
             }
 
@@ -4098,12 +4121,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private void mapToConnectableId(final Collection<? extends Connectable> connectables, final Map<String, List<Connectable>> destination) {
         for (final Connectable connectable : connectables) {
-            final Optional<String> versionedId = connectable.getVersionedComponentId();
-            if (!versionedId.isPresent()) {
-                continue;
+            final Optional<String> versionedIdOption = connectable.getVersionedComponentId();
+
+            // Determine the Versioned ID by using the ID that is assigned, if one is. Otherwise,
+            // we will calculate the Versioned ID. This allows us to map connectables that currently are not under
+            // version control. We have to do this so that if we are changing flow versions and have a component that is running and it does not exist
+            // in the Versioned Flow, we still need to be able to create an AffectedComponentDTO for it.
+            final String versionedId;
+            if (versionedIdOption.isPresent()) {
+                versionedId = versionedIdOption.get();
+            } else {
+                versionedId = UUID.nameUUIDFromBytes(connectable.getIdentifier().getBytes(StandardCharsets.UTF_8)).toString();
             }
 
-            final List<Connectable> byVersionedId = destination.computeIfAbsent(versionedId.get(), key -> new ArrayList<>());
+            final List<Connectable> byVersionedId = destination.computeIfAbsent(versionedId, key -> new ArrayList<>());
             byVersionedId.add(connectable);
         }
     }
@@ -4121,8 +4152,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final AffectedComponentDTO dto = new AffectedComponentDTO();
         dto.setId(connectable.getIdentifier());
         dto.setReferenceType(connectable.getConnectableType().name());
-        dto.setProcessGroupId(connectable.getProcessGroupIdentifier());
         dto.setState(connectable.getScheduledState().name());
+
+        final String groupId = connectable instanceof RemoteGroupPort ? ((RemoteGroupPort) connectable).getRemoteProcessGroup().getIdentifier() : connectable.getProcessGroupIdentifier();
+        dto.setProcessGroupId(groupId);
 
         entity.setComponent(dto);
         return entity;

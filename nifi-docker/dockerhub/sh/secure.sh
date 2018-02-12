@@ -48,8 +48,8 @@ prop_replace 'nifi.security.truststorePasswd'   "${TRUSTSTORE_PASSWORD}"
 # Disable HTTP and enable HTTPS
 prop_replace 'nifi.web.http.port'   ''
 prop_replace 'nifi.web.http.host'   ''
-prop_replace 'nifi.web.https.port'  '8443'
-prop_replace 'nifi.web.https.host'  "${hostname}"
+prop_replace 'nifi.web.https.port'  "${NIFI_WEB_HTTPS_PORT:-8443}"
+prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
 prop_replace 'nifi.remote.input.secure' 'true'
 
 # Establish initial user and an associated admin identity

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.http;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -66,4 +68,11 @@ public interface HttpContextMap extends ControllerService {
      */
     void complete(String identifier);
 
+    /**
+     * Returns the configured timeout for HTTP Requests
+     *
+     * @param timeUnit the desired time unit
+     * @return the configured timeout for HTTP Requests
+     */
+    long getRequestTimeout(TimeUnit timeUnit);
 }

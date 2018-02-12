@@ -407,6 +407,7 @@ public class TestGetCouchbaseKey {
         MockFlowFile orgFile = testRunner.getFlowFilesForRelationship(REL_RETRY).get(0);
         orgFile.assertContentEquals(inputFileDataStr);
         orgFile.assertAttributeEquals(Exception.key(), exception.getClass().getName());
+        Assert.assertEquals(true, orgFile.isPenalized());
     }
 
     @Test

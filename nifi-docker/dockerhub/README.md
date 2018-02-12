@@ -46,12 +46,22 @@ The configuration scripts are suitable for at least 1.4.0+.
 The minimum to run a NiFi instance is as follows:
 
     docker run --name nifi \
-      -p 18080:8080 \
+      -p 8080:8080 \
       -d \
       apache/nifi:latest
       
-This will provide a running instance, exposing the instance UI to the host system on at port 18080,
-viewable at `http://localhost:18080/nifi`.
+This will provide a running instance, exposing the instance UI to the host system on at port 8080,
+viewable at `http://localhost:8080/nifi`.
+
+You can also pass in environment variables to change the NiFi communication ports and hostname using the Docker '-e' switch as follows:
+
+    docker run --name nifi \
+      -p 9090:9090 \
+      -d \
+      -e NIFI_WEB_HTTP_PORT='9090'
+      apache/nifi:latest
+      
+For a list of the environment variables recognised in this build, look into the .sh/secure.sh and .sh/start.sh scripts
         
 ### Standalone Instance, Two-Way SSL
 In this configuration, the user will need to provide certificates and the associated configuration information.
@@ -62,7 +72,7 @@ Finally, this command makes use of a volume to provide certificates on the host 
 
     docker run --name nifi \
       -v /User/dreynolds/certs/localhost:/opt/certs \
-      -p 18443:8443 \
+      -p 8443:8443 \
       -e AUTH=tls \
       -e KEYSTORE_PATH=/opt/certs/keystore.jks \
       -e KEYSTORE_TYPE=JKS \
@@ -86,7 +96,7 @@ volume to provide certificates on the host system to the container instance.
 
     docker run --name nifi \
       -v /User/dreynolds/certs/localhost:/opt/certs \
-      -p 18443:8443 \
+      -p 8443:8443 \
       -e AUTH=tls \
       -e KEYSTORE_PATH=/opt/certs/keystore.jks \
       -e KEYSTORE_TYPE=JKS \
@@ -115,7 +125,7 @@ volume to provide certificates on the host system to the container instance.
     -e LDAP_TLS_TRUSTSTORE_TYPE: ''
 
 ## Configuration Information
-The following ports are specified by the Docker container for NiFi operation within the container and 
+The following ports are specified by default in Docker for NiFi operation within the container and 
 can be published to the host.
 
 | Function                 | Property                      | Port  |
@@ -123,3 +133,4 @@ can be published to the host.
 | HTTP Port                | nifi.web.http.port            | 8080  |
 | HTTPS Port               | nifi.web.https.port           | 8443  |
 | Remote Input Socket Port | nifi.remote.input.socket.port | 10000 |
+

@@ -18,11 +18,6 @@ package org.apache.nifi.web.dao.impl;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -39,12 +34,14 @@ import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
 
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardRemoteProcessGroupDAO.class);
     private FlowController flowController;
 
     private RemoteProcessGroup locateRemoteProcessGroup(final String remoteProcessGroupId) {
@@ -129,6 +126,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     /**
      * Verifies the specified remote group can be updated, if necessary.
      */
+    @SuppressWarnings("unchecked")
     private void verifyUpdate(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDto) {
         // see if the remote process group can start/stop transmitting
         if (isNotNull(remoteProcessGroupDto.isTransmitting())) {
