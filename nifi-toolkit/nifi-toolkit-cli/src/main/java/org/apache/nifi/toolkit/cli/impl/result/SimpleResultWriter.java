@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,7 +51,7 @@ import java.util.stream.Collectors;
  */
 public class SimpleResultWriter implements ResultWriter {
 
-    public static String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss (EEE)";
 
     @Override
     public void writeBuckets(List<Bucket> buckets, PrintStream output) {
@@ -58,15 +59,52 @@ public class SimpleResultWriter implements ResultWriter {
             return;
         }
 
-        Collections.sort(buckets, Comparator.comparing(Bucket::getName));
+        buckets.sort(Comparator.comparing(Bucket::getName));
 
         output.println();
-        buckets.stream().forEach(b -> writeBucket(b, output));
+
+        final int nameLength = buckets.stream().mapToInt(b -> b.getName().length()).max().orElse(20);
+        final int idLength = buckets.stream().mapToInt(b -> b.getIdentifier().length()).max().orElse(36);
+        // description can be empty
+        int descLength = buckets.stream().map(b -> Optional.ofNullable(b.getDescription()))
+                                               .filter(b -> b.isPresent())
+                                               .mapToInt(b -> b.get().length())
+                                               .max()
+                                               .orElse(40);
+        descLength = descLength < 40 ? 40 : descLength;
+
+        String headerPattern = String.format("#     %%-%ds   %%-%ds   %%-%ds", nameLength, idLength, descLength);
+        final String header = String.format(headerPattern, "Name", "Id", "Description");
+        output.println(header);
+
+        // a little clunky way to dynamically create a nice header line, but at least no external dependency
+        final String headerLinePattern = String.format("---   %%-%ds   %%-%ds   %%-%ds",
+                                                       nameLength, idLength, descLength);
+        final String headerLine = String.format(headerLinePattern,
+                String.join("", Collections.nCopies(nameLength, "-")),
+                String.join("", Collections.nCopies(idLength, "-")),
+                String.join("", Collections.nCopies(descLength, "-")));
+        output.println(headerLine);
+
+        String rowPattern = String.format("%%-3d   %%-%ds   %%-%ds   %%-%ds", nameLength, idLength, descLength);
+
+        for (int i = 0; i < buckets.size(); ++i) {
+            Bucket bucket = buckets.get(i);
+            String s = String.format(rowPattern,
+                    i + 1,
+                    bucket.getName(),
+                    bucket.getIdentifier(),
+                    Optional.ofNullable(bucket.getDescription()).orElse("(empty)"));
+            output.println(s);
+
+        }
+
         output.println();
     }
 
     @Override
     public void writeBucket(Bucket bucket, PrintStream output) {
+        // this method is not used really, need context of List<Bucket>
         if (bucket == null) {
             return;
         }
@@ -79,14 +117,52 @@ public class SimpleResultWriter implements ResultWriter {
             return;
         }
 
-        Collections.sort(versionedFlows, Comparator.comparing(VersionedFlow::getName));
+        versionedFlows.sort(Comparator.comparing(VersionedFlow::getName));
 
         output.println();
-        versionedFlows.stream().forEach(vf -> writeFlow(vf, output));
+
+        final int nameLength = versionedFlows.stream().mapToInt(f -> f.getName().length()).max().orElse(20);
+        final int idLength = versionedFlows.stream().mapToInt(f -> f.getIdentifier().length()).max().orElse(36);
+        // description can be empty
+        int descLength = versionedFlows.stream().map(b -> Optional.ofNullable(b.getDescription()))
+                .filter(b -> b.isPresent())
+                .mapToInt(b -> b.get().length())
+                .max()
+                .orElse(40);
+        descLength = descLength < 40 ? 40 : descLength;
+
+        String headerPattern = String.format("#     %%-%ds   %%-%ds   %%-%ds", nameLength, idLength, descLength);
+        final String header = String.format(headerPattern, "Name", "Id", "Description");
+        output.println(header);
+
+        // a little clunky way to dynamically create a nice header line, but at least no external dependency
+        final String headerLinePattern = String.format("---   %%-%ds   %%-%ds   %%-%ds",
+                nameLength, idLength, descLength);
+        final String headerLine = String.format(headerLinePattern,
+                String.join("", Collections.nCopies(nameLength, "-")),
+                String.join("", Collections.nCopies(idLength, "-")),
+                String.join("", Collections.nCopies(descLength, "-")));
+        output.println(headerLine);
+
+        String rowPattern = String.format("%%-3d   %%-%ds   %%-%ds   %%-%ds", nameLength, idLength, descLength);
+
+        for (int i = 0; i < versionedFlows.size(); ++i) {
+            VersionedFlow flow = versionedFlows.get(i);
+            String s = String.format(rowPattern,
+                    i + 1,
+                    flow.getName(),
+                    flow.getIdentifier(),
+                    Optional.ofNullable(flow.getDescription()).orElse("(empty)"));
+            output.println(s);
+
+        }
+
         output.println();
+
     }
 
     @Override
+    // TODO drop as unused?
     public void writeFlow(VersionedFlow versionedFlow, PrintStream output) {
         if (versionedFlow == null) {
             return;
@@ -100,14 +176,50 @@ public class SimpleResultWriter implements ResultWriter {
             return;
         }
 
-        Collections.sort(versions, Comparator.comparing(VersionedFlowSnapshotMetadata::getVersion));
+        versions.sort(Comparator.comparing(VersionedFlowSnapshotMetadata::getVersion));
 
         output.println();
-        versions.stream().forEach(vfs -> writeSnapshotMetadata(vfs, output));
+
+        // The following section will construct a table output with dynamic column width, based on the actual data.
+        // We dynamically create a pattern with item width, as Java's formatter won't process nested declarations.
+
+        // date length, with locale specifics
+        final String datePattern = "%1$ta, %<tb %<td %<tY %<tR %<tZ";
+        final int dateLength = String.format(datePattern, new Date()).length();
+
+        // anticipating LDAP long entries
+        final int authorLength = versions.stream().mapToInt(v -> v.getAuthor().length()).max().orElse(20);
+
+        // truncate comments if too long
+        int commentsLength = versions.stream().mapToInt(v -> v.getComments().length()).max().orElse(60);
+        commentsLength = commentsLength < 40 ? 40 : commentsLength;
+
+        String headerPattern = String.format("Ver   %%-%ds   %%-%ds   %%-%ds", dateLength, authorLength, commentsLength);
+        final String header = String.format(headerPattern, "Date", "Author", "Message");
+        output.println(header);
+
+        // a little clunky way to dynamically create a nice header line, but at least no external dependency
+        final String headerLinePattern = String.format("---   %%-%ds   %%-%ds   %%-%ds", dateLength, authorLength, commentsLength);
+        final String headerLine = String.format(headerLinePattern,
+                String.join("", Collections.nCopies(dateLength, "-")),
+                String.join("", Collections.nCopies(authorLength, "-")),
+                String.join("", Collections.nCopies(commentsLength, "-")));
+        output.println(headerLine);
+
+        String rowPattern = String.format("%%3d   %%-%ds   %%-%ds   %%-%ds", dateLength, authorLength, commentsLength);
+        versions.forEach(vfs -> {
+            String row = String.format(rowPattern,
+                    vfs.getVersion(),
+                    String.format(datePattern, new Date(vfs.getTimestamp())),
+                    vfs.getAuthor(),
+                    Optional.ofNullable(vfs.getComments()).orElse("(empty)"));
+            output.println(row);
+        });
         output.println();
     }
 
     @Override
+    // TODO drop as unused?
     public void writeSnapshotMetadata(VersionedFlowSnapshotMetadata version, PrintStream output) {
         if (version == null) {
             return;
@@ -129,9 +241,40 @@ public class SimpleResultWriter implements ResultWriter {
             return;
         }
 
-        final List<RegistryDTO> registies = clients.stream().map(c -> c.getComponent()).collect(Collectors.toList());
-        Collections.sort(registies, Comparator.comparing(RegistryDTO::getName));
-        registies.stream().forEach(r -> output.println(r.getName() + " - " + r.getId() + " - " + r.getUri()));
+        output.println();
+
+        final List<RegistryDTO> registries = clients.stream().map(RegistryClientEntity::getComponent)
+                                                            .sorted(Comparator.comparing(RegistryDTO::getName))
+                                                            .collect(Collectors.toList());
+
+        final int nameLength = registries.stream().mapToInt(r -> r.getName().length()).max().orElse(20);
+        final int idLength = registries.stream().mapToInt(r -> r.getId().length()).max().orElse(36);
+        final int uriLength = registries.stream().mapToInt(r -> r.getUri().length()).max().orElse(36);
+
+        String headerPattern = String.format("#     %%-%ds   %%-%ds   %%-%ds", nameLength, idLength, uriLength);
+        final String header = String.format(headerPattern, "Name", "Id", "Uri");
+        output.println(header);
+
+        // a little clunky way to dynamically create a nice header line, but at least no external dependency
+        final String headerLinePattern = String.format("---   %%-%ds   %%-%ds   %%-%ds", nameLength, idLength, uriLength);
+        final String headerLine = String.format(headerLinePattern,
+                                                String.join("", Collections.nCopies(nameLength, "-")),
+                                                String.join("", Collections.nCopies(idLength, "-")),
+                                                String.join("", Collections.nCopies(uriLength, "-")));
+        output.println(headerLine);
+
+        String rowPattern = String.format("%%3d   %%-%ds   %%-%ds   %%-%ds", nameLength, idLength, uriLength);
+        for (int i = 0; i < registries.size(); i++) {
+            RegistryDTO r = registries.get(i);
+            String row = String.format(rowPattern,
+                                       i + 1,
+                                       r.getName(),
+                                       r.getId(),
+                                       r.getUri());
+            output.println(row);
+        }
+
+        output.println();
     }
 
     @Override
