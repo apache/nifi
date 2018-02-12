@@ -19,10 +19,11 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.CommandException;
+import org.apache.nifi.toolkit.cli.api.Result;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractPropertyCommand;
-import org.apache.nifi.toolkit.cli.impl.session.SessionVariables;
+import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import java.io.IOException;
@@ -31,22 +32,22 @@ import java.util.Properties;
 /**
  * Base class for all NiFi commands.
  */
-public abstract class AbstractNiFiCommand extends AbstractPropertyCommand {
+public abstract class AbstractNiFiCommand<R extends Result> extends AbstractPropertyCommand<R> {
 
-    public AbstractNiFiCommand(final String name) {
-        super(name);
+    public AbstractNiFiCommand(final String name, final Class<R> resultClass) {
+        super(name, resultClass);
     }
 
     @Override
-    protected SessionVariables getPropertiesSessionVariable() {
-        return SessionVariables.NIFI_CLIENT_PROPS;
+    protected SessionVariable getPropertiesSessionVariable() {
+        return SessionVariable.NIFI_CLIENT_PROPS;
     }
 
     @Override
-    protected void doExecute(final Properties properties) throws CommandException {
+    public final R doExecute(final Properties properties) throws CommandException {
         final ClientFactory<NiFiClient> clientFactory = getContext().getNiFiClientFactory();
         try (final NiFiClient client = clientFactory.createClient(properties)) {
-            doExecute(client, properties);
+            return doExecute(client, properties);
         } catch (Exception e) {
             throw new CommandException("Error executing command '" + getName() + "' : " + e.getMessage(), e);
         }
@@ -57,8 +58,9 @@ public abstract class AbstractNiFiCommand extends AbstractPropertyCommand {
      *
      * @param client a NiFi client
      * @param properties properties for the command
+     * @return the Result of executing the command
      */
-    protected abstract void doExecute(final NiFiClient client, final Properties properties)
+    public abstract R doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException;
 
 

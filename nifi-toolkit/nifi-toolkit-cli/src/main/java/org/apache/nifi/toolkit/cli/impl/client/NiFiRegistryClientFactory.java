@@ -97,7 +97,6 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
 
         // if a proxied entity was specified then return a wrapped client, otherwise return the regular client
         if (!StringUtils.isBlank(proxiedEntity)) {
-            System.out.println("Creating client for proxied entity: " + proxiedEntity);
             return new ProxiedNiFiRegistryClient(client, proxiedEntity);
         } else {
             return client;

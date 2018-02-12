@@ -17,15 +17,14 @@
 package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 
 import org.apache.commons.cli.MissingOptionException;
-import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.toolkit.cli.impl.result.VersionedFlowSnapshotMetadataSetResult;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
@@ -36,10 +35,10 @@ import java.util.Properties;
 /**
  * Command to get all the available versions for a given process group that is under version control.
  */
-public class PGGetAllVersions extends AbstractNiFiCommand {
+public class PGGetAllVersions extends AbstractNiFiCommand<VersionedFlowSnapshotMetadataSetResult> {
 
     public PGGetAllVersions() {
-        super("pg-get-all-versions");
+        super("pg-get-all-versions", VersionedFlowSnapshotMetadataSetResult.class);
     }
     @Override
     public String getDescription() {
@@ -52,8 +51,9 @@ public class PGGetAllVersions extends AbstractNiFiCommand {
     }
 
     @Override
-    protected void doExecute(final NiFiClient client, final Properties properties)
-            throws NiFiClientException, IOException, MissingOptionException, CommandException {
+    public VersionedFlowSnapshotMetadataSetResult doExecute(final NiFiClient client, final Properties properties)
+            throws NiFiClientException, IOException, MissingOptionException {
+
         final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
 
         final VersionsClient versionsClient = client.getVersionsClient();
@@ -75,8 +75,7 @@ public class PGGetAllVersions extends AbstractNiFiCommand {
             throw new NiFiClientException("No versions available");
         }
 
-        final ResultWriter resultWriter = getResultWriter(properties);
-        resultWriter.writeSnapshotMetadata(versions, getContext().getOutput());
+        return new VersionedFlowSnapshotMetadataSetResult(getResultType(properties), versions);
     }
 
 }

@@ -22,14 +22,14 @@ import java.util.List;
 /**
  * Possible variables that can be set in the session.
  */
-public enum SessionVariables {
+public enum SessionVariable {
 
     NIFI_CLIENT_PROPS("nifi.props"),
     NIFI_REGISTRY_CLIENT_PROPS("nifi.reg.props");
 
     private final String variableName;
 
-    SessionVariables(final String variableName) {
+    SessionVariable(final String variableName) {
         this.variableName = variableName;
     }
 
@@ -37,8 +37,8 @@ public enum SessionVariables {
         return this.variableName;
     }
 
-    public static SessionVariables fromVariableName(final String variableName) {
-        for (final SessionVariables variable : values()) {
+    public static SessionVariable fromVariableName(final String variableName) {
+        for (final SessionVariable variable : values()) {
             if (variable.getVariableName().equals(variableName)) {
                 return variable;
             }
@@ -49,7 +49,7 @@ public enum SessionVariables {
 
     public static List<String> getAllVariableNames() {
         final List<String> names = new ArrayList<>();
-        for (SessionVariables variable : values()) {
+        for (SessionVariable variable : values()) {
             names.add(variable.getVariableName());
         }
         return names;

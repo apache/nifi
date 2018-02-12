@@ -19,12 +19,12 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.toolkit.cli.impl.result.VariableRegistryResult;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 
 import java.io.IOException;
@@ -33,10 +33,10 @@ import java.util.Properties;
 /**
  * Commands to get the variables of a process group.
  */
-public class PGGetVars extends AbstractNiFiCommand {
+public class PGGetVars extends AbstractNiFiCommand<VariableRegistryResult> {
 
     public PGGetVars() {
-        super("pg-get-vars");
+        super("pg-get-vars", VariableRegistryResult.class);
     }
 
     @Override
@@ -50,13 +50,12 @@ public class PGGetVars extends AbstractNiFiCommand {
     }
 
     @Override
-    protected void doExecute(final NiFiClient client, final Properties properties)
+    public VariableRegistryResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
         final ProcessGroupClient pgClient = client.getProcessGroupClient();
         final VariableRegistryEntity varEntity = pgClient.getVariables(pgId);
-
-        final ResultWriter resultWriter = getResultWriter(properties);
-        resultWriter.writeVariables(varEntity, getContext().getOutput());
+        return new VariableRegistryResult(getResultType(properties), varEntity);
     }
+
 }

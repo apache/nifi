@@ -24,8 +24,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.Result;
 import org.apache.nifi.toolkit.cli.api.ResultType;
-import org.apache.nifi.toolkit.cli.api.ResultWriter;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -34,37 +34,47 @@ import java.util.Properties;
 /**
  * Base class for all commands.
  */
-public abstract class AbstractCommand implements Command {
+public abstract class AbstractCommand<R extends Result> implements Command<R> {
 
     private final String name;
+    private final Class<R> resultClass;
     private final Options options;
 
     private Context context;
     private PrintStream output;
 
-    public AbstractCommand(final String name) {
+    public AbstractCommand(final String name, final Class<R> resultClass) {
         this.name = name;
+        this.resultClass = resultClass;
         Validate.notNull(this.name);
+        Validate.notNull(this.resultClass);
 
-        this.options = new Options();
+        this.options = createBaseOptions();
+        Validate.notNull(this.options);
+    }
 
-        this.options.addOption(CommandOption.URL.createOption());
-        this.options.addOption(CommandOption.PROPERTIES.createOption());
+    protected Options createBaseOptions() {
+        final Options options = new Options();
 
-        this.options.addOption(CommandOption.KEYSTORE.createOption());
-        this.options.addOption(CommandOption.KEYSTORE_TYPE.createOption());
-        this.options.addOption(CommandOption.KEYSTORE_PASSWORD.createOption());
-        this.options.addOption(CommandOption.KEY_PASSWORD.createOption());
+        options.addOption(CommandOption.URL.createOption());
+        options.addOption(CommandOption.PROPERTIES.createOption());
 
-        this.options.addOption(CommandOption.TRUSTSTORE.createOption());
-        this.options.addOption(CommandOption.TRUSTSTORE_TYPE.createOption());
-        this.options.addOption(CommandOption.TRUSTSTORE_PASSWORD.createOption());
+        options.addOption(CommandOption.KEYSTORE.createOption());
+        options.addOption(CommandOption.KEYSTORE_TYPE.createOption());
+        options.addOption(CommandOption.KEYSTORE_PASSWORD.createOption());
+        options.addOption(CommandOption.KEY_PASSWORD.createOption());
 
-        this.options.addOption(CommandOption.PROXIED_ENTITY.createOption());
+        options.addOption(CommandOption.TRUSTSTORE.createOption());
+        options.addOption(CommandOption.TRUSTSTORE_TYPE.createOption());
+        options.addOption(CommandOption.TRUSTSTORE_PASSWORD.createOption());
 
-        this.options.addOption(CommandOption.OUTPUT_TYPE.createOption());
-        this.options.addOption(CommandOption.VERBOSE.createOption());
-        this.options.addOption(CommandOption.HELP.createOption());
+        options.addOption(CommandOption.PROXIED_ENTITY.createOption());
+
+        options.addOption(CommandOption.OUTPUT_TYPE.createOption());
+        options.addOption(CommandOption.VERBOSE.createOption());
+        options.addOption(CommandOption.HELP.createOption());
+
+        return options;
     }
 
     @Override
@@ -89,8 +99,13 @@ public abstract class AbstractCommand implements Command {
     }
 
     @Override
-    public String getName() {
+    public final String getName() {
         return name;
+    }
+
+    @Override
+    public final Class<R> getResultImplType() {
+        return resultClass;
     }
 
     @Override
@@ -116,6 +131,11 @@ public abstract class AbstractCommand implements Command {
         hf.printWrapped(printWriter, width, getDescription());
         hf.printWrapped(printWriter, width, "");
 
+        if (isReferencable()) {
+            hf.printWrapped(printWriter, width, "PRODUCES BACK-REFERENCES");
+            hf.printWrapped(printWriter, width, "");
+        }
+
         hf.printHelp(printWriter, hf.getWidth(), getName(), null, getOptions(),
                 hf.getLeftPadding(), hf.getDescPadding(), null, false);
 
@@ -134,11 +154,6 @@ public abstract class AbstractCommand implements Command {
 
     protected void println() {
         output.println();
-    }
-
-    protected ResultWriter getResultWriter(final Properties properties) {
-        final ResultType resultType = getResultType(properties);
-        return context.getResultWriter(resultType);
     }
 
     protected ResultType getResultType(final Properties properties) {

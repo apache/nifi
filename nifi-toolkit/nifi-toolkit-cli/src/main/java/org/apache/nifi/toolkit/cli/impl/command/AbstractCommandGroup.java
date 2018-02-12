@@ -81,6 +81,11 @@ public abstract class AbstractCommandGroup implements CommandGroup {
                 hf.printWrapped(printWriter, width, "");
                 hf.printWrapped(printWriter, width, "- " + c.getDescription());
                 hf.printWrapped(printWriter, width, "");
+
+                if (c.isReferencable()) {
+                    hf.printWrapped(printWriter, width, "PRODUCES BACK-REFERENCES");
+                    hf.printWrapped(printWriter, width, "");
+                }
             });
 
             printWriter.flush();

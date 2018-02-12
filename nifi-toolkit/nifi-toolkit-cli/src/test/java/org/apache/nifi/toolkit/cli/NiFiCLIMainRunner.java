@@ -21,7 +21,6 @@ import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.api.Session;
 import org.apache.nifi.toolkit.cli.impl.client.NiFiClientFactory;
 import org.apache.nifi.toolkit.cli.impl.client.NiFiRegistryClientFactory;
@@ -29,8 +28,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandFactory;
 import org.apache.nifi.toolkit.cli.impl.command.CommandProcessor;
 import org.apache.nifi.toolkit.cli.impl.context.StandardContext;
-import org.apache.nifi.toolkit.cli.impl.result.JsonResultWriter;
-import org.apache.nifi.toolkit.cli.impl.result.SimpleResultWriter;
 import org.apache.nifi.toolkit.cli.impl.session.InMemorySession;
 
 import java.util.Map;
@@ -38,7 +35,7 @@ import java.util.Map;
 public class NiFiCLIMainRunner {
 
     public static void main(String[] args) {
-        final String[] cmdArgs = ("nifi-reg create-bucket -bn FOO -p src/test/resources/test.properties " +
+        final String[] cmdArgs = ("registry list-buckets help " +
                 "").split("[ ]");
 
         final Session session = new InMemorySession();
@@ -50,8 +47,6 @@ public class NiFiCLIMainRunner {
                 .session(session)
                 .nifiClientFactory(niFiClientFactory)
                 .nifiRegistryClientFactory(nifiRegClientFactory)
-                .resultWriter(ResultType.SIMPLE, new SimpleResultWriter())
-                .resultWriter(ResultType.JSON, new JsonResultWriter())
                 .build();
 
         final Map<String,Command> commands = CommandFactory.createTopLevelCommands(context);

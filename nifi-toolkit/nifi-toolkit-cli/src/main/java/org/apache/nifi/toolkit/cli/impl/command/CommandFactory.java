@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.impl.command.composite.DemoCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.command.misc.Exit;
 import org.apache.nifi.toolkit.cli.impl.command.misc.Help;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.NiFiCommandGroup;
@@ -55,6 +56,7 @@ public class CommandFactory {
         final List<CommandGroup> groups = new ArrayList<>();
         groups.add(new NiFiRegistryCommandGroup());
         groups.add(new NiFiCommandGroup());
+        groups.add(new DemoCommandGroup());
         groups.add(new SessionCommandGroup());
 
         final Map<String,CommandGroup> groupMap = new TreeMap<>();

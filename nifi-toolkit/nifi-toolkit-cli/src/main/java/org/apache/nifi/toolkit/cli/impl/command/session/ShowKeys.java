@@ -19,15 +19,16 @@ package org.apache.nifi.toolkit.cli.impl.command.session;
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommand;
-import org.apache.nifi.toolkit.cli.impl.session.SessionVariables;
+import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
 
 /**
  * Command for listing available variables.
  */
-public class ShowKeys extends AbstractCommand {
+public class ShowKeys extends AbstractCommand<VoidResult> {
 
     public ShowKeys() {
-        super("keys");
+        super("keys", VoidResult.class);
     }
 
     @Override
@@ -36,11 +37,13 @@ public class ShowKeys extends AbstractCommand {
     }
 
     @Override
-    public void execute(CommandLine cli) throws CommandException {
+    public VoidResult execute(CommandLine cli) throws CommandException {
         println();
-        for (final SessionVariables variable : SessionVariables.values()) {
+        for (final SessionVariable variable : SessionVariable.values()) {
             println("\t" + variable.getVariableName());
         }
         println();
+
+        return VoidResult.getInstance();
     }
 }
