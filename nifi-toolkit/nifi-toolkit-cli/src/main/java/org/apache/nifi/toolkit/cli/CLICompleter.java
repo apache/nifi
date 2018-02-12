@@ -20,7 +20,7 @@ import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.session.SessionCommandGroup;
-import org.apache.nifi.toolkit.cli.impl.session.SessionVariables;
+import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
 import org.jline.builtins.Completers;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
@@ -50,14 +50,16 @@ public class CLICompleter implements Completer {
         args.add("-" + CommandOption.PROPERTIES.getShortName());
         args.add("-" + CommandOption.INPUT_SOURCE.getShortName());
         args.add("-" + CommandOption.OUTPUT_FILE.getShortName());
+        args.add("-" + CommandOption.NIFI_REG_PROPS.getShortName());
+        args.add("-" + CommandOption.NIFI_PROPS.getShortName());
         FILE_COMPLETION_ARGS = Collections.unmodifiableSet(args);
     }
 
     private static final Set<String> FILE_COMPLETION_VARS;
     static {
         final Set<String> vars = new HashSet<>();
-        vars.add(SessionVariables.NIFI_CLIENT_PROPS.getVariableName());
-        vars.add(SessionVariables.NIFI_REGISTRY_CLIENT_PROPS.getVariableName());
+        vars.add(SessionVariable.NIFI_CLIENT_PROPS.getVariableName());
+        vars.add(SessionVariable.NIFI_REGISTRY_CLIENT_PROPS.getVariableName());
         FILE_COMPLETION_VARS = Collections.unmodifiableSet(vars);
     }
 
@@ -178,7 +180,7 @@ public class CLICompleter implements Completer {
                 // if we have two args then we are completing the variable name
                 // if we have three args, and the third is one a variable that is a file path, then we need a file completer
                 if (line.wordIndex() == 2) {
-                    addCandidates(SessionVariables.getAllVariableNames(), candidates);
+                    addCandidates(SessionVariable.getAllVariableNames(), candidates);
                 } else if (line.wordIndex() == 3) {
                     final String currWord = line.word();
                     final String prevWord = line.words().get(line.wordIndex() - 1);

@@ -26,6 +26,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
@@ -40,10 +41,10 @@ import java.util.Set;
 /**
  * Command for importing a flow to NiFi from NiFi Registry.
  */
-public class PGImport extends AbstractNiFiCommand {
+public class PGImport extends AbstractNiFiCommand<StringResult> {
 
     public PGImport() {
-        super("pg-import");
+        super("pg-import", StringResult.class);
     }
 
     @Override
@@ -63,7 +64,7 @@ public class PGImport extends AbstractNiFiCommand {
     }
 
     @Override
-    protected void doExecute(final NiFiClient client, final Properties properties)
+    public StringResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException {
 
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
@@ -118,7 +119,7 @@ public class PGImport extends AbstractNiFiCommand {
 
         final ProcessGroupClient pgClient = client.getProcessGroupClient();
         final ProcessGroupEntity createdEntity = pgClient.createProcessGroup(parentPgId, pgEntity);
-        println(createdEntity.getId());
+        return new StringResult(createdEntity.getId());
     }
 
 }

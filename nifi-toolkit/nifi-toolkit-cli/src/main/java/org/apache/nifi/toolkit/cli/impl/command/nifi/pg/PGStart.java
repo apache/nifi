@@ -24,6 +24,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 
 import java.io.IOException;
@@ -32,10 +33,10 @@ import java.util.Properties;
 /**
  * Command to start the components of a process group.
  */
-public class PGStart extends AbstractNiFiCommand {
+public class PGStart extends AbstractNiFiCommand<VoidResult> {
 
     public PGStart() {
-        super("pg-start");
+        super("pg-start", VoidResult.class);
     }
 
     @Override
@@ -49,7 +50,7 @@ public class PGStart extends AbstractNiFiCommand {
     }
 
     @Override
-    protected void doExecute(final NiFiClient client, final Properties properties)
+    public VoidResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
 
         final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
@@ -60,6 +61,7 @@ public class PGStart extends AbstractNiFiCommand {
 
         final FlowClient flowClient = client.getFlowClient();
         final ScheduleComponentsEntity resultEntity = flowClient.scheduleProcessGroupComponents(pgId, entity);
+        return VoidResult.getInstance();
     }
 
 }

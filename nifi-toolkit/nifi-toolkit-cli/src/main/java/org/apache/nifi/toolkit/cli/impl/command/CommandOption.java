@@ -30,6 +30,9 @@ public enum CommandOption {
     PROPERTIES("p", "properties", "A properties file to load arguments from, " +
             "command line values will override anything in the properties file, must contain full path to file", true),
 
+    NIFI_PROPS("nifiProps", "nifiProps", "A properties file to load for NiFi config", true),
+    NIFI_REG_PROPS("nifiRegProps", "nifiRegProps", "A properties file to load for NiFi Registry config", true),
+
     // Registry - Buckets
     BUCKET_ID("b", "bucketIdentifier", "A bucket identifier", true),
     BUCKET_NAME("bn", "bucketName", "A bucket name", true),

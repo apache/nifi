@@ -22,7 +22,7 @@ import org.apache.commons.cli.Options;
 /**
  * Represents a command to execute.
  */
-public interface Command {
+public interface Command<R extends Result> {
 
     /**
      * Called directly after instantiation of the given command before any other method is called.
@@ -57,7 +57,20 @@ public interface Command {
      * Executes the command with the given CLI params.
      *
      * @param cli the parsed CLI for the command
+     * @return the Result of the command
      */
-    void execute(CommandLine cli) throws CommandException;
+    R execute(CommandLine cli) throws CommandException;
+
+    /**
+     * @return the implementation class of the result
+     */
+    Class<R> getResultImplType();
+
+    /**
+     * @return true if the type of result produced is considered Referenceable
+     */
+    default boolean isReferencable() {
+        return Referenceable.class.isAssignableFrom(getResultImplType());
+    }
 
 }

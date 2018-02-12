@@ -23,17 +23,15 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
+import org.apache.nifi.toolkit.cli.impl.result.VersionedFlowSnapshotResult;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Properties;
 
-public class ExportFlowVersion extends AbstractNiFiRegistryCommand {
+public class ExportFlowVersion extends AbstractNiFiRegistryCommand<VersionedFlowSnapshotResult> {
 
     public ExportFlowVersion() {
-        super("export-flow-version");
+        super("export-flow-version", VersionedFlowSnapshotResult.class);
     }
 
     @Override
@@ -50,7 +48,7 @@ public class ExportFlowVersion extends AbstractNiFiRegistryCommand {
     }
 
     @Override
-    public void doExecute(final NiFiRegistryClient client, final Properties properties)
+    public VersionedFlowSnapshotResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws ParseException, IOException, NiFiRegistryException {
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final Integer version = getIntArg(properties, CommandOption.FLOW_VERSION);
@@ -74,15 +72,14 @@ public class ExportFlowVersion extends AbstractNiFiRegistryCommand {
 
         // currently export doesn't use the ResultWriter concept, it always writes JSON
         // destination will be a file if outputFile is specified, otherwise it will be the output stream of the CLI
+        final String outputFile;
         if (properties.containsKey(CommandOption.OUTPUT_FILE.getLongName())) {
-            final String outputFile = properties.getProperty(CommandOption.OUTPUT_FILE.getLongName());
-            try (final OutputStream resultOut = new FileOutputStream(outputFile)) {
-                JacksonUtils.write(versionedFlowSnapshot, resultOut);
-            }
+            outputFile = properties.getProperty(CommandOption.OUTPUT_FILE.getLongName());
         } else {
-            final OutputStream output = getContext().getOutput();
-            JacksonUtils.write(versionedFlowSnapshot, output);
+            outputFile = null;
         }
+
+        return new VersionedFlowSnapshotResult(versionedFlowSnapshot, outputFile);
     }
 
 }

@@ -36,6 +36,4 @@ public interface Context {
 
     boolean isInteractive();
 
-    ResultWriter getResultWriter(ResultType resultType);
-
 }

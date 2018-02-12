@@ -23,7 +23,6 @@ import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.api.Session;
 import org.apache.nifi.toolkit.cli.impl.client.NiFiClientFactory;
 import org.apache.nifi.toolkit.cli.impl.client.NiFiRegistryClientFactory;
@@ -31,8 +30,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandFactory;
 import org.apache.nifi.toolkit.cli.impl.command.CommandProcessor;
 import org.apache.nifi.toolkit.cli.impl.context.StandardContext;
-import org.apache.nifi.toolkit.cli.impl.result.JsonResultWriter;
-import org.apache.nifi.toolkit.cli.impl.result.SimpleResultWriter;
 import org.apache.nifi.toolkit.cli.impl.session.InMemorySession;
 import org.apache.nifi.toolkit.cli.impl.session.PersistentSession;
 import org.jline.reader.Completer;
@@ -195,8 +192,6 @@ public class CLIMain {
                 .nifiClientFactory(niFiClientFactory)
                 .nifiRegistryClientFactory(nifiRegClientFactory)
                 .interactive(isInteractive)
-                .resultWriter(ResultType.SIMPLE, new SimpleResultWriter())
-                .resultWriter(ResultType.JSON, new JsonResultWriter())
                 .build();
     }
 
