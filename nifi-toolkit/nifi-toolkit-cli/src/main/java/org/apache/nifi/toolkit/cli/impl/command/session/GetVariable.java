@@ -22,14 +22,15 @@ import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Session;
 import org.apache.nifi.toolkit.cli.api.SessionException;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommand;
+import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 
 /**
  * Gets a the value of a variable from the session.
  */
-public class GetVariable extends AbstractCommand {
+public class GetVariable extends AbstractCommand<StringResult> {
 
     public GetVariable() {
-        super("get");
+        super("get", StringResult.class);
     }
 
     @Override
@@ -38,7 +39,7 @@ public class GetVariable extends AbstractCommand {
     }
 
     @Override
-    public void execute(final CommandLine commandLine) throws CommandException {
+    public StringResult execute(final CommandLine commandLine) throws CommandException {
         final String[] args = commandLine.getArgs();
 
         if (args == null || args.length != 1 || StringUtils.isBlank(args[0])) {
@@ -49,9 +50,9 @@ public class GetVariable extends AbstractCommand {
         try {
             final String value = session.get(args[0]);
             if (value == null) {
-                println();
+                return new StringResult("");
             } else {
-                println(value);
+                return new StringResult(value);
             }
         } catch (SessionException se) {
             throw new CommandException(se.getMessage(), se);

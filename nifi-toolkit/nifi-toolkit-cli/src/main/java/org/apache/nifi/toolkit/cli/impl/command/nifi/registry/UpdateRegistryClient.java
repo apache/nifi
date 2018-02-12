@@ -25,6 +25,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 
 import java.io.IOException;
@@ -33,10 +34,10 @@ import java.util.Properties;
 /**
  * Command to update a registry client in NiFi.
  */
-public class UpdateRegistryClient extends AbstractNiFiCommand {
+public class UpdateRegistryClient extends AbstractNiFiCommand<VoidResult> {
 
     public UpdateRegistryClient() {
-        super("update-reg-client");
+        super("update-reg-client", VoidResult.class);
     }
 
     @Override
@@ -53,7 +54,7 @@ public class UpdateRegistryClient extends AbstractNiFiCommand {
     }
 
     @Override
-    protected void doExecute(final NiFiClient client, final Properties properties)
+    public VoidResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
 
         final ControllerClient controllerClient = client.getControllerClient();
@@ -89,5 +90,6 @@ public class UpdateRegistryClient extends AbstractNiFiCommand {
         existingRegClient.getRevision().setClientId(clientId);
 
         controllerClient.updateRegistryClient(existingRegClient);
+        return VoidResult.getInstance();
     }
 }

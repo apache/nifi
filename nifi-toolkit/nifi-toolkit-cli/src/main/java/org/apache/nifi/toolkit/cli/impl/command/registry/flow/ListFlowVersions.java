@@ -22,9 +22,9 @@ import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.api.ResultWriter;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
+import org.apache.nifi.toolkit.cli.impl.result.VersionedFlowSnapshotMetadataResult;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,10 +33,10 @@ import java.util.Properties;
 /**
  * Lists the metadata for the versions of a specific flow in a specific bucket.
  */
-public class ListFlowVersions extends AbstractNiFiRegistryCommand {
+public class ListFlowVersions extends AbstractNiFiRegistryCommand<VersionedFlowSnapshotMetadataResult> {
 
     public ListFlowVersions() {
-        super("list-flow-versions");
+        super("list-flow-versions", VersionedFlowSnapshotMetadataResult.class);
     }
 
     @Override
@@ -50,15 +50,14 @@ public class ListFlowVersions extends AbstractNiFiRegistryCommand {
     }
 
     @Override
-    protected void doExecute(final NiFiRegistryClient client, final Properties properties)
+    public VersionedFlowSnapshotMetadataResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws ParseException, IOException, NiFiRegistryException {
         final String flow = getRequiredArg(properties, CommandOption.FLOW_ID);
         final String bucket = getBucketId(client, flow);
 
         final FlowSnapshotClient snapshotClient = client.getFlowSnapshotClient();
         final List<VersionedFlowSnapshotMetadata> snapshotMetadata = snapshotClient.getSnapshotMetadata(bucket, flow);
-
-        final ResultWriter resultWriter = getResultWriter(properties);
-        resultWriter.writeSnapshotMetadata(snapshotMetadata, getContext().getOutput());
+        return new VersionedFlowSnapshotMetadataResult(getResultType(properties), snapshotMetadata);
     }
+
 }

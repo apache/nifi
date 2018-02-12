@@ -19,13 +19,13 @@ package org.apache.nifi.toolkit.cli.impl.command.misc;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.nifi.toolkit.cli.api.Command;
-import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 
 /**
  * Command for exiting the shell.
  */
-public class Exit implements Command {
+public class Exit implements Command<VoidResult> {
 
     @Override
     public void initialize(final Context context) {
@@ -53,8 +53,14 @@ public class Exit implements Command {
     }
 
     @Override
-    public void execute(final CommandLine cli) throws CommandException {
+    public VoidResult execute(final CommandLine cli) {
         System.exit(0);
+        return VoidResult.getInstance();
+    }
+
+    @Override
+    public Class<VoidResult> getResultImplType() {
+        return VoidResult.class;
     }
 
 }
