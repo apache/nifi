@@ -100,9 +100,10 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         if (flowFile != null) {
             try {
                 String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
+                String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
                 switch (context.getProperty(MESSAGE_BODY).getValue()) {
                     case TEXT_MESSAGE:
-                        publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession), flowFile.getAttributes());
+                        publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession, charset), flowFile.getAttributes());
                         break;
                     case BYTES_MESSAGE:
                     default:
@@ -144,9 +145,9 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         return messageContent;
     }
 
-    private String extractTextMessageBody(FlowFile flowFile, ProcessSession session) {
+    private String extractTextMessageBody(FlowFile flowFile, ProcessSession session, String charset) {
         final StringWriter writer = new StringWriter();
-        session.read(flowFile, in -> IOUtils.copy(in, writer, Charset.defaultCharset()));
+        session.read(flowFile, in -> IOUtils.copy(in, writer, Charset.forName(charset)));
         return writer.toString();
     }
 }

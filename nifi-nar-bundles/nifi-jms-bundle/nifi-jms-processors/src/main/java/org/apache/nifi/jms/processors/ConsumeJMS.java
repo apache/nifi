@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -125,6 +127,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(propertyDescriptors);
+        _propertyDescriptors.remove(MESSAGE_BODY);
         _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
         _propertyDescriptors.add(DURABLE_SUBSCRIBER);
         _propertyDescriptors.add(SHARED_SUBSCRIBER);
@@ -136,9 +139,16 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
+    @OnScheduled
+    public void verifyCharset(final ProcessContext context) {
+        // CHARSET property supports expression language, but for ConsumeJMS it must be valid when scheduled
+        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
+        Charset.forName(charset);
+    }
+
     /**
      * Will construct a {@link FlowFile} containing the body of the consumed JMS
-     * message (if {@link GetResponse} returned by {@link JMSConsumer} is not
+     * message (if {@link JMSResponse} returned by {@link JMSConsumer} is not
      * null) and JMS properties that came with message which are added to a
      * {@link FlowFile} as attributes, transferring {@link FlowFile} to
      * 'success' {@link Relationship}.
@@ -151,8 +161,9 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
         final boolean shared = sharedBoolean == null ? false : sharedBoolean;
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
+        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
-        consumer.consume(destinationName, durable, shared, subscriptionName, new ConsumerCallback() {
+        consumer.consume(destinationName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
             @Override
             public void accept(final JMSResponse response) {
                 if (response == null) {
