@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.hbase.put.PutColumn;
-import org.apache.nifi.hbase.put.PutFlowFile;
-import org.apache.nifi.hbase.scan.Column;
-import org.apache.nifi.hbase.scan.ResultCell;
-import org.apache.nifi.hbase.scan.ResultHandler;
-
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -33,6 +24,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.hbase.put.PutColumn;
+import org.apache.nifi.hbase.put.PutFlowFile;
+import org.apache.nifi.hbase.scan.Column;
+import org.apache.nifi.hbase.scan.ResultCell;
+import org.apache.nifi.hbase.scan.ResultHandler;
 
 public class MockHBaseClientService extends AbstractControllerService implements HBaseClientService {
 
@@ -115,6 +114,24 @@ public class MockHBaseClientService extends AbstractControllerService implements
         for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
             handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());
         }
+
+        numScans++;
+    }
+
+    @Override
+    public void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin,
+            Long timerangeMax, Integer limitRows, Boolean isReversed, Collection<Column> columns, ResultHandler handler)
+            throws IOException {
+        if (throwException) {
+            throw new IOException("exception");
+        }
+
+        // pass all the staged data to the handler
+        for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
+            handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());
+        }
+
+        // delegate to the handler
 
         numScans++;
     }
