@@ -16,11 +16,17 @@
  */
 package org.apache.nifi.security.xml;
 
+import java.io.InputStream;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
-import java.io.InputStream;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 public class XmlUtils {
 
@@ -40,5 +46,24 @@ public class XmlUtils {
         xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
         xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
         return xif.createXMLStreamReader(source);
+    }
+
+    public static XMLReader createSafeSaxReader(SAXParserFactory saxParserFactory, ContentHandler contentHandler) throws SAXException, ParserConfigurationException {
+        if (saxParserFactory == null) {
+            throw new IllegalArgumentException("The provided SAX parser factory cannot be null");
+        }
+
+        if (contentHandler == null) {
+            throw new IllegalArgumentException("The provided SAX content handler cannot be null");
+        }
+
+        saxParserFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        saxParserFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+
+        SAXParser saxParser = saxParserFactory.newSAXParser();
+        XMLReader xmlReader = saxParser.getXMLReader();
+        xmlReader.setContentHandler(contentHandler);
+
+        return xmlReader;
     }
 }
