@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.jar.Attributes;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -203,6 +203,16 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .expressionLanguageSupported(false)
             .build();
 
+    public static final PropertyDescriptor HIVEQL_COPY_ATRIBUTTES = new PropertyDescriptor.Builder()
+            .name("copy-attributtes")
+            .displayName("Copy original attributtes")
+            .description("Copy attributtes from original flow file")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .expressionLanguageSupported(false)
+            .build();
+    
     private final static List<PropertyDescriptor> propertyDescriptors;
     private final static Set<Relationship> relationships;
 
@@ -225,6 +235,8 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         _propertyDescriptors.add(HIVEQL_CSV_QUOTE);
         _propertyDescriptors.add(HIVEQL_CSV_ESCAPE);
         _propertyDescriptors.add(CHARSET);
+        _propertyDescriptors.add(HIVEQL_COPY_ATRIBUTTES);
+        
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -261,6 +273,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
     private void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile fileToProcess = (context.hasIncomingConnection() ? session.get() : null);
+        Attributes originalAttributes;
         FlowFile flowfile = null;
 
         // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
@@ -306,6 +319,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final boolean quote = context.getProperty(HIVEQL_CSV_QUOTE).asBoolean();
         final boolean escape = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
         final String fragmentIdentifier = UUID.randomUUID().toString();
+        final boolean copyAttributtes = context.getProperty(HIVEQL_COPY_ATRIBUTTES).asBoolean();
 
         try (final Connection con = dbcpService.getConnection();
              final Statement st = (flowbased ? con.prepareStatement(selectQuery) : con.createStatement())
@@ -437,6 +451,16 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                         resultSetFlowFiles.set(i,
                                 session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
                     }
+
+                    if(copyAttributtes)
+                    {
+                        for(Map.Entry<String, String> entry : fileToProcess.getAttributes().entrySet()) {
+                            if( !resultSetFlowFiles.get(i).getAttributes().containsKey(entry.getKey()) )
+                                resultSetFlowFiles.set(i,
+                                        session.putAttribute(resultSetFlowFiles.get(i), entry.getKey(), entry.getValue()) );
+                        }
+                    }
+
                 }
 
             } catch (final SQLException e) {
