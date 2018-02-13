@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
+
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,11 +34,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -54,7 +57,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.XmlElementNotifier;
-import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -63,12 +66,6 @@ import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
-
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
-import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
 
 @EventDriven
 @SideEffectFree
@@ -175,12 +172,9 @@ public class SplitXml extends AbstractProcessor {
 
         final AtomicBoolean failed = new AtomicBoolean(false);
         session.read(original, rawIn -> {
-            try (final InputStream in = new BufferedInputStream(rawIn)) {
-                SAXParser saxParser = null;
+            try (final InputStream in = new java.io.BufferedInputStream(rawIn)) {
                 try {
-                    saxParser = saxParserFactory.newSAXParser();
-                    final XMLReader reader = saxParser.getXMLReader();
-                    reader.setContentHandler(parser);
+                    final XMLReader reader = XmlUtils.createSafeSaxReader(saxParserFactory, parser);
                     reader.parse(new InputSource(in));
                 } catch (final ParserConfigurationException | SAXException e) {
                     logger.error("Unable to parse {} due to {}", new Object[]{original, e});
