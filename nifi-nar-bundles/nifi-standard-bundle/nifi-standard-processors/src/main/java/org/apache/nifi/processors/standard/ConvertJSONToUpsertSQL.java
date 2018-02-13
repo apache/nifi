@@ -288,6 +288,8 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
         final boolean ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
 //        final String statementType = context.getProperty(STATEMENT_TYPE).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
+        getLogger().debug("updateKeys {}", new Object[] {updateKeys});
+
 
         final String catalog = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -379,61 +381,84 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
             ArrayList <Integer>updateList = new ArrayList<Integer>();
             ArrayList <Integer>insertList = new ArrayList<Integer>();
 
+            // build the fully qualified table name
+            final StringBuilder tableNameBuilder = new StringBuilder();
+            if (catalog != null) {
+                tableNameBuilder.append(catalog).append(".");
+            }
+            if (schemaName != null) {
+                tableNameBuilder.append(schemaName).append(".");
+            }
+            tableNameBuilder.append(tableName);
+            final String fqTableName = tableNameBuilder.toString();
 
-            for (int i=0; i < arrayNode.size(); i++) {
-                final JsonNode jsonNode = arrayNode.get(i);
 
-                final String sqlInsert;
-                final String sqlUpdate;
-                final String sqlSelect;
 
-                final Map<String, String> attributesUpdate = new HashMap<>();
-                final Map<String, String> attributesInsert = new HashMap<>();
-                final Map<String, String> attributesSelect = new HashMap<>();
+            final String sqlSelectCount = generateSelectCount(fqTableName,schema,quoteTableName);
+            // table empty ? just insert
+            PreparedStatement statTmp =  conn.prepareStatement(sqlSelectCount, Statement.RETURN_GENERATED_KEYS);
+            ResultSet resultTmp = statTmp.executeQuery();
 
-                try {
-                    // build the fully qualified table name
-                    final StringBuilder tableNameBuilder = new StringBuilder();
-                    if (catalog != null) {
-                        tableNameBuilder.append(catalog).append(".");
+            getLogger().debug("If target table is empty sql {}",new Object[]{sqlSelectCount});
+
+            boolean emptyTargetTable = false;
+            if(resultTmp.next()){
+                if(resultTmp.getInt("cnt")==0){
+                    emptyTargetTable = true;
+                }
+            }
+
+            getLogger().debug("If target table is empty result {}",new Object[]{emptyTargetTable});
+
+            if(!emptyTargetTable){
+                for (int i=0; i < arrayNode.size(); i++) {
+                    final JsonNode jsonNode = arrayNode.get(i);
+
+
+                    final String sqlSelect;
+
+
+                    final Map<String, String> attributesSelect = new HashMap<>();
+
+                    try {
+
+
+                        sqlSelect =  generateSelect(jsonNode,attributesSelect , fqTableName,updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                                failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
+
+                        getLogger().debug("SQL select: {} ",new Object[]{sqlSelect});
+
+                    } catch (final ProcessException pe) {
+                        getLogger().error("Failed to convert {} to a SQL  statement due to {}; routing to failure",
+                                new Object[] { flowFile, pe.toString() }, pe);
+                        session.remove(created);
+                        session.transfer(flowFile, REL_FAILURE);
+                        return;
                     }
-                    if (schemaName != null) {
-                        tableNameBuilder.append(schemaName).append(".");
+
+
+                    // select to determine which way to through
+                    if(stmt == null) {
+
+                        stmt = conn.prepareStatement(sqlSelect, Statement.RETURN_GENERATED_KEYS);
                     }
-                    tableNameBuilder.append(tableName);
-                    final String fqTableName = tableNameBuilder.toString();
+                    setParameters(stmt, attributesSelect);
+                    stmt.addBatch();
+                    ResultSet result = stmt.executeQuery();
+                    int way = -1;
+                    if(result.next()){
+                        way = result.getInt("cnt");
+                    }
 
-                    sqlSelect =  generateSelect(jsonNode,attributesSelect , fqTableName,updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
-                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
-
-                    getLogger().debug("SQL select: {} ",new Object[]{sqlSelect});
-
-                } catch (final ProcessException pe) {
-                    getLogger().error("Failed to convert {} to a SQL  statement due to {}; routing to failure",
-                            new Object[] { flowFile, pe.toString() }, pe);
-                    session.remove(created);
-                    session.transfer(flowFile, REL_FAILURE);
-                    return;
+                    if(way>0)
+                        updateList.add(i);
+                    else
+                        insertList.add(i);
                 }
-
-
-                // select to determine which way to through
-                if(stmt == null) {
-
-                    stmt = conn.prepareStatement(sqlSelect, Statement.RETURN_GENERATED_KEYS);
-                }
-                setParameters(stmt, attributesSelect);
-                stmt.addBatch();
-                ResultSet result = stmt.executeQuery();
-                int way = -1;
-                if(result.next()){
-                    way = result.getInt("cnt");
-                }
-
-                if(way>0)
-                    updateList.add(i);
-                else
+            }else{
+                for (int i=0; i < arrayNode.size(); i++) {
                     insertList.add(i);
+                }
             }
 
 
@@ -443,23 +468,11 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
 
                 final String sqlInsert;
                 final String sqlUpdate;
-//                final String sqlSelect;
 
                 final Map<String, String> attributesUpdate = new HashMap<>();
                 final Map<String, String> attributesInsert = new HashMap<>();
-//                final Map<String, String> attributesSelect = new HashMap<>();
 
                 try {
-                    // build the fully qualified table name
-                    final StringBuilder tableNameBuilder = new StringBuilder();
-                    if (catalog != null) {
-                        tableNameBuilder.append(catalog).append(".");
-                    }
-                    if (schemaName != null) {
-                        tableNameBuilder.append(schemaName).append(".");
-                    }
-                    tableNameBuilder.append(tableName);
-                    final String fqTableName = tableNameBuilder.toString();
 
 
                     sqlInsert = generateInsert(jsonNode, attributesInsert, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
@@ -790,6 +803,28 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
                 fieldValue = fieldValue.substring(0, colSize);
             }
             attributes.put(attributePrefix + ".args." + fieldCount + ".value", fieldValue);
+        }
+
+        return sqlBuilder.toString();
+    }
+
+
+
+
+    private String generateSelectCount( final String tableName,
+                                  final TableSchema schema,
+                                   boolean quoteTableName ) {
+
+
+        final StringBuilder sqlBuilder = new StringBuilder();
+        int fieldCount = 0;
+        sqlBuilder.append("SELECT count(*) cnt FROM ");
+        if (quoteTableName) {
+            sqlBuilder.append(schema.getQuotedIdentifierString())
+                    .append(tableName)
+                    .append(schema.getQuotedIdentifierString());
+        } else {
+            sqlBuilder.append(tableName);
         }
 
         return sqlBuilder.toString();
