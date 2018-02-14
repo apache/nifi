@@ -71,6 +71,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
+    private volatile String additionalResourcesFingerprint;
 
     public AbstractConfiguredComponent(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
@@ -295,6 +296,33 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         getProperties().entrySet().stream()
                 .filter(e -> e.getKey() != null && e.getValue() != null)
                 .forEach(e -> setProperty(e.getKey().getName(), e.getValue()));
+    }
+
+    /**
+     * Generates fingerprint for the additional urls and compares it with the previous
+     * fingerprint value. If the fingerprint values don't match, the function calls the
+     * component's reload() to load the newly found resources.
+     */
+    public void reloadAdditionalResourcesIfNecessary(){
+        String oldFingerprint, newFingerprint;
+
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(this.getProperties().keySet());
+        final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
+
+        newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+
+        if(this.hasAdditionalResourcesFingerprint()){
+            oldFingerprint = this.getAdditionalResourcesFingerprint();
+            if(!oldFingerprint.equals(newFingerprint)) {
+                this.setAdditionalResourcesFingerprint(newFingerprint);
+                try {
+                    logger.info("Adding new resources found to classpath for the component"+ this.componentType +" with the ID "+this.getIdentifier());
+                    reload(additionalUrls);
+                } catch (Exception e) {
+                    logger.error("Error reloading component with id " + id + ": " + e.getMessage(), e);
+                }
+            }
+        }
     }
 
     @Override
@@ -568,4 +596,17 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
         }
     }
+
+    public String getAdditionalResourcesFingerprint() {
+        return additionalResourcesFingerprint;
+    }
+
+    public boolean hasAdditionalResourcesFingerprint() {
+        return !StringUtils.isEmpty(additionalResourcesFingerprint);
+    }
+
+    public void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
+        this.additionalResourcesFingerprint = additionalResourcesFingerprint;
+    }
+
 }
