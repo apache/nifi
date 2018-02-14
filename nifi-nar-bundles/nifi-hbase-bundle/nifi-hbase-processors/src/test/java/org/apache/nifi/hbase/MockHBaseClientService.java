@@ -24,7 +24,6 @@ import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -39,6 +38,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
     private Map<String,ResultCell[]> results = new HashMap<>();
     private Map<String, List<PutFlowFile>> flowFilePuts = new HashMap<>();
     private boolean throwException = false;
+    private boolean throwExceptionDuringBatchDelete = false;
     private int numScans = 0;
     private int numPuts  = 0;
     @Override
@@ -69,6 +69,40 @@ public class MockHBaseClientService extends AbstractControllerService implements
     @Override
     public void delete(String tableName, byte[] rowId) throws IOException {
         throw new UnsupportedOperationException();
+    }
+
+    private int deletePoint = 0;
+    public void setDeletePoint(int deletePoint) {
+        this.deletePoint = deletePoint;
+    }
+
+    @Override
+    public void delete(String tableName, List<byte[]> rowIds) throws IOException {
+        if (throwException) {
+            throw new RuntimeException("Simulated connectivity error");
+        }
+
+        int index = 0;
+        for (byte[] id : rowIds) {
+            String key = new String(id);
+            Object val = results.remove(key);
+            if (index == deletePoint && throwExceptionDuringBatchDelete) {
+                throw new RuntimeException("Forcing write of restart.index");
+            }
+            if (val == null && deletePoint >= 0) {
+                throw new RuntimeException(String.format("%s was never added.", key));
+            }
+
+            index++;
+        }
+    }
+
+    public int size() {
+        return results.size();
+    }
+
+    public boolean isEmpty() {
+        return results.isEmpty();
     }
 
     @Override
@@ -215,5 +249,13 @@ public class MockHBaseClientService extends AbstractControllerService implements
     private int failureThreshold = 1;
     public void setFailureThreshold(int failureThreshold) {
         this.failureThreshold = failureThreshold;
+    }
+
+    public boolean isThrowExceptionDuringBatchDelete() {
+        return throwExceptionDuringBatchDelete;
+    }
+
+    public void setThrowExceptionDuringBatchDelete(boolean throwExceptionDuringBatchDelete) {
+        this.throwExceptionDuringBatchDelete = throwExceptionDuringBatchDelete;
     }
 }
