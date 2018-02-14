@@ -18,7 +18,9 @@ package org.apache.nifi.util.file.classloader;
 
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -118,6 +120,15 @@ public class TestClassLoaderUtils {
 
         URL[] urls = ClassLoaderUtils.getURLsForClasspath(modules, null, true);
         assertEquals(1, urls.length);
+    }
+
+    @Test
+    public void testGenerateAdditionalUrlsFingerprint() throws MalformedURLException, URISyntaxException {
+        final Set<URL> urls = new HashSet<>();
+        URL testUrl = Paths.get("src/test/resources/TestClassLoaderUtils/TestSuccess.jar").toUri().toURL();
+        urls.add(testUrl);
+        String testFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(urls);
+        assertNotNull(testFingerprint);
     }
 
     protected FilenameFilter getJarFilenameFilter(){
