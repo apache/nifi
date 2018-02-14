@@ -19,11 +19,16 @@ package org.apache.nifi.util.file.classloader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -129,6 +134,36 @@ public class ClassLoaderUtils {
             }
         }
         return additionalClasspath.toArray(new URL[additionalClasspath.size()]);
+    }
+
+    public static String generateAdditionalUrlsFingerprint(Set<URL> urls) {
+        MessageDigest md;
+        byte[] bytesOfAdditionalUrls, bytesOfDigest;
+        try {
+            md = MessageDigest.getInstance("MD5");
+            StringBuffer urlBuffer = new StringBuffer();
+            if (urls != null) {
+                urls.forEach(url -> {
+                    try {
+                        urlBuffer.append(url.toString()+"-"+getLastModified(url)+";");
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                    }
+
+                });
+            }
+            bytesOfAdditionalUrls = urlBuffer.toString().getBytes("UTF-8");
+            bytesOfDigest = md.digest(bytesOfAdditionalUrls);
+            return DatatypeConverter.printHexBinary(bytesOfDigest);
+        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+            LOGGER.error("Unable to generate fingerprint for the provided additional resources {}", new Object[]{urls, e});
+        }
+        return null;
+    }
+
+    private static long getLastModified(URL url) throws URISyntaxException {
+        File file = new File(url.toURI());
+        return file.lastModified();
     }
 
     protected static ClassLoader createModuleClassLoader(URL[] modules, ClassLoader parentClassLoader) {

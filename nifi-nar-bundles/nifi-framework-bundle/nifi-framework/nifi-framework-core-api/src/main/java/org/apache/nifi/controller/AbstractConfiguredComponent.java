@@ -71,6 +71,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
+    private volatile String additionalResourcesFingerprint;
 
     public AbstractConfiguredComponent(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
@@ -568,4 +569,17 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
         }
     }
+
+    public String getAdditionalResourcesFingerprint() {
+        return additionalResourcesFingerprint;
+    }
+
+    public boolean hasAdditionalResourcesFingerprint() {
+        return !StringUtils.isEmpty(additionalResourcesFingerprint);
+    }
+
+    public void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
+        this.additionalResourcesFingerprint = additionalResourcesFingerprint;
+    }
+
 }

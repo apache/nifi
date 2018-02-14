@@ -202,6 +202,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -3447,9 +3448,30 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (isTerminated()) {
             throw new IllegalStateException("Cannot start reporting task " + reportingTaskNode.getIdentifier() + " because the controller is terminated");
         }
-
+        validateAdditionalResourcesFingerprint(reportingTaskNode);
         reportingTaskNode.verifyCanStart();
         processScheduler.schedule(reportingTaskNode);
+    }
+
+    private void validateAdditionalResourcesFingerprint(ReportingTaskNode reportingTaskNode){
+        String oldFingerprint, newFingerprint;
+
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(reportingTaskNode.getProperties().keySet());
+        final Set<URL> additionalUrls = reportingTaskNode.getAdditionalClasspathResources(descriptors);
+
+        newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+
+        if(reportingTaskNode.hasAdditionalResourcesFingerprint()){
+            oldFingerprint = reportingTaskNode.getAdditionalResourcesFingerprint();
+            if(!oldFingerprint.equals(newFingerprint)) {
+                reportingTaskNode.setAdditionalResourcesFingerprint(newFingerprint);
+                try {
+                    reload(reportingTaskNode, reportingTaskNode.getCanonicalClassName(), reportingTaskNode.getBundleCoordinate(), additionalUrls);
+                } catch (ReportingTaskInstantiationException e) {
+                    LOG.error("Failed to initialize reporting task", e);
+                }
+            }
+        }
     }
 
     @Override
@@ -3571,6 +3593,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     @Override
     public void enableReportingTask(final ReportingTaskNode reportingTaskNode) {
         reportingTaskNode.verifyCanEnable();
+        validateAdditionalResourcesFingerprint(reportingTaskNode);
         processScheduler.enableReportingTask(reportingTaskNode);
     }
 
