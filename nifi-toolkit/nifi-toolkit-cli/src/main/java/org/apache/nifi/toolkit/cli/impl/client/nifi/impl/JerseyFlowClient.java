@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -116,6 +117,7 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         }
 
         final List<ProcessGroupBox> coords = positions.stream()
+                .filter(Objects::nonNull)
                 .map(p -> new ProcessGroupBox(p.getX().intValue(), p.getY().intValue()))
                 .collect(Collectors.toList());
 
