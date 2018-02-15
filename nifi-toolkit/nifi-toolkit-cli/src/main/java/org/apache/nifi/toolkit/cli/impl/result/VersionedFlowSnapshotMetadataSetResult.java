@@ -55,8 +55,10 @@ public class VersionedFlowSnapshotMetadataSetResult extends AbstractWritableResu
             return;
         }
 
+        // this will be sorted by the child result below
         final List<VersionedFlowSnapshotMetadata> snapshots = entities.stream()
-                .map(v -> v.getVersionedFlowSnapshotMetadata()).collect(Collectors.toList());
+                .map(v -> v.getVersionedFlowSnapshotMetadata())
+                .collect(Collectors.toList());
 
         final WritableResult<List<VersionedFlowSnapshotMetadata>> result = new VersionedFlowSnapshotMetadataResult(resultType, snapshots);
         result.write(output);

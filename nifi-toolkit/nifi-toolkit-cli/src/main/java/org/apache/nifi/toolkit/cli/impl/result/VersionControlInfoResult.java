@@ -18,6 +18,9 @@ package org.apache.nifi.toolkit.cli.impl.result;
 
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
+import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
+import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
@@ -49,7 +52,22 @@ public class VersionControlInfoResult extends AbstractWritableResult<VersionCont
             return;
         }
 
-        output.println(dto.getRegistryName() + " - " + dto.getBucketName() + " - " + dto.getFlowName() + " - " + dto.getVersion());
+        final Table table = new Table.Builder()
+                .column("Registry", 20, 30, true)
+                .column("Bucket", 20, 30, true)
+                .column("Flow", 20, 30, true)
+                .column("Ver", 3, 3, false)
+                .build();
+
+        table.addRow(
+                dto.getRegistryName(),
+                dto.getBucketName(),
+                dto.getFlowName(),
+                String.valueOf(dto.getVersion())
+        );
+
+        final TableWriter tableWriter = new DynamicTableWriter();
+        tableWriter.write(table, output);
     }
 
 }
