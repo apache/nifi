@@ -25,13 +25,13 @@ public enum CommandOption {
 
     // General
     URL("u", "baseUrl", "The URL to execute the command against", true),
-    INPUT_SOURCE("i", "input", "A local file to read as input contents, or a public URL to fetch", true),
-    OUTPUT_FILE("o", "outputFile", "A file to write output to, must contain full path and filename", true),
+    INPUT_SOURCE("i", "input", "A local file to read as input contents, or a public URL to fetch", true, true),
+    OUTPUT_FILE("o", "outputFile", "A file to write output to, must contain full path and filename", true, true),
     PROPERTIES("p", "properties", "A properties file to load arguments from, " +
-            "command line values will override anything in the properties file, must contain full path to file", true),
+            "command line values will override anything in the properties file, must contain full path to file", true, true),
 
-    NIFI_PROPS("nifiProps", "nifiProps", "A properties file to load for NiFi config", true),
-    NIFI_REG_PROPS("nifiRegProps", "nifiRegProps", "A properties file to load for NiFi Registry config", true),
+    NIFI_PROPS("nifiProps", "nifiProps", "A properties file to load for NiFi config", true, true),
+    NIFI_REG_PROPS("nifiRegProps", "nifiRegProps", "A properties file to load for NiFi Registry config", true, true),
 
     // Registry - Buckets
     BUCKET_ID("b", "bucketIdentifier", "A bucket identifier", true),
@@ -43,6 +43,11 @@ public enum CommandOption {
     FLOW_NAME("fn", "flowName", "A flow name", true),
     FLOW_DESC("fd", "flowDesc", "A flow description", true),
     FLOW_VERSION("fv", "flowVersion", "A version of a flow", true),
+
+    // Registry - Source options for when there are two registries involved and one is a source
+    SRC_PROPS("sp", "sourceProps", "A properties file to load for the source", true, true),
+    SRC_FLOW_ID("sf", "sourceFlowIdentifier", "A flow identifier from the source registry", true),
+    SRC_FLOW_VERSION("sfv", "sourceFlowVersion", "A version of a flow from the source registry", true),
 
     // NiFi - Registries
     REGISTRY_CLIENT_ID("rcid", "registryClientId", "The id of a registry client", true),
@@ -78,13 +83,20 @@ public enum CommandOption {
     private final String longName;
     private final String description;
     private final boolean hasArg;
+    private final boolean isFile;
 
     CommandOption(final String shortName, final String longName, final String description, final boolean hasArg) {
+        this(shortName, longName, description, hasArg, false);
+    }
+
+    CommandOption(final String shortName, final String longName, final String description, final boolean hasArg, final boolean isFile) {
         this.shortName = shortName;
         this.longName = longName;
         this.description = description;
         this.hasArg = hasArg;
+        this.isFile = isFile;
     }
+
 
     public String getShortName() {
         return shortName;
@@ -96,6 +108,10 @@ public enum CommandOption {
 
     public String getDescription() {
         return description;
+    }
+
+    public boolean isFile() {
+        return isFile;
     }
 
     public Option createOption() {

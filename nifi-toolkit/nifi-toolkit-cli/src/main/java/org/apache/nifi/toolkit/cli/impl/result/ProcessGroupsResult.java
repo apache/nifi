@@ -20,7 +20,9 @@ import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.Referenceable;
+import org.apache.nifi.toolkit.cli.api.ResolvedReference;
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
 import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
 import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
@@ -90,13 +92,10 @@ public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGrou
 
         return new ReferenceResolver() {
             @Override
-            public String resolve(final Integer position) {
+            public ResolvedReference resolve(final CommandOption option, final Integer position) {
                 final ProcessGroupDTO pg = backRefs.get(position);
                 if (pg != null) {
-                    if (context.isInteractive()) {
-                        context.getOutput().printf("Using a positional back-reference for '%s'%n", pg.getName());
-                    }
-                    return pg.getId();
+                    return new ResolvedReference(option, position, pg.getName(), pg.getId());
                 } else {
                     return null;
                 }

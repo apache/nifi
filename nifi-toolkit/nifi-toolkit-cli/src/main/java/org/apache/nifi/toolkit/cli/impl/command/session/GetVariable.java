@@ -50,9 +50,9 @@ public class GetVariable extends AbstractCommand<StringResult> {
         try {
             final String value = session.get(args[0]);
             if (value == null) {
-                return new StringResult("");
+                return new StringResult("", getContext().isInteractive());
             } else {
-                return new StringResult(value);
+                return new StringResult(value, getContext().isInteractive());
             }
         } catch (SessionException se) {
             throw new CommandException(se.getMessage(), se);

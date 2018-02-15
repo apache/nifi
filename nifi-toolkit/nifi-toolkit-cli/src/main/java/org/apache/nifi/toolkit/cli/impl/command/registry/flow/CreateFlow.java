@@ -64,6 +64,6 @@ public class CreateFlow extends AbstractNiFiRegistryCommand<StringResult> {
 
         final FlowClient flowClient = client.getFlowClient();
         final VersionedFlow createdFlow = flowClient.create(flow);
-        return new StringResult(createdFlow.getIdentifier());
+        return new StringResult(createdFlow.getIdentifier(), getContext().isInteractive());
     }
 }

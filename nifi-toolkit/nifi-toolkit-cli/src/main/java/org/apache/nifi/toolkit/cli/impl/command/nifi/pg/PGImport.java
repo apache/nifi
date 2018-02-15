@@ -119,7 +119,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
 
         final ProcessGroupClient pgClient = client.getProcessGroupClient();
         final ProcessGroupEntity createdEntity = pgClient.createProcessGroup(parentPgId, pgEntity);
-        return new StringResult(createdEntity.getId());
+        return new StringResult(createdEntity.getId(), getContext().isInteractive());
     }
 
 }

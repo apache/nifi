@@ -22,20 +22,20 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.Validate;
-import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.Referenceable;
+import org.apache.nifi.toolkit.cli.api.ResolvedReference;
 import org.apache.nifi.toolkit.cli.api.Result;
 import org.apache.nifi.toolkit.cli.api.WritableResult;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 
-import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -117,82 +117,101 @@ public class CommandProcessor {
             return;
         }
 
+        final List<ResolvedReference> resolvedReferences = new ArrayList<>();
+
         for (int i=0; i < args.length; i++) {
             final String arg = args[i];
             if (arg == null || !arg.startsWith(BACK_REF_INDICATOR)) {
                 continue;
             }
 
-            if (context.isInteractive()) {
-                context.getOutput().println();
-            }
-
             try {
+                // attempt to determine which option is using the back-ref
+                CommandOption option = null;
+                if (i > 0) {
+                    String prevArg = args[i - 1];
+                    if (prevArg.startsWith("--")) {
+                        prevArg = prevArg.substring(2);
+                    } else if (prevArg.startsWith("-")) {
+                        prevArg = prevArg.substring(1);
+                    }
+
+                    for (CommandOption opt : CommandOption.values()) {
+                        if (opt.getShortName().equals(prevArg) || opt.getLongName().equals(prevArg)) {
+                            option = opt;
+                            break;
+                        }
+                    }
+                }
+
+                // use the option and position to resolve the back-ref, and if it resolves then replace the arg
                 final Integer pos = Integer.valueOf(arg.substring(1));
-                final String resolvedReference = referenceResolver.resolve(pos);
+                final ResolvedReference resolvedReference = referenceResolver.resolve(option, pos);
                 if (resolvedReference != null) {
-                    args[i] = resolvedReference;
+                    args[i] = resolvedReference.getResolvedValue();
+                    resolvedReferences.add(resolvedReference);
                 }
             } catch (Exception e) {
                 // skip
             }
         }
+
+        if (context.isInteractive()) {
+            for (ResolvedReference resolvedRef : resolvedReferences) {
+                out.println();
+                out.printf("Using a positional back-reference for '%s'%n", resolvedRef.getDisplayName());
+            }
+        }
     }
 
-    public void process(String[] args) {
+    public int process(String[] args) {
         if (args == null || args.length == 0) {
             printBasicUsage(null);
-            return;
+            return -1;
         }
 
         if (CommandOption.HELP.getLongName().equalsIgnoreCase(args[0])) {
             if (args.length == 2 && "-v".equalsIgnoreCase(args[1])) {
                 printBasicUsage(null, true);
-                return;
+                return 0;
             } else {
                 printBasicUsage(null);
-                return;
+                return 0;
             }
         }
 
         final String commandStr = args[0];
         if (topLevelCommands.containsKey(commandStr)) {
-            processTopLevelCommand(commandStr, args);
+            return processTopLevelCommand(commandStr, args);
         } else if (commandGroups.containsKey(commandStr)) {
-            processGroupCommand(commandStr, args);
+            return processGroupCommand(commandStr, args);
         } else {
             printBasicUsage("Unknown command '" + commandStr + "'");
-            return;
+            return -1;
         }
     }
 
-    private void processTopLevelCommand(final String commandStr, final String[] args) {
+    private int processTopLevelCommand(final String commandStr, final String[] args) {
         final Command command = topLevelCommands.get(commandStr);
 
         if (command == null) {
             printBasicUsage("Unknown command '" + commandStr + "'");
-            return;
+            return -1;
         }
 
         try {
             final String[] otherArgs = Arrays.copyOfRange(args, 1, args.length, String[].class);
-            final CommandLine commandLine = parseCli(command, otherArgs);
-            if (commandLine == null) {
-                out.println("Unable to parse command line");
-                return;
-            }
-
-            processCommand(otherArgs, commandLine, command);
-
+            return processCommand(otherArgs, command);
         } catch (Exception e) {
             command.printUsage(e.getMessage());
+            return -1;
         }
     }
 
-    private void processGroupCommand(final String commandGroupStr, final String[] args) {
+    private int processGroupCommand(final String commandGroupStr, final String[] args) {
         if (args.length <= 1) {
             printBasicUsage("No command provided to " + commandGroupStr);
-            return;
+            return -1;
         }
 
         final String commandStr = args[1];
@@ -205,25 +224,26 @@ public class CommandProcessor {
 
         if (command == null) {
             printBasicUsage("Unknown command '" + commandGroupStr + " " + commandStr + "'");
-            return;
+            return -1;
         }
 
         try {
             final String[] otherArgs = Arrays.copyOfRange(args, 2, args.length, String[].class);
-            final CommandLine commandLine = parseCli(command, otherArgs);
-            if (commandLine == null) {
-                out.println("Unable to parse command line");
-                return;
-            }
-
-            processCommand(otherArgs, commandLine, command);
-
+            return processCommand(otherArgs, command);
         } catch (Exception e) {
             command.printUsage(e.getMessage());
+            return -1;
         }
     }
 
-    private void processCommand(final String[] args, final CommandLine commandLine, final Command command) {
+    // visible for testing
+    int processCommand(final String[] args, final Command command) throws ParseException {
+        final CommandLine commandLine = parseCli(command, args);
+        if (commandLine == null) {
+            out.println("Unable to parse command line");
+            return -1;
+        }
+
         try {
             if (args.length == 1 && CommandOption.HELP.getLongName().equalsIgnoreCase(args[0])) {
                 command.printUsage(null);
@@ -247,6 +267,9 @@ public class CommandProcessor {
                     }
                 }
             }
+
+            return 0;
+
         } catch (Exception e) {
             // CommandExceptions will wrap things like NiFiClientException, NiFiRegistryException, and IOException,
             // so for those we don't need to print the usage every time
@@ -263,8 +286,9 @@ public class CommandProcessor {
                 e.printStackTrace(out);
                 out.println();
             }
+
+            return -1;
         }
     }
-
 
 }

@@ -25,7 +25,7 @@ import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.cli.impl.result.OkResult;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,10 +34,10 @@ import java.util.Properties;
 /**
  * Deletes a bucket from the given registry.
  */
-public class DeleteBucket extends AbstractNiFiRegistryCommand<VoidResult> {
+public class DeleteBucket extends AbstractNiFiRegistryCommand<OkResult> {
 
     public DeleteBucket() {
-        super("delete-bucket", VoidResult.class);
+        super("delete-bucket", OkResult.class);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class DeleteBucket extends AbstractNiFiRegistryCommand<VoidResult> {
     }
 
     @Override
-    public VoidResult doExecute(final NiFiRegistryClient client, final Properties properties)
+    public OkResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
 
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
@@ -66,7 +66,7 @@ public class DeleteBucket extends AbstractNiFiRegistryCommand<VoidResult> {
         } else {
             final BucketClient bucketClient = client.getBucketClient();
             bucketClient.delete(bucketId);
-            return VoidResult.getInstance();
+            return new OkResult(getContext().isInteractive());
         }
     }
 }

@@ -14,27 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.cli.api;
-
-import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
+package org.apache.nifi.toolkit.cli.impl.result;
 
 /**
- * An object that is capable of resolving a positional reference to some value that corresponds with the reference.
+ * Result for commands that want to print 'OK' for a successful command.
  */
-public interface ReferenceResolver {
+public class OkResult extends StringResult {
 
-    /**
-     * Resolves the passed in positional reference to it's corresponding value.
-     *
-     * @param option the option that the reference is being resolved for, implementers should protect against a possible null option
-     * @param position a position in this back reference
-     * @return the resolved value for the given position
-     */
-    ResolvedReference resolve(CommandOption option, Integer position);
+    public static final String OK_VALUE = "OK";
 
-    /**
-     * @return true if the there are no references to resolve, false otherwise
-     */
-    boolean isEmpty();
+    public OkResult(final boolean isInteractive) {
+        super(OK_VALUE, isInteractive);
+    }
 
 }
