@@ -26,10 +26,12 @@ import javax.jms.Destination;
 import javax.jms.Message;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -73,6 +75,7 @@ import org.springframework.jms.support.JmsHeaders;
         @ReadsAttribute(attribute = "other attributes", description = "All other attributes that do not start with " + JmsHeaders.PREFIX + " are added as message properties.")
 })
 @SeeAlso(value = { ConsumeJMS.class, JMSConnectionFactoryProvider.class })
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

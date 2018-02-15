@@ -18,8 +18,10 @@ package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -64,6 +66,7 @@ import java.util.Set;
         + "and/or secure transport (SSL/TLS), and the X-Pack plugin is available, secure connections can be made. This processor "
         + "supports Elasticsearch 5.x clusters.")
 @SeeAlso({FetchElasticsearch5.class,PutElasticsearch5.class})
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProcessor {
 
     private static final Validator NON_EMPTY_EL_VALIDATOR = (subject, value, context) -> {

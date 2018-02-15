@@ -27,8 +27,10 @@ import okhttp3.ResponseBody;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -72,6 +74,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
         value = "The value to set it to",
         supportsExpressionLanguage = true,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
