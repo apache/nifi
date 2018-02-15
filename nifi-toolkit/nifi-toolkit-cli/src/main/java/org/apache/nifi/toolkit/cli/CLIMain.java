@@ -67,9 +67,15 @@ public class CLIMain {
         if (args == null || args.length == 0) {
             runInteractiveCLI();
         } else {
-            runSingleCommand(args);
-            System.out.println();
-            System.out.flush();
+            // in standalone mode we want to make sure the process exits with the correct status
+            try {
+                final int returnCode = runSingleCommand(args);
+                System.exit(returnCode);
+            } catch (Exception e) {
+                // shouldn't really get here, but just in case
+                e.printStackTrace();
+                System.exit(-1);
+            }
         }
     }
 
@@ -130,13 +136,13 @@ public class CLIMain {
      *
      * @param args the args passed in from the command line
      */
-    private static void runSingleCommand(final String[] args) {
+    private static int runSingleCommand(final String[] args) {
         final Context context = createContext(System.out, false);
         final Map<String,Command> topLevelCommands = CommandFactory.createTopLevelCommands(context);
         final Map<String,CommandGroup> commandGroups = CommandFactory.createCommandGroups(context);
 
         final CommandProcessor commandProcessor = new CommandProcessor(topLevelCommands, commandGroups, context);
-        commandProcessor.process(args);
+        return commandProcessor.process(args);
     }
 
     private static Context createContext(final PrintStream output, final boolean isInteractive) {

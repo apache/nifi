@@ -21,7 +21,9 @@ import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.Referenceable;
+import org.apache.nifi.toolkit.cli.api.ResolvedReference;
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
 import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
 import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
@@ -84,13 +86,10 @@ public class BucketsResult extends AbstractWritableResult<List<Bucket>> implemen
 
         return new ReferenceResolver() {
             @Override
-            public String resolve(final Integer position) {
+            public ResolvedReference resolve(final CommandOption option, final Integer position) {
                 final Bucket bucket = backRefs.get(position);
                 if (bucket != null) {
-                    if (context.isInteractive()) {
-                        context.getOutput().printf("Using a positional back-reference for '%s'%n", bucket.getName());
-                    }
-                    return bucket.getIdentifier();
+                    return new ResolvedReference(option, position, bucket.getName(), bucket.getIdentifier());
                 } else {
                     return null;
                 }

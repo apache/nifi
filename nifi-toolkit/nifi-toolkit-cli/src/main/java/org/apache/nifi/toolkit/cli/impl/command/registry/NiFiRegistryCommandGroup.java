@@ -27,6 +27,8 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ExportFlowVersion;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ImportFlowVersion;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ListFlowVersions;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ListFlows;
+import org.apache.nifi.toolkit.cli.impl.command.registry.flow.SyncFlowVersions;
+import org.apache.nifi.toolkit.cli.impl.command.registry.flow.TransferFlowVersion;
 import org.apache.nifi.toolkit.cli.impl.command.registry.user.CurrentUser;
 
 import java.util.ArrayList;
@@ -56,6 +58,8 @@ public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
         commandList.add(new ListFlowVersions());
         commandList.add(new ExportFlowVersion());
         commandList.add(new ImportFlowVersion());
+        commandList.add(new SyncFlowVersions());
+        commandList.add(new TransferFlowVersion());
         return new ArrayList<>(commandList);
     }
 }

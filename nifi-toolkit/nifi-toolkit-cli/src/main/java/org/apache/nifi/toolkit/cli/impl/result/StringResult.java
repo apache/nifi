@@ -27,9 +27,11 @@ import java.io.PrintStream;
 public class StringResult implements WritableResult<String> {
 
     private final String value;
+    private final boolean isInteractive;
 
-    public StringResult(final String value) {
+    public StringResult(final String value, final boolean isInteractive) {
         this.value = value;
+        this.isInteractive = isInteractive;
         Validate.notNull(this.value);
     }
 
@@ -40,6 +42,12 @@ public class StringResult implements WritableResult<String> {
 
     @Override
     public void write(final PrintStream output) {
+        if (isInteractive) {
+            output.println();
+        }
         output.println(value);
+        if (isInteractive) {
+            output.println();
+        }
     }
 }
