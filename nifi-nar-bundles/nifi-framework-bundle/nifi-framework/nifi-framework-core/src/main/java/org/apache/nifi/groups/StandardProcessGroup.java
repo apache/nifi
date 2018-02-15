@@ -4080,8 +4080,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Map<String, String> properties = populatePropertiesMap(processor.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
         processor.setProperties(properties, true);
         processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
-        processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
         processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
+        processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
         processor.setStyle(proposed.getStyle());
         processor.setYieldPeriod(proposed.getYieldDuration());
         processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
