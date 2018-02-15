@@ -30,10 +30,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -80,7 +82,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
                 description = "The number of split FlowFiles generated from the parent FlowFile"),
         @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
 })
-
+@HighResourceUsageScenario(resource = SystemResource.MEMORY)
 public class SplitJson extends AbstractJsonPathProcessor {
 
     public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()

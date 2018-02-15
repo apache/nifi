@@ -55,11 +55,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -131,6 +133,7 @@ import org.apache.nifi.util.FlowFilePackagerV3;
     @WritesAttribute(attribute = "merge.bin.age", description = "The age of the bin, in milliseconds, when it was merged and output. Effectively "
         + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output") })
 @SeeAlso({SegmentContent.class, MergeRecord.class})
+@HighResourceUsageScenario(resource = SystemResource.MEMORY)
 public class MergeContent extends BinFiles {
 
     // preferred attributes
