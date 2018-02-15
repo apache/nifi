@@ -1062,6 +1062,9 @@
 
                                     // update URL deep linking params
                                     nfCanvasUtils.setURLParameters();
+
+                                    // inform Angular app values have changed
+                                    nfNgBridge.digest();
                                 }
                             }
 
