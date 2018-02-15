@@ -21,7 +21,9 @@ import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.Referenceable;
+import org.apache.nifi.toolkit.cli.api.ResolvedReference;
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
 import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
 import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
@@ -84,13 +86,14 @@ public class VersionedFlowsResult extends AbstractWritableResult<List<VersionedF
 
         return new ReferenceResolver() {
             @Override
-            public String resolve(final Integer position) {
+            public ResolvedReference resolve(final CommandOption option, final Integer position) {
                 final VersionedFlow versionedFlow = backRefs.get(position);
                 if (versionedFlow != null) {
-                    if (context.isInteractive()) {
-                        context.getOutput().printf("Using a positional backreference for '%s'%n", versionedFlow.getName());
+                    if (option != null && option == CommandOption.BUCKET_ID) {
+                        return new ResolvedReference(option, position, versionedFlow.getBucketName(), versionedFlow.getBucketIdentifier());
+                    } else {
+                        return new ResolvedReference(option, position, versionedFlow.getName(), versionedFlow.getIdentifier());
                     }
-                    return versionedFlow.getIdentifier();
                 } else {
                     return null;
                 }

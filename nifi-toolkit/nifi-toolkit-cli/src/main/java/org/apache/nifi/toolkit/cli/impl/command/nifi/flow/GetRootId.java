@@ -43,7 +43,7 @@ public class GetRootId extends AbstractNiFiCommand<StringResult> {
     public StringResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();
-        return new StringResult(flowClient.getRootGroupId());
+        return new StringResult(flowClient.getRootGroupId(), getContext().isInteractive());
     }
 
 }

@@ -124,7 +124,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
 
         final PrintWriter printWriter = new PrintWriter(output);
 
-        final int width = 160;
+        final int width = 80;
         final HelpFormatter hf = new HelpFormatter();
         hf.setWidth(width);
 
@@ -174,7 +174,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
     protected String getRequiredArg(final Properties properties, final CommandOption option) throws MissingOptionException {
         final String argValue = properties.getProperty(option.getLongName());
         if (StringUtils.isBlank(argValue)) {
-            throw new MissingOptionException("Missing required option '" + option.getLongName() + "'");
+            throw new MissingOptionException("Missing required option --" + option.getLongName());
         }
         return argValue;
     }
@@ -195,7 +195,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
     protected Integer getRequiredIntArg(final Properties properties, final CommandOption option) throws MissingOptionException {
         final String argValue = properties.getProperty(option.getLongName());
         if (StringUtils.isBlank(argValue)) {
-            throw new MissingOptionException("Missing required option '" + option.getLongName() + "'");
+            throw new MissingOptionException("Missing required option --" + option.getLongName());
         }
 
         try {

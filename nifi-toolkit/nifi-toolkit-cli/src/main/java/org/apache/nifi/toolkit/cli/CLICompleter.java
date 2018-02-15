@@ -47,11 +47,11 @@ public class CLICompleter implements Completer {
     private static final Set<String> FILE_COMPLETION_ARGS;
     static {
         final Set<String> args = new HashSet<>();
-        args.add("-" + CommandOption.PROPERTIES.getShortName());
-        args.add("-" + CommandOption.INPUT_SOURCE.getShortName());
-        args.add("-" + CommandOption.OUTPUT_FILE.getShortName());
-        args.add("-" + CommandOption.NIFI_REG_PROPS.getShortName());
-        args.add("-" + CommandOption.NIFI_PROPS.getShortName());
+        for (final CommandOption option : CommandOption.values()) {
+            if (option.isFile()) {
+                args.add("-" + option.getShortName());
+            }
+        }
         FILE_COMPLETION_ARGS = Collections.unmodifiableSet(args);
     }
 

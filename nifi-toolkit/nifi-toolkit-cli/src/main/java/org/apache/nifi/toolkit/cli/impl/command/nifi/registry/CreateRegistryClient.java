@@ -68,6 +68,6 @@ public class CreateRegistryClient extends AbstractNiFiCommand<StringResult> {
         clientEntity.setRevision(getInitialRevisionDTO());
 
         final RegistryClientEntity createdEntity = client.getControllerClient().createRegistryClient(clientEntity);
-        return new StringResult(createdEntity.getId());
+        return new StringResult(createdEntity.getId(), getContext().isInteractive());
     }
 }
