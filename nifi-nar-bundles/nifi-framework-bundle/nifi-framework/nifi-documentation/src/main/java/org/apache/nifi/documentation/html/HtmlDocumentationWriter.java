@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.html;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -148,6 +149,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeStatefulInfo(configurableComponent, xmlStreamWriter);
         writeRestrictedInfo(configurableComponent, xmlStreamWriter);
         writeInputRequirementInfo(configurableComponent, xmlStreamWriter);
+        writeHighResourceUsageScenarioInfo(configurableComponent, xmlStreamWriter);
         writeSeeAlso(configurableComponent, xmlStreamWriter);
         xmlStreamWriter.writeEndElement();
     }
@@ -725,6 +727,41 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeAttribute("href", location);
         xmlStreamWriter.writeCharacters(text);
         xmlStreamWriter.writeEndElement();
+    }
+
+    /**
+     * Writes all the scenarios in which this component says it can cause high resource usage
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the xml stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the XML
+     */
+    private void writeHighResourceUsageScenarioInfo(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+
+        HighResourceUsageScenario[] highResourceUsageScenarios = configurableComponent.getClass().getAnnotationsByType(HighResourceUsageScenario.class);
+
+        writeSimpleElement(xmlStreamWriter, "h3", "High Resource Usage Scenarios:");
+        if (highResourceUsageScenarios.length > 0) {
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "high-resource-usage-scenarios");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Resource");
+            writeSimpleElement(xmlStreamWriter, "th", "Scenario");
+            xmlStreamWriter.writeEndElement();
+            for (HighResourceUsageScenario highResourceUsageScenario : highResourceUsageScenarios) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td", highResourceUsageScenario.resource().name());
+                // TODO allow for HTML characters here.
+                writeSimpleElement(xmlStreamWriter, "td", highResourceUsageScenario.scenario().trim().isEmpty()
+                        ? "Not Specified" : highResourceUsageScenario.scenario());
+                xmlStreamWriter.writeEndElement();
+            }
+            xmlStreamWriter.writeEndElement();
+
+        } else {
+            xmlStreamWriter.writeCharacters("None specified.");
+        }
     }
 
     /**
