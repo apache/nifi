@@ -24,9 +24,9 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.ProcessGroupsResult;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 
 import java.io.IOException;
@@ -70,9 +70,9 @@ public class PGList extends AbstractNiFiCommand<ProcessGroupsResult> {
         final ProcessGroupFlowDTO processGroupFlowDTO = processGroupFlowEntity.getProcessGroupFlow();
         final FlowDTO flowDTO = processGroupFlowDTO.getFlow();
 
-        final List<ProcessGroupEntity> processGroups = new ArrayList<>();
+        final List<ProcessGroupDTO> processGroups = new ArrayList<>();
         if (flowDTO.getProcessGroups() != null) {
-            flowDTO.getProcessGroups().stream().forEach(pg -> processGroups.add(pg));
+            flowDTO.getProcessGroups().stream().map(pge -> pge.getComponent()).forEach(dto -> processGroups.add(dto));
         }
 
         return new ProcessGroupsResult(getResultType(properties), processGroups);

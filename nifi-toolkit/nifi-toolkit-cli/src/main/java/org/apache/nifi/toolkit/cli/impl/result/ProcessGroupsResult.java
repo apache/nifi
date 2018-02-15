@@ -17,41 +17,95 @@
 package org.apache.nifi.toolkit.cli.impl.result;
 
 import org.apache.commons.lang3.Validate;
+import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
+import org.apache.nifi.toolkit.cli.api.Referenceable;
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
+import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
+import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import java.io.PrintStream;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Result for a list of ProcessGroupEntities.
  */
-public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGroupEntity>> {
+public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGroupDTO>> implements Referenceable {
 
-    private final List<ProcessGroupEntity> processGroupEntities;
+    private final List<ProcessGroupDTO> processGroups;
 
-    public ProcessGroupsResult(final ResultType resultType, final List<ProcessGroupEntity> processGroupEntities) {
+    public ProcessGroupsResult(final ResultType resultType, final List<ProcessGroupDTO> processGroups) {
         super(resultType);
-        this.processGroupEntities = processGroupEntities;
-        Validate.notNull(this.processGroupEntities);
+        this.processGroups = processGroups;
+        Validate.notNull(this.processGroups);
+        this.processGroups.sort(Comparator.comparing(ProcessGroupDTO::getName));
     }
 
     @Override
-    public List<ProcessGroupEntity> getResult() {
-        return processGroupEntities;
+    public List<ProcessGroupDTO> getResult() {
+        return processGroups;
     }
 
     @Override
     protected void writeSimpleResult(final PrintStream output) {
-        final List<ProcessGroupDTO> dtos = processGroupEntities.stream()
-                .map(e -> e.getComponent()).collect(Collectors.toList());
 
-        Collections.sort(dtos, Comparator.comparing(ProcessGroupDTO::getName));
+        final Table table = new Table.Builder()
+                .column("#", 3, 3, false)
+                .column("Name", 20, 36, true)
+                .column("Id", 36, 36, false)
+                .column("Running", 7, 7, false)
+                .column("Stopped", 7, 7, false)
+                .column("Disabled", 7, 7, false)
+                .column("Invalid", 7, 7, false)
+                .build();
 
-        dtos.stream().forEach(dto -> output.println(dto.getName() + " - " + dto.getId()));
+        for (int i=0; i < processGroups.size(); i++) {
+            final ProcessGroupDTO dto = processGroups.get(i);
+            table.addRow(
+                    String.valueOf(i+1),
+                    dto.getName(),
+                    dto.getId(),
+                    String.valueOf(dto.getRunningCount()),
+                    String.valueOf(dto.getStoppedCount()),
+                    String.valueOf(dto.getDisabledCount()),
+                    String.valueOf(dto.getInvalidCount())
+            );
+        }
+
+        final TableWriter tableWriter = new DynamicTableWriter();
+        tableWriter.write(table, output);
+    }
+
+    @Override
+    public ReferenceResolver createReferenceResolver(final Context context) {
+        final Map<Integer,ProcessGroupDTO> backRefs = new HashMap<>();
+        final AtomicInteger position = new AtomicInteger(0);
+        processGroups.forEach(p -> backRefs.put(position.incrementAndGet(), p));
+
+        return new ReferenceResolver() {
+            @Override
+            public String resolve(final Integer position) {
+                final ProcessGroupDTO pg = backRefs.get(position);
+                if (pg != null) {
+                    if (context.isInteractive()) {
+                        context.getOutput().printf("Using a positional back-reference for '%s'%n", pg.getName());
+                    }
+                    return pg.getId();
+                } else {
+                    return null;
+                }
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return backRefs.isEmpty();
+            }
+        };
     }
 }
