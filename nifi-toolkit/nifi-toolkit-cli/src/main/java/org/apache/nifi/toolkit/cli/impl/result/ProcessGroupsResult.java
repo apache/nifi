@@ -61,7 +61,7 @@ public class ProcessGroupsResult extends AbstractWritableResult<List<ProcessGrou
                 .column("Id", 36, 36, false)
                 .column("Running", 7, 7, false)
                 .column("Stopped", 7, 7, false)
-                .column("Disabled", 7, 7, false)
+                .column("Disabled", 8, 8, false)
                 .column("Invalid", 7, 7, false)
                 .build();
 
