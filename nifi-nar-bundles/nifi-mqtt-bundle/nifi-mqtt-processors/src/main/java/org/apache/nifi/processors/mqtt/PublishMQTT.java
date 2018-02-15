@@ -17,7 +17,9 @@
 
 package org.apache.nifi.processors.mqtt;
 
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
@@ -58,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 @Tags({"publish", "MQTT", "IOT"})
 @CapabilityDescription("Publishes a message to an MQTT topic")
 @SeeAlso({ConsumeMQTT.class})
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PublishMQTT extends AbstractMQTTProcessor {
 
     public static final PropertyDescriptor PROP_TOPIC = new PropertyDescriptor.Builder()

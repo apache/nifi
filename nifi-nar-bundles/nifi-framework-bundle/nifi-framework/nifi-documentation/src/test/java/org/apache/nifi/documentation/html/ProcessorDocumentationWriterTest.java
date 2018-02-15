@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.documentation.html;
 
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.DeprecatedProcessor;
@@ -83,6 +85,14 @@ public class ProcessorDocumentationWriterTest {
 
         // input requirement
         assertContains(results, "This component does not allow an incoming relationship.");
+
+        // verify system resource considerations
+        assertContains(results, SystemResource.CPU.name());
+        assertContains(results, SystemResourceConsideration.DEFAULT_DESCRIPTION);
+        assertContains(results, SystemResource.DISK.name());
+        assertContains(results, "Customized disk usage description");
+        assertContains(results, SystemResource.MEMORY.name());
+        assertContains(results, "Not Specified");
 
         // verify the right OnRemoved and OnShutdown methods were called
         Assert.assertEquals(0, processor.getOnRemovedArgs());

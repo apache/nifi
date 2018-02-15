@@ -18,10 +18,12 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -74,6 +76,7 @@ import java.util.regex.Pattern;
 @Tags({"Text", "Regular Expression", "Update", "Change", "Replace", "Modify", "Regex"})
 @CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression (regex) against it and replacing the section of "
     + "the content that matches the Regular Expression with some alternate value.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class ReplaceText extends AbstractProcessor {
 
     private static Pattern REPLACEMENT_NORMALIZATION_PATTERN = Pattern.compile("(\\$\\D)");

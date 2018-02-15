@@ -38,7 +38,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -72,6 +74,7 @@ import org.apache.nifi.websocket.WebSocketService;
         @WritesAttribute(attribute = ATTR_WS_REMOTE_ADDRESS, description = "WebSocket client address."),
         @WritesAttribute(attribute = ATTR_WS_FAILURE_DETAIL, description = "Detail of the failure."),
 })
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutWebSocket extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_WS_SESSION_ID = new PropertyDescriptor.Builder()
