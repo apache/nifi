@@ -160,13 +160,9 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         final ResultType resultType;
         if (properties.containsKey(CommandOption.OUTPUT_TYPE.getLongName())) {
             final String outputTypeValue = properties.getProperty(CommandOption.OUTPUT_TYPE.getLongName());
-            resultType = ResultType.valueOf(outputTypeValue.toUpperCase());
+            resultType = ResultType.valueOf(outputTypeValue.toUpperCase().trim());
         } else {
-            if (getContext().isInteractive()) {
-                resultType = ResultType.SIMPLE;
-            } else {
-                resultType = ResultType.JSON;
-            }
+            resultType = ResultType.SIMPLE;
         }
         return resultType;
     }

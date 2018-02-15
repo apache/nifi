@@ -22,14 +22,18 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.Validate;
+import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.toolkit.cli.api.Command;
+import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.Referenceable;
 import org.apache.nifi.toolkit.cli.api.Result;
 import org.apache.nifi.toolkit.cli.api.WritableResult;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Map;
@@ -163,9 +167,14 @@ public class CommandProcessor {
     }
 
     private void processTopLevelCommand(final String commandStr, final String[] args) {
-        try {
-            final Command command = topLevelCommands.get(commandStr);
+        final Command command = topLevelCommands.get(commandStr);
 
+        if (command == null) {
+            printBasicUsage("Unknown command '" + commandStr + "'");
+            return;
+        }
+
+        try {
             final String[] otherArgs = Arrays.copyOfRange(args, 1, args.length, String[].class);
             final CommandLine commandLine = parseCli(command, otherArgs);
             if (commandLine == null) {
@@ -176,9 +185,7 @@ public class CommandProcessor {
             processCommand(otherArgs, commandLine, command);
 
         } catch (Exception e) {
-            out.println();
-            e.printStackTrace(out);
-            out.println();
+            command.printUsage(e.getMessage());
         }
     }
 
@@ -212,9 +219,7 @@ public class CommandProcessor {
             processCommand(otherArgs, commandLine, command);
 
         } catch (Exception e) {
-            out.println();
-            e.printStackTrace(out);
-            out.println();
+            command.printUsage(e.getMessage());
         }
     }
 
@@ -243,7 +248,16 @@ public class CommandProcessor {
                 }
             }
         } catch (Exception e) {
-            command.printUsage(e.getMessage());
+            // CommandExceptions will wrap things like NiFiClientException, NiFiRegistryException, and IOException,
+            // so for those we don't need to print the usage every time
+            if (e instanceof CommandException) {
+                out.println();
+                out.println("ERROR: " + e.getMessage());
+                out.println();
+            } else {
+                command.printUsage(e.getMessage());
+            }
+
             if (commandLine.hasOption(CommandOption.VERBOSE.getLongName())) {
                 out.println();
                 e.printStackTrace(out);

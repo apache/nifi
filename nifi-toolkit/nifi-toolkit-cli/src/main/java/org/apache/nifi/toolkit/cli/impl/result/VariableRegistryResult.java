@@ -18,6 +18,9 @@ package org.apache.nifi.toolkit.cli.impl.result;
 
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.toolkit.cli.api.ResultType;
+import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
+import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
+import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import org.apache.nifi.web.api.dto.VariableDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
@@ -53,8 +56,23 @@ public class VariableRegistryResult extends AbstractWritableResult<VariableRegis
             return;
         }
 
-        final List<VariableDTO> variables = variableRegistryDTO.getVariables().stream().map(v -> v.getVariable()).collect(Collectors.toList());
+        final List<VariableDTO> variables = variableRegistryDTO.getVariables().stream()
+                .map(v -> v.getVariable()).collect(Collectors.toList());
         Collections.sort(variables, Comparator.comparing(VariableDTO::getName));
-        variables.stream().forEach(v -> output.println(v.getName() + " - " + v.getValue()));
+
+        final Table table = new Table.Builder()
+                .column("#", 3, 3, false)
+                .column("Name", 5, 40, false)
+                .column("Value", 5, 40, false)
+                .build();
+
+        for (int i=0; i < variables.size(); i++) {
+            final VariableDTO var = variables.get(i);
+            table.addRow(String.valueOf(i+1), var.getName(), var.getValue());
+        }
+
+        final TableWriter tableWriter = new DynamicTableWriter();
+        tableWriter.write(table, output);
     }
+
 }
