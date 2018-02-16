@@ -356,6 +356,17 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     @Override
+    public void delete(String tableName, List<byte[]> rowIds) throws IOException {
+        List<Delete> deletes = new ArrayList<>();
+        for (int index = 0; index < rowIds.size(); index++) {
+            deletes.add(new Delete(rowIds.get(index)));
+        }
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            table.delete(deletes);
+        }
+    }
+
+    @Override
     public void scan(final String tableName, final Collection<Column> columns, final String filterExpression, final long minTime, final ResultHandler handler)
             throws IOException {
 

@@ -79,6 +79,14 @@ public class TestExecuteSQL {
         + " from persons PER, products PRD, relationships REL"
         + " where PER.ID = 10";
 
+    final static String QUERY_WITHOUT_EL_WITH_PARAMS = "select "
+            + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
+            + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
+            + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
+            + ", ROW_NUMBER() OVER () as rownr "
+            + " from persons PER, products PRD, relationships REL"
+            + " where PER.ID < ? AND REL.ID < ?";
+
 
     @BeforeClass
     public static void setupClass() {
@@ -124,23 +132,35 @@ public class TestExecuteSQL {
     @Test
     public void testNoIncomingConnection() throws ClassNotFoundException, SQLException, InitializationException, IOException {
         runner.setIncomingConnection(false);
-        invokeOnTrigger(null, QUERY_WITHOUT_EL, false, true);
+        invokeOnTrigger(null, QUERY_WITHOUT_EL, false, null, true);
     }
 
     @Test
     public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        invokeOnTrigger(null, QUERY_WITH_EL, true, true);
+        invokeOnTrigger(null, QUERY_WITH_EL, true, null, true);
     }
 
     @Test
     public void testSelectQueryInFlowFile() throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        invokeOnTrigger(null, QUERY_WITHOUT_EL, true, false);
+        invokeOnTrigger(null, QUERY_WITHOUT_EL, true, null, false);
+    }
+
+    @Test
+    public void testSelectQueryInFlowFileWithParameters() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        Map<String, String> sqlParams = new HashMap<String, String>() {{
+            put("sql.args.1.type", "4");
+            put("sql.args.1.value", "20");
+            put("sql.args.2.type", "4");
+            put("sql.args.2.value", "5");
+        }};
+
+        invokeOnTrigger(null, QUERY_WITHOUT_EL_WITH_PARAMS, true, sqlParams, false);
     }
 
     @Test
     public void testQueryTimeout() throws InitializationException, ClassNotFoundException, SQLException, IOException {
         // Does to seem to have any effect when using embedded Derby
-        invokeOnTrigger(1, QUERY_WITH_EL, true, true); // 1 second max time
+        invokeOnTrigger(1, QUERY_WITH_EL, true, null, true); // 1 second max time
     }
 
     @Test
@@ -172,7 +192,7 @@ public class TestExecuteSQL {
     }
 
     @Test
-    public void testWithduplicateColumns() throws SQLException {
+    public void testWithDuplicateColumns() throws SQLException {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
@@ -228,7 +248,7 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 0);
     }
 
-    public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final boolean setQueryProperty)
+    public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String,String> attrs, final boolean setQueryProperty)
         throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         if (queryTimeout != null) {
@@ -250,7 +270,7 @@ public class TestExecuteSQL {
 
         if (incomingFlowFile) {
             // incoming FlowFile content is not used, but attributes are used
-            final Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = (attrs == null) ? new HashMap<>() : attrs;
             attributes.put("person.id", "10");
             if (!setQueryProperty) {
                 runner.enqueue(query.getBytes(), attributes);

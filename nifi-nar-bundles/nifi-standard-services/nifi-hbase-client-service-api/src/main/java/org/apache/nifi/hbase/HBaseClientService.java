@@ -29,6 +29,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 @Tags({"hbase", "client"})
 @CapabilityDescription("A controller service for accessing an HBase client.")
@@ -115,6 +116,15 @@ public interface HBaseClientService extends ControllerService {
      * @throws IOException thrown when there are communication errors with HBase
      */
     void delete(String tableName, byte[] rowId) throws IOException;
+
+    /**
+     * Deletes a list of rows in HBase. All cells are deleted.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowIds a list of rowIds to send in a batch delete
+     */
+
+    void delete(String tableName, List<byte[]> rowIds) throws IOException;
 
     /**
      * Scans the given table using the optional filter criteria and passing each result to the provided handler.
