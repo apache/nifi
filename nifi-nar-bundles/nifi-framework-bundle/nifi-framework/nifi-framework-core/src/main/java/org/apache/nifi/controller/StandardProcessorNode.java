@@ -245,6 +245,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
+    public Class<?> getComponentClass() {
+        return getProcessor().getClass();
+    }
+
+    @Override
     public boolean isDeprecated() {
         return getProcessor().getClass().isAnnotationPresent(DeprecationNotice.class);
     }

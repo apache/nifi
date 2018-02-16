@@ -151,6 +151,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
+    public Class<?> getComponentClass() {
+        return getControllerServiceImplementation().getClass();
+    }
+
+    @Override
     public boolean isDeprecated() {
         return getControllerServiceImplementation().getClass().isAnnotationPresent(DeprecationNotice.class);
     }

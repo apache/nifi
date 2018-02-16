@@ -15,3 +15,4 @@
 org.apache.nifi.integration.util.SourceTestProcessor
 org.apache.nifi.integration.util.TerminationTestProcessor
 org.apache.nifi.integration.util.RestrictedProcessor
+org.apache.nifi.integration.util.ExecuteCodeRestrictedProcessor

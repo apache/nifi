@@ -89,7 +89,7 @@ div.policy-controls {
     float: left;
 }
 
-#policy-type-list {
+#policy-type-list, #restricted-component-required-permissions {
     float: left;
     width: 225px;
     margin-right: 3px;
@@ -275,7 +275,7 @@ div.remove-allowed-entity {
     admin policy message
 */
 
-#admin-policy-message {
+#admin-policy-message, #restriction-message {
     float: right;
     margin-top: 8px;
     color: #775351;
