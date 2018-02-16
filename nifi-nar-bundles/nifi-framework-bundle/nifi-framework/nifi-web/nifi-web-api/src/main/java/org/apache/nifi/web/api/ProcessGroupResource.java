@@ -159,7 +159,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1894,7 +1893,7 @@ public class ProcessGroupResource extends ApplicationResource {
                         authorizable = lookup.getConfigurableComponent(requestProcessor.getType(), requestProcessor.getBundle());
 
                         if (authorizable.isRestricted()) {
-                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                            authorizeRestrictions(authorizer, authorizable);
                         }
 
                         final ProcessorConfigDTO config = requestProcessor.getConfig();
@@ -3037,11 +3036,9 @@ public class ProcessGroupResource extends ApplicationResource {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
                     final SnippetAuthorizable snippet = authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId(), false);
 
-                    // flag to only perform the restricted check once, atomic reference so we can mark final and use in lambda
-                    final AtomicBoolean restrictedCheckPerformed = new AtomicBoolean(false);
                     final Consumer<ComponentAuthorizable> authorizeRestricted = authorizable -> {
-                        if (authorizable.isRestricted() && restrictedCheckPerformed.compareAndSet(false, true)) {
-                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                        if (authorizable.isRestricted()) {
+                            authorizeRestrictions(authorizer, authorizable);
                         }
                     };
 
@@ -3213,11 +3210,9 @@ public class ProcessGroupResource extends ApplicationResource {
                     // ensure read on the template
                     final TemplateContentsAuthorizable templateContents = lookup.getTemplateContents(requestInstantiateTemplateRequestEntity.getSnippet());
 
-                    // flag to only perform the restricted check once, atomic reference so we can mark final and use in lambda
-                    final AtomicBoolean restrictedCheckPerformed = new AtomicBoolean(false);
                     final Consumer<ComponentAuthorizable> authorizeRestricted = authorizable -> {
-                        if (authorizable.isRestricted() && restrictedCheckPerformed.compareAndSet(false, true)) {
-                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                        if (authorizable.isRestricted()) {
+                            authorizeRestrictions(authorizer, authorizable);
                         }
                     };
 
@@ -3595,7 +3590,7 @@ public class ProcessGroupResource extends ApplicationResource {
                         authorizable = lookup.getConfigurableComponent(requestControllerService.getType(), requestControllerService.getBundle());
 
                         if (authorizable.isRestricted()) {
-                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                            authorizeRestrictions(authorizer, authorizable);
                         }
 
                         if (requestControllerService.getProperties() != null) {

@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
@@ -263,4 +264,12 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getRestrictedComponents();
+
+    /**
+     * Get the authorizable for accessing restricted components with a specific required permission.
+     *
+     * @param requiredPermission required permission
+     * @return authorizable
+     */
+    Authorizable getRestrictedComponents(RequiredPermission requiredPermission);
 }

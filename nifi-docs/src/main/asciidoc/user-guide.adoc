@@ -191,7 +191,9 @@ The available global access policies are:
 |view the UI   |Allows users to view the UI
 |access the controller  |Allows users to view and modify the controller including reporting tasks, Controller Services, and nodes in the cluster
 |query provenance     |Allows users to submit a provenance search and request even lineage
-|access restricted components     |Allows users to create/modify restricted components assuming otherwise sufficient permissions
+|access restricted components     |Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
+components may indicate which specific permissions are required. Permissions can be granted for specific restrictions or be granted regardless
+of restrictions. If permission is granted regardless of restrictions, the user can create/modify all restricted components.
 |access all policies   |Allows users to view and modify the policies for all components
 |access users/groups   |Allows users view and modify the users and user groups
 |retrieve site-to-site details | Allows other NiFi instances to retrieve Site-To-Site details
@@ -267,13 +269,18 @@ image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 
 Restricted components will be marked with a
 image:restricted.png["Restricted"]
-icon next to their name. These are components that can be used to execute arbitrary unsanitized code provided by the operator
-through the NiFi REST API/UI or can be used to obtain or alter data on the NiFi host system using the NiFi OS credentials.
-These components could be used by an otherwise authorized NiFi user to go beyond the intended use of the application, escalate
-privilege, or could expose data about the internals of the NiFi process or the host system. All of these capabilities should
-be considered privileged, and admins should be aware of these capabilities and explicitly enable them for a subset of trusted users.
+icon next to their name. Hovering over the tooltip will display the specific restrictions this component requires. If the component
+does not list any specific restrictions it will require access to restricted components regardless of restrictions. These are components
+that can be used to execute arbitrary unsanitized code provided by the operator through the NiFi REST API/UI or can be used to obtain
+or alter data on the NiFi host system using the NiFi OS credentials. These components could be used by an otherwise authorized NiFi
+user to go beyond the intended use of the application, escalate privilege, or could expose data about the internals of the NiFi process
+or the host system. All of these capabilities should be considered privileged, and admins should be aware of these capabilities and
+explicitly enable them for a subset of trusted users.
 
-Before a user is allowed to create and modify restricted components they must be granted access to restricted components. For more information refer to
+Before a user is allowed to create and modify restricted components they must be granted access to restricted components. This can be
+assigned regardless of restrictions. In this case, the user will have access to all restricted components. Alternatively, users can
+be assigned access to specific restrictions. If the user has been granted access to all restrictions a component requires, they will
+have access to that component assuming otherwise sufficient permissions. For more information refer to
 <<UI-with-multi-tenant-authorization>>.
 
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the

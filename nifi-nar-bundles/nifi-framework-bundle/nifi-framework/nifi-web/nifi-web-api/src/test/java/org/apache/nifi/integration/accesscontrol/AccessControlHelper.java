@@ -46,6 +46,7 @@ public class AccessControlHelper {
     private NiFiTestUser readWriteUser;
     private NiFiTestUser noneUser;
     private NiFiTestUser privilegedUser;
+    private NiFiTestUser executeCodeUser;
 
     private static final String CONTEXT_PATH = "/nifi-api";
 
@@ -83,6 +84,7 @@ public class AccessControlHelper {
         readWriteUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.READ_WRITE_USER_DN);
         noneUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.NONE_USER_DN);
         privilegedUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.PRIVILEGED_USER_DN);
+        executeCodeUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.EXECUTED_CODE_USER_DN);
 
         // populate the initial data flow
         NiFiWebApiTest.populateFlow(server.getClient(), baseUrl, readWriteUser, READ_WRITE_CLIENT_ID);
@@ -106,6 +108,10 @@ public class AccessControlHelper {
 
     public NiFiTestUser getPrivilegedUser() {
         return privilegedUser;
+    }
+
+    public NiFiTestUser getExecuteCodeUser() {
+        return executeCodeUser;
     }
 
     public void testGenericGetUri(final String uri) throws Exception {

@@ -19,6 +19,7 @@ package org.apache.nifi.documentation.html;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.DeprecatedProcessor;
 import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
@@ -73,6 +74,8 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "state management description");
 
         assertContains(results, "processor restriction description");
+        assertContains(results, RequiredPermission.READ_FILESYSTEM.getPermissionLabel());
+        assertContains(results, "Requires read filesystem permission");
 
         assertNotContains(results, "iconSecure.png");
         assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class)

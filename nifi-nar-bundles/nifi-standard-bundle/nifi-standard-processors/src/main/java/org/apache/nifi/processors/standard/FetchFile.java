@@ -21,11 +21,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
@@ -58,7 +60,16 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Reads the contents of a file from disk and streams it into the contents of an incoming FlowFile. Once this is done, the file is optionally moved elsewhere or deleted "
     + "to help keep the file system organized.")
 @SeeAlso({GetFile.class, PutFile.class, ListFile.class})
-@Restricted("Provides operator the ability to read from and delete any file that NiFi has access to.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to."),
+                @Restriction(
+                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                        explanation = "Provides operator the ability to delete any file that NiFi has access to.")
+        }
+)
 public class FetchFile extends AbstractProcessor {
     static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");
     static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Moves the file to the directory specified by the <Move Destination Directory> property");

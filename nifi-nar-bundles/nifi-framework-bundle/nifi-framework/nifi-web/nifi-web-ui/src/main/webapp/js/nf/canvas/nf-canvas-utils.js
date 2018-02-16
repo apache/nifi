@@ -56,6 +56,9 @@
     var nfBirdseye;
     var nfGraph;
 
+    var restrictedUsage = d3.map();
+    var requiredPermissions = d3.map();
+
     var config = {
         storage: {
             namePrefix: 'nifi-view-'
@@ -1840,6 +1843,41 @@
          */
         isConfigurableUsersAndGroups: function () {
             return nfCanvas.isConfigurableUsersAndGroups();
+        },
+
+        /**
+         * Adds the restricted usage and the required permissions.
+         *
+         * @param additionalRestrictedUsages
+         * @param additionalRequiredPermissions
+         */
+        addComponentRestrictions: function (additionalRestrictedUsages, additionalRequiredPermissions) {
+            additionalRestrictedUsages.each(function (componentRestrictions, requiredPermissionId) {
+                if (!restrictedUsage.has(requiredPermissionId)) {
+                    restrictedUsage.set(requiredPermissionId, []);
+                }
+
+                componentRestrictions.forEach(function (componentRestriction) {
+                    restrictedUsage.get(requiredPermissionId).push(componentRestriction);
+                });
+            });
+            additionalRequiredPermissions.each(function (requiredPermissionLabel, requiredPermissionId) {
+                if (!requiredPermissions.has(requiredPermissionId)) {
+                    requiredPermissions.set(requiredPermissionId, requiredPermissionLabel);
+                }
+            });
+        },
+
+        /**
+         * Gets the component restrictions and the require permissions.
+         *
+         * @returns {{restrictedUsage: map, requiredPermissions: map}} component restrictions
+         */
+        getComponentRestrictions: function () {
+            return {
+                restrictedUsage: restrictedUsage,
+                requiredPermissions: requiredPermissions
+            };
         },
 
         /**

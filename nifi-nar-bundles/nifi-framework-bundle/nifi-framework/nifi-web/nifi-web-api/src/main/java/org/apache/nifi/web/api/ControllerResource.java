@@ -46,8 +46,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
-import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
+import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
@@ -277,7 +277,7 @@ public class ControllerResource extends ApplicationResource {
                         authorizable = lookup.getConfigurableComponent(requestReportingTask.getType(), requestReportingTask.getBundle());
 
                         if (authorizable.isRestricted()) {
-                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                            authorizeRestrictions(authorizer, authorizable);
                         }
 
                         if (requestReportingTask.getProperties() != null) {
@@ -775,7 +775,7 @@ public class ControllerResource extends ApplicationResource {
                         authorizable = lookup.getConfigurableComponent(requestControllerService.getType(), requestControllerService.getBundle());
 
                         if (authorizable.isRestricted()) {
-                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                            authorizeRestrictions(authorizer, authorizable);
                         }
 
                         if (requestControllerService.getProperties() != null) {

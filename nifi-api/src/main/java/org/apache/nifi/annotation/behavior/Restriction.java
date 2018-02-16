@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.annotation.behavior;
+
+import org.apache.nifi.components.RequiredPermission;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -25,35 +26,22 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * <p>
- * Marks the usage of a component as restricted to users with elevated privileges.
- * </p>
- * <p>
- * A {@code Restricted} component is one that can be used to execute arbitrary unsanitized
- * code provided by the operator through the NiFi REST API/UI or can be used to obtain
- * or alter data on the NiFi host system using the NiFi OS credentials. These components
- * could be used by an otherwise authorized NiFi user to go beyond the intended use of
- * the application, escalate privilege, or could expose data about the internals of the
- * NiFi process or the host system. All of these capabilities should be considered
- * privileged, and admins should be aware of these capabilities and explicitly enable
- * them for a subset of trusted users.
- * </p>
+ * Specific restriction for a component. Indicates what the required permission is and why the restriction exists.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-public @interface Restricted {
-    /**
-     * Provides a description of why the component usage is restricted. If using granular
-     * restrictions, specific explanations should be set in the Restriction.
-     */
-    String value() default "";
+public @interface Restriction {
 
     /**
-     * Provides a listing of specific Restrictions. If unspecified, this component will
-     * require access to restricted components regardless of restrictions.
+     * Provides a listing of RequiredPermissions.
      */
-    Restriction[] restrictions() default {};
+    RequiredPermission requiredPermission();
+
+    /**
+     * Provides a explanation of why the component usage is restricted
+     */
+    String explanation();
 
 }

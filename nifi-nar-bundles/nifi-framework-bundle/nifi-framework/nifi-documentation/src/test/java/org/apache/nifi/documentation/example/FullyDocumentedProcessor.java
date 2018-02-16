@@ -18,15 +18,16 @@ package org.apache.nifi.documentation.example;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
-import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -34,6 +35,7 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -59,7 +61,14 @@ import java.util.Set;
 @DynamicProperty(name = "Relationship Name", supportsExpressionLanguage = true, value = "some XPath", description = "Routes FlowFiles to relationships based on XPath")
 @DynamicRelationship(name = "name from dynamic property", description = "all files that match the properties XPath")
 @Stateful(scopes = {Scope.CLUSTER, Scope.LOCAL}, description = "state management description")
-@Restricted("processor restriction description")
+@Restricted(
+        value = "processor restriction description",
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Requires read filesystem permission")
+        }
+)
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @SystemResourceConsideration(resource = SystemResource.CPU)
 @SystemResourceConsideration(resource = SystemResource.DISK, description = "Customized disk usage description")
