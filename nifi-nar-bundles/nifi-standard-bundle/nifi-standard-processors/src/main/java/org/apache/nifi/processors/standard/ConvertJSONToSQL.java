@@ -70,7 +70,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_CO
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
-import static  org.apache.nifi.processors.standard.util.DB.*;
+import static  org.apache.nifi.processors.standard.util.JdbcCommon.*;
 
 @SideEffectFree
 @SupportsBatching
