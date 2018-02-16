@@ -18,7 +18,7 @@ package org.apache.nifi.controller.tasks;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.scheduling.ScheduleState;
+import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
@@ -27,16 +27,16 @@ import org.apache.nifi.util.ReflectionUtils;
 public class ReportingTaskWrapper implements Runnable {
 
     private final ReportingTaskNode taskNode;
-    private final ScheduleState scheduleState;
+    private final LifecycleState scheduleState;
 
-    public ReportingTaskWrapper(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
+    public ReportingTaskWrapper(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
         this.taskNode = taskNode;
         this.scheduleState = scheduleState;
     }
 
     @Override
     public synchronized void run() {
-        scheduleState.incrementActiveThreadCount();
+        scheduleState.incrementActiveThreadCount(null);
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
@@ -55,7 +55,7 @@ public class ReportingTaskWrapper implements Runnable {
                     }
                 }
             } finally {
-                scheduleState.decrementActiveThreadCount();
+                scheduleState.decrementActiveThreadCount(null);
             }
         }
     }

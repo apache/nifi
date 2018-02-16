@@ -20,16 +20,16 @@ package org.apache.nifi.controller.repository.claim;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.nifi.controller.repository.ContentRepository;
 
 public class ContentClaimWriteCache {
     private final ContentRepository contentRepo;
-    private final Map<ResourceClaim, OutputStream> streamMap = new HashMap<>();
+    private final Map<ResourceClaim, OutputStream> streamMap = new ConcurrentHashMap<>();
     private final Queue<ContentClaim> queue = new LinkedList<>();
     private final int bufferSize;
 

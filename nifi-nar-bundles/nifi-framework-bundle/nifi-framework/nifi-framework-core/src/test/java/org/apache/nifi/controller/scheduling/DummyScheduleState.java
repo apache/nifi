@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-public class DummyScheduleState extends ScheduleState {
+public class DummyScheduleState extends LifecycleState {
 
     public DummyScheduleState(boolean isScheduled) {
         setScheduled(isScheduled);

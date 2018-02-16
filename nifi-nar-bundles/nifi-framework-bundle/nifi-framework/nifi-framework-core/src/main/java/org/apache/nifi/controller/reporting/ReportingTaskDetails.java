@@ -18,7 +18,7 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.reporting.ReportingTask;
 
 /**
@@ -27,7 +27,7 @@ import org.apache.nifi.reporting.ReportingTask;
 class ReportingTaskDetails {
 
     private final ReportingTask reportingTask;
-    private final ComponentLog componentLog;
+    private final TerminationAwareLogger componentLog;
     private final BundleCoordinate bundleCoordinate;
 
     public ReportingTaskDetails(final LoggableComponent<ReportingTask> reportingTask) {
@@ -40,7 +40,7 @@ class ReportingTaskDetails {
         return reportingTask;
     }
 
-    public ComponentLog getComponentLog() {
+    public TerminationAwareLogger getComponentLog() {
         return componentLog;
     }
 

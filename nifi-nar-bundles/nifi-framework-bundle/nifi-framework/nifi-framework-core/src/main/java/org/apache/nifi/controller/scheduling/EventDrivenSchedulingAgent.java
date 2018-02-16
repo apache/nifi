@@ -31,10 +31,13 @@ import org.apache.nifi.controller.EventBasedWorker;
 import org.apache.nifi.controller.EventDrivenWorkerQueue;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.lifecycle.TaskTerminationAwareStateManager;
+import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
 import org.apache.nifi.controller.repository.BatchingSessionFactory;
-import org.apache.nifi.controller.repository.ProcessContext;
+import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
+import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -58,7 +61,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final ControllerServiceProvider serviceProvider;
     private final StateManagerProvider stateManagerProvider;
     private final EventDrivenWorkerQueue workerQueue;
-    private final ProcessContextFactory contextFactory;
+    private final RepositoryContextFactory contextFactory;
     private final AtomicInteger maxThreadCount;
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
     private final StringEncryptor encryptor;
@@ -66,10 +69,10 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private volatile String adminYieldDuration = "1 sec";
 
     private final ConcurrentMap<Connectable, AtomicLong> connectionIndexMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Connectable, ScheduleState> scheduleStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Connectable, LifecycleState> scheduleStates = new ConcurrentHashMap<>();
 
     public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
-        final EventDrivenWorkerQueue workerQueue, final ProcessContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor) {
+        final EventDrivenWorkerQueue workerQueue, final RepositoryContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor) {
         super(flowEngine);
         this.serviceProvider = serviceProvider;
         this.stateManagerProvider = stateManagerProvider;
@@ -98,24 +101,24 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     }
 
     @Override
-    public void doSchedule(final ReportingTaskNode taskNode, ScheduleState scheduleState) {
+    public void doSchedule(final ReportingTaskNode taskNode, LifecycleState scheduleState) {
         throw new UnsupportedOperationException("ReportingTasks cannot be scheduled in Event-Driven Mode");
     }
 
     @Override
-    public void doUnschedule(ReportingTaskNode taskNode, ScheduleState scheduleState) {
+    public void doUnschedule(ReportingTaskNode taskNode, LifecycleState scheduleState) {
         throw new UnsupportedOperationException("ReportingTasks cannot be scheduled in Event-Driven Mode");
     }
 
     @Override
-    public void doSchedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public void doSchedule(final Connectable connectable, final LifecycleState scheduleState) {
         workerQueue.resumeWork(connectable);
         logger.info("Scheduled {} to run in Event-Driven mode", connectable);
         scheduleStates.put(connectable, scheduleState);
     }
 
     @Override
-    public void doUnschedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public void doUnschedule(final Connectable connectable, final LifecycleState scheduleState) {
         workerQueue.suspendWork(connectable);
         logger.info("Stopped scheduling {} to run", connectable);
     }
@@ -136,6 +139,10 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                 flowEngine.scheduleWithFixedDelay(eventDrivenTask, 0L, 1L, TimeUnit.NANOSECONDS);
             }
         }
+    }
+
+    @Override
+    public void incrementMaxThreadCount(int toAdd) {
     }
 
     @Override
@@ -171,7 +178,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     continue;
                 }
                 final Connectable connectable = worker.getConnectable();
-                final ScheduleState scheduleState = scheduleStates.get(connectable);
+                final LifecycleState scheduleState = scheduleStates.get(connectable);
                 if (scheduleState == null) {
                     // Component not yet scheduled to run but has received events
                     continue;
@@ -189,25 +196,28 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                         }
                     }
 
-                    final ProcessContext context = contextFactory.newProcessContext(connectable, connectionIndex);
+                    final RepositoryContext context = contextFactory.newProcessContext(connectable, connectionIndex);
 
                     if (connectable instanceof ProcessorNode) {
                         final ProcessorNode procNode = (ProcessorNode) connectable;
-                        final StandardProcessContext standardProcessContext = new StandardProcessContext(procNode, serviceProvider, encryptor, getStateManager(connectable.getIdentifier()));
+                        final StateManager stateManager = new TaskTerminationAwareStateManager(getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
+                        final StandardProcessContext standardProcessContext = new StandardProcessContext(procNode, serviceProvider, encryptor, stateManager, scheduleState::isTerminated);
 
                         final long runNanos = procNode.getRunDuration(TimeUnit.NANOSECONDS);
                         final ProcessSessionFactory sessionFactory;
                         final StandardProcessSession rawSession;
                         final boolean batch;
-                        if (procNode.isHighThroughputSupported() && runNanos > 0L) {
-                            rawSession = new StandardProcessSession(context);
+                        if (procNode.isSessionBatchingSupported() && runNanos > 0L) {
+                            rawSession = new StandardProcessSession(context, scheduleState::isTerminated);
                             sessionFactory = new BatchingSessionFactory(rawSession);
                             batch = true;
                         } else {
                             rawSession = null;
-                            sessionFactory = new StandardProcessSessionFactory(context);
+                            sessionFactory = new StandardProcessSessionFactory(context, scheduleState::isTerminated);
                             batch = false;
                         }
+
+                        final ActiveProcessSessionFactory activeSessionFactory = new WeakHashMapProcessSessionFactory(sessionFactory);
 
                         final long startNanos = System.nanoTime();
                         final long finishNanos = startNanos + runNanos;
@@ -216,7 +226,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
                         try {
                             while (shouldRun) {
-                                trigger(procNode, context, scheduleState, standardProcessContext, sessionFactory);
+                                trigger(procNode, context, scheduleState, standardProcessContext, activeSessionFactory);
                                 invocationCount++;
 
                                 if (!batch) {
@@ -266,9 +276,10 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                             onEvent(procNode);
                         }
                     } else {
-                        final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context);
+                        final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context, scheduleState::isTerminated);
+                        final ActiveProcessSessionFactory activeSessionFactory = new WeakHashMapProcessSessionFactory(sessionFactory);
                         final ConnectableProcessContext connectableProcessContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
-                        trigger(connectable, scheduleState, connectableProcessContext, sessionFactory);
+                        trigger(connectable, scheduleState, connectableProcessContext, activeSessionFactory);
 
                         // See explanation above for the ProcessorNode as to why we do this.
                         if (Connectables.flowFilesQueued(connectable)) {
@@ -281,15 +292,15 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
             }
         }
 
-        private void trigger(final Connectable worker, final ScheduleState scheduleState, final ConnectableProcessContext processContext, final ProcessSessionFactory sessionFactory) {
-            final int newThreadCount = scheduleState.incrementActiveThreadCount();
+        private void trigger(final Connectable worker, final LifecycleState scheduleState, final ConnectableProcessContext processContext, final ActiveProcessSessionFactory sessionFactory) {
+            final int newThreadCount = scheduleState.incrementActiveThreadCount(sessionFactory);
             if (newThreadCount > worker.getMaxConcurrentTasks() && worker.getMaxConcurrentTasks() > 0) {
                 // its possible that the worker queue could give us a worker node that is eligible to run based
                 // on the number of threads but another thread has already incremented the thread count, result in
                 // reaching the maximum number of threads. we won't know this until we atomically increment the thread count
                 // on the Schedule State, so we check it here. in this case, we cannot trigger the Processor, as doing so would
                 // result in using more than the maximum number of defined threads
-                scheduleState.decrementActiveThreadCount();
+                scheduleState.decrementActiveThreadCount(sessionFactory);
                 return;
             }
 
@@ -317,20 +328,20 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     }
                 }
 
-                scheduleState.decrementActiveThreadCount();
+                scheduleState.decrementActiveThreadCount(sessionFactory);
             }
         }
 
-        private void trigger(final ProcessorNode worker, final ProcessContext context, final ScheduleState scheduleState,
-                final StandardProcessContext processContext, final ProcessSessionFactory sessionFactory) {
-            final int newThreadCount = scheduleState.incrementActiveThreadCount();
+        private void trigger(final ProcessorNode worker, final RepositoryContext context, final LifecycleState scheduleState,
+            final StandardProcessContext processContext, final ActiveProcessSessionFactory sessionFactory) {
+            final int newThreadCount = scheduleState.incrementActiveThreadCount(sessionFactory);
             if (newThreadCount > worker.getMaxConcurrentTasks() && worker.getMaxConcurrentTasks() > 0) {
                 // its possible that the worker queue could give us a worker node that is eligible to run based
                 // on the number of threads but another thread has already incremented the thread count, result in
                 // reaching the maximum number of threads. we won't know this until we atomically increment the thread count
                 // on the Schedule State, so we check it here. in this case, we cannot trigger the Processor, as doing so would
                 // result in using more than the maximum number of defined threads
-                scheduleState.decrementActiveThreadCount();
+                scheduleState.decrementActiveThreadCount(sessionFactory);
                 return;
             }
 
@@ -359,7 +370,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     }
                 }
 
-                scheduleState.decrementActiveThreadCount();
+                scheduleState.decrementActiveThreadCount(sessionFactory);
             }
         }
     }

@@ -25,20 +25,40 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
+import org.apache.nifi.processor.exception.TerminatedTaskException;
 
-public class ScheduleState {
+public class LifecycleState {
 
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
     private final Set<ScheduledFuture<?>> futures = new HashSet<>();
     private final AtomicBoolean mustCallOnStoppedMethods = new AtomicBoolean(false);
     private volatile long lastStopTime = -1;
+    private volatile boolean terminated = false;
+    private final Set<ActiveProcessSessionFactory> activeProcessSessionFactories = Collections.synchronizedSet(new HashSet<>());
 
-    public int incrementActiveThreadCount() {
+    public synchronized int incrementActiveThreadCount(final ActiveProcessSessionFactory sessionFactory) {
+        if (terminated) {
+            throw new TerminatedTaskException();
+        }
+
+        if (sessionFactory != null) {
+            activeProcessSessionFactories.add(sessionFactory);
+        }
+
         return activeThreadCount.incrementAndGet();
     }
 
-    public int decrementActiveThreadCount() {
+    public synchronized int decrementActiveThreadCount(final ActiveProcessSessionFactory sessionFactory) {
+        if (terminated) {
+            return activeThreadCount.get();
+        }
+
+        if (sessionFactory != null) {
+            activeProcessSessionFactories.remove(sessionFactory);
+        }
+
         return activeThreadCount.decrementAndGet();
     }
 
@@ -97,5 +117,22 @@ public class ScheduleState {
 
     public synchronized Set<ScheduledFuture<?>> getFutures() {
         return Collections.unmodifiableSet(futures);
+    }
+
+    public synchronized void terminate() {
+        this.terminated = true;
+        activeThreadCount.set(0);
+
+        for (final ActiveProcessSessionFactory factory : activeProcessSessionFactories) {
+            factory.terminateActiveSessions();
+        }
+    }
+
+    public void clearTerminationFlag() {
+        this.terminated = false;
+    }
+
+    public boolean isTerminated() {
+        return this.terminated;
     }
 }

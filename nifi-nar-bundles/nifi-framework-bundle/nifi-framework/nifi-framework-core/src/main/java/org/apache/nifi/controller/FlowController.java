@@ -50,6 +50,7 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -98,7 +99,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.controller.scheduling.EventDrivenSchedulingAgent;
-import org.apache.nifi.controller.scheduling.ProcessContextFactory;
+import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
@@ -517,7 +518,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, encryptor, stateManagerProvider, this.nifiProperties);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
-        final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
+        final RepositoryContextFactory contextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
 
         eventDrivenSchedulingAgent = new EventDrivenSchedulingAgent(
             eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor);
@@ -745,7 +746,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             flowFileRepository.loadFlowFiles(this, maxIdFromSwapFiles + 1);
 
             // Begin expiring FlowFiles that are old
-            final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository,
+            final RepositoryContextFactory contextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository,
                 flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
             processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
 
@@ -1224,12 +1225,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final Processor processor = processorClass.newInstance();
 
             final ComponentLog componentLogger = new SimpleProcessLogger(identifier, processor);
-            final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, componentLogger, this, this, nifiProperties);
+            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
+            final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, terminationAwareLogger, this, this, nifiProperties);
             processor.initialize(ctx);
 
-            LogRepositoryFactory.getRepository(identifier).setLogger(componentLogger);
+            LogRepositoryFactory.getRepository(identifier).setLogger(terminationAwareLogger);
 
-            return new LoggableComponent<>(processor, bundleCoordinate, componentLogger);
+            return new LoggableComponent<>(processor, bundleCoordinate, terminationAwareLogger);
         } catch (final Throwable t) {
             throw new ProcessorInstantiationException(type, t);
         } finally {
@@ -1263,15 +1265,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         // call OnRemoved for the existing processor using the previous instance class loader
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
-            final StandardProcessContext processContext = new StandardProcessContext(
-                existingNode, controllerServiceProvider, encryptor, getStateManagerProvider().getStateManager(id));
+            final StateManager stateManager = getStateManagerProvider().getStateManager(id);
+            final StandardProcessContext processContext = new StandardProcessContext(existingNode, controllerServiceProvider, encryptor, stateManager, () -> false);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
         } finally {
             ExtensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
         }
 
         // set the new processor in the existing node
-        final LoggableComponent<Processor> newProcessor = new LoggableComponent<>(newNode.getProcessor(), newNode.getBundleCoordinate(), newNode.getLogger());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getProcessor());
+        final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
+        LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
+
+        final LoggableComponent<Processor> newProcessor = new LoggableComponent<>(newNode.getProcessor(), newNode.getBundleCoordinate(), terminationAwareLogger);
         existingNode.setProcessor(newProcessor);
         existingNode.setExtensionMissing(newNode.isExtensionMissing());
 
@@ -1672,8 +1678,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Updates the number of threads that can be simultaneously used for
-     * executing processors.
+     * Updates the number of threads that can be simultaneously used for executing processors.
      * This method must be called while holding the write lock!
      *
      * @param maxThreadCount max number of threads
@@ -3433,8 +3438,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             final ReportingTask reportingTask = reportingTaskClass.cast(reportingTaskObj);
             final ComponentLog componentLog = new SimpleProcessLogger(id, reportingTask);
+            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
-            return new LoggableComponent<>(reportingTask, bundleCoordinate, componentLog);
+            return new LoggableComponent<>(reportingTask, bundleCoordinate, terminationAwareLogger);
         } catch (final Exception e) {
             throw new ReportingTaskInstantiationException(type, e);
         } finally {
@@ -3474,7 +3480,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         // set the new reporting task into the existing node
-        final LoggableComponent<ReportingTask> newReportingTask = new LoggableComponent<>(newNode.getReportingTask(), newNode.getBundleCoordinate(), newNode.getLogger());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask());
+        final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
+        LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
+
+        final LoggableComponent<ReportingTask> newReportingTask = new LoggableComponent<>(newNode.getReportingTask(), newNode.getBundleCoordinate(), terminationAwareLogger);
         existingNode.setReportingTask(newReportingTask);
         existingNode.setExtensionMissing(newNode.isExtensionMissing());
 
@@ -3602,8 +3612,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         invocationHandler.setServiceNode(existingNode);
 
         // create LoggableComponents for the proxy and implementation
-        final LoggableComponent<ControllerService> loggableProxy = new LoggableComponent<>(newNode.getProxiedControllerService(), bundleCoordinate, newNode.getLogger());
-        final LoggableComponent<ControllerService> loggableImplementation = new LoggableComponent<>(newNode.getControllerServiceImplementation(), bundleCoordinate, newNode.getLogger());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getControllerServiceImplementation());
+        final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
+        LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
+
+        final LoggableComponent<ControllerService> loggableProxy = new LoggableComponent<>(newNode.getProxiedControllerService(), bundleCoordinate, terminationAwareLogger);
+        final LoggableComponent<ControllerService> loggableImplementation = new LoggableComponent<>(newNode.getControllerServiceImplementation(), bundleCoordinate, terminationAwareLogger);
 
         // set the new impl, proxy, and invocation handler into the existing node
         existingNode.setControllerServiceAndProxy(loggableImplementation, loggableProxy, invocationHandler);

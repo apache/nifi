@@ -23,17 +23,19 @@ import org.apache.nifi.controller.ReportingTaskNode;
 
 public interface SchedulingAgent {
 
-    void schedule(Connectable connectable, ScheduleState scheduleState);
+    void schedule(Connectable connectable, LifecycleState scheduleState);
 
-    void unschedule(Connectable connectable, ScheduleState scheduleState);
+    void unschedule(Connectable connectable, LifecycleState scheduleState);
 
     void onEvent(Connectable connectable);
 
-    void schedule(ReportingTaskNode taskNode, ScheduleState scheduleState);
+    void schedule(ReportingTaskNode taskNode, LifecycleState scheduleState);
 
-    void unschedule(ReportingTaskNode taskNode, ScheduleState scheduleState);
+    void unschedule(ReportingTaskNode taskNode, LifecycleState scheduleState);
 
     void setMaxThreadCount(int maxThreads);
+
+    void incrementMaxThreadCount(int toAdd);
 
     void setAdministrativeYieldDuration(String duration);
 
