@@ -87,6 +87,8 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.codehaus.jackson.JsonNode;
@@ -1025,24 +1027,9 @@ public class JdbcCommon {
         }
     }
 
+    
 
-    /**
-     * todo getLogger has been removed
-     * @param rootNode
-     * @param attributes
-     * @param tableName
-     * @param updateKeys
-     * @param schema
-     * @param translateFieldNames
-     * @param ignoreUnmappedFields
-     * @param failUnmappedColumns
-     * @param warningUnmappedColumns
-     * @param escapeColumnNames
-     * @param quoteTableName
-     * @param attributePrefix
-     * @return Select Sql
-     */
-    public static String generateSelect(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
+    public static String generateSelect(final ComponentLog logger, final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
 
@@ -1076,20 +1063,20 @@ public class JdbcCommon {
         // for each of the Update Key fields.
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         final Set<String> normalizedUpdateNames = new HashSet<>();
-//        for (final String uk : updateKeyNames) {
-//            final String normalizedUK = normalizeColumnName(uk, translateFieldNames);
-//            normalizedUpdateNames.add(normalizedUK);
-//
-//            if (!normalizedFieldNames.contains(normalizedUK)) {
-//                String missingColMessage = "JSON does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'";
-//                if (failUnmappedColumns) {
-//                    getLogger().error(missingColMessage);
-//                    throw new ProcessException(missingColMessage);
-//                } else if (warningUnmappedColumns) {
-//                    getLogger().warn(missingColMessage);
-//                }
-//            }
-//        }
+        for (final String uk : updateKeyNames) {
+            final String normalizedUK = normalizeColumnName(uk, translateFieldNames);
+            normalizedUpdateNames.add(normalizedUK);
+
+            if (!normalizedFieldNames.contains(normalizedUK)) {
+                String missingColMessage = "JSON does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'";
+                if (failUnmappedColumns) {
+                    logger.error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    logger.warn(missingColMessage);
+                }
+            }
+        }
 
 
         // Set the WHERE clause based on the Update Key values
@@ -1140,23 +1127,8 @@ public class JdbcCommon {
     }
 
 
-    /**
-     * todo getLogger has been removed
-     * @param rootNode
-     * @param attributes
-     * @param tableName
-     * @param updateKeys
-     * @param schema
-     * @param translateFieldNames
-     * @param ignoreUnmappedFields
-     * @param failUnmappedColumns
-     * @param warningUnmappedColumns
-     * @param escapeColumnNames
-     * @param quoteTableName
-     * @param attributePrefix
-     * @return Update Sql
-     */
-    public static String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
+    
+    public static String generateUpdate(final ComponentLog logger,final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
 
@@ -1195,16 +1167,16 @@ public class JdbcCommon {
         for (final String uk : updateKeyNames) {
             final String normalizedUK = normalizeColumnName(uk, translateFieldNames);
             normalizedUpdateNames.add(normalizedUK);
-//
-//            if (!normalizedFieldNames.contains(normalizedUK)) {
-//                String missingColMessage = "JSON does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'";
-//                if (failUnmappedColumns) {
-//                    getLogger().error(missingColMessage);
-//                    throw new ProcessException(missingColMessage);
-//                } else if (warningUnmappedColumns) {
-//                    getLogger().warn(missingColMessage);
-//                }
-//            }
+
+            if (!normalizedFieldNames.contains(normalizedUK)) {
+                String missingColMessage = "JSON does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'";
+                if (failUnmappedColumns) {
+                    logger.error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    logger.warn(missingColMessage);
+                }
+            }
         }
 
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
@@ -1302,22 +1274,8 @@ public class JdbcCommon {
         return sqlBuilder.toString();
     }
 
-    /**
-     * todo getLogger has been removed
-     * @param rootNode
-     * @param attributes
-     * @param tableName
-     * @param schema
-     * @param translateFieldNames
-     * @param ignoreUnmappedFields
-     * @param failUnmappedColumns
-     * @param warningUnmappedColumns
-     * @param escapeColumnNames
-     * @param quoteTableName
-     * @param attributePrefix
-     * @return Delete Sql
-     */
-    public static String generateDelete(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
+
+    public static String generateDelete(final ComponentLog logger,final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
@@ -1325,12 +1283,12 @@ public class JdbcCommon {
             final String normalizedColName = normalizeColumnName(requiredColName, translateFieldNames);
             if (!normalizedFieldNames.contains(normalizedColName)) {
                 String missingColMessage = "JSON does not have a value for the Required column '" + requiredColName + "'";
-//                if (failUnmappedColumns) {
-//                    getLogger().error(missingColMessage);
-//                    throw new ProcessException(missingColMessage);
-//                } else if (warningUnmappedColumns) {
-//                    getLogger().warn(missingColMessage);
-//                }
+                if (failUnmappedColumns) {
+                    logger.error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    logger.warn(missingColMessage);
+                }
             }
         }
 
@@ -1396,37 +1354,23 @@ public class JdbcCommon {
     }
 
 
-    /**
-     * todo getLogger has been removed
-     * @param rootNode
-     * @param attributes
-     * @param tableName
-     * @param schema
-     * @param translateFieldNames
-     * @param ignoreUnmappedFields
-     * @param failUnmappedColumns
-     * @param warningUnmappedColumns
-     * @param escapeColumnNames
-     * @param quoteTableName
-     * @param attributePrefix
-     * @return Insert
-     */
-    public static String generateInsert(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
+
+    public static String generateInsert(final ComponentLog logger,final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
 
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         for (final String requiredColName : schema.getRequiredColumnNames()) {
             final String normalizedColName = normalizeColumnName(requiredColName, translateFieldNames);
-//            if (!normalizedFieldNames.contains(normalizedColName)) {
-//                String missingColMessage = "JSON does not have a value for the Required column '" + requiredColName + "'";
-//                if (failUnmappedColumns) {
-//                    getLogger().error(missingColMessage);
-//                    throw new ProcessException(missingColMessage);
-//                } else if (warningUnmappedColumns) {
-//                    getLogger().warn(missingColMessage);
-//                }
-//            }
+            if (!normalizedFieldNames.contains(normalizedColName)) {
+                String missingColMessage = "JSON does not have a value for the Required column '" + requiredColName + "'";
+                if (failUnmappedColumns) {
+                    logger.error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    logger.warn(missingColMessage);
+                }
+            }
         }
 
         final StringBuilder sqlBuilder = new StringBuilder();
@@ -1505,7 +1449,7 @@ public class JdbcCommon {
      * @param quoteTableName
      * @return select sql with column `cnt`
      */
-    public static String generateSelectCount( final String tableName,
+    public static String generateSelectCount( final ComponentLog logger,final String tableName,
                                               final TableSchema schema,
                                               boolean quoteTableName ) {
 

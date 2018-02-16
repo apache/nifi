@@ -381,13 +381,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final String fqTableName = tableNameBuilder.toString();
 
                 if (INSERT_TYPE.equals(statementType)) {
-                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                    sql = generateInsert(this.getLogger(),jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
                 } else if (UPDATE_TYPE.equals(statementType)) {
-                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                    sql = generateUpdate(this.getLogger(),jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
                 } else {
-                    sql = generateDelete(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                    sql = generateDelete(this.getLogger(),jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
                 }
             } catch (final ProcessException pe) {

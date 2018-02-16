@@ -71,7 +71,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
 @SupportsBatching
 @SeeAlso(PutSQL.class)
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"json", "sql", "database", "rdbms", "insert", "update", "delete", "relational", "flat","upsert"})
+@Tags({"json", "sql", "database", "rdbms", "insert", "update", "relational", "flat","upsert"})
 @CapabilityDescription("Splits a JSON-formatted FlowFile into an UPDATE and an INSERT SQL statement. The incoming FlowFile is expected to be "
         + "\"flat\" JSON message, meaning that it consists of a single JSON element and each field maps to a simple type. If a field maps to "
         + "a JSON object, that JSON object will be interpreted as Text. If the input is an array of JSON elements, each element in the array is "
@@ -394,7 +394,7 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
 
 
 
-            final String sqlSelectCount = generateSelectCount(fqTableName,schema,quoteTableName);
+            final String sqlSelectCount = generateSelectCount(this.getLogger(),fqTableName,schema,quoteTableName);
             // table empty ? just insert
             PreparedStatement statTmp =  conn.prepareStatement(sqlSelectCount, Statement.RETURN_GENERATED_KEYS);
             ResultSet resultTmp = statTmp.executeQuery();
@@ -423,7 +423,7 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
                     try {
 
 
-                        sqlSelect =  generateSelect(jsonNode,attributesSelect , fqTableName,updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                        sqlSelect =  generateSelect(this.getLogger(),jsonNode,attributesSelect , fqTableName,updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
                                 failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
 
                         getLogger().debug("SQL select: {} ",new Object[]{sqlSelect});
@@ -475,9 +475,9 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
                 try {
 
 
-                    sqlInsert = generateInsert(jsonNode, attributesInsert, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                    sqlInsert = generateInsert(this.getLogger(),jsonNode, attributesInsert, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
-                    sqlUpdate = generateUpdate(jsonNode, attributesUpdate, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                    sqlUpdate = generateUpdate(this.getLogger(),jsonNode, attributesUpdate, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
 
                     getLogger().debug("Upsert SQLs: {},{} ",new Object[]{sqlInsert,sqlUpdate});
