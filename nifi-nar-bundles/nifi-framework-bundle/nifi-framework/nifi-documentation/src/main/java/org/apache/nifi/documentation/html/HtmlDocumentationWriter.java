@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.html;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -248,7 +249,32 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeSimpleElement(xmlStreamWriter, "h3", "Restricted: ");
 
         if(restricted != null) {
-            xmlStreamWriter.writeCharacters(restricted.value());
+            final String value = restricted.value();
+
+            if (!StringUtils.isBlank(value)) {
+                xmlStreamWriter.writeCharacters(restricted.value());
+            }
+
+            final Restriction[] restrictions = restricted.restrictions();
+            if (restrictions != null && restrictions.length > 0) {
+                xmlStreamWriter.writeStartElement("table");
+                xmlStreamWriter.writeAttribute("id", "restrictions");
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "th", "Required Permission");
+                writeSimpleElement(xmlStreamWriter, "th", "Explanation");
+                xmlStreamWriter.writeEndElement();
+
+                for (Restriction restriction : restrictions) {
+                    xmlStreamWriter.writeStartElement("tr");
+                    writeSimpleElement(xmlStreamWriter, "td", restriction.requiredPermission().getPermissionLabel());
+                    writeSimpleElement(xmlStreamWriter, "td", restriction.explanation());
+                    xmlStreamWriter.writeEndElement();
+                }
+
+                xmlStreamWriter.writeEndElement();
+            } else {
+                xmlStreamWriter.writeCharacters("This component requires access to restricted components regardless of restriction.");
+            }
         } else {
             xmlStreamWriter.writeCharacters("This component is not restricted.");
         }

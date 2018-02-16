@@ -17,6 +17,8 @@
 package org.apache.nifi.integration.util;
 
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -28,11 +30,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Restricted(
-    value = "generally restricted"
+    restrictions = {
+        @Restriction(
+                requiredPermission = RequiredPermission.EXECUTE_CODE,
+                explanation = "specifically executes code")
+    }
 )
-public class RestrictedProcessor extends AbstractSessionFactoryProcessor {
+public class ExecuteCodeRestrictedProcessor extends AbstractSessionFactoryProcessor {
 
-    public RestrictedProcessor() {
+    public ExecuteCodeRestrictedProcessor() {
     }
 
     @Override

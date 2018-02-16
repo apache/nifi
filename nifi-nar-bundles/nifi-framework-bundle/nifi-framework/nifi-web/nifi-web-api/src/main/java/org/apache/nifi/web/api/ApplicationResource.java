@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
@@ -445,6 +446,16 @@ public abstract class ApplicationResource {
      */
     protected Revision getRevision(final ComponentEntity entity, final String componentId) {
         return getRevision(entity.getRevision(), componentId);
+    }
+
+    /**
+     * Authorize any restrictions for the specified ComponentAuthorizable.
+     *
+     * @param authorizer                authorizer
+     * @param authorizable              component authorizable
+     */
+    protected void authorizeRestrictions(final Authorizer authorizer, final ComponentAuthorizable authorizable) {
+        authorizable.getRestrictedAuthorizables().forEach(restrictionAuthorizable -> restrictionAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()));
     }
 
     /**

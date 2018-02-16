@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.PropertyDescriptor;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Authorizable for a component that references a ControllerService.
@@ -38,6 +39,13 @@ public interface ComponentAuthorizable {
      * @return whether or not the underlying configurable component is restricted
      */
     boolean isRestricted();
+
+    /**
+     * Returns all component restriction authorizables for this component.
+     *
+     * @return all component restriction authorizables
+     */
+    Set<Authorizable> getRestrictedAuthorizables();
 
     /**
      * Returns the property descriptor for the specified property.
