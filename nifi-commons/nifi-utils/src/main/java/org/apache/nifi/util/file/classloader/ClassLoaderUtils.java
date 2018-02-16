@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -35,6 +36,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ClassLoaderUtils {
 
@@ -138,22 +140,20 @@ public class ClassLoaderUtils {
 
     public static String generateAdditionalUrlsFingerprint(Set<URL> urls) {
         MessageDigest md;
+        List<String> listOfUrls = urls.stream().map(Object::toString).collect(Collectors.toList());
         byte[] bytesOfAdditionalUrls, bytesOfDigest;
+        StringBuffer urlBuffer = new StringBuffer();
+
+        //Sorting so that the order is maintained for generating the fingerprint
+        Collections.sort(listOfUrls);
         try {
             md = MessageDigest.getInstance("MD5");
-            StringBuffer urlBuffer = new StringBuffer();
-            if (urls != null) {
-                urls.forEach(url -> {
-                    try {
-                        urlBuffer.append(url.toString()+"-"+getLastModified(url)+";");
-                    } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                    }
-
-                });
-            }
+            listOfUrls.forEach(url -> {
+                urlBuffer.append(url).append("-").append(getLastModified(url)).append(";");
+            });
             bytesOfAdditionalUrls = urlBuffer.toString().getBytes("UTF-8");
             bytesOfDigest = md.digest(bytesOfAdditionalUrls);
+
             return DatatypeConverter.printHexBinary(bytesOfDigest);
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             LOGGER.error("Unable to generate fingerprint for the provided additional resources {}", new Object[]{urls, e});
@@ -161,9 +161,14 @@ public class ClassLoaderUtils {
         return null;
     }
 
-    private static long getLastModified(URL url) throws URISyntaxException {
-        File file = new File(url.toURI());
-        return file.lastModified();
+    private static long getLastModified(String url) {
+        File file = null;
+        try {
+            file = new File(new URI(url));
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        return file != null ? file.lastModified() : 0;
     }
 
     protected static ClassLoader createModuleClassLoader(URL[] modules, ClassLoader parentClassLoader) {

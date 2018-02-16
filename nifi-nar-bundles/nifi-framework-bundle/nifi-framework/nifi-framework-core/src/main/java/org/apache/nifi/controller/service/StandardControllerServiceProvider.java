@@ -72,7 +72,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -342,26 +342,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public CompletableFuture<Void> enableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanEnable();
-        String oldFingerprint, newFingerprint;
-        final List<PropertyDescriptor> descriptors = new ArrayList<>(serviceNode.getProperties().keySet());
-        final Set<URL> additionalUrls = serviceNode.getAdditionalClasspathResources(descriptors);
-
-        newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
-
-        if(serviceNode.hasAdditionalResourcesFingerprint()){
-            oldFingerprint = serviceNode.getAdditionalResourcesFingerprint();
-            if(!oldFingerprint.equals(newFingerprint)) {
-                serviceNode.setAdditionalResourcesFingerprint(newFingerprint);
-                reload(serviceNode, additionalUrls);
-            }
-        }
+        serviceNode.reloadAdditionalResourcesIfNecessary();
         return processScheduler.enableControllerService(serviceNode);
-    }
-
-    private void reload(ControllerServiceNode serviceNode, Set<URL> additionalUrls) {
-        final BundleCoordinate newBundleCoordinate = serviceNode.getBundleCoordinate();
-        logger.info("Adding new resources found in the provided location to classpath for the controller service with ID " + serviceNode.getIdentifier());
-        flowController.reload(serviceNode, serviceNode.getCanonicalClassName(), newBundleCoordinate, additionalUrls);
     }
 
     @Override

@@ -86,6 +86,8 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
 
     void setAdditionalResourcesFingerprint(String newFingerprint);
 
+    void reloadAdditionalResourcesIfNecessary();
+
     /**
      * @return the any validation errors for this connectable
      */

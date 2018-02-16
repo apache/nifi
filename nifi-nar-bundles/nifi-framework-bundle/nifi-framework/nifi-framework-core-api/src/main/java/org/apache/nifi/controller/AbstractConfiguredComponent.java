@@ -298,6 +298,33 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                 .forEach(e -> setProperty(e.getKey().getName(), e.getValue()));
     }
 
+    /**
+     * Generates fingerprint for the additional urls and compares it with the previous
+     * fingerprint value. If the fingerprint values don't match, the function calls the
+     * component's reload() to load the newly found resources.
+     */
+    public void reloadAdditionalResourcesIfNecessary(){
+        String oldFingerprint, newFingerprint;
+
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(this.getProperties().keySet());
+        final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
+
+        newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+
+        if(this.hasAdditionalResourcesFingerprint()){
+            oldFingerprint = this.getAdditionalResourcesFingerprint();
+            if(!oldFingerprint.equals(newFingerprint)) {
+                this.setAdditionalResourcesFingerprint(newFingerprint);
+                try {
+                    logger.info("Adding new resources found to classpath for the component"+ this.componentType +" with the ID "+this.getIdentifier());
+                    reload(additionalUrls);
+                } catch (Exception e) {
+                    logger.error("Error reloading component with id " + id + ": " + e.getMessage(), e);
+                }
+            }
+        }
+    }
+
     @Override
     public int hashCode() {
         return 273171 * id.hashCode();

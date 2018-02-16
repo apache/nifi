@@ -114,7 +114,6 @@ import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
@@ -1209,7 +1208,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public CompletableFuture<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
-        String oldFingerprint, newFingerprint;
         readLock.lock();
         try {
             if (getProcessor(processor.getIdentifier()) == null) {
@@ -1222,33 +1220,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             } else if (state == ScheduledState.RUNNING) {
                 return CompletableFuture.completedFuture(null);
             }
-
-            final List<PropertyDescriptor> descriptors = new ArrayList<>(processor.getProperties().keySet());
-            final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(descriptors);
-
-            newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
-
-            if(processor.hasAdditionalResourcesFingerprint()){
-                oldFingerprint = processor.getAdditionalResourcesFingerprint();
-                if(!oldFingerprint.equals(newFingerprint)) {
-                    processor.setAdditionalResourcesFingerprint(newFingerprint);
-                    reload(processor, additionalUrls);
-                }
-            }
+            processor.reloadAdditionalResourcesIfNecessary();
 
             return scheduler.startProcessor(processor, failIfStopping);
         } finally {
             readLock.unlock();
-        }
-    }
-
-    private void reload(ProcessorNode processor, Set<URL> additionalUrls) {
-        final BundleCoordinate newBundleCoordinate = processor.getBundleCoordinate();
-        try {
-            LOG.info("Adding new resources found in the provided location to classpath for the processor with ID "+processor.getIdentifier());
-            flowController.reload(processor, processor.getCanonicalClassName(), newBundleCoordinate, additionalUrls);
-        } catch (ProcessorInstantiationException pie) {
-            throw new IllegalStateException("Failed to update flow", pie);
         }
     }
 
