@@ -2796,7 +2796,7 @@ public final class DtoFactory {
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
-        dto.setSupportsBatching(node.isHighThroughputSupported());
+        dto.setSupportsBatching(node.isSessionBatchingSupported());
         dto.setConfig(createProcessorConfigDto(node));
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
@@ -3468,6 +3468,7 @@ public final class DtoFactory {
             dto.setStackTrace(threadInfo.getStackTrace());
             dto.setThreadActiveMillis(threadInfo.getActiveMillis());
             dto.setThreadName(threadInfo.getThreadName());
+            dto.setTaskTerminated(threadInfo.isTerminated());
             threadDumps.add(dto);
         }
 

@@ -51,13 +51,13 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardProcessorNode;
+import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
 import org.apache.nifi.controller.scheduling.processors.FailOnScheduledProcessor;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
@@ -115,7 +115,7 @@ public class TestStandardProcessScheduler {
         systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider, nifiProperties);
+        scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class), null, stateMgrProvider, nifiProperties);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
         reportingTask = new TestReportingTask();
@@ -124,7 +124,7 @@ public class TestStandardProcessScheduler {
         reportingTask.initialize(config);
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null, variableRegistry);
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        final TerminationAwareLogger logger = Mockito.mock(TerminationAwareLogger.class);
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
         final LoggableComponent<ReportingTask> loggableComponent = new LoggableComponent<>(reportingTask, systemBundle.getBundleDetails().getCoordinate(), logger);
         taskNode = new StandardReportingTaskNode(loggableComponent, UUID.randomUUID().toString(), null, scheduler, validationContextFactory,

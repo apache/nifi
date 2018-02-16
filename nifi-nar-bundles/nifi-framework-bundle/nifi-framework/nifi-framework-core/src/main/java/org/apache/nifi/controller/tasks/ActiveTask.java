@@ -14,23 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
 
-import org.apache.nifi.processor.exception.ProcessException;
+package org.apache.nifi.controller.tasks;
 
-public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor {
+public class ActiveTask {
+    private final long startTime;
+    private volatile boolean terminated;
 
-    @Override
-    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        final ProcessSession session = sessionFactory.createSession();
-        try {
-            onTrigger(context, session);
-            session.commit();
-        } catch (final Throwable t) {
-            session.rollback(true);
-            throw t;
-        }
+    public ActiveTask(final long startTime) {
+        this.startTime = startTime;
     }
 
-    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public boolean isTerminated() {
+        return terminated;
+    }
+
+    public void terminate() {
+        this.terminated = true;
+    }
 }

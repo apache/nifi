@@ -682,4 +682,8 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public void onComponentModified() {
     }
+
+    @Override
+    public void terminateProcessor(ProcessorNode processor) {
+    }
 }

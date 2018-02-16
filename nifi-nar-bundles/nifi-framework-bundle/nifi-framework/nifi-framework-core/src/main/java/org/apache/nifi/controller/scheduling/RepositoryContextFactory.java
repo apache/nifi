@@ -23,10 +23,10 @@ import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.repository.ProcessContext;
+import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 
-public class ProcessContextFactory {
+public class RepositoryContextFactory {
 
     private final ContentRepository contentRepo;
     private final FlowFileRepository flowFileRepo;
@@ -34,7 +34,7 @@ public class ProcessContextFactory {
     private final CounterRepository counterRepo;
     private final ProvenanceEventRepository provenanceRepo;
 
-    public ProcessContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
+    public RepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
             final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository,
             final ProvenanceEventRepository provenanceRepository) {
 
@@ -45,7 +45,7 @@ public class ProcessContextFactory {
         this.provenanceRepo = provenanceRepository;
     }
 
-    public ProcessContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
-        return new ProcessContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+    public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
+        return new RepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
     }
 }

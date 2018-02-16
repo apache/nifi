@@ -14,23 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
 
-import org.apache.nifi.processor.exception.ProcessException;
+package org.apache.nifi.controller.tasks;
 
-public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor {
+public interface InvocationResult {
+    boolean isYield();
 
-    @Override
-    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        final ProcessSession session = sessionFactory.createSession();
-        try {
-            onTrigger(context, session);
-            session.commit();
-        } catch (final Throwable t) {
-            session.rollback(true);
-            throw t;
+    String getYieldExplanation();
+
+
+    public static InvocationResult DO_NOT_YIELD = new InvocationResult() {
+        @Override
+        public boolean isYield() {
+            return false;
         }
-    }
 
-    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
+        @Override
+        public String getYieldExplanation() {
+            return null;
+        }
+    };
+
+    public static InvocationResult yield(final String explanation) {
+        return new InvocationResult() {
+            @Override
+            public boolean isYield() {
+                return true;
+            }
+
+            @Override
+            public String getYieldExplanation() {
+                return explanation;
+            }
+        };
+    }
 }

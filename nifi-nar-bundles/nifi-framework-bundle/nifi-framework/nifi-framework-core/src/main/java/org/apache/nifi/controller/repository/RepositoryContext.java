@@ -35,7 +35,7 @@ import org.apache.nifi.util.Connectables;
 /**
  *
  */
-public class ProcessContext {
+public class RepositoryContext {
 
     private final Connectable connectable;
     private final ContentRepository contentRepo;
@@ -45,7 +45,7 @@ public class ProcessContext {
     private final ProvenanceEventRepository provenanceRepo;
     private final AtomicLong connectionIndex;
 
-    public ProcessContext(final Connectable connectable, final AtomicLong connectionIndex, final ContentRepository contentRepository,
+    public RepositoryContext(final Connectable connectable, final AtomicLong connectionIndex, final ContentRepository contentRepository,
             final FlowFileRepository flowFileRepository, final FlowFileEventRepository flowFileEventRepository,
             final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository) {
         this.connectable = connectable;

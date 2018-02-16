@@ -235,6 +235,8 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
      */
     void yield();
 
+    void yield(long yieldDuration, TimeUnit timeUnit);
+
     /**
      * @return the time in milliseconds since Epoch at which this Connectable
      * should no longer yield its threads
@@ -246,6 +248,26 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
      * with respect to external systems
      */
     boolean isSideEffectFree();
+
+    default boolean isIsolated() {
+        return false;
+    }
+
+    default boolean isTriggerWhenAnyDestinationAvailable() {
+        return false;
+    }
+
+    default long getRunDuration(TimeUnit timeUnit) {
+        return 0L;
+    }
+
+    default Object getRunnableComponent() {
+        return this;
+    }
+
+    default boolean isSessionBatchingSupported() {
+        return false;
+    }
 
     void verifyCanDelete() throws IllegalStateException;
 
