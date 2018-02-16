@@ -16,6 +16,47 @@
  */
 package org.apache.nifi.controller.repository;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.notNull;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -55,53 +96,12 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.notNull;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 public class TestStandardProcessSession {
 
     private StandardProcessSession session;
     private MockContentRepository contentRepo;
     private FlowFileQueue flowFileQueue;
-    private ProcessContext context;
+    private RepositoryContext context;
     private Connectable connectable;
 
     private ProvenanceEventRepository provenanceRepo;
@@ -188,11 +188,10 @@ public class TestStandardProcessSession {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository();
 
-        context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
-        session = new StandardProcessSession(context);
+        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        session = new StandardProcessSession(context, () -> false);
     }
 
-    @SuppressWarnings("unchecked")
     private Connection createConnection() {
         AtomicReference<FlowFileQueue> queueReference = new AtomicReference<>(flowFileQueue);
         Connection connection = createConnection(queueReference);
@@ -261,6 +260,7 @@ public class TestStandardProcessSession {
             }
         }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 
+        Mockito.when(connection.getIdentifier()).thenReturn("conn-uuid");
         return connection;
     }
 
@@ -1232,7 +1232,7 @@ public class TestStandardProcessSession {
 
         StandardProcessSession[] standardProcessSessions = new StandardProcessSession[100000];
         for (int i = 0; i < 70000; i++) {
-            standardProcessSessions[i] = new StandardProcessSession(context);
+            standardProcessSessions[i] = new StandardProcessSession(context, () -> false);
 
             FlowFile flowFile = standardProcessSessions[i].create();
             final byte[] buff = new byte["Hello".getBytes().length];
@@ -1805,7 +1805,7 @@ public class TestStandardProcessSession {
         flowFile = session.append(flowFile, out -> out.write("1".getBytes()));
         flowFile = session.append(flowFile, out -> out.write("2".getBytes()));
 
-        final StandardProcessSession newSession = new StandardProcessSession(context);
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false);
 
         assertTrue(session.isFlowFileKnown(flowFile));
         assertFalse(newSession.isFlowFileKnown(flowFile));

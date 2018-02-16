@@ -14,23 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
 
-import org.apache.nifi.processor.exception.ProcessException;
+package org.apache.nifi.processor.exception;
 
-public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor {
+import java.io.InputStream;
+import java.io.OutputStream;
 
-    @Override
-    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        final ProcessSession session = sessionFactory.createSession();
-        try {
-            onTrigger(context, session);
-            session.commit();
-        } catch (final Throwable t) {
-            session.rollback(true);
-            throw t;
-        }
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+
+/**
+ * This Exception is thrown whenever a user terminates a Processor and the
+ * Processor subsequently attempts to call a method on a {@link ProcessSession},
+ * {@link ProcessSessionFactory}, {@link ProcessContext}, or an
+ * {@link InputStream} or {@link OutputStream} that were generated from the associated
+ * Process Sessions
+ */
+public class TerminatedTaskException extends ProcessException {
+    public TerminatedTaskException() {
+        super();
     }
-
-    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 }

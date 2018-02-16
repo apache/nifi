@@ -14,23 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
 
-import org.apache.nifi.processor.exception.ProcessException;
+package org.apache.nifi.controller.lifecycle;
 
-public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor {
-
-    @Override
-    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        final ProcessSession session = sessionFactory.createSession();
-        try {
-            onTrigger(context, session);
-            session.commit();
-        } catch (final Throwable t) {
-            session.rollback(true);
-            throw t;
-        }
-    }
-
-    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
+public interface TaskTermination {
+    /**
+     * @return <code>true</code> if the task that is being executed by the current Thread has been terminated,
+     *         <code>false</code> otherwise.
+     */
+    boolean isTerminated();
 }

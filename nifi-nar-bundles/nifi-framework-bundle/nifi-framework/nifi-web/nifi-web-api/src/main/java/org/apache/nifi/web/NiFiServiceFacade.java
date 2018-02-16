@@ -526,6 +526,21 @@ public interface NiFiServiceFacade {
     ProcessorEntity getProcessor(String id);
 
     /**
+     * Terminates the Processor with the specified id
+     *
+     * @param id Id of the processor to terminate
+     * @return The Processor transfer object
+     */
+    ProcessorEntity terminateProcessor(String id);
+
+    /**
+     * Verifies that the processor with the given id can be terminated at this time
+     *
+     * @param processorId the id of the processor
+     */
+    void verifyTerminateProcessor(String processorId);
+
+    /**
      * Gets the Diagnostic information for the Processor with the specified id
      *
      * @param id the id of the processor
