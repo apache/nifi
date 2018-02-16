@@ -318,6 +318,19 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
+    public void verifyTerminate(final String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
+        processor.verifyCanTerminate();
+    }
+
+    @Override
+    public void terminate(final String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
+        processor.getProcessGroup().terminateProcessor(processor);
+    }
+
+
+    @Override
     public void verifyUpdate(final ProcessorDTO processorDTO) {
         verifyUpdate(locateProcessor(processorDTO.getId()), processorDTO);
     }
