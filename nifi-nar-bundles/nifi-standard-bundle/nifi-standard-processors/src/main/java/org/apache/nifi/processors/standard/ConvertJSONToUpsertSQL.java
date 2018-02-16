@@ -71,12 +71,12 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
 @SupportsBatching
 @SeeAlso(PutSQL.class)
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"json", "sql", "database", "rdbms", "insert", "update", "delete", "relational", "flat"})
-@CapabilityDescription("Converts a JSON-formatted FlowFile into an UPDATE, INSERT, or DELETE SQL statement. The incoming FlowFile is expected to be "
+@Tags({"json", "sql", "database", "rdbms", "insert", "update", "delete", "relational", "flat","upsert"})
+@CapabilityDescription("Splits a JSON-formatted FlowFile into an UPDATE and an INSERT SQL statement. The incoming FlowFile is expected to be "
         + "\"flat\" JSON message, meaning that it consists of a single JSON element and each field maps to a simple type. If a field maps to "
         + "a JSON object, that JSON object will be interpreted as Text. If the input is an array of JSON elements, each element in the array is "
         + "output as a separate FlowFile to the 'sql' relationship. Upon successful conversion, the original FlowFile is routed to the 'original' "
-        + "relationship and the SQL is routed to the 'sql' relationship.")
+        + "relationship ,the Update SQL is routed to the 'update_sql' relationship and the Insert SQL is routed to the 'insert_sql' relationship")
 @WritesAttributes({
         @WritesAttribute(attribute="mime.type", description="Sets mime.type of FlowFile that is routed to 'sql' to 'text/plain'."),
         @WritesAttribute(attribute = "<sql>.table", description = "Sets the <sql>.table attribute of FlowFile that is routed to 'sql' to the name of the table that is updated by the SQL statement. "
@@ -211,7 +211,7 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
 
 
     /**
-     * A FlowFile is routed to this relationship when its contents have successfully been converted into a SQL statement,update sql
+     * A FlowFile is routed to this relationship when its contents have successfully been converted into a Update SQL statement.
      */
     static final Relationship REL_UPDATE_SQL = new Relationship.Builder()
             .name("update_sql")
@@ -219,7 +219,9 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
             .build();
 
 
-
+    /**
+     * A FlowFile is routed to this relationship when its contents have successfully been converted into a Insert SQL statement.
+     */
     static final Relationship REL_INSERT_SQL = new Relationship.Builder()
             .name("insert_sql")
             .description("A FlowFile is routed to this relationship when its contents have successfully been converted into a Insert SQL statement")
@@ -286,7 +288,6 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
 
         final boolean translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
         final boolean ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
-//        final String statementType = context.getProperty(STATEMENT_TYPE).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
         getLogger().debug("updateKeys {}", new Object[] {updateKeys});
 
@@ -295,8 +296,7 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final SchemaKey schemaKey = new SchemaKey(catalog, tableName);
-        final boolean includePrimaryKeys = true; //UPDATE_TYPE.equals(statementType) && updateKeys == null;
-
+        final boolean includePrimaryKeys = true;
 
         // Is the unmatched column behaviour fail or warning?
         final boolean failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
@@ -437,7 +437,7 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
                     }
 
 
-                    // select to determine which way to through
+                    // select to determine which way to go
                     if(stmt == null) {
 
                         stmt = conn.prepareStatement(sqlSelect, Statement.RETURN_GENERATED_KEYS);
@@ -480,7 +480,7 @@ public class ConvertJSONToUpsertSQL extends AbstractProcessor {
                     sqlUpdate = generateUpdate(jsonNode, attributesUpdate, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
                             failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
 
-                    getLogger().debug("SQLs: {},{} ",new Object[]{sqlInsert,sqlUpdate});
+                    getLogger().debug("Upsert SQLs: {},{} ",new Object[]{sqlInsert,sqlUpdate});
 
                 } catch (final ProcessException pe) {
                     getLogger().error("Failed to convert {} to a SQL  statement due to {}; routing to failure",

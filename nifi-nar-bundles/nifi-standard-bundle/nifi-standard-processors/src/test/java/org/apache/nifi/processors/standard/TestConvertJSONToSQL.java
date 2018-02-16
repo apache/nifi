@@ -689,81 +689,82 @@ public class TestConvertJSONToSQL {
 
     } // End testUpdateWithMissingColumnIgnore()
 
-    /**
-     *  Test create correct SQL String representation of value.
-     *  Use PutSQL processor to verify converted value can be used and don't fail.
-     */
-    @Test
-    public void testCreateSqlStringValue() throws ProcessException, SQLException, JsonGenerationException, JsonMappingException, IOException, InitializationException {
-        final TestRunner putSqlRunner = TestRunners.newTestRunner(PutSQL.class);
-
-        final AtomicInteger id = new AtomicInteger(20);
-
-        putSqlRunner.addControllerService("dbcp", service);
-        putSqlRunner.enableControllerService(service);
-        putSqlRunner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-        putSqlRunner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
-
-        String tableName = "DIFTYPES";
-        ObjectMapper mapper = new ObjectMapper();
-        ResultSet colrs = null;
-        try (final Connection conn = service.getConnection()) {
-            try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(createDifferentTypes);
-            }
-            colrs = conn.getMetaData().getColumns(null, null, tableName, "%");
-            while (colrs.next()) {
-                final int sqlType = colrs.getInt("DATA_TYPE");
-                final int colSize = colrs.getInt("COLUMN_SIZE");
-                switch (sqlType) {
-                case Types.BOOLEAN:
-                    String json = mapper.writeValueAsString("true");
-                    JsonNode fieldNode = mapper.readTree(json);
-                    String booleanString = ConvertJSONToSQL.createSqlStringValue(fieldNode, colSize, sqlType);
-                    assertEquals("true",booleanString);
-
-                    Map<String, String> attributes = new HashMap<>();
-                    attributes.put("sql.args.1.type", String.valueOf(sqlType));
-                    attributes.put("sql.args.1.value", booleanString);
-
-                    byte[] data = ("INSERT INTO DIFTYPES (ID, B) VALUES (" + id.incrementAndGet() + ", ?)").getBytes();
-                    putSqlRunner.enqueue(data, attributes);
-                    putSqlRunner.run();
-                    List<MockFlowFile> failed = putSqlRunner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
-                    putSqlRunner.assertTransferCount(PutSQL.REL_SUCCESS, 1);
-                    putSqlRunner.assertTransferCount(PutSQL.REL_FAILURE, 0);
-                    putSqlRunner.clearTransferState();
-                    break;
-
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                    json = mapper.writeValueAsString("78895654.6575");
-                    fieldNode = mapper.readTree(json);
-                    String numberString = ConvertJSONToSQL.createSqlStringValue(fieldNode, colSize, sqlType);
-                    assertEquals("78895654.6575",numberString);
-
-                    attributes = new HashMap<>();
-                    attributes.put("sql.args.1.type", String.valueOf(sqlType));
-                    attributes.put("sql.args.1.value", numberString);
-
-                    data = ("INSERT INTO DIFTYPES (ID, dbl) VALUES (" + id.incrementAndGet() + ", ?)").getBytes();
-                    putSqlRunner.enqueue(data, attributes);
-                    putSqlRunner.run();
-                    failed = putSqlRunner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
-                    putSqlRunner.assertTransferCount(PutSQL.REL_SUCCESS, 1);
-                    putSqlRunner.assertTransferCount(PutSQL.REL_FAILURE, 0);
-                    putSqlRunner.clearTransferState();
-                    break;
-
-                default:
-                    break;
-                }
-
-            }
-
-        }
-
-    }
+//    /**
+//     *  Test create correct SQL String representation of value.
+//     *  Use PutSQL processor to verify converted value can be used and don't fail.
+//     *  // todo: This part has moved to JdbcCommom
+//     */
+//    @Test
+//    public void testCreateSqlStringValue() throws ProcessException, SQLException, JsonGenerationException, JsonMappingException, IOException, InitializationException {
+//        final TestRunner putSqlRunner = TestRunners.newTestRunner(PutSQL.class);
+//
+//        final AtomicInteger id = new AtomicInteger(20);
+//
+//        putSqlRunner.addControllerService("dbcp", service);
+//        putSqlRunner.enableControllerService(service);
+//        putSqlRunner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+//        putSqlRunner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+//
+//        String tableName = "DIFTYPES";
+//        ObjectMapper mapper = new ObjectMapper();
+//        ResultSet colrs = null;
+//        try (final Connection conn = service.getConnection()) {
+//            try (final Statement stmt = conn.createStatement()) {
+//                stmt.executeUpdate(createDifferentTypes);
+//            }
+//            colrs = conn.getMetaData().getColumns(null, null, tableName, "%");
+//            while (colrs.next()) {
+//                final int sqlType = colrs.getInt("DATA_TYPE");
+//                final int colSize = colrs.getInt("COLUMN_SIZE");
+//                switch (sqlType) {
+//                case Types.BOOLEAN:
+//                    String json = mapper.writeValueAsString("true");
+//                    JsonNode fieldNode = mapper.readTree(json);
+//                    String booleanString = ConvertJSONToSQL.createSqlStringValue(fieldNode, colSize, sqlType);
+//                    assertEquals("true",booleanString);
+//
+//                    Map<String, String> attributes = new HashMap<>();
+//                    attributes.put("sql.args.1.type", String.valueOf(sqlType));
+//                    attributes.put("sql.args.1.value", booleanString);
+//
+//                    byte[] data = ("INSERT INTO DIFTYPES (ID, B) VALUES (" + id.incrementAndGet() + ", ?)").getBytes();
+//                    putSqlRunner.enqueue(data, attributes);
+//                    putSqlRunner.run();
+//                    List<MockFlowFile> failed = putSqlRunner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+//                    putSqlRunner.assertTransferCount(PutSQL.REL_SUCCESS, 1);
+//                    putSqlRunner.assertTransferCount(PutSQL.REL_FAILURE, 0);
+//                    putSqlRunner.clearTransferState();
+//                    break;
+//
+//                case Types.FLOAT:
+//                case Types.DOUBLE:
+//                    json = mapper.writeValueAsString("78895654.6575");
+//                    fieldNode = mapper.readTree(json);
+//                    String numberString = ConvertJSONToSQL.createSqlStringValue(fieldNode, colSize, sqlType);
+//                    assertEquals("78895654.6575",numberString);
+//
+//                    attributes = new HashMap<>();
+//                    attributes.put("sql.args.1.type", String.valueOf(sqlType));
+//                    attributes.put("sql.args.1.value", numberString);
+//
+//                    data = ("INSERT INTO DIFTYPES (ID, dbl) VALUES (" + id.incrementAndGet() + ", ?)").getBytes();
+//                    putSqlRunner.enqueue(data, attributes);
+//                    putSqlRunner.run();
+//                    failed = putSqlRunner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+//                    putSqlRunner.assertTransferCount(PutSQL.REL_SUCCESS, 1);
+//                    putSqlRunner.assertTransferCount(PutSQL.REL_FAILURE, 0);
+//                    putSqlRunner.clearTransferState();
+//                    break;
+//
+//                default:
+//                    break;
+//                }
+//
+//            }
+//
+//        }
+//
+//    }
 
     @Test
     public void testDelete() throws InitializationException, ProcessException, SQLException, IOException {

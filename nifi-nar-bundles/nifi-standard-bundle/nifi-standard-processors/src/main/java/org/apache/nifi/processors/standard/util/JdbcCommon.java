@@ -1026,9 +1026,22 @@ public class JdbcCommon {
     }
 
 
-
-
-
+    /**
+     * todo getLogger has been removed
+     * @param rootNode
+     * @param attributes
+     * @param tableName
+     * @param updateKeys
+     * @param schema
+     * @param translateFieldNames
+     * @param ignoreUnmappedFields
+     * @param failUnmappedColumns
+     * @param warningUnmappedColumns
+     * @param escapeColumnNames
+     * @param quoteTableName
+     * @param attributePrefix
+     * @return Select Sql
+     */
     public static String generateSelect(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
@@ -1127,8 +1140,22 @@ public class JdbcCommon {
     }
 
 
-
-
+    /**
+     * todo getLogger has been removed
+     * @param rootNode
+     * @param attributes
+     * @param tableName
+     * @param updateKeys
+     * @param schema
+     * @param translateFieldNames
+     * @param ignoreUnmappedFields
+     * @param failUnmappedColumns
+     * @param warningUnmappedColumns
+     * @param escapeColumnNames
+     * @param quoteTableName
+     * @param attributePrefix
+     * @return Update Sql
+     */
     public static String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
@@ -1275,6 +1302,21 @@ public class JdbcCommon {
         return sqlBuilder.toString();
     }
 
+    /**
+     * todo getLogger has been removed
+     * @param rootNode
+     * @param attributes
+     * @param tableName
+     * @param schema
+     * @param translateFieldNames
+     * @param ignoreUnmappedFields
+     * @param failUnmappedColumns
+     * @param warningUnmappedColumns
+     * @param escapeColumnNames
+     * @param quoteTableName
+     * @param attributePrefix
+     * @return Delete Sql
+     */
     public static String generateDelete(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
@@ -1354,7 +1396,21 @@ public class JdbcCommon {
     }
 
 
-
+    /**
+     * todo getLogger has been removed
+     * @param rootNode
+     * @param attributes
+     * @param tableName
+     * @param schema
+     * @param translateFieldNames
+     * @param ignoreUnmappedFields
+     * @param failUnmappedColumns
+     * @param warningUnmappedColumns
+     * @param escapeColumnNames
+     * @param quoteTableName
+     * @param attributePrefix
+     * @return Insert
+     */
     public static String generateInsert(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
                                         final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
                                         final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
@@ -1441,6 +1497,14 @@ public class JdbcCommon {
     }
 
 
+    /**
+     * Count lines from a table
+     *
+     * @param tableName
+     * @param schema
+     * @param quoteTableName
+     * @return select sql with column `cnt`
+     */
     public static String generateSelectCount( final String tableName,
                                               final TableSchema schema,
                                               boolean quoteTableName ) {
