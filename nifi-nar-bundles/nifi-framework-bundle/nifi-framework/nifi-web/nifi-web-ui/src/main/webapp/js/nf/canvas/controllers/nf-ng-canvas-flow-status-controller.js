@@ -206,11 +206,16 @@
                             var parentGroup = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
                             parentGroupHeader = parentGroupHeader.append($('<span></span>').text(parentGroup));
 
-                            var topLevelGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Top level: '));
-                            var topLevelGroup = match.topLevelGroup.name ? match.topLevelGroup.name : match.topLevelGroup.id;
-                            topLevelGroupHeader = topLevelGroupHeader.append($('<span></span>').text(topLevelGroup));
+                            var versionedGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Versioned: '));
+                            var versionedGroup = '-';
+
+                            if (nfCommon.isDefinedAndNotNull(match.versionedGroup)) {
+                                versionedGroup = match.versionedGroup.name ? match.versionedGroup.name : match.versionedGroup.id;
+                            }
+
+                            versionedGroupHeader = versionedGroupHeader.append($('<span></span>').text(versionedGroup));
                             // create a search item wrapper
-                            var itemContent = $('<a></a>').append(itemHeader).append(parentGroupHeader).append(topLevelGroupHeader);
+                            var itemContent = $('<a></a>').append(itemHeader).append(parentGroupHeader).append(versionedGroupHeader);
                             // append all matches
                             $.each(match.matches, function (i, match) {
                                 itemContent.append($('<div class="search-match"></div>').text(match));

@@ -24,6 +24,8 @@ import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.junit.Before;
@@ -50,20 +52,20 @@ public class ControllerSearchServiceTest {
     }
 
     @Test
-    public void testSearchInRootLevelAllAuthorized() {
+    public void testSearchInRootLevelAllAuthorizedNoVersionControl() {
         // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry);
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
 
         // first level PGs
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry);
+        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
+        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
 
         // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry);
+        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
+        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
         // third level PGs
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, true, variableRegistry);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, true, variableRegistry);
+        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, true, variableRegistry, null);
+        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, true, variableRegistry, null);
 
         // link PGs together
         Mockito.doReturn(new HashSet<ProcessGroup>() {
@@ -101,25 +103,24 @@ public class ControllerSearchServiceTest {
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("rootId"));
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName().equals("root"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getTopLevelGroup().getId().equals("rootId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getTopLevelGroup().getName().equals("root"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() == null);
     }
 
     @Test
-    public void testSearchInThirdLevelAllAuthorized() {
+    public void testSearchInThirdLevelAllAuthorizedNoVersionControl() {
         // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry);
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
 
         // first level PGs
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry);
+        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
+        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
 
         // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry);
+        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
+        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
         // third level PGs
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, true, variableRegistry);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, true, variableRegistry);
+        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, true, variableRegistry, null);
+        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, true, variableRegistry, null);
 
         // link PGs together
         Mockito.doReturn(new HashSet<ProcessGroup>() {
@@ -158,25 +159,24 @@ public class ControllerSearchServiceTest {
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName().equals("thirdLevelA"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getTopLevelGroup().getId().equals("firstLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getTopLevelGroup().getName().equals("firstLevelA"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() == null);
     }
 
     @Test
-    public void testSearchInThirdLevelParentNotAuthorized() {
+    public void testSearchInThirdLevelParentNotAuthorizedNoVersionControl() {
         // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry);
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
 
         // first level PGs
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry);
+        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
+        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
 
         // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry);
+        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
+        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
         // third level PGs - not authorized
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, false, variableRegistry);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, false, variableRegistry);
+        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, false, variableRegistry, null);
+        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, false, variableRegistry, null);
 
         // link PGs together
         Mockito.doReturn(new HashSet<ProcessGroup>() {
@@ -215,8 +215,125 @@ public class ControllerSearchServiceTest {
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName() == null);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getTopLevelGroup().getId().equals("firstLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getTopLevelGroup().getName().equals("firstLevelA"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() == null);
+    }
+
+    @Test
+    public void testSearchInThirdLevelParentNotAuthorizedWithVersionControl() {
+        // root level PG
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+
+        // first level PGs
+        final VersionControlInformation versionControlInformation = setupVC();
+        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, versionControlInformation);
+        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
+
+        // second level PGs
+        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
+        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
+        // third level PGs - not authorized
+        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, false, variableRegistry, null);
+        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, false, variableRegistry, null);
+
+        // link PGs together
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(firstLevelAProcessGroup);
+                add(firstLevelBProcessGroup);
+            }
+        }).when(rootProcessGroup).getProcessGroups();
+
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(secondLevelAProcessGroup);
+            }
+        }).when(firstLevelAProcessGroup).getProcessGroups();
+
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(secondLevelBProcessGroup);
+            }
+        }).when(firstLevelBProcessGroup).getProcessGroups();
+
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(thirdLevelAProcessGroup);
+                add(thirdLevelBProcessGroup);
+            }
+        }).when(secondLevelAProcessGroup).getProcessGroups();
+
+        // setup processor
+        setupMockedProcessor("foobar", thirdLevelAProcessGroup, true, variableRegistry);
+
+        // perform search
+        service.search(searchResultsDTO, "foo", rootProcessGroup);
+
+        assertTrue(searchResultsDTO.getProcessorResults().size() == 1);
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName() == null);
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() != null);
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getId().equals("firstLevelAId"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getName().equals("firstLevelA"));
+    }
+
+    @Test
+    public void testSearchInThirdLevelParentNotAuthorizedWithVersionControlInTheGroup() {
+        // root level PG
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+
+        // first level PGs
+        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
+        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
+
+        // second level PGs
+        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
+        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
+        // third level PGs - not authorized
+        final VersionControlInformation versionControlInformation = setupVC();
+        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, false, variableRegistry, versionControlInformation);
+        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, false, variableRegistry, null);
+
+        // link PGs together
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(firstLevelAProcessGroup);
+                add(firstLevelBProcessGroup);
+            }
+        }).when(rootProcessGroup).getProcessGroups();
+
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(secondLevelAProcessGroup);
+            }
+        }).when(firstLevelAProcessGroup).getProcessGroups();
+
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(secondLevelBProcessGroup);
+            }
+        }).when(firstLevelBProcessGroup).getProcessGroups();
+
+        Mockito.doReturn(new HashSet<ProcessGroup>() {
+            {
+                add(thirdLevelAProcessGroup);
+                add(thirdLevelBProcessGroup);
+            }
+        }).when(secondLevelAProcessGroup).getProcessGroups();
+
+        // setup processor
+        setupMockedProcessor("foobar", thirdLevelAProcessGroup, true, variableRegistry);
+
+        // perform search
+        service.search(searchResultsDTO, "foo", rootProcessGroup);
+
+        assertTrue(searchResultsDTO.getProcessorResults().size() == 1);
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName() == null);
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() != null);
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getId().equals("thirdLevelAId"));
+        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getName() == null);
     }
 
     /**
@@ -254,20 +371,35 @@ public class ControllerSearchServiceTest {
      * @param parent           The parent process group
      * @param authorizedToRead Can the process group data be read?
      * @param variableRegistry The variable registry
+     * @param versionControlInformation The version control information
      * @return Mocked process group
      */
-    private static ProcessGroup setupMockedProcessGroup(final String processGroupName, final ProcessGroup parent, boolean authorizedToRead, final VariableRegistry variableRegistry) {
+    private static ProcessGroup setupMockedProcessGroup(final String processGroupName, final ProcessGroup parent, boolean authorizedToRead, final VariableRegistry variableRegistry,
+                                                        final VersionControlInformation versionControlInformation) {
         final String processGroupId = processGroupName + "Id";
         final ProcessGroup processGroup = mock(ProcessGroup.class);
 
         Mockito.doReturn(processGroupId).when(processGroup).getIdentifier();
         Mockito.doReturn(processGroupName).when(processGroup).getName();
         Mockito.doReturn(parent).when(processGroup).getParent();
+        Mockito.doReturn(versionControlInformation).when(processGroup).getVersionControlInformation();
         Mockito.doReturn(variableRegistry).when(processGroup).getVariableRegistry();
         Mockito.doReturn(parent == null).when(processGroup).isRootGroup();
         // override process group's access rights
         Mockito.doReturn(authorizedToRead).when(processGroup).isAuthorized(any(Authorizer.class), eq(RequestAction.READ), any(NiFiUser.class));
 
         return processGroup;
+    }
+
+    /**
+     * Creates a version control information using dummy attributes.
+     *
+     * @return Dummy version control information
+     */
+    private static VersionControlInformation setupVC() {
+        final StandardVersionControlInformation.Builder builder = new StandardVersionControlInformation.Builder();
+        builder.registryId("regId").bucketId("bucId").flowId("flowId").version(1);
+
+        return builder.build();
     }
 }

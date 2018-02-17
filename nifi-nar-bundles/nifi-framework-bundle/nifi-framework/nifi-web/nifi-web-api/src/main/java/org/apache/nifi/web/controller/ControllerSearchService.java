@@ -80,7 +80,7 @@ public class ControllerSearchService {
             if (groupMatch != null) {
                 // get the parent group, not the current one
                 groupMatch.setParentGroup(buildResultGroup(group.getParent(), user));
-                groupMatch.setTopLevelGroup(buildTopLevelGroup(group.getParent(), user));
+                groupMatch.setVersionedGroup(buildVersionedGroup(group.getParent(), user));
                 results.getProcessGroupResults().add(groupMatch);
             }
         }
@@ -91,7 +91,7 @@ public class ControllerSearchService {
                 if (match != null) {
                     match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
-                    match.setTopLevelGroup(buildTopLevelGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
                     results.getProcessorResults().add(match);
                 }
             }
@@ -103,7 +103,7 @@ public class ControllerSearchService {
                 if (match != null) {
                     match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
-                    match.setTopLevelGroup(buildTopLevelGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
                     results.getConnectionResults().add(match);
                 }
             }
@@ -115,7 +115,7 @@ public class ControllerSearchService {
                 if (match != null) {
                     match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
-                    match.setTopLevelGroup(buildTopLevelGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
                     results.getRemoteProcessGroupResults().add(match);
                 }
             }
@@ -127,7 +127,7 @@ public class ControllerSearchService {
                 if (match != null) {
                     match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
-                    match.setTopLevelGroup(buildTopLevelGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
                     results.getInputPortResults().add(match);
                 }
             }
@@ -139,7 +139,7 @@ public class ControllerSearchService {
                 if (match != null) {
                     match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
-                    match.setTopLevelGroup(buildTopLevelGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
                     results.getOutputPortResults().add(match);
                 }
             }
@@ -151,7 +151,7 @@ public class ControllerSearchService {
                 if (match != null) {
                     match.setGroupId(group.getIdentifier());
                     match.setParentGroup(buildResultGroup(group, user));
-                    match.setTopLevelGroup(buildTopLevelGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
                     results.getFunnelResults().add(match);
                 }
             }
@@ -466,31 +466,32 @@ public class ControllerSearchService {
     }
 
     /**
-     * Builds the highest parent level excluding the root one result group for a given user.
+     * Builds the nearest versioned parent result group for a given user.
      *
      * @param group The containing group
      * @param user The current NiFi user
-     * @return Parent group
+     * @return Versioned parent group
      */
-    private SearchResultGroupDTO buildTopLevelGroup(final ProcessGroup group, final NiFiUser user) {
+    private SearchResultGroupDTO buildVersionedGroup(final ProcessGroup group, final NiFiUser user) {
         if (group == null) {
             return null;
-        }
-
-        if (group.isRootGroup()) {
-            return buildResultGroup(group, user);
         }
 
         ProcessGroup tmpParent = group.getParent();
         ProcessGroup tmpGroup = group;
 
-        // traverse the group tree back to its root
-        while (tmpParent != null && !tmpParent.isRootGroup()) {
+        // search for a versioned group by traversing the group tree up to the root
+        while (!tmpGroup.isRootGroup()) {
+            if (tmpGroup.getVersionControlInformation() != null) {
+                return buildResultGroup(tmpGroup, user);
+            }
+
             tmpGroup = tmpParent;
             tmpParent = tmpGroup.getParent();
         }
 
-        return buildResultGroup(tmpGroup, user);
+        // traversed all the way to the root
+        return null;
     }
 
     /**

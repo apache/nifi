@@ -30,7 +30,7 @@ public class ComponentSearchResultDTO {
     private String id;
     private String groupId;
     private SearchResultGroupDTO parentGroup;
-    private SearchResultGroupDTO topLevelGroup;
+    private SearchResultGroupDTO versionedGroup;
     private String name;
     private List<String> matches;
 
@@ -77,17 +77,17 @@ public class ComponentSearchResultDTO {
     }
 
     /**
-     * @return top level ancestor group of the component that matched
+     * @return the nearest versioned ancestor group of the component that matched
      */
     @ApiModelProperty(
-            value = "The top level ancestor group of the component that matched the search."
+            value = "The nearest versioned ancestor group of the component that matched the search."
     )
-    public SearchResultGroupDTO getTopLevelGroup() {
-        return topLevelGroup;
+    public SearchResultGroupDTO getVersionedGroup() {
+        return versionedGroup;
     }
 
-    public void setTopLevelGroup(final SearchResultGroupDTO topLevelGroup) {
-        this.topLevelGroup = topLevelGroup;
+    public void setVersionedGroup(final SearchResultGroupDTO versionedGroup) {
+        this.versionedGroup = versionedGroup;
     }
 
     /**
