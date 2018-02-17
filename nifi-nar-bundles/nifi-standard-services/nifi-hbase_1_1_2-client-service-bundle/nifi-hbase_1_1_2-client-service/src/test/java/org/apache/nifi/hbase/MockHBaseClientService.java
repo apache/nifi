@@ -157,6 +157,14 @@ public class MockHBaseClientService extends HBase_1_1_2_ClientService {
     }
 
     @Override
+    protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
+            final Integer limitRows, final Boolean isReversed, final Collection<Column> columns)  throws IOException {
+        final ResultScanner scanner = Mockito.mock(ResultScanner.class);
+        Mockito.when(scanner.iterator()).thenReturn(results.iterator());
+        return scanner;
+    }
+
+    @Override
     protected Connection createConnection(ConfigurationContext context) throws IOException {
         Connection connection = Mockito.mock(Connection.class);
         Mockito.when(connection.getTable(table.getName())).thenReturn(table);
