@@ -153,6 +153,24 @@ public class MockHBaseClientService extends AbstractControllerService implements
         numScans++;
     }
 
+    @Override
+    public void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin,
+            Long timerangeMax, Integer limitRows, Boolean isReversed, Collection<Column> columns, ResultHandler handler)
+            throws IOException {
+        if (throwException) {
+            throw new IOException("exception");
+        }
+
+        // pass all the staged data to the handler
+        for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
+            handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());
+        }
+
+        // delegate to the handler
+
+        numScans++;
+    }
+
     public void addResult(final String rowKey, final Map<String, String> cells, final long timestamp) {
         final byte[] rowArray = rowKey.getBytes(StandardCharsets.UTF_8);
 
