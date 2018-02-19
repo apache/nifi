@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
 public class WriteAheadStorePartition implements EventStorePartition {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadStorePartition.class);
 
-
     private final RepositoryConfiguration config;
     private final File partitionDirectory;
     private final String partitionName;
@@ -253,48 +252,43 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final long nextEventId = idGenerator.get();
         final File updatedEventFile = new File(partitionDirectory, nextEventId + ".prov");
         final RecordWriter updatedWriter = recordWriterFactory.createWriter(updatedEventFile, idGenerator, false, true);
+        updatedWriter.writeHeader(nextEventId);
 
-        // Synchronize on the writer to ensure that no other thread is able to obtain the writer and start writing events to it until after it has
-        // been fully initialized (i.e., the header has been written, etc.)
-        synchronized (updatedWriter) {
-            final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount());
-            final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
+        final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount());
+        final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
 
-            if (updated) {
-                if (lease != null) {
-                    lease.close();
-                }
+        if (!updated) {
+            try {
+                updatedWriter.close();
+            } catch (final Exception e) {
+                logger.warn("Failed to close Record Writer {}; some resources may not be cleaned up properly.", updatedWriter, e);
+            }
 
-                updatedWriter.writeHeader(nextEventId);
+            updatedEventFile.delete();
+            return false;
+        }
 
-                synchronized (minEventIdToPathMap) {
-                    minEventIdToPathMap.put(nextEventId, updatedEventFile);
-                }
+        if (lease != null) {
+            lease.close();
+        }
 
-                if (config.isCompressOnRollover() && lease != null && lease.getWriter() != null) {
-                    boolean offered = false;
-                    while (!offered && !closed) {
-                        try {
-                            offered = filesToCompress.offer(lease.getWriter().getFile(), 1, TimeUnit.SECONDS);
-                        } catch (final InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new IOException("Interrupted while waiting to enqueue " + lease.getWriter().getFile() + " for compression");
-                        }
-                    }
-                }
+        synchronized (minEventIdToPathMap) {
+            minEventIdToPathMap.put(nextEventId, updatedEventFile);
+        }
 
-                return true;
-            } else {
+        if (config.isCompressOnRollover() && lease != null && lease.getWriter() != null) {
+            boolean offered = false;
+            while (!offered && !closed) {
                 try {
-                    updatedWriter.close();
-                } catch (final Exception e) {
-                    logger.warn("Failed to close Record Writer {}; some resources may not be cleaned up properly.", updatedWriter, e);
+                    offered = filesToCompress.offer(lease.getWriter().getFile(), 1, TimeUnit.SECONDS);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted while waiting to enqueue " + lease.getWriter().getFile() + " for compression");
                 }
-
-                updatedEventFile.delete();
-                return false;
             }
         }
+
+        return true;
     }
 
     private Map<ProvenanceEventRecord, StorageSummary> addEvents(final Iterable<ProvenanceEventRecord> events, final RecordWriter writer) throws IOException {

@@ -23,42 +23,29 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.timebuffer.LongEntityAccess;
-import org.apache.nifi.util.timebuffer.TimedBuffer;
-import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordReader.class);
 
-    private static final int DEFAULT_DEBUG_FREQUENCY = 1_000_000;
-
     private ProvenanceEventEncryptor provenanceEventEncryptor;
 
-    private static final TimedBuffer<TimestampedLong> decryptTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
-
-    private int debugFrequency = DEFAULT_DEBUG_FREQUENCY;
     public static final int SERIALIZATION_VERSION = 1;
 
     public static final String SERIALIZATION_NAME = "EncryptedSchemaRecordWriter";
 
-    public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars,
-                                       ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
-        this(inputStream, filename, tocReader, maxAttributeChars, provenanceEventEncryptor, DEFAULT_DEBUG_FREQUENCY);
-    }
 
     public EncryptedSchemaRecordReader(final InputStream inputStream, final String filename, final TocReader tocReader, final int maxAttributeChars,
-                                       ProvenanceEventEncryptor provenanceEventEncryptor, int debugFrequency) throws IOException {
+                                       ProvenanceEventEncryptor provenanceEventEncryptor) throws IOException {
         super(inputStream, filename, tocReader, maxAttributeChars);
         this.provenanceEventEncryptor = provenanceEventEncryptor;
-        this.debugFrequency = debugFrequency;
     }
 
     @Override
