@@ -29,6 +29,8 @@ public class ComponentSearchResultDTO {
 
     private String id;
     private String groupId;
+    private SearchResultGroupDTO parentGroup;
+    private SearchResultGroupDTO versionedGroup;
     private String name;
     private List<String> matches;
 
@@ -58,6 +60,34 @@ public class ComponentSearchResultDTO {
 
     public void setGroupId(String groupId) {
         this.groupId = groupId;
+    }
+
+    /**
+     * @return parent group of the component that matched
+     */
+    @ApiModelProperty(
+            value = "The parent group of the component that matched the search."
+    )
+    public SearchResultGroupDTO getParentGroup() {
+        return parentGroup;
+    }
+
+    public void setParentGroup(final SearchResultGroupDTO parentGroup) {
+        this.parentGroup = parentGroup;
+    }
+
+    /**
+     * @return the nearest versioned ancestor group of the component that matched
+     */
+    @ApiModelProperty(
+            value = "The nearest versioned ancestor group of the component that matched the search."
+    )
+    public SearchResultGroupDTO getVersionedGroup() {
+        return versionedGroup;
+    }
+
+    public void setVersionedGroup(final SearchResultGroupDTO versionedGroup) {
+        this.versionedGroup = versionedGroup;
     }
 
     /**
