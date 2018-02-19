@@ -21,14 +21,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.beans.PropertyDescriptor;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -48,6 +45,7 @@ import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.service.mock.ServiceC;
+import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
@@ -130,7 +128,7 @@ public class TestStandardControllerServiceProvider {
     }
 
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(null, null, stateManagerProvider, niFiProperties);
+        return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateManagerProvider, niFiProperties);
     }
 
     private void setProperty(ControllerServiceNode serviceNode, String propName, String propValue) {
@@ -202,75 +200,6 @@ public class TestStandardControllerServiceProvider {
                 Thread.sleep(50L);
             } catch (final InterruptedException e) {
             }
-        }
-    }
-
-    /**
-     * We run the same test 1000 times and prior to bug fix (see NIFI-1143) it
-     * would fail on some iteration. For more details please see
-     * {@link PropertyDescriptor}.isDependentServiceEnableable() as well as
-     * https://issues.apache.org/jira/browse/NIFI-1143
-     */
-    @Test(timeout = 120000)
-    public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException {
-        final StandardProcessScheduler scheduler = createScheduler();
-        for (int i = 0; i < 5000; i++) {
-            testEnableReferencingServicesGraph(scheduler);
-        }
-    }
-
-    public void testEnableReferencingServicesGraph(final StandardProcessScheduler scheduler) {
-        final ProcessGroup procGroup = new MockProcessGroup(controller);
-        final FlowController controller = Mockito.mock(FlowController.class);
-        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
-
-        final StandardControllerServiceProvider provider =
-                new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
-
-        // build a graph of controller services with dependencies as such:
-        //
-        // A -> B -> D
-        // C ---^----^
-        //
-        // In other words, A references B, which references D.
-        // AND
-        // C references B and D.
-        //
-        // So we have to verify that if D is enabled, when we enable its referencing services,
-        // we enable C and B, even if we attempt to enable C before B... i.e., if we try to enable C, we cannot do so
-        // until B is first enabled so ensure that we enable B first.
-        final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-        final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4",
-                systemBundle.getBundleDetails().getCoordinate(), null, false);
-
-        procGroup.addControllerService(serviceNode1);
-        procGroup.addControllerService(serviceNode2);
-        procGroup.addControllerService(serviceNode3);
-        procGroup.addControllerService(serviceNode4);
-
-        setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
-        setProperty(serviceNode2, ServiceA.OTHER_SERVICE.getName(), "4");
-        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "2");
-        setProperty(serviceNode3, ServiceA.OTHER_SERVICE_2.getName(), "4");
-
-        provider.enableControllerService(serviceNode4);
-        provider.enableReferencingServices(serviceNode4);
-
-        // Verify that the services are either ENABLING or ENABLED, and wait for all of them to become ENABLED.
-        // Note that we set a timeout of 10 seconds, in case a bug occurs and the services never become ENABLED.
-        final Set<ControllerServiceState> validStates = new HashSet<>();
-        validStates.add(ControllerServiceState.ENABLED);
-        validStates.add(ControllerServiceState.ENABLING);
-
-        while (serviceNode3.getState() != ControllerServiceState.ENABLED || serviceNode2.getState() != ControllerServiceState.ENABLED || serviceNode1.getState() != ControllerServiceState.ENABLED) {
-            assertTrue(validStates.contains(serviceNode3.getState()));
-            assertTrue(validStates.contains(serviceNode2.getState()));
-            assertTrue(validStates.contains(serviceNode1.getState()));
         }
     }
 

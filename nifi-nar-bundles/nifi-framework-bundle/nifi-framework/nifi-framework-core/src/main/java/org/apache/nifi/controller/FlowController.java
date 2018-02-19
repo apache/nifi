@@ -509,7 +509,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             throw new RuntimeException(e);
         }
 
-        processScheduler = new StandardProcessScheduler(this, encryptor, stateManagerProvider, this.nifiProperties);
+        processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, encryptor, stateManagerProvider, this.nifiProperties);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
         final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
@@ -1661,13 +1661,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     /**
      * Updates the number of threads that can be simultaneously used for
      * executing processors.
+     * This method must be called while holding the write lock!
      *
-     * @param maxThreadCount This method must be called while holding the write
-     * lock!
+     * @param maxThreadCount max number of threads
      */
     private void setMaxThreadCount(final int maxThreadCount, final FlowEngine engine, final AtomicInteger maxThreads) {
         if (maxThreadCount < 1) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Cannot set max number of threads to less than 2");
         }
 
         maxThreads.getAndSet(maxThreadCount);
