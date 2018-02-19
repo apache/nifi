@@ -120,8 +120,7 @@ public class TestAvroTypeUtil {
     /**
      * The issue consists on having an Avro's schema with a default value in an
      * array.
-     * 
-     * @throws IOException
+     * @throws IOException schema not found.
      */
     @Test
     public void testDefaultArrayValue1() throws IOException {
@@ -140,8 +139,7 @@ public class TestAvroTypeUtil {
     /**
      * The issue consists on having an Avro's schema with a default value in an
      * array.
-     * 
-     * @throws IOException
+     * @throws IOException schema not found.
      */
     @Test
     public void testDefaultArrayValue2() throws IOException {
@@ -155,7 +153,7 @@ public class TestAvroTypeUtil {
         RecordField field = record.getField("listOfInt").get();
         assertEquals(field.getDataType().getFieldType(), RecordFieldType.ARRAY);
         assertEquals(field.getDefaultValue().toString(), values.toString());
-    }	
+    }
 
     @Test
     // Simple recursion is a record A composing itself (similar to a LinkedList Node referencing 'next')
