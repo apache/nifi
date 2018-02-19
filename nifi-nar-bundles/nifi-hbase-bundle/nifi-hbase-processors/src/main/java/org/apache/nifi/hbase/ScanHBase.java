@@ -370,8 +370,8 @@ public class ScanHBase extends AbstractProcessor {
 
             try {
                 hBaseClientService.scan(tableName,
-                                        filterExpression,
                                         startRow, endRow,
+                                        filterExpression,
                                         timerangeMin, timerangeMax,
                                         limitRows,
                                         isReversed,
