@@ -51,6 +51,10 @@
                     <excludes combine.children="append">
                         <exclude>src/test/resources/org/apache/nifi/avro/data.avro</exclude>
                         <exclude>src/test/resources/org/apache/nifi/avro/schema.json</exclude>
+                        <exclude>src/test/resources/org/apache/nifi/avro/defaultArrayValue1.json</exclude>
+                        <exclude>src/test/resources/org/apache/nifi/avro/defaultArrayValue2.json</exclude>
+                        <exclude>src/test/resources/org/apache/nifi/avro/defaultArrayInRecords1.json</exclude>
+                        <exclude>src/test/resources/org/apache/nifi/avro/defaultArrayInRecords2.json</exclude>                       
                     </excludes>
                 </configuration>
             </plugin>
