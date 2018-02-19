@@ -26,6 +26,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -274,7 +275,8 @@ public class DataTypeUtils {
     }
 
     public static boolean isArrayTypeCompatible(final Object value) {
-        return value != null && value instanceof Object[];
+        return value != null && (value instanceof Object[] || value instanceof Collection<?> || value instanceof Number
+                || value instanceof String || value instanceof Boolean);
     }
 
     @SuppressWarnings("unchecked")

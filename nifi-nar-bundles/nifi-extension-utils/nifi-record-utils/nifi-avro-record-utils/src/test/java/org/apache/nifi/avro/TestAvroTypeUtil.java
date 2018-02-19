@@ -37,8 +37,11 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericRecordBuilder;
+import org.apache.avro.generic.GenericData.Record;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
@@ -113,6 +116,46 @@ public class TestAvroTypeUtil {
         assertEquals("hola", stringField.getDefaultValue());
         assertEquals(Collections.singleton("greeting"), stringField.getAliases());
     }
+
+    /**
+     * The issue consists on having an Avro's schema with a default value in an
+     * array.
+     * 
+     * @throws IOException
+     */
+    @Test
+    public void testDefaultArrayValue1() throws IOException {
+        Schema avroSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultArrayValue1.json"));
+        GenericRecordBuilder builder = new GenericRecordBuilder(avroSchema);
+        Record r = builder.build();
+        @SuppressWarnings("unchecked")
+        GenericData.Array<Integer> values = (GenericData.Array<Integer>) r.get("listOfInt");
+        assertEquals(values.size(), 0);
+        RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
+        RecordField field = record.getField("listOfInt").get();
+        assertEquals(RecordFieldType.ARRAY, field.getDataType().getFieldType());
+        assertEquals(values.toString(), field.getDefaultValue().toString());
+    }
+
+    /**
+     * The issue consists on having an Avro's schema with a default value in an
+     * array.
+     * 
+     * @throws IOException
+     */
+    @Test
+    public void testDefaultArrayValue2() throws IOException {
+        Schema avroSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultArrayValue2.json"));
+        GenericRecordBuilder builder = new GenericRecordBuilder(avroSchema);
+        Record r = builder.build();
+        @SuppressWarnings("unchecked")
+        GenericData.Array<Integer> values = (GenericData.Array<Integer>) r.get("listOfInt");
+        assertEquals(values.size(), 1);
+        RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
+        RecordField field = record.getField("listOfInt").get();
+        assertEquals(field.getDataType().getFieldType(), RecordFieldType.ARRAY);
+        assertEquals(field.getDefaultValue().toString(), values.toString());
+    }	
 
     @Test
     // Simple recursion is a record A composing itself (similar to a LinkedList Node referencing 'next')

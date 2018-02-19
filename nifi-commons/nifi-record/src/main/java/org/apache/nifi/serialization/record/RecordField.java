@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
@@ -76,8 +77,12 @@ public class RecordField {
         } else {
             this.aliases = Collections.unmodifiableSet(aliases);
         }
-
-        this.defaultValue = defaultValue;
+        if (RecordFieldType.ARRAY.equals(dataType.getFieldType()) && (defaultValue instanceof String
+                || defaultValue instanceof Number || defaultValue instanceof Boolean)) {
+            this.defaultValue = new ArrayList<Object>();
+        } else {
+            this.defaultValue = defaultValue;
+        }
         this.nullable = nullable;
     }
 
