@@ -61,6 +61,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +74,12 @@ import org.slf4j.LoggerFactory;
  * </p>
  *
  * @param <T> type of record this WAL is for
+ *
+ * @deprecated This implementation is now deprecated in favor of {@link SequentialAccessWriteAheadLog}.
+ *             This implementation, when given more than 1 partition, can have issues recovering after a sudden loss
+ *             of power or an operating system crash.
  */
+@Deprecated
 public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepository<T> {
 
     private final Path basePath;
@@ -105,7 +111,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
     private volatile boolean recovered = false;
 
     public MinimalLockingWriteAheadLog(final Path path, final int partitionCount, final SerDe<T> serde, final SyncListener syncListener) throws IOException {
-        this(new TreeSet<>(Collections.singleton(path)), partitionCount, new SingletonSerDeFactory<T>(serde), syncListener);
+        this(new TreeSet<>(Collections.singleton(path)), partitionCount, new SingletonSerDeFactory<>(serde), syncListener);
     }
 
     public MinimalLockingWriteAheadLog(final Path path, final int partitionCount, final SerDeFactory<T> serdeFactory, final SyncListener syncListener) throws IOException {
@@ -113,7 +119,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
     }
 
     public MinimalLockingWriteAheadLog(final SortedSet<Path> paths, final int partitionCount, final SerDe<T> serde, final SyncListener syncListener) throws IOException {
-        this(paths, partitionCount, new SingletonSerDeFactory<T>(serde), syncListener);
+        this(paths, partitionCount, new SingletonSerDeFactory<>(serde), syncListener);
     }
 
     /**
@@ -645,6 +651,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         } finally {
             writeLock.unlock();
             lockChannel.close();
+
+            final File lockFile = new File(basePath.toFile(), "wali.lock");
+            lockFile.delete();
         }
     }
 
