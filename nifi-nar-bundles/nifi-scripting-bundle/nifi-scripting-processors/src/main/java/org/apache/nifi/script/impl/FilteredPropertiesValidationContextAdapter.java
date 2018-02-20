@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.script.impl;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,65 +27,45 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 
 /**
- * filter properties in the ValidationContext, proxy approach, for removing unwanted properties
- *
- * @author pfreydiere
+ * Filters properties in the ValidationContext, proxy approach, for removing unwanted properties
  *
  */
 public class FilteredPropertiesValidationContextAdapter extends ValidationContextAdapter {
 
-    private Set<PropertyDescriptor> removedProperties;
-    private Set<String> removedPropertyNames;
+    private HashMap<PropertyDescriptor, String> properties;
 
     public FilteredPropertiesValidationContextAdapter(ValidationContext validationContext, Set<PropertyDescriptor> removedProperties) {
         super(validationContext);
-        this.removedProperties = removedProperties;
-        Set<String> keys = new HashSet<>();
-        for (PropertyDescriptor p : removedProperties) {
-            keys.add(p.getName());
+        properties = new HashMap<>();
+        Map<PropertyDescriptor, String> parentProperties = super.getProperties();
+        if (parentProperties != null) {
+            for (Map.Entry<PropertyDescriptor, String> propertyEntry: parentProperties.entrySet()) {
+                if (!removedProperties.contains(propertyEntry.getKey())) {
+                    properties.put(propertyEntry.getKey(), propertyEntry.getValue());
+                }
+            }
         }
-        this.removedPropertyNames = keys;
     }
 
     @Override
     public Map<String, String> getAllProperties() {
-        HashMap<String, String> returnedProperties = new HashMap<>(super.getAllProperties());
-
-        int i = 0;
-        ArrayList<String> keys = new ArrayList<String>(returnedProperties.keySet());
-        while (i < keys.size()) {
-            String k = keys.get(i);
-            if (removedPropertyNames.contains(k)) {
-                keys.remove(i);
-                returnedProperties.remove(k);
-            } else {
-                i++;
-            }
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
         }
-
-        return returnedProperties;
+        return propValueMap;
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-
-        Map<PropertyDescriptor, String> originalProperties = super.getProperties();
-        Map<PropertyDescriptor, String> returnedProperties = new HashMap<>();
-        for (PropertyDescriptor p : removedProperties) {
-            if (!originalProperties.containsKey(p)) {
-                returnedProperties.put(p, originalProperties.get(p));
-            }
-        }
-
-        return returnedProperties;
+        return Collections.unmodifiableMap(properties);
     }
 
     @Override
     public PropertyValue getProperty(PropertyDescriptor descriptor) {
-        if (!removedProperties.contains(descriptor)) {
+        if (properties.keySet().contains(descriptor)) {
             return super.getProperty(descriptor);
         }
-
         return null;
     }
 
