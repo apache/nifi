@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.controller.scheduling.ScheduleState;
+import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -53,8 +54,10 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
         this.scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
 
+    @Override
     public abstract boolean isIsolated();
 
+    @Override
     public abstract boolean isTriggerWhenAnyDestinationAvailable();
 
     @Override
@@ -64,9 +67,20 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     public abstract boolean isEventDrivenSupported();
 
-    public abstract boolean isHighThroughputSupported();
-
     public abstract Requirement getInputRequirement();
+
+    public abstract List<ActiveThreadInfo> getActiveThreads();
+
+    /**
+     * Returns the number of threads that are still 'active' in this Processor but have been terminated
+     * via {@link #terminate()}. To understand more about these threads, such as their stack traces and
+     * how long they have been active, one can use {@link #getActiveThreads()} and then filter the results
+     * to include only those {@link ActiveThreadInfo} objects for which the thread is terminated. For example:
+     * {@code getActiveThreads().stream().filter(ActiveThreadInfo::isTerminated).collect(Collectors.toList());}
+     * 
+     * @return the number of threads that are still 'active' in this Processor but have been terminated.
+     */
+    public abstract int getTerminatedThreadCount();
 
     @Override
     public abstract boolean isValid();
@@ -79,6 +93,7 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     public abstract void setProcessor(LoggableComponent<Processor> processor);
 
+    @Override
     public abstract void yield(long period, TimeUnit timeUnit);
 
     public abstract void setAutoTerminatedRelationships(Set<Relationship> relationships);
@@ -96,6 +111,7 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     public abstract void setRunDuration(long duration, TimeUnit timeUnit);
 
+    @Override
     public abstract long getRunDuration(TimeUnit timeUnit);
 
     public abstract Map<String, String> getStyle();
@@ -119,6 +135,8 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      * @param ignoredReferences to ignore
      */
     public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
+
+    public abstract void verifyCanTerminate();
 
     /**
      *
@@ -190,7 +208,23 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      *            as well as the active thread counts are kept in sync
      */
     public abstract CompletableFuture<Void> stop(ProcessScheduler processScheduler, ScheduledExecutorService executor,
-        ProcessContext processContext, SchedulingAgent schedulingAgent, ScheduleState scheduleState);
+        ProcessContext processContext, SchedulingAgent schedulingAgent, LifecycleState scheduleState);
+
+    /**
+     * Marks all active tasks as terminated and interrupts all active threads
+     *
+     * @return the number of active tasks that were terminated
+     */
+    public abstract int terminate();
+
+    /**
+     * Determines whether or not the task associated with the given thread is terminated
+     *
+     * @param thread the thread
+     * @return <code>true</code> if there is a task associated with the given thread and that task was terminated, <code>false</code> if
+     *         the given thread is not an active thread, or if the active thread has not been terminated
+     */
+    public abstract boolean isTerminated(Thread thread);
 
     /**
      * Will set the state of the processor to STOPPED which essentially implies

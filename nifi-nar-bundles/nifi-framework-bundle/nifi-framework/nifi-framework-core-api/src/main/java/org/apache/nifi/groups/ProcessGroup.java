@@ -203,6 +203,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     CompletableFuture<Void> stopProcessor(ProcessorNode processor);
 
     /**
+     * Terminates the given Processor
+     *
+     * @param processor processor to Terminate
+     * @throws IllegalStateException if the Processor's Scheduled State is not STOPPED.
+     */
+    void terminateProcessor(ProcessorNode processor);
+
+    /**
      * Stops the given Port
      *
      * @param port to stop

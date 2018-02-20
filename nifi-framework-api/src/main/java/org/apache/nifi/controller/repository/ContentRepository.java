@@ -77,6 +77,15 @@ public interface ContentRepository {
     long getContainerUsableSpace(String containerName) throws IOException;
 
     /**
+     * Returns the name of the FileStore that the given container is stored on, or <code>null</code>
+     * if not applicable or unable to determine the file store name
+     *
+     * @param containerName the name of the container
+     * @return the name of the FileStore
+     */
+    String getContainerFileStoreName(String containerName);
+
+    /**
      * Creates a new content claim
      *
      * @param lossTolerant indicates whether the content for the new claim is

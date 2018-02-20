@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.controller;
 
+import java.net.URL;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -28,14 +34,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.ComponentVariableRegistry;
-
-import java.net.URL;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public interface ConfiguredComponent extends ComponentAuthorizable {
 
@@ -72,7 +71,7 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
 
     ConfigurableComponent getComponent();
 
-    ComponentLog getLogger();
+    TerminationAwareLogger getLogger();
 
     boolean isExtensionMissing();
 

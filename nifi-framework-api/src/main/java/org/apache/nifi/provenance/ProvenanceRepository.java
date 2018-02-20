@@ -200,6 +200,15 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
     long getContainerCapacity(String containerName) throws IOException;
 
     /**
+     * Returns the name of the FileStore that the given container is stored on, or <code>null</code>
+     * if not applicable or unable to determine the file store name
+     *
+     * @param containerName the name of the container
+     * @return the name of the FileStore
+     */
+    String getContainerFileStoreName(String containerName);
+
+    /**
      * @param containerName to check space on
      * @return the number of bytes available to be used used by the storage
      * mechanism that backs the container with the given name

@@ -24,7 +24,6 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 
 /**
@@ -41,7 +40,7 @@ public class ProcessorDetails {
     private final boolean eventDrivenSupported;
     private final boolean batchSupported;
     private final InputRequirement.Requirement inputRequirement;
-    private final ComponentLog componentLog;
+    private final TerminationAwareLogger componentLog;
     private final BundleCoordinate bundleCoordinate;
 
     public ProcessorDetails(final LoggableComponent<Processor> processor) {
@@ -101,7 +100,7 @@ public class ProcessorDetails {
         return inputRequirement;
     }
 
-    public ComponentLog getComponentLog() {
+    public TerminationAwareLogger getComponentLog() {
         return componentLog;
     }
 

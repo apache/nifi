@@ -95,6 +95,7 @@ import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
@@ -523,6 +524,29 @@ public interface NiFiServiceFacade {
      * @return The Processor transfer object
      */
     ProcessorEntity getProcessor(String id);
+
+    /**
+     * Terminates the Processor with the specified id
+     *
+     * @param id Id of the processor to terminate
+     * @return The Processor transfer object
+     */
+    ProcessorEntity terminateProcessor(String id);
+
+    /**
+     * Verifies that the processor with the given id can be terminated at this time
+     *
+     * @param processorId the id of the processor
+     */
+    void verifyTerminateProcessor(String processorId);
+
+    /**
+     * Gets the Diagnostic information for the Processor with the specified id
+     *
+     * @param id the id of the processor
+     * @return the diagnostics information for the processor
+     */
+    ProcessorDiagnosticsEntity getProcessorDiagnostics(String id);
 
     /**
      * Gets the Processor transfer object for the specified id, as it is visible to the given user

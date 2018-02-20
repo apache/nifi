@@ -160,8 +160,13 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
+    public String getContainerFileStoreName(String containerName) {
+        return null;
+    }
+
+    @Override
     public Set<String> getContainerNames() {
-        return new HashSet<String>();
+        return new HashSet<>();
     }
 
     @Override

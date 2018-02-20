@@ -197,6 +197,11 @@ public class VolatileContentRepository implements ContentRepository {
     }
 
     @Override
+    public String getContainerFileStoreName(String containerName) {
+        return null;
+    }
+
+    @Override
     public ContentClaim create(boolean lossTolerant) throws IOException {
         if (lossTolerant) {
             return createLossTolerant();
