@@ -130,8 +130,8 @@
                         nfContextMenu.hide();
                     },
                     stop: function (e, ui) {
-                        var translate = nfCanvasUtils.translateCanvasView();
-                        var scale = nfCanvasUtils.scaleCanvasView();
+                        var translate = nfCanvasUtils.getCanvasTranslate();
+                        var scale = nfCanvasUtils.getCanvasScale();
 
                         var mouseX = e.originalEvent.pageX;
                         var mouseY = e.originalEvent.pageY - nfCanvasUtils.getCanvasOffset();

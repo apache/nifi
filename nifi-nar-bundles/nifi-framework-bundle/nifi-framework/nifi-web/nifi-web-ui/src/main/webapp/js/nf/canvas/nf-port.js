@@ -99,14 +99,15 @@
      *
      * @param {selection} entered           The selection of ports to be rendered
      * @param {boolean} selected            Whether the port should be selected
+     * @return the entered selection
      */
     var renderPorts = function (entered, selected) {
         if (entered.empty()) {
-            return;
+            return entered;
         }
 
         var port = entered.append('g')
-            .attr({
+            .attrs({
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -123,7 +124,7 @@
 
         // port border
         port.append('rect')
-            .attr({
+            .attrs({
                 'class': 'border',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -137,7 +138,7 @@
 
         // port body
         port.append('rect')
-            .attr({
+            .attrs({
                 'class': 'body',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -157,7 +158,7 @@
 
             // port remote banner
             port.append('rect')
-                .attr({
+                .attrs({
                     'class': 'remote-banner',
                     'width': function (d) {
                         return d.dimensions.width;
@@ -169,7 +170,7 @@
 
         // port icon
         port.append('text')
-            .attr({
+            .attrs({
                 'class': 'port-icon',
                 'x': 10,
                 'y': 38 + offset
@@ -184,7 +185,7 @@
 
         // port name
         port.append('text')
-            .attr({
+            .attrs({
                 'x': 70,
                 'y': 25 + offset,
                 'width': 95,
@@ -199,6 +200,8 @@
         port.filter(function (d) {
             return d.permissions.canWrite && d.permissions.canRead;
         }).call(nfDraggable.activate).call(nfConnectable.activate);
+
+        return port;
     };
 
     /**
@@ -241,7 +244,7 @@
 
                         // port transmitting icon
                         details.append('text')
-                            .attr({
+                            .attrs({
                                 'class': 'port-transmission-icon',
                                 'x': 10,
                                 'y': 18
@@ -249,7 +252,7 @@
 
                         // bulletin background
                         details.append('rect')
-                            .attr({
+                            .attrs({
                                 'class': 'bulletin-background',
                                 'x': function (d) {
                                     return portData.dimensions.width - offset;
@@ -260,7 +263,7 @@
 
                         // bulletin icon
                         details.append('text')
-                            .attr({
+                            .attrs({
                                 'class': 'bulletin-icon',
                                 'x': function (d) {
                                     return portData.dimensions.width - 18;
@@ -272,7 +275,7 @@
 
                     // run status icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'run-status-icon',
                             'x': 50,
                             'y': function () {
@@ -285,7 +288,7 @@
                     // --------
 
                     details.append('path')
-                        .attr({
+                        .attrs({
                             'class': 'component-comments',
                             'transform': 'translate(' + (portData.dimensions.width - 2) + ', ' + (portData.dimensions.height - 10) + ')',
                             'd': 'm0,0 l0,8 l-8,0 z'
@@ -297,7 +300,7 @@
 
                     // active thread count
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count-icon',
                             'y': 43 + offset
                         })
@@ -305,7 +308,7 @@
 
                     // active thread icon
                     details.append('text')
-                        .attr({
+                        .attrs({
                             'class': 'active-thread-count',
                             'y': 43 + offset
                         });
@@ -416,7 +419,7 @@
 
         // update the run status
         updated.select('text.run-status-icon')
-            .attr({
+            .attrs({
                 'fill': function (d) {
                     var fill = '#728e9b';
 
@@ -487,7 +490,7 @@
             });
 
         updated.select('text.port-transmission-icon')
-            .attr({
+            .attrs({
                 'font-family': function (d) {
                     if (d.status.transmitting === true) {
                         return 'FontAwesome';
@@ -594,7 +597,7 @@
 
             // create the port container
             portContainer = d3.select('#canvas').append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'all',
                     'class': 'ports'
                 });
@@ -643,10 +646,14 @@
                 add(portEntities);
             }
 
-            // apply the selection and handle new ports
+            // select
             var selection = select();
-            selection.enter().call(renderPorts, selectAll);
-            selection.call(updatePorts);
+
+            // enter
+            var entered = renderPorts(selection.enter(), selectAll);
+
+            // update
+            updatePorts(selection.merge(entered));
         },
 
         /**
@@ -707,10 +714,17 @@
                 set(portEntities);
             }
 
-            // apply the selection and handle all new ports
+            // select
             var selection = select();
-            selection.enter().call(renderPorts, selectAll);
-            selection.call(updatePorts).call(nfCanvasUtils.position, transition);
+
+            // enter
+            var entered = renderPorts(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updatePorts).call(nfCanvasUtils.position, transition);
+
+            // exit
             selection.exit().call(removePorts);
         },
 
@@ -813,7 +827,7 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.forEach(function (id, entryTimestamp) {
+                cache.each(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
                         cache.remove(id);
                     }

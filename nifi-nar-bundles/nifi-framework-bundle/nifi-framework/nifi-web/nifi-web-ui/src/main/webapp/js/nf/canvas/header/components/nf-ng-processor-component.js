@@ -512,7 +512,7 @@
                                 text: 'all groups',
                                 value: ''
                             }];
-                            groups.forEach(function (group) {
+                            groups.each(function (group) {
                                 options.push({
                                     text: group,
                                     value: group

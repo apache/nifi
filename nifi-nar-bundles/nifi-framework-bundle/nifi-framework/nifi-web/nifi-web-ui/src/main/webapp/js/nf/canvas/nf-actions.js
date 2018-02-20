@@ -493,11 +493,6 @@
 
                 // center on the component
                 nfCanvasUtils.centerBoundingBox(box);
-
-                // refresh the canvas
-                nfCanvasUtils.refreshCanvasView({
-                    transition: true
-                });
             }
         },
 
@@ -996,7 +991,7 @@
                             });
 
                             // remove all the non connections in the snippet first
-                            components.forEach(function (type, ids) {
+                            components.each(function (ids, type) {
                                 if (type !== 'Connection') {
                                     nfCanvasUtils.getComponentByType(type).remove(ids);
                                 }
@@ -1709,8 +1704,8 @@
         paste: function (selection, evt) {
             if (nfCommon.isDefinedAndNotNull(evt)) {
                 // get the current scale and translation
-                var scale = nfCanvasUtils.scaleCanvasView();
-                var translate = nfCanvasUtils.translateCanvasView();
+                var scale = nfCanvasUtils.getCanvasScale();
+                var translate = nfCanvasUtils.getCanvasTranslate();
 
                 var mouseX = evt.pageX;
                 var mouseY = evt.pageY - nfCanvasUtils.getCanvasOffset();
