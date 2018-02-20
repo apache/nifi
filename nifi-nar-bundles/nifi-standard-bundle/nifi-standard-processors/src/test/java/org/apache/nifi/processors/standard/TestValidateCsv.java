@@ -337,4 +337,23 @@ public class TestValidateCsv {
         runner.assertTransferCount(ValidateCsv.REL_VALID, 2);
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
     }
+
+    @Test
+    public void testEscapingLineByLine() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "false");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_LINES_INDIVIDUALLY);
+
+        runner.setProperty(ValidateCsv.SCHEMA, "ParseInt(),ParseInt(),ParseInt()");
+
+        runner.enqueue("Field1,\"Field2,excaped\",Field3");
+        runner.run(1);
+
+        runner.assertTransferCount(ValidateCsv.REL_VALID, 0);
+        runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertContentEquals("Field1,\"Field2,excaped\",Field3");
+    }
 }

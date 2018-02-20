@@ -466,9 +466,7 @@ public class ValidateCsv extends AbstractProcessor {
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                NifiCsvListReader listReader = null;
-                try {
-                    listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref);
+                try(final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref)) {
 
                     // handling of header
                     if(header) {
@@ -524,7 +522,7 @@ public class ValidateCsv extends AbstractProcessor {
                                 invalidFF.set(session.append(invalidFF.get(), new OutputStreamCallback() {
                                     @Override
                                     public void process(OutputStream out) throws IOException {
-                                        out.write(print(e.getCsvContext().getRowSource(), csvPref, isFirstLineInvalid.get()));
+                                        out.write(print(Arrays.asList(listReader.getUntokenizedRow()), csvPref, isFirstLineInvalid.get()));
                                     }
                                 }));
 
@@ -546,10 +544,6 @@ public class ValidateCsv extends AbstractProcessor {
                 } catch (final IOException e) {
                     valid.set(false);
                     logger.error("Failed to validate {} against schema due to {}", new Object[]{flowFile}, e);
-                } finally {
-                    if(listReader != null) {
-                        listReader.close();
-                    }
                 }
             }
         });
