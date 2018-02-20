@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.HashSet;
+import java.util.Optional;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -354,6 +355,7 @@ public class ControllerSearchServiceTest {
         Mockito.doReturn(processor1).when(processorNode1).getProcessor();
         // set processor node's attributes
         Mockito.doReturn(processorId).when(processorNode1).getIdentifier();
+        Mockito.doReturn(Optional.ofNullable(null)).when(processorNode1).getVersionedComponentId(); // not actually searching based on versioned component id
         Mockito.doReturn(processorName).when(processorNode1).getName();
 
         // assign processor node to its PG
@@ -380,6 +382,7 @@ public class ControllerSearchServiceTest {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
 
         Mockito.doReturn(processGroupId).when(processGroup).getIdentifier();
+        Mockito.doReturn(Optional.ofNullable(null)).when(processGroup).getVersionedComponentId(); // not actually searching based on versioned component id
         Mockito.doReturn(processGroupName).when(processGroup).getName();
         Mockito.doReturn(parent).when(processGroup).getParent();
         Mockito.doReturn(versionControlInformation).when(processGroup).getVersionControlInformation();
