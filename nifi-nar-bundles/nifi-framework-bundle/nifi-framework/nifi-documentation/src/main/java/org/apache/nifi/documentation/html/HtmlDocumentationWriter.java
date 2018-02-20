@@ -752,7 +752,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             for (SystemResourceConsideration systemResourceConsideration : systemResourceConsiderations) {
                 xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td", systemResourceConsideration.resource().name());
-                // TODO allow for HTML characters here.
                 writeSimpleElement(xmlStreamWriter, "td", systemResourceConsideration.description().trim().isEmpty()
                         ? "Not Specified" : systemResourceConsideration.description());
                 xmlStreamWriter.writeEndElement();
