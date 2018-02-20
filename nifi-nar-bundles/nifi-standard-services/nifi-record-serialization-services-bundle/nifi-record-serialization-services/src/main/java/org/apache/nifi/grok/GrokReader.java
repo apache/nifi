@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -37,6 +38,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.record.RecordUtils;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -68,6 +70,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     private volatile boolean appendUnmatchedLine;
     private volatile RecordSchema recordSchema;
     private volatile RecordSchema recordSchemaFromGrok;
+    private volatile Charset charset;
 
     private static final String DEFAULT_PATTERN_NAME = "/default-grok-patterns.txt";
 
@@ -114,6 +117,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         properties.add(PATTERN_FILE);
         properties.add(GROK_EXPRESSION);
         properties.add(NO_MATCH_BEHAVIOR);
+        properties.add(RecordUtils.CHARSET);
         return properties;
     }
 
@@ -142,6 +146,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         } else {
             this.recordSchema = null;
         }
+        charset = Charset.forName(context.getProperty(RecordUtils.CHARSET).getValue());
     }
 
     static RecordSchema createRecordSchema(final Grok grok) {
@@ -241,6 +246,6 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new GrokRecordReader(in, grok, schema, recordSchemaFromGrok, appendUnmatchedLine);
+        return new GrokRecordReader(in, grok, schema, recordSchemaFromGrok, appendUnmatchedLine, charset);
     }
 }

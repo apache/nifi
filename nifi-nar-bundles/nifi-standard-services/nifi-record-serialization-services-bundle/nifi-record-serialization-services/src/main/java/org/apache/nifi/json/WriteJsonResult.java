@@ -20,6 +20,8 @@ package org.apache.nifi.json;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.Map;
 import java.util.Optional;
@@ -43,6 +45,7 @@ import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonGenerator;
@@ -57,9 +60,10 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
+    private final String charset;
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
-        final NullSuppression nullSuppression, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+                           final NullSuppression nullSuppression, final String dateFormat, final String timeFormat, final String timestampFormat, final String charset) throws IOException {
 
         super(out);
         this.logger = logger;
@@ -75,7 +79,9 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         LAZY_TIME_FORMAT = () -> tf;
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
-        this.generator = factory.createJsonGenerator(out);
+        this.charset = charset;
+
+        this.generator = factory.createJsonGenerator(out, JsonEncoding.valueOf(charset));
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
         }
@@ -266,8 +272,10 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
 
+        // JsonEncoder.UTF8 doesn't match StandardCharsets.UTF_8. Even though DataTypeUtils.getCharset() defaults to UTF-8, it should be an explicit check here
+        final Charset outputCharset = JsonEncoding.UTF8.name().equals(charset) ? StandardCharsets.UTF_8 : DataTypeUtils.getCharset(charset);
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
-        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName, outputCharset);
         if (coercedValue == null) {
             generator.writeNull();
             return;
@@ -275,7 +283,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
         switch (chosenDataType.getFieldType()) {
             case DATE: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_DATE_FORMAT);
+                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_DATE_FORMAT, outputCharset);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -284,7 +292,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case TIME: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIME_FORMAT);
+                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIME_FORMAT, outputCharset);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -293,7 +301,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case TIMESTAMP: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIMESTAMP_FORMAT);
+                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIMESTAMP_FORMAT, outputCharset);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {

@@ -19,6 +19,8 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,12 +32,15 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.record.RecordUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SchemaRegistryService;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.codehaus.jackson.JsonEncoding;
 
 @Tags({"json", "tree", "record", "reader", "parser"})
 @CapabilityDescription("Parses JSON into individual Record objects. The Record that is produced will contain all top-level "
@@ -51,6 +56,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
+    private volatile Charset charset;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -58,6 +64,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        properties.add(RecordUtils.JSON_CHARSET);
         return properties;
     }
 
@@ -66,10 +73,13 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+        // JsonEncoder.UTF8 doesn't match StandardCharsets.UTF_8. Even though DataTypeUtils.getCharset() defaults to UTF-8, it should be an explicit check here
+        final String charsetName = context.getProperty(RecordUtils.JSON_CHARSET).getValue();
+        this.charset = JsonEncoding.UTF8.name().equals(charsetName) ? StandardCharsets.UTF_8 : DataTypeUtils.getCharset(charsetName);
     }
 
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
-        return new JsonTreeRowRecordReader(in, logger, getSchema(variables, in, null), dateFormat, timeFormat, timestampFormat);
+        return new JsonTreeRowRecordReader(in, logger, getSchema(variables, in, null), dateFormat, timeFormat, timestampFormat, charset);
     }
 }

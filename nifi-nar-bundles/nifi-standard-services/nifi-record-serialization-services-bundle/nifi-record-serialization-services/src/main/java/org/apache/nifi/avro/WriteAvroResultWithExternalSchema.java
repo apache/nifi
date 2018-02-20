@@ -20,6 +20,7 @@ package org.apache.nifi.avro;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -40,14 +41,16 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     private final BinaryEncoder encoder;
     private final OutputStream buffered;
     private final DatumWriter<GenericRecord> datumWriter;
+    private final Charset charset;
 
     public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema,
-        final SchemaAccessWriter schemaAccessWriter, final OutputStream out) throws IOException {
+        final SchemaAccessWriter schemaAccessWriter, final OutputStream out, final Charset charset) throws IOException {
         super(out);
         this.recordSchema = recordSchema;
         this.schemaAccessWriter = schemaAccessWriter;
         this.avroSchema = avroSchema;
         this.buffered = new BufferedOutputStream(out);
+        this.charset = charset;
 
         datumWriter = new GenericDatumWriter<>(avroSchema);
         encoder = EncoderFactory.get().blockingBinaryEncoder(buffered, null);
@@ -73,7 +76,7 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
             schemaAccessWriter.writeHeader(recordSchema, getOutputStream());
         }
 
-        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, avroSchema);
+        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, avroSchema, charset);
         datumWriter.write(rec, encoder);
         return schemaAccessWriter.getAttributes(recordSchema);
     }

@@ -105,7 +105,7 @@ public class TestAvroReaderWithEmbeddedSchema {
         }
 
         try (final InputStream in = new ByteArrayInputStream(serialized)) {
-            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in);
+            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in, StandardCharsets.UTF_8);
             final RecordSchema recordSchema = reader.getSchema();
 
             assertEquals(RecordFieldType.TIME, recordSchema.getDataType("timeMillis").get().getFieldType());
@@ -215,7 +215,7 @@ public class TestAvroReaderWithEmbeddedSchema {
         source = baos.toByteArray();
 
         try (final InputStream in = new ByteArrayInputStream(source)) {
-            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in);
+            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in, StandardCharsets.UTF_8);
             final RecordSchema recordSchema = reader.getSchema();
             assertEquals(15, recordSchema.getFieldCount());
 
@@ -319,7 +319,7 @@ public class TestAvroReaderWithEmbeddedSchema {
         }
 
         try (final InputStream in = new ByteArrayInputStream(serialized)) {
-            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in);
+            final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in, StandardCharsets.UTF_8);
             final RecordSchema recordSchema = reader.getSchema();
 
             assertEquals(RecordFieldType.CHOICE, recordSchema.getDataType("field").get().getFieldType());

@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 
@@ -34,10 +35,12 @@ public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
 
     private final DataFileWriter<GenericRecord> dataFileWriter;
     private final Schema schema;
+    private final Charset charset;
 
-    public WriteAvroResultWithSchema(final Schema schema, final OutputStream out, final CodecFactory codec) throws IOException {
+    public WriteAvroResultWithSchema(final Schema schema, final OutputStream out, final CodecFactory codec, final Charset charset) throws IOException {
         super(out);
         this.schema = schema;
+        this.charset = charset;
 
         final GenericDatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         dataFileWriter = new DataFileWriter<>(datumWriter);
@@ -57,7 +60,7 @@ public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
 
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
-        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
+        final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema, charset);
         dataFileWriter.append(rec);
         return Collections.emptyMap();
     }

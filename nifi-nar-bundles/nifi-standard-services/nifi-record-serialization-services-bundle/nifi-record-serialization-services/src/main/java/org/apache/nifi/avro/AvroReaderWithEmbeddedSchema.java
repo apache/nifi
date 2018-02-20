@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
@@ -33,7 +34,8 @@ public class AvroReaderWithEmbeddedSchema extends AvroRecordReader {
     private final Schema avroSchema;
     private final RecordSchema recordSchema;
 
-    public AvroReaderWithEmbeddedSchema(final InputStream in) throws IOException {
+    public AvroReaderWithEmbeddedSchema(final InputStream in, final Charset charset) throws IOException {
+        super(charset);
         this.in = in;
         dataFileStream = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>());
         this.avroSchema = dataFileStream.getSchema();

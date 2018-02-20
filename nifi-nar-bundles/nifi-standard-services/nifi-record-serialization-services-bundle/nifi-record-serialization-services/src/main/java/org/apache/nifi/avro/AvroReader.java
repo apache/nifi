@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,9 +30,11 @@ import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.record.RecordUtils;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
@@ -56,6 +59,13 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
         }
     };
 
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(RecordUtils.CHARSET);
+        return properties;
+    }
 
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
@@ -85,8 +95,9 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         final String schemaAccessStrategy = getConfigurationContext().getProperty(getSchemaAcessStrategyDescriptor()).getValue();
+        final Charset charset = Charset.forName(getConfigurationContext().getProperty(RecordUtils.CHARSET).getValue());
         if (EMBEDDED_AVRO_SCHEMA.getValue().equals(schemaAccessStrategy)) {
-            return new AvroReaderWithEmbeddedSchema(in);
+            return new AvroReaderWithEmbeddedSchema(in, charset);
         } else {
             final RecordSchema recordSchema = getSchema(variables, in, null);
 
@@ -106,7 +117,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
                 throw new SchemaNotFoundException("Failed to compile Avro Schema", e);
             }
 
-            return new AvroReaderWithExplicitSchema(in, recordSchema, avroSchema);
+            return new AvroReaderWithExplicitSchema(in, recordSchema, avroSchema, charset);
         }
     }
 

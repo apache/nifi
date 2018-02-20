@@ -25,11 +25,18 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 public abstract class AvroRecordReader implements RecordReader {
 
     protected abstract GenericRecord nextAvroRecord() throws IOException;
+
+    protected Charset charset;
+
+    protected AvroRecordReader(final Charset charset) {
+        this.charset = charset;
+    }
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
@@ -39,7 +46,7 @@ public abstract class AvroRecordReader implements RecordReader {
         }
 
         final RecordSchema schema = getSchema();
-        final Map<String, Object> values = AvroTypeUtil.convertAvroRecordToMap(record, schema);
+        final Map<String, Object> values = AvroTypeUtil.convertAvroRecordToMap(record, schema, this.charset);
         return new MapRecord(schema, values);
     }
 

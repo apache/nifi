@@ -49,6 +49,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.SerializedForm;
+import org.codehaus.jackson.JsonEncoding;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -104,7 +105,8 @@ public class TestWriteJsonResult {
         final RecordSet rs = RecordSet.of(schema, record);
 
         try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, true,
-            NullSuppression.NEVER_SUPPRESS, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat())) {
+            NullSuppression.NEVER_SUPPRESS, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
+                JsonEncoding.UTF8.name())) {
 
             writer.write(rs);
         }
@@ -141,7 +143,8 @@ public class TestWriteJsonResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, true,
-            NullSuppression.NEVER_SUPPRESS, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat())) {
+            NullSuppression.NEVER_SUPPRESS, RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
+                JsonEncoding.UTF16_LE.name())) {
 
             writer.write(rs);
         }
@@ -150,7 +153,7 @@ public class TestWriteJsonResult {
 
         final String expected = "[ " + serialized1 + ", " + serialized2 + " ]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = new String(data, StandardCharsets.UTF_16LE);
         assertEquals(expected, output);
     }
 
@@ -172,7 +175,8 @@ public class TestWriteJsonResult {
         final RecordSet rs = RecordSet.of(schema, record);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.write(rs);
         }
 
@@ -196,7 +200,8 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.writeRecord(record);
             writer.finishRecordSet();
@@ -222,7 +227,8 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.writeRawRecord(record);
             writer.finishRecordSet();
@@ -248,7 +254,8 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.writeRecord(record);
             writer.finishRecordSet();
@@ -274,7 +281,8 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.writeRawRecord(record);
             writer.finishRecordSet();
@@ -301,7 +309,8 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.writeRecord(record);
             writer.finishRecordSet();
@@ -328,7 +337,8 @@ public class TestWriteJsonResult {
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.writeRawRecord(record);
             writer.finishRecordSet();
@@ -354,7 +364,8 @@ public class TestWriteJsonResult {
         final Record recordWithMissingName = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.write(recordWithMissingName);
             writer.finishRecordSet();
@@ -364,7 +375,8 @@ public class TestWriteJsonResult {
 
         baos.reset();
         try (
-            final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.ALWAYS_SUPPRESS, null, null, null)) {
+            final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                    NullSuppression.ALWAYS_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.write(recordWithMissingName);
             writer.finishRecordSet();
@@ -373,8 +385,8 @@ public class TestWriteJsonResult {
         assertEquals("[{\"id\":\"1\"}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
 
         baos.reset();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.SUPPRESS_MISSING, null, null,
-            null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.SUPPRESS_MISSING, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.write(recordWithMissingName);
             writer.finishRecordSet();
@@ -387,7 +399,8 @@ public class TestWriteJsonResult {
         final Record recordWithNullValue = new MapRecord(schema, values);
 
         baos.reset();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.NEVER_SUPPRESS, null, null, null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.write(recordWithNullValue);
             writer.finishRecordSet();
@@ -397,7 +410,8 @@ public class TestWriteJsonResult {
 
         baos.reset();
         try (
-            final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.ALWAYS_SUPPRESS, null, null, null)) {
+            final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                    NullSuppression.ALWAYS_SUPPRESS, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.write(recordWithNullValue);
             writer.finishRecordSet();
@@ -406,8 +420,8 @@ public class TestWriteJsonResult {
         assertEquals("[{\"id\":\"1\"}]", new String(baos.toByteArray(), StandardCharsets.UTF_8));
 
         baos.reset();
-        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false, NullSuppression.SUPPRESS_MISSING, null, null,
-            null)) {
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.SUPPRESS_MISSING, null, null, null, JsonEncoding.UTF8.name())) {
             writer.beginRecordSet();
             writer.write(recordWithNullValue);
             writer.finishRecordSet();
