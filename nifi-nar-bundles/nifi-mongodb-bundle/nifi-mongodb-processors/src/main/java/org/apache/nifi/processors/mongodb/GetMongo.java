@@ -23,14 +23,12 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
@@ -40,19 +38,19 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -60,85 +58,81 @@ import java.util.Set;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB")
 public class GetMongo extends AbstractMongoProcessor {
-    public static final Validator DOCUMENT_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
-            final ValidationResult.Builder builder = new ValidationResult.Builder();
-            builder.subject(subject).input(value);
+    public static final Validator DOCUMENT_VALIDATOR = (subject, value, context) -> {
+        final ValidationResult.Builder builder = new ValidationResult.Builder();
+        builder.subject(subject).input(value);
 
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-                return builder.valid(true).explanation("Contains Expression Language").build();
-            }
-
-            String reason = null;
-            try {
-                Document.parse(value);
-            } catch (final RuntimeException e) {
-                reason = e.getLocalizedMessage();
-            }
-
-            return builder.explanation(reason).valid(reason == null).build();
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+            return builder.valid(true).explanation("Contains Expression Language").build();
         }
+
+        String reason = null;
+        try {
+            Document.parse(value);
+        } catch (final RuntimeException e) {
+            reason = e.getLocalizedMessage();
+        }
+
+        return builder.explanation(reason).valid(reason == null).build();
     };
 
-    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
-
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-        .name("Query")
-        .description("The selection criteria; must be a valid MongoDB Extended JSON format; if omitted the entire collection will be queried")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(DOCUMENT_VALIDATOR)
-        .build();
+            .name("Query")
+            .description("The selection criteria; must be a valid MongoDB Extended JSON format; if omitted the entire collection will be queried")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(DOCUMENT_VALIDATOR)
+            .build();
     static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
-        .name("Projection")
-        .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(DOCUMENT_VALIDATOR)
-        .build();
+            .name("Projection")
+            .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(DOCUMENT_VALIDATOR)
+            .build();
     static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
-        .name("Sort")
-        .description("The fields by which to sort; must be a valid BSON document")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(DOCUMENT_VALIDATOR)
-        .build();
+            .name("Sort")
+            .description("The fields by which to sort; must be a valid BSON document")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(DOCUMENT_VALIDATOR)
+            .build();
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
-        .name("Limit")
-        .description("The maximum number of elements to return")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .build();
+            .name("Limit")
+            .description("The maximum number of elements to return")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("Batch Size")
-        .description("The number of elements returned from the server in one batch")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .build();
+            .name("Batch Size")
+            .description("The number of elements returned from the server in one batch")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
-        .name("results-per-flowfile")
-        .displayName("Results Per FlowFile")
-        .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .build();
+            .name("results-per-flowfile")
+            .displayName("Results Per FlowFile")
+            .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     static final AllowableValue YES_PP = new AllowableValue("true", "True");
     static final AllowableValue NO_PP  = new AllowableValue("false", "False");
     static final PropertyDescriptor USE_PRETTY_PRINTING = new PropertyDescriptor.Builder()
-        .name("use-pretty-printing")
-        .displayName("Pretty Print Results JSON")
-        .description("Choose whether or not to pretty print the JSON from the results of the query. " +
-                "Choosing yes can greatly increase the space requirements on disk depending on the complexity of the JSON document")
-        .required(true)
-        .defaultValue(YES_PP.getValue())
-        .allowableValues(YES_PP, NO_PP)
-        .addValidator(Validator.VALID)
-        .build();
+            .name("use-pretty-printing")
+            .displayName("Pretty Print Results JSON")
+            .description("Choose whether or not to pretty print the JSON from the results of the query. " +
+                    "Choosing yes can greatly increase the space requirements on disk depending on the complexity of the JSON document")
+            .required(true)
+            .defaultValue(YES_PP.getValue())
+            .allowableValues(YES_PP, NO_PP)
+            .addValidator(Validator.VALID)
+            .build();
 
     static final String JSON_TYPE_EXTENDED = "Extended";
     static final String JSON_TYPE_STANDARD   = "Standard";
@@ -152,8 +146,8 @@ public class GetMongo extends AbstractMongoProcessor {
             .displayName("JSON Type")
             .name("json-type")
             .description("By default, MongoDB's Java driver returns \"extended JSON\". Some of the features of this variant of JSON" +
-            " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
-            " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
+                    " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
+                    " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
             .expressionLanguageSupported(false)
             .required(true)
             .build();
@@ -161,12 +155,16 @@ public class GetMongo extends AbstractMongoProcessor {
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
 
+    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
+
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(JSON_TYPE);
         _propertyDescriptors.add(USE_PRETTY_PRINTING);
+        _propertyDescriptors.add(CHARSET);
         _propertyDescriptors.add(QUERY);
+        _propertyDescriptors.add(QUERY_ATTRIBUTE);
         _propertyDescriptors.add(PROJECTION);
         _propertyDescriptors.add(SORT);
         _propertyDescriptors.add(LIMIT);
@@ -205,8 +203,8 @@ public class GetMongo extends AbstractMongoProcessor {
                 asJson = document.toJson(new JsonWriterSettings(true));
             }
             builder
-                .append(asJson)
-                .append( (documents.size() > 1 && index + 1 < documents.size()) ? ", " : "" );
+                    .append(asJson)
+                    .append( (documents.size() > 1 && index + 1 < documents.size()) ? ", " : "" );
         }
 
         return "[" + builder.toString() + "]";
@@ -226,22 +224,17 @@ public class GetMongo extends AbstractMongoProcessor {
                 : mapper.writer();
     }
 
-    private void writeBatch(String payload, ProcessContext context, ProcessSession session) {
-        FlowFile flowFile = session.create();
-        flowFile = session.write(flowFile, new OutputStreamCallback() {
-            @Override
-            public void process(OutputStream out) throws IOException {
-                out.write(payload.getBytes("UTF-8"));
-            }
-        });
-        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
-        session.getProvenanceReporter().receive(flowFile, getURI(context));
-        session.transfer(flowFile, REL_SUCCESS);
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
+
+        Map attributes = new HashMap();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+
+        if (context.getProperty(QUERY).isSet() && context.getProperty(QUERY_ATTRIBUTE).isSet()) {
+            attributes.put(context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions().getValue(),
+                    context.getProperty(QUERY).evaluateAttributeExpressions().getValue());
+        }
 
         final Document query = context.getProperty(QUERY).isSet()
                 ? Document.parse(context.getProperty(QUERY).evaluateAttributeExpressions().getValue()) : null;
@@ -287,17 +280,17 @@ public class GetMongo extends AbstractMongoProcessor {
                                     log.debug("Writing batch...");
                                 }
                                 String payload = buildBatch(batch, jsonTypeSetting, usePrettyPrint);
-                                writeBatch(payload, context, session);
+                                writeBatch(payload, null, context, session, attributes, REL_SUCCESS);
                                 batch = new ArrayList<>();
-                            } catch (IOException ex) {
+                            } catch (Exception ex) {
                                 getLogger().error("Error building batch", ex);
                             }
                         }
                     }
                     if (batch.size() > 0) {
                         try {
-                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), context, session);
-                        } catch (IOException ex) {
+                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), null, context, session, attributes, REL_SUCCESS);
+                        } catch (Exception ex) {
                             getLogger().error("Error sending remainder of batch", ex);
                         }
                     }
@@ -311,9 +304,9 @@ public class GetMongo extends AbstractMongoProcessor {
                             } else {
                                 json = cursor.next().toJson();
                             }
-                            IOUtils.write(json, out);
+                            out.write(json.getBytes(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue()));
                         });
-                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
+                        flowFile = session.putAllAttributes(flowFile, attributes);
 
                         session.getProvenanceReporter().receive(flowFile, getURI(context));
                         session.transfer(flowFile, REL_SUCCESS);
