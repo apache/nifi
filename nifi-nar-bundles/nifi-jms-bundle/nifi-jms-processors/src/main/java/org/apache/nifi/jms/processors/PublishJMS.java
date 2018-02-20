@@ -23,7 +23,7 @@ import java.util.Set;
 import javax.jms.Destination;
 import javax.jms.Message;
 
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -57,7 +57,7 @@ import org.springframework.jms.support.JmsHeaders;
 @CapabilityDescription("Creates a JMS Message from the contents of a FlowFile and sends it to a "
         + "JMS Destination (queue or topic) as JMS BytesMessage. FlowFile attributes will be added as JMS headers and/or properties to the outgoing JMS message.")
 @SeeAlso(value = { ConsumeJMS.class, JMSConnectionFactoryProvider.class })
-@HighResourceUsageScenario(resource = SystemResource.MEMORY)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

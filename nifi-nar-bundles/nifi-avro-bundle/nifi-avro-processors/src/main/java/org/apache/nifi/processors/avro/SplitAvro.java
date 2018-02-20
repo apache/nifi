@@ -41,7 +41,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -87,7 +87,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
                 description = "The number of split FlowFiles generated from the parent FlowFile"),
         @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
 })
-@HighResourceUsageScenario(resource = SystemResource.MEMORY)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class SplitAvro extends AbstractProcessor {
 
     public static final String RECORD_SPLIT_VALUE = "Record";

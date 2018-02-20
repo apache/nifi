@@ -26,26 +26,26 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation that may be placed on a
- * {@link org.apache.nifi.components.ConfigurableComponent Component} indicating that this
- * component may cause high usage of a resource.
+ * {@link org.apache.nifi.components.ConfigurableComponent Component} describes how this component may impact a
+ * system resource based on its configuration.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-@Repeatable(HighResourceUsageScenarios.class)
-public @interface HighResourceUsageScenario {
+@Repeatable(SystemResourceConsiderations.class)
+public @interface SystemResourceConsideration {
 
-    String DEFAULT_SCENARIO = "An instance of this component can cause high resource usage.  Multiple instances or " +
-            "high concurrency settings may result a degradation of performance.";
+    String DEFAULT_DESCRIPTION = "An instance of this component can cause high usage of this system resource.  " +
+            "Multiple instances or high concurrency settings may result a degradation of performance.";
 
     /**
-     * The {@link SystemResource SystemResource} which may be affected by the scenario.
+     * The {@link SystemResource SystemResource} which may be affected by this component.
      */
     SystemResource resource();
 
     /**
-     * A description of the scenario in which the resource may be affected by high resource usage.
+     * A description of how this component and its configuration may affect system resource usage.
      */
-    String scenario() default DEFAULT_SCENARIO;
+    String description() default DEFAULT_DESCRIPTION;
 }

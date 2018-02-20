@@ -25,14 +25,13 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation that may be placed on a
- * {@link org.apache.nifi.components.ConfigurableComponent Component} indicating that this
- * component may cause high usage of resources.
- *
+ * {@link org.apache.nifi.components.ConfigurableComponent Component} describes how this component may impact
+ * system resources based on its configuration.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-public @interface HighResourceUsageScenarios {
-    HighResourceUsageScenario[] value();
+public @interface SystemResourceConsiderations {
+    SystemResourceConsideration[] value();
 }

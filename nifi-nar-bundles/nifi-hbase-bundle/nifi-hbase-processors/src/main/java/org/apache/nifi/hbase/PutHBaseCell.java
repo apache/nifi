@@ -17,7 +17,7 @@
 package org.apache.nifi.hbase;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -49,7 +49,7 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "hbase"})
 @CapabilityDescription("Adds the Contents of a FlowFile to HBase as the value of a single cell")
-@HighResourceUsageScenario(resource = SystemResource.MEMORY)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutHBaseCell extends AbstractPutHBase {
 
     @Override

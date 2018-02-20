@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.documentation.example;
 
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,9 +35,9 @@ import java.util.List;
 @CapabilityDescription("A documented controller service that can help you do things")
 @Tags({ "one", "two", "three" })
 @Restricted("controller service restriction description")
-@HighResourceUsageScenario(resource = SystemResource.CPU)
-@HighResourceUsageScenario(resource = SystemResource.DISK, scenario = "Customized disk usage scenario")
-@HighResourceUsageScenario(resource = SystemResource.MEMORY, scenario = "")
+@SystemResourceConsideration(resource = SystemResource.CPU)
+@SystemResourceConsideration(resource = SystemResource.DISK, description = "Customized disk usage description")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "")
 public class FullyDocumentedControllerService extends AbstractControllerService implements SampleService {
 
     public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder().name("Keystore Filename").description("The fully-qualified filename of the Keystore").defaultValue(null)

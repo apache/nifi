@@ -29,7 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.lang.IgniteFuture;
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -76,7 +76,7 @@ import org.apache.nifi.stream.io.StreamUtils;
     @WritesAttribute(attribute = PutIgniteCache.IGNITE_BATCH_FLOW_FILE_FAILED_REASON_ATTRIBUTE_KEY, description = "The failed reason attribute key")
     })
 @SeeAlso({GetIgniteCache.class})
-@HighResourceUsageScenario(resource = SystemResource.MEMORY)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutIgniteCache extends AbstractIgniteCacheProcessor {
 
     /**

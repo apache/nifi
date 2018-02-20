@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.documentation.html;
 
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
@@ -82,11 +82,11 @@ public class HtmlDocumentationWriterTest {
         // restricted
         assertContains(results, "controller service restriction description");
 
-        // verify high usage scenarios
+        // verify system resource considerations
         assertContains(results, SystemResource.CPU.name());
-        assertContains(results, HighResourceUsageScenario.DEFAULT_SCENARIO);
+        assertContains(results, SystemResourceConsideration.DEFAULT_DESCRIPTION);
         assertContains(results, SystemResource.DISK.name());
-        assertContains(results, "Customized disk usage scenario");
+        assertContains(results, "Customized disk usage description");
         assertContains(results, SystemResource.MEMORY.name());
         assertContains(results, "Not Specified");
 
@@ -130,12 +130,11 @@ public class HtmlDocumentationWriterTest {
         // restricted
         assertContains(results, "reporting task restriction description");
 
-        // verify high usage scenarios
+        // verify system resource considerations
         assertContains(results, SystemResource.CPU.name());
-        assertContains(results, "An instance of this component can cause high resource usage.  Multiple instances or high " +
-                "concurrency settings may result a degradation of performance.");
+        assertContains(results, SystemResourceConsideration.DEFAULT_DESCRIPTION);
         assertContains(results, SystemResource.DISK.name());
-        assertContains(results, "Customized disk usage scenario");
+        assertContains(results, "Customized disk usage description");
         assertContains(results, SystemResource.MEMORY.name());
         assertContains(results, "Not Specified");
 

@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -64,7 +64,7 @@ import com.rabbitmq.client.AMQP.BasicProperties;
         + "and Queue is not set up, the message will have no final destination and will return (i.e., the data will not make it to the queue). If "
         + "that happens you will see a log in both app-log and bulletin stating to that effect. Fixing the binding "
         + "(normally done by AMQP administrator) will resolve the issue.")
-@HighResourceUsageScenario(resource = SystemResource.MEMORY)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
     public static final PropertyDescriptor EXCHANGE = new PropertyDescriptor.Builder()

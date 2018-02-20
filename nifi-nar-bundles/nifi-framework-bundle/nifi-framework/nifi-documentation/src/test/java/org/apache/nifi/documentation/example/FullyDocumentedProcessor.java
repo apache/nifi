@@ -18,7 +18,7 @@ package org.apache.nifi.documentation.example;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -61,9 +61,9 @@ import java.util.Set;
 @Stateful(scopes = {Scope.CLUSTER, Scope.LOCAL}, description = "state management description")
 @Restricted("processor restriction description")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@HighResourceUsageScenario(resource = SystemResource.CPU)
-@HighResourceUsageScenario(resource = SystemResource.DISK, scenario = "Customized disk usage scenario")
-@HighResourceUsageScenario(resource = SystemResource.MEMORY, scenario = "")
+@SystemResourceConsideration(resource = SystemResource.CPU)
+@SystemResourceConsideration(resource = SystemResource.DISK, description = "Customized disk usage description")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "")
 public class FullyDocumentedProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")

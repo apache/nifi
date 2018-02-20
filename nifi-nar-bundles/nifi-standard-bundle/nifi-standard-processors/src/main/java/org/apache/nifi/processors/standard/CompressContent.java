@@ -34,7 +34,7 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.HighResourceUsageScenario;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -82,7 +82,7 @@ import org.xerial.snappy.SnappyOutputStream;
     + "determine the compression type. Otherwise, this attribute is ignored.")
 @WritesAttribute(attribute = "mime.type", description = "If the Mode property is set to compress, the appropriate MIME Type is set. If the Mode "
     + "property is set to decompress and the file is successfully decompressed, this attribute is removed, as the MIME Type is no longer known.")
-@HighResourceUsageScenario(resource = SystemResource.CPU)
+@SystemResourceConsideration(resource = SystemResource.CPU)
 public class CompressContent extends AbstractProcessor {
 
     public static final String COMPRESSION_FORMAT_ATTRIBUTE = "use mime.type attribute";
