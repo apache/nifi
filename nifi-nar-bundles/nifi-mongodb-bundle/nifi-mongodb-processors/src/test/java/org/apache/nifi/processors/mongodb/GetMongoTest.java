@@ -76,6 +76,7 @@ public class GetMongoTest {
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.YES_PP);
+        runner.setIncomingConnection(true);
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 
@@ -136,7 +137,7 @@ public class GetMongoTest {
         // invalid projection
         runner.setVariable("projection", "{a: x,y,z}");
         runner.setProperty(GetMongo.QUERY, "{a: 1}");
-        runner.setProperty(GetMongo.PROJECTION, "${projection}");
+        runner.setProperty(GetMongo.PROJECTION, "{a: z}");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
@@ -144,7 +145,7 @@ public class GetMongoTest {
             results = ((MockProcessContext) pc).validate();
         }
         Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().matches("'Projection' .* is invalid because org.bson.json.JsonParseException"));
+        Assert.assertTrue(results.iterator().next().toString().contains("is invalid"));
 
         // invalid sort
         runner.removeProperty(GetMongo.PROJECTION);
@@ -156,7 +157,7 @@ public class GetMongoTest {
             results = ((MockProcessContext) pc).validate();
         }
         Assert.assertEquals(1, results.size());
-        Assert.assertTrue(results.iterator().next().toString().matches("'Sort' .* is invalid because org.bson.json.JsonParseException"));
+        Assert.assertTrue(results.iterator().next().toString().contains("is invalid"));
     }
 
     @Test
@@ -279,5 +280,20 @@ public class GetMongoTest {
         raw = runner.getContentAsByteArray(flowFiles.get(0));
         json = new String(raw);
         Assert.assertFalse("New lines detected", json.contains("\n"));
+    }
+
+    @Test
+    public void testQueryAttribute() {
+        final String attr = "query.attr";
+        runner.setProperty(GetMongo.QUERY, "{}");
+        runner.setProperty(GetMongo.QUERY_ATTRIBUTE, attr);
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        for (MockFlowFile mff : flowFiles) {
+            String val = mff.getAttribute(attr);
+            Assert.assertNotNull("Missing query attribute", val);
+            Assert.assertEquals("Value was wrong", val, "{}");
+        }
     }
 }
