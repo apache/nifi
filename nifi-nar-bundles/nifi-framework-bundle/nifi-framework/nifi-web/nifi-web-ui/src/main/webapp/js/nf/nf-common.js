@@ -1022,7 +1022,7 @@
         },
 
         /**
-         * Extracts the contents of the specified str after the strToFind. If the
+         * Extracts the contents of the specified str after the last strToFind. If the
          * strToFind is not found or the last part of the str, an empty string is
          * returned.
          *
@@ -1062,8 +1062,25 @@
         },
 
         /**
-         * Extracts the contents of the specified str before the strToFind. If the
+         * Extracts the contents of the specified str before the last strToFind. If the
          * strToFind is not found or the first part of the str, an empty string is
+         * returned.
+         *
+         * @argument {string} str       The full string
+         * @argument {string} strToFind The substring to find
+         */
+        substringBeforeLast: function (str, strToFind) {
+            var result = '';
+            var indexOfStrToFind = str.lastIndexOf(strToFind);
+            if (indexOfStrToFind >= 0) {
+                result = str.substr(0, indexOfStrToFind);
+            }
+            return result;
+        },
+
+        /**
+         * Extracts the contents of the specified str before the strToFind. If the
+         * strToFind is not found or the first path of the str, an empty string is
          * returned.
          *
          * @argument {string} str       The full string
