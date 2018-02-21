@@ -20,14 +20,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -41,12 +39,10 @@ public class ConsumeAMQPTest {
 
     @Test
     public void validateSuccessfullConsumeAndTransferToSuccess() throws Exception {
-        Map<String, List<String>> routingMap = new HashMap<>();
-        routingMap.put("key1", Arrays.asList("queue1", "queue2"));
-        Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
-        exchangeToRoutingKeymap.put("myExchange", "key1");
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
-        Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
         try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
             sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
@@ -57,7 +53,6 @@ public class ConsumeAMQPTest {
             runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
 
             runner.run();
-            Thread.sleep(200);
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
         }
@@ -65,25 +60,20 @@ public class ConsumeAMQPTest {
     }
 
     public static class LocalConsumeAMQP extends ConsumeAMQP {
+        private final Connection connection;
 
-        private final Connection conection;
         public LocalConsumeAMQP(Connection connection) {
-            this.conection = connection;
+            this.connection = connection;
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-            synchronized (this) {
-                if (this.amqpConnection == null || !this.amqpConnection.isOpen()) {
-                    this.amqpConnection = this.conection;
-                    this.targetResource = this.finishBuildingTargetResource(context);
-                }
-            }
-            this.rendezvousWithAmqp(context, session);
+        protected AMQPConsumer createAMQPWorker(ProcessContext context, Connection connection) {
+            return new AMQPConsumer(connection, context.getProperty(QUEUE).getValue());
         }
 
-        public Connection getConnection() {
-            return this.amqpConnection;
+        @Override
+        protected Connection createConnection(ProcessContext context) {
+            return connection;
         }
     }
 }

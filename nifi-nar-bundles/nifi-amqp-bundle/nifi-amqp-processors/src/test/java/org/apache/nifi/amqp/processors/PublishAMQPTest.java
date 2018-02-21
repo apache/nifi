@@ -22,15 +22,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -44,13 +42,13 @@ public class PublishAMQPTest {
 
     @Test
     public void validateSuccessfullPublishAndTransferToSuccess() throws Exception {
-        PublishAMQP pubProc = new LocalPublishAMQP(false);
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
+        final PublishAMQP pubProc = new LocalPublishAMQP();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
         runner.setProperty(PublishAMQP.HOST, "injvm");
         runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
         runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "bar");
         attributes.put("amqp$contentType", "foo/bar");
         attributes.put("amqp$contentEncoding", "foobar123");
@@ -70,20 +68,21 @@ public class PublishAMQPTest {
         runner.enqueue("Hello Joe".getBytes(), attributes);
 
         runner.run();
+
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
         assertNotNull(successFF);
-        Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
-        GetResponse msg1 = channel.basicGet("queue1", true);
+
+        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final GetResponse msg1 = channel.basicGet("queue1", true);
         assertNotNull(msg1);
         assertEquals("foo/bar", msg1.getProps().getContentType());
-
         assertEquals("foobar123", msg1.getProps().getContentEncoding());
 
-        Map<String, Object> headerMap = msg1.getProps().getHeaders();
+        final Map<String, Object> headerMap = msg1.getProps().getHeaders();
 
-        Object foo = headerMap.get("foo");
-        Object foo2 = headerMap.get("foo2");
-        Object foo3 = headerMap.get("foo3");
+        final Object foo = headerMap.get("foo");
+        final Object foo2 = headerMap.get("foo2");
+        final Object foo3 = headerMap.get("foo3");
 
         assertEquals("bar", foo.toString());
         assertEquals("bar2", foo2.toString());
@@ -115,53 +114,29 @@ public class PublishAMQPTest {
         runner.enqueue("Hello Joe".getBytes());
 
         runner.run();
-        Thread.sleep(200);
 
         assertTrue(runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
         assertNotNull(runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).get(0));
     }
 
-    public static class LocalPublishAMQP extends PublishAMQP {
 
-        private final boolean closeConnection;
+    public static class LocalPublishAMQP extends PublishAMQP {
+        private TestConnection connection;
 
         public LocalPublishAMQP() {
-            this(true);
-        }
+            final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+            final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
-        public LocalPublishAMQP(boolean closeConection) {
-            this.closeConnection = closeConection;
+            connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-            synchronized (this) {
-                if (this.amqpConnection == null || !this.amqpConnection.isOpen()) {
-                    Map<String, List<String>> routingMap = new HashMap<>();
-                    routingMap.put("key1", Arrays.asList("queue1", "queue2"));
-                    Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
-                    exchangeToRoutingKeymap.put("myExchange", "key1");
-                    this.amqpConnection = new TestConnection(exchangeToRoutingKeymap, routingMap);
-                    this.targetResource = this.finishBuildingTargetResource(context);
-                }
-            }
-            this.rendezvousWithAmqp(context, session);
+        protected Connection createConnection(ProcessContext context) {
+            return connection;
         }
 
         public Connection getConnection() {
-            this.close();
-            return this.amqpConnection;
-        }
-
-        // since we really don't have any real connection (rather emulated one), the override is
-        // needed here so the call to close from TestRunner does nothing since we are
-        // grabbing the emulated connection later to do the assertions in some tests.
-        @Override
-        @OnStopped
-        public void close() {
-            if (this.closeConnection) {
-                super.close();
-            }
+            return connection;
         }
     }
 }
