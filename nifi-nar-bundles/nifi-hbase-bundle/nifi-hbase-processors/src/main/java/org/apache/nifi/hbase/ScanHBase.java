@@ -404,7 +404,7 @@ public class ScanHBase extends AbstractProcessor {
                 lastFF = session.putAllAttributes(lastFF, attributes);
 
                 final AtomicReference<IOException> ioe = new AtomicReference<>(null);
-                session.write(lastFF, (out) -> {
+                lastFF = session.write(lastFF, (out) -> {
                     for (Iterator<Tuple<byte[], ResultCell[]>> iter = hangingRows.iterator(); iter.hasNext();){
                         Tuple<byte[], ResultCell[]> r = iter.next();
                         serializer.serialize(r.getKey(), r.getValue(), out);
