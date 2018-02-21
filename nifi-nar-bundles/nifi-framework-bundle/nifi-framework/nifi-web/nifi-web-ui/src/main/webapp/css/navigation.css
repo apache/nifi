@@ -225,7 +225,7 @@ div.button-spacer-large {
     border: 1px solid #e5ebed;
 }
 
-.brush .extent {
+.brush .selection {
     stroke: #666;
     fill-opacity: .125;
     shape-rendering: crispEdges;

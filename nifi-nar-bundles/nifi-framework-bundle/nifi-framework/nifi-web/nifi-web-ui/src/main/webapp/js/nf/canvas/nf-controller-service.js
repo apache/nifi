@@ -415,7 +415,7 @@
             })
             .map(bulletins, d3.map);
 
-        bulletinsBySource.forEach(function (sourceId, sourceBulletins) {
+        bulletinsBySource.each(function (sourceBulletins, sourceId) {
             $('div.' + sourceId + '-bulletins').each(function () {
                 updateBulletins(sourceBulletins, $(this));
             });
@@ -789,7 +789,7 @@
 
                     // start polling for each controller service
                     var polling = [];
-                    services.forEach(function (controllerServiceId) {
+                    services.each(function (controllerServiceId) {
                         getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
                             polling.push(stopReferencingSchedulableComponents(controllerServiceEntity, pollCondition));
                         });
@@ -1080,7 +1080,7 @@
 
                 // start polling for each controller service
                 var polling = [];
-                services.forEach(function (controllerServiceId) {
+                services.each(function (controllerServiceId) {
                     getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
                         if (enabled) {
                             polling.push(enableReferencingServices(controllerServiceEntity, pollCondition));

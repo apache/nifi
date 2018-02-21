@@ -112,8 +112,8 @@
      */
     var updateComponentVisibility = function () {
         var canvasContainer = $('#canvas-container');
-        var translate = nfCanvasUtils.translateCanvasView();
-        var scale = nfCanvasUtils.scaleCanvasView();
+        var translate = nfCanvasUtils.getCanvasTranslate();
+        var scale = nfCanvasUtils.getCanvasScale();
 
         // scale the translation
         translate = [translate[0] / scale, translate[1] / scale];

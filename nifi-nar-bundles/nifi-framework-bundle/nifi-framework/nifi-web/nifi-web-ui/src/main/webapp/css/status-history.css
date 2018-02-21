@@ -167,7 +167,7 @@ div.legend-label {
     stroke-width: 2.5px;
 }
 
-.brush .extent {
+.brush .selection {
     stroke: #666;
     fill-opacity: .125;
     shape-rendering: crispEdges;

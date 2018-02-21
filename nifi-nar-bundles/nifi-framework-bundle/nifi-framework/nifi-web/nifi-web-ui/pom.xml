@@ -151,8 +151,11 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <!-- D3 -->
-                                        <include>d3/d3.min.js*</include>
+                                        <include>d3/build/d3.min.js*</include>
                                         <include>d3/LICENSE</include>
+                                        <!-- D3 selection multi -->
+                                        <include>d3-selection-multi/build/d3-selection-multi.min.js*</include>
+                                        <include>d3-selection-multi/LICENSE</include>
                                         <!-- angular -->
                                         <include>angular/angular.min.js*</include>
                                         <include>angular/LICENSE.md</include>
@@ -895,7 +898,6 @@
                                 <exclude>nbactions.xml</exclude>
                                 <exclude>src/main/frontend/package.json</exclude>
                                 <exclude>src/main/webapp/js/jquery/jquery.base64.js</exclude>
-                                <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
                                 <exclude>src/main/webapp/fonts/**/*</exclude>
                             </excludes>

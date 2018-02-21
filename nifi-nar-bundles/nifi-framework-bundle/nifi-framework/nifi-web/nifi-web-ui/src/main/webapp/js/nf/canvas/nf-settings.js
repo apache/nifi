@@ -756,7 +756,7 @@
                 text: 'all groups',
                 value: ''
             }];
-            groups.forEach(function (group) {
+            groups.each(function (group) {
                 options.push({
                     text: group,
                     value: group
@@ -1799,7 +1799,7 @@
                     })
                     .map(reportingTaskBulletins, d3.map);
 
-                reportingTaskBulletinsBySource.forEach(function (sourceId, sourceBulletins) {
+                reportingTaskBulletinsBySource.each(function (sourceBulletins, sourceId) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);
                     if (nfCommon.isDefinedAndNotNull(reportingTask)) {
                         reportingTasksData.updateItem(sourceId, $.extend(reportingTask, {

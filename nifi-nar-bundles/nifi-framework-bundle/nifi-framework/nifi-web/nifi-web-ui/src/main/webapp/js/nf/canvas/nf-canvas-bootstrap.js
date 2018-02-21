@@ -259,7 +259,7 @@
             templateComponent.$inject = ['serviceProvider'];
             labelComponent.$inject = ['serviceProvider'];
             graphControlsCtrl.$inject = ['serviceProvider', 'navigateCtrl', 'operateCtrl'];
-            navigateCtrl.$inject = [];
+            navigateCtrl.$inject = ['$timeout'];
             operateCtrl.$inject = [];
             breadcrumbsDirective.$inject = ['breadcrumbsCtrl'];
             draggableDirective.$inject = [];

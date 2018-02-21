@@ -152,8 +152,8 @@
             nfCanvas = canvas;
 
             // handle component drag events
-            drag = d3.behavior.drag()
-                .on('dragstart', function () {
+            drag = d3.drag()
+                .on('start', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
                 })
@@ -195,10 +195,10 @@
                             .attr('width', maxX - minX)
                             .attr('height', maxY - minY)
                             .attr('stroke-width', function () {
-                                return 1 / nfCanvasUtils.scaleCanvasView();
+                                return 1 / nfCanvasUtils.getCanvasScale();
                             })
                             .attr('stroke-dasharray', function () {
-                                return 4 / nfCanvasUtils.scaleCanvasView();
+                                return 4 / nfCanvasUtils.getCanvasScale();
                             })
                             .datum({
                                 original: {
@@ -220,7 +220,7 @@
                             });
                     }
                 })
-                .on('dragend', function () {
+                .on('end', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
 
@@ -390,7 +390,7 @@
                     });
 
                     // refresh the connections
-                    connections.forEach(function (connectionId) {
+                    connections.each(function (connectionId) {
                         nfConnection.refresh(connectionId);
                     });
                 }).always(function () {

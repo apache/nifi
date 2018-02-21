@@ -91,6 +91,7 @@
      *
      * @param {selection} entered           The selection of funnels to be rendered
      * @param {boolean} selected             Whether the element should be selected
+     * @return the entered selection
      */
     var renderFunnels = function (entered, selected) {
         if (entered.empty()) {
@@ -98,7 +99,7 @@
         }
 
         var funnel = entered.append('g')
-            .attr({
+            .attrs({
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -109,7 +110,7 @@
 
         // funnel border
         funnel.append('rect')
-            .attr({
+            .attrs({
                 'rx': 2,
                 'ry': 2,
                 'class': 'border',
@@ -125,7 +126,7 @@
 
         // funnel body
         funnel.append('rect')
-            .attr({
+            .attrs({
                 'rx': 2,
                 'ry': 2,
                 'class': 'body',
@@ -141,7 +142,7 @@
 
         // funnel icon
         funnel.append('text')
-            .attr({
+            .attrs({
                 'class': 'funnel-icon',
                 'x': 9,
                 'y': 34
@@ -150,6 +151,8 @@
 
         // always support selection
         funnel.call(nfSelectable.activate).call(nfContextMenu.activate);
+
+        return funnel;
     };
 
     /**
@@ -212,7 +215,7 @@
 
             // create the funnel container
             funnelContainer = d3.select('#canvas').append('g')
-                .attr({
+                .attrs({
                     'pointer-events': 'all',
                     'class': 'funnels'
                 });
@@ -252,10 +255,14 @@
                 add(funnelEntities);
             }
 
-            // apply the selection and handle new funnels
+            // select
             var selection = select();
-            selection.enter().call(renderFunnels, selectAll);
-            selection.call(updateFunnels);
+
+            // enter
+            var entered = renderFunnels(selection.enter(), selectAll);
+
+            // update
+            updateFunnels(selection.merge(entered));
         },
 
         /**
@@ -305,10 +312,17 @@
                 set(funnelEntities);
             }
 
-            // apply the selection and handle all new processors
+            // select
             var selection = select();
-            selection.enter().call(renderFunnels, selectAll);
-            selection.call(updateFunnels).call(nfCanvasUtils.position, transition);
+
+            // enter
+            var entered = renderFunnels(selection.enter(), selectAll);
+
+            // update
+            var updated = selection.merge(entered);
+            updated.call(updateFunnels).call(nfCanvasUtils.position, transition);
+
+            // exit
             selection.exit().call(removeFunnels);
         },
 
@@ -404,7 +418,7 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.forEach(function (id, entryTimestamp) {
+                cache.each(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
                         cache.remove(id);
                     }
