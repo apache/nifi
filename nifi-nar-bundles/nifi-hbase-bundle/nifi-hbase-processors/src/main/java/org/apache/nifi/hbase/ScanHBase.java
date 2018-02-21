@@ -62,15 +62,15 @@ import java.util.regex.Pattern;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"hbase", "scan", "fetch", "get"})
 @CapabilityDescription("Scans and fetches rows from an HBase table. This processor may be used to fetch rows from hbase table by specifying a range of rowkey values (start and/or end ),"
-        + "by time range, by filter expression, or any combination of them. \n"
-        + "Order of records can be controlled by a property <code>Reversed</code>"
+        + "by time range, by filter expression, or any combination of them. "
+        + "Order of records can be controlled by a property Reversed"
         + "Number of rows retrieved by the processor can be limited.")
 @WritesAttributes({
         @WritesAttribute(attribute = "hbase.table", description = "The name of the HBase table that the row was fetched from"),
         @WritesAttribute(attribute = "hbase.resultset", description = "A JSON document/s representing the row/s. This property is only written when a Destination of flowfile-attributes is selected."),
         @WritesAttribute(attribute = "mime.type", description = "Set to application/json when using a Destination of flowfile-content, not set or modified otherwise"),
         @WritesAttribute(attribute = "hbase.rows.count", description = "Number of rows in the content of given flow file"),
-        @WritesAttribute(attribute = "scanhbase.results.found", description = "Indicates whether at least one row has been found in given hbase table with provided conditions. <br/>"
+        @WritesAttribute(attribute = "scanhbase.results.found", description = "Indicates whether at least one row has been found in given hbase table with provided conditions. "
                 + "Could be null (not present) if transfered to FAILURE")
 })
 public class ScanHBase extends AbstractProcessor {
@@ -164,7 +164,7 @@ public class ScanHBase extends AbstractProcessor {
     static final PropertyDescriptor FILTER_EXPRESSION = new PropertyDescriptor.Builder()
             .displayName("Filter expression")
             .name("scanhbase-filter-expression")
-            .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property.<br/>"
+            .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property. "
                     + "Example: \"ValueFilter( =, 'binaryprefix:commit' )\"")
             .required(false)
             .expressionLanguageSupported(true)
@@ -501,7 +501,9 @@ public class ScanHBase extends AbstractProcessor {
             long rowsPulled = rowsPulledHolder.get();
             long ffUncommittedCount = ffCountHolder.get();
 
-            if (rows == null) rows = new LinkedList<>();
+            if (rows == null){
+                rows = new LinkedList<>();
+            }
             rows.add(new Tuple<byte[], ResultCell[]>(rowKey, resultCells));
 
             rowsPulled++;
@@ -516,7 +518,7 @@ public class ScanHBase extends AbstractProcessor {
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 final AtomicReference<IOException> ioe = new AtomicReference<>(null);
-                session.write(flowFile, (out) -> {
+                flowFile = session.write(flowFile, (out) -> {
                     for (Iterator<Tuple<byte[], ResultCell[]>> iter = rows.iterator(); iter.hasNext();){
                         Tuple<byte[], ResultCell[]> r = iter.next();
                         serializer.serialize(r.getKey(), r.getValue(), out);

@@ -443,7 +443,9 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final int lim = limitRows != null ? limitRows : 0;
             for (final Result result : scanner) {
 
-                if (lim > 0 && cnt++ > lim) break;
+                if (lim > 0 && ++cnt > lim){
+                    break;
+                }
 
                 final byte[] rowKey = result.getRow();
                 final Cell[] cells = result.rawCells();
@@ -471,8 +473,12 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
             final Integer limitRows, final Boolean isReversed, final Collection<Column> columns)  throws IOException {
         final Scan scan = new Scan();
-        if (!StringUtils.isBlank(startRow)) scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
-        if (!StringUtils.isBlank(endRow))   scan.setStopRow(   endRow.getBytes(StandardCharsets.UTF_8));
+        if (!StringUtils.isBlank(startRow)){
+            scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
+        }
+        if (!StringUtils.isBlank(endRow)){
+            scan.setStopRow(   endRow.getBytes(StandardCharsets.UTF_8));
+        }
 
 
         Filter filter = null;
@@ -484,20 +490,27 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                     scan.addColumn(col.getFamily(), col.getQualifier());
                 }
             }
-        }else if (!StringUtils.isBlank(filterExpression)) {
+        }
+        if (!StringUtils.isBlank(filterExpression)) {
             ParseFilter parseFilter = new ParseFilter();
             filter = parseFilter.parseFilterString(filterExpression);
         }
-        if (filter != null) scan.setFilter(filter);
+        if (filter != null){
+            scan.setFilter(filter);
+        }
 
-        if (timerangeMin != null && timerangeMax != null) scan.setTimeRange(timerangeMin, timerangeMax);
+        if (timerangeMin != null && timerangeMax != null){
+            scan.setTimeRange(timerangeMin, timerangeMax);
+        }
 
         // ->>> reserved for HBase v 2 or later
         //if (limitRows != null && limitRows > 0){
         //    scan.setLimit(limitRows)
         //}
 
-        if (isReversed != null) scan.setReversed(isReversed);
+        if (isReversed != null){
+            scan.setReversed(isReversed);
+        }
 
         return table.getScanner(scan);
     }
