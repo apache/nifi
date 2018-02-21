@@ -29,6 +29,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.rabbitmq.client.Connection;
+
 
 /**
  * Unit tests for the AbstractAMQPProcessor class
@@ -77,12 +79,12 @@ public class AbstractAMQPProcessorTest {
      */
     public static class MockAbstractAMQPProcessor extends AbstractAMQPProcessor<AMQPConsumer> {
         @Override
-        protected void rendezvousWithAmqp(ProcessContext context, ProcessSession session) throws ProcessException {
+        protected void processResource(Connection connection, AMQPConsumer consumer, ProcessContext context, ProcessSession session) throws ProcessException {
             // nothing to do
         }
 
         @Override
-        protected AMQPConsumer finishBuildingTargetResource(ProcessContext context) {
+        protected AMQPConsumer createAMQPWorker(ProcessContext context, Connection connection) {
             return null;
         }
     }
