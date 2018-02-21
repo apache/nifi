@@ -33,14 +33,8 @@ import com.rabbitmq.client.GetResponse;
 final class AMQPConsumer extends AMQPWorker {
 
     private final static Logger logger = LoggerFactory.getLogger(AMQPConsumer.class);
-
     private final String queueName;
 
-    /**
-     * Creates an instance of this consumer
-     * @param connection instance of AMQP {@link Connection}
-     * @param queueName name of the queue from which messages will be consumed.
-     */
     AMQPConsumer(Connection connection, String queueName) {
         super(connection);
         this.validateStringProperty("queueName", queueName);
@@ -60,7 +54,7 @@ final class AMQPConsumer extends AMQPWorker {
      */
     public GetResponse consume() {
         try {
-            return this.channel.basicGet(this.queueName, true);
+            return getChannel().basicGet(this.queueName, true);
         } catch (IOException e) {
             logger.error("Failed to receive message from AMQP; " + this + ". Possible reasons: Queue '" + this.queueName
                     + "' may not have been defined", e);
@@ -68,9 +62,6 @@ final class AMQPConsumer extends AMQPWorker {
         }
     }
 
-    /**
-     *
-     */
     @Override
     public String toString() {
         return super.toString() + ", QUEUE:" + this.queueName;
