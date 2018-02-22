@@ -42,6 +42,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -55,7 +56,7 @@ import java.util.Set;
 
 
 @Tags({ "mongodb", "read", "get" })
-@InputRequirement(Requirement.INPUT_FORBIDDEN)
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB")
 public class GetMongo extends AbstractMongoProcessor {
     public static final Validator DOCUMENT_VALIDATOR = (subject, value, context) -> {
@@ -76,13 +77,28 @@ public class GetMongo extends AbstractMongoProcessor {
         return builder.explanation(reason).valid(reason == null).build();
     };
 
-    static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("Query")
-            .description("The selection criteria; must be a valid MongoDB Extended JSON format; if omitted the entire collection will be queried")
-            .required(false)
-            .expressionLanguageSupported(true)
-            .addValidator(DOCUMENT_VALIDATOR)
+    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
+    static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("All input flowfiles that are part of a failed query execution go here.")
             .build();
+
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("All input flowfiles that are part of a successful query execution go here.")
+            .build();
+
+    static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
+        .name("Query")
+        .description("The selection criteria to do the lookup. If the field is left blank, it will look for input from" +
+                " an incoming connection from another processor to provide the query as a valid JSON document inside of " +
+                "the flowfile's body. If this field is left blank and a timer is enabled instead of an incoming connection, " +
+                "that will result in a full collection fetch using a \"{}\" query.")
+        .required(false)
+        .expressionLanguageSupported(true)
+        .addValidator(DOCUMENT_VALIDATOR)
+        .build();
+
     static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
             .name("Projection")
             .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
@@ -155,8 +171,6 @@ public class GetMongo extends AbstractMongoProcessor {
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
 
-    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
-
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(descriptors);
@@ -176,6 +190,8 @@ public class GetMongo extends AbstractMongoProcessor {
 
         final Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
+        _relationships.add(REL_FAILURE);
+        _relationships.add(REL_ORIGINAL);
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
@@ -226,22 +242,55 @@ public class GetMongo extends AbstractMongoProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile input = null;
+        if (context.hasIncomingConnection()) {
+            input = session.get();
+
+            if (input == null && context.hasNonLoopConnection()) {
+                return;
+            }
+        }
+
         final ComponentLog logger = getLogger();
 
         Map attributes = new HashMap();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 
-        if (context.getProperty(QUERY).isSet() && context.getProperty(QUERY_ATTRIBUTE).isSet()) {
-            attributes.put(context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions().getValue(),
-                    context.getProperty(QUERY).evaluateAttributeExpressions().getValue());
+        final Document query;
+        String queryStr;
+        if (context.getProperty(QUERY).isSet()) {
+            queryStr = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
+            query = Document.parse(queryStr);
+        } else if (!context.getProperty(QUERY).isSet() && input == null) {
+            queryStr = "{}";
+            query = Document.parse("{}");
+        } else {
+            try {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                session.exportTo(input, out);
+                out.close();
+                queryStr = new String(out.toByteArray());
+                query = Document.parse(queryStr);
+            } catch (Exception ex) {
+                getLogger().error("Error reading flowfile", ex);
+                if (input != null) { //Likely culprit is a bad query
+                    session.transfer(input, REL_FAILURE);
+                    return;
+                } else {
+                    throw new ProcessException(ex);
+                }
+            }
         }
 
-        final Document query = context.getProperty(QUERY).isSet()
-                ? Document.parse(context.getProperty(QUERY).evaluateAttributeExpressions().getValue()) : null;
+        if (context.getProperty(QUERY_ATTRIBUTE).isSet()) {
+            final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(input).getValue();
+            attributes.put(queryAttr, queryStr);
+        }
+
         final Document projection = context.getProperty(PROJECTION).isSet()
-                ? Document.parse(context.getProperty(PROJECTION).evaluateAttributeExpressions().getValue()) : null;
+                ? Document.parse(context.getProperty(PROJECTION).evaluateAttributeExpressions(input).getValue()) : null;
         final Document sort = context.getProperty(SORT).isSet()
-                ? Document.parse(context.getProperty(SORT).evaluateAttributeExpressions().getValue()) : null;
+                ? Document.parse(context.getProperty(SORT).evaluateAttributeExpressions(input).getValue()) : null;
         final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
         final String usePrettyPrint  = context.getProperty(USE_PRETTY_PRINTING).getValue();
         configureMapper(jsonTypeSetting);
@@ -258,10 +307,10 @@ public class GetMongo extends AbstractMongoProcessor {
                 it.sort(sort);
             }
             if (context.getProperty(LIMIT).isSet()) {
-                it.limit(context.getProperty(LIMIT).evaluateAttributeExpressions().asInteger());
+                it.limit(context.getProperty(LIMIT).evaluateAttributeExpressions(input).asInteger());
             }
             if (context.getProperty(BATCH_SIZE).isSet()) {
-                it.batchSize(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
+                it.batchSize(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger());
             }
 
             final MongoCursor<Document> cursor = it.iterator();
@@ -269,7 +318,7 @@ public class GetMongo extends AbstractMongoProcessor {
             try {
                 FlowFile flowFile = null;
                 if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
-                    int ceiling = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger();
+                    int ceiling = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
                     List<Document> batch = new ArrayList<>();
 
                     while (cursor.hasNext()) {
@@ -313,15 +362,19 @@ public class GetMongo extends AbstractMongoProcessor {
                     }
                 }
 
-                session.commit();
+                if (input != null) {
+                    session.transfer(input, REL_ORIGINAL);
+                }
 
             } finally {
                 cursor.close();
             }
 
         } catch (final RuntimeException e) {
+            if (input != null) {
+                session.transfer(input, REL_FAILURE);
+            }
             context.yield();
-            session.rollback();
             logger.error("Failed to execute query {} due to {}", new Object[] { query, e }, e);
         }
     }
