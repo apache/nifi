@@ -446,7 +446,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case TIME:
                 return "'" + value + "'";
             case TIMESTAMP:
-                if ("Oracle".equals(databaseType)) {
+                if (!StringUtils.isEmpty(databaseType) && databaseType.contains("Oracle")) {
                     // For backwards compatibility, the type might be TIMESTAMP but the state value is in DATE format. This should be a one-time occurrence as the next maximum value
                     // should be stored as a full timestamp. Even so, check to see if the value is missing time-of-day information, and use the "date" coercion rather than the
                     // "timestamp" coercion in that case
