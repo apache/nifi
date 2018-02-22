@@ -24,18 +24,24 @@ public class PutColumn {
     private final byte[] columnFamily;
     private final byte[] columnQualifier;
     private final byte[] buffer;
+    private final String visibility;
     private final Long timestamp;
 
 
     public PutColumn(final byte[] columnFamily, final byte[] columnQualifier, final byte[] buffer) {
-        this(columnFamily, columnQualifier, buffer, null);
+        this(columnFamily, columnQualifier, buffer, null, null);
     }
 
     public PutColumn(final byte[] columnFamily, final byte[] columnQualifier, final byte[] buffer, final Long timestamp) {
+        this(columnFamily, columnQualifier, buffer, timestamp, null);
+    }
+
+    public PutColumn(final byte[] columnFamily, final byte[] columnQualifier, final byte[] buffer, final Long timestamp, final String visibility) {
         this.columnFamily = columnFamily;
         this.columnQualifier = columnQualifier;
         this.buffer = buffer;
         this.timestamp = timestamp;
+        this.visibility = visibility;
     }
 
     public byte[] getColumnFamily() {
@@ -48,6 +54,10 @@ public class PutColumn {
 
     public byte[] getBuffer() {
         return buffer;
+    }
+
+    public String getVisibility() {
+        return visibility;
     }
 
     public Long getTimestamp() {

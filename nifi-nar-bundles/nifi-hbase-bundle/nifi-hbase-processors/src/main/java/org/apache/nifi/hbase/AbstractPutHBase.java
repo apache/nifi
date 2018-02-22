@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -62,6 +63,18 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .required(false) // not all sub-classes will require this
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    protected static final PropertyDescriptor DEFAULT_VISIBILITY_STRING = new PropertyDescriptor.Builder()
+            .name("hbase-default-vis-string")
+            .displayName("Default Visibility String")
+            .description("When using visibility labels, any value set in this field will be applied to all cells that are written unless " +
+                    "an attribute with the convention \"visibility.COLUMN_FAMILY.COLUMN_QUALIFIER\" is present on the flowfile. If this field " +
+                    "is left blank, it will be assumed that no visibility is to be set unless visibility-related attributes are set. NOTE: " +
+                    "this configuration will have no effect on your data if you have not enabled visibility labels in the HBase cluster.")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(Validator.VALID)
             .build();
 
     static final String STRING_ENCODING_VALUE = "String";
@@ -129,6 +142,13 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
+    }
+
+    protected String pickVisibilityString(String defaultVisibilityString, String columnFamily, String columnQualifier, FlowFile flowFile) {
+        final String visibilityAttribute = String.format("visibility.%s.%s", columnFamily, columnQualifier);
+        final String visibilityAttrValue = flowFile.getAttribute(visibilityAttribute);
+
+        return visibilityAttrValue != null ? visibilityAttrValue : defaultVisibilityString;
     }
 
     @Override

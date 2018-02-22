@@ -37,11 +37,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -118,6 +116,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
+        properties.add(DEFAULT_VISIBILITY_STRING);
         properties.add(TIMESTAMP);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
@@ -169,6 +168,8 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
         final String rowIdEncodingStrategy = context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue();
 
+        final String visibilityString = context.getProperty(DEFAULT_VISIBILITY_STRING).evaluateAttributeExpressions(flowFile).getValue().trim();
+
         final Long timestamp;
         if (!StringUtils.isBlank(timestampValue)) {
             try {
@@ -185,12 +186,9 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final ObjectMapper mapper = new ObjectMapper();
         final AtomicReference<JsonNode> rootNodeRef = new AtomicReference<>(null);
         try {
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                        rootNodeRef.set(mapper.readTree(bufferedIn));
-                    }
+            session.read(flowFile, in -> {
+                try (final InputStream bufferedIn = new BufferedInputStream(in)) {
+                    rootNodeRef.set(mapper.readTree(bufferedIn));
                 }
             });
         } catch (final ProcessException pe) {
@@ -256,7 +254,13 @@ public class PutHBaseJSON extends AbstractPutHBase {
                     final byte[] colFamBytes = columnFamily.getBytes(StandardCharsets.UTF_8);
                     final byte[] colQualBytes = fieldName.getBytes(StandardCharsets.UTF_8);
                     final byte[] colValBytes = fieldValueHolder.get();
-                    columns.add(new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp));
+
+                    final String visibilityStringToUse = pickVisibilityString(visibilityString, columnFamily, fieldName, flowFile);
+                    PutColumn column = StringUtils.isEmpty(visibilityStringToUse)
+                            ? new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp)
+                            : new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp, visibilityStringToUse);
+
+                    columns.add(column);
                 }
             }
         }

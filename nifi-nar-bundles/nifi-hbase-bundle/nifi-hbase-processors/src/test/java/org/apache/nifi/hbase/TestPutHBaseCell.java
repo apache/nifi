@@ -47,6 +47,7 @@ public class TestPutHBaseCell {
         runner.setProperty(PutHBaseCell.ROW_ID, row);
         runner.setProperty(PutHBaseCell.COLUMN_FAMILY, columnFamily);
         runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, columnQualifier);
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
         runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
 
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
@@ -84,6 +85,7 @@ public class TestPutHBaseCell {
         runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, columnQualifier);
         runner.setProperty(PutHBaseCell.TIMESTAMP, timestamp.toString());
         runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
 
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
@@ -117,6 +119,7 @@ public class TestPutHBaseCell {
         final TestRunner runner = getTestRunnerWithEL(proc);
         runner.setProperty(PutHBaseCell.TIMESTAMP, "${hbase.timestamp}");
         runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
 
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
@@ -141,6 +144,7 @@ public class TestPutHBaseCell {
         final TestRunner runner = getTestRunnerWithEL(proc);
         runner.setProperty(PutHBaseCell.TIMESTAMP, "${hbase.timestamp}");
         runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
 
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
@@ -175,6 +179,7 @@ public class TestPutHBaseCell {
         runner.addControllerService("hbaseClient", hBaseClient);
         runner.enableControllerService(hBaseClient);
         runner.setProperty(PutHBaseCell.HBASE_CLIENT_SERVICE, "hbaseClient");
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
 
         getHBaseClientService(runner);
 
@@ -198,6 +203,7 @@ public class TestPutHBaseCell {
         runner.addControllerService("hbaseClient", hBaseClient);
         runner.enableControllerService(hBaseClient);
         runner.setProperty(PutHBaseCell.HBASE_CLIENT_SERVICE, "hbaseClient");
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
 
         getHBaseClientService(runner);
 
@@ -227,6 +233,7 @@ public class TestPutHBaseCell {
 
         final PutHBaseCell proc = new PutHBaseCell();
         final TestRunner runner = getTestRunnerWithEL(proc);
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
         final String content1 = "some content1";
@@ -269,6 +276,7 @@ public class TestPutHBaseCell {
 
         final String content1 = "some content1";
         final Map<String, String> attributes1 = getAttributeMapWithEL(tableName, row1, columnFamily, columnQualifier);
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
         runner.enqueue(content1.getBytes("UTF-8"), attributes1);
 
         final String content2 = "some content1";
@@ -294,6 +302,7 @@ public class TestPutHBaseCell {
 
         final String content1 = "some content1";
         final Map<String, String> attributes1 = getAttributeMapWithEL(tableName, row, columnFamily, columnQualifier);
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
         runner.enqueue(content1.getBytes("UTF-8"), attributes1);
 
         final String content2 = "some content1";
@@ -336,6 +345,7 @@ public class TestPutHBaseCell {
         final TestRunner runner = TestRunners.newTestRunner(PutHBaseCell.class);
         runner.setProperty(PutHBaseCell.TABLE_NAME, tableName);
         runner.setProperty(PutHBaseCell.ROW_ID, row);
+        runner.setProperty(PutHBaseCell.DEFAULT_VISIBILITY_STRING, "");
         runner.setProperty(PutHBaseCell.ROW_ID_ENCODING_STRATEGY,PutHBaseCell.ROW_ID_ENCODING_BINARY.getValue());
         runner.setProperty(PutHBaseCell.COLUMN_FAMILY, columnFamily);
         runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, columnQualifier);

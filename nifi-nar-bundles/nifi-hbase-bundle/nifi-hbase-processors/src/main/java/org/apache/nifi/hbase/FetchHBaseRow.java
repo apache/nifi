@@ -63,7 +63,7 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "hbase.row", description = "A JSON document representing the row. This property is only written when a Destination of flowfile-attributes is selected."),
         @WritesAttribute(attribute = "mime.type", description = "Set to application/json when using a Destination of flowfile-content, not set or modified otherwise")
 })
-public class FetchHBaseRow extends AbstractProcessor {
+public class FetchHBaseRow extends AbstractProcessor implements VisibilityFetchSupport {
 
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
 
@@ -179,6 +179,7 @@ public class FetchHBaseRow extends AbstractProcessor {
         props.add(TABLE_NAME);
         props.add(ROW_ID);
         props.add(COLUMNS);
+        props.add(AUTHORIZATIONS);
         props.add(DESTINATION);
         props.add(JSON_FORMAT);
         props.add(JSON_VALUE_ENCODING);
@@ -252,6 +253,8 @@ public class FetchHBaseRow extends AbstractProcessor {
         final String destination = context.getProperty(DESTINATION).getValue();
         final boolean base64Encode = context.getProperty(JSON_VALUE_ENCODING).getValue().equals(ENCODING_BASE64.getValue());
 
+        List<String> authorizations = getAuthorizations(context, flowFile);
+
         final RowSerializer rowSerializer = base64Encode ? base64RowSerializer : regularRowSerializer;
 
         final FetchHBaseRowHandler handler = destination.equals(DESTINATION_CONTENT.getValue())
@@ -260,7 +263,7 @@ public class FetchHBaseRow extends AbstractProcessor {
         final byte[] rowIdBytes = rowId.getBytes(StandardCharsets.UTF_8);
 
         try {
-            hBaseClientService.scan(tableName, rowIdBytes, rowIdBytes, columns, handler);
+            hBaseClientService.scan(tableName, rowIdBytes, rowIdBytes, columns, authorizations, handler);
         } catch (Exception e) {
             getLogger().error("Unable to fetch row {} from  {} due to {}", new Object[] {rowId, tableName, e});
             session.transfer(handler.getFlowFile(), REL_FAILURE);
