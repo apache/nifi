@@ -40,6 +40,7 @@ import org.junit.Test;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -76,7 +77,7 @@ public class GetMongoTest {
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.YES_PP);
-        runner.setIncomingConnection(true);
+        runner.setIncomingConnection(false);
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 
@@ -243,8 +244,11 @@ public class GetMongoTest {
     public void testResultsPerFlowfile() throws Exception {
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "${results.per.flowfile}");
         runner.setVariable("results.per.flowfile", "2");
+        runner.enqueue("{}");
+        runner.setIncomingConnection(true);
         runner.run();
-        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 2);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 2);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
         Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
@@ -255,8 +259,11 @@ public class GetMongoTest {
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "2");
         runner.setProperty(GetMongo.BATCH_SIZE, "${batch.size}");
         runner.setVariable("batch.size", "1");
+        runner.enqueue("{}");
+        runner.setIncomingConnection(true);
         runner.run();
-        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 2);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 2);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         Assert.assertTrue("Flowfile was empty", results.get(0).getSize() > 0);
         Assert.assertEquals("Wrong mime type", results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json");
@@ -266,34 +273,164 @@ public class GetMongoTest {
     public void testConfigurablePrettyPrint() {
         runner.setProperty(GetMongo.JSON_TYPE, GetMongo.JSON_STANDARD);
         runner.setProperty(GetMongo.LIMIT, "1");
+        runner.enqueue("{}");
+        runner.setIncomingConnection(true);
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
         String json = new String(raw);
         Assert.assertTrue("JSON did not have new lines.", json.contains("\n"));
         runner.clearTransferState();
         runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.NO_PP);
+        runner.enqueue("{}");
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         raw = runner.getContentAsByteArray(flowFiles.get(0));
         json = new String(raw);
         Assert.assertFalse("New lines detected", json.contains("\n"));
     }
 
+    private void testQueryAttribute(String attr, String expected) {
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        for (MockFlowFile mff : flowFiles) {
+            String val = mff.getAttribute(attr);
+            Assert.assertNotNull("Missing query attribute", val);
+            Assert.assertEquals("Value was wrong", expected, val);
+        }
+    }
+
     @Test
     public void testQueryAttribute() {
+        /*
+         * Test original behavior; Manually set query of {}, no input
+         */
         final String attr = "query.attr";
         runner.setProperty(GetMongo.QUERY, "{}");
         runner.setProperty(GetMongo.QUERY_ATTRIBUTE, attr);
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        for (MockFlowFile mff : flowFiles) {
-            String val = mff.getAttribute(attr);
-            Assert.assertNotNull("Missing query attribute", val);
-            Assert.assertEquals("Value was wrong", val, "{}");
-        }
+        testQueryAttribute(attr, "{}");
+
+        runner.clearTransferState();
+
+        /*
+         * Test original behavior; No Input/Empty val = {}
+         */
+        runner.removeProperty(GetMongo.QUERY);
+        runner.setIncomingConnection(false);
+        runner.run();
+        testQueryAttribute(attr, "{}");
+
+        runner.clearTransferState();
+
+        /*
+         * Input flowfile with {} as the query
+         */
+
+        runner.setIncomingConnection(true);
+        runner.enqueue("{}");
+        runner.run();
+        testQueryAttribute(attr, "{}");
+
+        /*
+         * Input flowfile with invalid query
+         */
+
+        runner.clearTransferState();
+        runner.enqueue("invalid query");
+        runner.run();
+
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
     }
+
+    /*
+     * Query read behavior tests
+     */
+    @Test
+    public void testReadQueryFromBodyWithEL() {
+        Map attributes = new HashMap();
+        attributes.put("field", "c");
+        attributes.put("value", "4");
+        String query = "{ \"${field}\": { \"$gte\": ${value}}}";
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.QUERY, query);
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "10");
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue("test", attributes);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testReadQueryFromBodyNoEL() {
+        String query = "{ \"c\": { \"$gte\": 4 }}";
+        runner.setIncomingConnection(true);
+        runner.removeProperty(GetMongo.QUERY);
+        runner.enqueue(query);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+
+    }
+
+    @Test
+    public void testReadQueryFromQueryParamNoConnection() {
+        String query = "{ \"c\": { \"$gte\": 4 }}";
+        runner.setProperty(GetMongo.QUERY, query);
+        runner.setIncomingConnection(false);
+        runner.run(1, true, true);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+
+    }
+
+    @Test
+    public void testReadQueryFromQueryParamWithConnection() {
+        String query = "{ \"c\": { \"$gte\": ${value} }}";
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("value", "4");
+
+        runner.setProperty(GetMongo.QUERY, query);
+        runner.setIncomingConnection(true);
+        runner.enqueue("test", attrs);
+        runner.run(1, true, true);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+
+    }
+
+    @Test
+    public void testQueryParamMissingWithNoFlowfile() {
+        Exception ex = null;
+
+        try {
+            runner.assertValid();
+            runner.setIncomingConnection(false);
+            runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "1");
+            runner.run(1, true, true);
+        } catch (Exception pe) {
+            ex = pe;
+        }
+
+        Assert.assertNull("An exception was thrown!", ex);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+    }
+    /*
+     * End query read behavior tests
+     */
 }
