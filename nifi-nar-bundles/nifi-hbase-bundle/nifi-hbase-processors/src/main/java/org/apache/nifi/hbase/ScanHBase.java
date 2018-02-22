@@ -69,7 +69,7 @@ import org.apache.nifi.processor.util.StandardValidators;
                 + "Could be null (not present) if transfered to FAILURE")
 })
 
-public class ScanHBase extends AbstractProcessor {
+public class ScanHBase extends AbstractProcessor implements VisibilityFetchSupport {
     //enhanced regex for columns to allow "-" in column qualifier names
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:(\\w|-)+)?(?:,\\w+(:(\\w|-)+)?)*");
     static final String nl = System.lineSeparator();
@@ -231,6 +231,7 @@ public class ScanHBase extends AbstractProcessor {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HBASE_CLIENT_SERVICE);
         props.add(TABLE_NAME);
+        props.add(AUTHORIZATIONS);
         props.add(START_ROW);
         props.add(END_ROW);
         props.add(TIME_RANGE_MIN);
@@ -326,6 +327,8 @@ public class ScanHBase extends AbstractProcessor {
                 return;
             }
 
+            final List<String> authorizations = getAuthorizations(context, flowFile);
+
             final String startRow = context.getProperty(START_ROW).evaluateAttributeExpressions(flowFile).getValue();
             final String endRow = context.getProperty(END_ROW).evaluateAttributeExpressions(flowFile).getValue();
 
@@ -381,6 +384,7 @@ public class ScanHBase extends AbstractProcessor {
                                         limitRows,
                                         isReversed,
                                         columns,
+                                        authorizations,
                                         handler);
             } catch (Exception e) {
                 if (handler.getFlowFile() != null){

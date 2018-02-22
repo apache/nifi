@@ -505,6 +505,7 @@ public class TestPutHBaseJSON {
         runner.setProperty(PutHBaseJSON.TABLE_NAME, table);
         runner.setProperty(PutHBaseJSON.COLUMN_FAMILY, columnFamily);
         runner.setProperty(PutHBaseJSON.BATCH_SIZE, batchSize);
+
         return runner;
     }
 

@@ -119,6 +119,18 @@ public interface HBaseClientService extends ControllerService {
     void delete(String tableName, byte[] rowId) throws IOException;
 
     /**
+     * Deletes the given row on HBase. Uses the supplied visibility label for all cells in the delete.
+     * It will fail if HBase cannot delete a cell because the visibility label on the cell does not match the specified
+     * label.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowId the id of the row to delete
+     * @param visibilityLabel a visibility label to apply to the delete
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void delete(String tableName, byte[] rowId, String visibilityLabel) throws IOException;
+
+    /**
      * Deletes a list of rows in HBase. All cells are deleted.
      *
      * @param tableName the name of an HBase table
@@ -126,6 +138,25 @@ public interface HBaseClientService extends ControllerService {
      */
 
     void delete(String tableName, List<byte[]> rowIds) throws IOException;
+
+    /**
+     * Deletes a list of cells from HBase. This is intended to be used with granular delete operations.
+     *
+     * @param tableName the name of an HBase table.
+     * @param deletes a list of DeleteRequest objects.
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void deleteCells(String tableName, List<DeleteRequest> deletes) throws IOException;
+
+    /**
+     * Deletes a list of rows in HBase. All cells that match the visibility label are deleted.
+     *
+     * @param tableName the name of an HBase table
+     * @param rowIds a list of rowIds to send in a batch delete
+     * @param visibilityLabel a visibility label expression
+     */
+
+    void delete(String tableName, List<byte[]> rowIds, String visibilityLabel) throws IOException;
 
     /**
      * Scans the given table using the optional filter criteria and passing each result to the provided handler.
@@ -140,6 +171,19 @@ public interface HBaseClientService extends ControllerService {
     void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, ResultHandler handler) throws IOException;
 
     /**
+     * Scans the given table using the optional filter criteria and passing each result to the provided handler.
+     *
+     * @param tableName the name of an HBase table to scan
+     * @param columns optional columns to return, if not specified all columns are returned
+     * @param filterExpression optional filter expression, if not specified no filtering is performed
+     * @param minTime the minimum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param authorizations the visibility labels to apply to the scanner.
+     * @param handler a handler to process rows of the result set
+     * @throws IOException thrown when there are communication errors with HBase
+     */
+    void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, List<String> authorizations, ResultHandler handler) throws IOException;
+
+    /**
      * Scans the given table for the given rowId and passes the result to the handler.
      *
      * @param tableName the name of an HBase table to scan
@@ -149,7 +193,7 @@ public interface HBaseClientService extends ControllerService {
      * @param handler a handler to process rows of the result
      * @throws IOException thrown when there are communication errors with HBase
      */
-    void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException;
+    void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, List<String> authorizations, ResultHandler handler) throws IOException;
 
     /**
      * Scans the given table for the given range of row keys or time rage and passes the result to a handler.<br/>
@@ -163,10 +207,11 @@ public interface HBaseClientService extends ControllerService {
      * @param limitRows the maximum number of rows to be returned by scanner
      * @param isReversed whether this scan is a reversed one.
      * @param columns optional columns to return, if not specified all columns are returned
+     * @param authorizations optional list of visibility labels that the user should be able to see when communicating with HBase
      * @param handler a handler to process rows of the result
      */
     void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin, Long timerangeMax, Integer limitRows,
-            Boolean isReversed, Collection<Column> columns, ResultHandler handler) throws IOException;
+            Boolean isReversed, Collection<Column> columns, List<String> authorizations, ResultHandler handler) throws IOException;
 
     /**
      * Converts the given boolean to it's byte representation.

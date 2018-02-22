@@ -21,7 +21,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -55,6 +54,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -65,7 +65,6 @@ import org.apache.nifi.hbase.io.JsonRowSerializer;
 import org.apache.nifi.hbase.io.RowSerializer;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
-import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.hbase.util.ObjectSerDe;
 import org.apache.nifi.hbase.util.StringSerDe;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -73,7 +72,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @TriggerWhenEmpty
@@ -91,7 +89,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a fetching from HBase, stores a timestamp of the last-modified cell that was found. In addition, it stores the ID of the row(s) "
     + "and the value of each cell that has that timestamp as its modification date. This is stored across the cluster and allows the next fetch to avoid duplicating data, even if this Processor is "
     + "run on Primary Node only and the Primary Node changes.")
-public class GetHBase extends AbstractProcessor {
+public class GetHBase extends AbstractProcessor implements VisibilityFetchSupport {
 
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
 
@@ -149,6 +147,14 @@ public class GetHBase extends AbstractProcessor {
             .allowableValues(NONE, CURRENT_TIME)
             .defaultValue(NONE.getValue())
             .build();
+    static final PropertyDescriptor AUTHORIZATIONS = new PropertyDescriptor.Builder()
+            .name("hbase-fetch-row-authorizations")
+            .displayName("Authorizations")
+            .description("The list of authorizations to pass to the scanner. This will be ignored if cell visibility labels are not in use.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(Validator.VALID)
+            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -172,6 +178,7 @@ public class GetHBase extends AbstractProcessor {
         properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(TABLE_NAME);
         properties.add(COLUMNS);
+        properties.add(AUTHORIZATIONS);
         properties.add(FILTER_EXPRESSION);
         properties.add(INITIAL_TIMERANGE);
         properties.add(CHARSET);
@@ -253,6 +260,9 @@ public class GetHBase extends AbstractProcessor {
         final String tableName = context.getProperty(TABLE_NAME).getValue();
         final String initialTimeRange = context.getProperty(INITIAL_TIMERANGE).getValue();
         final String filterExpression = context.getProperty(FILTER_EXPRESSION).getValue();
+
+        List<String> authorizations = getAuthorizations(context, null);
+
         final HBaseClientService hBaseClientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
 
         // if the table was changed then remove any previous state
@@ -279,105 +289,97 @@ public class GetHBase extends AbstractProcessor {
             final AtomicReference<Long> latestTimestampHolder = new AtomicReference<>(minTime);
 
 
-            hBaseClientService.scan(tableName, columns, filterExpression, minTime, new ResultHandler() {
-                @Override
-                public void handle(final byte[] rowKey, final ResultCell[] resultCells) {
+            hBaseClientService.scan(tableName, columns, filterExpression, minTime, authorizations, (rowKey, resultCells) -> {
 
-                    final String rowKeyString = new String(rowKey, StandardCharsets.UTF_8);
+                final String rowKeyString = new String(rowKey, StandardCharsets.UTF_8);
 
-                    // check if latest cell timestamp is equal to our cutoff.
-                    // if any of the cells have a timestamp later than our cutoff, then we
-                    // want the row. But if the cell with the latest timestamp is equal to
-                    // our cutoff, then we want to check if that's one of the cells that
-                    // we have already seen.
-                    long latestCellTimestamp = 0L;
+                // check if latest cell timestamp is equal to our cutoff.
+                // if any of the cells have a timestamp later than our cutoff, then we
+                // want the row. But if the cell with the latest timestamp is equal to
+                // our cutoff, then we want to check if that's one of the cells that
+                // we have already seen.
+                long latestCellTimestamp = 0L;
+                for (final ResultCell cell : resultCells) {
+                    if (cell.getTimestamp() > latestCellTimestamp) {
+                        latestCellTimestamp = cell.getTimestamp();
+                    }
+                }
+
+                // we've already seen this.
+                if (latestCellTimestamp < minTime) {
+                    getLogger().debug("latest cell timestamp for row {} is {}, which is earlier than the minimum time of {}",
+                            new Object[] {rowKeyString, latestCellTimestamp, minTime});
+                    return;
+                }
+
+                if (latestCellTimestamp == minTime) {
+                    // latest cell timestamp is equal to our minimum time. Check if all cells that have
+                    // that timestamp are in our list of previously seen cells.
+                    boolean allSeen = true;
                     for (final ResultCell cell : resultCells) {
-                        if (cell.getTimestamp() > latestCellTimestamp) {
-                            latestCellTimestamp = cell.getTimestamp();
+                        if (cell.getTimestamp() == latestCellTimestamp) {
+                            if (lastResult == null || !lastResult.contains(cell)) {
+                                allSeen = false;
+                                break;
+                            }
                         }
                     }
 
-                    // we've already seen this.
-                    if (latestCellTimestamp < minTime) {
-                        getLogger().debug("latest cell timestamp for row {} is {}, which is earlier than the minimum time of {}",
-                                new Object[] {rowKeyString, latestCellTimestamp, minTime});
+                    if (allSeen) {
+                        // we have already seen all of the cells for this row. We do not want to
+                        // include this cell in our output.
+                        getLogger().debug("all cells for row {} have already been seen", new Object[] { rowKeyString });
                         return;
                     }
+                }
 
-                    if (latestCellTimestamp == minTime) {
-                        // latest cell timestamp is equal to our minimum time. Check if all cells that have
-                        // that timestamp are in our list of previously seen cells.
-                        boolean allSeen = true;
-                        for (final ResultCell cell : resultCells) {
-                            if (cell.getTimestamp() == latestCellTimestamp) {
-                                if (lastResult == null || !lastResult.contains(cell)) {
-                                    allSeen = false;
-                                    break;
-                                }
+                // If the latest timestamp of the cell is later than the latest timestamp we have already seen,
+                // we want to keep track of the cells that match this timestamp so that the next time we scan,
+                // we can ignore these cells.
+                if (latestCellTimestamp >= latestTimestampHolder.get()) {
+                    // new timestamp, so clear all of the 'matching cells'
+                    if (latestCellTimestamp > latestTimestampHolder.get()) {
+                        latestTimestampHolder.set(latestCellTimestamp);
+                        cellsMatchingTimestamp.clear();
+                    }
+
+                    for (final ResultCell cell : resultCells) {
+                        final long ts = cell.getTimestamp();
+                        if (ts == latestCellTimestamp) {
+                            final byte[] rowValue = Arrays.copyOfRange(cell.getRowArray(), cell.getRowOffset(), cell.getRowLength() + cell.getRowOffset());
+                            final byte[] cellValue = Arrays.copyOfRange(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength() + cell.getValueOffset());
+
+                            final String rowHash = new String(rowValue, StandardCharsets.UTF_8);
+                            Set<String> cellHashes = cellsMatchingTimestamp.get(rowHash);
+                            if (cellHashes == null) {
+                                cellHashes = new HashSet<>();
+                                cellsMatchingTimestamp.put(rowHash, cellHashes);
                             }
-                        }
-
-                        if (allSeen) {
-                            // we have already seen all of the cells for this row. We do not want to
-                            // include this cell in our output.
-                            getLogger().debug("all cells for row {} have already been seen", new Object[] { rowKeyString });
-                            return;
+                            cellHashes.add(new String(cellValue, StandardCharsets.UTF_8));
                         }
                     }
+                }
 
-                    // If the latest timestamp of the cell is later than the latest timestamp we have already seen,
-                    // we want to keep track of the cells that match this timestamp so that the next time we scan,
-                    // we can ignore these cells.
-                    if (latestCellTimestamp >= latestTimestampHolder.get()) {
-                        // new timestamp, so clear all of the 'matching cells'
-                        if (latestCellTimestamp > latestTimestampHolder.get()) {
-                            latestTimestampHolder.set(latestCellTimestamp);
-                            cellsMatchingTimestamp.clear();
-                        }
+                // write the row to a new FlowFile.
+                FlowFile flowFile = session.create();
+                flowFile = session.write(flowFile, out -> serializer.serialize(rowKey, resultCells, out));
 
-                        for (final ResultCell cell : resultCells) {
-                            final long ts = cell.getTimestamp();
-                            if (ts == latestCellTimestamp) {
-                                final byte[] rowValue = Arrays.copyOfRange(cell.getRowArray(), cell.getRowOffset(), cell.getRowLength() + cell.getRowOffset());
-                                final byte[] cellValue = Arrays.copyOfRange(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength() + cell.getValueOffset());
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put("hbase.table", tableName);
+                attributes.put("mime.type", "application/json");
+                flowFile = session.putAllAttributes(flowFile, attributes);
 
-                                final String rowHash = new String(rowValue, StandardCharsets.UTF_8);
-                                Set<String> cellHashes = cellsMatchingTimestamp.get(rowHash);
-                                if (cellHashes == null) {
-                                    cellHashes = new HashSet<>();
-                                    cellsMatchingTimestamp.put(rowHash, cellHashes);
-                                }
-                                cellHashes.add(new String(cellValue, StandardCharsets.UTF_8));
-                            }
-                        }
-                    }
+                session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
+                session.transfer(flowFile, REL_SUCCESS);
+                getLogger().debug("Received {} from HBase with row key {}", new Object[]{flowFile, rowKeyString});
 
-                    // write the row to a new FlowFile.
-                    FlowFile flowFile = session.create();
-                    flowFile = session.write(flowFile, new OutputStreamCallback() {
-                        @Override
-                        public void process(final OutputStream out) throws IOException {
-                            serializer.serialize(rowKey, resultCells, out);
-                        }
-                    });
+                // we could potentially have a huge number of rows. If we get to 500, go ahead and commit the
+                // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
+                long rowsPulled = rowsPulledHolder.get();
+                rowsPulledHolder.set(++rowsPulled);
 
-                    final Map<String, String> attributes = new HashMap<>();
-                    attributes.put("hbase.table", tableName);
-                    attributes.put("mime.type", "application/json");
-                    flowFile = session.putAllAttributes(flowFile, attributes);
-
-                    session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
-                    session.transfer(flowFile, REL_SUCCESS);
-                    getLogger().debug("Received {} from HBase with row key {}", new Object[]{flowFile, rowKeyString});
-
-                    // we could potentially have a huge number of rows. If we get to 500, go ahead and commit the
-                    // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
-                    long rowsPulled = rowsPulledHolder.get();
-                    rowsPulledHolder.set(++rowsPulled);
-
-                    if (++rowsPulled % getBatchSize() == 0) {
-                        session.commit();
-                    }
+                if (++rowsPulled % getBatchSize() == 0) {
+                    session.commit();
                 }
             });
 
@@ -636,5 +638,4 @@ public class GetHBase extends AbstractProcessor {
             return new ScanResult(timestamp, matchingCellHashes);
         }
     }
-
 }
