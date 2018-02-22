@@ -17,25 +17,12 @@
 package org.apache.nifi.processors.gcp.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.JobStatus;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.util.TestRunner;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,22 +45,22 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
     private static final String WRITE_DISPOSITION = JobInfo.WriteDisposition.WRITE_EMPTY.name();
     private static final String MAXBAD_RECORDS = "0";
     private static final String IGNORE_UNKNOWN = "true";
-    
+
     @Mock
     BigQuery bq;
-    
+
     @Mock
     Table table;
-    
+
     @Mock
     Job job;
-    
+
     @Mock
     JobStatus jobStatus;
-    
+
     @Mock
     JobStatistics stats;
-    
+
     @Before
     public void setup() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -109,25 +96,25 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         reset(job);
         reset(jobStatus);
         reset(stats);
-        
+
         when(table.exists()).thenReturn(Boolean.TRUE);
         when(bq.create(ArgumentMatchers.isA(JobInfo.class))).thenReturn(job);
         when(job.waitFor()).thenReturn(job);
         when(job.getStatus()).thenReturn(jobStatus);
         when(job.getStatistics()).thenReturn(stats);
-        
+
         when(stats.getCreationTime()).thenReturn(0L);
         when(stats.getStartTime()).thenReturn(1L);
         when(stats.getEndTime()).thenReturn(2L);
-        
+
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
-        
+
         runner.enqueue("{ \"data\": \"datavalue\" }");
 
         runner.run();
-        
+
         runner.assertAllFlowFilesTransferred(PutBigQueryStream.REL_SUCCESS);
     }
 }

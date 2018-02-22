@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.nifi.processors.gcp.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
@@ -61,7 +78,7 @@ import org.apache.nifi.processors.gcp.storage.PutGCSObject;
 })
 
 public class PutBigQueryBatch extends AbstractBigQueryProcessor {
-        
+
     public static final PropertyDescriptor DATASET = new PropertyDescriptor
         .Builder().name(BigQueryAttributes.DATASET_ATTR)
         .displayName("Dataset")
@@ -71,7 +88,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
-    
+
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor
         .Builder().name(BigQueryAttributes.TABLE_NAME_ATTR)
         .displayName("Table Name")
@@ -81,7 +98,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
-    
+
     public static final PropertyDescriptor TABLE_SCHEMA = new PropertyDescriptor
         .Builder().name(BigQueryAttributes.TABLE_SCHEMA_ATTR)
         .displayName("Table Schema")
@@ -89,7 +106,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
-    
+
     public static final PropertyDescriptor SOURCE_FILE = new PropertyDescriptor
         .Builder().name(BigQueryAttributes.SOURCE_FILE_ATTR)
         .displayName("Load file path")
@@ -99,7 +116,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
-    
+
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor
         .Builder().name(BigQueryAttributes.SOURCE_TYPE_ATTR)
         .displayName("Load file type")
@@ -109,7 +126,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .defaultValue(FormatOptions.json().getType())
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
-    
+
     public static final PropertyDescriptor IGNORE_UNKNOWN = new PropertyDescriptor.Builder()
         .name(BigQueryAttributes.IGNORE_UNKNOWN_ATTR)
         .displayName("Ignore Unknown Values")
@@ -119,7 +136,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .allowableValues("true", "false")
         .defaultValue("true")
         .build();
-    
+
     public static final PropertyDescriptor CREATE_DISPOSITION = new PropertyDescriptor.Builder()
         .name(BigQueryAttributes.CREATE_DISPOSITION_ATTR)
         .displayName("Create Disposition")
@@ -129,7 +146,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .defaultValue(JobInfo.CreateDisposition.CREATE_IF_NEEDED.name())
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
-    
+
     public static final PropertyDescriptor WRITE_DISPOSITION = new PropertyDescriptor.Builder()
         .name(BigQueryAttributes.WRITE_DISPOSITION_ATTR)
         .displayName("Write Disposition")
@@ -139,7 +156,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .defaultValue(JobInfo.WriteDisposition.WRITE_EMPTY.name())
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
-    
+
     public static final PropertyDescriptor MAXBAD_RECORDS = new PropertyDescriptor.Builder()
         .name(BigQueryAttributes.MAX_BADRECORDS_ATTR)
         .displayName("Max Bad Records")
@@ -150,13 +167,13 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         .build();
 
     private final static Type gsonParseType = new TypeToken<Map<String, Object>>(){}.getType();
-    
+
     private Schema schemaCache = null;
 
     public PutBigQueryBatch() {
-        
+
     }
-    
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
@@ -172,7 +189,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
                 .add(IGNORE_UNKNOWN)
                 .build();
     }
-    
+
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
@@ -182,38 +199,38 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
                 .dynamic(true)
                 .build();
     }
-    
+
     @Override
     public void onScheduled(ProcessContext context) {
         super.onScheduled(context);
-        
+
         if(schemaCache == null) {
             String schemaStr = context.getProperty(TABLE_SCHEMA).getValue();
             schemaCache = BqUtils.schemaFromString(schemaStr);
-            
+
             getLogger().info("Enabled StreamIntoBigQuery");
         }
     }
-    
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flow = session.get();
         if (flow == null) {
             return;
         }
-        
+
         final Map<String, String> attributes = new HashMap<>();
-        
+
         final BigQuery bq = getCloudService();
-        
+
         final String projectId = context.getProperty(PROJECT_ID).getValue();
         final String dataset_str = context.getProperty(DATASET).evaluateAttributeExpressions(flow).getValue();
         final String tablename_str = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flow).getValue();
         final TableId tableId = TableId.of(projectId, dataset_str, tablename_str);
-        
+
         final String fileType = context.getProperty(SOURCE_TYPE).getValue();
         final String jsonFile = context.getProperty(SOURCE_FILE).evaluateAttributeExpressions(flow).getValue();
-                
+
         LoadJobConfiguration configuration = LoadJobConfiguration.newBuilder(tableId, jsonFile, FormatOptions.of(fileType))
             .setCreateDisposition(JobInfo.CreateDisposition.valueOf(context.getProperty(CREATE_DISPOSITION).getValue()))
             .setWriteDisposition(JobInfo.WriteDisposition.valueOf(context.getProperty(WRITE_DISPOSITION).getValue()))
@@ -221,28 +238,28 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
             .setMaxBadRecords(context.getProperty(MAXBAD_RECORDS).asInteger())
             .setSchema(schemaCache)
             .build();
-        
+
         Job job = bq.create(JobInfo.of(configuration));
         try {
             job = job.waitFor();
         } catch (Throwable ex) {
             getLogger().log(LogLevel.ERROR, ex.getMessage(), ex);
-            
+
             flow = session.penalize(flow);
-       
+
             session.transfer(flow, REL_FAILURE);
-            
+
             return;
         }
-        
+
         boolean jobError = (job.getStatus().getError() != null);
-        
+
         attributes.put(BigQueryAttributes.JOB_CREATE_TIME_ATTR, Long.toString(job.getStatistics().getCreationTime()));
         attributes.put(BigQueryAttributes.JOB_END_TIME_ATTR, Long.toString(job.getStatistics().getEndTime()));
         attributes.put(BigQueryAttributes.JOB_START_TIME_ATTR, Long.toString(job.getStatistics().getStartTime()));
-        
+
         attributes.put(BigQueryAttributes.JOB_LINK_ATTR, job.getSelfLink());
-        
+
         if(jobError) {
             attributes.put(BigQueryAttributes.JOB_ERROR_MSG_ATTR, job.getStatus().getError().getMessage());
             attributes.put(BigQueryAttributes.JOB_ERROR_REASON_ATTR, job.getStatus().getError().getReason());
@@ -253,11 +270,11 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
             flow = session.removeAttribute(flow, "bq.job.error.reason");
             flow = session.removeAttribute(flow, "bq.job.error.location");
         }
-        
+
         if (!attributes.isEmpty()) {
             flow = session.putAllAttributes(flow, attributes);
         }
-        
+
         if(jobError) {
             flow = session.penalize(flow);
             session.transfer(flow, REL_FAILURE);
@@ -265,5 +282,4 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
             session.transfer(flow, REL_SUCCESS);
         }
     }
-    
 }

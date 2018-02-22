@@ -21,11 +21,7 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,14 +48,14 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
     private static final String MAX_ROW_SIZE = "1 MB";
     private static final String CREATE_DISPOSITION = JobInfo.CreateDisposition.CREATE_IF_NEEDED.name();
     private static final String TABLE_CACHE_RESET = "1 hours";
-    
+
     @Mock
     BigQuery bq;
-    
+
     @Mock
     Table table;
-    
-    @Mock 
+
+    @Mock
     InsertAllResponse response;
 
     @Before
@@ -93,45 +89,45 @@ public class PutBigQueryStreamTest extends AbstractBQTest {
         reset(bq);
         reset(table);
         reset(response);
-        
+
         when(table.exists()).thenReturn(Boolean.TRUE);
         when(response.getInsertErrors()).thenReturn(Collections.EMPTY_MAP);
         when(bq.create(ArgumentMatchers.isA(TableInfo.class))).thenReturn(table);
         when(bq.insertAll(ArgumentMatchers.isA(InsertAllRequest.class))).thenReturn(response);
-        
+
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
-        
+
         runner.enqueue("{ \"data\": \"datavalue\" }");
 
         runner.run();
-        
+
         runner.assertAllFlowFilesTransferred(PutBigQueryStream.REL_SUCCESS);
     }
-    
+
     @Test
     public void testFailedInsert() throws Exception {
         reset(bq);
         reset(table);
         reset(response);
-        
+
         Map<Long, List<BigQueryError>> resErrors = new HashMap();
         resErrors.put(0L, Arrays.asList(new BigQueryError("reason", "location", "message")));
-        
+
         when(table.exists()).thenReturn(Boolean.TRUE);
         when(response.getInsertErrors()).thenReturn(resErrors);
         when(bq.create(ArgumentMatchers.isA(TableInfo.class))).thenReturn(table);
         when(bq.insertAll(ArgumentMatchers.isA(InsertAllRequest.class))).thenReturn(response);
-        
+
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
-        
+
         runner.enqueue("{ \"data\": \"datavalue\" }");
 
         runner.run();
-        
+
         runner.assertAllFlowFilesTransferred(PutBigQueryStream.REL_FAILURE);
         runner.assertAllFlowFilesContainAttribute(PutBigQueryStream.REL_FAILURE, BigQueryAttributes.JOB_ERROR_LOCATION_ATTR);
         runner.assertAllFlowFilesContainAttribute(PutBigQueryStream.REL_FAILURE, BigQueryAttributes.JOB_ERROR_MSG_ATTR);

@@ -17,14 +17,10 @@
 package org.apache.nifi.processors.gcp.bigquery;
 
 
-import org.apache.nifi.processors.gcp.storage.*;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.testing.RemoteBigQueryHelper;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
-import com.google.cloud.storage.testing.RemoteStorageHelper;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
