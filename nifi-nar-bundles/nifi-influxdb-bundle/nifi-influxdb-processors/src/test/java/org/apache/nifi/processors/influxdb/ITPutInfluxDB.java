@@ -33,7 +33,7 @@ import org.junit.Test;
  * on local host with default port and has database test with table test. Please set user
  * and password if applicable before running the integration tests.
  */
-public class ITPutInfluxDBTest {
+public class ITPutInfluxDB {
 
     private TestRunner runner;
     private InfluxDB influxDB;
