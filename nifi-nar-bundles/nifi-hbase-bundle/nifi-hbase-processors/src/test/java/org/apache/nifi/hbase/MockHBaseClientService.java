@@ -72,6 +72,9 @@ public class MockHBaseClientService extends AbstractControllerService implements
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void delete(String tableName, byte[] rowId, String visibilityLabel) throws IOException { }
+
     private int deletePoint = 0;
     public void setDeletePoint(int deletePoint) {
         this.deletePoint = deletePoint;
@@ -98,6 +101,18 @@ public class MockHBaseClientService extends AbstractControllerService implements
         }
     }
 
+    @Override
+    public void deleteCells(String tableName, List<DeleteRequest> deletes) throws IOException {
+        for (DeleteRequest req : deletes) {
+            results.remove(new String(req.getRowId()));
+        }
+    }
+
+    @Override
+    public void delete(String tableName, List<byte[]> rowIds, String visibilityLabel) throws IOException {
+        delete(tableName, rowIds);
+    }
+
     public int size() {
         return results.size();
     }
@@ -107,7 +122,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
 
     @Override
-    public void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException {
+    public void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, List<String> labels, ResultHandler handler) throws IOException {
         if (throwException) {
             throw new IOException("exception");
         }
@@ -155,8 +170,13 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
 
     @Override
+    public void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, List<String> visibilityLabels, ResultHandler handler) throws IOException {
+        scan(tableName, columns, filterExpression, minTime, handler);
+    }
+
+    @Override
     public void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin,
-            Long timerangeMax, Integer limitRows, Boolean isReversed, Collection<Column> columns, ResultHandler handler)
+            Long timerangeMax, Integer limitRows, Boolean isReversed, Collection<Column> columns, List<String> visibilityLabels,  ResultHandler handler)
             throws IOException {
         if (throwException) {
             throw new IOException("exception");
@@ -164,8 +184,8 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
         int i = 0;
         // pass all the staged data to the handler
-        for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
-            if (linesBeforeException>=0 && i++>=linesBeforeException) {
+        for (final Map.Entry<String, ResultCell[]> entry : results.entrySet()) {
+            if (linesBeforeException >= 0 && i++ >= linesBeforeException) {
                 throw new IOException("iterating exception");
             }
             handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());

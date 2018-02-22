@@ -37,11 +37,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -51,6 +49,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.apache.nifi.hbase.util.VisibilityUtil.pickVisibilityString;
 
 @EventDriven
 @SupportsBatching
@@ -185,12 +185,9 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final ObjectMapper mapper = new ObjectMapper();
         final AtomicReference<JsonNode> rootNodeRef = new AtomicReference<>(null);
         try {
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                        rootNodeRef.set(mapper.readTree(bufferedIn));
-                    }
+            session.read(flowFile, in -> {
+                try (final InputStream bufferedIn = new BufferedInputStream(in)) {
+                    rootNodeRef.set(mapper.readTree(bufferedIn));
                 }
             });
         } catch (final ProcessException pe) {
@@ -256,7 +253,13 @@ public class PutHBaseJSON extends AbstractPutHBase {
                     final byte[] colFamBytes = columnFamily.getBytes(StandardCharsets.UTF_8);
                     final byte[] colQualBytes = fieldName.getBytes(StandardCharsets.UTF_8);
                     final byte[] colValBytes = fieldValueHolder.get();
-                    columns.add(new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp));
+
+                    final String visibilityStringToUse = pickVisibilityString(columnFamily, fieldName, flowFile, context);
+                    PutColumn column = StringUtils.isEmpty(visibilityStringToUse)
+                            ? new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp)
+                            : new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp, visibilityStringToUse);
+
+                    columns.add(column);
                 }
             }
         }
