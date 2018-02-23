@@ -144,7 +144,7 @@ public class FileHeader extends Block {
      * @return true iff there are chunks left
      */
     public boolean hasNext() {
-        return count < chunkCount;
+        return count <= chunkCount;
     }
 
     /**

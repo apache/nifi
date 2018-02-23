@@ -366,7 +366,7 @@ public class ParseEvtxTest {
         assertEquals(1, failureFlowFiles.size());
         validateFlowFiles(failureFlowFiles);
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(failureFlowFiles));
+        assertEquals(1053, validateFlowFiles(failureFlowFiles));
 
         // Whole file fails if there is a failure parsing
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
@@ -399,10 +399,10 @@ public class ParseEvtxTest {
         assertEquals(1, failureFlowFiles.size());
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
-        assertEquals(8, successFlowFiles.size());
+        assertEquals(9, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(successFlowFiles) + validateFlowFiles(failureFlowFiles));
+        assertEquals(1053, validateFlowFiles(successFlowFiles) + validateFlowFiles(failureFlowFiles));
     }
 
     @Test
@@ -433,10 +433,10 @@ public class ParseEvtxTest {
 
         // Whole file fails if there is a failure parsing
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
-        assertEquals(960, successFlowFiles.size());
+        assertEquals(1053, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
-        assertEquals(960, validateFlowFiles(successFlowFiles));
+        assertEquals(1053, validateFlowFiles(successFlowFiles));
     }
 
     private int validateFlowFiles(List<MockFlowFile> successFlowFiles) throws SAXException, IOException, ParserConfigurationException {

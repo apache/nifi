@@ -158,7 +158,7 @@ public class ChunkHeader extends Block {
     }
 
     public boolean hasNext() {
-        return fileLastRecordNumber.compareTo(recordNumber) > 0;
+        return logLastRecordNumber.compareTo(recordNumber) > 0;
     }
 
     public String getString(int offset) {
