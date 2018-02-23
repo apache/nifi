@@ -120,6 +120,36 @@ public class TestPutInfluxDB {
     }
 
     @Test
+    public void testPasswordEL() {
+        runner = TestRunners.newTestRunner(mockPutInfluxDB);
+        runner.setVariable("influxdb.password", "password");
+        runner.setProperty(PutInfluxDB.PASSWORD, "${influxdb.password}");
+        runner.setProperty(PutInfluxDB.DB_NAME, "test");
+        runner.setProperty(PutInfluxDB.USERNAME, "username");
+        runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "http://dbUrl");
+        runner.setProperty(PutInfluxDB.CHARSET, "UTF-8");
+        runner.setProperty(PutInfluxDB.CONSISTENCY_LEVEL,PutInfluxDB.CONSISTENCY_LEVEL_ONE.getValue());
+        runner.setProperty(PutInfluxDB.RETENTION_POLICY,"autogen");
+        runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "1 KB");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testUsernameEL() {
+        runner = TestRunners.newTestRunner(mockPutInfluxDB);
+        runner.setVariable("influxdb.username", "username");
+        runner.setProperty(PutInfluxDB.PASSWORD, "password");
+        runner.setProperty(PutInfluxDB.DB_NAME, "test");
+        runner.setProperty(PutInfluxDB.USERNAME, "${influxdb.username}");
+        runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "http://dbUrl");
+        runner.setProperty(PutInfluxDB.CHARSET, "UTF-8");
+        runner.setProperty(PutInfluxDB.CONSISTENCY_LEVEL,PutInfluxDB.CONSISTENCY_LEVEL_ONE.getValue());
+        runner.setProperty(PutInfluxDB.RETENTION_POLICY,"autogen");
+        runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "1 KB");
+        runner.assertValid();
+    }
+
+    @Test
     public void testCharsetUTF8() {
         runner.setProperty(PutInfluxDB.CHARSET, "UTF-8");
         runner.assertValid();

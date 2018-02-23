@@ -81,6 +81,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Username")
             .required(false)
             .description("Username for accessing InfluxDB")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -89,6 +90,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Password")
             .required(false)
             .description("Password for user")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -114,8 +116,8 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
      */
     protected synchronized InfluxDB getInfluxDB(ProcessContext context) {
         if ( influxDB.get() == null ) {
-            String username = context.getProperty(USERNAME).getValue();
-            String password = context.getProperty(PASSWORD).getValue();
+            String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+            String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
             long connectionTimeout = context.getProperty(INFLUX_DB_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS);
             String influxDbUrl = context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue();
 

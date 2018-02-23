@@ -142,6 +142,32 @@ public class ITPutInfluxDB {
    }
 
     @Test
+    public void testValidSinglePointWithUsernameEL() {
+        runner.setVariable("influxdb.username", "admin");
+        runner.setProperty(PutInfluxDB.USERNAME, "${influxdb.username}");
+        QueryResult result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
+        assertEquals("Should have no results", null, result.getResults().iterator().next().getSeries());
+        String message = "water,country=US,city=sf rain=1,humidity=0.6 1501002274856668652";
+        byte [] bytes = message.getBytes();
+        runner.enqueue(bytes);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_SUCCESS, 1);
+   }
+
+    @Test
+    public void testValidSinglePointWithPasswordEL() {
+        runner.setVariable("influxdb.password", "admin");
+        runner.setProperty(PutInfluxDB.PASSWORD, "${influxdb.password}");
+        QueryResult result = influxDB.query(new Query("select * from water where time = 1501002274856668652", dbName));
+        assertEquals("Should have no results", null, result.getResults().iterator().next().getSeries());
+        String message = "water,country=US,city=sf rain=1,humidity=0.6 1501002274856668652";
+        byte [] bytes = message.getBytes();
+        runner.enqueue(bytes);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_SUCCESS, 1);
+   }
+
+   @Test
     public void testValidTwoPointWithSameMeasurement() {
         String message = "water,country=US,city=newark rain=1,humidity=0.6" + System.lineSeparator()
                 + "water,country=US,city=nyc rain=2,humidity=0.7" + System.lineSeparator();
