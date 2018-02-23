@@ -32,7 +32,6 @@ import org.apache.beam.sdk.util.Transport;
 
 /**
  *
- * @author Mikhail Sosonkin (Synack Inc, Synack.com)
  */
 public class BqUtils {
     private final static Type gsonSchemaType = new TypeToken<List<Map>>(){}.getType();

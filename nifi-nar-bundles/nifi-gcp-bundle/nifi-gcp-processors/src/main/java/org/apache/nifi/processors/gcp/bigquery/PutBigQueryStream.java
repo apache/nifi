@@ -63,7 +63,6 @@ import static org.apache.nifi.processors.gcp.bigquery.AbstractBigQueryProcessor.
 
 /**
  *
- * @author Mikhail Sosonkin (Synack Inc, Synack.com)
  */
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

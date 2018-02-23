@@ -38,8 +38,6 @@ import static org.apache.nifi.processors.gcp.AbstractGCPProcessor.RETRY_COUNT;
 /**
  *
  *  Base class for creating processors that connect to GCP BiqQuery service
- *
- * @author Mikhail Sosonkin (Synack Inc)
  */
 public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<BigQuery, BigQueryRpc, BigQueryOptions>{
     public static final Relationship REL_SUCCESS =
