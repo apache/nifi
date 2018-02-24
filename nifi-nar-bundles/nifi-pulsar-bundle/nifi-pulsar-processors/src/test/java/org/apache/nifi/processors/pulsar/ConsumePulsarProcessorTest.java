@@ -49,7 +49,11 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
 
     @Before
     public void init() throws InitializationException {
+<<<<<<< HEAD
         runner = TestRunners.newTestRunner(ConsumePulsar_1_0.class);
+=======
+        runner = TestRunners.newTestRunner(ConsumePulsar.class);
+>>>>>>> Added Pulsar processors and Controller Service
         
         mockClient = mock(PulsarClient.class);
         mockConsumer = mock(Consumer.class);
@@ -77,10 +81,17 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
     public void emptyMessageTest() {
     		when(mockMessage.getData()).thenReturn("".getBytes());
 		
+<<<<<<< HEAD
 		runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
 		runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
 		runner.run();
 		runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+=======
+		runner.setProperty(ConsumePulsar.TOPIC, "foo");
+		runner.setProperty(ConsumePulsar.SUBSCRIPTION, "bar");
+		runner.run();
+		runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
+>>>>>>> Added Pulsar processors and Controller Service
     }
     
     @Test
@@ -110,10 +121,17 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
     public void onStoppedTest() throws NoSuchMethodException, SecurityException, PulsarClientException {
     		when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
 		
+<<<<<<< HEAD
 		runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
 		runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
 		runner.run(10, true);
 		runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+=======
+		runner.setProperty(ConsumePulsar.TOPIC, "foo");
+		runner.setProperty(ConsumePulsar.SUBSCRIPTION, "bar");
+		runner.run(10, true);
+		runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
+>>>>>>> Added Pulsar processors and Controller Service
 		
 		runner.assertQueueEmpty();
 		
@@ -132,6 +150,7 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
     	
     		when(mockMessage.getData()).thenReturn(msg.getBytes());
 		
+<<<<<<< HEAD
     		runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(async));
 		runner.setProperty(ConsumePulsar_1_0.TOPIC, topic);
 		runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, sub);
@@ -140,6 +159,16 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
 		runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
         
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_0.REL_SUCCESS);
+=======
+    		runner.setProperty(ConsumePulsar.ASYNC_ENABLED, Boolean.toString(async));
+		runner.setProperty(ConsumePulsar.TOPIC, topic);
+		runner.setProperty(ConsumePulsar.SUBSCRIPTION, sub);
+		runner.run(itertions, true);
+		
+		runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
+        
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
+>>>>>>> Added Pulsar processors and Controller Service
         assertEquals(itertions, flowFiles.size());
         
         for (MockFlowFile ff : flowFiles) {
