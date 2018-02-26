@@ -71,19 +71,14 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS is stored in this attribute."),
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute.")})
 @SeeAlso({PutHDFS.class, GetHDFS.class})
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
-                        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
-                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
-        }
-)
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
+    @Restriction(
+        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class MoveHDFS extends AbstractHadoopProcessor {
 
     // static global

@@ -43,5 +43,7 @@
         <module>nifi-hwx-schema-registry-bundle</module>
         <module>nifi-mongodb-client-service-api</module>
         <module>nifi-mongodb-services-bundle</module>
+        <module>nifi-kerberos-credentials-service-api</module>
+        <module>nifi-kerberos-credentials-service-bundle</module>
     </modules>
 </project>
