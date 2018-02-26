@@ -106,6 +106,8 @@
         <hive.version>1.2.1</hive.version>
         <hive.hadoop.version>2.6.2</hive.hadoop.version>
         <hbase.version>1.1.2</hbase.version>
+        <hbase2.version>2.0.0-beta-1</hbase2.version>
+        <hbase2.hadoop.version>2.7.4</hbase2.hadoop.version>
         <storm.version>1.1.1</storm.version>
         <hwx.registry.version>0.3.0</hwx.registry.version>
         <jackson.version>2.9.1</jackson.version>
@@ -1261,6 +1263,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
+                <version>1.6.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hbase_2-client-service-nar</artifactId>
                 <version>1.6.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
