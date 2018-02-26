@@ -45,6 +45,10 @@
             <artifactId>nifi-ssl-context-service-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.atlas</groupId>
             <artifactId>atlas-client</artifactId>
             <!-- Exclude dependencies to reduce NAR file size -->

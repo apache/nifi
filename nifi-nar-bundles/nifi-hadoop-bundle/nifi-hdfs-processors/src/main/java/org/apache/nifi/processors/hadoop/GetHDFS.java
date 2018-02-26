@@ -387,7 +387,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
                 final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
 
-                flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath);
+                flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath.isEmpty() ? "." : relativePath);
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                 if (!keepSourceFiles && !getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.delete(file, false))) {
