@@ -86,7 +86,8 @@ public final class StandardConnection implements Connection {
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
         flowFileQueue = new StandardFlowFileQueue(id, this, builder.flowFileRepository, builder.provenanceRepository, builder.resourceClaimManager,
-                scheduler, builder.swapManager, builder.eventReporter, builder.queueSwapThreshold);
+                scheduler, builder.swapManager, builder.eventReporter, builder.queueSwapThreshold,
+                builder.defaultBackPressureObjectThreshold, builder.defaultBackPressureDataSizeThreshold);
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -387,6 +388,8 @@ public final class StandardConnection implements Connection {
         private ProvenanceEventRepository provenanceRepository;
         private ResourceClaimManager resourceClaimManager;
         private int queueSwapThreshold;
+        private Long defaultBackPressureObjectThreshold;
+        private String defaultBackPressureDataSizeThreshold;
 
         public Builder(final ProcessScheduler scheduler) {
             this.scheduler = scheduler;
@@ -460,6 +463,16 @@ public final class StandardConnection implements Connection {
 
         public Builder queueSwapThreshold(final int queueSwapThreshold) {
             this.queueSwapThreshold = queueSwapThreshold;
+            return this;
+        }
+
+        public Builder defaultBackPressureObjectThreshold(final long defaultBackPressureObjectThreshold) {
+            this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
+            return this;
+        }
+
+        public Builder defaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
+            this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
             return this;
         }
 

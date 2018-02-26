@@ -991,6 +991,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 .destination(destination)
                 .swapManager(swapManager)
                 .queueSwapThreshold(nifiProperties.getQueueSwapThreshold())
+                .defaultBackPressureObjectThreshold(nifiProperties.getDefaultBackPressureObjectThreshold())
+                .defaultBackPressureDataSizeThreshold(nifiProperties.getDefaultBackPressureDataSizeThreshold())
                 .eventReporter(eventReporter)
                 .resourceClaimManager(resourceClaimManager)
                 .flowFileRepository(flowFileRepository)
