@@ -51,6 +51,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.concurrency.TimedLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,10 +96,7 @@ public class StandardFlowFileQueue implements FlowFileQueue {
 
     private boolean swapMode = false;
 
-    public static final int DEFAULT_BACKPRESSURE_COUNT = 10000;
-    public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
-    private final AtomicReference<MaxQueueSize> maxQueueSize = new AtomicReference<>(new MaxQueueSize(DEFAULT_BACKPRESSURE_SIZE,
-            DataUnit.parseDataSize(DEFAULT_BACKPRESSURE_SIZE, DataUnit.B).longValue(), DEFAULT_BACKPRESSURE_COUNT));
+    private final AtomicReference<MaxQueueSize> maxQueueSize = new AtomicReference<>();
     private final AtomicReference<TimePeriod> expirationPeriod = new AtomicReference<>(new TimePeriod("0 mins", 0L));
 
     private final EventReporter eventReporter;
@@ -139,6 +137,36 @@ public class StandardFlowFileQueue implements FlowFileQueue {
 
         readLock = new TimedLock(this.lock.readLock(), identifier + " Read Lock", 100);
         writeLock = new TimedLock(this.lock.writeLock(), identifier + " Write Lock", 100);
+
+        NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, null);
+        int backPressureCount = 0;
+        try {
+            String backPressureCountStr = nifiProps.getProperty(NiFiProperties.BACKPRESSURE_COUNT);
+            if (backPressureCountStr == null) {
+                throw new NumberFormatException("null");
+            }
+            backPressureCount = Integer.parseInt(backPressureCountStr);
+        } catch (NumberFormatException nfe) {
+            backPressureCount = Integer.parseInt(NiFiProperties.DEFAULT_BACKPRESSURE_COUNT);
+            logger.warn("nifi.properties " + NiFiProperties.BACKPRESSURE_COUNT + " value " + nifiProps.getProperty(NiFiProperties.BACKPRESSURE_COUNT)
+                    + " is an invalid number. Using the value " + NiFiProperties.DEFAULT_BACKPRESSURE_COUNT);
+        }
+
+        String backPressureSize = nifiProps.getProperty(NiFiProperties.BACKPRESSURE_SIZE);
+        try {
+            if (backPressureSize == null) {
+                throw new IllegalArgumentException("null");
+            }
+            DataUnit.parseDataSize(backPressureSize, DataUnit.B);
+        } catch (IllegalArgumentException iae) {
+            backPressureSize = NiFiProperties.DEFAULT_BACKPRESSURE_SIZE;
+            logger.warn("nifi.properties " + NiFiProperties.BACKPRESSURE_SIZE + " value " + nifiProps.getProperty(NiFiProperties.BACKPRESSURE_SIZE)
+                    + " is an invalid data size. Using the value " + NiFiProperties.DEFAULT_BACKPRESSURE_SIZE);
+        }
+
+        final MaxQueueSize initialMaxQueueSize = new MaxQueueSize(backPressureSize,
+                DataUnit.parseDataSize(backPressureSize, DataUnit.B).longValue(), backPressureCount);
+        this.maxQueueSize.set(initialMaxQueueSize);
     }
 
     @Override

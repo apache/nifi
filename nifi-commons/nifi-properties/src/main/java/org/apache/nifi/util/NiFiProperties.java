@@ -79,6 +79,8 @@ public abstract class NiFiProperties {
     public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
+    public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
+    public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
 
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
@@ -250,6 +252,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_SWAP_OUT_PERIOD = "5 sec";
     public static final int DEFAULT_SWAP_IN_THREADS = 4;
     public static final int DEFAULT_SWAP_OUT_THREADS = 4;
+    public static final String DEFAULT_BACKPRESSURE_COUNT = "10000";
+    public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
     public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
@@ -1380,6 +1384,14 @@ public abstract class NiFiProperties {
         return getPropertyKeys().stream().filter(k ->
                 k.startsWith(PROVENANCE_REPO_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(PROVENANCE_REPO_ENCRYPTION_KEY)
         ).collect(Collectors.toList());
+    }
+
+    public String getBackPressureObjectThreshold() {
+        return getProperty(BACKPRESSURE_COUNT, DEFAULT_BACKPRESSURE_COUNT);
+    }
+
+    public String getBackPressureDataSizeThreshold() {
+        return getProperty(BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_SIZE);
     }
 
     /**
