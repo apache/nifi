@@ -79,6 +79,8 @@ public abstract class NiFiProperties {
     public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
+    public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
+    public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
 
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
@@ -250,6 +252,8 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_SWAP_OUT_PERIOD = "5 sec";
     public static final int DEFAULT_SWAP_IN_THREADS = 4;
     public static final int DEFAULT_SWAP_OUT_THREADS = 4;
+    public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
+    public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
     public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
@@ -1380,6 +1384,25 @@ public abstract class NiFiProperties {
         return getPropertyKeys().stream().filter(k ->
                 k.startsWith(PROVENANCE_REPO_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(PROVENANCE_REPO_ENCRYPTION_KEY)
         ).collect(Collectors.toList());
+    }
+
+    public Long getDefaultBackPressureObjectThreshold() {
+        long backPressureCount;
+        try {
+            String backPressureCountStr = getProperty(BACKPRESSURE_COUNT);
+            if (backPressureCountStr == null || backPressureCountStr.trim().isEmpty()) {
+                backPressureCount = DEFAULT_BACKPRESSURE_COUNT;
+            } else {
+                backPressureCount = Long.parseLong(backPressureCountStr);
+            }
+        } catch (NumberFormatException nfe) {
+            backPressureCount = DEFAULT_BACKPRESSURE_COUNT;
+        }
+        return backPressureCount;
+    }
+
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return getProperty(BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_SIZE);
     }
 
     /**
