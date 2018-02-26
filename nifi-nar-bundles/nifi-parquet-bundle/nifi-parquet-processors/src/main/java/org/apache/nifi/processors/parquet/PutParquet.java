@@ -69,16 +69,11 @@ import java.util.List;
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file is stored in this attribute."),
         @WritesAttribute(attribute = "record.count", description = "The number of records written to the Parquet file")
 })
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to write any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
-                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
-        }
-)
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        explanation = "Provides operator the ability to write any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class PutParquet extends AbstractPutHDFSRecord {
 
     public static final PropertyDescriptor ROW_GROUP_SIZE = new PropertyDescriptor.Builder()

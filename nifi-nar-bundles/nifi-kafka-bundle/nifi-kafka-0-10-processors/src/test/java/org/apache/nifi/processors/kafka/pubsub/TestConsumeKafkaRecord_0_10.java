@@ -200,7 +200,7 @@ public class TestConsumeKafkaRecord_0_10 {
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();
 
-        runner.setProperty(KafkaProcessorUtils.KERBEROS_PRINCIPLE, "kafka");
+        runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "kafka");
         runner.assertValid();
 
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "nifi@APACHE.COM");
@@ -217,7 +217,7 @@ public class TestConsumeKafkaRecord_0_10 {
         runner.setVariable("service", "kafka");
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "${principal}");
         runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}s");
-        runner.setProperty(KafkaProcessorUtils.KERBEROS_PRINCIPLE, "${service}");
+        runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "${service}");
         runner.assertValid();
     }
 

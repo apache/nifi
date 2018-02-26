@@ -64,6 +64,10 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+        </dependency>
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
