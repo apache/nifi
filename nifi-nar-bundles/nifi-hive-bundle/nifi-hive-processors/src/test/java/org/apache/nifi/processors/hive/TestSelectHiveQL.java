@@ -357,6 +357,45 @@ public class TestSelectHiveQL {
     }
 
     @Test
+    public void testCopyAttributes() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
+        int rowCount = 0;
+        //create larger row set
+        for (int batch = 0; batch < 100; batch++) {
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
+            rowCount++;
+        }
+
+        runner.setIncomingConnection(true);
+        runner.setProperty(SelectHiveQL.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
+        runner.setProperty(SelectHiveQL.HIVEQL_OUTPUT_FORMAT, HiveJdbcCommon.AVRO);
+        runner.setProperty(SelectHiveQL.HIVEQL_COPY_ATTRIBUTES, "true");
+        runner.setVariable(MAX_ROWS_KEY, "9");
+
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("hiveql.args.1.value", "1");
+        attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("original_arg", "testValue");
+        runner.enqueue("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id = ?", attributes );
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 1);
+        MockFlowFile mff = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(0);
+        assertEquals("testValue", mff.getAttribute("original_arg"));
+        runner.clearTransferState();
+    }
+
+    @Test
     public void testParametrizedQuery() throws ClassNotFoundException, SQLException, InitializationException, IOException {
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
