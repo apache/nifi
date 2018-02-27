@@ -42,6 +42,9 @@ public class AboutDTO {
     private String buildBranch;
     private Date buildTimestamp;
 
+    private String backPressureObjectThreshold;
+    private String backPressureDataSizeThreshold;
+
     /* getters / setters */
     /**
      * The title to be used on the page and in the About dialog.
@@ -164,5 +167,27 @@ public class AboutDTO {
 
     public void setBuildTimestamp(Date buildTimestamp) {
         this.buildTimestamp = buildTimestamp;
+    }
+
+    @ApiModelProperty(
+            value = "The default back pressure object threshold."
+    )
+    public String getBackPressureObjectThreshold() {
+        return backPressureObjectThreshold;
+    }
+
+    public void setBackPressureObjectThreshold(String backPressureObjectThreshold) {
+        this.backPressureObjectThreshold = backPressureObjectThreshold;
+    }
+
+    @ApiModelProperty(
+            value = "The default back pressure data size threshold."
+    )
+    public String getBackPressureDataSizeThreshold() {
+        return backPressureDataSizeThreshold;
+    }
+
+    public void setBackPressureDataSizeThreshold(String backPressureDataSizeThreshold) {
+        this.backPressureDataSizeThreshold = backPressureDataSizeThreshold;
     }
 }

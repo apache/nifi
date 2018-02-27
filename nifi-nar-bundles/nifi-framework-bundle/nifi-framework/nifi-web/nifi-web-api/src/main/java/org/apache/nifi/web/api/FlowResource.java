@@ -1301,6 +1301,10 @@ public class FlowResource extends ApplicationResource {
             aboutDTO.setBuildTimestamp(frameworkDetails.getBuildTimestampDate());
         }
 
+        // get default back pressure configuration
+        aboutDTO.setBackPressureObjectThreshold(properties.getBackPressureObjectThreshold());
+        aboutDTO.setBackPressureDataSizeThreshold(properties.getBackPressureDataSizeThreshold());
+
         // create the response entity
         final AboutEntity entity = new AboutEntity();
         entity.setAbout(aboutDTO);

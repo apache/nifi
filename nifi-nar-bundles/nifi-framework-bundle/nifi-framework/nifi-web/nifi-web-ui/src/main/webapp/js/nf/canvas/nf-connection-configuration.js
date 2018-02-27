@@ -62,7 +62,8 @@
     var config = {
         urls: {
             api: '../nifi-api',
-            prioritizers: '../nifi-api/flow/prioritizers'
+            prioritizers: '../nifi-api/flow/prioritizers',
+            about: '../nifi-api/flow/about'
         }
     };
 
@@ -82,6 +83,34 @@
             $('#connection-configuration').modal('refreshButtons');
         });
     }
+
+    /**
+     * Loads the controller configuration.
+     */
+    var loadBackPressureDefaults = function () {
+        var deferred = $.Deferred();
+        $.ajax({
+                type: 'GET',
+                url: config.urls.about,
+                dataType: 'json'
+        }).done(function (response) {
+            var aboutDetails = response.about;
+
+            // set the back pressure object threshold
+            $('#back-pressure-object-threshold').val(aboutDetails.backPressureObjectThreshold);
+
+            // set the back pressure data size threshold
+            $('#back-pressure-data-size-threshold').val(aboutDetails.backPressureDataSizeThreshold);
+
+            deferred.resolve();
+        }).fail(function (xhr, status, error) {
+            // handle the error
+            nfErrorHandler.handleAjaxError(xhr, status, error);
+
+            deferred.reject();
+        });
+        return deferred.promise();
+    };
 
     /**
      * Initializes the source in the new connection dialog.
@@ -1272,11 +1301,9 @@
             }
 
             // initialize the connection dialog
-            $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
+            $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination), loadBackPressureDefaults()).done(function () {
                 // set the default values
                 $('#flow-file-expiration').val('0 sec');
-                $('#back-pressure-object-threshold').val('10000');
-                $('#back-pressure-data-size-threshold').val('1 GB');
 
                 // select the first tab
                 $('#connection-configuration-tabs').find('li:first').click();
