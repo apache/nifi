@@ -67,12 +67,12 @@ import java.util.regex.Pattern;
         + "Number of rows retrieved by the processor can be limited.")
 @WritesAttributes({
         @WritesAttribute(attribute = "hbase.table", description = "The name of the HBase table that the row was fetched from"),
-        @WritesAttribute(attribute = "hbase.resultset", description = "A JSON document/s representing the row/s. This property is only written when a Destination of flowfile-attributes is selected."),
         @WritesAttribute(attribute = "mime.type", description = "Set to application/json when using a Destination of flowfile-content, not set or modified otherwise"),
         @WritesAttribute(attribute = "hbase.rows.count", description = "Number of rows in the content of given flow file"),
         @WritesAttribute(attribute = "scanhbase.results.found", description = "Indicates whether at least one row has been found in given hbase table with provided conditions. "
                 + "Could be null (not present) if transfered to FAILURE")
 })
+
 public class ScanHBase extends AbstractProcessor {
     //enhanced regex for columns to allow "-" in column qualifier names
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:(\\w|-)+)?(?:,\\w+(:(\\w|-)+)?)*");
@@ -302,6 +302,16 @@ public class ScanHBase extends AbstractProcessor {
                     .build());
         }
 
+        String minTS = validationContext.getProperty(TIME_RANGE_MIN).getValue();
+        String maxTS = validationContext.getProperty(TIME_RANGE_MAX).getValue();
+        if ( (!StringUtils.isBlank(minTS) && StringUtils.isBlank(maxTS)) || (StringUtils.isBlank(minTS) && !StringUtils.isBlank(maxTS))){
+            problems.add(new ValidationResult.Builder()
+                    .subject(TIME_RANGE_MAX.getDisplayName())
+                    .input(maxTS).valid(false)
+                    .explanation(String.format("%s and %s both should be either empty or provided", TIME_RANGE_MIN, TIME_RANGE_MAX))
+                    .build());
+        }
+
         return problems;
     }
 
@@ -396,34 +406,15 @@ public class ScanHBase extends AbstractProcessor {
 
             if (hangingRows != null && !hangingRows.isEmpty()) {
                 FlowFile lastFF = session.create(flowFile);
-                final Map<String, String> attributes = new HashMap<>();
-                attributes.put(HBASE_TABLE_ATTR, tableName);
-                attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(rowsPulledHolder.get()));
-                attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-                attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(hangingRows.size()));
-                lastFF = session.putAllAttributes(lastFF, attributes);
 
-                final AtomicReference<IOException> ioe = new AtomicReference<>(null);
-                lastFF = session.write(lastFF, (out) -> {
-                    for (Iterator<Tuple<byte[], ResultCell[]>> iter = hangingRows.iterator(); iter.hasNext();){
-                        Tuple<byte[], ResultCell[]> r = iter.next();
-                        serializer.serialize(r.getKey(), r.getValue(), out);
-                        if (iter.hasNext()){
-                            out.write(nl);
-                        }
-                    }
-                });
-
-                Relationship rel = REL_SUCCESS;
-                IOException error = ioe.get();
-                if (error != null){
-                    lastFF = session.putAttribute(lastFF, "scanhbase.error", error.toString());
-                    rel = REL_FAILURE;
-                }
+                Tuple<FlowFile, Relationship> t = processRows(session, hBaseClientService, lastFF, tableName, hangingRows);
+                lastFF = t.getKey();
+                Relationship rel = t.getValue();
                 session.transfer(lastFF, rel);
-                flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
-                session.transfer(flowFile, REL_ORIGINAL);
             }
+
+            flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
+            session.transfer(flowFile, REL_ORIGINAL);
             session.commit();
 
         }catch (final Exception e) {
@@ -432,6 +423,44 @@ public class ScanHBase extends AbstractProcessor {
             // if we failed, we want to yield so that we don't hammer hbase.
             context.yield();
         }
+    }
+
+    /*
+     * Writes HBASE rows into FF content, adds relevant attributes and defines appropriate relationship
+     */
+    private Tuple<FlowFile, Relationship> processRows(final ProcessSession session, final HBaseClientService hBaseClientService, FlowFile flowFile,
+            final String tableName, final LinkedList<Tuple<byte[], ResultCell[]>> rows){
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HBASE_TABLE_ATTR, tableName);
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+        attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(rows.size()));
+        flowFile = session.putAllAttributes(flowFile, attributes);
+
+        final AtomicReference<IOException> ioe = new AtomicReference<>(null);
+        flowFile = session.write(flowFile, (out) -> {
+            try{
+                for (Iterator<Tuple<byte[], ResultCell[]>> iter = rows.iterator(); iter.hasNext();){
+                    Tuple<byte[], ResultCell[]> r = iter.next();
+                    serializer.serialize(r.getKey(), r.getValue(), out);
+                    if (iter.hasNext()){
+                        out.write(nl);
+                    }
+                }
+            }catch(IOException e){
+                ioe.set(e);
+            }
+        });
+
+        Relationship rel = REL_SUCCESS;
+        IOException error = ioe.get();
+        if (error != null){
+            flowFile = session.putAttribute(flowFile, "scanhbase.error", error.toString());
+            rel = REL_FAILURE;
+        }else{
+            session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, "{ids}"));
+        }
+
+        return new Tuple<FlowFile, Relationship>(flowFile, rel);
     }
 
     /**
@@ -482,21 +511,20 @@ public class ScanHBase extends AbstractProcessor {
         private LinkedList<Tuple<byte[], ResultCell[]>> rows = null;
 
         ScanHBaseResultHandler(final ProcessContext context, final ProcessSession session,
-                final FlowFile origFF, final AtomicReference<Long> rowsPulledHolder, final AtomicReference<Long> ffCountHolder, final HBaseClientService hBaseClientService,
-                final String tableName, final Integer bulkSize){
+                final FlowFile origFF, final AtomicReference<Long> rowsPulledHolder, final AtomicReference<Long> ffCountHolder,
+                final HBaseClientService hBaseClientService, final String tableName, final Integer bulkSize){
             this.session = session;
             this.rowsPulledHolder = rowsPulledHolder;
             this.ffCountHolder = ffCountHolder;
             this.hBaseClientService = hBaseClientService;
             this.tableName = tableName;
-            this.bulkSize = bulkSize;
+            this.bulkSize = bulkSize == null ? 0 : bulkSize;
             this.origFF = origFF;
         }
 
         @Override
         public void handle(final byte[] rowKey, final ResultCell[] resultCells) {
             handledAny = true;
-            final String rowKeyString = new String(rowKey, StandardCharsets.UTF_8);
 
             long rowsPulled = rowsPulledHolder.get();
             long ffUncommittedCount = ffCountHolder.get();
@@ -511,31 +539,10 @@ public class ScanHBase extends AbstractProcessor {
             // bulkSize controls number of records per flow file.
             if (bulkSize>0 && rowsPulled >= bulkSize) {
                 FlowFile flowFile = session.create(origFF);
-                final Map<String, String> attributes = new HashMap<>();
-                attributes.put(HBASE_TABLE_ATTR, tableName);
-                attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-                attributes.put(HBASE_ROWS_COUNT_ATTR, Long.toString(rowsPulled));
-                flowFile = session.putAllAttributes(flowFile, attributes);
 
-                final AtomicReference<IOException> ioe = new AtomicReference<>(null);
-                flowFile = session.write(flowFile, (out) -> {
-                    for (Iterator<Tuple<byte[], ResultCell[]>> iter = rows.iterator(); iter.hasNext();){
-                        Tuple<byte[], ResultCell[]> r = iter.next();
-                        serializer.serialize(r.getKey(), r.getValue(), out);
-                        if (iter.hasNext()){
-                            out.write(nl);
-                        }
-                    }
-                });
-
-                Relationship rel = REL_SUCCESS;
-                IOException error = ioe.get();
-                if (error != null){
-                    flowFile = session.putAttribute(flowFile, "scanhbase.error", error.toString());
-                    rel = REL_FAILURE;
-                }
-
-                session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
+                Tuple<FlowFile, Relationship> t = processRows(session, hBaseClientService,flowFile, tableName, rows);
+                flowFile = t.getKey();
+                Relationship rel = t.getValue();
                 session.transfer(flowFile, rel);
                 rowsPulledHolder.set(0L);
                 rows.clear();
