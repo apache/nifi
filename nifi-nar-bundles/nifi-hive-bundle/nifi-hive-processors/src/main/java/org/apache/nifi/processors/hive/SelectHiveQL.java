@@ -211,7 +211,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .defaultValue("false")
             .expressionLanguageSupported(false)
             .build();
-    
+
     private final static List<PropertyDescriptor> propertyDescriptors;
     private final static Set<Relationship> relationships;
 
@@ -235,7 +235,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         _propertyDescriptors.add(HIVEQL_CSV_ESCAPE);
         _propertyDescriptors.add(CHARSET);
         _propertyDescriptors.add(HIVEQL_COPY_ATTRIBUTES);
-        
+
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
