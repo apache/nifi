@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.jms.processors;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -144,6 +142,14 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(propertyDescriptors);
         _propertyDescriptors.remove(MESSAGE_BODY);
+
+        // change the validator on CHARSET property
+        _propertyDescriptors.remove(CHARSET);
+        PropertyDescriptor CHARSET_WITH_EL_VALIDATOR_PROPERTY = new PropertyDescriptor.Builder().fromPropertyDescriptor(CHARSET)
+                .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR_WITH_EVALUATION)
+                .build();
+        _propertyDescriptors.add(CHARSET_WITH_EL_VALIDATOR_PROPERTY);
+
         _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
         _propertyDescriptors.add(DURABLE_SUBSCRIBER);
         _propertyDescriptors.add(SHARED_SUBSCRIBER);
@@ -153,13 +159,6 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(_relationships);
-    }
-
-    @OnScheduled
-    public void verifyCharset(final ProcessContext context) {
-        // CHARSET property supports expression language, but for ConsumeJMS it must be valid when scheduled
-        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
-        Charset.forName(charset);
     }
 
     /**
