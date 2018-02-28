@@ -20,6 +20,7 @@ package org.apache.nifi.avro;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -36,7 +37,7 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
 
     @Override
     protected RecordSetWriter createWriter(final Schema schema, final OutputStream out) throws IOException {
-        return new WriteAvroResultWithExternalSchema(schema, AvroTypeUtil.createSchema(schema), new WriteAvroSchemaAttributeStrategy(), out);
+        return new WriteAvroResultWithExternalSchema(schema, AvroTypeUtil.createSchema(schema), new WriteAvroSchemaAttributeStrategy(), out, StandardCharsets.UTF_8);
     }
 
     @Override

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,7 +60,8 @@ public class MapRecord implements Record {
         this(schema, values, serializedForm, false, false);
     }
 
-    public MapRecord(final RecordSchema schema, final Map<String, Object> values, final SerializedForm serializedForm, final boolean checkTypes, final boolean dropUnknownFields) {
+    public MapRecord(final RecordSchema schema, final Map<String, Object> values, final SerializedForm serializedForm,
+                     final boolean checkTypes, final boolean dropUnknownFields) {
         Objects.requireNonNull(values);
 
         this.schema = Objects.requireNonNull(schema);
@@ -205,30 +208,45 @@ public class MapRecord implements Record {
 
     @Override
     public String getAsString(final String fieldName) {
+        return getAsString(fieldName, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public String getAsString(final String fieldName, final Charset charset) {
         final Optional<DataType> dataTypeOption = schema.getDataType(fieldName);
         if (dataTypeOption.isPresent()) {
-            return convertToString(getValue(fieldName), dataTypeOption.get().getFormat());
+            return convertToString(getValue(fieldName), dataTypeOption.get().getFormat(), charset);
         }
 
-        return DataTypeUtils.toString(getValue(fieldName), (Supplier<DateFormat>) null);
+        return DataTypeUtils.toString(getValue(fieldName), (Supplier<DateFormat>) null, charset);
     }
 
     @Override
     public String getAsString(final String fieldName, final String format) {
-        return convertToString(getValue(fieldName), format);
+        return convertToString(getValue(fieldName), format, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public String getAsString(final String fieldName, final String format, final Charset charset) {
+        return convertToString(getValue(fieldName), format, charset);
     }
 
     @Override
     public String getAsString(final RecordField field, final String format) {
-        return convertToString(getValue(field), format);
+        return convertToString(getValue(field), format, StandardCharsets.UTF_8);
     }
 
-    private String convertToString(final Object value, final String format) {
+    @Override
+    public String getAsString(final RecordField field, final String format, final Charset charset) {
+        return convertToString(getValue(field), format, charset);
+    }
+
+    private String convertToString(final Object value, final String format, final Charset charset) {
         if (value == null) {
             return null;
         }
 
-        return DataTypeUtils.toString(value, format);
+        return DataTypeUtils.toString(value, format, charset);
     }
 
     @Override
@@ -253,8 +271,14 @@ public class MapRecord implements Record {
 
     @Override
     public Record getAsRecord(String fieldName, final RecordSchema schema) {
-        return DataTypeUtils.toRecord(getValue(fieldName), schema, fieldName);
+        return DataTypeUtils.toRecord(getValue(fieldName), schema, fieldName, StandardCharsets.UTF_8);
     }
+
+    @Override
+    public Record getAsRecord(String fieldName, final RecordSchema schema, final Charset charset) {
+        return DataTypeUtils.toRecord(getValue(fieldName), schema, fieldName, charset);
+    }
+
 
     @Override
     public Boolean getAsBoolean(final String fieldName) {
@@ -268,7 +292,12 @@ public class MapRecord implements Record {
 
     @Override
     public Object[] getAsArray(final String fieldName) {
-        return DataTypeUtils.toArray(getValue(fieldName), fieldName);
+        return DataTypeUtils.toArray(getValue(fieldName), fieldName, null, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public Object[] getAsArray(final String fieldName, final Charset charset) {
+        return DataTypeUtils.toArray(getValue(fieldName), fieldName, null, charset);
     }
 
 
@@ -304,6 +333,11 @@ public class MapRecord implements Record {
 
     @Override
     public void setValue(final String fieldName, final Object value) {
+        setValue(fieldName, value, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public void setValue(final String fieldName, final Object value, final Charset charset) {
         final Optional<RecordField> field = getSchema().getField(fieldName);
         if (!field.isPresent()) {
             if (dropUnknownFields) {
@@ -319,7 +353,7 @@ public class MapRecord implements Record {
         }
 
         final RecordField recordField = field.get();
-        final Object coerced = isTypeChecked() ? DataTypeUtils.convertType(value, recordField.getDataType(), fieldName) : value;
+        final Object coerced = isTypeChecked() ? DataTypeUtils.convertType(value, recordField.getDataType(), fieldName, charset) : value;
         final Object previousValue = values.put(recordField.getFieldName(), coerced);
         if (!Objects.equals(coerced, previousValue)) {
             serializedForm = Optional.empty();
@@ -328,6 +362,11 @@ public class MapRecord implements Record {
 
     @Override
     public void setArrayValue(final String fieldName, final int arrayIndex, final Object value) {
+        setArrayValue(fieldName, arrayIndex, value, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public void setArrayValue(final String fieldName, final int arrayIndex, final Object value, final Charset charset) {
         final Optional<RecordField> field = getSchema().getField(fieldName);
         if (!field.isPresent()) {
             return;
@@ -337,7 +376,7 @@ public class MapRecord implements Record {
         final DataType dataType = recordField.getDataType();
         if (dataType.getFieldType() != RecordFieldType.ARRAY) {
             throw new IllegalTypeConversionException("Cannot set the value of an array index on Record because the field '" + fieldName
-                + "' is of type '" + dataType + "' and cannot be coerced into an ARRAY type");
+                    + "' is of type '" + dataType + "' and cannot be coerced into an ARRAY type");
         }
 
         final Object arrayObject = values.get(recordField.getFieldName());
@@ -355,7 +394,7 @@ public class MapRecord implements Record {
 
         final ArrayDataType arrayDataType = (ArrayDataType) dataType;
         final DataType elementType = arrayDataType.getElementType();
-        final Object coerced = DataTypeUtils.convertType(value, elementType, fieldName);
+        final Object coerced = DataTypeUtils.convertType(value, elementType, fieldName, charset);
 
         final boolean update = !Objects.equals(coerced, array[arrayIndex]);
         if (update) {
@@ -367,6 +406,13 @@ public class MapRecord implements Record {
     @Override
     @SuppressWarnings("unchecked")
     public void setMapValue(final String fieldName, final String mapKey, final Object value) {
+        setMapValue(fieldName, mapKey, value, StandardCharsets.UTF_8);
+    }
+
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void setMapValue(final String fieldName, final String mapKey, final Object value, final Charset charset) {
         final Optional<RecordField> field = getSchema().getField(fieldName);
         if (!field.isPresent()) {
             return;
@@ -391,7 +437,7 @@ public class MapRecord implements Record {
 
         final MapDataType mapDataType = (MapDataType) dataType;
         final DataType valueDataType = mapDataType.getValueType();
-        final Object coerced = DataTypeUtils.convertType(value, valueDataType, fieldName);
+        final Object coerced = DataTypeUtils.convertType(value, valueDataType, fieldName, charset);
 
         final Object replaced = map.put(mapKey, coerced);
         if (replaced == null || !replaced.equals(coerced)) {

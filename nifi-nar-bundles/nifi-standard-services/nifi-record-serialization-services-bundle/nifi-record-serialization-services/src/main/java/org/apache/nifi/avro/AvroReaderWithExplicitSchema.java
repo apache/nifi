@@ -20,6 +20,7 @@ package org.apache.nifi.avro;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -38,7 +39,8 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private final BinaryDecoder decoder;
     private GenericRecord genericRecord;
 
-    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema) throws IOException, SchemaNotFoundException {
+    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema, final Charset charset) throws IOException, SchemaNotFoundException {
+        super(charset);
         this.in = in;
         this.recordSchema = recordSchema;
 

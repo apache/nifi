@@ -36,6 +36,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.record.RecordUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -63,6 +64,7 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
     private volatile String timeFormat;
     private volatile String timestampFormat;
     private volatile LinkedHashMap<String, JsonPath> jsonPaths;
+    private volatile String charset;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -70,6 +72,7 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        properties.add(RecordUtils.JSON_CHARSET);
         return properties;
     }
 
@@ -90,6 +93,7 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+        this.charset = context.getProperty(RecordUtils.JSON_CHARSET).getValue();
 
         final LinkedHashMap<String, JsonPath> compiled = new LinkedHashMap<>();
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
@@ -130,7 +134,7 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new JsonPathRowRecordReader(jsonPaths, schema, in, logger, dateFormat, timeFormat, timestampFormat);
+        return new JsonPathRowRecordReader(jsonPaths, schema, in, logger, dateFormat, timeFormat, timestampFormat, charset);
     }
 
 }

@@ -20,6 +20,7 @@ package org.apache.nifi.csv;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +49,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
     private final boolean includeHeaderLine;
     private boolean headerWritten = false;
     private String[] fieldNames;
+    private final Charset charset;
 
     public WriteCSVResult(final CSVFormat csvFormat, final RecordSchema recordSchema, final SchemaAccessWriter schemaWriter, final OutputStream out,
         final String dateFormat, final String timeFormat, final String timestampFormat, final boolean includeHeaderLine, final String charSet) throws IOException {
@@ -65,6 +67,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
         printer = new CSVPrinter(streamWriter, formatWithHeader);
 
         fieldValues = new Object[recordSchema.getFieldCount()];
+        this.charset = Charset.forName(charSet);
     }
 
     private String getFormat(final RecordField field) {
@@ -141,7 +144,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
 
         int i = 0;
         for (final RecordField recordField : recordSchema.getFields()) {
-            fieldValues[i++] = record.getAsString(recordField, getFormat(recordField));
+            fieldValues[i++] = record.getAsString(recordField, getFormat(recordField), charset);
         }
 
         printer.printRecord(fieldValues);
@@ -167,9 +170,9 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
         for (final String fieldName : fieldNames) {
             final Optional<RecordField> recordField = recordSchema.getField(fieldName);
             if (recordField.isPresent()) {
-                recordFieldValues[i++] = record.getAsString(fieldName, getFormat(recordField.get()));
+                recordFieldValues[i++] = record.getAsString(fieldName, getFormat(recordField.get()), charset);
             } else {
-                recordFieldValues[i++] = record.getAsString(fieldName);
+                recordFieldValues[i++] = record.getAsString(fieldName, charset);
             }
         }
 

@@ -21,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ public class GrokRecordReader implements RecordReader {
     private final boolean append;
     private final RecordSchema schemaFromGrok;
     private RecordSchema schema;
+    private final Charset charset;
 
     private String nextLine;
     Map<String, Object> nextMap = null;
@@ -60,12 +62,13 @@ public class GrokRecordReader implements RecordReader {
             + "(?:Suppressed\\: )|"
             + "(?:\\s+... \\d+ (?:more|common frames? omitted)$)");
 
-    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema, final RecordSchema schemaFromGrok, final boolean append) {
+    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema, final RecordSchema schemaFromGrok, final boolean append, final Charset charset) {
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.grok = grok;
         this.schema = schema;
         this.append = append;
         this.schemaFromGrok = schemaFromGrok;
+        this.charset = charset;
     }
 
     @Override
@@ -266,7 +269,7 @@ public class GrokRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(rawValue, fieldType, fieldName);
+        return DataTypeUtils.convertType(rawValue, fieldType, fieldName, charset);
     }
 
 

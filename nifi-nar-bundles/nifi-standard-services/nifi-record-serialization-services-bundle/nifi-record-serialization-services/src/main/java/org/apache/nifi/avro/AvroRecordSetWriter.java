@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -38,6 +39,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.record.RecordUtils;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -82,6 +84,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema, final OutputStream out) throws IOException {
         final String strategyValue = getConfigurationContext().getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         final String compressionFormat = getConfigurationContext().getProperty(COMPRESSION_FORMAT).getValue();
+        final Charset charset = Charset.forName(getConfigurationContext().getProperty(RecordUtils.CHARSET).getValue());
 
         try {
             final Schema avroSchema;
@@ -101,9 +104,9 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
             }
 
             if (AVRO_EMBEDDED.getValue().equals(strategyValue)) {
-                return new WriteAvroResultWithSchema(avroSchema, out, getCodecFactory(compressionFormat));
+                return new WriteAvroResultWithSchema(avroSchema, out, getCodecFactory(compressionFormat), charset);
             } else {
-                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema), out);
+                return new WriteAvroResultWithExternalSchema(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema), out, charset);
             }
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);
@@ -155,6 +158,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(COMPRESSION_FORMAT);
+        properties.add(RecordUtils.CHARSET);
         return properties;
     }
 

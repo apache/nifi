@@ -17,6 +17,8 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
@@ -81,11 +83,23 @@ public interface Record {
 
     Object getValue(RecordField field);
 
-    String getAsString(String fieldName);
+    default String getAsString(String fieldName) {
+        return getAsString(fieldName, StandardCharsets.UTF_8);
+    }
 
-    String getAsString(String fieldName, String format);
+    String getAsString(String fieldName, Charset charset);
 
-    String getAsString(RecordField field, String format);
+    default String getAsString(String fieldName, String format) {
+        return getAsString(fieldName, format, StandardCharsets.UTF_8);
+    }
+
+    String getAsString(String fieldName, String format, Charset charset);
+
+    default String getAsString(RecordField field, String format) {
+        return getAsString(field, format, StandardCharsets.UTF_8);
+    }
+
+    String getAsString(RecordField field, String format, Charset charset);
 
     Long getAsLong(String fieldName);
 
@@ -97,11 +111,15 @@ public interface Record {
 
     Record getAsRecord(String fieldName, RecordSchema schema);
 
+    Record getAsRecord(String fieldName, RecordSchema schema, Charset charset);
+
     Boolean getAsBoolean(String fieldName);
 
     Date getAsDate(String fieldName, String format);
 
     Object[] getAsArray(String fieldName);
+
+    Object[] getAsArray(String fieldName, Charset charset);
 
     Optional<SerializedForm> getSerializedForm();
 
@@ -109,7 +127,8 @@ public interface Record {
      * Updates the value of the field with the given name to the given value. If the field specified
      * is not present in this Record's schema, this method will do nothing. If this method does change
      * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
-     * subsequent call to {@link #getSerializedForm()} will return an empty Optional).
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional). If any
+     * String-to-bytes conversions are needed, UTF-8 will be used as the character set.
      *
      * @param fieldName the name of the field to update
      * @param value the new value to set
@@ -120,12 +139,30 @@ public interface Record {
     void setValue(String fieldName, Object value);
 
     /**
+     * Updates the value of the field with the given name to the given value. If the field specified
+     * is not present in this Record's schema, this method will do nothing. If this method does change
+     * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional). The Charset parameter
+     * is used for any String-to-bytes conversion if necessary.
+     *
+     * @param fieldName the name of the field to update
+     * @param value the new value to set
+     * @param charset the character set to use for String-to-bytes conversion (if necessary)
+     *
+     * @throws IllegalTypeConversionException if the value is not of the correct type, as defined
+     *             by the schema, and cannot be coerced into the correct type.
+     */
+    void setValue(String fieldName, Object value, final Charset charset);
+
+
+    /**
      * Updates the value of a the specified index of a field. If the field specified
      * is not present in this Record's schema, this method will do nothing. If the field specified
      * is not an Array, an IllegalArgumentException will be thrown. If the field specified is an array
      * but the array has fewer elements than the specified index, this method will do nothing. If this method does change
      * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
-     * subsequent call to {@link #getSerializedForm()} will return an empty Optional).
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional). If any
+     * String-to-bytes conversions are needed, UTF-8 will be used as the character set.
      *
      * @param fieldName the name of the field to update
      * @param arrayIndex the 0-based index into the array that should be updated. If this value is larger than the
@@ -140,11 +177,34 @@ public interface Record {
     void setArrayValue(String fieldName, int arrayIndex, Object value);
 
     /**
+     * Updates the value of a the specified index of a field. If the field specified
+     * is not present in this Record's schema, this method will do nothing. If the field specified
+     * is not an Array, an IllegalArgumentException will be thrown. If the field specified is an array
+     * but the array has fewer elements than the specified index, this method will do nothing. If this method does change
+     * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional). The Charset parameter
+     * is used for any String-to-bytes conversion if necessary.
+     *
+     * @param fieldName the name of the field to update
+     * @param arrayIndex the 0-based index into the array that should be updated. If this value is larger than the
+     *            number of elements in the array, or if the array is null, this method will do nothing.
+     * @param value the new value to set
+     * @param charset the character set to use for String-to-bytes conversion (if necessary)
+     *
+     * @throws IllegalTypeConversionException if the value is not of the correct type, as defined
+     *             by the schema, and cannot be coerced into the correct type; or if the field with the given
+     *             name is not an Array
+     * @throws IllegalArgumentException if the arrayIndex is less than 0.
+     */
+    void setArrayValue(String fieldName, int arrayIndex, Object value, Charset charset);
+
+    /**
      * Updates the value of a the specified key in a Map field. If the field specified
      * is not present in this Record's schema, this method will do nothing. If the field specified
      * is not a Map field, an IllegalArgumentException will be thrown. If this method does change
      * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
-     * subsequent call to {@link #getSerializedForm()} will return an empty Optional).
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional). If any
+     * String-to-bytes conversions are needed, UTF-8 will be used as the character set.
      *
      * @param fieldName the name of the field to update
      * @param mapKey the key in the map of the entry to update
@@ -155,6 +215,25 @@ public interface Record {
      *             name is not a Map
      */
     void setMapValue(String fieldName, String mapKey, Object value);
+
+    /**
+     * Updates the value of a the specified key in a Map field. If the field specified
+     * is not present in this Record's schema, this method will do nothing. If the field specified
+     * is not a Map field, an IllegalArgumentException will be thrown. If this method does change
+     * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any
+     * subsequent call to {@link #getSerializedForm()} will return an empty Optional). The Charset parameter
+     * is used for any String-to-bytes conversion if necessary.
+     *
+     * @param fieldName the name of the field to update
+     * @param mapKey the key in the map of the entry to update
+     * @param value the new value to set
+     * @param charset the character set to use for String-to-bytes conversion (if necessary)
+     *
+     * @throws IllegalTypeConversionException if the value is not of the correct type, as defined
+     *             by the schema, and cannot be coerced into the correct type; or if the field with the given
+     *             name is not a Map
+     */
+    void setMapValue(String fieldName, String mapKey, Object value, Charset charset);
 
     /**
      * Returns a Set that contains the names of all of the fields that are present in the Record, regardless of

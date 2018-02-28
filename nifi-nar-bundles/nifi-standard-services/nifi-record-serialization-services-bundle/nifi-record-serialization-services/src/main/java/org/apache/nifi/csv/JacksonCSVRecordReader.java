@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +63,7 @@ public class JacksonCSVRecordReader implements RecordReader {
     private final boolean ignoreHeader;
     private final MappingIterator<String[]> recordStream;
     private List<String> rawFieldNames = null;
+    private final Charset charset;
 
     private volatile static CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
@@ -72,6 +74,7 @@ public class JacksonCSVRecordReader implements RecordReader {
         this.logger = logger;
         this.hasHeader = hasHeader;
         this.ignoreHeader = ignoreHeader;
+        this.charset = DataTypeUtils.getCharset(encoding);
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
@@ -210,7 +213,7 @@ public class JacksonCSVRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName, charset);
     }
 
     private Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
@@ -238,7 +241,7 @@ public class JacksonCSVRecordReader implements RecordReader {
             case TIMESTAMP:
             case DATE:
                 if (DataTypeUtils.isCompatibleDataType(trimmed, dataType)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName, charset);
                 } else {
                     return value;
                 }

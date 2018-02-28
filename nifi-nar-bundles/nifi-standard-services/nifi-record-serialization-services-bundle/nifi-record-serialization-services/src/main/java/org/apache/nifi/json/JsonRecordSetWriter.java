@@ -29,6 +29,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.record.RecordUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -66,12 +67,14 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
 
     private volatile boolean prettyPrint;
     private volatile NullSuppression nullSuppression;
+    private volatile String charset;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PRETTY_PRINT_JSON);
         properties.add(SUPPRESS_NULLS);
+        properties.add(RecordUtils.JSON_CHARSET);
         return properties;
     }
 
@@ -89,12 +92,13 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             suppression = NullSuppression.NEVER_SUPPRESS;
         }
         this.nullSuppression = suppression;
+        this.charset = context.getProperty(RecordUtils.JSON_CHARSET).getValue();
     }
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) throws SchemaNotFoundException, IOException {
         return new WriteJsonResult(logger, schema, getSchemaAccessWriter(schema), out, prettyPrint, nullSuppression,
-            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null));
+            getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null), charset);
     }
 
 }

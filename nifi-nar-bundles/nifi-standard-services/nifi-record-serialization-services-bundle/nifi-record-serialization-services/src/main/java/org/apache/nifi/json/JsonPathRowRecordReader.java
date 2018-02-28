@@ -19,6 +19,8 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+import org.codehaus.jackson.JsonEncoding;
 import org.codehaus.jackson.JsonNode;
 
 import com.jayway.jsonpath.Configuration;
@@ -56,13 +59,14 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     private final LinkedHashMap<String, JsonPath> jsonPaths;
     private final InputStream in;
     private RecordSchema schema;
+    private final Charset charset;
 
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     public JsonPathRowRecordReader(final LinkedHashMap<String, JsonPath> jsonPaths, final RecordSchema schema, final InputStream in, final ComponentLog logger,
-        final String dateFormat, final String timeFormat, final String timestampFormat)
+        final String dateFormat, final String timeFormat, final String timestampFormat, final String charset)
         throws MalformedRecordException, IOException {
         super(in, logger);
 
@@ -78,6 +82,8 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
         this.jsonPaths = jsonPaths;
         this.in = in;
         this.logger = logger;
+        // JsonEncoder.UTF8 doesn't match StandardCharsets.UTF_8. Even though DataTypeUtils.getCharset() defaults to UTF-8, it should be an explicit check here
+        this.charset = JsonEncoding.UTF8.name().equals(charset) ? StandardCharsets.UTF_8 : DataTypeUtils.getCharset(charset);
     }
 
     @Override
@@ -241,7 +247,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
             return new MapRecord(childSchema, coercedValues);
         } else {
-            return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+            return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName, charset);
         }
     }
 

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,10 +58,13 @@ public class CSVRecordReader implements RecordReader {
 
     private List<RecordField> recordFields;
 
+    private final Charset charset;
+
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
         final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
 
         this.schema = schema;
+        this.charset = DataTypeUtils.getCharset(encoding);
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
@@ -164,7 +168,7 @@ public class CSVRecordReader implements RecordReader {
         return schema;
     }
 
-    protected Object convert(final String value, final DataType dataType, final String fieldName) {
+    protected Object convert(final String value, final DataType dataType, final String fieldName ) {
         if (dataType == null || value == null) {
             return value;
         }
@@ -174,7 +178,7 @@ public class CSVRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName, charset);
     }
 
     private Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
@@ -202,7 +206,7 @@ public class CSVRecordReader implements RecordReader {
             case TIMESTAMP:
             case DATE:
                 if (DataTypeUtils.isCompatibleDataType(trimmed, dataType)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName, charset);
                 } else {
                     return value;
                 }

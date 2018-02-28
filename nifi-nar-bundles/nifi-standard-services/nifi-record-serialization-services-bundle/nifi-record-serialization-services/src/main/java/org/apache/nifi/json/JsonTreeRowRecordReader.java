@@ -19,6 +19,7 @@ package org.apache.nifi.json;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,10 +52,11 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
+    private final Charset charset;
 
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
-        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
+        final String dateFormat, final String timeFormat, final String timestampFormat, final Charset charset) throws IOException, MalformedRecordException {
         super(in, logger);
         this.schema = schema;
 
@@ -65,6 +67,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         LAZY_DATE_FORMAT = () -> df;
         LAZY_TIME_FORMAT = () -> tf;
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
+        this.charset = charset;
     }
 
 
@@ -167,7 +170,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case TIME:
             case TIMESTAMP: {
                 final Object rawValue = getRawNodeValue(fieldNode);
-                final Object converted = DataTypeUtils.convertType(rawValue, desiredType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                final Object converted = DataTypeUtils.convertType(rawValue, desiredType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName, charset);
                 return converted;
             }
             case MAP: {
@@ -222,7 +225,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                 }
             }
             case CHOICE: {
-                return DataTypeUtils.convertType(getRawNodeValue(fieldNode), desiredType, fieldName);
+                return DataTypeUtils.convertType(getRawNodeValue(fieldNode), desiredType, fieldName, charset);
             }
         }
 
