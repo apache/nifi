@@ -44,7 +44,7 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 
     @Before
     public void init() throws InitializationException {
-        runner = TestRunners.newTestRunner(PublishPulsar.class);
+        runner = TestRunners.newTestRunner(PublishPulsar_1_0.class);
         
         mockClient = mock(PulsarClient.class);
         mockProducer = mock(Producer.class);
@@ -82,15 +82,15 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 	@Test
 	public void invalidTopicTest() throws UnsupportedEncodingException, PulsarClientException {
 		
-		runner.setProperty(PublishPulsar.TOPIC, "${topic}");
+		runner.setProperty(PublishPulsar_1_0.TOPIC, "${topic}");
 		
 		final String content = "some content";
         Map<String, String> attributes = new HashMap<String, String> ();
-        attributes.put(PublishPulsar.TOPIC.getName(), "");
+        attributes.put(PublishPulsar_1_0.TOPIC.getName(), "");
         
 		runner.enqueue(content.getBytes("UTF-8"), attributes );
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_FAILURE);
         
         // Confirm that no Producer as created 
         verify(mockClient, times(0)).createProducer(anyString());
@@ -99,15 +99,15 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 	@Test
 	public void dynamicTopicTest() throws UnsupportedEncodingException, PulsarClientException {
 		
-		runner.setProperty(PublishPulsar.TOPIC, "${topic}");
+		runner.setProperty(PublishPulsar_1_0.TOPIC, "${topic}");
 		
 		final String content = "some content";
         Map<String, String> attributes = new HashMap<String, String> ();
-        attributes.put(PublishPulsar.TOPIC.getName(), "topic-b");
+        attributes.put(PublishPulsar_1_0.TOPIC.getName(), "topic-b");
         
 		runner.enqueue(content.getBytes("UTF-8"), attributes );
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
         
         // Verify that we sent the data to topic-b.
         verify(mockClient, times(1)).createProducer("topic-b");
@@ -116,14 +116,14 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 	@Test
     public void singleFlowFileTest() throws UnsupportedEncodingException, PulsarClientException {
 		
-		runner.setProperty(PublishPulsar.TOPIC, "my-topic");
+		runner.setProperty(PublishPulsar_1_0.TOPIC, "my-topic");
 	
 		final String content = "some content";
         runner.enqueue(content.getBytes("UTF-8"));
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar.REL_SUCCESS).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar_1_0.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content);
         
         // Verify that we sent the data to my-topic.
@@ -136,15 +136,15 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 	@Test
     public void singleFlowFileAsyncTest() throws UnsupportedEncodingException, PulsarClientException {
 		
-		runner.setProperty(PublishPulsar.TOPIC, "my-topic");
-		runner.setProperty(PublishPulsar.ASYNC_ENABLED, Boolean.TRUE.toString());
+		runner.setProperty(PublishPulsar_1_0.TOPIC, "my-topic");
+		runner.setProperty(PublishPulsar_1_0.ASYNC_ENABLED, Boolean.TRUE.toString());
 	
 		final String content = "some content";
         runner.enqueue(content.getBytes("UTF-8"));
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar.REL_SUCCESS).get(0);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar_1_0.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content);
         
         // Verify that we sent the data to my-topic.
@@ -157,14 +157,14 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 	@Test
 	public void multipleFlowFilesTest() throws UnsupportedEncodingException, PulsarClientException {
 		
-		runner.setProperty(PublishPulsar.TOPIC, "my-topic");
+		runner.setProperty(PublishPulsar_1_0.TOPIC, "my-topic");
 		final String content = "some content";
 		
 		// Hack, since runner.run(20, false); doesn't work as advertised
 		for (int idx = 0; idx < 20; idx++) {
 			runner.enqueue(content.getBytes("UTF-8"));
 			runner.run();
-			runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+			runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
 		}
         
         // Verify that the send method on the producer was called with the expected content
@@ -174,15 +174,15 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 	@Test
 	public void multipleFlowFilesAsyncTest() throws UnsupportedEncodingException, PulsarClientException {
 		
-		runner.setProperty(PublishPulsar.TOPIC, "my-async-topic");
-		runner.setProperty(PublishPulsar.ASYNC_ENABLED, Boolean.TRUE.toString());
+		runner.setProperty(PublishPulsar_1_0.TOPIC, "my-async-topic");
+		runner.setProperty(PublishPulsar_1_0.ASYNC_ENABLED, Boolean.TRUE.toString());
 		final String content = "some content";
 		
 		// Hack, since runner.run(20, false); doesn't work as advertised
 		for (int idx = 0; idx < 20; idx++) {
 			runner.enqueue(content.getBytes("UTF-8"));
 			runner.run();
-			runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+			runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
 		}
         
         // Verify that the send method on the producer was called with the expected content
@@ -191,14 +191,14 @@ public class PublishPulsarProcessorTest extends AbstractPulsarProcessorTest {
 	
 	@Test
 	public void stressTest() throws UnsupportedEncodingException {
-		runner.setProperty(PublishPulsar.TOPIC, "my-async-topic");
-		runner.setProperty(PublishPulsar.ASYNC_ENABLED, Boolean.TRUE.toString());
+		runner.setProperty(PublishPulsar_1_0.TOPIC, "my-async-topic");
+		runner.setProperty(PublishPulsar_1_0.ASYNC_ENABLED, Boolean.TRUE.toString());
 		final String content = "some content";
 		
 		for (int idx = 0; idx < 9999; idx++) {
 			runner.enqueue(content.getBytes("UTF-8"));
 			runner.run();
-			runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+			runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
 		}
 		
 	}

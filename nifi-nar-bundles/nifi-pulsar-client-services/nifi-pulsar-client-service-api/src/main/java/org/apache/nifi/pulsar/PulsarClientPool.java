@@ -27,20 +27,6 @@ import org.apache.nifi.pulsar.pool.ResourcePool;
 		+ "properties defined")
 public interface PulsarClientPool extends ControllerService {
 
-	/*
-	public PulsarProducer getProducer(Properties properties) throws PulsarClientException;
-	
-	public void release(PulsarProducer producer);
-	
-	public void invalidate(PulsarProducer producer);
-	
-	public PulsarConsumer getConsumer(Properties properties) throws PulsarClientException;
-	
-	public void release(PulsarConsumer consumer);
-	
-	public void invalidate(PulsarConsumer consumer);
-*/
-	
 	public ResourcePool<PulsarProducer> getProducerPool();
 	
 	public ResourcePool<PulsarConsumer> getConsumerPool();
