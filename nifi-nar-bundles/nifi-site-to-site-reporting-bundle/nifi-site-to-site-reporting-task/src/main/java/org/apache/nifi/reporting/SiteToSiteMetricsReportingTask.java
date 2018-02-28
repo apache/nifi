@@ -53,8 +53,9 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
     static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
-            .name("Application ID")
-            .description("The Application ID to be included in the metrics sent to Ambari")
+            .name("s2s-metrics-application-id")
+            .displayName("Application ID")
+            .description("The Application ID to be included in the metrics")
             .required(true)
             .expressionLanguageSupported(true)
             .defaultValue("nifi")
@@ -62,8 +63,9 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             .build();
 
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Hostname")
-            .description("The Hostname of this NiFi instance to be included in the metrics sent to Ambari")
+            .name("s2s-metrics-hostname")
+            .displayName("Hostname")
+            .description("The Hostname of this NiFi instance to be included in the metrics")
             .required(true)
             .expressionLanguageSupported(true)
             .defaultValue("${hostname(true)}")
@@ -129,6 +131,9 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                 final Map<String, String> attributes = new HashMap<>();
                 final String transactionId = UUID.randomUUID().toString();
                 attributes.put("reporting.task.transaction.id", transactionId);
+                attributes.put("reporting.task.name", getName());
+                attributes.put("reporting.task.uuid", getIdentifier());
+                attributes.put("reporting.task.type", this.getClass().getSimpleName());
                 attributes.put("mime.type", "application/json");
 
                 final byte[] data = metricsObject.toString().getBytes(StandardCharsets.UTF_8);
