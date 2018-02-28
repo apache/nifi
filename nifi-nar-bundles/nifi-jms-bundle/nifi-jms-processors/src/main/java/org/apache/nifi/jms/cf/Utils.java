@@ -20,6 +20,9 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +53,7 @@ public final class Utils {
      * Finds a method by name on the target class. If more then one method
      * present it will return the first one encountered.
      *
-     * @param name method name
+     * @param name        method name
      * @param targetClass instance of target class
      * @return instance of {@link Method}
      */
@@ -66,6 +69,36 @@ public final class Utils {
             searchType = searchType.getSuperclass();
         }
         return null;
+    }
+
+    /**
+     * Finds a method by name on the target class. If more then one method
+     * present it will return the first one encountered.
+     *
+     * @param name        method name
+     * @param targetClass instance of target class
+     * @return Array of {@link Method}
+     */
+    public static Method[] findMethods(String name, Class<?> targetClass) {
+        Class<?> searchType = targetClass;
+        ArrayList<Method> fittingMethods = new ArrayList<>();
+        while (searchType != null) {
+            Method[] methods = (searchType.isInterface() ? searchType.getMethods() : searchType.getDeclaredMethods());
+            for (Method method : methods) {
+                if (name.equals(method.getName())) {
+                    fittingMethods.add(method);
+                }
+            }
+            searchType = searchType.getSuperclass();
+        }
+        if (fittingMethods.isEmpty()) {
+            return null;
+        } else {
+            //Sort so that in case there are two methods that accept the parameter type
+            //as first param use the one which accepts fewer parameters in total
+            Collections.sort(fittingMethods, Comparator.comparing(Method::getParameterCount));
+            return fittingMethods.toArray(new Method[fittingMethods.size()]);
+        }
     }
 
     /**
