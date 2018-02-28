@@ -58,7 +58,7 @@ import org.apache.pulsar.client.api.SubscriptionType;
 @CapabilityDescription("Consumes messages from Apache Pulsar "
         + "The complementary NiFi processor for sending messages is PublishPulsar.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-public class ConsumePulsar extends AbstractPulsarProcessor {
+public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
 	
 	static final AllowableValue EXCLUSIVE = new AllowableValue("Exclusive", "Exclusive", "There can be only 1 consumer on the same topic with the same subscription name");
 	static final AllowableValue SHARED = new AllowableValue("Shared", "Shared", "Multiple consumer will be able to use the same subscription name and the messages");

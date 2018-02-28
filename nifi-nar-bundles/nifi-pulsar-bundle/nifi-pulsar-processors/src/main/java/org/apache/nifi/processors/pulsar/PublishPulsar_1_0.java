@@ -63,7 +63,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
 	    + "FlowFiles that are routed to success.")
-public class PublishPulsar extends AbstractPulsarProcessor {
+public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
 	
 	protected static final String MSG_COUNT = "msg.count";
 	
