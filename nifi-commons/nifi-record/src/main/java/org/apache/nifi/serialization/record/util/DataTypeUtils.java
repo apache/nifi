@@ -697,6 +697,13 @@ public class DataTypeUtils {
                 return Boolean.FALSE;
             }
         }
+        if (value instanceof MapRecord) {
+            final MapRecord map = (MapRecord) value;
+            Set<String> ff = map.getRawFieldNames();
+            if (ff.size() == 1) {
+                return map.getAsBoolean(ff.iterator().next());
+            }
+        }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Boolean for field " + fieldName);
     }
