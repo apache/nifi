@@ -340,6 +340,36 @@ public class StandardValidators {
     };
 
     /**
+     * This validator will evaluate an expression using ONLY environment and variable registry properties,
+     * then validate that the result is a supported character set.
+     */
+    public static final Validator CHARACTER_SET_VALIDATOR_WITH_EVALUATION = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            String evaluatedInput = input;
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                try {
+                    PropertyValue propertyValue = context.newPropertyValue(input);
+                    evaluatedInput = (propertyValue == null) ? input : propertyValue.evaluateAttributeExpressions().getValue();
+                } catch (final Exception e) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid expression").valid(false).build();
+                }
+            }
+
+            String reason = null;
+            try {
+                if (!Charset.isSupported(evaluatedInput)) {
+                    reason = "Character Set is not supported by this JVM.";
+                }
+            } catch (final IllegalArgumentException iae) {
+                reason = "Character Set value is null or is not supported by this JVM.";
+            }
+
+            return new ValidationResult.Builder().subject(subject).input(evaluatedInput).explanation(reason).valid(reason == null).build();
+        }
+    };
+
+    /**
      * URL Validator that does not allow the Expression Language to be used
      */
     public static final Validator URL_VALIDATOR = createURLValidator();
