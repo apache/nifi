@@ -315,12 +315,7 @@ public class AvroTypeUtil {
                         final Schema fieldSchema = field.schema();
                         final DataType fieldType = determineDataType(fieldSchema, knownRecordTypes);
                         final boolean nullable = isNullable(fieldSchema);
-
-                        if (field.defaultVal() == JsonProperties.NULL_VALUE) {
-                            recordFields.add(new RecordField(fieldName, fieldType, field.aliases(), nullable));
-                        } else {
-                            recordFields.add(new RecordField(fieldName, fieldType, field.defaultVal(), field.aliases(), nullable));
-                        }
+                        addFieldToList(recordFields, field, fieldName, fieldSchema, fieldType, nullable);
                     }
 
                     recordSchema.setFields(recordFields);
@@ -396,12 +391,7 @@ public class AvroTypeUtil {
             final Schema fieldSchema = field.schema();
             final DataType dataType = AvroTypeUtil.determineDataType(fieldSchema, knownRecords);
             final boolean nullable = isNullable(fieldSchema);
-
-            if (field.defaultVal() == JsonProperties.NULL_VALUE) {
-                recordFields.add(new RecordField(fieldName, dataType, field.aliases(), nullable));
-            } else {
-                recordFields.add(new RecordField(fieldName, dataType, field.defaultVal(), field.aliases(), nullable));
-            }
+            addFieldToList(recordFields, field, fieldName, fieldSchema, dataType, nullable);
         }
 
         recordSchema.setFields(recordFields);
@@ -503,6 +493,28 @@ public class AvroTypeUtil {
      */
     public static Object convertToAvroObject(final Object rawValue, final Schema fieldSchema) {
         return convertToAvroObject(rawValue, fieldSchema, fieldSchema.getName());
+    }
+
+    /**
+     * Adds fields to <tt>recordFields</tt> list.
+     * @param recordFields - record fields are added to this list.
+     * @param field - the field
+     * @param fieldName - field name
+     * @param fieldSchema - field schema
+     * @param dataType -  data type
+     * @param nullable - is nullable?
+     */
+    private static void addFieldToList(final List<RecordField> recordFields, final Field field, final String fieldName,
+            final Schema fieldSchema, final DataType dataType, final boolean nullable) {
+        if (field.defaultVal() == JsonProperties.NULL_VALUE) {
+            recordFields.add(new RecordField(fieldName, dataType, field.aliases(), nullable));
+        } else {
+            Object defaultValue = field.defaultVal();
+            if (fieldSchema.getType() == Schema.Type.ARRAY && !DataTypeUtils.isArrayTypeCompatible(defaultValue)) {
+                defaultValue = defaultValue instanceof List ? ((List<?>) defaultValue).toArray() : new Object[0];
+            }
+            recordFields.add(new RecordField(fieldName, dataType, defaultValue, field.aliases(), nullable));
+        }
     }
 
     @SuppressWarnings("unchecked")
