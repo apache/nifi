@@ -48,6 +48,8 @@ import org.apache.avro.generic.GenericFixed;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.util.Utf8;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -440,15 +442,41 @@ public class AvroTypeUtil {
         return bb;
     }
 
+    /**
+     * Method that attempts to map a record field into a provided schema
+     * @param avroSchema - Schema to map into
+     * @param recordField - The field of the record to be mapped
+     * @return Pair with the LHS being the field name and RHS being the mapped field from the schema
+     */
+    protected static Pair<String, Field> lookupField(final Schema avroSchema, final RecordField recordField) {
+        String fieldName = recordField.getFieldName();
+
+        // Attempt to locate the field as is in a true 1:1 mapping with the same name
+        Field field = avroSchema.getField(fieldName);
+        if (field == null) {
+            // No straight mapping was found, so check the aliases to see if it can be mapped
+            for(final String alias: recordField.getAliases()) {
+                field = avroSchema.getField(alias);
+                if (field != null) {
+                    fieldName = alias;
+                    break;
+                }
+            }
+        }
+
+        return new ImmutablePair<>(fieldName, field);
+    }
+
     public static GenericRecord createAvroRecord(final Record record, final Schema avroSchema) throws IOException {
         final GenericRecord rec = new GenericData.Record(avroSchema);
         final RecordSchema recordSchema = record.getSchema();
 
         for (final RecordField recordField : recordSchema.getFields()) {
             final Object rawValue = record.getValue(recordField);
-            final String fieldName = recordField.getFieldName();
 
-            final Field field = avroSchema.getField(fieldName);
+            Pair<String, Field> fieldPair = lookupField(avroSchema, recordField);
+            final String fieldName = fieldPair.getLeft();
+            final Field field = fieldPair.getRight();
             if (field == null) {
                 continue;
             }
