@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.html;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -148,6 +149,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeStatefulInfo(configurableComponent, xmlStreamWriter);
         writeRestrictedInfo(configurableComponent, xmlStreamWriter);
         writeInputRequirementInfo(configurableComponent, xmlStreamWriter);
+        writeSystemResourceConsiderationInfo(configurableComponent, xmlStreamWriter);
         writeSeeAlso(configurableComponent, xmlStreamWriter);
         xmlStreamWriter.writeEndElement();
     }
@@ -725,6 +727,40 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeAttribute("href", location);
         xmlStreamWriter.writeCharacters(text);
         xmlStreamWriter.writeEndElement();
+    }
+
+    /**
+     * Writes all the system resource considerations for this component
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the xml stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the XML
+     */
+    private void writeSystemResourceConsiderationInfo(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+
+        SystemResourceConsideration[] systemResourceConsiderations = configurableComponent.getClass().getAnnotationsByType(SystemResourceConsideration.class);
+
+        writeSimpleElement(xmlStreamWriter, "h3", "System Resource Considerations:");
+        if (systemResourceConsiderations.length > 0) {
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "system-resource-considerations");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Resource");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+            for (SystemResourceConsideration systemResourceConsideration : systemResourceConsiderations) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td", systemResourceConsideration.resource().name());
+                writeSimpleElement(xmlStreamWriter, "td", systemResourceConsideration.description().trim().isEmpty()
+                        ? "Not Specified" : systemResourceConsideration.description());
+                xmlStreamWriter.writeEndElement();
+            }
+            xmlStreamWriter.writeEndElement();
+
+        } else {
+            xmlStreamWriter.writeCharacters("None specified.");
+        }
     }
 
     /**
