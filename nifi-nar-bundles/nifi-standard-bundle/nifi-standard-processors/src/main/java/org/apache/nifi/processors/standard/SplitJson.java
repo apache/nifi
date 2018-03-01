@@ -82,7 +82,9 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
                 description = "The number of split FlowFiles generated from the parent FlowFile"),
         @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
 })
-@SystemResourceConsideration(resource = SystemResource.MEMORY)
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a JsonNode object) is read into memory, " +
+        "in addition to all of the generated FlowFiles representing the split JSON. If many splits are generated due to the size of the JSON, or how the JSON is " +
+        "configured to be split, a two-phase approach may be necessary to avoid excessive use of memory.")
 public class SplitJson extends AbstractJsonPathProcessor {
 
     public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()

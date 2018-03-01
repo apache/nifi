@@ -84,7 +84,10 @@ import org.xml.sax.XMLReader;
                 description = "The number of split FlowFiles generated from the parent FlowFile"),
         @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
 })
-@SystemResourceConsideration(resource = SystemResource.MEMORY)
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a Document object) is read into memory, " +
+        "in addition to all of the generated FlowFiles representing the split XML. A Document object can take approximately 10 times as much memory as the size of " +
+        "the XML. For example, a 1 MB XML document may use 10 MB of memory. If many splits are generated due to the size of the XML, a two-phase approach may be " +
+        "necessary to avoid excessive use of memory.")
 public class SplitXml extends AbstractProcessor {
 
     public static final PropertyDescriptor SPLIT_DEPTH = new PropertyDescriptor.Builder()
