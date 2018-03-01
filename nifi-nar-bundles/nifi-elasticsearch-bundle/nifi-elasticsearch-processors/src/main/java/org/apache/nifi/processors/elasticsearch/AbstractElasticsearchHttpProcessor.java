@@ -121,8 +121,8 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
 
         // Add a proxy if set
-        final String proxyHost = context.getProperty(PROXY_HOST).getValue();
-        final Integer proxyPort = context.getProperty(PROXY_PORT).asInteger();
+        final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+        final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
         if (proxyHost != null && proxyPort != null) {
             final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
             okHttpClient.proxy(proxy);

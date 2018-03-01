@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -153,12 +154,32 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             .defaultValue("index")
             .build();
 
+    static final AllowableValue ALWAYS_SUPPRESS = new AllowableValue("always-suppress", "Always Suppress",
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null, will not be written out");
+
+    static final AllowableValue NEVER_SUPPRESS = new AllowableValue("never-suppress", "Never Suppress",
+            "Fields that are missing (present in the schema but not in the record), or that have a value of null, will be written out as a null value");
+
+    static final AllowableValue SUPPRESS_MISSING = new AllowableValue("suppress-missing", "Suppress Missing Values",
+            "When a field has a value of null, it will be written out. However, if a field is defined in the schema and not present in the record, the field will not be written out.");
+
+    static final PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
+            .name("suppress-nulls")
+            .displayName("Suppress Null Values")
+            .description("Specifies how the writer should handle a null field")
+            .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS, SUPPRESS_MISSING)
+            .defaultValue(NEVER_SUPPRESS.getValue())
+            .required(true)
+            .build();
+
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
     private volatile RecordPathCache recordPathCache;
 
     private final JsonFactory factory = new JsonFactory();
+
+    private volatile String nullSuppression;
 
     static {
         final Set<Relationship> _rels = new HashSet<>();
@@ -179,6 +200,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         descriptors.add(INDEX);
         descriptors.add(TYPE);
         descriptors.add(INDEX_OP);
+        descriptors.add(SUPPRESS_NULLS);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -283,6 +305,8 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 session.transfer(flowFile, REL_FAILURE);
                 return;
         }
+
+        this.nullSuppression = context.getProperty(SUPPRESS_NULLS).getValue();
 
         final String id_path = context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final RecordPath recordPath = StringUtils.isEmpty(id_path) ? null : recordPathCache.getCompiled(id_path);
@@ -450,7 +474,10 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             final String fieldName = field.getFieldName();
             final Object value = record.getValue(field);
             if (value == null) {
-                generator.writeNullField(fieldName);
+                if (nullSuppression.equals(NEVER_SUPPRESS.getValue()) || (nullSuppression.equals(SUPPRESS_MISSING.getValue())) && record.getRawFieldNames().contains(fieldName)) {
+                    generator.writeNullField(fieldName);
+                }
+
                 continue;
             }
 
@@ -465,7 +492,10 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     @SuppressWarnings("unchecked")
     private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType) throws IOException {
         if (value == null) {
-            generator.writeNull();
+            if (nullSuppression.equals(NEVER_SUPPRESS.getValue()) || ((nullSuppression.equals(SUPPRESS_MISSING.getValue())) && fieldName != null && !fieldName.equals(""))) {
+                generator.writeNullField(fieldName);
+            }
+
             return;
         }
 
