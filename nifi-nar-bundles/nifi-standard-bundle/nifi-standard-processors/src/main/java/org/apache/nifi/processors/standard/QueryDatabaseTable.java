@@ -293,8 +293,16 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 
-            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
-            st.setQueryTimeout(queryTimeout); // timeout in seconds
+            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions()
+                    .asTimePeriod(TimeUnit.SECONDS).intValue();
+            try {
+                st.setQueryTimeout(queryTimeout); // timeout in seconds
+            } catch (SQLException se) {
+                // Not all drivers support this, just log the error (at debug level) and move on
+                logger.debug("Cannot set query timeout to {} due to {}",
+                        new Object[] { queryTimeout, se.getLocalizedMessage() }, se);
+            }
+
             try {
                 logger.debug("Executing query {}", new Object[]{selectQuery});
                 final ResultSet resultSet = st.executeQuery(selectQuery);

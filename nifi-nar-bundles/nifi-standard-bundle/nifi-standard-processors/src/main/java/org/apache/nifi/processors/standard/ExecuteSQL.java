@@ -213,7 +213,13 @@ public class ExecuteSQL extends AbstractProcessor {
         int resultCount=0;
         try (final Connection con = dbcpService.getConnection();
             final PreparedStatement st = con.prepareStatement(selectQuery)) {
-            st.setQueryTimeout(queryTimeout); // timeout in seconds
+            try {
+                st.setQueryTimeout(queryTimeout); // timeout in seconds
+            } catch (SQLException se) {
+                // Not all drivers support this, just log the error (at debug level) and move on
+                logger.debug("Cannot set query timeout to {} due to {}",
+                        new Object[] { queryTimeout, se.getLocalizedMessage() }, se);
+            }
 
             if (fileToProcess != null) {
                 JdbcCommon.setParameters(st, fileToProcess.getAttributes());

@@ -272,7 +272,13 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                  final Statement st = con.createStatement()) {
 
                 final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
-                st.setQueryTimeout(queryTimeout); // timeout in seconds
+                try {
+                    st.setQueryTimeout(queryTimeout); // timeout in seconds
+                } catch (SQLException se) {
+                    // Not all drivers support this, just log the error (at debug level) and move on
+                    logger.debug("Cannot set query timeout to {} due to {}",
+                            new Object[] { queryTimeout, se.getLocalizedMessage() }, se);
+                }
 
                 logger.debug("Executing {}", new Object[]{selectQuery});
                 ResultSet resultSet;

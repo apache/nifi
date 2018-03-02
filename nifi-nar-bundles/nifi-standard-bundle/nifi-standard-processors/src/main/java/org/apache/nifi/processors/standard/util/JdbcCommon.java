@@ -479,7 +479,7 @@ public class JdbcCommon {
         final int nrOfColumns = meta.getColumnCount();
         String tableName = StringUtils.isEmpty(options.recordName) ? "NiFi_ExecuteSQL_Record" : options.recordName;
         if (nrOfColumns > 0) {
-            String tableNameFromMeta = meta.getTableName(1);
+            String tableNameFromMeta = getTableNameFromMeta(meta);
             if (!StringUtils.isBlank(tableNameFromMeta)) {
                 tableName = tableNameFromMeta;
             }
@@ -520,7 +520,7 @@ public class JdbcCommon {
                     break;
 
                 case INTEGER:
-                    if (meta.isSigned(i) || (meta.getPrecision(i) > 0 && meta.getPrecision(i) < MAX_DIGITS_IN_INT)) {
+                    if (isIsSignedSupport(meta) && meta.isSigned(i) || (meta.getPrecision(i) > 0 && meta.getPrecision(i) < MAX_DIGITS_IN_INT)) {
                         builder.name(columnName).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     } else {
                         builder.name(columnName).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
@@ -859,4 +859,33 @@ public class JdbcCommon {
         void processRow(ResultSet resultSet) throws IOException;
     }
 
+    /**
+     * Returns the table name.
+     * 
+     * @param meta
+     *            - metadata
+     * @return the table name or an empty string if the driver does not support
+     *         {@link ResultSetMetaData#getTableName(int)}.
+     */
+    private static String getTableNameFromMeta(final ResultSetMetaData meta) {
+        try {
+            return meta.getTableName(1);
+        } catch (SQLException e) {
+            return "";
+        }
+    }
+
+    /**
+     * 
+     * @param meta - metadata
+     * @return true if calling {@link ResultSetMetaData#isSigned(int)} is supported.
+     */
+    private static boolean isIsSignedSupport(ResultSetMetaData meta) {
+        try {
+            meta.isSigned(1);
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
 }
