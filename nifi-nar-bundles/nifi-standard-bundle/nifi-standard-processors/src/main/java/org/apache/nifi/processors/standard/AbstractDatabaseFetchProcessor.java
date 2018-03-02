@@ -227,14 +227,6 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         return super.customValidate(validationContext);
     }
 
-    @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        // If the max-value columns have changed, we need to re-fetch the column info from the DB
-        if (MAX_VALUE_COLUMN_NAMES.equals(descriptor) && newValue != null && !newValue.equals(oldValue)) {
-            setupComplete.set(false);
-        }
-    }
-
     public void setup(final ProcessContext context) {
         setup(context,true,null);
     }
@@ -246,6 +238,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
             // If there are no max-value column names specified, we don't need to perform this processing
             if (StringUtils.isEmpty(maxValueColumnNames)) {
+                setupComplete.set(true);
                 return;
             }
 

@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -195,6 +196,12 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     @OnScheduled
     public void setup(final ProcessContext context) {
         maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
+    }
+
+    @OnStopped
+    public void stop() {
+        // Reset the column type map in case properties change
+        setupComplete.set(false);
     }
 
     @Override
