@@ -4098,15 +4098,28 @@ public final class StandardProcessGroup implements ProcessGroup {
     private Map<String, String> populatePropertiesMap(final Map<PropertyDescriptor, String> currentProperties, final Map<String, String> proposedProperties,
         final Map<String, VersionedPropertyDescriptor> proposedDescriptors, final ProcessGroup group) {
 
+        // since VersionedPropertyDescriptor currently doesn't know if it is sensitive or not,
+        // keep track of which property descriptors are sensitive from the current properties
+        final Set<String> sensitiveProperties = new HashSet<>();
+
         final Map<String, String> fullPropertyMap = new HashMap<>();
         for (final PropertyDescriptor property : currentProperties.keySet()) {
-            fullPropertyMap.put(property.getName(), null);
+            if (property.isSensitive()) {
+                sensitiveProperties.add(property.getName());
+            } else {
+                fullPropertyMap.put(property.getName(), null);
+            }
         }
 
         if (proposedProperties != null) {
             for (final Map.Entry<String, String> entry : proposedProperties.entrySet()) {
                 final String propertyName = entry.getKey();
                 final VersionedPropertyDescriptor descriptor = proposedDescriptors.get(propertyName);
+
+                // skip any sensitive properties so we can retain whatever is currently set
+                if (sensitiveProperties.contains(propertyName)) {
+                    continue;
+                }
 
                 String value;
                 if (descriptor != null && descriptor.getIdentifiesControllerService()) {

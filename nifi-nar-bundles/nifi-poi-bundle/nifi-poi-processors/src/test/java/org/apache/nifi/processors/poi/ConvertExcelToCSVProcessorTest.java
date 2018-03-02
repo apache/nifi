@@ -20,7 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -44,7 +46,10 @@ public class ConvertExcelToCSVProcessorTest {
     @Test
     public void testMultipleSheetsGeneratesMultipleFlowFiles() throws Exception {
 
-        testRunner.enqueue(new File("src/test/resources/TwoSheets.xlsx").toPath());
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("test", "attribute");
+
+        testRunner.enqueue(new File("src/test/resources/TwoSheets.xlsx").toPath(), attributes);
         testRunner.run();
 
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 2);
@@ -59,6 +64,7 @@ public class ConvertExcelToCSVProcessorTest {
 
         //Since TestRunner.run() will create a random filename even if the attribute is set in enqueue manually we just check that "_{SHEETNAME}.csv is present
         assertTrue(ffSheetA.getAttribute(CoreAttributes.FILENAME.key()).endsWith("_TestSheetA.csv"));
+        assertTrue(ffSheetA.getAttribute("test").equals("attribute"));
 
         MockFlowFile ffSheetB = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(1);
         Long rowsSheetB = new Long(ffSheetB.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
@@ -68,6 +74,7 @@ public class ConvertExcelToCSVProcessorTest {
 
         //Since TestRunner.run() will create a random filename even if the attribute is set in enqueue manually we just check that "_{SHEETNAME}.csv is present
         assertTrue(ffSheetB.getAttribute(CoreAttributes.FILENAME.key()).endsWith("_TestSheetB.csv"));
+        assertTrue(ffSheetB.getAttribute("test").equals("attribute"));
 
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -51,6 +52,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
     static final String QUEUE = "QUEUE";
     static final String TOPIC = "TOPIC";
+    static final String TEXT_MESSAGE = "text";
+    static final String BYTES_MESSAGE = "bytes";
 
     static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
             .name("User Name")
@@ -96,6 +99,23 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
+    static final PropertyDescriptor MESSAGE_BODY = new PropertyDescriptor.Builder()
+            .name("message-body-type")
+            .displayName("Message Body Type")
+            .description("The type of JMS message body to construct.")
+            .required(true)
+            .defaultValue(BYTES_MESSAGE)
+            .allowableValues(BYTES_MESSAGE, TEXT_MESSAGE)
+            .build();
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("character-set")
+            .displayName("Character Set")
+            .description("The name of the character set to use to construct or interpret TextMessages")
+            .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue(Charset.defaultCharset().name())
+            .expressionLanguageSupported(true)
+            .build();
 
 
     static final PropertyDescriptor CF_SERVICE = new PropertyDescriptor.Builder()
@@ -117,6 +137,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         propertyDescriptors.add(PASSWORD);
         propertyDescriptors.add(CLIENT_ID);
         propertyDescriptors.add(SESSION_CACHE_SIZE);
+        propertyDescriptors.add(MESSAGE_BODY);
+        propertyDescriptors.add(CHARSET);
     }
 
     @Override
