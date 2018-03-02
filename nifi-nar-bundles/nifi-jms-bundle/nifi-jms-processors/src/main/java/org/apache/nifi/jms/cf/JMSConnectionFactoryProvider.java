@@ -257,7 +257,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
     private void setProperty(String propertyName, Object propertyValue) {
         String methodName = this.toMethodName(propertyName);
         Method[] methods = Utils.findMethods(methodName, this.connectionFactory.getClass());
-        if (methods != null && methods.length < 0) {
+        if (methods != null && methods.length > 0) {
             try {
                 for (Method method : methods) {
                     Class<?> returnType = method.getParameterTypes()[0];
