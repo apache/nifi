@@ -43,11 +43,11 @@ import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.support.JmsHeaders;
 
-public class JMSPublisherConsumerTest {
+public class JMSPublisherConsumerIT {
 
     @Test
     public void validateBytesConvertedToBytesMessageOnSend() throws Exception {
-        final String destinationName = "testQueue";
+        final String destinationName = "validateBytesConvertedToBytesMessageOnSend";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
@@ -66,7 +66,7 @@ public class JMSPublisherConsumerTest {
 
     @Test
     public void validateJmsHeadersAndPropertiesAreTransferredFromFFAttributes() throws Exception {
-        final String destinationName = "testQueue";
+        final String destinationName = "validateJmsHeadersAndPropertiesAreTransferredFromFFAttributes";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
@@ -95,7 +95,7 @@ public class JMSPublisherConsumerTest {
      */
     @Test(expected = IllegalStateException.class)
     public void validateFailOnUnsupportedMessageType() throws Exception {
-        final String destinationName = "testQueue";
+        final String destinationName = "validateFailOnUnsupportedMessageType";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
@@ -120,7 +120,7 @@ public class JMSPublisherConsumerTest {
 
     @Test
     public void validateConsumeWithCustomHeadersAndProperties() throws Exception {
-        final String destinationName = "testQueue";
+        final String destinationName = "validateConsumeWithCustomHeadersAndProperties";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
@@ -156,7 +156,7 @@ public class JMSPublisherConsumerTest {
 
     @Test(timeout = 20000)
     public void testMultipleThreads() throws Exception {
-        String destinationName = "testQueue";
+        String destinationName = "testMultipleThreads";
         JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
         final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(4);
 
@@ -213,7 +213,7 @@ public class JMSPublisherConsumerTest {
 
     @Test(timeout = 10000)
     public void validateMessageRedeliveryWhenNotAcked() throws Exception {
-        String destinationName = "testQueue";
+        String destinationName = "validateMessageRedeliveryWhenNotAcked";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
             JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
