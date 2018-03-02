@@ -145,7 +145,7 @@ public class PublishJMSTest {
     public void validatePublishTextMessage() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
-        final String destinationName = "fooQueue";
+        final String destinationName = "validatePublishTextMessage";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
