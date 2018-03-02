@@ -43,7 +43,7 @@ public class PublishJMSTest {
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
-        final String destinationName = "fooQueue";
+        final String destinationName = "validateSuccessfulPublishAndTransferToSuccess";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -128,7 +128,7 @@ public class PublishJMSTest {
         runner.enableControllerService(cs);
 
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
-        runner.setProperty(PublishJMS.DESTINATION, "fooQueue");
+        runner.setProperty(PublishJMS.DESTINATION, "validateFailedPublishAndTransferToFailure");
 
         runner.enqueue("Hello Joe".getBytes());
 
