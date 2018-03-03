@@ -30,7 +30,6 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -39,8 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Ignore("This is an integration test that requires Mongo to be running.")
-public class RunMongoAggregationTest {
+public class RunMongoAggregationIT {
 
     private static final String MONGO_URI = "mongodb://localhost";
     private static final String DB_NAME   = String.format("agg_test-%s", Calendar.getInstance().getTimeInMillis());

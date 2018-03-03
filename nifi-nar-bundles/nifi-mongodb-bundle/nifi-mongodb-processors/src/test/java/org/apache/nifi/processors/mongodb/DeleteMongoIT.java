@@ -23,14 +23,12 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Ignore("This is an integration test and should be marked Ignore until someone needs to run it.")
-public class DeleteMongoTest extends MongoWriteTestBase {
+public class DeleteMongoIT extends MongoWriteTestBase {
     @Before
     public void setup() {
         super.setup(DeleteMongo.class);
