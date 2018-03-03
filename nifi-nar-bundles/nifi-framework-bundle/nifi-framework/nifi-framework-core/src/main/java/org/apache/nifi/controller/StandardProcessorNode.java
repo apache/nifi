@@ -193,7 +193,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         onScheduleTimeoutMillis = timeoutString == null ? 60000 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
 
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
-        executionNode = ExecutionNode.ALL;
+        executionNode = isExecutionNodeRestricted() ? ExecutionNode.PRIMARY : ExecutionNode.ALL;
         this.hashCode = new HashCodeBuilder(7, 67).append(identifier).toHashCode();
 
         try {
@@ -365,6 +365,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     /**
+     *  Indicates whether the processor's executionNode configuration is restricted to run only in primary node
+     */
+    @Override
+    public boolean isExecutionNodeRestricted(){
+        return processorRef.get().isExecutionNodeRestricted();
+    }
+
+    /**
      * Indicates whether flow file content made by this processor must be
      * persisted
      *
@@ -530,7 +538,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public synchronized void setExecutionNode(final ExecutionNode executionNode) {
-        this.executionNode = executionNode;
+        if (this.isExecutionNodeRestricted()) {
+            this.executionNode = ExecutionNode.PRIMARY;
+        } else {
+            this.executionNode = executionNode;
+        }
     }
 
     @Override

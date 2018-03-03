@@ -216,19 +216,15 @@
 
                     var executionNode = details.config['executionNode'];
 
-                    // only show the execution-node when applicable
-                    if (nfClusterSummary.isClustered() || executionNode === 'PRIMARY') {
-                        if (executionNode === 'ALL') {
-                            executionNode = "All nodes";
-                        } else if (executionNode === 'PRIMARY') {
-                            executionNode = "Primary node only";
-                        }
-                        nfCommon.populateField('read-only-execution-node', executionNode);
-
-                        $('#read-only-execution-node-options').show();
-                    } else {
-                        $('#read-only-execution-node-options').hide();
+                    if (executionNode === 'ALL') {
+                        executionNode = "All nodes";
+                    } else if (executionNode === 'PRIMARY') {
+                        executionNode = "Primary node only";
                     }
+
+                    nfCommon.populateField('read-only-execution-node', executionNode);
+
+                    $('#read-only-execution-node-options').show();
 
                     // load the relationship list
                     if (!nfCommon.isEmpty(details.relationships)) {
