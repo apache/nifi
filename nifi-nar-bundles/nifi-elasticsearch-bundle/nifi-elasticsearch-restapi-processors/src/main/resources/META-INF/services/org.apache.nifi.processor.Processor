@@ -12,6 +12,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.processors.elasticsearch.FetchElasticsearch5
-org.apache.nifi.processors.elasticsearch.PutElasticsearch5
-org.apache.nifi.processors.elasticsearch.DeleteElasticsearch5
+org.apache.nifi.processors.elasticsearch.JsonQueryElasticsearch

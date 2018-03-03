@@ -447,6 +447,18 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-client-service-nar</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-restapi-nar</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lumberjack-nar</artifactId>
             <version>1.6.0-SNAPSHOT</version>
             <type>nar</type>
