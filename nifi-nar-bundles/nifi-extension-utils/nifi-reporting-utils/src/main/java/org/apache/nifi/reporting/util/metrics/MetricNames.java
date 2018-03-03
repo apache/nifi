@@ -52,4 +52,8 @@ public interface MetricNames {
     String JVM_GC_RUNS = "jvm.gc.runs";
     String JVM_GC_TIME = "jvm.gc.time";
 
+    // OS Metrics
+    String LOAD1MN = "loadAverage1min";
+    String CORES = "availableCores";
+
 }

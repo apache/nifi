@@ -17,10 +17,14 @@
 
 package org.apache.nifi.reporting;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,25 +36,36 @@ import javax.json.Json;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.util.metrics.MetricNames;
 import org.apache.nifi.reporting.util.metrics.MetricsService;
 import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
 
 @Tags({"status", "metrics", "site", "site to site"})
-@CapabilityDescription("Publishes same metrics as the Ambari Reporting task using the Site To Site protocol. "
-        + "Metrics are formatted according to the Ambari Metrics API.")
+@CapabilityDescription("Publishes same metrics as the Ambari Reporting task using the Site To Site protocol.")
 public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    static final AllowableValue AMBARI_FORMAT = new AllowableValue("ambari-format", "Ambari Format", "Metrics will be formatted"
+            + " according to the Ambari Metrics API. See Additional Details in Usage documentation.");
+    static final AllowableValue RECORD_FORMAT = new AllowableValue("record-format", "Record Format", "Metrics will be formatted"
+            + " using the Record Writer property of this reporting task. See Additional Details in Usage documentation to"
+            + " have the description of the default schema.");
 
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
             .name("s2s-metrics-application-id")
@@ -72,15 +87,48 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder()
+            .name("s2s-metrics-format")
+            .displayName("Output format")
+            .description("The output format that will be used for the metrics")
+            .required(true)
+            .allowableValues(AMBARI_FORMAT, RECORD_FORMAT)
+            .defaultValue(AMBARI_FORMAT.getValue())
+            .addValidator(Validator.VALID)
+            .build();
+
     private final MetricsService metricsService = new MetricsService();
+
+    public SiteToSiteMetricsReportingTask() throws IOException {
+        final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-metrics.avsc");
+        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(HOSTNAME);
         properties.add(APPLICATION_ID);
+        properties.add(FORMAT);
+        properties.add(RECORD_WRITER);
         properties.remove(BATCH_SIZE);
         return properties;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+
+        final boolean isWriterSet = validationContext.getProperty(RECORD_WRITER).isSet();
+        if (validationContext.getProperty(FORMAT).getValue().equals(RECORD_FORMAT.getValue()) && !isWriterSet) {
+            problems.add(new ValidationResult.Builder()
+                    .input("Record Writer")
+                    .valid(false)
+                    .explanation("If using " + RECORD_FORMAT.getDisplayName() + ", a record writer needs to be set.")
+                    .build());
+        }
+
+        return problems;
     }
 
     @Override
@@ -109,16 +157,28 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             final OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
             final double systemLoad = os.getSystemLoadAverage();
 
-            final JsonObject metricsObject = metricsBuilder
-                    .applicationId(applicationId)
-                    .instanceId(status.getId())
-                    .hostname(hostname)
-                    .timestamp(System.currentTimeMillis())
-                    .addAllMetrics(statusMetrics)
-                    .addAllMetrics(jvmMetrics)
-                    .metric("available.cores", String.valueOf(os.getAvailableProcessors()))
-                    .metric("load.average.1min", String.valueOf(systemLoad >= 0 ? systemLoad : -1))
-                    .build();
+            byte[] data;
+            final Map<String, String> attributes = new HashMap<>();
+
+            if(context.getProperty(FORMAT).getValue().equals(AMBARI_FORMAT.getValue())) {
+                final JsonObject metricsObject = metricsBuilder
+                        .applicationId(applicationId)
+                        .instanceId(status.getId())
+                        .hostname(hostname)
+                        .timestamp(System.currentTimeMillis())
+                        .addAllMetrics(statusMetrics)
+                        .addAllMetrics(jvmMetrics)
+                        .metric(MetricNames.CORES, String.valueOf(os.getAvailableProcessors()))
+                        .metric(MetricNames.LOAD1MN, String.valueOf(systemLoad >= 0 ? systemLoad : -1))
+                        .build();
+
+                data = metricsObject.toString().getBytes(StandardCharsets.UTF_8);
+                attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+            } else {
+                final JsonObject metricsObject = metricsService.getMetrics(factory, status, virtualMachineMetrics, applicationId, status.getId(),
+                        hostname, System.currentTimeMillis(), os.getAvailableProcessors(), systemLoad >= 0 ? systemLoad : -1);
+                data = getData(context, new ByteArrayInputStream(metricsObject.toString().getBytes(StandardCharsets.UTF_8)), attributes);
+            }
 
             try {
                 long start = System.nanoTime();
@@ -128,15 +188,12 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                     return;
                 }
 
-                final Map<String, String> attributes = new HashMap<>();
                 final String transactionId = UUID.randomUUID().toString();
                 attributes.put("reporting.task.transaction.id", transactionId);
                 attributes.put("reporting.task.name", getName());
                 attributes.put("reporting.task.uuid", getIdentifier());
                 attributes.put("reporting.task.type", this.getClass().getSimpleName());
-                attributes.put("mime.type", "application/json");
 
-                final byte[] data = metricsObject.toString().getBytes(StandardCharsets.UTF_8);
                 transaction.send(data, attributes);
                 transaction.confirm();
                 transaction.complete();
@@ -150,7 +207,6 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
         } else {
             getLogger().error("No process group status to retrieve metrics");
         }
-
     }
 
 }
