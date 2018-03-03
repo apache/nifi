@@ -34,7 +34,6 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.text.SimpleDateFormat;
@@ -46,10 +45,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-@Ignore("Integration tests that cause failures in some environments. Require that they be run from Maven to run the embedded mongo maven plugin. Maven Plugin also fails in my CentOS 7 environment.")
-public class GetMongoTest {
+public class GetMongoIT {
     private static final String MONGO_URI = "mongodb://localhost";
-    private static final String DB_NAME = GetMongoTest.class.getSimpleName().toLowerCase();
+    private static final String DB_NAME = GetMongoIT.class.getSimpleName().toLowerCase();
     private static final String COLLECTION_NAME = "test";
 
     private static final List<Document> DOCUMENTS;
