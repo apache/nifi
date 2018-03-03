@@ -139,7 +139,7 @@
             that live in the top-level lib directory and will be present in the parent-first
             classloading of all child nars.  Therefore we dont want child nars using different
             versions anyway.-->
-            
+
             <!-- javax.servlet-api handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>javax.servlet</groupId>
@@ -242,7 +242,7 @@
                 <version>1.3</version>
                 <scope>test</scope>
             </dependency>
-           
+
             <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from it so we dont want this getting overriden -->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
@@ -663,18 +663,18 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-checkstyle-plugin</artifactId>
-                            <executions>
-                                <execution>
-                                    <id>check-style</id>
-                                    <phase>verify</phase>
-                                    <configuration>
-                                      <encoding>UTF-8</encoding>
-                                    </configuration>
-                                    <goals>
-                                      <goal>check</goal>
-                                    </goals>
-                              </execution>
-                            </executions>
+                        <executions>
+                            <execution>
+                                <id>check-style</id>
+                                <phase>verify</phase>
+                                <configuration>
+                                    <encoding>UTF-8</encoding>
+                                </configuration>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
