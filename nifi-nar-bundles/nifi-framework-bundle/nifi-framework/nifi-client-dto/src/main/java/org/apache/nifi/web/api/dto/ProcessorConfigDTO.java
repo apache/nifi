@@ -44,6 +44,7 @@ public class ProcessorConfigDTO {
     private String comments;
     private String customUiUrl;
     private Boolean lossTolerant;
+    private Boolean executionNodeRestricted;
 
     // annotation data
     private String annotationData;
@@ -104,10 +105,24 @@ public class ProcessorConfigDTO {
     }
 
     /**
+     * @return whether or not this processor is restricted to run only in primary node
+     */
+    @ApiModelProperty(
+            value = "Indicates if the execution node of a processor is restricted to run only on the primary node"
+    )
+    public Boolean isExecutionNodeRestricted() {
+        return executionNodeRestricted;
+    }
+
+    public void setExecutionNodeRestricted(Boolean executionNodeRestricted) {
+        this.executionNodeRestricted = executionNodeRestricted;
+    }
+
+    /**
      * @return the amount of time that is used when this processor penalizes a flowfile
      */
     @ApiModelProperty(
-            value = "The amout of time that is used when the process penalizes a flowfile."
+            value = "The amount of time that is used when the process penalizes a flowfile."
     )
     public String getPenaltyDuration() {
         return penaltyDuration;

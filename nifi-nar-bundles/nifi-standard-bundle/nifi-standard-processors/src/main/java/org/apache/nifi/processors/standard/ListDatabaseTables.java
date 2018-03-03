@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -59,6 +60,7 @@ import java.util.stream.Stream;
 /**
  * A processor to retrieve a list of tables (and their metadata) from a database connection
  */
+@PrimaryNodeOnly
 @TriggerSerially
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "list", "jdbc", "table", "database"})

@@ -215,9 +215,10 @@
                     }
 
                     var executionNode = details.config['executionNode'];
+                    var executionNodeRestricted = details.config['executionNodeRestricted']
 
                     // only show the execution-node when applicable
-                    if (nfClusterSummary.isClustered() || executionNode === 'PRIMARY') {
+                    if (nfClusterSummary.isClustered() && executionNodeRestricted !== true) {
                         if (executionNode === 'ALL') {
                             executionNode = "All nodes";
                         } else if (executionNode === 'PRIMARY') {

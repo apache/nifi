@@ -67,6 +67,8 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     public abstract boolean isEventDrivenSupported();
 
+    public abstract boolean isExecutionNodeRestricted();
+
     public abstract Requirement getInputRequirement();
 
     public abstract List<ActiveThreadInfo> getActiveThreads();
@@ -247,4 +249,5 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
             logger.warn("Processor cannot be disabled because its state is set to " + this.scheduledState);
         }
     }
+
 }

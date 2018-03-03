@@ -52,6 +52,7 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -522,6 +523,13 @@ public class TestFlowController {
     }
 
     @Test
+    public void testPrimaryNodeOnlyAnnotation() throws ProcessorInstantiationException {
+        String id = UUID.randomUUID().toString();
+        ProcessorNode processorNode = controller.createProcessor(DummyPrimaryNodeOnlyProcessor.class.getName(), id, systemBundle.getBundleDetails().getCoordinate());
+        assertEquals(ExecutionNode.PRIMARY, processorNode.getExecutionNode());
+    }
+
+    @Test
     public void testDeleteProcessGroup() {
         ProcessGroup pg = controller.createProcessGroup("my-process-group");
         pg.setName("my-process-group");
@@ -778,6 +786,7 @@ public class TestFlowController {
         configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
         configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
         configDTO.setLossTolerant(processorNode.isLossTolerant());
+        configDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         configDTO.setComments(processorNode.getComments());
         configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
@@ -831,6 +840,7 @@ public class TestFlowController {
         configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
         configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
         configDTO.setLossTolerant(processorNode.isLossTolerant());
+        configDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         configDTO.setComments(processorNode.getComments());
         configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
@@ -886,6 +896,7 @@ public class TestFlowController {
         configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
         configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
         configDTO.setLossTolerant(processorNode.isLossTolerant());
+        configDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         configDTO.setComments(processorNode.getComments());
         configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());

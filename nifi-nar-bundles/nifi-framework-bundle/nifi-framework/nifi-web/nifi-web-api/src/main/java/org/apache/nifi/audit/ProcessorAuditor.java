@@ -71,6 +71,7 @@ public class ProcessorAuditor extends NiFiAuditor {
     private static final String SCHEDULING_STRATEGY = "Scheduling Strategy";
     private static final String EXECUTION_NODE = "Execution Node";
     private static final String EXTENSION_VERSION = "Extension Version";
+    private static final String EXECUTION_NODE_RESTRICTED = "Execution Node Restricted";
 
     /**
      * Audits the creation of processors via createProcessor().
@@ -378,6 +379,9 @@ public class ProcessorAuditor extends NiFiAuditor {
             }
             if (newConfig.getExecutionNode() != null) {
                 values.put(EXECUTION_NODE, processor.getExecutionNode().name());
+            }
+            if (newConfig.isExecutionNodeRestricted() != null) {
+                values.put(EXECUTION_NODE_RESTRICTED, String.valueOf(processor.isExecutionNodeRestricted()));
             }
         }
 

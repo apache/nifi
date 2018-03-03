@@ -48,6 +48,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
@@ -188,7 +189,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         onScheduleTimeoutMillis = timeoutString == null ? 60000 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
 
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
-        executionNode = ExecutionNode.ALL;
+        //executionNode = ExecutionNode.ALL;
+        executionNode = isExecutionNodeRestricted() ? ExecutionNode.PRIMARY : ExecutionNode.ALL;
+
         try {
             if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
                 DefaultSchedule dsc = processorDetails.getProcClass().getAnnotation(DefaultSchedule.class);
@@ -355,6 +358,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public boolean isTriggerWhenAnyDestinationAvailable() {
         return processorRef.get().isTriggerWhenAnyDestinationAvailable();
+    }
+
+    /**
+     *  Indicates whether the processor's executionNode configuration is restricted to run only in primary node
+     */
+    @Override
+    public boolean isExecutionNodeRestricted(){
+        return processorRef.get().isExecutionNodeRestricted();
     }
 
     /**

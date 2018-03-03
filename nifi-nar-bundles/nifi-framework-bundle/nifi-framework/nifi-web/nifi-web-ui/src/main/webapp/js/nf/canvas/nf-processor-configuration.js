@@ -328,6 +328,7 @@
         }
 
         processorConfigDto['executionNode'] = $('#execution-node-combo').combo('getSelectedOption').value;
+        processorConfigDto['executionNodeRestricted'] = processor.config['executionNodeRestricted']
         processorConfigDto['penaltyDuration'] = $('#penalty-duration').val();
         processorConfigDto['yieldDuration'] = $('#yield-duration').val();
         processorConfigDto['bulletinLevel'] = $('#bulletin-level-combo').combo('getSelectedOption').value;
@@ -732,6 +733,7 @@
                     });
 
                     var executionNode = processor.config['executionNode'];
+                    var executionNodeRestricted = processor.config['executionNodeRestricted']
 
                     // initialize the execution node combo
                     $('#execution-node-combo').combo({
@@ -741,8 +743,8 @@
                         }
                     });
 
-                    // show the execution node option if we're cluster or we're currently configured to run on the primary node only
-                    if (nfClusterSummary.isClustered() || executionNode === 'PRIMARY') {
+                    // show the execution node option if we're clustered and execution node is not restricted to run only in primary node
+                    if (nfClusterSummary.isClustered() && executionNodeRestricted !== true) {
                         $('#execution-node-options').show();
                     } else {
                         $('#execution-node-options').hide();
