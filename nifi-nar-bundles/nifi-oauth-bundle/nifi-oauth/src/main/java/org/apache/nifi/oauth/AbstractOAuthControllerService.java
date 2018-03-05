@@ -73,6 +73,7 @@ public abstract class AbstractOAuthControllerService
                     " response field is different this is where you can change that.")
             .defaultValue("expire_time")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -109,20 +110,6 @@ public abstract class AbstractOAuthControllerService
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor EXPIRE_TIME_SAFETY_NET = new PropertyDescriptor
-            .Builder().name("expire_time_safety_net")
-            .displayName("Expire time safety net in seconds")
-            .description("There can be a chance that the authentication server and the NiFi agent clocks could be out of sync. Expires In is an OAuth standard " +
-                    "that tells when the access token received will be invalidated. Comparing the current system clock to that value and understanding if the " +
-                    "access token is still valid can be achieved this way. However since the clocks can be out of sync with the authentication server " +
-                    "this property ensures that the access token can be refreshed at a configurable interval before it actual expires to ensure no downtime " +
-                    "waiting on new tokens from the authentication server.")
-            .defaultValue("10")
-            .required(true)
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
     protected void onEnabled(final ConfigurationContext context)
             throws InitializationException {
         Map<PropertyDescriptor, String> allProperties = context.getProperties();
@@ -135,7 +122,6 @@ public abstract class AbstractOAuthControllerService
         }
 
         this.authUrl = context.getProperty(AUTH_SERVER_URL).evaluateAttributeExpressions().getValue();
-        this.expireTimeSafetyNetSeconds = new Long(context.getProperty(EXPIRE_TIME_SAFETY_NET).evaluateAttributeExpressions().getValue());
 
         // Name of the OAuth2 spec fields that should be extracted from the JSON authentication response. While in theory every provider should be
         // using the same names in the response JSON that rarely happens. These values are used to ensure that if the provider does NOT follow the
@@ -153,17 +139,17 @@ public abstract class AbstractOAuthControllerService
 
         if (expiresTime > 0) {
             // Use the actual clock time that the token will expire
-            if ((System.currentTimeMillis() + (expireTimeSafetyNetSeconds * 1000)) >= expiresTime) {
+            if (System.currentTimeMillis() >= expiresTime) {
                 return true;
             }
 
-            if ((expiresTime - (expireTimeSafetyNetSeconds * 1000)) <= System.currentTimeMillis()) {
+            if (expiresTime <= System.currentTimeMillis()) {
                 return true;
             } else {
                 return false;
             }
         } else if (expiresIn > 0) {
-            long tombStoneTS = ((lastResponseTimestamp + (expiresIn * 1000)) - (expireTimeSafetyNetSeconds * 1000));
+            long tombStoneTS = ((lastResponseTimestamp + (expiresIn * 1000)));
             if (System.currentTimeMillis() >= tombStoneTS) {
                 return true;
             } else {
