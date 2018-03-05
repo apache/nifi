@@ -29,6 +29,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -65,6 +66,15 @@ public class SolrUtils {
 
     public static final AllowableValue SOLR_TYPE_STANDARD = new AllowableValue(
             "Standard", "Standard", "A stand-alone Solr instance.");
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor
+            .Builder().name("Record Writer")
+            .displayName("Record Writer")
+            .description("The Record Writer to use in order to write Solr documents to FlowFiles. Must be set if \"Records\" is used as return type.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .expressionLanguageSupported(false)
+            .required(false)
+            .build();
 
     public static final PropertyDescriptor SOLR_TYPE = new PropertyDescriptor
             .Builder().name("Solr Type")
