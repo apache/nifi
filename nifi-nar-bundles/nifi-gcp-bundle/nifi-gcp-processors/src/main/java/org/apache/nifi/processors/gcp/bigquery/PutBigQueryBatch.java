@@ -266,9 +266,9 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
             attributes.put(BigQueryAttributes.JOB_ERROR_LOCATION_ATTR, job.getStatus().getError().getLocation());
         } else {
             // in case it got looped back from error
-            flow = session.removeAttribute(flow, "bq.job.error.message");
-            flow = session.removeAttribute(flow, "bq.job.error.reason");
-            flow = session.removeAttribute(flow, "bq.job.error.location");
+            flow = session.removeAttribute(flow, BigQueryAttributes.JOB_ERROR_MSG_ATTR);
+            flow = session.removeAttribute(flow, BigQueryAttributes.JOB_ERROR_REASON_ATTR);
+            flow = session.removeAttribute(flow, BigQueryAttributes.JOB_ERROR_LOCATION_ATTR);
         }
 
         if (!attributes.isEmpty()) {
