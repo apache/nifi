@@ -18,19 +18,6 @@
 package org.apache.nifi.processors.standard;
 
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Parser;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -70,9 +57,23 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RawRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.validation.RecordSchemaValidator;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @EventDriven
 @SideEffectFree
@@ -450,7 +451,8 @@ public class ValidateRecord extends AbstractProcessor {
         } else if (schemaAccessStrategy.equals(SCHEMA_NAME_PROPERTY.getValue())) {
             final SchemaRegistry schemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
             final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            return schemaRegistry.retrieveSchema(schemaName);
+            final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name(schemaName).build();
+            return schemaRegistry.retrieveSchema(schemaIdentifier);
         } else if (schemaAccessStrategy.equals(SCHEMA_TEXT_PROPERTY.getValue())) {
             final String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions(flowFile).getValue();
             final Parser parser = new Schema.Parser();

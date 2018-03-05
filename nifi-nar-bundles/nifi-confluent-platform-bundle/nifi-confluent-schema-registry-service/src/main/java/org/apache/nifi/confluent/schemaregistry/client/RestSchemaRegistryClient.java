@@ -145,7 +145,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         try {
             final Schema avroSchema = new Schema.Parser().parse(schemaText);
-            final SchemaIdentifier schemaId = SchemaIdentifier.of(subject, id, version);
+            final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(subject).id(Long.valueOf(id)).version(version).build();
 
             final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
             return recordSchema;

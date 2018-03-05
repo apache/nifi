@@ -19,6 +19,7 @@ package org.apache.nifi.schema.access;
 
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
@@ -66,7 +67,8 @@ public class HortonworksEncodedSchemaReferenceStrategy implements SchemaAccessSt
         final long schemaId = bb.getLong();
         final int schemaVersion = bb.getInt();
 
-        return schemaRegistry.retrieveSchema(schemaId, schemaVersion);
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(schemaId).version(schemaVersion).build();
+        return schemaRegistry.retrieveSchema(schemaIdentifier);
     }
 
     @Override
