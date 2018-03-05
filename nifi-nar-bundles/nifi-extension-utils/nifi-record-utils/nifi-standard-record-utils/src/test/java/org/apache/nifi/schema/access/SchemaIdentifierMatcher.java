@@ -14,25 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.schema.access;
 
-public enum SchemaField {
-    SCHEMA_TEXT("Schema Text"),
-    SCHEMA_TEXT_FORMAT("Schema Text Format"),
-    SCHEMA_NAME("Schema Name"),
-    SCHEMA_IDENTIFIER("Schema Identifier"),
-    SCHEMA_VERSION("Schema Version"),
-    SCHEMA_BRANCH_NAME("Schema Branch Name");
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.mockito.ArgumentMatcher;
 
-    private final String description;
+/**
+ * ArgumentMatcher for SchemaIdentifier.
+ */
+public class SchemaIdentifierMatcher extends ArgumentMatcher<SchemaIdentifier> {
 
-    private SchemaField(final String description) {
-        this.description = description;
+    private final SchemaIdentifier expectedIdentifier;
+
+    public SchemaIdentifierMatcher(final SchemaIdentifier expectedIdentifier) {
+        this.expectedIdentifier = expectedIdentifier;
     }
 
     @Override
-    public String toString() {
-        return description;
+    public boolean matches(final Object argument) {
+        if (argument == null || !(argument instanceof SchemaIdentifier)) {
+            return false;
+        }
+
+        final SchemaIdentifier other = (SchemaIdentifier) argument;
+        return other.equals(expectedIdentifier);
     }
 }

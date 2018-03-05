@@ -47,6 +47,8 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_CONTENT_ENCODE
 import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_SCHEMA_REF_ATTRIBUTES;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
@@ -79,6 +81,8 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
 
         properties.add(SCHEMA_REGISTRY);
         properties.add(SCHEMA_NAME);
+        properties.add(SCHEMA_VERSION);
+        properties.add(SCHEMA_BRANCH_NAME);
         properties.add(SCHEMA_TEXT);
 
         return properties;

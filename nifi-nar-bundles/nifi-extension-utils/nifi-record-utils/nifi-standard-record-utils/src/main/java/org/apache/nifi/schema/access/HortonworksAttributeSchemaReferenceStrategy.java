@@ -19,6 +19,7 @@ package org.apache.nifi.schema.access;
 
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +34,7 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
     public static final String SCHEMA_ID_ATTRIBUTE = "schema.identifier";
     public static final String SCHEMA_VERSION_ATTRIBUTE = "schema.version";
     public static final String SCHEMA_PROTOCOL_VERSION_ATTRIBUTE = "schema.protocol.version";
+
 
     private final SchemaRegistry schemaRegistry;
 
@@ -84,7 +86,8 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
         final long schemaId = Long.parseLong(schemaIdentifier);
         final int version = Integer.parseInt(schemaVersion);
 
-        final RecordSchema schema = schemaRegistry.retrieveSchema(schemaId, version);
+        final SchemaIdentifier identifier = SchemaIdentifier.builder().id(schemaId).version(version).build();
+        final RecordSchema schema = schemaRegistry.retrieveSchema(identifier);
         if (schema == null) {
             throw new SchemaNotFoundException("Could not find a Schema in the Schema Registry with Schema Identifier '" + schemaId + "' and Version '" + version + "'");
         }
