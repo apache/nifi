@@ -29,7 +29,7 @@ import java.util.Set;
 
 public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWriter {
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
-    private static final int LATEST_PROTOCOL_VERSION = 1;
+    static final int LATEST_PROTOCOL_VERSION = 1;
 
     @Override
     public void writeHeader(RecordSchema schema, OutputStream out) throws IOException {
@@ -40,8 +40,8 @@ public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWr
         final Map<String, String> attributes = new HashMap<>(4);
         final SchemaIdentifier id = schema.getIdentifier();
 
-        final long schemaId = id.getIdentifier().getAsLong();
-        final int schemaVersion = id.getVersion().getAsInt();
+        final Long schemaId = id.getIdentifier().getAsLong();
+        final Integer schemaVersion = id.getVersion().getAsInt();
 
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE, String.valueOf(schemaId));
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE, String.valueOf(schemaVersion));

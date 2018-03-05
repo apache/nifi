@@ -17,6 +17,9 @@
 
 package org.apache.nifi.schema.access;
 
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -27,9 +30,6 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-
 public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWriter {
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
     private static final int LATEST_PROTOCOL_VERSION = 1;
@@ -37,8 +37,8 @@ public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWrit
     @Override
     public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
         final SchemaIdentifier identifier = schema.getIdentifier();
-        final long id = identifier.getIdentifier().getAsLong();
-        final int version = identifier.getVersion().getAsInt();
+        final Long id = identifier.getIdentifier().getAsLong();
+        final Integer version = identifier.getVersion().getAsInt();
 
         // This decoding follows the pattern that is provided for serializing data by the Hortonworks Schema Registry serializer
         // as it is provided at:

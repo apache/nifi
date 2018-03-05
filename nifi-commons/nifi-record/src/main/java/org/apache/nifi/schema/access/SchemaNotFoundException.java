@@ -23,7 +23,7 @@ public class SchemaNotFoundException extends Exception {
     }
 
     public SchemaNotFoundException(final String message, final Throwable cause) {
-        super(cause);
+        super(message, cause);
     }
 
     public SchemaNotFoundException(final Throwable cause) {
