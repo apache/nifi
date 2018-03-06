@@ -292,7 +292,7 @@ public class TestGetSolr {
     }
 
     @Test
-    public void testRecordWriter() throws IOException, SolrServerException, InitializationException {
+    public void testRecordWriter() throws IOException, InitializationException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
         TestRunner runner = createDefaultTestRunner(proc);
@@ -309,7 +309,7 @@ public class TestGetSolr {
         runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
         runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
         runner.enableControllerService(jsonWriter);
-        runner.setProperty(GetSolr.RECORD_WRITER, "writer");
+        runner.setProperty(SolrUtils.RECORD_WRITER, "writer");
 
         runner.run(1,true, true);
         runner.assertQueueEmpty();

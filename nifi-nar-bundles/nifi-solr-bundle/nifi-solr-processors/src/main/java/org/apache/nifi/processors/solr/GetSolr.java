@@ -84,6 +84,7 @@ import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
+import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
 
 @Tags({"Apache", "Solr", "Get", "Pull", "Records"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -103,15 +104,6 @@ public class GetSolr extends SolrProcessor {
             .required(true)
             .allowableValues(MODE_XML, MODE_REC)
             .defaultValue(MODE_XML.getValue())
-            .build();
-
-    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor
-            .Builder().name("Record Writer")
-            .displayName("Record Writer")
-            .description("The Record Writer to use in order to write Solr documents to FlowFiles. Must be set if \"Records\" is used as return type.")
-            .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(false)
-            .required(false)
             .build();
 
     public static final PropertyDescriptor SOLR_QUERY = new PropertyDescriptor
