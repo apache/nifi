@@ -60,12 +60,14 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
 
         try {
             final CSVFormat csvFormat = CSVUtils.createCSVFormat(context).withFirstRecordAsHeader();
+            final boolean normalize = context.getProperty(CSVReader.NORMALIZE_NAMES_FOR_AVRO).asBoolean();
             try (final Reader reader = new InputStreamReader(new BOMInputStream(contentStream));
                 final CSVParser csvParser = new CSVParser(reader, csvFormat)) {
 
                 final List<RecordField> fields = new ArrayList<>();
                 for (final String columnName : csvParser.getHeaderMap().keySet()) {
-                    fields.add(new RecordField(columnName, RecordFieldType.STRING.getDataType(), true));
+                    final String name = normalize ? normalizeNameForAvro(columnName) : columnName;
+                    fields.add(new RecordField(name, RecordFieldType.STRING.getDataType(), true));
                 }
 
                 return new SimpleRecordSchema(fields);
@@ -78,5 +80,13 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
         return schemaFields;
+    }
+
+    private String normalizeNameForAvro(String inputName) {
+        String normalizedName = inputName.replaceAll("[^A-Za-z0-9_]", "_");
+        if (Character.isDigit(normalizedName.charAt(0))) {
+            normalizedName = "_" + normalizedName;
+        }
+        return normalizedName;
     }
 }
