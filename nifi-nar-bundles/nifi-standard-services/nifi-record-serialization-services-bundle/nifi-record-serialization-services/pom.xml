@@ -122,6 +122,26 @@
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
                         <exclude>src/test/resources/json/output/dataTypes.json</exclude>
+                        <exclude>src/test/resources/xml/people.xml</exclude>
+                        <exclude>src/test/resources/xml/people2.xml</exclude>
+                        <exclude>src/test/resources/xml/people3.xml</exclude>
+                        <exclude>src/test/resources/xml/people_array.xml</exclude>
+                        <exclude>src/test/resources/xml/people_array_simple.xml</exclude>
+                        <exclude>src/test/resources/xml/people_cdata.xml</exclude>
+                        <exclude>src/test/resources/xml/people_complex1.xml</exclude>
+                        <exclude>src/test/resources/xml/people_complex2.xml</exclude>
+                        <exclude>src/test/resources/xml/people_empty.xml</exclude>
+                        <exclude>src/test/resources/xml/people_invalid.xml</exclude>
+                        <exclude>src/test/resources/xml/people_map.xml</exclude>
+                        <exclude>src/test/resources/xml/people_map2.xml</exclude>
+                        <exclude>src/test/resources/xml/people_namespace.xml</exclude>
+                        <exclude>src/test/resources/xml/people_nested.xml</exclude>
+                        <exclude>src/test/resources/xml/people_no_attributes.xml</exclude>
+                        <exclude>src/test/resources/xml/people_tag_in_characters.xml</exclude>
+                        <exclude>src/test/resources/xml/people_with_header_and_comments.xml</exclude>
+                        <exclude>src/test/resources/xml/person.xml</exclude>
+                        <exclude>src/test/resources/xml/testschema</exclude>
+                        <exclude>src/test/resources/xml/testschema2</exclude>
                     </excludes>
                 </configuration>
             </plugin>
