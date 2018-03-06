@@ -47,4 +47,4 @@ Eclipse Public License 1.0
 
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
-    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.0.2 - https://github.com/eclipse/paho.mqtt.java)
+    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0 - https://github.com/eclipse/paho.mqtt.java)

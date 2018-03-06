@@ -1803,7 +1803,7 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.3 - http://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.3 - http://logback.qos.ch/)
     (EPLv1.0)(GPL 2)(LGPL 2.1) JRuby (org.jruby:jruby-complete:9.1.9.0 - http://jruby.org).
-    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.0.2 - https://github.com/eclipse/paho.mqtt.java)
+    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0 - https://github.com/eclipse/paho.mqtt.java)
     (EPL 1.0) Eclipse Link (org.eclipse.persistence:eclipselink:2.5.2 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Common Service Data Objects (org.eclipse.persistence:commonj.sdo:2.1.1 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)
