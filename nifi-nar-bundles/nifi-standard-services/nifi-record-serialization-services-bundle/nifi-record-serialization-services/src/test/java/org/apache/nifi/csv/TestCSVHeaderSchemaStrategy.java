@@ -66,4 +66,33 @@ public class TestCSVHeaderSchemaStrategy {
             .allMatch(field -> field.getDataType().equals(RecordFieldType.STRING.getDataType())));
     }
 
+    @Test
+    public void testNormalize() throws SchemaNotFoundException, IOException {
+        final String headerLine = "a, b, a column, a.b.c, e\\,z, f";
+        final byte[] headerBytes = headerLine.getBytes();
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM.getValue());
+        properties.put(CSVUtils.COMMENT_MARKER, "#");
+        properties.put(CSVUtils.VALUE_SEPARATOR, ",");
+        properties.put(CSVUtils.TRIM_FIELDS, "true");
+        properties.put(CSVUtils.QUOTE_CHAR, "\"");
+        properties.put(CSVUtils.ESCAPE_CHAR, "\\");
+        properties.put(CSVReader.NORMALIZE_NAMES_FOR_AVRO, "true");
+
+        final ConfigurationContext context = new MockConfigurationContext(properties, null);
+        final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy(context);
+
+        final RecordSchema schema;
+        try (final InputStream bais = new ByteArrayInputStream(headerBytes)) {
+            schema = strategy.getSchema(null, bais, null);
+        }
+
+        final List<String> expectedFieldNames = Arrays.asList("a", "b", "a_column", "a_b_c", "e_z", "f");
+        assertEquals(expectedFieldNames, schema.getFieldNames());
+
+        assertTrue(schema.getFields().stream()
+            .allMatch(field -> field.getDataType().equals(RecordFieldType.STRING.getDataType())));
+    }
+
 }

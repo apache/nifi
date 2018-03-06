@@ -73,6 +73,16 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .required(true)
             .build();
 
+    public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
+            .name("csv-reader-normalize")
+            .displayName("Normalize Column Names")
+            .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
+                    + "will be changed to underscores in order to build a valid Avro record.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     private volatile String csvParser;
     private volatile CSVFormat csvFormat;
     private volatile String dateFormat;
