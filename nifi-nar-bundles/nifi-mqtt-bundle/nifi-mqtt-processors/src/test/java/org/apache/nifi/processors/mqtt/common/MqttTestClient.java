@@ -17,16 +17,7 @@
 
 package org.apache.nifi.processors.mqtt.common;
 
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
-import org.eclipse.paho.client.mqttv3.MqttSecurityException;
-import org.eclipse.paho.client.mqttv3.MqttTopic;
+import org.eclipse.paho.client.mqttv3.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -116,6 +107,66 @@ public class MqttTestClient implements IMqttClient {
     }
 
     @Override
+    public void subscribe(String s, IMqttMessageListener iMqttMessageListener) throws MqttException, MqttSecurityException {
+
+    }
+
+    @Override
+    public void subscribe(String[] strings, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
+
+    }
+
+    @Override
+    public void subscribe(String s, int i, IMqttMessageListener iMqttMessageListener) throws MqttException {
+
+    }
+
+    @Override
+    public void subscribe(String[] strings, int[] ints, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
+
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String s) throws MqttException {
+        return null;
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String s, IMqttMessageListener iMqttMessageListener) throws MqttException {
+        return null;
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String s, int i) throws MqttException {
+        return null;
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String s, int i, IMqttMessageListener iMqttMessageListener) throws MqttException {
+        return null;
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String[] strings) throws MqttException {
+        return null;
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String[] strings, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
+        return null;
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String[] strings, int[] ints) throws MqttException {
+        return null;
+    }
+
+    @Override
+    public IMqttToken subscribeWithResponse(String[] strings, int[] ints, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
+        return null;
+    }
+
+    @Override
     public void unsubscribe(String topicFilter) throws MqttException {
         subscribedTopic = "";
         subscribedQos = -2;
@@ -189,6 +240,16 @@ public class MqttTestClient implements IMqttClient {
     @Override
     public IMqttDeliveryToken[] getPendingDeliveryTokens() {
         return new IMqttDeliveryToken[0];
+    }
+
+    @Override
+    public void setManualAcks(boolean b) {
+
+    }
+
+    @Override
+    public void messageArrivedComplete(int i, int i1) throws MqttException {
+
     }
 
     @Override
