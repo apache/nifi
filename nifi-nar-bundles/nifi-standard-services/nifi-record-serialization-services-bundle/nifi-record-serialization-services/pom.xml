@@ -116,6 +116,18 @@
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
                         <exclude>src/test/resources/json/output/dataTypes.json</exclude>
+                        <exclude>src/test/resources/xml/people.xml</exclude>
+                        <exclude>src/test/resources/xml/people2.xml</exclude>
+                        <exclude>src/test/resources/xml/people3.xml</exclude>
+                        <exclude>src/test/resources/xml/people4.xml</exclude>
+                        <exclude>src/test/resources/xml/people_array.xml</exclude>
+                        <exclude>src/test/resources/xml/people_array_simple.xml</exclude>
+                        <exclude>src/test/resources/xml/people_complex1.xml</exclude>
+                        <exclude>src/test/resources/xml/people_complex2.xml</exclude>
+                        <exclude>src/test/resources/xml/people_empty.xml</exclude>
+                        <exclude>src/test/resources/xml/people_invalid.xml</exclude>
+                        <exclude>src/test/resources/xml/people_nested.xml</exclude>
+                        <exclude>src/test/resources/xml/people_no_attributes.xml</exclude>
                     </excludes>
                 </configuration>
             </plugin>

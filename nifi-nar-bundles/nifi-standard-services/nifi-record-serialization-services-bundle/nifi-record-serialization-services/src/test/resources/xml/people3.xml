@@ -1,0 +1,17 @@
+<PEOPLE attr="attr1">
+    <PERSON ID="1">
+        <NAME>Cleve Butler</NAME>
+        <AGE>42</AGE>
+        <COUNTRY>USA</COUNTRY>
+    </PERSON>
+    <PERSON ID="2">
+        <NAME>Ainslie Fletcher</NAME>
+        <AGE>33</AGE>
+        <COUNTRY>UK</COUNTRY>
+    </PERSON>
+    <MISMATCH ID="3">
+        <NAME>Ainslie Fletcher</NAME>
+        <AGE>33</AGE>
+        <COUNTRY>UK</COUNTRY>
+    </MISMATCH>
+</PEOPLE>
