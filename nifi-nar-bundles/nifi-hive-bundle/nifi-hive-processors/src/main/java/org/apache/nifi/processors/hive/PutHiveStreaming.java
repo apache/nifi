@@ -63,6 +63,7 @@ import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.HiveWriter;
+import org.xerial.snappy.Snappy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -137,6 +138,16 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
     private static final Set<String> RESERVED_METADATA;
 
     static {
+        synchronized (Snappy.class) {
+            // This is used to prevent a race condition in Snappy 1.0.5 where two classloaders could
+            // try to define the native loader class at the same time, causing an error. Make a no-op
+            // call here to ensure Snappy's static initializers are called
+            try {
+                Snappy.compress("");
+            } catch (IOException ioe) {
+                // Do nothing here, should never happen as it is intended to be a no-op
+            }
+        }
         Set<String> reservedMetadata = new HashSet<>();
         reservedMetadata.add("avro.schema");
         reservedMetadata.add("avro.codec");
