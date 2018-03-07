@@ -77,7 +77,6 @@ public class OAuth2ClientCredentialsGrantControllerService
         props.add(RESPONSE_EXPIRE_IN_FIELD_NAME);
         props.add(RESPONSE_SCOPE_FIELD_NAME);
         props.add(RESPONSE_TOKEN_TYPE_FIELD_NAME);
-        props.add(EXPIRE_TIME_SAFETY_NET);
         properties = Collections.unmodifiableList(props);
     }
 
