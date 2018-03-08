@@ -91,7 +91,7 @@
         </div>
         <div id="policy-loading-container" class="loading-container"></div>
         <div id="admin-policy-message" class="hidden">Only listing component specific administrators. Inherited administrators not shown.</div>
-        <div id="restriction-message" class="hidden">Only listing restriction specific users. Users with permission "regardless of restriction" not shown but are also allowed.</div>
+        <div id="restriction-message" class="hidden">Only listing restriction specific users. Users with permission "regardless of restrictions" not shown but are also allowed.</div>
         <div class="clear"></div>
     </div>
 </div>

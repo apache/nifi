@@ -191,9 +191,9 @@ The available global access policies are:
 |view the UI   |Allows users to view the UI
 |access the controller  |Allows users to view and modify the controller including reporting tasks, Controller Services, and nodes in the cluster
 |query provenance     |Allows users to submit a provenance search and request even lineage
-|access restricted components     |Allows users to create/modify restricted components assuming otherwise sufficient permissions. The restricted components
-may indicate which specific permissions are required. Permissions can be granted for each specific restriction or be granted regardless of restrictions.
-If permissions is granted regardless of restrictions, this means the user can create/modify all restricted components.
+|access restricted components     |Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
+components may indicate which specific permissions are required. Permissions can be granted for specific restrictions or be granted regardless
+of restrictions. If permission is granted regardless of restrictions, the user can create/modify all restricted components.
 |access all policies   |Allows users to view and modify the policies for all components
 |access users/groups   |Allows users view and modify the users and user groups
 |retrieve site-to-site details | Allows other NiFi instances to retrieve Site-To-Site details

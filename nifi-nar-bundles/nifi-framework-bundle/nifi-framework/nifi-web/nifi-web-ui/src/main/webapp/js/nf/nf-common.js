@@ -119,7 +119,7 @@
     }, {
         text: 'access restricted components',
         value: 'restricted-components',
-        description: 'Allows users to create/modify restricted components assuming otherwise sufficient permissions'
+        description: 'Allows users to create/modify restricted components assuming other permissions are sufficient'
     }, {
         text: 'access all policies',
         value: 'policies',
