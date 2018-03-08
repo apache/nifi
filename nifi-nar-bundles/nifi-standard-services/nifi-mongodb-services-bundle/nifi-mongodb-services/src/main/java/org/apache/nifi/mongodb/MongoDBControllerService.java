@@ -22,6 +22,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -69,9 +70,10 @@ public class MongoDBControllerService extends AbstractMongoDBControllerService i
         return this.col.count(query) > 0;
     }
 
+    @Override
     public Document findOne(Document query) {
         MongoCursor<Document> cursor  = this.col.find(query).limit(1).iterator();
-        Document retVal = cursor.next();
+        Document retVal = cursor.tryNext();
         cursor.close();
 
         return retVal;
