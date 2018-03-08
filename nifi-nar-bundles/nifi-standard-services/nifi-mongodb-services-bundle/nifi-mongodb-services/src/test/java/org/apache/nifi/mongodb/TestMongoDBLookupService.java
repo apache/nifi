@@ -82,14 +82,13 @@ public class TestMongoDBLookupService {
         clean.putAll(criteria);
         service.delete(new Document(clean));
 
-        boolean error = false;
         try {
-            service.lookup(criteria);
+            result = service.lookup(criteria);
         } catch (LookupFailureException ex) {
-            error = true;
+            Assert.fail();
         }
 
-        Assert.assertTrue("An error should have been thrown.", error);
+        Assert.assertTrue(!result.isPresent());
     }
 
     @Test
@@ -113,14 +112,13 @@ public class TestMongoDBLookupService {
         clean.putAll(criteria);
         service.delete(new Document(clean));
 
-        boolean error = false;
         try {
-            service.lookup(criteria);
+            result = service.lookup(criteria);
         } catch (LookupFailureException ex) {
-            error = true;
+            Assert.fail();
         }
 
-        Assert.assertTrue("An error should have been thrown.", error);
+        Assert.assertTrue(!result.isPresent());
     }
 
     @Test
