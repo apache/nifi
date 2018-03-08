@@ -150,12 +150,12 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("{\"row\":\"row1\", \"cells\": [" +
+        flowFile.assertContentEquals("[{\"row\":\"row1\", \"cells\": [" +
                 "{\"fam\":\"nifi\",\"qual\":\"cq1\",\"val\":\"val1\",\"ts\":" + ts1 + "}, " +
-                "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}\n"
+                "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]},\n"
                         + "{\"row\":\"row2\", \"cells\": [" +
                 "{\"fam\":\"nifi\",\"qual\":\"cq1\",\"val\":\"val1\",\"ts\":" + ts1 + "}, " +
-                "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
+                "{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}]");
         flowFile.assertAttributeEquals(ScanHBase.HBASE_ROWS_COUNT_ATTR, "2");
 
         flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_ORIGINAL).get(0);
@@ -309,7 +309,7 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("{\"cq1\":\"val1\", \"cq2\":\"val2\"}");
+        flowFile.assertContentEquals("[{\"cq1\":\"val1\", \"cq2\":\"val2\"}]");
 
         Assert.assertEquals(1, hBaseClientService.getNumScans());
     }
@@ -349,7 +349,7 @@ public class TestScanHBase {
         runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanHBase.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("{\"row\":\"row1\", \"cells\": [{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}");
+        flowFile.assertContentEquals("[{\"row\":\"row1\", \"cells\": [{\"fam\":\"nifi\",\"qual\":\"cq2\",\"val\":\"val2\",\"ts\":" + ts1 + "}]}]");
 
         Assert.assertEquals(1, hBaseClientService.getNumScans());
     }
