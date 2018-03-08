@@ -324,10 +324,19 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
                             flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes()));
                             flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
 
-                            if (state.equals("running")) {
-                                session.transfer(flowFile, REL_WAIT);
-                            } else {
-                                session.transfer(flowFile, REL_SUCCESS);
+                            switch (state) {
+                                case "success":
+                                    log.debug(" ====> success State: " + state);
+                                    session.transfer(flowFile, REL_SUCCESS);
+                                    break;
+                                case "dead":
+                                    log.debug(" ====> dead State: " + state);
+                                    session.transfer(flowFile, REL_FAILURE);
+                                    break;
+                                default:
+                                    log.debug(" ====> default State: " + state);
+                                    session.transfer(flowFile, REL_WAIT);
+                                    break;
                             }
 
                         } catch (JSONException je) {
