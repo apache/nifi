@@ -32,6 +32,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.StringUtils;
 import org.bson.Document;
 
 import java.io.IOException;
@@ -42,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 
 @Tags({"mongo", "mongodb", "lookup", "record"})
 @CapabilityDescription(
@@ -86,7 +86,9 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         try {
             Document result = this.findOne(query);
 
-            if (lookupValueField != null && !lookupValueField.equals("")) {
+            if(result == null) {
+                return Optional.empty();
+            } else if (!StringUtils.isEmpty(lookupValueField)) {
                 return Optional.ofNullable(result.get(lookupValueField));
             } else {
                 final List<RecordField> fields = new ArrayList<>();
@@ -107,6 +109,7 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         }
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
         this.lookupValueField = context.getProperty(LOOKUP_VALUE_FIELD).getValue();
@@ -125,7 +128,6 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-
         return lookupDescriptors;
     }
 }
