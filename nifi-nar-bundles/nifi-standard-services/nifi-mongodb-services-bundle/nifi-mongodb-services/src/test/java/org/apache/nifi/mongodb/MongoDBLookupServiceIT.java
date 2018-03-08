@@ -25,7 +25,6 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Calendar;
@@ -33,8 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Ignore("This is an integration test and requires a copy of MongoDB running on localhost")
-public class TestMongoDBLookupService {
+public class MongoDBLookupServiceIT {
     private static final String DB_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
     private static final String COL_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
 
