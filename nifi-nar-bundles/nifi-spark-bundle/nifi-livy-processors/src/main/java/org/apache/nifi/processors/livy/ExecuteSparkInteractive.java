@@ -58,7 +58,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.apache.nifi.controller.api.livy.LivySessionService;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"spark", "livy", "http", "execute"})
+@Tags({"spark", "livy", "http", "execute", "pyspark"})
 @CapabilityDescription("Execute Spark Code over a Livy-managed HTTP session to a live Spark context. Supports cached RDD sharing.")
 public class ExecuteSparkInteractive extends AbstractProcessor {
 
@@ -81,6 +81,62 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor IS_BATCH_JOB = new PropertyDescriptor.Builder()
+            .name("exec-spark-iactive-is_batch_job")
+            .displayName("Is Batch Job")
+            .description("If true, the `Code` part is ignored and the flow file from previous stage is considered "
+                    + "as a triggering event and not as code for Spark session. When `Wait` state is self routed"
+                    + "the livy json response flow file from previous Spark job is used to poll the job status"
+                    + "for sucess or failure")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
+    public static final PropertyDescriptor PY_FILES =  new PropertyDescriptor.Builder()
+            .name("exec-spark-iactive-pyfiles")
+            .displayName("pyFiles")
+            .description("Python files to be used in this batch session that includes *.py, *.zip files")
+            .required(false)
+            .addValidator(StandardValidators.createURLorFileValidator())
+            .expressionLanguageSupported(false)
+            .build();
+
+    public static final PropertyDescriptor JAR_FILES =  new PropertyDescriptor.Builder()
+            .name("exec-spark-iactive-jarfiles")
+            .displayName("jars")
+            .description("jars to be used in this batch session")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
+
+    public static final PropertyDescriptor NAME =  new PropertyDescriptor.Builder()
+            .name("exec-spark-iactive-name")
+            .displayName("name")
+            .description("The name of this session")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
+
+    public static final PropertyDescriptor ARGS =  new PropertyDescriptor.Builder()
+            .name("exec-spark-iactive-args")
+            .displayName("args")
+            .description("The name of this session")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
+
+    public static final PropertyDescriptor MAIN_PY_FILE = new PropertyDescriptor.Builder()
+            .name("exec-spark-iactive-main-py-file")
+            .displayName("file")
+            .description("Python file that has main function in it")
+            .required(false)
+            .addValidator(StandardValidators.createURLorFileValidator())
             .build();
 
     /**
@@ -129,7 +185,13 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
     public void init(final ProcessorInitializationContext context) {
         List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(LIVY_CONTROLLER_SERVICE);
+        properties.add(IS_BATCH_JOB);
+        properties.add(PY_FILES);
+//        properties.add(JAR_FILES);
+        properties.add(MAIN_PY_FILE);
+        properties.add(NAME);
         properties.add(CODE);
+//        properties.add(ARGS);
         properties.add(CHARSET);
         properties.add(STATUS_CHECK_INTERVAL);
         this.properties = Collections.unmodifiableList(properties);
@@ -154,20 +216,27 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, final ProcessSession session) throws ProcessException {
 
+        final boolean isBatchJob = context.getProperty(IS_BATCH_JOB).asBoolean();
+
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
         final ComponentLog log = getLogger();
+
+
         final LivySessionService livySessionService = context.getProperty(LIVY_CONTROLLER_SERVICE).asControllerService(LivySessionService.class);
         final Map<String, String> livyController = livySessionService.getSession();
+
         if (livyController == null || livyController.isEmpty()) {
             log.debug("No Spark session available (yet), routing flowfile to wait");
             session.transfer(flowFile, REL_WAIT);
             return;
         }
+
         final long statusCheckInterval = context.getProperty(STATUS_CHECK_INTERVAL).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
+
         Charset charset;
         try {
             charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
@@ -178,46 +247,177 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
 
         String sessionId = livyController.get("sessionId");
         String livyUrl = livyController.get("livyUrl");
-        String code = context.getProperty(CODE).evaluateAttributeExpressions(flowFile).getValue();
-        if (StringUtils.isEmpty(code)) {
-            try (InputStream inputStream = session.read(flowFile)) {
-                // If no code was provided, assume it is in the content of the incoming flow file
-                code = IOUtils.toString(inputStream, charset);
-            } catch (IOException ioe) {
-                log.error("Error reading input flowfile, penalizing and routing to failure", new Object[]{flowFile, ioe.getMessage()}, ioe);
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
-        }
 
-        code = StringEscapeUtils.escapeJavaScript(code);
-        String payload = "{\"code\":\"" + code + "\"}";
+
         try {
-            final JSONObject result = submitAndHandleJob(livyUrl, livySessionService, sessionId, payload, statusCheckInterval);
-            log.debug("ExecuteSparkInteractive Result of Job Submit: " + result);
-            if (result == null) {
-                session.transfer(flowFile, REL_FAILURE);
-            } else {
+
+            if (isBatchJob) {
+
+                String jsonResponse = null;
+
+                if (StringUtils.isEmpty(jsonResponse)) {
+                    try (InputStream inputStream = session.read(flowFile)) {
+                        // If no code was provided, assume it is in the content of the incoming flow file
+                        jsonResponse = IOUtils.toString(inputStream, charset);
+                    } catch (IOException ioe) {
+                        log.error("Error reading input flowfile, penalizing and routing to failure", new Object[]{flowFile, ioe.getMessage()}, ioe);
+                        flowFile = session.penalize(flowFile);
+                        session.transfer(flowFile, REL_FAILURE);
+                        return;
+                    }
+                }
+
+                log.debug(" ====> jsonResponse: " + jsonResponse);
+
                 try {
-                    final JSONObject output = result.getJSONObject("data");
-                    flowFile = session.write(flowFile, out -> out.write(output.toString().getBytes()));
+
+                    final JSONObject jsonResponseObj = new JSONObject(jsonResponse);
+
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", LivySessionService.APPLICATION_JSON);
+                    headers.put("X-Requested-By", LivySessionService.USER);
+                    headers.put("Accept", "application/json");
+
+                    JSONObject jobInfo = readJSONObjectFromUrl(jsonResponseObj.getString("url"), livySessionService, headers);
+
+                    flowFile = session.write(flowFile, out -> out.write(jobInfo.toString().getBytes()));
                     flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
-                    session.transfer(flowFile, REL_SUCCESS);
-                } catch (JSONException je) {
-                    // The result doesn't contain the data, just send the output object as the flow file content to failure (after penalizing)
-                    log.error("Spark Session returned an error, sending the output JSON object as the flow file content to failure (after penalizing)");
-                    flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes()));
-                    flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
-                    flowFile = session.penalize(flowFile);
+
+                    Thread.sleep(statusCheckInterval);
+
+                    String state  = jobInfo.getString("state");
+                    log.debug(" ====> jsonResponseObj State: " + state);
+
+                    switch (state) {
+                        case "success":
+                            log.debug(" ====> success State: " + state);
+                            session.transfer(flowFile, REL_SUCCESS);
+                            break;
+                        case "dead":
+                            log.debug(" ====> dead State: " + state);
+                            session.transfer(flowFile, REL_FAILURE);
+                            break;
+                        default:
+                            log.debug(" ====> default State: " + state);
+                            session.transfer(flowFile, REL_WAIT);
+                            break;
+                    }
+
+                } catch (JSONException | InterruptedException e) {
+
+                    //Incoming flow file is not an JSON file hence consider it to be an triggering point
+
+                    String batchPayload = "{ \"pyFiles\": [\"" +context.getProperty(PY_FILES).getValue()+ "\"], " +
+                            "\"file\" : \""+context.getProperty(MAIN_PY_FILE).getValue()+"\" }";
+
+                    final JSONObject result = submitSparkBatch(livyUrl, livySessionService, batchPayload, statusCheckInterval);
+                    log.debug(" ====> ExecuteSparkInteractive Result of Job Submit: " + result);
+
+                    if (result == null) {
+                        session.transfer(flowFile, REL_FAILURE);
+                    } else {
+                        try {
+
+                            String state  = result.getString("state");
+                            log.debug(" ====> State after starting the job: " + state);
+
+                            flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes()));
+                            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
+
+                            if (state.equals("running")) {
+                                session.transfer(flowFile, REL_WAIT);
+                            } else {
+                                session.transfer(flowFile, REL_SUCCESS);
+                            }
+
+                        } catch (JSONException je) {
+                            // The result doesn't contain the data, just send the output object as the flow file content to failure (after penalizing)
+                            log.error("Spark Session returned an error, sending the output JSON object as the flow file content to failure (after penalizing)");
+                            flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes()));
+                            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
+                            flowFile = session.penalize(flowFile);
+                            session.transfer(flowFile, REL_FAILURE);
+                        }
+                    }
+                }
+
+            } else {
+
+                String code = context.getProperty(CODE).evaluateAttributeExpressions(flowFile).getValue();
+
+                if (StringUtils.isEmpty(code)) {
+                    try (InputStream inputStream = session.read(flowFile)) {
+                        // If no code was provided, assume it is in the content of the incoming flow file
+                        code = IOUtils.toString(inputStream, charset);
+                    } catch (IOException ioe) {
+                        log.error("Error reading input flowfile, penalizing and routing to failure", new Object[]{flowFile, ioe.getMessage()}, ioe);
+                        flowFile = session.penalize(flowFile);
+                        session.transfer(flowFile, REL_FAILURE);
+                        return;
+                    }
+                }
+
+                code = StringEscapeUtils.escapeJavaScript(code);
+                String payload = "{\"code\":\"" + code + "\"}";
+
+                final JSONObject result = submitAndHandleJob(livyUrl, livySessionService, sessionId, payload, statusCheckInterval);
+                log.debug("ExecuteSparkInteractive Result of Job Submit: " + result);
+
+                if (result == null) {
                     session.transfer(flowFile, REL_FAILURE);
+                } else {
+                    try {
+                        final JSONObject output = result.getJSONObject("data");
+                        flowFile = session.write(flowFile, out -> out.write(output.toString().getBytes()));
+                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
+                        session.transfer(flowFile, REL_SUCCESS);
+                    } catch (JSONException je) {
+                        // The result doesn't contain the data, just send the output object as the flow file content to failure (after penalizing)
+                        log.error("Spark Session returned an error, sending the output JSON object as the flow file content to failure (after penalizing)");
+                        flowFile = session.write(flowFile, out -> out.write(result.toString().getBytes()));
+                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
+                        flowFile = session.penalize(flowFile);
+                        session.transfer(flowFile, REL_FAILURE);
+                    }
                 }
             }
+
         } catch (IOException ioe) {
             log.error("Failure processing flowfile {} due to {}, penalizing and routing to failure", new Object[]{flowFile, ioe.getMessage()}, ioe);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    private JSONObject submitSparkBatch(String livyUrl, LivySessionService livySessionService, String payload, long statusCheckInterval) throws IOException {
+        ComponentLog log = getLogger();
+
+        String statementUrl = livyUrl + "/batches";
+        JSONObject output = null;
+        int batchId = -1;
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", LivySessionService.APPLICATION_JSON);
+        headers.put("X-Requested-By", LivySessionService.USER);
+        headers.put("Accept", "application/json");
+
+        try {
+            JSONObject jobInfo = readJSONObjectFromUrlPOST(statementUrl, livySessionService, headers, payload);
+            log.debug("ExecuteSparkInteractive Result of Job Submit: " + jobInfo.toString());
+
+            batchId = jobInfo.getInt("id");
+
+            Thread.sleep(statusCheckInterval);
+
+            statementUrl = statementUrl + "/" + batchId;
+
+            output = readJSONObjectFromUrl(statementUrl, livySessionService, headers);
+
+        } catch (JSONException | InterruptedException e) {
+            throw new IOException(e);
+        }
+
+        return output;
     }
 
     private JSONObject submitAndHandleJob(String livyUrl, LivySessionService livySessionService, String sessionId, String payload, long statusCheckInterval) throws IOException {
@@ -228,6 +428,8 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         headers.put("Content-Type", LivySessionService.APPLICATION_JSON);
         headers.put("X-Requested-By", LivySessionService.USER);
         headers.put("Accept", "application/json");
+
+
 
         log.debug("submitAndHandleJob() Submitting Job to Spark via: " + statementUrl);
         try {
@@ -266,6 +468,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
     private JSONObject readJSONObjectFromUrlPOST(String urlString, LivySessionService livySessionService, Map<String, String> headers, String payload)
             throws IOException, JSONException {
 
+
         HttpURLConnection connection = livySessionService.getConnection(urlString);
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
@@ -300,6 +503,6 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         InputStream content = connection.getInputStream();
         BufferedReader rd = new BufferedReader(new InputStreamReader(content, StandardCharsets.UTF_8));
         String jsonText = IOUtils.toString(rd);
-        return new JSONObject(jsonText);
+        return new JSONObject(jsonText).put("url", urlString);
     }
 }
