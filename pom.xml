@@ -293,17 +293,17 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.55</version>
+                <version>1.59</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcpg-jdk15on</artifactId>
-                <version>1.55</version>
+                <version>1.59</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcpkix-jdk15on</artifactId>
-                <version>1.55</version>
+                <version>1.59</version>
             </dependency>
             <dependency>
                 <groupId>com.jcraft</groupId>
