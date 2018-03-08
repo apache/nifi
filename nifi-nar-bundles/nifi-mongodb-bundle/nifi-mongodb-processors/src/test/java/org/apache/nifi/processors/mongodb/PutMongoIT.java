@@ -27,7 +27,6 @@ import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -38,8 +37,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-@Ignore("Integration tests that cause failures in some environments. Require that they be run from Maven to run the embedded mongo maven plugin. Maven Plugin also fails in my CentOS 7 environment.")
-public class PutMongoTest extends MongoWriteTestBase {
+public class PutMongoIT extends MongoWriteTestBase {
     @Before
     public void setup() {
         super.setup(PutMongo.class);
