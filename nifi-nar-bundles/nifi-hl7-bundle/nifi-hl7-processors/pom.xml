@@ -47,10 +47,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+            <version>3.7</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -106,10 +108,10 @@
             <artifactId>hapi-structures-v26</artifactId>
             <version>2.2</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -38,6 +38,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

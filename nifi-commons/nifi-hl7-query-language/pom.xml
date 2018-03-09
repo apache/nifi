@@ -58,6 +58,7 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr-runtime</artifactId>
+            <version>3.5.2</version>
         </dependency>
 
         <!-- HAPI to parse v2 messages -->
