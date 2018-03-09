@@ -67,14 +67,16 @@ public class FetchHBaseRow extends AbstractProcessor {
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
 
     static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("HBase Client Service")
+            .displayName("HBase Client Service")
+            .name("fetchhbaserow-client-service")
             .description("Specifies the Controller Service to use for accessing HBase.")
             .required(true)
             .identifiesControllerService(HBaseClientService.class)
             .build();
 
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
-            .name("Table Name")
+            .displayName("Table Name")
+            .name("fetchhbaserow-table-name")
             .description("The name of the HBase Table to fetch from.")
             .required(true)
             .expressionLanguageSupported(true)
@@ -82,7 +84,8 @@ public class FetchHBaseRow extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor ROW_ID = new PropertyDescriptor.Builder()
-            .name("Row Identifier")
+            .displayName("Row Identifier")
+            .name("fetchhbaserow-row-identifier")
             .description("The identifier of the row to fetch.")
             .required(true)
             .expressionLanguageSupported(true)
@@ -90,7 +93,8 @@ public class FetchHBaseRow extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor COLUMNS = new PropertyDescriptor.Builder()
-            .name("Columns")
+            .displayName("Columns")
+            .name("fetchhbaserow-columns")
             .description("An optional comma-separated list of \"<colFamily>:<colQualifier>\" pairs to fetch. To return all columns " +
                     "for a given family, leave off the qualifier such as \"<colFamily1>,<colFamily2>\".")
             .required(false)
@@ -108,7 +112,8 @@ public class FetchHBaseRow extends AbstractProcessor {
                     "The format of the JSON document is determined by the JSON Format property.");
 
     static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
-            .name("Destination")
+            .displayName("Destination")
+            .name("fetchhbaserow-destination")
             .description("Indicates whether the row fetched from HBase is written to FlowFile content or FlowFile Attributes.")
             .required(true)
             .allowableValues(DESTINATION_ATTRIBUTES, DESTINATION_CONTENT)
@@ -121,7 +126,8 @@ public class FetchHBaseRow extends AbstractProcessor {
             "Creates a JSON document with the format: {\"<col-qual>\":\"<value>\", \"<col-qual>\":\"<value>\".");
 
     static final PropertyDescriptor JSON_FORMAT = new PropertyDescriptor.Builder()
-            .name("JSON Format")
+            .displayName("JSON Format")
+            .name("fetchhbaserow-json-format")
             .description("Specifies how to represent the HBase row as a JSON document.")
             .required(true)
             .allowableValues(JSON_FORMAT_FULL_ROW, JSON_FORMAT_QUALIFIER_AND_VALUE)
@@ -132,7 +138,8 @@ public class FetchHBaseRow extends AbstractProcessor {
     static final AllowableValue ENCODING_BASE64 = new AllowableValue("base64", "base64", "Creates a Base64 encoded String of the given data.");
 
     static final PropertyDescriptor JSON_VALUE_ENCODING = new PropertyDescriptor.Builder()
-            .name("JSON Value Encoding")
+            .displayName("JSON Value Encoding")
+            .name("fetchhbaserow-json-value-encoding")
             .description("Specifies how to represent row ids, column families, column qualifiers, and values when stored in FlowFile attributes, or written to JSON.")
             .required(true)
             .allowableValues(ENCODING_NONE, ENCODING_BASE64)
@@ -140,7 +147,8 @@ public class FetchHBaseRow extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DECODE_CHARSET = new PropertyDescriptor.Builder()
-            .name("Decode Character Set")
+            .displayName("Decode Character Set")
+            .name("fetchhbaserow-decode-character-set")
             .description("The character set used to decode data from HBase.")
             .required(true)
             .defaultValue("UTF-8")
@@ -148,7 +156,8 @@ public class FetchHBaseRow extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor ENCODE_CHARSET = new PropertyDescriptor.Builder()
-            .name("Encode Character Set")
+            .displayName("Encode Character Set")
+            .name("fetchhbaserow-encode-character-set")
             .description("The character set used to encode the JSON representation of the row.")
             .required(true)
             .defaultValue("UTF-8")
@@ -268,7 +277,7 @@ public class FetchHBaseRow extends AbstractProcessor {
 
         FlowFile handlerFlowFile = handler.getFlowFile();
         if (!handler.handledRow()) {
-            getLogger().error("Row {} not found in {}, transferring to not found", new Object[] {rowId, tableName});
+            getLogger().debug("Row {} not found in {}, transferring to not found", new Object[] {rowId, tableName});
             session.transfer(handlerFlowFile, REL_NOT_FOUND);
             return;
         }
