@@ -20,7 +20,9 @@
 
     <artifactId>nifi-confluent-schema-registry-service</artifactId>
     <packaging>jar</packaging>
-
+    <properties>
+        <jersey.version>2.26</jersey.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -33,6 +35,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -56,6 +59,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-utils</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
