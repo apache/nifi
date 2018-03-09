@@ -29,6 +29,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-data-model</artifactId>
+            <version>${nifi.registry.version}</version>
         </dependency>
     </dependencies>
 </project>

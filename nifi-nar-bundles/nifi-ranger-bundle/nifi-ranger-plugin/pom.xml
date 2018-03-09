@@ -24,7 +24,10 @@
 
     <artifactId>nifi-ranger-plugin</artifactId>
     <packaging>jar</packaging>
-
+    <properties>
+        <hadoop.version>2.7.3</hadoop.version>
+        <ranger.version>0.7.1</ranger.version>        
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -42,6 +45,7 @@
         <dependency>
             <groupId>org.apache.ranger</groupId>
             <artifactId>ranger-plugins-common</artifactId>
+            <version>${ranger.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -60,6 +64,7 @@
         <dependency>
             <groupId>org.apache.ranger</groupId>
             <artifactId>ranger-plugins-audit</artifactId>
+            <version>${ranger.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -70,6 +75,7 @@
         <dependency>
             <groupId>org.apache.ranger</groupId>
             <artifactId>credentialbuilder</artifactId>
+            <version>${ranger.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -94,6 +100,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
