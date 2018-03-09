@@ -16,17 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -66,22 +60,23 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 
+import static org.apache.nifi.processors.standard.util.JdbcCommon.*;
+
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
-import static  org.apache.nifi.processors.standard.util.JdbcCommon.*;
 
 @SideEffectFree
 @SupportsBatching
 @SeeAlso(PutSQL.class)
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"json", "sql", "database", "rdbms", "insert", "update", "delete", "relational", "flat"})
-@CapabilityDescription("Converts a JSON-formatted FlowFile into an UPDATE, INSERT, or DELETE SQL statement. The incoming FlowFile is expected to be "
+@Tags({"json", "sql", "database", "rdbms", "insert", "update", "relational", "flat","upsert"})
+@CapabilityDescription("Splits a JSON-formatted FlowFile into an UPDATE and an INSERT SQL statement. The incoming FlowFile is expected to be "
         + "\"flat\" JSON message, meaning that it consists of a single JSON element and each field maps to a simple type. If a field maps to "
         + "a JSON object, that JSON object will be interpreted as Text. If the input is an array of JSON elements, each element in the array is "
         + "output as a separate FlowFile to the 'sql' relationship. Upon successful conversion, the original FlowFile is routed to the 'original' "
-        + "relationship and the SQL is routed to the 'sql' relationship.")
+        + "relationship ,the Update SQL is routed to the 'update_sql' relationship and the Insert SQL is routed to the 'insert_sql' relationship")
 @WritesAttributes({
         @WritesAttribute(attribute="mime.type", description="Sets mime.type of FlowFile that is routed to 'sql' to 'text/plain'."),
         @WritesAttribute(attribute = "<sql>.table", description = "Sets the <sql>.table attribute of FlowFile that is routed to 'sql' to the name of the table that is updated by the SQL statement. "
@@ -104,15 +99,13 @@ import static  org.apache.nifi.processors.standard.util.JdbcCommon.*;
                 + "<sql>.args.N.type attribute that indicates how the value should be interpreted when inserting it into the database."
                 + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property.")
 })
-public class ConvertJSONToSQL extends AbstractProcessor {
-    private static final String UPDATE_TYPE = "UPDATE";
-    private static final String INSERT_TYPE = "INSERT";
-    private static final String DELETE_TYPE = "DELETE";
+public class ConvertJSONToUpsertSQL extends AbstractProcessor {
+
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
             "Any field in the JSON document that cannot be mapped to a column in the database is ignored");
     static final AllowableValue FAIL_UNMATCHED_FIELD = new AllowableValue("Fail", "Fail",
-        "If the JSON document has any field that cannot be mapped to a column in the database, the FlowFile will be routed to the failure relationship");
+            "If the JSON document has any field that cannot be mapped to a column in the database, the FlowFile will be routed to the failure relationship");
     static final AllowableValue IGNORE_UNMATCHED_COLUMN = new AllowableValue("Ignore Unmatched Columns",
             "Ignore Unmatched Columns",
             "Any column in the database that does not have a field in the JSON document will be assumed to not be required.  No notification will be logged");
@@ -130,12 +123,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .required(true)
             .build();
-    static final PropertyDescriptor STATEMENT_TYPE = new PropertyDescriptor.Builder()
-            .name("Statement Type")
-            .description("Specifies the type of SQL Statement to generate")
-            .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE, DELETE_TYPE)
-            .build();
+
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
             .description("The name of the table that the statement should update")
@@ -183,7 +171,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                     + "In this case, if no Primary Key exists, the conversion to SQL will fail if Unmatched Column Behaviour is set to FAIL. "
                     + "This property is ignored if the Statement Type is INSERT")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
+            .required(true)
             .expressionLanguageSupported(true)
             .build();
 
@@ -219,10 +207,26 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .name("original")
             .description("When a FlowFile is converted to SQL, the original JSON FlowFile is routed to this relationship")
             .build();
-    static final Relationship REL_SQL = new Relationship.Builder()
-            .name("sql")
-            .description("A FlowFile is routed to this relationship when its contents have successfully been converted into a SQL statement")
+
+
+
+    /**
+     * A FlowFile is routed to this relationship when its contents have successfully been converted into a Update SQL statement.
+     */
+    static final Relationship REL_UPDATE_SQL = new Relationship.Builder()
+            .name("update_sql")
+            .description("A FlowFile is routed to this relationship when its contents have successfully been converted into a Update SQL statement")
             .build();
+
+
+    /**
+     * A FlowFile is routed to this relationship when its contents have successfully been converted into a Insert SQL statement.
+     */
+    static final Relationship REL_INSERT_SQL = new Relationship.Builder()
+            .name("insert_sql")
+            .description("A FlowFile is routed to this relationship when its contents have successfully been converted into a Insert SQL statement")
+            .build();
+
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("A FlowFile is routed to this relationship if it cannot be converted into a SQL statement. Common causes include invalid JSON "
@@ -242,7 +246,6 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CONNECTION_POOL);
-        properties.add(STATEMENT_TYPE);
         properties.add(TABLE_NAME);
         properties.add(CATALOG_NAME);
         properties.add(SCHEMA_NAME);
@@ -261,8 +264,10 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_ORIGINAL);
-        rels.add(REL_SQL);
+        rels.add(REL_UPDATE_SQL);
+        rels.add(REL_INSERT_SQL);
         rels.add(REL_FAILURE);
+
         return rels;
     }
 
@@ -283,14 +288,15 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         final boolean translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
         final boolean ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
-        final String statementType = context.getProperty(STATEMENT_TYPE).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
+        getLogger().debug("updateKeys {}", new Object[] {updateKeys});
+
 
         final String catalog = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final SchemaKey schemaKey = new SchemaKey(catalog, tableName);
-        final boolean includePrimaryKeys = UPDATE_TYPE.equals(statementType) && updateKeys == null;
+        final boolean includePrimaryKeys = true;
 
         // Is the unmatched column behaviour fail or warning?
         final boolean failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
@@ -361,65 +367,188 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
+        getLogger().debug("ArrayNode size: {} ",new Object[]{arrayNode.size()});
+
+
+
+        PreparedStatement stmt = null;
         final Set<FlowFile> created = new HashSet<>();
-        for (int i=0; i < arrayNode.size(); i++) {
-            final JsonNode jsonNode = arrayNode.get(i);
 
-            final String sql;
-            final Map<String, String> attributes = new HashMap<>();
+        // Get or create the appropriate PreparedStatement to use.
+        final DBCPService dbcpService = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class);
+        try (final Connection conn = dbcpService.getConnection()) {
 
-            try {
-                // build the fully qualified table name
-                final StringBuilder tableNameBuilder = new StringBuilder();
-                if (catalog != null) {
-                    tableNameBuilder.append(catalog).append(".");
-                }
-                if (schemaName != null) {
-                    tableNameBuilder.append(schemaName).append(".");
-                }
-                tableNameBuilder.append(tableName);
-                final String fqTableName = tableNameBuilder.toString();
+            ArrayList <Integer>updateList = new ArrayList<Integer>();
+            ArrayList <Integer>insertList = new ArrayList<Integer>();
 
-                if (INSERT_TYPE.equals(statementType)) {
-                    sql = generateInsert(this.getLogger(),jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
-                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
-                } else if (UPDATE_TYPE.equals(statementType)) {
-                    sql = generateUpdate(this.getLogger(),jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
-                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
-                } else {
-                    sql = generateDelete(this.getLogger(),jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
-                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
-                }
-            } catch (final ProcessException pe) {
-                getLogger().error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
-                        new Object[] { flowFile, statementType, pe.toString() }, pe);
-                session.remove(created);
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
-
-            FlowFile sqlFlowFile = session.create(flowFile);
-            created.add(sqlFlowFile);
-
-            sqlFlowFile = session.write(sqlFlowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    out.write(sql.getBytes(StandardCharsets.UTF_8));
-                }
-            });
-
-            attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-            attributes.put(attributePrefix + ".table", tableName);
-            attributes.put(FRAGMENT_ID.key(), fragmentIdentifier);
-            attributes.put(FRAGMENT_COUNT.key(), String.valueOf(arrayNode.size()));
-            attributes.put(FRAGMENT_INDEX.key(), String.valueOf(i));
-
+            // build the fully qualified table name
+            final StringBuilder tableNameBuilder = new StringBuilder();
             if (catalog != null) {
-                attributes.put(attributePrefix + ".catalog", catalog);
+                tableNameBuilder.append(catalog).append(".");
+            }
+            if (schemaName != null) {
+                tableNameBuilder.append(schemaName).append(".");
+            }
+            tableNameBuilder.append(tableName);
+            final String fqTableName = tableNameBuilder.toString();
+
+
+
+            final String sqlSelectCount = generateSelectCount(this.getLogger(),fqTableName,schema,quoteTableName);
+            // table empty ? just insert
+            PreparedStatement statTmp =  conn.prepareStatement(sqlSelectCount, Statement.RETURN_GENERATED_KEYS);
+            ResultSet resultTmp = statTmp.executeQuery();
+
+            getLogger().debug("If target table is empty sql {}",new Object[]{sqlSelectCount});
+
+            boolean emptyTargetTable = false;
+            if(resultTmp.next()){
+                if(resultTmp.getInt("cnt")==0){
+                    emptyTargetTable = true;
+                }
             }
 
-            sqlFlowFile = session.putAllAttributes(sqlFlowFile, attributes);
-            session.transfer(sqlFlowFile, REL_SQL);
+            getLogger().debug("If target table is empty result {}",new Object[]{emptyTargetTable});
+
+            if(!emptyTargetTable){
+                for (int i=0; i < arrayNode.size(); i++) {
+                    final JsonNode jsonNode = arrayNode.get(i);
+
+
+                    final String sqlSelect;
+
+
+                    final Map<String, String> attributesSelect = new HashMap<>();
+
+                    try {
+
+
+                        sqlSelect =  generateSelect(this.getLogger(),jsonNode,attributesSelect , fqTableName,updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                                failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
+
+                        getLogger().debug("SQL select: {} ",new Object[]{sqlSelect});
+
+                    } catch (final ProcessException pe) {
+                        getLogger().error("Failed to convert {} to a SQL  statement due to {}; routing to failure",
+                                new Object[] { flowFile, pe.toString() }, pe);
+                        session.remove(created);
+                        session.transfer(flowFile, REL_FAILURE);
+                        return;
+                    }
+
+
+                    // select to determine which way to go
+                    if(stmt == null) {
+
+                        stmt = conn.prepareStatement(sqlSelect, Statement.RETURN_GENERATED_KEYS);
+                    }
+                    setParameters(stmt, attributesSelect);
+                    stmt.addBatch();
+                    ResultSet result = stmt.executeQuery();
+                    int way = -1;
+                    if(result.next()){
+                        way = result.getInt("cnt");
+                    }
+
+                    if(way>0)
+                        updateList.add(i);
+                    else
+                        insertList.add(i);
+                }
+            }else{
+                for (int i=0; i < arrayNode.size(); i++) {
+                    insertList.add(i);
+                }
+            }
+
+
+
+            for (int i=0; i < arrayNode.size(); i++) {
+                final JsonNode jsonNode = arrayNode.get(i);
+
+                final String sqlInsert;
+                final String sqlUpdate;
+
+                final Map<String, String> attributesUpdate = new HashMap<>();
+                final Map<String, String> attributesInsert = new HashMap<>();
+
+                try {
+
+
+                    sqlInsert = generateInsert(this.getLogger(),jsonNode, attributesInsert, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
+                    sqlUpdate = generateUpdate(this.getLogger(),jsonNode, attributesUpdate, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
+
+                    getLogger().debug("Upsert SQLs: {},{} ",new Object[]{sqlInsert,sqlUpdate});
+
+                } catch (final ProcessException pe) {
+                    getLogger().error("Failed to convert {} to a SQL  statement due to {}; routing to failure",
+                            new Object[] { flowFile, pe.toString() }, pe);
+                    session.remove(created);
+                    session.transfer(flowFile, REL_FAILURE);
+                    return;
+                }
+
+
+
+                if(updateList.contains(i)){
+                    // update
+                    FlowFile sqlUpdateFlowFile = session.create(flowFile);
+                    created.add(sqlUpdateFlowFile);
+
+                    sqlUpdateFlowFile = session.write(sqlUpdateFlowFile, new OutputStreamCallback() {
+                        @Override
+                        public void process(final OutputStream out) throws IOException {
+                            out.write(sqlUpdate.getBytes(StandardCharsets.UTF_8));
+                        }
+                    });
+
+                    attributesUpdate.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
+                    attributesUpdate.put(attributePrefix + ".table", tableName);
+                    attributesUpdate.put(FRAGMENT_ID.key(), fragmentIdentifier);
+                    attributesUpdate.put(FRAGMENT_COUNT.key(), String.valueOf(updateList.size()));
+                    attributesUpdate.put(FRAGMENT_INDEX.key(), String.valueOf(updateList.indexOf(i)));
+
+                    if (catalog != null) {
+                        attributesUpdate.put(attributePrefix + ".catalog", catalog);
+                    }
+
+                    sqlUpdateFlowFile = session.putAllAttributes(sqlUpdateFlowFile, attributesUpdate);
+                    session.transfer(sqlUpdateFlowFile, REL_UPDATE_SQL);
+                }else {
+
+                    // insert
+                    FlowFile sqlInsertFlowFile = session.create(flowFile);
+                    created.add(sqlInsertFlowFile);
+
+                    sqlInsertFlowFile = session.write(sqlInsertFlowFile, new OutputStreamCallback() {
+                        @Override
+                        public void process(final OutputStream out) throws IOException {
+                            out.write(sqlInsert.getBytes(StandardCharsets.UTF_8));
+                        }
+                    });
+
+                    attributesInsert.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
+                    attributesInsert.put(attributePrefix + ".table", tableName);
+                    attributesInsert.put(FRAGMENT_ID.key(), fragmentIdentifier);
+                    attributesInsert.put(FRAGMENT_COUNT.key(), String.valueOf(insertList.size()));
+                    attributesInsert.put(FRAGMENT_INDEX.key(), String.valueOf(insertList.indexOf(i)));
+
+                    if (catalog != null) {
+                        attributesInsert.put(attributePrefix + ".catalog", catalog);
+                    }
+
+                    sqlInsertFlowFile = session.putAllAttributes(sqlInsertFlowFile, attributesInsert);
+                    session.transfer(sqlInsertFlowFile, REL_INSERT_SQL);
+                }
+            }
+
+        } catch (final SQLException e) {
+            getLogger().error("Failed to convert {} into a SQL statement due to {}; routing to failure", new Object[] {flowFile, e.toString()}, e);
+            session.remove(created);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
 
         flowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, arrayNode.size());
