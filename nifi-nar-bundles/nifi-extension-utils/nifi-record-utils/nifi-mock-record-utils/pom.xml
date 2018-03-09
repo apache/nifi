@@ -31,6 +31,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <!-- Other modules using nifi-standard-record-utils are expected to have this API available, typically through a NAR dependency -->
         <dependency>

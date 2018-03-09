@@ -26,12 +26,12 @@
         <module>nifi-distributed-cache-client-service-api</module>
         <module>nifi-distributed-cache-services-bundle</module>
         <module>nifi-load-distribution-service-api</module>
-	    <module>nifi-http-context-map-api</module>
+        <module>nifi-http-context-map-api</module>
         <module>nifi-lookup-service-api</module>
         <module>nifi-lookup-services-bundle</module>
         <module>nifi-ssl-context-bundle</module>
         <module>nifi-ssl-context-service-api</module>
-	    <module>nifi-http-context-map-bundle</module>
+        <module>nifi-http-context-map-bundle</module>
         <module>nifi-standard-services-api-nar</module>
         <module>nifi-dbcp-service-api</module>
         <module>nifi-dbcp-service-bundle</module>

@@ -27,4 +27,13 @@
         <module>nifi-distributed-cache-server</module>
         <module>nifi-distributed-cache-services-nar</module>
     </modules>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.6</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
