@@ -23,7 +23,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -95,7 +95,7 @@ public class CSVRecordReader implements RecordReader {
         final int numFieldNames = recordFields.size();
 
         for (final CSVRecord csvRecord : csvParser) {
-            final Map<String, Object> values = new HashMap<>(recordFields.size() * 2);
+            final Map<String, Object> values = new LinkedHashMap<>(recordFields.size() * 2);
             for (int i = 0; i < csvRecord.size(); i++) {
                 final String rawValue = csvRecord.get(i);
 
