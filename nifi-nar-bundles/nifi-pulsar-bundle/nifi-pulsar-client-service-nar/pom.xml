@@ -21,7 +21,7 @@
     <version>1.6.0-SNAPSHOT</version>
   </parent>
   
-  <artifactId>nifi-pulsar-client-service-nar</artifactId>
+  <artifactId>nifi-pulsar-client-service-api-nar</artifactId>
   <packaging>nar</packaging>
   
   <dependencies>
