@@ -40,8 +40,8 @@ import java.util.List;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(
-    "Provides a controller service that configures a connection to MongoDB and provides access to that connection to " +
-    "other Mongo-related components."
+        "Provides a controller service that configures a connection to MongoDB and provides access to that connection to " +
+                "other Mongo-related components."
 )
 public class MongoDBControllerService extends AbstractControllerService implements MongoDBClientService {
     private String uri;
