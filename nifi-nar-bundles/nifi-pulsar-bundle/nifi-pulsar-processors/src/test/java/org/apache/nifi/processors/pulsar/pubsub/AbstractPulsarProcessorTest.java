@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.processors.pulsar.pubsub;
 
+import org.apache.nifi.processors.pulsar.pubsub.PublishPulsar_1_0;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.pulsar.client.api.PulsarClient;

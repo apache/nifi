@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.processors.pulsar.pubsub;
 
+import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsar_1_0;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
@@ -41,7 +42,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
+public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
 
     @Mock
     Consumer mockConsumer;
