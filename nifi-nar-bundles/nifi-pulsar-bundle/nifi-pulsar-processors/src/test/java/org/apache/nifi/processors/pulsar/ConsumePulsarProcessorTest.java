@@ -32,6 +32,7 @@ import org.mockito.junit.MockitoRule;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -78,6 +79,7 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
     @Test
     public void emptyMessageTest() {
             when(mockMessage.getData()).thenReturn("".getBytes());
+
         runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
         runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
         runner.run();
@@ -109,12 +111,13 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
      */
     @Test
     public void onStoppedTest() throws NoSuchMethodException, SecurityException, PulsarClientException {
-            when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
+        when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
 
         runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
         runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
         runner.run(10, true);
         runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+
         runner.assertQueueEmpty();
 
         // Verify that the receive method on the consumer was called 10 times
@@ -130,9 +133,9 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
 
     private void sendMessages(String msg, String topic, String sub, boolean async, int itertions) throws PulsarClientException {
 
-        when(mockMessage.getData()).thenReturn(msg.getBytes());
+            when(mockMessage.getData()).thenReturn(msg.getBytes());
 
-        runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(async));
+            runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(async));
         runner.setProperty(ConsumePulsar_1_0.TOPIC, topic);
         runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, sub);
         runner.run(itertions, true);
@@ -140,7 +143,6 @@ public class ConsumePulsarProcessorTest extends AbstractPulsarProcessorTest {
         runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_0.REL_SUCCESS);
-
         assertEquals(itertions, flowFiles.size());
 
         for (MockFlowFile ff : flowFiles) {

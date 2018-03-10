@@ -70,9 +70,10 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
     static final AllowableValue COMPRESSION_TYPE_NONE = new AllowableValue("NONE", "None", "No compression");
     static final AllowableValue COMPRESSION_TYPE_LZ4 = new AllowableValue("LZ4", "LZ4", "Compress with LZ4 algorithm.");
     static final AllowableValue COMPRESSION_TYPE_ZLIB = new AllowableValue("ZLIB", "ZLIB", "Compress with ZLib algorithm");
+
     static final AllowableValue MESSAGE_ROUTING_MODE_CUSTOM_PARTITION = new AllowableValue("CustomPartition", "Custom Partition", "Route messages to a custom partition");
-    static final AllowableValue MESSAGE_ROUTING_MODE_ROUND_ROBIN_PARTITION = new AllowableValue("RoundRobinPartition", "Round Robin Partition", "Route messages to all partitions "
-           + "in a round robin manner");
+    static final AllowableValue MESSAGE_ROUTING_MODE_ROUND_ROBIN_PARTITION = new AllowableValue("RoundRobinPartition", "Round Robin Partition", "Route messages to all "
+                                                                                                                       + "partitions in a round robin manner");
     static final AllowableValue MESSAGE_ROUTING_MODE_SINGLE_PARTITION = new AllowableValue("SinglePartition", "Single Partition", "Route messages to a single partition");
 
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
@@ -87,7 +88,7 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
     public static final PropertyDescriptor ASYNC_ENABLED = new PropertyDescriptor.Builder()
             .name("Async Enabled")
             .description("Control whether the messages will be sent asyncronously or not. Messages sent"
-                    + " syncronously will be acknowledged immediately before processing the netX message, while"
+                    + " syncronously will be acknowledged immediately before processing the next message, while"
                     + " asyncronous messages will be acknowledged after the Pulsar broker responds.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -169,6 +170,7 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
     private LRUCache<String, PulsarProducer> producers;
     private ProducerConfiguration producerConfig;
 
+
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PULSAR_CLIENT_SERVICE);
@@ -202,9 +204,10 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
 
     @OnStopped
     public void cleanUp(final ProcessContext context) {
-        // Close all of the producers and invalidate them, so they get removed from the Resource Pool
-        getProducerCache(context).clear();
+       // Close all of the producers and invalidate them, so they get removed from the Resource Pool
+       getProducerCache(context).clear();
     }
+
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -262,7 +265,6 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
             MessageId msgId = producer.send(messageContent);
 
             if (msgId != null) {
-
                 flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
                 session.adjustCounter("Messages Sent", 1, true);
                 session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );

@@ -31,9 +31,7 @@
         <module>nifi-pulsar-processors</module>
         <module>nifi-pulsar-nar</module>
         <module>nifi-pulsar-client-service-api</module>
-        
         <module>nifi-pulsar-client-service</module>
-        
     </modules>
 
 </project>

@@ -117,7 +117,6 @@ public class MockPulsarClientService extends AbstractControllerService implement
         }
     }
 
-
     public Producer getMockProducer() {
         return mockProducer;
     }

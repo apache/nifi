@@ -84,7 +84,7 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
     public static final PropertyDescriptor ASYNC_ENABLED = new PropertyDescriptor.Builder()
             .name("Async Enabled")
             .description("Control whether the messages will be consumed asyncronously or not. Messages consumed"
-                    + " syncronously will be acknowledged immediately before processing the netX message, while"
+                    + " syncronously will be acknowledged immediately before processing the next message, while"
                     + " asyncronous messages will be acknowledged after the Pulsar broker responds.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -311,14 +311,14 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
 
                 /*
                  * This Processor acknowledges receipt of the data and/or removes the data
-                 * from the etXernal source in order to prevent receipt of duplicate files.
+                 * from the external source in order to prevent receipt of duplicate files.
                  * This is done only after the ProcessSession by which the FlowFile was created
                  * has been committed! Failure to adhere to this principle may result in data
                  * loss, as restarting NiFi before the session has been committed will result
                  * in the temporary file being deleted. Note, however, that it is possible using
                  * this approach to receive duplicate data because the application could be
                  * restarted after committing the session and before acknowledging or removing
-                 * the data from the etXernal source. In general, though, potential data duplication
+                 * the data from the external source. In general, though, potential data duplication
                  * is preferred over potential data loss.
                  */
                 getLogger().info("Acknowledging message " + msg.getMessageId());
@@ -386,6 +386,7 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
         }
 
         return consumerConfig;
+
     }
 
 }
