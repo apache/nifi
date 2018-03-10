@@ -18,22 +18,23 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
+        <artifactId>nifi-pulsar-client-services</artifactId>
         <version>1.6.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
-    <artifactId>nifi-pulsar-bundle</artifactId>
-    <version>1.6.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <artifactId>nifi-pulsar-client-service-api</artifactId>
+    <packaging>jar</packaging>
 
-    <modules>
-        <module>nifi-pulsar-processors</module>
-        <module>nifi-pulsar-nar</module>
-        <module>nifi-pulsar-client-service-api</module>
-        
-        <module>nifi-pulsar-client-service</module>
-        
-    </modules>
-
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+    			<groupId>org.apache.pulsar</groupId>
+    			<artifactId>pulsar-client</artifactId>
+    			<version>1.21.0-incubating</version>
+		</dependency>
+    </dependencies>
 </project>

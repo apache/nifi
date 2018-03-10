@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.pulsar.pool;
 
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.mockito.Mock;
+import java.util.Properties;
 
-public abstract class AbstractPulsarProcessorTest {
+public interface ResourcePool<R extends PoolableResource> {
 
-    protected TestRunner runner;
+    /**
+     * Acquire a resource from the pool. Creating one if necessary
+     */
+   public R acquire(Properties props) throws InterruptedException;
 
-    @Mock
-    protected PulsarClient mockClient;
+    /**
+     * Evict the resource from the pool, destroying it.
+     * Call this method is the resource is known to be in an unusable state.
+     */
+    public void evict(R resource);
 
-    protected void addPulsarClientService() throws InitializationException {
-        final MockPulsarClientService pulsarClient = new MockPulsarClientService(mockClient);
-        runner.addControllerService("pulsarClient", pulsarClient);
-        runner.enableControllerService(pulsarClient);
-        runner.setProperty(PublishPulsar_1_0.PULSAR_CLIENT_SERVICE, "pulsarClient");
-    }
+    /**
+     * Place the resource back into the pool for future use.
+     */
+    public void release(R resource);
 }

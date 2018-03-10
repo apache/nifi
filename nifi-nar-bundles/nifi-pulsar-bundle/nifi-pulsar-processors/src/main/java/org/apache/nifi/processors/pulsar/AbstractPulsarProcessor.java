@@ -23,21 +23,21 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.pulsar.PulsarClientPool;
 
 public abstract class AbstractPulsarProcessor extends AbstractProcessor {
-	
-	protected static final PropertyDescriptor PULSAR_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-			.name("Pulsar Client Service")
-			.description("Specified the Pulsar Client Service that can be used to create Pulsar connections")
-			.required(true)
-			.identifiesControllerService(PulsarClientPool.class)
-			.build();
 
-	protected static final Relationship REL_SUCCESS = new Relationship.Builder()
-	        .name("success")
-	        .description("FlowFiles for which all content was sent to Pulsar.")
-	        .build();
+    protected static final PropertyDescriptor PULSAR_CLIENT_SERVICE = new PropertyDescriptor.Builder()
+            .name("Pulsar Client Service")
+            .description("Specified the Pulsar Client Service that can be used to create Pulsar connections")
+            .required(true)
+            .identifiesControllerService(PulsarClientPool.class)
+            .build();
 
-	protected static final Relationship REL_FAILURE = new Relationship.Builder()
-	        .name("failure")
-	        .description("Any FlowFile that cannot be sent to Pulsar will be routed to this Relationship")
-	        .build();
+    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles for which all content was sent to Pulsar.")
+            .build();
+
+    protected static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot be sent to Pulsar will be routed to this Relationship")
+            .build();
 }

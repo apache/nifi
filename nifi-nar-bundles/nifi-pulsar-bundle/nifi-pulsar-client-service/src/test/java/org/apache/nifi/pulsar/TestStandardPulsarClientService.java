@@ -14,24 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.pulsar;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.mockito.Mock;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
+import org.junit.Test;
 
-public abstract class AbstractPulsarProcessorTest {
+public class TestStandardPulsarClientService {
 
-    protected TestRunner runner;
+    @Before
+    public void init() {
 
-    @Mock
-    protected PulsarClient mockClient;
-
-    protected void addPulsarClientService() throws InitializationException {
-        final MockPulsarClientService pulsarClient = new MockPulsarClientService(mockClient);
-        runner.addControllerService("pulsarClient", pulsarClient);
-        runner.enableControllerService(pulsarClient);
-        runner.setProperty(PublishPulsar_1_0.PULSAR_CLIENT_SERVICE, "pulsarClient");
     }
+
+    @Test
+    public void testService() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final PulsarClientPool service = new StandardPulsarClientPool();
+        runner.addControllerService("test-good", service);
+
+        runner.setProperty(service, StandardPulsarClientPool.PULSAR_SERVICE_URL, "localhost:6667");
+        // runner.enableControllerService(service);
+
+        runner.assertValid(service);
+    }
+
 }

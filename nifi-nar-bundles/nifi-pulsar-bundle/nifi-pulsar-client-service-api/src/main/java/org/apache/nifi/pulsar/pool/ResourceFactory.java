@@ -14,24 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.pulsar.pool;
 
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.mockito.Mock;
+import java.util.Properties;
 
-public abstract class AbstractPulsarProcessorTest {
+public interface ResourceFactory<R extends PoolableResource> {
 
-    protected TestRunner runner;
-
-    @Mock
-    protected PulsarClient mockClient;
-
-    protected void addPulsarClientService() throws InitializationException {
-        final MockPulsarClientService pulsarClient = new MockPulsarClientService(mockClient);
-        runner.addControllerService("pulsarClient", pulsarClient);
-        runner.enableControllerService(pulsarClient);
-        runner.setProperty(PublishPulsar_1_0.PULSAR_CLIENT_SERVICE, "pulsarClient");
-    }
+    public R create(Properties props) throws ResourceCreationException;
 }

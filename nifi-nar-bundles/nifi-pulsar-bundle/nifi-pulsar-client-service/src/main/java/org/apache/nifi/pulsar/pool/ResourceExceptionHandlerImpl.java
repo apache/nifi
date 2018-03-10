@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.pulsar.pool;
 
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.mockito.Mock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class AbstractPulsarProcessorTest {
+public class ResourceExceptionHandlerImpl implements ResourceExceptionHandler {
 
-    protected TestRunner runner;
+    private static Logger logger = LoggerFactory.getLogger(ResourceExceptionHandlerImpl.class);
 
-    @Mock
-    protected PulsarClient mockClient;
-
-    protected void addPulsarClientService() throws InitializationException {
-        final MockPulsarClientService pulsarClient = new MockPulsarClientService(mockClient);
-        runner.addControllerService("pulsarClient", pulsarClient);
-        runner.enableControllerService(pulsarClient);
-        runner.setProperty(PublishPulsar_1_0.PULSAR_CLIENT_SERVICE, "pulsarClient");
+    @Override
+    public void handle(Exception exc) {
+        logger.error("Unable to create Resource", exc);
     }
+
 }

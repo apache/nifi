@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.pulsar.pool;
 
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.pulsar.PulsarClientPool;
@@ -37,7 +37,7 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,49 +62,40 @@ public class MockPulsarClientService extends AbstractControllerService implement
 
     @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public MockPulsarClientService(PulsarClient mockClient2) {
-        this.mockClient = mockClient2;
+    @SuppressWarnings("unchecked")
+    public MockPulsarClientService() {
+        this.mockClient = mock(PulsarClient.class);
         mockProducerPool = mock(ResourcePool.class);
         mockConsumerPool = mock(ResourcePool.class);
         mockProducer = mock(Producer.class);
         mockConsumer = mock(Consumer.class);
 
         try {
-            when(mockProducerPool.acquire(any(Properties.class))).thenAnswer(
-                    new Answer<PulsarProducer>() {
-                        @Override
-                        public PulsarProducer answer(InvocationOnMock invocation) {
-                            Properties props = invocation.getArgumentAt(0, Properties.class);
-                            return getProducer(props);
-                        }
+        when(mockProducerPool.acquire(any(Properties.class))).thenAnswer(
+                new Answer<PulsarProducer>() {
+                    @Override
+                    public PulsarProducer answer(InvocationOnMock invocation) {
+                        Properties props = invocation.getArgumentAt(0, Properties.class);
+                        return getProducer(props);
                     }
-                    );
+                }
+            );
 
-            when(mockConsumerPool.acquire(any(Properties.class))).thenAnswer(
-                    new Answer<PulsarConsumer>() {
-                        @Override
-                        public PulsarConsumer answer(InvocationOnMock invocation) {
-                            Properties props = invocation.getArgumentAt(0, Properties.class);
-                            return getConsumer(props);
-                        }
+        when(mockConsumerPool.acquire(any(Properties.class))).thenAnswer(
+                new Answer<PulsarConsumer>() {
+                    @Override
+                    public PulsarConsumer answer(InvocationOnMock invocation) {
+                        Properties props = invocation.getArgumentAt(0, Properties.class);
+                        return getConsumer(props);
                     }
-                    );
-
-
-            doAnswer(new Answer() {
-                   public Object answer(InvocationOnMock invocation){
-                        PulsarConsumer consumer = invocation.getArgumentAt(0, PulsarConsumer.class);
-                        consumer.close();
-                        return null;
-                    }
-                }).when(mockConsumerPool).evict(any(PulsarConsumer.class));
-
+                }
+            );
         } catch (InterruptedException ex) {
 
         }
 
         try {
+            when(mockClient.createProducer(anyString())).thenReturn(getMockProducer());
             when(mockProducer.send(Matchers.argThat(new ArgumentMatcher<byte[]>() {
                 @Override
                 public boolean matches(Object argument) {
@@ -112,11 +103,9 @@ public class MockPulsarClientService extends AbstractControllerService implement
                 }
             }))).thenReturn(null);
         } catch (PulsarClientException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
-
 
     public Producer getMockProducer() {
         return mockProducer;
