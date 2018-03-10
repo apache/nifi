@@ -32,6 +32,7 @@
         <module>nifi-pulsar-nar</module>
         <module>nifi-pulsar-client-service-api</module>
         <module>nifi-pulsar-client-service</module>
+        <module>nifi-pulsar-client-service-nar</module>
     </modules>
 
 </project>
