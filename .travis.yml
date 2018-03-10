@@ -55,4 +55,4 @@ script:
   # Note: The reason the sed is done as part of script is to ensure the pom hack 
   # won't affect the 'clean install' above
   - bash .travis.sh
-  - mvn -T 2 clean install -Pcontrib-check,include-grpc -Ddir-only | grep -v "\[WARNING\]" | grep -v "Downloading from" | grep -v "Copying "
+  - mvn -T 2 clean install -Pcontrib-check,include-grpc,include-atlas -Ddir-only | grep -v "\[WARNING\]" | grep -v "Downloading from" | grep -v "Copying " && exit ${PIPESTATUS[0]}
