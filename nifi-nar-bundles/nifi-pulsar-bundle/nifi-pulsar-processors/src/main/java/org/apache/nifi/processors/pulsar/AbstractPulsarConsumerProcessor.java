@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -140,6 +141,20 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
     public void shutDown() {
         // Stop all the async consumers
         pool.shutdownNow();
+    }
+    
+    @OnStopped
+    protected void close(final ProcessContext context) {
+
+        getLogger().info("Disconnecting Pulsar Consumer");
+        if (consumer != null) {
+
+            context.getProperty(PULSAR_CLIENT_SERVICE)
+                   .asControllerService(PulsarClientPool.class)
+                   .getConsumerPool().evict(consumer);
+        }
+
+        consumer = null;
     }
 
     protected PulsarConsumer getWrappedConsumer(ProcessContext context) throws PulsarClientException {

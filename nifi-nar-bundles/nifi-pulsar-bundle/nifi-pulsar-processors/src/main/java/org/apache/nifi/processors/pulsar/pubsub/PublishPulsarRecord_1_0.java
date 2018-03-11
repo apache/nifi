@@ -119,48 +119,48 @@ public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
             return;
         }
 
-            final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
                 .asControllerService(RecordReaderFactory.class);
 
-            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER)
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER)
                     .asControllerService(RecordSetWriterFactory.class);
 
-            final Map<String, String> attributes = flowFile.getAttributes();
-            boolean error = false;
+        final Map<String, String> attributes = flowFile.getAttributes();
+        boolean error = false;
 
-            try {
-             session.read(flowFile, new InputStreamCallback() {
-                 @Override
-                 public void process(final InputStream rawIn) throws IOException {
-                     try (final InputStream in = new BufferedInputStream(rawIn)) {
-                         final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
-                         final RecordSet recordSet = reader.createRecordSet();
-                         final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
-                         final Producer producer = getWrappedProducer(topic, context).getProducer();
+        try {
+           session.read(flowFile, new InputStreamCallback() {
+              @Override
+              public void process(final InputStream rawIn) throws IOException {
+                 try (final InputStream in = new BufferedInputStream(rawIn)) {
+                      final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
+                      final RecordSet recordSet = reader.createRecordSet();
+                      final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
+                      final Producer producer = getWrappedProducer(topic, context).getProducer();
 
-                         if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-                               messagesSent.addAndGet(sendAsync(producer, writerFactory, schema, recordSet));
-                         } else {
-                               messagesSent.addAndGet(send(producer, writerFactory, schema, recordSet));
-                         }
-
-                      } catch (final SchemaNotFoundException | MalformedRecordException e) {
-                         throw new ProcessException(e);
+                      if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+                          messagesSent.addAndGet(sendAsync(producer, writerFactory, schema, recordSet));
+                      } else {
+                          messagesSent.addAndGet(send(producer, writerFactory, schema, recordSet));
                       }
-                }
-             });
+
+                   } catch (final SchemaNotFoundException | MalformedRecordException e) {
+                      throw new ProcessException(e);
+                   }
+             }
+           });
          } catch (final Exception e) {
             error = true;
          }
 
-             if (error) {
-                 session.transfer(flowFile, REL_FAILURE);
-             } else {
-               session.putAttribute(flowFile, MSG_COUNT, messagesSent.get() + "");
-               session.adjustCounter("Messages Sent", messagesSent.get(), true);
-               session.getProvenanceReporter().send(flowFile, "Sent " + messagesSent.get() + " records to " + topic );
-               session.transfer(flowFile, REL_SUCCESS);
-             }
+         if (error) {
+            session.transfer(flowFile, REL_FAILURE);
+         } else {
+            session.putAttribute(flowFile, MSG_COUNT, messagesSent.get() + "");
+            session.adjustCounter("Messages Sent", messagesSent.get(), true);
+            session.getProvenanceReporter().send(flowFile, "Sent " + messagesSent.get() + " records to " + topic );
+            session.transfer(flowFile, REL_SUCCESS);
+         }
 
     }
 

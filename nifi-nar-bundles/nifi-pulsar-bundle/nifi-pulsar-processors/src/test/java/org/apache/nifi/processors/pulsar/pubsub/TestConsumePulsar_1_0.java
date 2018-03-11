@@ -70,7 +70,6 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
             when(mockConsumer.receiveAsync()).thenReturn(future);
 
         } catch (PulsarClientException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -147,20 +146,20 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
         assertEquals(itertions, flowFiles.size());
 
         for (MockFlowFile ff : flowFiles) {
-                ff.assertContentEquals(msg);
+            ff.assertContentEquals(msg);
         }
 
         if (async) {
-                verify(mockConsumer, times(itertions)).receiveAsync();
+            verify(mockConsumer, times(itertions)).receiveAsync();
         } else {
-                verify(mockConsumer, times(itertions)).receive();
+            verify(mockConsumer, times(itertions)).receive();
         }
 
         // Verify that every message was acknowledged
         if (async) {
-                verify(mockConsumer, times(itertions)).acknowledgeAsync(mockMessage);
+            verify(mockConsumer, times(itertions)).acknowledgeAsync(mockMessage);
         } else {
-                verify(mockConsumer, times(itertions)).acknowledge(mockMessage);
+            verify(mockConsumer, times(itertions)).acknowledge(mockMessage);
         }
     }
 }
