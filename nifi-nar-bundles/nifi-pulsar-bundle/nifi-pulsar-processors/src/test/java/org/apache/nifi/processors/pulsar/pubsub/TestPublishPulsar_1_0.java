@@ -55,7 +55,7 @@ public class TestPublishPulsar_1_0 extends AbstractPulsarProcessorTest {
         mockProducer = mock(Producer.class);
 
         try {
-                // Use the mockProducer for all Producer interactions
+            // Use the mockProducer for all Producer interactions
             when(mockClient.createProducer(anyString())).thenReturn(mockProducer);
 
             when(mockProducer.send(Matchers.argThat(new ArgumentMatcher<byte[]>() {

@@ -140,13 +140,13 @@ public class PublishPulsar_1_0 extends AbstractPulsarProducerProcessor {
 
     private void send(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) throws PulsarClientException {
 
-            MessageId msgId = producer.send(messageContent);
+        MessageId msgId = producer.send(messageContent);
 
-            if (msgId != null) {
-                flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
-                session.adjustCounter("Messages Sent", 1, true);
-                session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
-                session.transfer(flowFile, REL_SUCCESS);
+        if (msgId != null) {
+            flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
+            session.adjustCounter("Messages Sent", 1, true);
+            session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
+            session.transfer(flowFile, REL_SUCCESS);
 
         } else {
             session.transfer(flowFile, REL_FAILURE);

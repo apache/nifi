@@ -60,7 +60,7 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
         mockMessage = mock(Message.class);
 
         try {
-                when(mockClient.subscribe(anyString(), anyString())).thenReturn(mockConsumer);
+            when(mockClient.subscribe(anyString(), anyString())).thenReturn(mockConsumer);
             when(mockConsumer.receive()).thenReturn(mockMessage);
 
             CompletableFuture<Message> future = CompletableFuture.supplyAsync(() -> {
@@ -79,7 +79,7 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
 
     @Test
     public void emptyMessageTest() {
-            when(mockMessage.getData()).thenReturn("".getBytes());
+        when(mockMessage.getData()).thenReturn("".getBytes());
 
         runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
         runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
@@ -89,22 +89,22 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
 
     @Test
     public void singleSyncMessageTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", false, 1);
+        this.sendMessages("Mocked Message", "foo", "bar", false, 1);
     }
 
     @Test
     public void multipleSyncMessagesTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", false, 40);
+        this.sendMessages("Mocked Message", "foo", "bar", false, 40);
     }
 
     @Test
     public void singleAsyncMessageTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", true, 1);
+        this.sendMessages("Mocked Message", "foo", "bar", true, 1);
     }
 
     @Test
     public void multipleAsyncMessagesTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", true, 40);
+        this.sendMessages("Mocked Message", "foo", "bar", true, 40);
     }
 
     /*
@@ -134,9 +134,9 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
 
     private void sendMessages(String msg, String topic, String sub, boolean async, int itertions) throws PulsarClientException {
 
-            when(mockMessage.getData()).thenReturn(msg.getBytes());
+        when(mockMessage.getData()).thenReturn(msg.getBytes());
 
-            runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(async));
+        runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(async));
         runner.setProperty(ConsumePulsar_1_0.TOPIC, topic);
         runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, sub);
         runner.run(itertions, true);

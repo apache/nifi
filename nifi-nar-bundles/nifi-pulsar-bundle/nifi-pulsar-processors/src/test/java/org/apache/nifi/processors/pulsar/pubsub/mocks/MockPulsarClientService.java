@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar.pubsub;
+package org.apache.nifi.processors.pulsar.pubsub.mocks;
 
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.pulsar.PulsarClientPool;

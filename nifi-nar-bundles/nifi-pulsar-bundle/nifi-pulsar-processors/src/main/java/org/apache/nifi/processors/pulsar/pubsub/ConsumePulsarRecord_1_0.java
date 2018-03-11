@@ -33,7 +33,7 @@ import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
 
-public class ConsumerPulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
+public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES;
     private static final Set<Relationship> RELATIONSHIPS;

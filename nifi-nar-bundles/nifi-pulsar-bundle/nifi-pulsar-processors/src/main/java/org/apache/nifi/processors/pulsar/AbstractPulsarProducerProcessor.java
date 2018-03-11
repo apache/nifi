@@ -36,7 +36,7 @@ import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode;
 
 public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProcessor {
 
-    protected static final String MSG_COUNT = "msg.count";
+    public static final String MSG_COUNT = "msg.count";
 
     static final AllowableValue COMPRESSION_TYPE_NONE = new AllowableValue("NONE", "None", "No compression");
     static final AllowableValue COMPRESSION_TYPE_LZ4 = new AllowableValue("LZ4", "LZ4", "Compress with LZ4 algorithm.");
