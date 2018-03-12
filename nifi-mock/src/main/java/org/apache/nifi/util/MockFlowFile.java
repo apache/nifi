@@ -141,11 +141,11 @@ public class MockFlowFile implements FlowFileRecord {
         return data.length;
     }
 
-    void setData(final byte[] data) {
+    public void setData(final byte[] data) {
         this.data = data;
     }
 
-    byte[] getData() {
+    public byte[] getData() {
         return this.data;
     }
 
