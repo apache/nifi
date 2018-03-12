@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -42,7 +43,10 @@ import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO.GarbageCollectio
 import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO.StorageUsageDTO;
 import org.apache.nifi.web.api.dto.diagnostics.GCDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.GarbageCollectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMControllerDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
@@ -635,28 +639,69 @@ public class StatusMerger {
             return;
         }
 
+        if (toMerge.getControllerDiagnostics() == null) {
+            target.setControllerDiagnostics(null);
+        } else {
+            merge(target.getControllerDiagnostics(), toMerge.getControllerDiagnostics());
+        }
+
+        if (toMerge.getFlowDiagnosticsDto() == null) {
+            target.setFlowDiagnosticsDto(null);
+        } else {
+            merge(target.getFlowDiagnosticsDto(), toMerge.getFlowDiagnosticsDto());
+        }
+
+        if (toMerge.getSystemDiagnosticsDto() == null) {
+            target.setSystemDiagnosticsDto(null);
+        } else {
+            merge(target.getSystemDiagnosticsDto(), toMerge.getSystemDiagnosticsDto(), numMillis);
+        }
+    }
+
+    private static void merge(final JVMControllerDiagnosticsSnapshotDTO target, final JVMControllerDiagnosticsSnapshotDTO toMerge) {
+        if (toMerge == null || target == null) {
+            return;
+        }
+
+        target.setMaxEventDrivenThreads(add(target.getMaxEventDrivenThreads(), toMerge.getMaxEventDrivenThreads()));
+        target.setMaxTimerDrivenThreads(add(target.getMaxTimerDrivenThreads(), toMerge.getMaxTimerDrivenThreads()));
+        target.setClusterCoordinator(null);
+        target.setPrimaryNode(null);
+    }
+
+    private static void merge(final JVMFlowDiagnosticsSnapshotDTO target, final JVMFlowDiagnosticsSnapshotDTO toMerge) {
+        if (toMerge == null || target == null) {
+            return;
+        }
+
         target.setActiveEventDrivenThreads(add(target.getActiveEventDrivenThreads(), toMerge.getActiveEventDrivenThreads()));
         target.setActiveTimerDrivenThreads(add(target.getActiveTimerDrivenThreads(), toMerge.getActiveTimerDrivenThreads()));
         target.setBundlesLoaded(null);
-        target.setClusterCoordinator(null);
-        target.setContentRepositoryStorageUsage(null);
-        target.setCpuCores(add(target.getCpuCores(), toMerge.getCpuCores()));
-        target.setCpuLoadAverage(add(target.getCpuLoadAverage(), toMerge.getCpuLoadAverage()));
-        target.setFlowFileRepositoryStorageUsage(null);
-        target.setMaxEventDrivenThreads(add(target.getMaxEventDrivenThreads(), toMerge.getMaxEventDrivenThreads()));
-        target.setMaxHeapBytes(add(target.getMaxHeapBytes(), toMerge.getMaxHeapBytes()));
-        target.setMaxHeap(FormatUtils.formatDataSize(target.getMaxHeapBytes()));
-        target.setMaxOpenFileDescriptors(add(target.getMaxOpenFileDescriptors(), toMerge.getMaxOpenFileDescriptors()));
-        target.setMaxTimerDrivenThreads(add(target.getMaxTimerDrivenThreads(), toMerge.getMaxTimerDrivenThreads()));
-        target.setOpenFileDescriptors(add(target.getOpenFileDescriptors(), toMerge.getOpenFileDescriptors()));
-        target.setPhysicalMemoryBytes(add(target.getPhysicalMemoryBytes(), toMerge.getPhysicalMemoryBytes()));
-        target.setPhysicalMemory(FormatUtils.formatDataSize(target.getPhysicalMemoryBytes()));
-        target.setPrimaryNode(null);
-        target.setProvenanceRepositoryStorageUsage(null);
-        if (target.getTimeZone() == null || toMerge.getTimeZone() == null || !target.getTimeZone().equals(toMerge.getTimeZone())) {
+        target.setUptime(null);
+
+        if (!Objects.equals(target.getTimeZone(), toMerge.getTimeZone())) {
             target.setTimeZone(null);
         }
-        target.setUptime(null);
+    }
+
+    private static void merge(final JVMSystemDiagnosticsSnapshotDTO target, final JVMSystemDiagnosticsSnapshotDTO toMerge, final long numMillis) {
+        if (toMerge == null || target == null) {
+            return;
+        }
+
+        target.setCpuCores(add(target.getCpuCores(), toMerge.getCpuCores()));
+        target.setCpuLoadAverage(add(target.getCpuLoadAverage(), toMerge.getCpuLoadAverage()));
+        target.setOpenFileDescriptors(add(target.getOpenFileDescriptors(), toMerge.getOpenFileDescriptors()));
+        target.setMaxOpenFileDescriptors(add(target.getMaxOpenFileDescriptors(), toMerge.getMaxOpenFileDescriptors()));
+        target.setPhysicalMemoryBytes(add(target.getPhysicalMemoryBytes(), toMerge.getPhysicalMemoryBytes()));
+        target.setPhysicalMemory(FormatUtils.formatDataSize(target.getPhysicalMemoryBytes()));
+
+        target.setContentRepositoryStorageUsage(null);
+        target.setFlowFileRepositoryStorageUsage(null);
+        target.setProvenanceRepositoryStorageUsage(null);
+
+        target.setMaxHeapBytes(add(target.getMaxHeapBytes(), toMerge.getMaxHeapBytes()));
+        target.setMaxHeap(FormatUtils.formatDataSize(target.getMaxHeapBytes()));
 
         mergeGarbageCollectionDiagnostics(target.getGarbageCollectionDiagnostics(), toMerge.getGarbageCollectionDiagnostics(), numMillis);
     }

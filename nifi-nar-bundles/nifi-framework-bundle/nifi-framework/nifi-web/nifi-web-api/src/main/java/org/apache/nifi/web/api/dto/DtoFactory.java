@@ -166,8 +166,11 @@ import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ControllerServiceDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.GCDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.GarbageCollectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMControllerDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.RepositoryUsageDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ThreadDumpDTO;
@@ -3351,18 +3354,40 @@ public final class DtoFactory {
     private JVMDiagnosticsSnapshotDTO createJvmDiagnosticsSnapshotDto(final FlowController flowController) {
         final JVMDiagnosticsSnapshotDTO dto = new JVMDiagnosticsSnapshotDTO();
 
+        final JVMControllerDiagnosticsSnapshotDTO controllerDiagnosticsDto = new JVMControllerDiagnosticsSnapshotDTO();
+        final JVMFlowDiagnosticsSnapshotDTO flowDiagnosticsDto = new JVMFlowDiagnosticsSnapshotDTO();
+        final JVMSystemDiagnosticsSnapshotDTO systemDiagnosticsDto = new JVMSystemDiagnosticsSnapshotDTO();
+
+        dto.setControllerDiagnostics(controllerDiagnosticsDto);
+        dto.setFlowDiagnosticsDto(flowDiagnosticsDto);
+        dto.setSystemDiagnosticsDto(systemDiagnosticsDto);
+
         final SystemDiagnostics systemDiagnostics = flowController.getSystemDiagnostics();
 
+        // flow-related information
         final Set<BundleDTO> bundlesLoaded = ExtensionManager.getAllBundles().stream()
             .map(bundle -> bundle.getBundleDetails().getCoordinate())
             .sorted((a, b) -> a.getCoordinate().compareTo(b.getCoordinate()))
             .map(this::createBundleDto)
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        dto.setMaxOpenFileDescriptors(systemDiagnostics.getMaxOpenFileHandles());
-        dto.setOpenFileDescriptors(systemDiagnostics.getOpenFileHandles());
-        dto.setPhysicalMemoryBytes(systemDiagnostics.getTotalPhysicalMemory());
-        dto.setPhysicalMemory(FormatUtils.formatDataSize(systemDiagnostics.getTotalPhysicalMemory()));
+        flowDiagnosticsDto.setActiveEventDrivenThreads(flowController.getActiveEventDrivenThreadCount());
+        flowDiagnosticsDto.setActiveTimerDrivenThreads(flowController.getActiveTimerDrivenThreadCount());
+        flowDiagnosticsDto.setBundlesLoaded(bundlesLoaded);
+        flowDiagnosticsDto.setTimeZone(System.getProperty("user.timezone"));
+        flowDiagnosticsDto.setUptime(FormatUtils.formatHoursMinutesSeconds(systemDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
+
+        // controller-related information
+        controllerDiagnosticsDto.setClusterCoordinator(flowController.isClusterCoordinator());
+        controllerDiagnosticsDto.setPrimaryNode(flowController.isPrimary());
+        controllerDiagnosticsDto.setMaxEventDrivenThreads(flowController.getMaxEventDrivenThreadCount());
+        controllerDiagnosticsDto.setMaxTimerDrivenThreads(flowController.getMaxTimerDrivenThreadCount());
+
+        // system-related information
+        systemDiagnosticsDto.setMaxOpenFileDescriptors(systemDiagnostics.getMaxOpenFileHandles());
+        systemDiagnosticsDto.setOpenFileDescriptors(systemDiagnostics.getOpenFileHandles());
+        systemDiagnosticsDto.setPhysicalMemoryBytes(systemDiagnostics.getTotalPhysicalMemory());
+        systemDiagnosticsDto.setPhysicalMemory(FormatUtils.formatDataSize(systemDiagnostics.getTotalPhysicalMemory()));
 
         final NumberFormat percentageFormat = NumberFormat.getPercentInstance();
         percentageFormat.setMaximumFractionDigits(2);
@@ -3425,22 +3450,13 @@ public final class DtoFactory {
             flowFileRepoUsage.setUtilization(utilization);
         }
 
-        dto.setActiveEventDrivenThreads(flowController.getActiveEventDrivenThreadCount());
-        dto.setActiveTimerDrivenThreads(flowController.getActiveTimerDrivenThreadCount());
-        dto.setBundlesLoaded(bundlesLoaded);
-        dto.setClusterCoordinator(flowController.isClusterCoordinator());
-        dto.setContentRepositoryStorageUsage(contentRepoUsage);
-        dto.setCpuCores(systemDiagnostics.getAvailableProcessors());
-        dto.setCpuLoadAverage(systemDiagnostics.getProcessorLoadAverage());
-        dto.setFlowFileRepositoryStorageUsage(flowFileRepoUsage);
-        dto.setMaxHeapBytes(systemDiagnostics.getMaxHeap());
-        dto.setMaxHeap(FormatUtils.formatDataSize(systemDiagnostics.getMaxHeap()));
-        dto.setMaxEventDrivenThreads(flowController.getMaxEventDrivenThreadCount());
-        dto.setMaxTimerDrivenThreads(flowController.getMaxTimerDrivenThreadCount());
-        dto.setPrimaryNode(flowController.isPrimary());
-        dto.setProvenanceRepositoryStorageUsage(provRepoUsage);
-        dto.setTimeZone(System.getProperty("user.timezone"));
-        dto.setUptime(FormatUtils.formatHoursMinutesSeconds(systemDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
+        systemDiagnosticsDto.setContentRepositoryStorageUsage(contentRepoUsage);
+        systemDiagnosticsDto.setCpuCores(systemDiagnostics.getAvailableProcessors());
+        systemDiagnosticsDto.setCpuLoadAverage(systemDiagnostics.getProcessorLoadAverage());
+        systemDiagnosticsDto.setFlowFileRepositoryStorageUsage(flowFileRepoUsage);
+        systemDiagnosticsDto.setMaxHeapBytes(systemDiagnostics.getMaxHeap());
+        systemDiagnosticsDto.setMaxHeap(FormatUtils.formatDataSize(systemDiagnostics.getMaxHeap()));
+        systemDiagnosticsDto.setProvenanceRepositoryStorageUsage(provRepoUsage);
 
         // Create the Garbage Collection History info
         final GarbageCollectionHistory gcHistory = flowController.getGarbageCollectionHistory();
@@ -3463,7 +3479,8 @@ public final class DtoFactory {
             gcDiagnostics.add(gcDto);
         }
 
-        dto.setGarbageCollectionDiagnostics(gcDiagnostics);
+        systemDiagnosticsDto.setGarbageCollectionDiagnostics(gcDiagnostics);
+
         return dto;
     }
 

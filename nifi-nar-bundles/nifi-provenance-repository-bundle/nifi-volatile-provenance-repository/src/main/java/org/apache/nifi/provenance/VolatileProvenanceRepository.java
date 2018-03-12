@@ -612,7 +612,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     public long getContainerUsableSpace(String containerName) throws IOException {
         return maxSize - ringBuffer.getSize();
     }
-    
+
     public String getContainerFileStoreName(String containerName) {
         return null;
     }

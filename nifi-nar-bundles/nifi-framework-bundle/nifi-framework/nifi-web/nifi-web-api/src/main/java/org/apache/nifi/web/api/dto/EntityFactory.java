@@ -96,10 +96,6 @@ public final class EntityFactory {
         return entity;
     }
 
-    private void pairDownDiagnostics(final ProcessorDiagnosticsDTO dto, final PermissionsDTO controllerPermissions) {
-
-    }
-
     public StatusHistoryEntity createStatusHistoryEntity(final StatusHistoryDTO statusHistory, final PermissionsDTO permissions) {
         final StatusHistoryEntity entity = new StatusHistoryEntity();
         entity.setCanRead(permissions.getCanRead());

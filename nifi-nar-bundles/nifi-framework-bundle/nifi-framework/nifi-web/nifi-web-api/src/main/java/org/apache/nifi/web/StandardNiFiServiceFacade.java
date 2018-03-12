@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.web;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -140,7 +142,6 @@ import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
-import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -283,8 +284,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
+import com.google.common.collect.Sets;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -4558,9 +4559,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final boolean canReadController = authorizableLookup.getController().isAuthorized(authorizer, RequestAction.READ, user);
         if (!canReadController) {
             for (final JVMDiagnosticsSnapshotDTO snapshot : jvmDiagnosticsSnaphots) {
-                snapshot.setMaxEventDrivenThreads(null);
-                snapshot.setMaxTimerDrivenThreads(null);
-                snapshot.setBundlesLoaded(null);
+                snapshot.setControllerDiagnostics(null);
             }
         }
 
@@ -4568,16 +4567,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final boolean canReadSystem = authorizableLookup.getSystem().isAuthorized(authorizer, RequestAction.READ, user);
         if (!canReadSystem) {
             for (final JVMDiagnosticsSnapshotDTO snapshot : jvmDiagnosticsSnaphots) {
-                snapshot.setContentRepositoryStorageUsage(null);
-                snapshot.setCpuCores(null);
-                snapshot.setCpuLoadAverage(null);
-                snapshot.setFlowFileRepositoryStorageUsage(null);
-                snapshot.setMaxHeap(null);
-                snapshot.setMaxHeapBytes(null);
-                snapshot.setProvenanceRepositoryStorageUsage(null);
-                snapshot.setPhysicalMemory(null);
-                snapshot.setPhysicalMemoryBytes(null);
-                snapshot.setGarbageCollectionDiagnostics(null);
+                snapshot.setSystemDiagnosticsDto(null);
+            }
+        }
+
+        final boolean canReadFlow = authorizableLookup.getFlow().isAuthorized(authorizer, RequestAction.READ, user);
+        if (!canReadFlow) {
+            for (final JVMDiagnosticsSnapshotDTO snapshot : jvmDiagnosticsSnaphots) {
+                snapshot.setFlowDiagnosticsDto(null);
             }
         }
 
@@ -4587,29 +4584,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return authorizableLookup.getConnection(connectionId).getAuthorizable().isAuthorized(authorizer, RequestAction.READ, user);
         };
 
-        // Function that can be used to remove the Source or Destination of a ConnectionDTO, if the user is not authorized.
-        final Function<ConnectionDiagnosticsDTO, ConnectionDiagnosticsDTO> filterSourceDestination = connectionDiagnostics -> {
-            final ConnectionDTO connection = connectionDiagnostics.getConnection();
-            final ConnectableDTO sourceDto = connection.getSource();
-            final Authorizable sourceAuthorizable = authorizableLookup.getLocalConnectable(sourceDto.getId());
-            if (sourceAuthorizable == null || !sourceAuthorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
-                connection.setSource(null);
-            }
-
-            final ConnectableDTO destinationDto = connection.getDestination();
-            final Authorizable destinationAuthorizable = authorizableLookup.getLocalConnectable(destinationDto.getId());
-            if (destinationAuthorizable == null || !destinationAuthorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
-                connection.setDestination(null);
-            }
-
-            return connectionDiagnostics;
-        };
-
         // Filter incoming connections by what user is authorized to READ
         final Set<ConnectionDiagnosticsDTO> incoming = dto.getIncomingConnections();
         final Set<ConnectionDiagnosticsDTO> filteredIncoming = incoming.stream()
             .filter(connectionAuthorized)
-            .map(filterSourceDestination)
             .collect(Collectors.toSet());
 
         dto.setIncomingConnections(filteredIncoming);
@@ -4618,7 +4596,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<ConnectionDiagnosticsDTO> outgoing = dto.getOutgoingConnections();
         final Set<ConnectionDiagnosticsDTO> filteredOutgoing = outgoing.stream()
             .filter(connectionAuthorized)
-            .map(filterSourceDestination)
             .collect(Collectors.toSet());
         dto.setOutgoingConnections(filteredOutgoing);
 
