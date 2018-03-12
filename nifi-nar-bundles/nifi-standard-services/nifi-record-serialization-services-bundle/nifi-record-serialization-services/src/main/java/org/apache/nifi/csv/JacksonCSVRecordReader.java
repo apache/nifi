@@ -103,7 +103,7 @@ public class JacksonCSVRecordReader implements RecordReader {
         CsvSchema csvSchema = csvSchemaBuilder.build();
 
         // Add remaining config options to the mapper
-        List<CsvParser.Feature> features = new ArrayList<>(3);
+        List<CsvParser.Feature> features = new ArrayList<>();
         features.add(CsvParser.Feature.INSERT_NULLS_FOR_MISSING_COLUMNS);
         if (csvFormat.getIgnoreEmptyLines()) {
             features.add(CsvParser.Feature.SKIP_EMPTY_LINES);
@@ -114,7 +114,7 @@ public class JacksonCSVRecordReader implements RecordReader {
 
         ObjectReader objReader = mapper.readerFor(String[].class)
                 .with(csvSchema)
-                .withFeatures(features.toArray(new CsvParser.Feature[3]));
+                .withFeatures(features.toArray(new CsvParser.Feature[features.size()]));
 
         recordStream = objReader.readValues(reader);
     }
