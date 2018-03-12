@@ -102,7 +102,8 @@ public class FlattenJson extends AbstractProcessor {
             "Conforms to MongoDB dot notation to update also nested documents");
 
     public static final PropertyDescriptor FLATTEN_MODE = new PropertyDescriptor.Builder()
-            .name("Flatten Mode")
+            .name("flatten-mode")
+            .displayName("Flatten Mode")
             .description("Specifies how json is flattened")
             .defaultValue(FLATTEN_MODE_KEEP_ARRAYS.getValue())
             .required(true)

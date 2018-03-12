@@ -148,7 +148,6 @@ class TestFlattenJson {
                 ]
         ]))
 
-        testRunner.setValidateExpressionUsage(true);
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
         baseTest(testRunner, json,5) { parsed ->
             Assert.assertEquals("Separator not applied.", "one", parsed["first.second.third[0]"])
@@ -168,7 +167,6 @@ class TestFlattenJson {
                 ]
         ]))
 
-        testRunner.setValidateExpressionUsage(true);
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_DOT_NOTATION)
         baseTest(testRunner, json,5) { parsed ->
             Assert.assertEquals("Separator not applied.", "one", parsed["first.second.third.0"])
