@@ -124,6 +124,29 @@ public class TestJacksonCSVRecordReader {
     }
 
     @Test
+    public void testExcelFormat() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = new ArrayList<RecordField>();
+        fields.add(new RecordField("fieldA", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("fieldB", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String headerLine = "fieldA,fieldB";
+        final String inputRecord = "valueA,valueB";
+        final String csvData = headerLine + "\n" + inputRecord;
+        final byte[] inputData = csvData.getBytes();
+
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+            final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.EXCEL)) {
+
+            final Object[] record = reader.nextRecord().getValues();
+            final Object[] expectedValues = new Object[] {"valueA", "valueB"};
+            Assert.assertArrayEquals(expectedValues, record);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
     public void testMultipleRecords() throws IOException, MalformedRecordException {
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
