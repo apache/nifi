@@ -46,29 +46,54 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 
+@CapabilityDescription("Consumes messages from Apache Pulsar specifically built against the Pulsar 1.x Consumer API. "
+        + "The complementary NiFi processor for sending messages is PublishPulsarRecord_1_0. Please note that, at this time, "
+        + "the Processor assumes that all records that are retrieved from a given partition have the same schema. If any "
+        + "of the Pulsar messages that are pulled but cannot be parsed or written with the configured Record Reader or "
+        + "Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the "
+        + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual "
+        + "messages within the single FlowFile. A 'record.count' attribute is added to indicate how many messages are contained in the "
+        + "FlowFile. No two Pulsar messages will be placed into the same FlowFile if they have different schemas.")
+@Tags({"Pulsar", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume"})
+@WritesAttributes({
+    @WritesAttribute(attribute = "record.count", description = "The number of records received")
+})
+@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@SeeAlso({PublishPulsar_1_0.class, ConsumePulsar_1_0.class, PublishPulsarRecord_1_0.class})
 public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
 
+    public static final String MSG_COUNT = "record.count";
+
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-    		.name("Maximum Async Requests")
-    		.description("The number of records to combine into a single flow file.")
-    		.required(false)
-    		.addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-    		.defaultValue("1000")
-    		.build();
-    
-    // TODO Add a timeout property as well, so we don't wait based on BATCH_SIZE alone
-    
+            .name("Maximum Async Requests")
+            .description("The number of records to combine into a single flow file.")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("1000")
+            .build();
+
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse_failure")
             .description("FlowFiles for which the content was not prasable")
             .build();
-	
+
+
     private static final List<PropertyDescriptor> PROPERTIES;
     private static final Set<Relationship> RELATIONSHIPS;
 
@@ -88,6 +113,7 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
         properties.add(RECEIVER_QUEUE_SIZE);
         properties.add(SUBSCRIPTION_TYPE);
         properties.add(BATCH_SIZE);
+        properties.add(MAX_WAIT_TIME);
 
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
@@ -109,23 +135,28 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        
-    	    final AtomicLong messagesReceived = new AtomicLong(0L);
-    	    
-    	    final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
-                    .asControllerService(RecordReaderFactory.class);
-    	    
-    	    final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER)
-                    .asControllerService(RecordSetWriterFactory.class);
-    	
+
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
+                .asControllerService(RecordReaderFactory.class);
+
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER)
+                .asControllerService(RecordSetWriterFactory.class);
+
+        List<Message> messages = null;
         try {
             if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-                
+                   // Launch consumers
+                consumeAsync(context, session);
+
+                // Handle completed consumers
+                messages = handleAsync(context, session);
+
             } else {
-            	   List<Message> messages = consume(context, session);
-            	   messagesReceived.addAndGet(messages.size());
-            	   processMessages(context, session, messages, readerFactory, writerFactory);
+               messages = consume(context, session);
             }
+
+            processMessages(context, session, messages, readerFactory, writerFactory, context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean());
+
         } catch (PulsarClientException e) {
             getLogger().error("Unable to consume from Pulsar Topic ", e);
             context.yield();
@@ -137,130 +168,184 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
     /**
      * Pull messages off of the topic until we have reached BATCH_SIZE or BATCH_DURATION
      * whichever occurs first.
-     * 
-     * @param context
-     * @param session
-     * @return
-     * @throws PulsarClientException
      */
-	private List<Message> consume(ProcessContext context, ProcessSession session) throws PulsarClientException {
+    private List<Message> consume(ProcessContext context, ProcessSession session) throws PulsarClientException {
+
+        final Integer queryTimeout = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
+
         Consumer consumer = getWrappedConsumer(context).getConsumer();
-        
+
         List<Message> messages = new ArrayList<Message>();
-        
-        while (messages.size() < context.getProperty(BATCH_SIZE).asInteger()) {
+
+        long startTime = System.currentTimeMillis();
+
+        while ( (messages.size() < context.getProperty(BATCH_SIZE).asInteger())
+                && (queryTimeout == 0 || System.currentTimeMillis() - startTime < queryTimeout ) ) {
             messages.add(consumer.receive());
         }
-        
+
         return messages;
     }
-	
-	private void processMessages(ProcessContext context, ProcessSession session, List<Message> messages, RecordReaderFactory readerFactory, RecordSetWriterFactory writerFactory) throws PulsarClientException {
-	    
-	    if (messages.isEmpty()) 
-	    	   return;
-	    
-	    final BiConsumer<Message, Exception> handleParseFailure = (msg, e) -> {
-	    	    FlowFile failureFlowFile = session.create();
-	    	    if (msg.getData() != null) {
-	            failureFlowFile = session.write(failureFlowFile, out -> out.write(msg.getData()));
-	        }
-	    	    session.transfer(failureFlowFile, REL_PARSE_FAILURE);
-	    };
-	    
-	    RecordSetWriter writer = null;
-	    FlowFile flowFile = null;
-	    OutputStream rawOut = null;
-	    
-	    for (Message msg: messages)  {
-	       	RecordReader reader = getRecordReader(msg, readerFactory, handleParseFailure);
-		    Record firstRecord = getFirstRecord(msg, reader, handleParseFailure);
-		    
-		    if (firstRecord == null) {
+
+    private void processMessages(ProcessContext context, ProcessSession session, List<Message> messages, RecordReaderFactory readerFactory,
+            RecordSetWriterFactory writerFactory, boolean async) throws PulsarClientException {
+
+        if (messages.isEmpty())
+           return;
+
+        final AtomicLong messagesReceived = new AtomicLong(0L);
+
+        final BiConsumer<Message, Exception> handleParseFailure = (msg, e) -> {
+            FlowFile failureFlowFile = session.create();
+            if (msg.getData() != null) {
+               failureFlowFile = session.write(failureFlowFile, out -> out.write(msg.getData()));
+            }
+               session.transfer(failureFlowFile, REL_PARSE_FAILURE);
+        };
+
+        RecordSetWriter writer = null;
+        FlowFile flowFile = null;
+        OutputStream rawOut = null;
+
+        for (Message msg: messages)  {
+               RecordReader reader = getRecordReader(msg, readerFactory, handleParseFailure);
+            Record firstRecord = getFirstRecord(msg, reader, handleParseFailure);
+
+            if (firstRecord == null) {
                 // If the message doesn't contain any record, just ack the message
-		        consumer.getConsumer().acknowledge(msg);
+                if (async) {
+                       ackService.submit(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            return getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg).get();
+                        }
+                   });
+                } else {
+                      consumer.getConsumer().acknowledge(msg);
+                }
+
                 continue;
             }
-		    
-		    // Session / FlowFile starts here
-		    if (flowFile == null) {
-		    	    flowFile = session.create();
+
+            // Session / FlowFile starts here
+            if (flowFile == null) {
+                    flowFile = session.create();
                 rawOut = session.write(flowFile);
-		    }
-		    
-		    // Create the Record Writer
-		    if (writer == null) {
-		        try {
-				    writer = getRecordWriter(writerFactory, firstRecord.getSchema(), rawOut);
-				    writer.beginRecordSet();
-			    } catch (SchemaNotFoundException | IOException ex) {
-				    getLogger().error("Failed to obtain Schema for FlowFile.", ex);
+            }
+
+            // Create the Record Writer
+            if (writer == null) {
+                try {
+                    writer = getRecordWriter(writerFactory, firstRecord.getSchema(), rawOut);
+                    writer.beginRecordSet();
+                } catch (SchemaNotFoundException | IOException ex) {
+                    getLogger().error("Failed to obtain Schema for FlowFile.", ex);
                     throw new ProcessException(ex);
-			    }
-		    }
-		   
-		    // Read all the records from this message, as it may contain several
+                }
+            }
+
+            // Read all the records from this message, as it may contain several
             try {
-	               
+
                 for (Record record = firstRecord; record != null; record = reader.nextRecord()) {
                     writer.write(record);
-         	    }
-            	                     	       
-            	} catch (MalformedRecordException | IOException mEx) {
-            	   handleParseFailure.accept(msg, mEx);
-            	}
-            
+                    messagesReceived.incrementAndGet();
+                 }
+
+                } catch (MalformedRecordException | IOException mEx) {
+                   handleParseFailure.accept(msg, mEx);
+                }
+
             // Acknowledge the message
-            consumer.getConsumer().acknowledge(msg);
-		    
-	    }
-	    
-	    // Clean-up and transfer session
-	    try {
-	    	    if (writer != null)
-	    	    	   writer.finishRecordSet();
-	    	    
-	    	    if (rawOut != null)
-			  rawOut.close();
-		} catch (IOException e1) {
-			getLogger().error("Error cleaning up", e1);
-		}
-  	    
-	    if (flowFile != null)
-  	       session.transfer(flowFile, REL_SUCCESS);
-	}
-	
-	private Record getFirstRecord(Message msg, RecordReader reader, BiConsumer<Message, Exception> handleParseFailure) {
-		
-		Record firstRecord = null;
-		
+            if (async) {
+               ackService.submit(new Callable<Void>() {
+                   @Override
+                   public Void call() throws Exception {
+                      return getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg).get();
+                   }
+               });
+            } else {
+                  consumer.getConsumer().acknowledge(msg);
+            }
+        }
+
+        // Clean-up and transfer session
         try {
-			firstRecord = reader.nextRecord();
-		} catch (IOException | MalformedRecordException ex) {
-			handleParseFailure.accept(msg, ex);
-		}
-        
+            if (writer != null)
+               writer.finishRecordSet();
+
+            if (rawOut != null)
+              rawOut.close();
+        } catch (IOException e1) {
+            getLogger().error("Error cleaning up", e1);
+        }
+
+        if (flowFile != null) {
+           session.putAttribute(flowFile, MSG_COUNT, messagesReceived.toString());
+           session.transfer(flowFile, REL_SUCCESS);
+        }
+    }
+
+    private Record getFirstRecord(Message msg, RecordReader reader, BiConsumer<Message, Exception> handleParseFailure) {
+
+        Record firstRecord = null;
+
+        try {
+            firstRecord = reader.nextRecord();
+        } catch (IOException | MalformedRecordException ex) {
+            handleParseFailure.accept(msg, ex);
+        }
+
         return firstRecord;
-	}
-	
-	private RecordReader getRecordReader(Message msg, RecordReaderFactory readerFactory, BiConsumer<Message, Exception> handleParseFailure) {
-		
-		RecordReader reader = null;
-		final byte[] recordBytes = msg.getData() == null ? new byte[0] : msg.getData();
-		
-		try (final InputStream in = new ByteArrayInputStream(recordBytes)) {
- 	       reader = readerFactory.createRecordReader(Collections.emptyMap(), in, getLogger());
-		} catch (MalformedRecordException | IOException | SchemaNotFoundException ex) {
- 	       handleParseFailure.accept(msg, ex);
-	    }
-		
-		return reader;
-		
-	}
-	
-	private RecordSetWriter getRecordWriter(RecordSetWriterFactory writerFactory, RecordSchema srcSchema, OutputStream out) throws SchemaNotFoundException, IOException {
-		RecordSchema writeSchema = writerFactory.getSchema(Collections.emptyMap(), srcSchema);
-		return writerFactory.createWriter(getLogger(), writeSchema, out);
-	}
-	   
+    }
+
+    private RecordReader getRecordReader(Message msg, RecordReaderFactory readerFactory, BiConsumer<Message, Exception> handleParseFailure) {
+
+        RecordReader reader = null;
+        final byte[] recordBytes = msg.getData() == null ? new byte[0] : msg.getData();
+
+        try (final InputStream in = new ByteArrayInputStream(recordBytes)) {
+            reader = readerFactory.createRecordReader(Collections.emptyMap(), in, getLogger());
+        } catch (MalformedRecordException | IOException | SchemaNotFoundException ex) {
+            handleParseFailure.accept(msg, ex);
+        }
+
+        return reader;
+
+    }
+
+    private RecordSetWriter getRecordWriter(RecordSetWriterFactory writerFactory, RecordSchema srcSchema, OutputStream out) throws SchemaNotFoundException, IOException {
+        RecordSchema writeSchema = writerFactory.getSchema(Collections.emptyMap(), srcSchema);
+        return writerFactory.createWriter(getLogger(), writeSchema, out);
+    }
+
+    protected List<Message> handleAsync(ProcessContext context, ProcessSession session) {
+
+       List<Message> messages = new ArrayList<Message>();
+       final Integer queryTimeout = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
+
+       try {
+
+            Future<Message> done = null;
+            do {
+                done = consumerService.poll(queryTimeout, TimeUnit.SECONDS);
+
+                if (done == null)
+                       // Not much we can do here...
+                   continue;
+
+                Message msg = done.get();
+
+                if (msg != null) {
+                   messages.add(msg);
+                }
+            } while (done != null);
+
+       } catch (InterruptedException | ExecutionException e) {
+           getLogger().error("Trouble consuming messages ", e);
+       }
+
+       return messages;
+
+    }
 }

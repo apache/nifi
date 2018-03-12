@@ -138,16 +138,8 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
         runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(async));
         runner.setProperty(ConsumePulsar_1_0.TOPIC, topic);
         runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, sub);
-        runner.run(itertions, true);
 
-        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
-
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_0.REL_SUCCESS);
-        assertEquals(itertions, flowFiles.size());
-
-        for (MockFlowFile ff : flowFiles) {
-            ff.assertContentEquals(msg);
-        }
+        runner.run(itertions, false, true);
 
         if (async) {
             verify(mockConsumer, times(itertions)).receiveAsync();
@@ -161,5 +153,15 @@ public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
         } else {
             verify(mockConsumer, times(itertions)).acknowledge(mockMessage);
         }
+
+        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_0.REL_SUCCESS);
+        assertEquals(itertions, flowFiles.size());
+
+        for (MockFlowFile ff : flowFiles) {
+            ff.assertContentEquals(msg);
+        }
+
     }
 }

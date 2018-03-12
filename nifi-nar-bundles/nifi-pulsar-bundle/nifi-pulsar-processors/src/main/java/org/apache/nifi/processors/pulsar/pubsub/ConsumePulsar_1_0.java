@@ -24,11 +24,12 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -37,7 +38,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessor;
-import org.apache.nifi.pulsar.PulsarClientPool;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -46,6 +46,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 @CapabilityDescription("Consumes messages from Apache Pulsar "
         + "The complementary NiFi processor for sending messages is PublishPulsar.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@SeeAlso({PublishPulsar_1_0.class, ConsumePulsarRecord_1_0.class, PublishPulsarRecord_1_0.class})
 public class ConsumePulsar_1_0 extends AbstractPulsarConsumerProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES;
@@ -62,6 +63,7 @@ public class ConsumePulsar_1_0 extends AbstractPulsarConsumerProcessor {
         properties.add(PRIORITY_LEVEL);
         properties.add(RECEIVER_QUEUE_SIZE);
         properties.add(SUBSCRIPTION_TYPE);
+        properties.add(MAX_WAIT_TIME);
 
         PROPERTIES = Collections.unmodifiableList(properties);
 
@@ -102,49 +104,50 @@ public class ConsumePulsar_1_0 extends AbstractPulsarConsumerProcessor {
 
     }
 
-    private void handleAsync(ProcessContext context, ProcessSession session) {
+    /**
+     * Pull Pulsar messages off of the completionService and process them.
+     * This clears out the pool for more tasks.
+     */
+    protected void handleAsync(ProcessContext context, ProcessSession session) {
 
         try {
-            Future<Message> done = completionService.take();
-            Message msg = done.get();
 
-            if (msg != null) {
-                FlowFile flowFile = null;
-                    final byte[] value = msg.getData();
-                    if (value != null && value.length > 0) {
-                        flowFile = session.create();
-                        flowFile = session.write(flowFile, out -> {
-                            out.write(value);
-                        });
-                    }
+            Future<Message> done = null;
+            do {
+               done = consumerService.poll(50, TimeUnit.MILLISECONDS);
 
-                    session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
-                    session.transfer(flowFile, REL_SUCCESS);
-                    session.commit();
-                    getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg);
-            }
+               if (done == null)
+                 continue;
 
-        } catch (InterruptedException | ExecutionException | PulsarClientException e) {
+               Message msg = done.get();
+
+               if (msg != null) {
+                   FlowFile flowFile = null;
+                   final byte[] value = msg.getData();
+                   if (value != null && value.length > 0) {
+                      flowFile = session.create();
+                      flowFile = session.write(flowFile, out -> {
+                          out.write(value);
+                      });
+                   }
+
+                   session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
+                   session.transfer(flowFile, REL_SUCCESS);
+                   session.commit();
+
+                   ackService.submit(new Callable<Void>() {
+                       @Override
+                       public Void call() throws Exception {
+                           return getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg).get();
+                       }
+                   });
+               }
+
+            } while (done != null);
+
+        } catch (InterruptedException | ExecutionException e) {
             getLogger().error("Trouble consuming messages ", e);
         }
-
-    }
-
-    /*
-     * For now let's assume that this processor will be configured to run for a longer
-     * duration than 0 milliseconds. So we will be grabbing as many messages off the topic
-     * as possible and committing them as FlowFiles
-     */
-    private void consumeAsync(ProcessContext context, ProcessSession session) throws PulsarClientException {
-
-        Consumer consumer = getWrappedConsumer(context).getConsumer();
-
-        completionService.submit(new Callable<Message>() {
-            @Override
-            public Message call() throws Exception {
-                    return consumer.receiveAsync().get();
-            }
-        });
 
     }
 

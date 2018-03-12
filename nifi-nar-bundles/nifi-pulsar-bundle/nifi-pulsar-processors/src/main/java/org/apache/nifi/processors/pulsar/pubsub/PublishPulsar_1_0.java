@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -51,6 +52,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
         + "FlowFiles that are routed to success.")
+@SeeAlso({ConsumePulsar_1_0.class, ConsumePulsarRecord_1_0.class, PublishPulsarRecord_1_0.class})
 public class PublishPulsar_1_0 extends AbstractPulsarProducerProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES;

@@ -34,7 +34,7 @@ public final class RecordBasedConst {
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("record-writer")
             .displayName("Record Writer")
-            .description("The Record Writer to use in order to serialize the data before sending to Kafka")
+            .description("The Record Writer to use in order to serialize the data before sending to Pulsar")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(false)
             .required(true)

@@ -17,9 +17,12 @@
 package org.apache.nifi.processors.pulsar;
 
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -28,10 +31,12 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.pulsar.PulsarClientPool;
 import org.apache.nifi.pulsar.PulsarConsumer;
 import org.apache.nifi.pulsar.pool.PulsarConsumerFactory;
+import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerConfiguration;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -122,29 +127,70 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
             .defaultValue(SHARED.getValue())
             .build();
 
+    public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
+            .name("Max Wait Time")
+            .description("The maximum amount of time allowed for a Pulsar consumer to poll a subscription for data "
+                    + ", zero means there is no limit. Max time less than 1 second will be equal to zero.")
+            .defaultValue("2 seconds")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
 
     // Reuse the same consumer for a given topic / subscription
     protected PulsarConsumer consumer;
     protected ConsumerConfiguration consumerConfig;
 
     // Pool for running multiple consume Async requests
-    protected ExecutorService pool;
-    protected ExecutorCompletionService<Message> completionService;
+    protected ExecutorService consumerPool;
+    protected ExecutorCompletionService<Message> consumerService;
+
+    // Pool for async acknowledgments. This way we can wait for them all to be completed on shut down
+    protected ExecutorService ackPool;
+    protected ExecutorCompletionService<Void> ackService;
+
+    private AsyncAcknowledgmentMonitorThread ackMonitor;
+
 
     @OnScheduled
     public void init(ProcessContext context) {
-        pool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
-        completionService = new ExecutorCompletionService<>(pool);
+        consumerPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
+        consumerService = new ExecutorCompletionService<>(consumerPool);
+
+        ackPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger() + 1);
+        ackService = new ExecutorCompletionService<>(ackPool);
+
+        // We only need this background thread if we are running in Async mode
+        if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+           ackMonitor = new AsyncAcknowledgmentMonitorThread(ackService);
+           ackMonitor.start();
+           ackPool.submit(ackMonitor);
+        }
     }
 
     @OnUnscheduled
     public void shutDown() {
+
         // Stop all the async consumers
-        pool.shutdownNow();
+        try {
+           consumerPool.shutdown();
+           consumerPool.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+           getLogger().error("Unable to stop all the Pulsar Consumers", e);
+        }
+
+        // Wait for the async acknowledgments to complete.
+        try {
+           ackPool.shutdown();
+           ackPool.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+           getLogger().error("Unable to wait for all of the message acknowledgments to be sent", e);
+        }
+
     }
-    
+
     @OnStopped
-    protected void close(final ProcessContext context) {
+    public void close(final ProcessContext context) {
 
         getLogger().info("Disconnecting Pulsar Consumer");
         if (consumer != null) {
@@ -155,6 +201,28 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
         }
 
         consumer = null;
+    }
+
+    /*
+     * For now let's assume that this processor will be configured to run for a longer
+     * duration than 0 milliseconds. So we will be grabbing as many messages off the topic
+     * as possible and committing them as FlowFiles
+     */
+    protected void consumeAsync(ProcessContext context, ProcessSession session) throws PulsarClientException {
+
+        Consumer consumer = getWrappedConsumer(context).getConsumer();
+
+        try {
+            consumerService.submit(new Callable<Message>() {
+               @Override
+               public Message call() throws Exception {
+                 return consumer.receiveAsync().get();
+               }
+           });
+        } catch (final RejectedExecutionException ex) {
+            // This can happen if the processor is being Unscheduled.
+        }
+
     }
 
     protected PulsarConsumer getWrappedConsumer(ProcessContext context) throws PulsarClientException {
@@ -179,7 +247,7 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
         }
     }
 
-    private Properties getConsumerProperties(ProcessContext context) {
+    protected Properties getConsumerProperties(ProcessContext context) {
 
         Properties props = new Properties();
         props.put(PulsarConsumerFactory.TOPIC_NAME, context.getProperty(TOPIC).getValue());
@@ -188,7 +256,7 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
         return props;
     }
 
-    private ConsumerConfiguration getConsumerConfig(ProcessContext context) {
+    protected ConsumerConfiguration getConsumerConfig(ProcessContext context) {
 
         if (consumerConfig == null) {
             consumerConfig = new ConsumerConfiguration();
@@ -208,6 +276,30 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
 
         return consumerConfig;
 
+    }
+
+    private class AsyncAcknowledgmentMonitorThread extends Thread {
+
+        private ExecutorCompletionService<Void> ackService;
+
+        public AsyncAcknowledgmentMonitorThread(final ExecutorCompletionService<Void> ackService) {
+           this.ackService = ackService;
+        }
+
+        @Override
+        public void run() {
+           handleAsyncAcks();
+        }
+
+        protected void handleAsyncAcks() {
+          Future<Void> completed = null;
+
+           do {
+             try {
+                completed = ackService.poll(0, TimeUnit.SECONDS);
+              } catch (InterruptedException e) { /* Ignore these */ }
+           } while (completed != null);
+        }
     }
 
 }
