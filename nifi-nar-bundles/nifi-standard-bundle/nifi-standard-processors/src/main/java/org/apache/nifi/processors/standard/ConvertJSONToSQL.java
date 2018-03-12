@@ -209,7 +209,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .name("jts-sql-param-attr-prefix")
             .displayName("SQL Parameter Attribute Prefix")
             .description("The string to be prepended to the outgoing flow file attributes, such as <sql>.args.1.value, where <sql> is replaced with the specified value")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .required(true)
             .defaultValue("sql")

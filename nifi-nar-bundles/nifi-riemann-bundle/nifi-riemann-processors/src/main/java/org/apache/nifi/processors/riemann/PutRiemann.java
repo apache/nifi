@@ -49,7 +49,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"riemann", "monitoring", "metrics"})
-@DynamicProperty(name = "Custom Event Attribute", supportsExpressionLanguage = true,
+@DynamicProperty(name = "Custom Event Attribute", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
   description = "These values will be attached to the Riemann event as a custom attribute",
   value = "Any value or expression")
 @CapabilityDescription("Send events to Riemann (http://riemann.io) when FlowFiles pass through this processor. " +

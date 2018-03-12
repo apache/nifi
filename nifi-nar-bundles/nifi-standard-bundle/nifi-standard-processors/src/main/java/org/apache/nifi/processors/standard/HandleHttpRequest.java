@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -128,7 +129,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The Port to listen on for incoming HTTP requests")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(0L, 65535L, true))
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("80")
             .build();
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
@@ -136,7 +137,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The Hostname to bind to. If not specified, will bind to all hosts")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor HTTP_CONTEXT_MAP = new PropertyDescriptor.Builder()
             .name("HTTP Context Map")
@@ -165,7 +166,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                     + "404: NotFound")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor ALLOW_GET = new PropertyDescriptor.Builder()
             .name("Allow GET")
@@ -214,7 +215,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("A comma-separated list of non-standard HTTP Methods that should be allowed")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Authentication")

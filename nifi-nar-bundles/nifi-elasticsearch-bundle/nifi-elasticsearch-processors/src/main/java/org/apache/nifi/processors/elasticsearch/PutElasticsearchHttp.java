@@ -73,7 +73,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @DynamicProperty(
         name = "A URL query parameter",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {

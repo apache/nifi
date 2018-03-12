@@ -63,7 +63,7 @@ import com.amazonaws.services.cloudwatch.model.StatisticSet;
         "minimum, maximum, sum and sample count.")
 @DynamicProperty(name = "Dimension Name", value = "Dimension Value",
         description = "Allows dimension name/value pairs to be added to the metric. AWS supports a maximum of 10 dimensions.",
-        supportsExpressionLanguage = true)
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @Tags({"amazon", "aws", "cloudwatch", "metrics", "put", "publish"})
 public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor<AmazonCloudWatchClient> {
 

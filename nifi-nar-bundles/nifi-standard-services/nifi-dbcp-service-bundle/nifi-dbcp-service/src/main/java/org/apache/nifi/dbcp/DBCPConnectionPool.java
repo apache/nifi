@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Tags({ "dbcp", "jdbc", "database", "connection", "pooling", "store" })
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
-@DynamicProperty(name = "JDBC property name", value = "JDBC property value", supportsExpressionLanguage = true,
+@DynamicProperty(name = "JDBC property name", value = "JDBC property value", expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Specifies a property name and value to be set on the JDBC connection(s). "
                 + "If Expression Language is used, evaluation will be performed upon the controller service being enabled. "
                 + "Note that no flow file input (attributes, e.g.) is available for use in Expression Language constructs for these properties.")

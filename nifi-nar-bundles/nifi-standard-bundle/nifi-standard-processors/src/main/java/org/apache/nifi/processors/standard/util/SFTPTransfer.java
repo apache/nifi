@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -56,14 +57,14 @@ public class SFTPTransfer implements FileTransfer {
         .description("The fully qualified path to the Private Key file")
         .required(false)
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder()
         .name("Private Key Passphrase")
         .description("Password for the private key")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .sensitive(true)
         .build();
     public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder()
@@ -83,7 +84,7 @@ public class SFTPTransfer implements FileTransfer {
         .name("Port")
         .description("The port that the remote system is listening on for file transfers")
         .addValidator(StandardValidators.PORT_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .defaultValue("22")
         .build();

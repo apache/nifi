@@ -104,21 +104,21 @@ public class GetMongo extends AbstractMongoProcessor {
             .name("Projection")
             .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(DOCUMENT_VALIDATOR)
             .build();
     static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
             .name("Sort")
             .description("The fields by which to sort; must be a valid BSON document")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(DOCUMENT_VALIDATOR)
             .build();
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
             .name("Limit")
             .description("The maximum number of elements to return")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -126,7 +126,7 @@ public class GetMongo extends AbstractMongoProcessor {
             .name("Batch Size")
             .description("The number of elements returned from the server in one batch")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
@@ -134,7 +134,7 @@ public class GetMongo extends AbstractMongoProcessor {
             .displayName("Results Per FlowFile")
             .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -165,7 +165,7 @@ public class GetMongo extends AbstractMongoProcessor {
             .description("By default, MongoDB's Java driver returns \"extended JSON\". Some of the features of this variant of JSON" +
                     " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
                     " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
 
@@ -254,7 +254,7 @@ public class GetMongo extends AbstractMongoProcessor {
 
         final ComponentLog logger = getLogger();
 
-        Map attributes = new HashMap();
+        Map<String, String> attributes = new HashMap<String, String>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 
         final Document query;

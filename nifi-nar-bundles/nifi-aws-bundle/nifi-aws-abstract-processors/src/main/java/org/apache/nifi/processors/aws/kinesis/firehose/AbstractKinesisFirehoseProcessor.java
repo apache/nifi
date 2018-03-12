@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.kinesis.firehose;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.AbstractBaseKinesisProcessor;
@@ -34,7 +35,7 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKines
     public static final PropertyDescriptor KINESIS_FIREHOSE_DELIVERY_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Kinesis Firehose Delivery Stream Name")
             .description("The name of kinesis firehose delivery stream")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

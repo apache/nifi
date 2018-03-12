@@ -54,7 +54,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 @CapabilityDescription("Publishes a message to an Amazon Simple Queuing Service Queue")
 @DynamicProperty(name = "The name of a Message Attribute to add to the message", value = "The value of the Message Attribute",
         description = "Allows the user to add key/value pairs as Message Attributes by adding a property whose name will become the name of "
-        + "the Message Attribute and value will become the value of the Message Attribute", supportsExpressionLanguage = true)
+        + "the Message Attribute and value will become the value of the Message Attribute", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 public class PutSQS extends AbstractSQSProcessor {
 
     public static final PropertyDescriptor DELAY = new PropertyDescriptor.Builder()

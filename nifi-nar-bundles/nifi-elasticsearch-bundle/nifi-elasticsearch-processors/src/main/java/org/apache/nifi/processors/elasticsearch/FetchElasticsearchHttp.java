@@ -71,7 +71,7 @@ import java.util.stream.Stream;
 @DynamicProperty(
         name = "A URL query parameter",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 

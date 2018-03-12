@@ -300,7 +300,7 @@ public class JoltTransformJSON extends AbstractProcessor {
 
     private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
         final String specString;
-        if (context.getProperty(JOLT_SPEC).isSet() && !StringUtils.isEmpty(context.getProperty(JOLT_SPEC).getValue())) {
+        if (context.getProperty(JOLT_SPEC).isSet()) {
             specString = context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue();
         } else {
             specString = null;

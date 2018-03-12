@@ -85,7 +85,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("The path in Solr to post the ContentStream")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("/update/json/docs")
             .build();
 
@@ -94,7 +94,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("Content-Type being sent to Solr")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("application/json")
             .build();
 
@@ -176,13 +176,13 @@ public class PutSolrContentStream extends SolrProcessor {
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .dynamic(true)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;
         }
@@ -236,7 +236,7 @@ public class PutSolrContentStream extends SolrProcessor {
 
                         @Override
                         public String getContentType() {
-                            return context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions().getValue();
+                            return context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
                         }
                     });
 
@@ -264,7 +264,7 @@ public class PutSolrContentStream extends SolrProcessor {
         } else if (connectionError.get() != null) {
             getLogger().error("Failed to send {} to Solr due to {}; routing to connection_failure",
                     new Object[]{flowFile, connectionError.get()});
-            flowFile = session.penalize(flowFile);
+            session.penalize(flowFile);
             session.transfer(flowFile, REL_CONNECTION_FAILURE);
         } else {
             StringBuilder transitUri = new StringBuilder("solr://");

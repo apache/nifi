@@ -97,6 +97,7 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import javax.xml.bind.DatatypeConverter;
@@ -154,7 +155,7 @@ public class JdbcCommon {
                     + " 'Default Decimal Precision' is used when writing those undefined precision numbers.")
             .defaultValue(String.valueOf(DEFAULT_PRECISION_VALUE))
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
@@ -170,7 +171,7 @@ public class JdbcCommon {
                     + " e.g. 1.53 becomes 2 with scale 0, and 1.5 with scale 1.")
             .defaultValue(String.valueOf(DEFAULT_SCALE_VALUE))
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 

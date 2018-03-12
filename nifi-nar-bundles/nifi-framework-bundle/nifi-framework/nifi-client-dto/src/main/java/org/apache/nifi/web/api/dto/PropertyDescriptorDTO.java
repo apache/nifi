@@ -37,6 +37,7 @@ public class PropertyDescriptorDTO {
     private Boolean sensitive;
     private Boolean dynamic;
     private Boolean supportsEl;
+    private String scopeEl;
     private String identifiesControllerService;
     private BundleDTO identifiesControllerServiceBundle;
 
@@ -164,6 +165,21 @@ public class PropertyDescriptorDTO {
 
     public void setSupportsEl(Boolean supportsEl) {
         this.supportsEl = supportsEl;
+    }
+
+    /**
+     * @return specifies the scope of expression language evaluation
+     */
+    @ApiModelProperty(
+            value = "Scope of the EL evaluation for the property",
+            allowableValues = "NONE, VARIABLE_REGISTRY, FLOWFILE_ATTRIBUTES"
+    )
+    public String getScopeEl() {
+        return scopeEl;
+    }
+
+    public void setScopeEl(String scopeEl) {
+        this.scopeEl = scopeEl;
     }
 
     /**

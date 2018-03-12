@@ -122,7 +122,7 @@ public class CSVUtils {
         .name("csvutils-character-set")
         .displayName("Character Set")
         .description("The Character Encoding that is used to encode/decode the CSV file")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
         .defaultValue("UTF-8")
         .required(true)

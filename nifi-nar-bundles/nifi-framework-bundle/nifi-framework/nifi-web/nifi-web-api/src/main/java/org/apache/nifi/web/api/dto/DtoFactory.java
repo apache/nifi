@@ -3577,6 +3577,7 @@ public final class DtoFactory {
         dto.setDescription(propertyDescriptor.getDescription());
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
+        dto.setScopeEl(propertyDescriptor.getExpressionLanguageScope().toString());
 
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {

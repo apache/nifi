@@ -112,7 +112,7 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the GCS Object",
         value = "The value of a User-Defined Metadata field to add to the GCS Object",
         description = "Allows user-defined metadata to be added to the GCS object as key/value pairs",
-        supportsExpressionLanguage = true)
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttributes({
         @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the " +
                 "GCS object"),
@@ -253,7 +253,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .displayName("Server Side Encryption Key")
             .description("An AES256 Encryption Key (encoded in base64) for server-side encryption of the object.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -308,7 +308,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }

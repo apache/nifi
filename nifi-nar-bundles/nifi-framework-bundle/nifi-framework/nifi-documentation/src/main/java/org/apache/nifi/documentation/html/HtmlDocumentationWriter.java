@@ -612,10 +612,22 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value(), false, "value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeCharacters(dynamicProperty.description());
-                if (dynamicProperty.supportsExpressionLanguage()) {
-                    xmlStreamWriter.writeEmptyElement("br");
-                    writeSimpleElement(xmlStreamWriter, "strong", "Supports Expression Language: true");
+
+                xmlStreamWriter.writeEmptyElement("br");
+                String text;
+                switch(dynamicProperty.expressionLanguageScope()) {
+                    case FLOWFILE_ATTRIBUTES:
+                        text = "Supports Expression Language: true (will be evaluated using flow file attributes and registry)";
+                        break;
+                    case VARIABLE_REGISTRY:
+                        text = "Supports Expression Language: true (will be evaluated using registry only)";
+                        break;
+                    case NONE:
+                    default:
+                        text = "Supports Expression Language: false";
+                        break;
                 }
+                writeSimpleElement(xmlStreamWriter, "strong", text);
                 xmlStreamWriter.writeEndElement();
                 xmlStreamWriter.writeEndElement();
             }

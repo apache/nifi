@@ -40,7 +40,6 @@ public class TestCouchbaseClusterService {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.couchbase.TestCouchbaseClusterService", "debug");
 
         testRunner = TestRunners.newTestRunner(PutCouchbaseKey.class);
-        testRunner.setValidateExpressionUsage(false);
     }
 
     @Test

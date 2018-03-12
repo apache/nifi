@@ -76,7 +76,7 @@ import java.util.Set;
 })
 @DynamicProperty(name = "The name of an attribute to set that will contain the translated text of the value",
         value = "The value to translate",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "User-defined properties are used to translate arbitrary text based on attributes.")
 public class YandexTranslate extends AbstractProcessor {
 

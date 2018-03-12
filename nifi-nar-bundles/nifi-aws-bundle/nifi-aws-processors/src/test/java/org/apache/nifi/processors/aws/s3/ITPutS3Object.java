@@ -822,13 +822,13 @@ public class ITPutS3Object extends AbstractS3IT {
         // initiation times in whole seconds.
         Long now = System.currentTimeMillis();
 
-        MultipartUploadListing uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now);
+        MultipartUploadListing uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now, BUCKET_NAME);
         Assert.assertEquals(3, uploadList.getMultipartUploads().size());
 
         MultipartUpload upload0 = uploadList.getMultipartUploads().get(0);
         processor.abortS3MultipartUpload(client, BUCKET_NAME, upload0);
 
-        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+1000);
+        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+1000, BUCKET_NAME);
         Assert.assertEquals(2, uploadList.getMultipartUploads().size());
 
         final Map<String, String> attrs = new HashMap<>();
@@ -836,7 +836,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
         runner.run();
 
-        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+2000);
+        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+2000, BUCKET_NAME);
         Assert.assertEquals(0, uploadList.getMultipartUploads().size());
     }
 

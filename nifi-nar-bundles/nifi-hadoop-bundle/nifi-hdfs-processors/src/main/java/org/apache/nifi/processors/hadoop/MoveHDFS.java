@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -98,19 +99,23 @@ public class MoveHDFS extends AbstractHadoopProcessor {
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
 
     // relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
             .description("Files that have been successfully renamed on HDFS are transferred to this relationship")
             .build();
 
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("Files that could not be renamed on HDFS are transferred to this relationship").build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Files that could not be renamed on HDFS are transferred to this relationship")
+            .build();
 
     // properties
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("Conflict Resolution Strategy")
             .description(
                     "Indicates what should happen when a file with the same name already exists in the output directory")
-            .required(true).defaultValue(FAIL_RESOLUTION_AV.getValue())
+            .required(true)
+            .defaultValue(FAIL_RESOLUTION_AV.getValue())
             .allowableValues(REPLACE_RESOLUTION_AV, IGNORE_RESOLUTION_AV, FAIL_RESOLUTION_AV).build();
 
     public static final PropertyDescriptor FILE_FILTER_REGEX = new PropertyDescriptor.Builder()
@@ -118,37 +123,55 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             .description(
                     "A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose names match that Regular "
                             + "Expression will be fetched, otherwise all files will be fetched")
-            .required(false).addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
+            .required(false)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor IGNORE_DOTTED_FILES = new PropertyDescriptor.Builder()
             .name("Ignore Dotted Files")
-            .description("If true, files whose names begin with a dot (\".\") will be ignored").required(true)
-            .allowableValues("true", "false").defaultValue("true").build();
+            .description("If true, files whose names begin with a dot (\".\") will be ignored")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
 
     public static final PropertyDescriptor INPUT_DIRECTORY_OR_FILE = new PropertyDescriptor.Builder()
             .name("Input Directory or File")
             .description("The HDFS directory from which files should be read, or a single file to read.")
-            .defaultValue("${path}").addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-            .expressionLanguageSupported(true).build();
-
-    public static final PropertyDescriptor OUTPUT_DIRECTORY = new PropertyDescriptor.Builder().name("Output Directory")
-            .description("The HDFS directory where the files will be moved to").required(true)
-            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR).expressionLanguageSupported(true)
+            .defaultValue("${path}")
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final PropertyDescriptor OPERATION = new PropertyDescriptor.Builder().name("HDFS Operation")
-            .description("The operation that will be performed on the source file").required(true)
-            .allowableValues("move", "copy").defaultValue("move").build();
+    public static final PropertyDescriptor OUTPUT_DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Output Directory")
+            .description("The HDFS directory where the files will be moved to")
+            .required(true)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
-    public static final PropertyDescriptor REMOTE_OWNER = new PropertyDescriptor.Builder().name("Remote Owner")
+    public static final PropertyDescriptor OPERATION = new PropertyDescriptor.Builder()
+            .name("HDFS Operation")
+            .description("The operation that will be performed on the source file")
+            .required(true)
+            .allowableValues("move", "copy")
+            .defaultValue("move")
+            .build();
+
+    public static final PropertyDescriptor REMOTE_OWNER = new PropertyDescriptor.Builder()
+            .name("Remote Owner")
             .description(
                     "Changes the owner of the HDFS file to this value after it is written. This only works if NiFi is running as a user that has HDFS super user privilege to change owner")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    public static final PropertyDescriptor REMOTE_GROUP = new PropertyDescriptor.Builder().name("Remote Group")
+    public static final PropertyDescriptor REMOTE_GROUP = new PropertyDescriptor.Builder()
+            .name("Remote Group")
             .description(
                     "Changes the group of the HDFS file to this value after it is written. This only works if NiFi is running as a user that has HDFS super user privilege to change group")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static {
         final Set<Relationship> rels = new HashSet<>();

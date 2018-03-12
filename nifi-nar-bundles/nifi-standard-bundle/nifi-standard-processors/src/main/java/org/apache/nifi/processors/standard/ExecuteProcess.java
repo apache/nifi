@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -93,7 +94,7 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command")
     .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
     .required(true)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
@@ -101,14 +102,14 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command Arguments")
     .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
     .required(false)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
     public static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
     .name("Working Directory")
     .description("The directory to use as the current working directory when executing the command")
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
     .required(false)
     .build();
@@ -119,7 +120,7 @@ public class ExecuteProcess extends AbstractProcessor {
             + "that the output will be captured for this amount of time and a FlowFile will then be sent out with the results "
             + "and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -130,7 +131,7 @@ public class ExecuteProcess extends AbstractProcessor {
             .required(false)
             .allowableValues("true", "false")
             .defaultValue("false")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 

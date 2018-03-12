@@ -79,8 +79,14 @@ import java.util.Map;
         "where the previous node left off, without duplicating the data.")
 public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
-    private static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder().name("prefix").displayName("Prefix").description("Search prefix for listing")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(false).build();
+    private static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder()
+            .name("prefix")
+            .displayName("Prefix")
+            .description("Search prefix for listing")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             AzureStorageUtils.CONTAINER,

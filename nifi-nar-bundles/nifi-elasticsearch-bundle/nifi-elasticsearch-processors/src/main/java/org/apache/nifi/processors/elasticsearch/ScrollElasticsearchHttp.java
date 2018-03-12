@@ -77,7 +77,7 @@ import java.util.stream.Stream;
 @DynamicProperty(
         name = "A URL query parameter",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 @Stateful(description = "After each successful scroll page, the latest scroll_id is persisted in scrollId as input for the next scroll call.  "
         + "Once the entire query is complete, finishedQuery state will be set to true, and the processor will not execute unless this is cleared.", scopes = { Scope.LOCAL })

@@ -70,9 +70,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -265,7 +265,7 @@ public class MergeContent extends BinFiles {
             .description("If specified, like FlowFiles will be binned together, where 'like FlowFiles' means FlowFiles that have the same value for "
                     + "this Attribute. If not specified, FlowFiles are bundled by the order in which they are pulled from the queue.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .defaultValue(null)
             .build();
@@ -285,7 +285,7 @@ public class MergeContent extends BinFiles {
                     + "binary-concatenation merge strategy; otherwise, it is ignored.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor FOOTER = new PropertyDescriptor.Builder()
             .name("Footer File")
@@ -294,7 +294,7 @@ public class MergeContent extends BinFiles {
                     + "binary-concatenation merge strategy; otherwise, it is ignored.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Demarcator File")
@@ -303,7 +303,7 @@ public class MergeContent extends BinFiles {
                     + "using the binary-concatenation merge strategy; otherwise, it is ignored.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Compression Level")
@@ -327,7 +327,7 @@ public class MergeContent extends BinFiles {
                     + "(e.g. ${file.lastModifiedTime} or static value, both of which must match the ISO8601 format 'yyyy-MM-dd'T'HH:mm:ssZ'; if using "
                     + "other merge strategy or left blank, this value is ignored")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("${file.lastModifiedTime}")
             .build();
@@ -656,13 +656,13 @@ public class MergeContent extends BinFiles {
         private byte[] getDelimiterFileContent(final ProcessContext context, final List<FlowFile> flowFiles, final PropertyDescriptor descriptor)
                 throws IOException {
             byte[] property = null;
-            final String descriptorValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
-            if (descriptorValue != null && flowFiles != null && flowFiles.size() > 0) {
-                final String content = new String(readContent(descriptorValue), StandardCharsets.UTF_8);
+            if (flowFiles != null && flowFiles.size() > 0) {
                 final FlowFile flowFile = flowFiles.get(0);
-                if (flowFile != null && content != null) {
-                    final PropertyValue propVal = context.newPropertyValue(content).evaluateAttributeExpressions(flowFile);
-                    property = propVal.getValue().getBytes(StandardCharsets.UTF_8);
+                if (flowFile != null) {
+                    final String value = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+                    if (value != null) {
+                        property = readContent(value);
+                    }
                 }
             }
             return property;

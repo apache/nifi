@@ -131,7 +131,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .name("mongo-query-attribute")
             .displayName("Query Output Attribute")
             .description("If set, the query will be written to a specified attribute on the output flowfiles.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
             .required(false)
             .build();
@@ -142,7 +142,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -265,7 +265,8 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         return writeConcern;
     }
 
-    protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session, Map extraAttributes, Relationship rel) throws UnsupportedEncodingException {
+    protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session,
+            Map<String, String> extraAttributes, Relationship rel) throws UnsupportedEncodingException {
         String charset = parent != null ? context.getProperty(CHARSET).evaluateAttributeExpressions(parent).getValue()
                 : context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 

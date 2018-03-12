@@ -115,7 +115,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final PropertyDescriptor LIST_TYPE = new PropertyDescriptor.Builder()
             .name("list-type")
             .displayName("List Type")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .allowableValues(

@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -44,7 +45,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .description("Specifies the character set of the document data.")
             .required(true)
             .defaultValue("UTF-8")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
@@ -54,7 +55,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .description("InfluxDB URL to connect to. Eg: http://influxdb:8086")
             .defaultValue("http://localhost:8086")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -72,7 +73,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Database Name")
             .description("InfluxDB database to connect to")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -81,7 +82,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Username")
             .required(false)
             .description("Username for accessing InfluxDB")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -90,7 +91,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Password")
             .required(false)
             .description("Password for user")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -99,7 +100,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .name("influxdb-max-records-size")
             .displayName("Max size of records")
             .description("Maximum size of records allowed to be posted in one batch")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("1 MB")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)

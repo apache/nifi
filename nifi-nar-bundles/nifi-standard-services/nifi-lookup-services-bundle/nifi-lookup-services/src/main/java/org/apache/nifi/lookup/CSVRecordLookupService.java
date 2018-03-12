@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -74,14 +75,14 @@ public class CSVRecordLookupService extends AbstractControllerService implements
                     .description("A CSV file that will serve as the data source.")
                     .required(true)
                     .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-                    .expressionLanguageSupported(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();
 
     static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
             .name("csv-format")
             .displayName("CSV Format")
             .description("Specifies which \"format\" the CSV data is in.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(Arrays.asList(CSVFormat.Predefined.values()).stream().map(e -> e.toString()).collect(Collectors.toSet()))
             .defaultValue(CSVFormat.Predefined.Default.toString())
             .required(true)
@@ -95,7 +96,7 @@ public class CSVRecordLookupService extends AbstractControllerService implements
                             "This is the field that will be matched against the property specified in the lookup processor.")
                     .required(true)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();
 
     public static final PropertyDescriptor IGNORE_DUPLICATES =
@@ -193,9 +194,9 @@ public class CSVRecordLookupService extends AbstractControllerService implements
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException {
-        this.csvFile = context.getProperty(CSV_FILE).getValue();
+        this.csvFile = context.getProperty(CSV_FILE).evaluateAttributeExpressions().getValue();
         this.csvFormat = CSVFormat.Predefined.valueOf(context.getProperty(CSV_FORMAT).getValue()).getFormat();
-        this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).getValue();
+        this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
         this.ignoreDuplicates = context.getProperty(IGNORE_DUPLICATES).asBoolean();
         this.watcher = new SynchronousFileWatcher(Paths.get(csvFile), new LastModifiedMonitor(), 30000L);
         try {

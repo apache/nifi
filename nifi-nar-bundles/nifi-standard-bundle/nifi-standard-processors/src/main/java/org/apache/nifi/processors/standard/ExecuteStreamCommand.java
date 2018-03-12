@@ -16,6 +16,24 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.lang.ProcessBuilder.Redirect;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -35,6 +53,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -49,24 +68,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.lang.ProcessBuilder.Redirect;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * <p>
@@ -171,7 +172,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder()
             .name("Command Path")
             .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .required(true)
             .build();
@@ -179,7 +180,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor EXECUTION_ARGUMENTS = new PropertyDescriptor.Builder()
             .name("Command Arguments")
             .description("The arguments to supply to the executable delimited by the ';' character.")
-            .expressionLanguageSupported(true).addValidator(new Validator() {
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(new Validator() {
 
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
@@ -200,7 +202,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
             .name("Working Directory")
             .description("The directory to use as the current working directory when executing the command")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, true))
             .required(false)
             .build();
@@ -466,7 +468,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
                     // Because the outputstream has a cap that the copy doesn't know about, adjust
                     // the actual size
-                    if (longSize > (long) attributeSize) { // Explicit cast for readability
+                    if (longSize > attributeSize) { // Explicit cast for readability
                         size = attributeSize;
                     } else{
                         size = (int) longSize; // Note: safe cast, longSize is limited by attributeSize

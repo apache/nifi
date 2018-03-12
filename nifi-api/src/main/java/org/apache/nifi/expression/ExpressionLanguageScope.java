@@ -31,9 +31,9 @@ package org.apache.nifi.expression;
  * VARIABLE_REGISTRY is hierarchically constructed as below:
  *  |---- Variables defined at process group level and then, recursively, up
  *  |     to the higher process group until the root process group.
- *  |--- Variables defines in custom properties files through the
- *  |    nifi.variable.registry.properties property in nifi.properties file
- *  |-- Environment variables defined at JVM level and system properties
+ *  |--- Variables defined in custom properties files through the
+ *  |    nifi.variable.registry.properties property in nifi.properties file.
+ *  |-- Environment variables defined at JVM level and system properties.
  *
  * FLOWFILE_ATTRIBUTES - will check attributes of each individual flow file
  *

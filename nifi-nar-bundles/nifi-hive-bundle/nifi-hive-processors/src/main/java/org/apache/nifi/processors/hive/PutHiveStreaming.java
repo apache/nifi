@@ -167,7 +167,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("The URI location for the Hive Metastore. Note that this is not the location of the Hive Server. The default port for the "
                     + "Hive metastore is 9043.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
             .build();
@@ -189,7 +189,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Database Name")
             .description("The name of the database in which to put the data.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -198,7 +198,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Table Name")
             .description("The name of the database table in which to put the data.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -242,7 +242,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .defaultValue("60")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor TXNS_PER_BATCH = new PropertyDescriptor.Builder()
@@ -250,7 +250,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Transactions per Batch")
             .description("A hint to Hive Streaming indicating how many transactions the processor task will need. This value must be greater than 1.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(GREATER_THAN_ONE_VALIDATOR)
             .defaultValue("100")
             .build();
@@ -273,7 +273,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ROLLBACK_ON_FAILURE = RollbackOnFailure.createRollbackOnFailureProperty(

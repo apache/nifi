@@ -36,11 +36,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-<<<<<<< HEAD
 import org.apache.nifi.components.RequiredPermission;
-=======
 import org.apache.nifi.expression.ExpressionLanguageScope;
->>>>>>> 4841053... Renamed variable registry scope and added comments
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
