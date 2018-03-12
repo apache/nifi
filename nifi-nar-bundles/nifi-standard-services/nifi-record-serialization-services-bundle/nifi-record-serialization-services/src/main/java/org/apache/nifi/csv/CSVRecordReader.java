@@ -77,6 +77,8 @@ public class CSVRecordReader implements RecordReader {
 
             if (ignoreHeader) {
                 withHeader = withHeader.withHeader(schema.getFieldNames().toArray(new String[0]));
+            } else {
+                withHeader = withHeader.withFirstRecordAsHeader();
             }
         } else {
             withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
