@@ -182,8 +182,8 @@ public final class BundleUtils {
     public static BundleDTO createBundleDto(final org.apache.nifi.registry.flow.Bundle bundle) {
         final BundleDTO dto = new BundleDTO();
         dto.setArtifact(bundle.getArtifact());
-        dto.setGroup(dto.getGroup());
-        dto.setVersion(dto.getVersion());
+        dto.setGroup(bundle.getGroup());
+        dto.setVersion(bundle.getVersion());
         return dto;
     }
 }
