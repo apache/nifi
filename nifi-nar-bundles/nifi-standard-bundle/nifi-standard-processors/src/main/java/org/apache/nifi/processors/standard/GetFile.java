@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -27,6 +28,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -93,7 +95,16 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "absolute.path", description = "The full/absolute path from where a file was picked up. The current 'path' "
             + "attribute is still populated, but may be a relative path")})
 @SeeAlso({PutFile.class, FetchFile.class})
-@Restricted("Provides operator the ability to read from and delete any file that NiFi has access to.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to."),
+                @Restriction(
+                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                        explanation = "Provides operator the ability to delete any file that NiFi has access to.")
+        }
+)
 public class GetFile extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()

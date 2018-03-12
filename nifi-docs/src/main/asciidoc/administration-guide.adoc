@@ -1044,7 +1044,10 @@ Global access policies govern the following system level authorizations:
 |Data Provenance
 
 |access restricted components
-|Allows users to create/modify restricted components assuming otherwise sufficient permissions
+|Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
+components may indicate which specific permissions are required. Permissions can be granted for specific
+restrictions or be granted regardless of restrictions. If permission is granted regardless of restrictions,
+the user can create/modify all restricted components.
 |N/A
 
 |access all policies

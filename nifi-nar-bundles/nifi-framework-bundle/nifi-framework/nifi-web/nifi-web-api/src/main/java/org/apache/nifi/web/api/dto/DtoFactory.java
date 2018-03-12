@@ -34,6 +34,7 @@ import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -2408,9 +2409,47 @@ public final class DtoFactory {
         return dto;
     }
 
+    private boolean isRestricted(final Class<?> cls) {
+        return cls.isAnnotationPresent(Restricted.class);
+    }
+
     private String getUsageRestriction(final Class<?> cls) {
-        final Restricted restriction = cls.getAnnotation(Restricted.class);
-        return restriction == null ? null : restriction.value();
+        final Restricted restricted = cls.getAnnotation(Restricted.class);
+
+        if (restricted == null) {
+            return null;
+        }
+
+        if (StringUtils.isBlank(restricted.value())) {
+            return null;
+        }
+
+        return restricted.value();
+    }
+
+    private Set<ExplicitRestrictionDTO> getExplicitRestrictions(final Class<?> cls) {
+        final Restricted restricted = cls.getAnnotation(Restricted.class);
+
+        if (restricted == null) {
+            return null;
+        }
+
+        final Restriction[] restrictions = restricted.restrictions();
+
+        if (restrictions == null || restrictions.length == 0) {
+            return null;
+        }
+
+        return Arrays.stream(restrictions).map(restriction -> {
+            final RequiredPermissionDTO requiredPermission = new RequiredPermissionDTO();
+            requiredPermission.setId(restriction.requiredPermission().getPermissionIdentifier());
+            requiredPermission.setLabel(restriction.requiredPermission().getPermissionLabel());
+
+            final ExplicitRestrictionDTO usageRestriction = new ExplicitRestrictionDTO();
+            usageRestriction.setRequiredPermission(requiredPermission);
+            usageRestriction.setExplanation(restriction.explanation());
+            return usageRestriction;
+        }).collect(Collectors.toSet());
     }
 
     private String getDeprecationReason(final Class<?> cls) {
@@ -2649,7 +2688,9 @@ public final class DtoFactory {
             dto.setBundle(createBundleDto(coordinate));
             dto.setControllerServiceApis(createControllerServiceApiDto(cls));
             dto.setDescription(getCapabilityDescription(cls));
+            dto.setRestricted(isRestricted(cls));
             dto.setUsageRestriction(getUsageRestriction(cls));
+            dto.setExplicitRestrictions(getExplicitRestrictions(cls));
             dto.setDeprecationReason(getDeprecationReason(cls));
             dto.setTags(getTags(cls));
             types.add(dto);

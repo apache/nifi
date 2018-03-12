@@ -21,12 +21,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.AbstractFetchHDFSRecord;
@@ -50,7 +52,16 @@ import java.io.IOException;
         @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file")
 })
 @SeeAlso({PutParquet.class})
-@Restricted("Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
+                @Restriction(
+                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
+                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
+        }
+)
 public class FetchParquet extends AbstractFetchHDFSRecord {
 
     @Override

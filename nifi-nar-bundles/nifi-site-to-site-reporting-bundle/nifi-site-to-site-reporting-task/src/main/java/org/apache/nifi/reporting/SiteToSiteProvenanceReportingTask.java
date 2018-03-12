@@ -19,6 +19,7 @@ package org.apache.nifi.reporting;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -26,6 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -64,7 +66,13 @@ import java.util.concurrent.TimeUnit;
 @Tags({"provenance", "lineage", "tracking", "site", "site to site", "restricted"})
 @CapabilityDescription("Publishes Provenance events using the Site To Site protocol.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
-@Restricted("Provides operator the ability send sensitive details contained in Provenance events to any external system.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXPORT_NIFI_DETAILS,
+                        explanation = "Provides operator the ability to send sensitive details contained in Provenance events to any external system.")
+        }
+)
 public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReportingTask {
 
     static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";

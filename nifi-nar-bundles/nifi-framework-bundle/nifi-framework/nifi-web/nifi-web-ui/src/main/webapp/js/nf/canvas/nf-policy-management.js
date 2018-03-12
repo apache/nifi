@@ -64,6 +64,7 @@
     };
 
     var initialized = false;
+    var initializedComponentRestrictions = false;
 
     var initAddTenantToPolicyDialog = function () {
         $('#new-policy-user-button').on('click', function () {
@@ -418,7 +419,10 @@
 
                     // if the option is for a specific component
                     if (globalPolicySupportsReadWrite(option.value)) {
-                        // update the policy target and let it relaod the policy
+                        $('#restricted-component-required-permissions').hide();
+                        $('#restriction-message').hide();
+
+                        // update the policy target and let it reload the policy
                         $('#controller-policy-target').combo('setSelectedOption', {
                             'value': 'read'
                         }).show();
@@ -430,6 +434,59 @@
                             $('#selected-policy-action').text('write');
                         } else {
                             $('#selected-policy-action').text('read');
+                        }
+
+                        // handle any granular restrictions
+                        if (option.value === 'restricted-components') {
+                            if (!initializedComponentRestrictions) {
+                                var regardlessOfRestrictions = 'regardless of restrictions';
+                                var componentRestrictions = nfCanvasUtils.getComponentRestrictions();
+                                var requiredPermissions = componentRestrictions.requiredPermissions;
+
+                                var options = [{
+                                    text: regardlessOfRestrictions,
+                                    value: '',
+                                    description: 'Allows users to create/modify all restricted components regardless of restrictions.'
+                                }];
+
+                                requiredPermissions.each(function (label, id) {
+                                    if (id !== option.value) {
+                                        options.push({
+                                            text: "requiring '" + label + "'",
+                                            value: id,
+                                            description: "Allows users to create/modify restricted components requiring '" + nfCommon.escapeHtml(label) + "'"
+                                        });
+                                    }
+                                });
+
+                                options.sort(function (a, b) {
+                                    if (a.text === regardlessOfRestrictions) {
+                                        return -1;
+                                    } else if (b.text === regardlessOfRestrictions) {
+                                        return 1;
+                                    }
+
+                                    return a.text < b.text ? -1 : a.text > b.text ? 1 : 0;
+                                });
+
+                                $('#restricted-component-required-permissions').combo({
+                                    options: options,
+                                    select: function (restrictionOption) {
+                                        if (restrictionOption.text === regardlessOfRestrictions) {
+                                            $('#restriction-message').hide();
+                                        } else {
+                                            $('#restriction-message').show();
+                                        }
+
+                                        loadPolicy();
+                                    }
+                                });
+                            }
+
+                            $('#restricted-component-required-permissions').show();
+                        } else {
+                            $('#restriction-message').hide();
+                            $('#restricted-component-required-permissions').hide();
                         }
 
                         // reload the policy
@@ -766,6 +823,14 @@
             resource += ('/' + componentId);
         }
 
+        // identify more granular restrict component access if applicable
+        if (resource === 'restricted-components') {
+            var requiredPermission = $('#restricted-component-required-permissions').combo('getSelectedOption').value;
+            if (!nfCommon.isBlank(requiredPermission)) {
+                resource += ('/' + requiredPermission);
+            }
+        }
+
         return {
             'action': $('#selected-policy-action').text(),
             'resource': '/' + resource
@@ -909,7 +974,10 @@
 
         var policyDeferred;
         if (resourceAndAction.resource.startsWith('/policies')) {
-            $('#admin-policy-message').show();
+            // if this is a component specific policy permission, show the admin policy message
+            if (resourceAndAction.resource.endsWith('/policies')) {
+                $('#admin-policy-message').show();
+            }
 
             policyDeferred = $.Deferred(function (deferred) {
                 $.ajax({
@@ -965,6 +1033,87 @@
                         if (nfCanvasUtils.isConfigurableAuthorizer()) {
                             // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
                             $('#add-local-admin-message').show();
+                        }
+
+                        deferred.resolve();
+                    } else if (xhr.status === 403) {
+                        // reset the policy
+                        resetPolicy();
+
+                        // show an appropriate message
+                        $('#policy-message').text('Not authorized to access the policy for the specified resource.');
+
+                        deferred.resolve();
+                    } else {
+                        // reset the policy
+                        resetPolicy();
+
+                        deferred.reject();
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
+                    }
+                });
+            }).promise();
+        } else if (resourceAndAction.resource.startsWith('/restricted-components')) {
+            $('#admin-policy-message').hide();
+
+            policyDeferred = $.Deferred(function (deferred) {
+                $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/policies/' + resourceAndAction.action + resourceAndAction.resource,
+                    dataType: 'json'
+                }).done(function (policyEntity) {
+                    // update the refresh timestamp
+                    $('#policy-last-refreshed').text(policyEntity.generated);
+
+                    // ensure appropriate actions for the loaded policy
+                    if (policyEntity.permissions.canRead === true) {
+                        var policy = policyEntity.component;
+
+                        // if the return policy is for the desired policy (not inherited, show it)
+                        if (resourceAndAction.resource === policy.resource) {
+                            // populate the policy details
+                            populatePolicy(policyEntity);
+                        } else {
+                            // reset the policy
+                            resetPolicy();
+
+                            // show an appropriate message
+                            $('#policy-message').text('No restriction specific users.');
+
+                            if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                                // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                                $('#new-policy-message').show();
+                            }
+                        }
+                    } else {
+                        // reset the policy
+                        resetPolicy();
+
+                        // show an appropriate message
+                        $('#policy-message').text('Not authorized to view the policy.');
+
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                            $('#new-policy-message').show();
+                        }
+                    }
+
+                    deferred.resolve();
+                }).fail(function (xhr, status, error) {
+                    if (xhr.status === 404) {
+                        // reset the policy
+                        resetPolicy();
+
+                        // show an appropriate message
+                        if (resourceAndAction.resource === '/restricted-components') {
+                            $('#policy-message').text('No users with permission "regardless of restrictions."');
+                        } else {
+                            $('#policy-message').text('No users with permission to specific restriction.');
+                        }
+
+                        if (nfCanvasUtils.isConfigurableAuthorizer()) {
+                            // we don't know if the user has permissions to the desired policy... show create button and allow the server to decide
+                            $('#new-policy-message').show();
                         }
 
                         deferred.resolve();

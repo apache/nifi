@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization.resource;
 
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.components.RequiredPermission;
 
 import java.util.Objects;
 
@@ -325,6 +326,31 @@ public final class ResourceFactory {
      */
     public static Resource getRestrictedComponentsResource() {
         return RESTRICTED_COMPONENTS_RESOURCE;
+    }
+
+    /**
+     * Gets a Resource for accessing certain kinds of restricted components.
+     *
+     * @param requiredPermission The required permission
+     * @return The restricted components resource
+     */
+    public static Resource getRestrictedComponentsResource(final RequiredPermission requiredPermission) {
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s/%s", RESTRICTED_COMPONENTS_RESOURCE.getIdentifier(), requiredPermission.getPermissionIdentifier());
+            }
+
+            @Override
+            public String getName() {
+                return requiredPermission.getPermissionLabel();
+            }
+
+            @Override
+            public String getSafeDescription() {
+                return "Components requiring additional permission: " + requiredPermission.getPermissionLabel();
+            }
+        };
     }
 
     /**
