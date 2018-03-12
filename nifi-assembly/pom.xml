@@ -986,6 +986,7 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.ranger</groupId>
                     <artifactId>credentialbuilder</artifactId>
+                    <version>${ranger.version}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
