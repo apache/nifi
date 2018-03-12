@@ -139,26 +139,24 @@ public class ClassLoaderUtils {
     }
 
     public static String generateAdditionalUrlsFingerprint(Set<URL> urls) {
-        MessageDigest md;
         List<String> listOfUrls = urls.stream().map(Object::toString).collect(Collectors.toList());
-        byte[] bytesOfAdditionalUrls, bytesOfDigest;
         StringBuffer urlBuffer = new StringBuffer();
 
         //Sorting so that the order is maintained for generating the fingerprint
         Collections.sort(listOfUrls);
         try {
-            md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("MD5");
             listOfUrls.forEach(url -> {
                 urlBuffer.append(url).append("-").append(getLastModified(url)).append(";");
             });
-            bytesOfAdditionalUrls = urlBuffer.toString().getBytes("UTF-8");
-            bytesOfDigest = md.digest(bytesOfAdditionalUrls);
+            byte[] bytesOfAdditionalUrls = urlBuffer.toString().getBytes("UTF-8");
+            byte[] bytesOfDigest = md.digest(bytesOfAdditionalUrls);
 
             return DatatypeConverter.printHexBinary(bytesOfDigest);
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
             LOGGER.error("Unable to generate fingerprint for the provided additional resources {}", new Object[]{urls, e});
+            return null;
         }
-        return null;
     }
 
     private static long getLastModified(String url) {
@@ -166,7 +164,7 @@ public class ClassLoaderUtils {
         try {
             file = new File(new URI(url));
         } catch (URISyntaxException e) {
-            e.printStackTrace();
+            LOGGER.error("Error getting last modified date for " + url);
         }
         return file != null ? file.lastModified() : 0;
     }

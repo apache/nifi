@@ -179,6 +179,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
                 // if at least one property with dynamicallyModifiesClasspath(true) was set, then reload the component with the new urls
                 if (classpathChanged) {
+                    logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
+
                     final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
                     try {
                         reload(additionalUrls);
@@ -303,24 +305,19 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      * fingerprint value. If the fingerprint values don't match, the function calls the
      * component's reload() to load the newly found resources.
      */
-    public void reloadAdditionalResourcesIfNecessary(){
-        String oldFingerprint, newFingerprint;
-
+    @Override
+    public synchronized void reloadAdditionalResourcesIfNecessary() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(this.getProperties().keySet());
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
-        newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
-
-        if(this.hasAdditionalResourcesFingerprint()){
-            oldFingerprint = this.getAdditionalResourcesFingerprint();
-            if(!oldFingerprint.equals(newFingerprint)) {
-                this.setAdditionalResourcesFingerprint(newFingerprint);
-                try {
-                    logger.info("Adding new resources found to classpath for the component"+ this.componentType +" with the ID "+this.getIdentifier());
-                    reload(additionalUrls);
-                } catch (Exception e) {
-                    logger.error("Error reloading component with id " + id + ": " + e.getMessage(), e);
-                }
+        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
+            setAdditionalResourcesFingerprint(newFingerprint);
+            try {
+                logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
+                reload(additionalUrls);
+            } catch (Exception e) {
+                logger.error("Error reloading component with id " + id + ": " + e.getMessage(), e);
             }
         }
     }
@@ -597,15 +594,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         }
     }
 
-    public String getAdditionalResourcesFingerprint() {
-        return additionalResourcesFingerprint;
-    }
-
-    public boolean hasAdditionalResourcesFingerprint() {
-        return !StringUtils.isEmpty(additionalResourcesFingerprint);
-    }
-
-    public void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
+    protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
         this.additionalResourcesFingerprint = additionalResourcesFingerprint;
     }
 

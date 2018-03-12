@@ -81,12 +81,6 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
 
     void verifyCanUpdateBundle(BundleCoordinate bundleCoordinate) throws IllegalStateException;
 
-    boolean hasAdditionalResourcesFingerprint();
-
-    String getAdditionalResourcesFingerprint();
-
-    void setAdditionalResourcesFingerprint(String newFingerprint);
-
     void reloadAdditionalResourcesIfNecessary();
 
     /**

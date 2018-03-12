@@ -3447,8 +3447,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (isTerminated()) {
             throw new IllegalStateException("Cannot start reporting task " + reportingTaskNode.getIdentifier() + " because the controller is terminated");
         }
-        reportingTaskNode.reloadAdditionalResourcesIfNecessary();
         reportingTaskNode.verifyCanStart();
+        reportingTaskNode.reloadAdditionalResourcesIfNecessary();
         processScheduler.schedule(reportingTaskNode);
     }
 
