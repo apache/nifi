@@ -26,7 +26,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Specific restrict for a component. Indicates that the required permission is and why the restriction exists.
+ * Specific restriction for a component. Indicates what the required permission is and why the restriction exists.
  */
 @Documented
 @Target({ElementType.TYPE})
