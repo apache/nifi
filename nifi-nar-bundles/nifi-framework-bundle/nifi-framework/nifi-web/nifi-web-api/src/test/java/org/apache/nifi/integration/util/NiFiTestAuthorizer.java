@@ -28,7 +28,8 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.components.RequiredPermission;
 
 /**
- * Contains extra rules to convenience when in component based access control tests.
+ * Contains extra rules to convenience when in component based access control
+ * tests.
  */
 public class NiFiTestAuthorizer implements Authorizer {
 
@@ -100,8 +101,8 @@ public class NiFiTestAuthorizer implements Authorizer {
         }
 
         // read access
-        if (READ_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) ||
-                PRIVILEGED_USER_DN.equals(request.getIdentity()) || EXECUTED_CODE_USER_DN.equals(request.getIdentity())) {
+        if (READ_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity())
+                || PRIVILEGED_USER_DN.equals(request.getIdentity()) || EXECUTED_CODE_USER_DN.equals(request.getIdentity())) {
 
             if (RequestAction.READ.equals(request.getAction())) {
                 return AuthorizationResult.approved();
@@ -109,8 +110,8 @@ public class NiFiTestAuthorizer implements Authorizer {
         }
 
         // write access
-        if (WRITE_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) ||
-                PRIVILEGED_USER_DN.equals(request.getIdentity()) || EXECUTED_CODE_USER_DN.equals(request.getIdentity())) {
+        if (WRITE_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity())
+                || PRIVILEGED_USER_DN.equals(request.getIdentity()) || EXECUTED_CODE_USER_DN.equals(request.getIdentity())) {
 
             if (RequestAction.WRITE.equals(request.getAction())) {
                 return AuthorizationResult.approved();
