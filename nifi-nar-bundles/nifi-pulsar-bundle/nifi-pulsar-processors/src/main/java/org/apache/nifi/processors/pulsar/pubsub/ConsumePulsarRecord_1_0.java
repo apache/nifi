@@ -132,7 +132,6 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
         return PROPERTIES;
     }
 
-
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 
@@ -188,7 +187,7 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
     }
 
     private void processMessages(ProcessContext context, ProcessSession session, List<Message> messages, RecordReaderFactory readerFactory,
-            RecordSetWriterFactory writerFactory, boolean async) throws PulsarClientException {
+        RecordSetWriterFactory writerFactory, boolean async) throws PulsarClientException {
 
         if (messages.isEmpty())
            return;
@@ -200,7 +199,7 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
             if (msg.getData() != null) {
                failureFlowFile = session.write(failureFlowFile, out -> out.write(msg.getData()));
             }
-               session.transfer(failureFlowFile, REL_PARSE_FAILURE);
+            session.transfer(failureFlowFile, REL_PARSE_FAILURE);
         };
 
         RecordSetWriter writer = null;
@@ -208,20 +207,20 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
         OutputStream rawOut = null;
 
         for (Message msg: messages)  {
-               RecordReader reader = getRecordReader(msg, readerFactory, handleParseFailure);
+            RecordReader reader = getRecordReader(msg, readerFactory, handleParseFailure);
             Record firstRecord = getFirstRecord(msg, reader, handleParseFailure);
 
             if (firstRecord == null) {
                 // If the message doesn't contain any record, just ack the message
                 if (async) {
-                       ackService.submit(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            return getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg).get();
-                        }
+                   ackService.submit(new Callable<Void>() {
+                      @Override
+                      public Void call() throws Exception {
+                         return getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg).get();
+                      }
                    });
                 } else {
-                      consumer.getConsumer().acknowledge(msg);
+                   consumer.getConsumer().acknowledge(msg);
                 }
 
                 continue;
@@ -229,7 +228,7 @@ public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
 
             // Session / FlowFile starts here
             if (flowFile == null) {
-                    flowFile = session.create();
+                flowFile = session.create();
                 rawOut = session.write(flowFile);
             }
 

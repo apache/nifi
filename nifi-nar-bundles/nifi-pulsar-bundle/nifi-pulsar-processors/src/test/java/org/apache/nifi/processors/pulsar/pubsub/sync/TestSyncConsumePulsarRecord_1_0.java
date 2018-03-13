@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar.pubsub;
+package org.apache.nifi.processors.pulsar.pubsub.sync;
 
 
+import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord_1_0;
+import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsarRecord_1_0;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;

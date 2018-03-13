@@ -16,35 +16,28 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.nifi.processors.pulsar.pubsub.PublishPulsar_1_0;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 import org.mockito.Mock;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestPublishPulsar_1_0 extends AbstractPulsarProcessorTest {
 
     @Mock
-    Producer mockProducer;
+    protected Producer mockProducer;
 
     @Before
     public void init() throws InitializationException {
@@ -83,133 +76,5 @@ public class TestPublishPulsar_1_0 extends AbstractPulsarProcessorTest {
 
         addPulsarClientService();
     }
-
-    @Test
-    public void invalidTopicTest() throws UnsupportedEncodingException, PulsarClientException {
-
-        runner.setProperty(PublishPulsar_1_0.TOPIC, "${topic}");
-
-        final String content = "some content";
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(PublishPulsar_1_0.TOPIC.getName(), "");
-
-        runner.enqueue(content.getBytes("UTF-8"), attributes );
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_FAILURE);
-
-        // Confirm that no Producer as created
-        verify(mockClient, times(0)).createProducer(anyString());
-    }
-
-    @Test
-    public void dynamicTopicTest() throws UnsupportedEncodingException, PulsarClientException {
-
-        runner.setProperty(PublishPulsar_1_0.TOPIC, "${topic}");
-
-        final String content = "some content";
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put(PublishPulsar_1_0.TOPIC.getName(), "topic-b");
-
-        runner.enqueue(content.getBytes("UTF-8"), attributes );
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
-
-        // Verify that we sent the data to topic-b.
-        verify(mockClient, times(1)).createProducer("topic-b");
-    }
-
-    @Test
-    public void singleFlowFileTest() throws UnsupportedEncodingException, PulsarClientException {
-        runner.setProperty(PublishPulsar_1_0.TOPIC, "my-topic");
-
-        final String content = "some content";
-        runner.enqueue(content.getBytes("UTF-8"));
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
-
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar_1_0.REL_SUCCESS).get(0);
-        outFile.assertContentEquals(content);
-
-        // Verify that we sent the data to my-topic.
-        verify(mockClient, times(1)).createProducer("my-topic");
-
-        // Verify that the send method on the producer was called with the expected content
-        verify(mockProducer, times(1)).send(content.getBytes());
-    }
-
-    @Test
-    public void singleFlowFileAsyncTest() throws UnsupportedEncodingException, PulsarClientException {
-
-        runner.setProperty(PublishPulsar_1_0.TOPIC, "my-topic");
-        runner.setProperty(PublishPulsar_1_0.ASYNC_ENABLED, Boolean.TRUE.toString());
-
-        final String content = "some content";
-        runner.enqueue(content.getBytes("UTF-8"));
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
-
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar_1_0.REL_SUCCESS).get(0);
-
-        outFile.assertContentEquals(content);
-
-        // Verify that we sent the data to my-topic.
-        verify(mockClient, times(1)).createProducer("my-topic");
-
-        // Verify that the send method on the producer was called with the expected content
-        verify(mockProducer, times(1)).sendAsync(content.getBytes());
-    }
-
-    @Test
-    public void multipleFlowFilesTest() throws UnsupportedEncodingException, PulsarClientException {
-
-        runner.setProperty(PublishPulsar_1_0.TOPIC, "my-topic");
-        final String content = "some content";
-
-        // Hack, since runner.run(20, false); doesn't work as advertised
-        for (int idx = 0; idx < 20; idx++) {
-            runner.enqueue(content.getBytes("UTF-8"));
-            runner.run();
-            runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
-
-        }
-
-        // Verify that the send method on the producer was called with the expected content
-        verify(mockProducer, times(20)).send(content.getBytes());
-    }
-
-    @Test
-    public void multipleFlowFilesAsyncTest() throws UnsupportedEncodingException, PulsarClientException {
-
-        runner.setProperty(PublishPulsar_1_0.TOPIC, "my-async-topic");
-        runner.setProperty(PublishPulsar_1_0.ASYNC_ENABLED, Boolean.TRUE.toString());
-
-        final String content = "some content";
-
-        // Hack, since runner.run(20, false); doesn't work as advertised
-        for (int idx = 0; idx < 20; idx++) {
-            runner.enqueue(content.getBytes("UTF-8"));
-            runner.run();
-            runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
-        }
-
-        // Verify that the send method on the producer was called with the expected content
-        verify(mockProducer, times(20)).sendAsync(content.getBytes());
-    }
-
-    @Test
-    public void stressTest() throws UnsupportedEncodingException {
-        runner.setProperty(PublishPulsar_1_0.TOPIC, "my-async-topic");
-        runner.setProperty(PublishPulsar_1_0.ASYNC_ENABLED, Boolean.TRUE.toString());
-
-        final String content = "some content";
-
-        for (int idx = 0; idx < 9999; idx++) {
-            runner.enqueue(content.getBytes("UTF-8"));
-            runner.run();
-            runner.assertAllFlowFilesTransferred(PublishPulsar_1_0.REL_SUCCESS);
-        }
-
-    }
-
 
 }

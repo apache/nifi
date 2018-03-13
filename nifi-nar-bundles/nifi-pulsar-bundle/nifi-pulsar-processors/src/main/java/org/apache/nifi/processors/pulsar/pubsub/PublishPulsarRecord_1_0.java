@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -50,9 +52,10 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClientException;
 
 import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_READER;
 import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_WRITER;
@@ -77,6 +80,7 @@ public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
         properties.add(RECORD_WRITER);
         properties.add(TOPIC);
         properties.add(ASYNC_ENABLED);
+        properties.add(MAX_ASYNC_REQUESTS);
         properties.add(BATCHING_ENABLED);
         properties.add(BATCHING_MAX_MESSAGES);
         properties.add(BATCH_INTERVAL);
@@ -106,8 +110,6 @@ public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 
-        final AtomicLong messagesSent = new AtomicLong(0L);
-
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -121,6 +123,21 @@ public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
             return;
         }
 
+        // Read the contents of the FlowFile into a byte array
+        final byte[] messageContent = new byte[(int) flowFile.getSize()];
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream in) throws IOException {
+                StreamUtils.fillBuffer(in, messageContent, true);
+            }
+        });
+
+        // Nothing to do, so skip this Flow file.
+        if (messageContent == null || messageContent.length < 1) {
+            session.transfer(flowFile, REL_SUCCESS);
+            return;
+        }
+
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
                 .asControllerService(RecordReaderFactory.class);
 
@@ -128,41 +145,30 @@ public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
                     .asControllerService(RecordSetWriterFactory.class);
 
         final Map<String, String> attributes = flowFile.getAttributes();
-        boolean error = false;
+        final AtomicLong messagesSent = new AtomicLong(0L);
 
         try {
-           session.read(flowFile, new InputStreamCallback() {
-              @Override
-              public void process(final InputStream rawIn) throws IOException {
-                 try (final InputStream in = new BufferedInputStream(rawIn)) {
-                      final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
-                      final RecordSet recordSet = reader.createRecordSet();
-                      final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
-                      final Producer producer = getWrappedProducer(topic, context).getProducer();
+            final InputStream in = new ByteArrayInputStream(messageContent);
+            final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
+            final RecordSet recordSet = reader.createRecordSet();
+            final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
+            final Producer producer = getWrappedProducer(topic, context).getProducer();
 
-                      if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-                          messagesSent.addAndGet(sendAsync(producer, writerFactory, schema, recordSet));
-                      } else {
-                          messagesSent.addAndGet(send(producer, writerFactory, schema, recordSet));
-                      }
-
-                   } catch (final SchemaNotFoundException | MalformedRecordException e) {
-                      throw new ProcessException(e);
-                   }
-             }
-           });
-         } catch (final Exception e) {
-            error = true;
-         }
-
-         if (error) {
+            if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+               InFlightMessageMonitor bundle = getInFlightMessages(writerFactory, schema, recordSet);
+               this.sendAsync(producer, session, flowFile, bundle);
+               handleAsync(bundle, session, flowFile, topic);
+           } else {
+               messagesSent.addAndGet(send(producer, writerFactory, schema, recordSet));
+               session.putAttribute(flowFile, MSG_COUNT, messagesSent.get() + "");
+               session.putAttribute(flowFile, TOPIC_NAME, topic);
+               session.adjustCounter("Messages Sent", messagesSent.get(), true);
+               session.getProvenanceReporter().send(flowFile, "Sent " + messagesSent.get() + " records to " + topic );
+               session.transfer(flowFile, REL_SUCCESS);
+           }
+        } catch (final SchemaNotFoundException | MalformedRecordException | IOException e) {
             session.transfer(flowFile, REL_FAILURE);
-         } else {
-            session.putAttribute(flowFile, MSG_COUNT, messagesSent.get() + "");
-            session.adjustCounter("Messages Sent", messagesSent.get(), true);
-            session.getProvenanceReporter().send(flowFile, "Sent " + messagesSent.get() + " records to " + topic );
-            session.transfer(flowFile, REL_SUCCESS);
-         }
+        }
 
     }
 
@@ -173,59 +179,115 @@ public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
         Record record;
         int recordCount = 0;
 
-        try {
-            while ((record = recordSet.next()) != null) {
-                recordCount++;
-                baos.reset();
+        while ((record = recordSet.next()) != null) {
+            recordCount++;
+            baos.reset();
 
-                try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos)) {
-                    writer.write(record);
-                    writer.flush();
-                }
-
-                    producer.send(baos.toByteArray());
+            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos)) {
+                writer.write(record);
+                writer.flush();
             }
-        } catch (final PulsarClientException ex) {
-                producer.close();
+
+            producer.send(baos.toByteArray());
         }
 
         return recordCount;
     }
 
-    private int sendAsync(final Producer producer, final RecordSetWriterFactory writerFactory, final RecordSchema schema, final RecordSet recordSet) throws IOException, SchemaNotFoundException {
-
+    private InFlightMessageMonitor getInFlightMessages(RecordSetWriterFactory writerFactory, RecordSchema schema, RecordSet recordSet) throws IOException, SchemaNotFoundException {
+        ArrayList<byte[]> records = new ArrayList<byte[]>();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 
         Record record;
-        int recordCount = 0;
 
-        try {
-            while ((record = recordSet.next()) != null) {
-                recordCount++;
-                baos.reset();
+        while ((record = recordSet.next()) != null) {
+            baos.reset();
 
-                try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos)) {
-                    writer.write(record);
-                    writer.flush();
-                }
-
-                producer.sendAsync(baos.toByteArray()).handle((msgId, ex) -> {
-                    if (msgId != null) {
-                       return msgId;
-                    } else {
-                      try {
-                        producer.close();
-                      } catch (PulsarClientException e) {
-                        e.printStackTrace();
-                      }
-                      return null;
-                   }
-               });
-           }
-        } catch (final PulsarClientException ex) {
-           producer.close();
+            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos)) {
+                writer.write(record);
+                writer.flush();
+            }
+            records.add(baos.toByteArray());
         }
 
-        return recordCount;
+        return new InFlightMessageMonitor(records);
+    }
+
+    /* Launches all of the async send requests
+     *
+     */
+    protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, InFlightMessageMonitor monitor) {
+
+        if (monitor == null || monitor.getRecords().isEmpty())
+           return;
+
+        for (byte[] record: monitor.getRecords() ) {
+           try {
+
+              publisherService.submit(new Callable<MessageId>() {
+                @Override
+                public MessageId call() throws Exception {
+                  try {
+                     return producer.sendAsync(record).handle((msgId, ex) -> {
+                         if (msgId != null) {
+                            monitor.getSuccessCounter().incrementAndGet();
+                            return msgId;
+                         } else {
+                            monitor.getFailureCounter().incrementAndGet();
+                            monitor.getFailures().add(record);
+                            return null;
+                         }
+                     }).get();
+
+                   } catch (final Throwable t) {
+                      // This traps any exceptions thrown while calling the producer.sendAsync() method.
+                      monitor.getFailureCounter().incrementAndGet();
+                      monitor.getFailures().add(record);
+                      return null;
+                   } finally {
+                      monitor.getLatch().countDown();
+                   }
+               }
+             });
+          } catch (final RejectedExecutionException ex) {
+            // This can happen if the processor is being Unscheduled.
+          }
+       }
+    }
+
+    private void handleAsync(InFlightMessageMonitor monitor, ProcessSession session, FlowFile flowFile, String topic) {
+       try {
+
+           boolean useOriginalForFailures = false;
+           monitor.getLatch().await();
+
+           if (monitor.getSuccessCounter().intValue() > 0) {
+               session.putAttribute(flowFile, MSG_COUNT, monitor.getSuccessCounter().get() + "");
+               session.putAttribute(flowFile, TOPIC_NAME, topic);
+               session.adjustCounter("Messages Sent", monitor.getSuccessCounter().get(), true);
+               session.getProvenanceReporter().send(flowFile, "Sent " + monitor.getSuccessCounter().get() + " records to " + topic );
+               session.transfer(flowFile, REL_SUCCESS);
+           } else {
+              // Route the original FlowFile to failure, otherwise we need to create a new FlowFile for the Failure relationship
+              useOriginalForFailures = true;
+           }
+
+           if (monitor.getFailureCounter().intValue() > 0) {
+              // Create a second flow file for failures.
+              FlowFile failureFlowFile = useOriginalForFailures ? flowFile : session.create();
+
+              StringBuffer sb = new StringBuffer();
+              for (byte[] badRecord : monitor.getFailures()) {
+                 sb.append(new String(badRecord)).append(System.lineSeparator());
+              }
+
+              failureFlowFile = session.write(failureFlowFile, out -> out.write(sb.toString().trim().getBytes()));
+              session.putAttribute(failureFlowFile, MSG_COUNT, monitor.getFailureCounter().get() + "");
+              session.transfer(failureFlowFile, REL_FAILURE);
+           }
+
+        } catch (InterruptedException e) {
+          getLogger().error("Pulsar did not receive all async messages", e);
+        }
     }
 }

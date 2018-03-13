@@ -31,7 +31,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -63,6 +62,7 @@ public class PublishPulsar_1_0 extends AbstractPulsarProducerProcessor {
         properties.add(PULSAR_CLIENT_SERVICE);
         properties.add(TOPIC);
         properties.add(ASYNC_ENABLED);
+        properties.add(MAX_ASYNC_REQUESTS);
         properties.add(BATCHING_ENABLED);
         properties.add(BATCHING_MAX_MESSAGES);
         properties.add(BATCH_INTERVAL);
@@ -97,11 +97,10 @@ public class PublishPulsar_1_0 extends AbstractPulsarProducerProcessor {
         if (flowFile == null)
             return;
 
-        final ComponentLog logger = getLogger();
         final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
 
         if (StringUtils.isBlank(topic)) {
-            logger.error("Invalid topic specified {}", new Object[] {topic});
+            getLogger().error("Invalid topic specified {}", new Object[] {topic});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -127,18 +126,17 @@ public class PublishPulsar_1_0 extends AbstractPulsarProducerProcessor {
 
             if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
                 this.sendAsync(producer, session, flowFile, messageContent);
+                this.handleAsync();
             } else {
                 this.send(producer, session, flowFile, messageContent);
             }
 
         } catch (final PulsarClientException e) {
-            logger.error("Failed to connect to Pulsar Server due to {}", new Object[]{e});
-            session.penalize(flowFile);
+            getLogger().error("Failed to connect to Pulsar Server due to {}", new Object[]{e});
             session.transfer(flowFile, REL_FAILURE);
         }
 
     }
-
 
     private void send(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) throws PulsarClientException {
 
@@ -146,6 +144,7 @@ public class PublishPulsar_1_0 extends AbstractPulsarProducerProcessor {
 
         if (msgId != null) {
             flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
+            session.putAttribute(flowFile, TOPIC_NAME, producer.getTopic());
             session.adjustCounter("Messages Sent", 1, true);
             session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
             session.transfer(flowFile, REL_SUCCESS);
@@ -153,25 +152,6 @@ public class PublishPulsar_1_0 extends AbstractPulsarProducerProcessor {
         } else {
             session.transfer(flowFile, REL_FAILURE);
         }
-
-    }
-
-    private void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
-
-        producer.sendAsync(messageContent).handle((msgId, ex) -> {
-            if (msgId != null) {
-                return msgId;
-            } else {
-               // TODO Communicate the error back up to the onTrigger method so we can invalidate this producer.
-               getLogger().warn("Problem ", ex);
-               return null;
-            }
-        });
-
-        flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
-        session.adjustCounter("Messages Sent", 1, true);
-        session.getProvenanceReporter().send(flowFile, "Sent async message to " + producer.getTopic() );
-        session.transfer(flowFile, REL_SUCCESS);
 
     }
 

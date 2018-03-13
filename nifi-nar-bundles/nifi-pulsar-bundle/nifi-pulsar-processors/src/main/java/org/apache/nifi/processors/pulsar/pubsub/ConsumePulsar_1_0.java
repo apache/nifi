@@ -129,18 +129,20 @@ public class ConsumePulsar_1_0 extends AbstractPulsarConsumerProcessor {
                       flowFile = session.write(flowFile, out -> {
                           out.write(value);
                       });
+
+                      session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
+                      session.transfer(flowFile, REL_SUCCESS);
+                      session.commit();
                    }
 
-                   session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
-                   session.transfer(flowFile, REL_SUCCESS);
-                   session.commit();
-
+                   // We will ack the message even if it didn't contain any data.
                    ackService.submit(new Callable<Void>() {
                        @Override
                        public Void call() throws Exception {
                            return getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg).get();
                        }
                    });
+
                }
 
             } while (done != null);
@@ -157,51 +159,49 @@ public class ConsumePulsar_1_0 extends AbstractPulsarConsumerProcessor {
      * before committing the session. Typically, this allows the Framework
      * to treat the content of the newly created FlowFiles much more efficiently.
      */
-    private void consume(ProcessContext context, ProcessSession session) throws PulsarClientException {
-
-        Consumer consumer = getWrappedConsumer(context).getConsumer();
-
-        final ComponentLog logger = getLogger();
-        final Message msg;
-        FlowFile flowFile = null;
+    private void consume(ProcessContext context, ProcessSession session) {
 
         try {
+           Consumer consumer = getWrappedConsumer(context).getConsumer();
 
-            msg = consumer.receive();
-            final byte[] value = msg.getData();
+           final ComponentLog logger = getLogger();
+           final Message msg;
+           FlowFile flowFile = null;
 
-            if (value != null && value.length > 0) {
-                flowFile = session.create();
-                flowFile = session.write(flowFile, out -> {
-                    out.write(value);
-                });
+           msg = consumer.receive();
+           final byte[] value = msg.getData();
 
-            session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
-            session.transfer(flowFile, REL_SUCCESS);
-            logger.info("Created {} from {} messages received from Pulsar Server and transferred to 'success'",
+           if (value != null && value.length > 0) {
+               flowFile = session.create();
+               flowFile = session.write(flowFile, out -> {
+                   out.write(value);
+               });
+
+               session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
+               session.transfer(flowFile, REL_SUCCESS);
+               logger.info("Created {} from {} messages received from Pulsar Server and transferred to 'success'",
                          new Object[]{flowFile, 1});
 
-            session.commit();
+               session.commit();
 
-            /*
-             * This Processor acknowledges receipt of the data and/or removes the data
-             * from the external source in order to prevent receipt of duplicate files.
-             * This is done only after the ProcessSession by which the FlowFile was created
-             * has been committed! Failure to adhere to this principle may result in data
-             * loss, as restarting NiFi before the session has been committed will result
-             * in the temporary file being deleted. Note, however, that it is possible using
-             * this approach to receive duplicate data because the application could be
-             * restarted after committing the session and before acknowledging or removing
-             * the data from the external source. In general, though, potential data duplication
-             * is preferred over potential data loss.
-             */
-            getLogger().info("Acknowledging message " + msg.getMessageId());
-            consumer.acknowledge(msg);
+               /*
+                * This Processor acknowledges receipt of the data and/or removes the data
+                * from the external source in order to prevent receipt of duplicate files.
+                * This is done only after the ProcessSession by which the FlowFile was created
+                * has been committed! Failure to adhere to this principle may result in data
+                * loss, as restarting NiFi before the session has been committed will result
+                * in the temporary file being deleted. Note, however, that it is possible using
+                * this approach to receive duplicate data because the application could be
+                * restarted after committing the session and before acknowledging or removing
+                * the data from the external source. In general, though, potential data duplication
+                * is preferred over potential data loss.
+                */
+               getLogger().info("Acknowledging message " + msg.getMessageId());
 
-            } else {
-                // We didn't consume any data, so
-                session.commit();
-            }
+               if (msg != null) {
+                 consumer.acknowledge(msg);
+               }
+           }
 
         } catch (PulsarClientException e) {
             context.yield();

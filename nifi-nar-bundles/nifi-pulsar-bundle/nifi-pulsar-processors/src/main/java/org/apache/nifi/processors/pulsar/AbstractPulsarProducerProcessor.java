@@ -17,12 +17,22 @@
 package org.apache.nifi.processors.pulsar;
 
 import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.pulsar.PulsarClientPool;
 import org.apache.nifi.pulsar.PulsarProducer;
@@ -30,6 +40,8 @@ import org.apache.nifi.pulsar.cache.LRUCache;
 import org.apache.nifi.pulsar.pool.PulsarProducerFactory;
 import org.apache.nifi.pulsar.pool.ResourcePool;
 import org.apache.pulsar.client.api.CompressionType;
+import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerConfiguration;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode;
@@ -37,6 +49,7 @@ import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode;
 public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProcessor {
 
     public static final String MSG_COUNT = "msg.count";
+    public static final String TOPIC_NAME = "topic.name";
 
     static final AllowableValue COMPRESSION_TYPE_NONE = new AllowableValue("NONE", "None", "No compression");
     static final AllowableValue COMPRESSION_TYPE_LZ4 = new AllowableValue("LZ4", "LZ4", "Compress with LZ4 algorithm.");
@@ -64,6 +77,15 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
+            .build();
+
+    public static final PropertyDescriptor MAX_ASYNC_REQUESTS = new PropertyDescriptor.Builder()
+            .name("Maximum Async Requests")
+            .description("The maximum number of outstanding asynchronous publish requests for this processor. "
+                    + "Each asynchronous call requires memory, so avoid setting this value to high.")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("50")
             .build();
 
     public static final PropertyDescriptor BATCHING_ENABLED = new PropertyDescriptor.Builder()
@@ -138,11 +160,86 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
     protected LRUCache<String, PulsarProducer> producers;
     protected ProducerConfiguration producerConfig;
 
+    // Pool for running multiple publish Async requests
+    protected ExecutorService publisherPool;
+    protected ExecutorCompletionService<MessageId> publisherService;
+
+
+    @OnScheduled
+    public void init(ProcessContext context) {
+        // We only need this if we are running in Async mode
+        if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+            publisherPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
+            publisherService = new ExecutorCompletionService<>(publisherPool);
+        }
+    }
+
+    @OnUnscheduled
+    public void shutDown(final ProcessContext context) {
+
+       if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+           // Stop all the async publishers
+           try {
+              publisherPool.shutdown();
+              publisherPool.awaitTermination(10, TimeUnit.SECONDS);
+           } catch (InterruptedException e) {
+              getLogger().error("Unable to stop all the Pulsar Producers", e);
+           }
+       }
+    }
+
     @OnStopped
     public void cleanUp(final ProcessContext context) {
        // Close all of the producers and invalidate them, so they get removed from the Resource Pool
        getProducerCache(context).clear();
     }
+
+    protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
+
+        try {
+              publisherService.submit(new Callable<MessageId>() {
+                 @Override
+                 public MessageId call() throws Exception {
+                   try {
+                     return producer.sendAsync(messageContent).handle((msgId, ex) -> {
+                       if (msgId != null) {
+                           session.putAttribute(flowFile, MSG_COUNT , "1");
+                           session.putAttribute(flowFile, TOPIC_NAME, producer.getTopic());
+                           session.adjustCounter("Messages Sent", 1, true);
+                           session.getProvenanceReporter().send(flowFile, "Sent async message to " + producer.getTopic() );
+                           session.transfer(flowFile, REL_SUCCESS);
+                           return msgId;
+                       } else {
+                          FlowFile failureFlowFile = session.create();
+                          session.transfer(failureFlowFile, REL_FAILURE);
+                          return null;
+                       }
+                   }).get();
+
+                 } catch (final Throwable t) {
+                   // This traps any exceptions thrown while calling the producer.sendAsync() method.
+                   session.transfer(flowFile, REL_FAILURE);
+                   return null;
+                 }
+              }
+             });
+          } catch (final RejectedExecutionException ex) {
+              // This can happen if the processor is being Unscheduled.
+          }
+
+      }
+
+      protected void handleAsync() {
+
+         try {
+            Future<MessageId> done = null;
+            do {
+               done = publisherService.poll(50, TimeUnit.MILLISECONDS);
+            } while (done != null);
+         } catch (InterruptedException e) {
+            getLogger().error("Trouble publishing messages ", e);
+         }
+      }
 
     protected PulsarProducer getWrappedProducer(String topic, ProcessContext context) throws PulsarClientException, IllegalArgumentException {
 
@@ -218,4 +315,5 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
 
         return producerConfig;
     }
+
 }

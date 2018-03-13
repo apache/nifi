@@ -18,7 +18,6 @@ package org.apache.nifi.processors.pulsar.pubsub;
 
 import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_READER;
 import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_WRITER;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -27,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -39,7 +37,6 @@ import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordWriter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.pulsar.client.api.MessageId;
@@ -54,15 +51,15 @@ import org.mockito.Mock;
 
 public class TestPublishPulsarRecord_1_0 {
 
-    private static final String TOPIC_NAME = "unit-test";
+    protected static final String TOPIC_NAME = "unit-test";
 
-    private TestRunner runner;
+    protected TestRunner runner;
 
     @Mock
     protected PulsarClient mockClient;
 
     @Mock
-    Producer mockProducer;
+    protected Producer mockProducer;
 
     @Before
     public void setup() throws InitializationException {
@@ -164,129 +161,5 @@ public class TestPublishPulsarRecord_1_0 {
         verify(mockClient, times(1)).createProducer(TOPIC_NAME);
     }
 
-    // Malformed content test, using "some content"
 
-    @Test
-    public void malformedContentTest() throws PulsarClientException {
-        final String content = "invalid content";
-
-        runner.enqueue(content);
-        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_FAILURE);
-
-        verify(mockProducer, times(0)).send(content.getBytes());
-    }
-
-    @Test
-    public void testSingleRecordSuccess() throws PulsarClientException {
-
-        final String content = "Mary Jane, 32";
-
-        runner.enqueue(content);
-        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
-
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
-        MockFlowFile result = results.get(0);
-
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "1");
-
-        verify(mockProducer, times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
-
-    }
-
-    @Test
-    public void testSingleRecordAsyncSuccess() throws PulsarClientException {
-
-        final String content = "Mary Jane, 32";
-
-        runner.enqueue(content);
-        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
-        runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
-
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
-        MockFlowFile result = results.get(0);
-
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "1");
-
-        verify(mockProducer, times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
-
-    }
-
-    @Test
-    public void testMultipleRecordSuccess() throws PulsarClientException {
-
-        StringBuilder sb = new StringBuilder().append("Mary Jane, 32").append("\n")
-                                              .append("John Doe, 35").append("\n")
-                                              .append("Busta Move, 26").append("\n");
-
-        runner.enqueue(sb.toString());
-        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
-
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
-        assertEquals(1, results.size());
-
-        MockFlowFile result = results.get(0);
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "3");
-
-        verify(mockProducer, times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
-        verify(mockProducer, times(1)).send("\"John Doe\",\"35\"\n".getBytes());
-        verify(mockProducer, times(1)).send("\"Busta Move\",\"26\"\n".getBytes());
-
-    }
-
-    @Test
-    public void testMultipleRecordAsyncSuccess() throws PulsarClientException {
-
-        StringBuilder sb = new StringBuilder().append("Mary Jane, 32").append("\n")
-                                              .append("John Doe, 35").append("\n")
-                                              .append("Busta Move, 26").append("\n");
-
-        runner.enqueue(sb.toString());
-        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
-        runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
-
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
-        assertEquals(1, results.size());
-
-        MockFlowFile result = results.get(0);
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "3");
-
-        verify(mockProducer, times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
-        verify(mockProducer, times(1)).sendAsync("\"John Doe\",\"35\"\n".getBytes());
-        verify(mockProducer, times(1)).sendAsync("\"Busta Move\",\"26\"\n".getBytes());
-
-    }
-
-    @Test
-    public void testBulkRecordSuccess() throws PulsarClientException {
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int idx = 0; idx < 1000; idx++) {
-            sb.append("Mary Jane, 32").append("\n");
-        }
-
-        runner.enqueue(sb.toString());
-        runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
-
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
-        assertEquals(1, results.size());
-
-        MockFlowFile result = results.get(0);
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "1000");
-
-        verify(mockProducer, times(1000)).send("\"Mary Jane\",\"32\"\n".getBytes());
-
-    }
 }

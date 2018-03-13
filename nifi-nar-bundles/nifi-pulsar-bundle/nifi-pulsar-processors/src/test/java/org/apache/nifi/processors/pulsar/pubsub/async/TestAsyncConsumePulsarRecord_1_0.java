@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar.pubsub;
+package org.apache.nifi.processors.pulsar.pubsub.async;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.times;
@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord_1_0;
+import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsarRecord_1_0;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
