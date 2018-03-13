@@ -4072,8 +4072,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setAnnotationData(proposed.getAnnotationData());
         processor.setBulletinLevel(LogLevel.valueOf(proposed.getBulletinLevel()));
         processor.setComments(proposed.getComments());
-        processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
-        processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
         processor.setName(proposed.getName());
         processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
@@ -4082,6 +4080,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
         processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
         processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
+        processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
+        processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
         processor.setStyle(proposed.getStyle());
         processor.setYieldPeriod(proposed.getYieldDuration());
         processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
