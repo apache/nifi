@@ -20,6 +20,7 @@ package org.apache.nifi.processors.standard;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wnameless.json.flattener.FlattenMode;
 import com.github.wnameless.json.flattener.JsonFlattener;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -160,6 +161,7 @@ public class FlattenJson extends AbstractProcessor {
             final String flattened = new JsonFlattener(raw)
                     .withFlattenMode(flattenMode)
                     .withSeparator(separator.charAt(0))
+                    .withStringEscapePolicy(() -> StringEscapeUtils.ESCAPE_JAVA)
                     .flatten();
 
             flowFile = session.write(flowFile, os -> os.write(flattened.getBytes()));
