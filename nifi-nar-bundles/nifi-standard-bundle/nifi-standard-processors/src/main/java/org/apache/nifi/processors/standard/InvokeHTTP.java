@@ -591,6 +591,13 @@ public final class InvokeHTTP extends AbstractProcessor {
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
         }
 
+        // configure ETag cache if enabled
+        final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
+        if(etagEnabled) {
+            final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
+            okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
+        }
+
         // Set timeouts
         okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
