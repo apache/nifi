@@ -372,4 +372,32 @@ public class TestScanHBase {
         Assert.assertEquals(0, hBaseClientService.getNumScans());
     }
 
+    @Test
+    public void testScanWhenScanThrowsExceptionAfterLineN() {
+        hBaseClientService.setLinesBeforeException(1);
+
+        final Map<String, String> cells = new HashMap<>();
+        cells.put("cq1", "val1");
+        cells.put("cq2", "val2");
+
+        final long ts1 = 123456789;
+        hBaseClientService.addResult("row1", cells, ts1);
+        hBaseClientService.addResult("row2", cells, ts1);
+
+        runner.setProperty(ScanHBase.TABLE_NAME, "table1");
+        runner.setProperty(ScanHBase.START_ROW, "row1");
+        runner.setProperty(ScanHBase.END_ROW, "row2");
+
+        runner.enqueue("trigger flow file");
+        runner.run();
+
+        hBaseClientService.setLinesBeforeException(-1);
+
+        runner.assertTransferCount(ScanHBase.REL_FAILURE, 1);
+        runner.assertTransferCount(ScanHBase.REL_SUCCESS, 0);
+        runner.assertTransferCount(ScanHBase.REL_ORIGINAL, 0);
+
+        Assert.assertEquals(0, hBaseClientService.getNumScans());
+    }
+
 }

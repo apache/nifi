@@ -41,6 +41,8 @@ public class MockHBaseClientService extends AbstractControllerService implements
     private boolean throwExceptionDuringBatchDelete = false;
     private int numScans = 0;
     private int numPuts  = 0;
+    private int linesBeforeException = -1;
+
     @Override
     public void put(String tableName, Collection<PutFlowFile> puts) throws IOException {
         if (throwException) {
@@ -161,8 +163,12 @@ public class MockHBaseClientService extends AbstractControllerService implements
             throw new IOException("exception");
         }
 
+        int i = 0;
         // pass all the staged data to the handler
         for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
+            if (linesBeforeException>=0 && i++>=linesBeforeException) {
+                throw new IOException("iterating exception");
+            }
             handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());
         }
 
@@ -275,5 +281,13 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
     public void setThrowExceptionDuringBatchDelete(boolean throwExceptionDuringBatchDelete) {
         this.throwExceptionDuringBatchDelete = throwExceptionDuringBatchDelete;
+    }
+
+    public int getLinesBeforeException() {
+        return linesBeforeException;
+    }
+
+    public void setLinesBeforeException(int linesBeforeException) {
+        this.linesBeforeException = linesBeforeException;
     }
 }

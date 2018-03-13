@@ -372,7 +372,6 @@ public class ScanHBase extends AbstractProcessor {
             final AtomicReference<Long> rowsPulledHolder = new AtomicReference<>(0L);
             final AtomicReference<Long> ffCountHolder = new AtomicReference<>(0L);
             ScanHBaseResultHandler handler = new ScanHBaseResultHandler(context, session, flowFile, rowsPulledHolder, ffCountHolder, hBaseClientService, tableName, bulkSize);
-
             try {
                 hBaseClientService.scan(tableName,
                                         startRow, endRow,
@@ -382,7 +381,10 @@ public class ScanHBase extends AbstractProcessor {
                                         isReversed,
                                         columns,
                                         handler);
-            } catch (IOException e) {
+            } catch (Exception e) {
+                if (handler.getFlowFile() != null){
+                    session.remove(handler.getFlowFile());
+                }
                 getLogger().error("Unable to fetch rows from HBase table {} due to {}", new Object[] {tableName, e});
                 flowFile = session.putAttribute(flowFile, "scanhbase.results.found", Boolean.toString(handler.isHandledAny()));
                 session.transfer(flowFile, REL_FAILURE);
@@ -536,9 +538,7 @@ public class ScanHBase extends AbstractProcessor {
                 handledAny = true;
 
             }catch(Exception e){
-                flowFile = session.putAttribute(flowFile, "scanhbase.error", e.toString());
-                finalizeFlowFile(session, hBaseClientService, flowFile, tableName, rowsPulled, e);
-                flowFile = null;
+                throw new RuntimeException(e);
             }
 
             rowsPulled++;
