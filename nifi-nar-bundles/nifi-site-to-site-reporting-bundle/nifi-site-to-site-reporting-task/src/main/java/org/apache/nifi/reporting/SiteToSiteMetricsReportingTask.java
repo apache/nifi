@@ -89,8 +89,10 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
 
     static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder()
             .name("s2s-metrics-format")
-            .displayName("Output format")
-            .description("The output format that will be used for the metrics")
+            .displayName("Output Format")
+            .description("The output format that will be used for the metrics. If " + RECORD_FORMAT.getDisplayName() + " is selected, "
+                    + "a Record Writer must be provided. If " + AMBARI_FORMAT.getDisplayName() + " is selected, the Record Writer property "
+                    + "should be empty.")
             .required(true)
             .allowableValues(AMBARI_FORMAT, RECORD_FORMAT)
             .defaultValue(AMBARI_FORMAT.getValue())
@@ -125,6 +127,13 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                     .input("Record Writer")
                     .valid(false)
                     .explanation("If using " + RECORD_FORMAT.getDisplayName() + ", a record writer needs to be set.")
+                    .build());
+        }
+        if (validationContext.getProperty(FORMAT).getValue().equals(AMBARI_FORMAT.getValue()) && isWriterSet) {
+            problems.add(new ValidationResult.Builder()
+                    .input("Record Writer")
+                    .valid(false)
+                    .explanation("If using " + AMBARI_FORMAT.getDisplayName() + ", no record writer should be set.")
                     .build());
         }
 

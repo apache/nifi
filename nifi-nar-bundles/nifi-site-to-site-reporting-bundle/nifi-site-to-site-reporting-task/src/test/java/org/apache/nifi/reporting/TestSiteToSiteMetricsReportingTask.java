@@ -41,6 +41,8 @@ import javax.json.JsonValue;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.logging.ComponentLog;
@@ -134,6 +136,88 @@ public class TestSiteToSiteMetricsReportingTask {
     }
 
     @Test
+    public void testValidationBothAmbariFormatRecordWriter() throws IOException {
+        ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final String urlEL = "http://${hostname(true)}:8080/nifi";
+        final String url = "http://localhost:8080/nifi";
+
+        final MockSiteToSiteMetricsReportingTask task = new MockSiteToSiteMetricsReportingTask();
+        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+
+        properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
+        properties.put(SiteToSiteMetricsReportingTask.DESTINATION_URL, url);
+        properties.put(SiteToSiteMetricsReportingTask.INSTANCE_URL, url);
+        properties.put(SiteToSiteMetricsReportingTask.PORT_NAME, "port");
+
+        final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
+        Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
+        Mockito.when(validationContext.newPropertyValue(urlEL)).thenReturn(pValueUrl);
+        Mockito.when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
+        Mockito.when(pValueUrl.getValue()).thenReturn(url);
+
+        Mockito.doAnswer(new Answer<PropertyValue>() {
+            @Override
+            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
+                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                return new MockPropertyValue(properties.get(descriptor));
+            }
+        }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
+
+        final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
+        Mockito.when(validationContext.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
+        Mockito.when(pValue.isSet()).thenReturn(true);
+
+        // should be invalid because both ambari format and record writer are set
+        Collection<ValidationResult> list = task.validate(validationContext);
+        Assert.assertEquals(1, list.size());
+        Assert.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
+    }
+
+    @Test
+    public void testValidationRecordFormatNoRecordWriter() throws IOException {
+        ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final String urlEL = "http://${hostname(true)}:8080/nifi";
+        final String url = "http://localhost:8080/nifi";
+
+        final MockSiteToSiteMetricsReportingTask task = new MockSiteToSiteMetricsReportingTask();
+        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+
+        properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.RECORD_FORMAT.getValue());
+        properties.put(SiteToSiteMetricsReportingTask.DESTINATION_URL, url);
+        properties.put(SiteToSiteMetricsReportingTask.INSTANCE_URL, url);
+        properties.put(SiteToSiteMetricsReportingTask.PORT_NAME, "port");
+
+        final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
+        Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
+        Mockito.when(validationContext.newPropertyValue(urlEL)).thenReturn(pValueUrl);
+        Mockito.when(pValueUrl.evaluateAttributeExpressions()).thenReturn(pValueUrl);
+        Mockito.when(pValueUrl.getValue()).thenReturn(url);
+
+        Mockito.doAnswer(new Answer<PropertyValue>() {
+            @Override
+            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
+                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                return new MockPropertyValue(properties.get(descriptor));
+            }
+        }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
+
+        final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
+        Mockito.when(validationContext.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
+        Mockito.when(pValue.isSet()).thenReturn(false);
+
+        // should be invalid because both ambari format and record writer are set
+        Collection<ValidationResult> list = task.validate(validationContext);
+        Assert.assertEquals(1, list.size());
+        Assert.assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
+    }
+
+    @Test
     public void testAmbariFormat() throws IOException, InitializationException {
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -206,10 +290,6 @@ public class TestSiteToSiteMetricsReportingTask {
             }
 
             return client;
-        }
-
-        public List<byte[]> getDataSent() {
-            return dataSent;
         }
     }
 
