@@ -32,6 +32,7 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
+import org.apache.nifi.jms.processors.MessageBodyToBytesConverter.MessageConversionException;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.springframework.jms.connection.CachingConnectionFactory;
@@ -96,13 +97,22 @@ final class JMSConsumer extends JMSWorker {
 
                     if (message != null) {
                         byte[] messageBody = null;
-                        if (message instanceof TextMessage) {
-                            messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message, Charset.forName(charset));
-                        } else if (message instanceof BytesMessage) {
-                            messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
-                        } else {
-                            throw new IllegalStateException("Message type other then TextMessage and BytesMessage are "
-                                + "not supported at the moment");
+
+                        try {
+                            if (message instanceof TextMessage) {
+                                messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message, Charset.forName(charset));
+                            } else if (message instanceof BytesMessage) {
+                                messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
+                            } else {
+                                processLog.error("Received a JMS Message that was neither a TextMessage nor a BytesMessage [{}]; will skip this message.", new Object[] {message});
+                                acknowledge(message, session);
+                                return null;
+                            }
+                        } catch (final MessageConversionException mce) {
+                            processLog.error("Received a JMS Message [{}] but failed to obtain the content of the message; will acknowledge this message without creating a FlowFile for it.",
+                                new Object[] {message}, mce);
+                            acknowledge(message, session);
+                            return null;
                         }
 
                         final Map<String, String> messageHeaders = extractMessageHeaders(message);
@@ -115,9 +125,7 @@ final class JMSConsumer extends JMSWorker {
                     // and ACK message *only* after its successful invocation
                     // and if CLIENT_ACKNOWLEDGE is set.
                     consumerCallback.accept(response);
-                    if (message != null && session.getAcknowledgeMode() == Session.CLIENT_ACKNOWLEDGE) {
-                        message.acknowledge();
-                    }
+                    acknowledge(message, session);
                 } finally {
                     JmsUtils.closeMessageConsumer(msgConsumer);
                 }
@@ -125,6 +133,12 @@ final class JMSConsumer extends JMSWorker {
                 return null;
             }
         }, true);
+    }
+
+    private void acknowledge(final Message message, final Session session) throws JMSException {
+        if (message != null && session.getAcknowledgeMode() == Session.CLIENT_ACKNOWLEDGE) {
+            message.acknowledge();
+        }
     }
 
 
