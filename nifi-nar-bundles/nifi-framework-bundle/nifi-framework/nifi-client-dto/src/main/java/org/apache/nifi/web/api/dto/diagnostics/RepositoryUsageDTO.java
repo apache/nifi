@@ -24,7 +24,7 @@ import io.swagger.annotations.ApiModelProperty;
 @XmlType(name = "repositoryUsage")
 public class RepositoryUsageDTO implements Cloneable {
     private String name;
-    private String fileStore;
+    private String fileStoreHash;
 
     private String freeSpace;
     private String totalSpace;
@@ -42,13 +42,15 @@ public class RepositoryUsageDTO implements Cloneable {
         this.name = name;
     }
 
-    @ApiModelProperty("The File Store that is used to store the repository's data")
-    public String getFileStore() {
-        return fileStore;
+    @ApiModelProperty("A SHA-256 hash of the File Store name/path that is used to store the repository's data. This information is exposed as a hash in order to avoid "
+        + "exposing potentially sensitive information that is not generally relevant. What is typically relevant is whether or not multiple repositories on the same node are "
+        + "using the same File Store, as this indicates that the repositories are competing for the resources of the backing disk/storage mechanism.")
+    public String getFileStoreHash() {
+        return fileStoreHash;
     }
 
-    public void setFileStore(String fileStore) {
-        this.fileStore = fileStore;
+    public void setFileStoreHash(String fileStore) {
+        this.fileStoreHash = fileStore;
     }
 
     @ApiModelProperty("Amount of free space.")
@@ -99,7 +101,7 @@ public class RepositoryUsageDTO implements Cloneable {
     @Override
     public RepositoryUsageDTO clone() {
         final RepositoryUsageDTO clone = new RepositoryUsageDTO();
-        clone.fileStore = fileStore;
+        clone.fileStoreHash = fileStoreHash;
         clone.freeSpace = freeSpace;
         clone.freeSpaceBytes = freeSpaceBytes;
         clone.name = name;

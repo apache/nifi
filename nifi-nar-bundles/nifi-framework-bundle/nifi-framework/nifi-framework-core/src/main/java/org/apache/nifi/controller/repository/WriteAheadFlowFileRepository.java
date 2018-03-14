@@ -243,7 +243,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public String getFileStoreName() {
-        final Path path = flowFileRepositoryPath.toPath();
+        final Path path = flowFileRepositoryPaths.iterator().next().toPath();
 
         try {
             return Files.getFileStore(path).name();

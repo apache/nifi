@@ -17,8 +17,6 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import java.util.Set;
-
 import javax.xml.bind.annotation.XmlType;
 
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -28,7 +26,6 @@ import io.swagger.annotations.ApiModelProperty;
 @XmlType(name = "classLoaderDiagnostics")
 public class ClassLoaderDiagnosticsDTO {
     private BundleDTO bundle;
-    private Set<String> loadedFiles;
     private ClassLoaderDiagnosticsDTO parentClassLoader;
 
     @ApiModelProperty("Information about the Bundle that the ClassLoader belongs to, if any")
@@ -38,15 +35,6 @@ public class ClassLoaderDiagnosticsDTO {
 
     public void setBundle(BundleDTO bundle) {
         this.bundle = bundle;
-    }
-
-    @ApiModelProperty("A Set of filenames for all JAR's and resources that have been loaded by this ClassLoader")
-    public Set<String> getLoadedFiles() {
-        return loadedFiles;
-    }
-
-    public void setLoadedFiles(Set<String> loadedFiles) {
-        this.loadedFiles = loadedFiles;
     }
 
     @ApiModelProperty("A ClassLoaderDiagnosticsDTO that provides information about the parent ClassLoader")

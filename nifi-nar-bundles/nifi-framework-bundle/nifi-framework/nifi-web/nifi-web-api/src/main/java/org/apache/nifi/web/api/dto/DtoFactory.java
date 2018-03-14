@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.dto;
 
 import javax.ws.rs.WebApplicationException;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -214,8 +215,6 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -3284,29 +3283,6 @@ public final class DtoFactory {
             dto.setBundle(createBundleDto(bundle.getBundleDetails().getCoordinate()));
         }
 
-        final Set<String> filesLoaded = new HashSet<>();
-        if (classLoader instanceof URLClassLoader) {
-            final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
-            final URL[] urls = urlClassLoader.getURLs();
-
-            for (final URL url : urls) {
-                final String path = url.getPath();
-                final int lastSlash = path.lastIndexOf("/");
-                final String filename;
-                if (lastSlash >= 0) {
-                    filename = path.substring(lastSlash + 1);
-                } else {
-                    filename = path;
-                }
-
-                if (!filename.isEmpty()) { // filter out directories
-                    filesLoaded.add(filename);
-                }
-            }
-        }
-
-        dto.setLoadedFiles(filesLoaded);
-
         final ClassLoader parentClassLoader = classLoader.getParent();
         if (parentClassLoader != null) {
             dto.setParentClassLoader(createClassLoaderDiagnosticsDto(parentClassLoader));
@@ -3400,7 +3376,7 @@ public final class DtoFactory {
             final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
             usageDto.setName(repoName);
 
-            usageDto.setFileStore(flowController.getContentRepoFileStoreName(repoName));
+            usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getContentRepoFileStoreName(repoName)));
             usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
             usageDto.setFreeSpaceBytes(usage.getFreeSpace());
             usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
@@ -3420,7 +3396,7 @@ public final class DtoFactory {
             final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
             usageDto.setName(repoName);
 
-            usageDto.setFileStore(flowController.getProvenanceRepoFileStoreName(repoName));
+            usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getProvenanceRepoFileStoreName(repoName)));
             usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
             usageDto.setFreeSpaceBytes(usage.getFreeSpace());
             usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
@@ -3439,7 +3415,7 @@ public final class DtoFactory {
 
             flowFileRepoUsage.setName(repoName);
 
-            flowFileRepoUsage.setFileStore(flowController.getFlowRepoFileStoreName());
+            flowFileRepoUsage.setFileStoreHash(DigestUtils.sha256Hex(flowController.getFlowRepoFileStoreName()));
             flowFileRepoUsage.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
             flowFileRepoUsage.setFreeSpaceBytes(usage.getFreeSpace());
             flowFileRepoUsage.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
