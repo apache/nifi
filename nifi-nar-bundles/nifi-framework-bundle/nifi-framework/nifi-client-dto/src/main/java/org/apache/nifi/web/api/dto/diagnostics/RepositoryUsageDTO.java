@@ -21,7 +21,7 @@ import javax.xml.bind.annotation.XmlType;
 
 import io.swagger.annotations.ApiModelProperty;
 
-@XmlType(name = "fileStoreUsage")
+@XmlType(name = "repositoryUsage")
 public class RepositoryUsageDTO implements Cloneable {
     private String name;
     private String fileStore;

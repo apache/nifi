@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 
 import io.swagger.annotations.ApiModelProperty;
 
-@XmlRootElement(name = "processorDiagnostics")
+@XmlRootElement(name = "processorDiagnosticsEntity")
 public class ProcessorDiagnosticsEntity extends ComponentEntity implements Permissible<ProcessorDiagnosticsDTO> {
     private ProcessorDiagnosticsDTO processorDiagnostics;
 
