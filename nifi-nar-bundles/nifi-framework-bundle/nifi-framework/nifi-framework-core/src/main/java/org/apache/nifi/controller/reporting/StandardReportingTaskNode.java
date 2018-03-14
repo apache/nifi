@@ -68,6 +68,11 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
     }
 
     @Override
+    public Class<?> getComponentClass() {
+        return getReportingContext().getClass();
+    }
+
+    @Override
     public boolean isDeprecated() {
         return getReportingTask().getClass().isAnnotationPresent(DeprecationNotice.class);
     }

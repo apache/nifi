@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,6 +36,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -72,7 +74,16 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute.")
 })
 @SeeAlso(GetHDFS.class)
-@Restricted("Provides operator the ability to write to any file that NiFi has access to in HDFS or the local filesystem.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem."),
+                @Restriction(
+                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
+                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
+        }
+)
 public class PutHDFS extends AbstractHadoopProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";

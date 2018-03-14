@@ -292,7 +292,7 @@ public class ConvertExcelToCSVProcessor
     private void handleExcelSheet(ProcessSession session, FlowFile originalParentFF, final InputStream sheetInputStream, ExcelSheetReadConfig readConfig,
                                   CSVFormat csvFormat) throws IOException {
 
-        FlowFile ff = session.create();
+        FlowFile ff = session.create(originalParentFF);
         try {
             final DataFormatter formatter = new DataFormatter();
             final InputSource sheetSource = new InputSource(sheetInputStream);

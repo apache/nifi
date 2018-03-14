@@ -517,7 +517,7 @@
     };
 
     /**
-     * Generates a human readable global policy strung.
+     * Generates a human readable global policy string.
      *
      * @param dataContext
      * @returns {string}
@@ -525,6 +525,23 @@
     var globalResourceParser = function (dataContext) {
         return 'Global policy to ' +
             nfCommon.getPolicyTypeListing(nfCommon.substringAfterFirst(dataContext.component.resource, '/')).text;
+    };
+
+    /**
+     * Generates a human readable restricted component policy string.
+     *
+     * @param dataContext
+     * @returns {string}
+     */
+    var restrictedComponentResourceParser = function (dataContext) {
+        var resource = dataContext.component.resource;
+
+        if (resource === '/restricted-components') {
+            return 'Restricted components regardless of restrictions';
+        }
+
+        var subResource = nfCommon.substringAfterFirst(resource, '/restricted-components/');
+        return "Restricted components requiring '" + subResource + "'";
     };
 
     /**
@@ -591,12 +608,7 @@
         var policyDisplayNameFormatter = function (row, cell, value, columnDef, dataContext) {
             // if the user has permission to the policy
             if (dataContext.permissions.canRead === true) {
-                // check if Global policy
-                if (nfCommon.isUndefinedOrNull(dataContext.component.componentReference)) {
-                    return globalResourceParser(dataContext);
-                }
-                // not a global policy... check if user has access to the component reference
-                return componentResourceParser(dataContext);
+                return formatPolicy(dataContext);
             } else {
                 return '<span class="unset">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
@@ -943,6 +955,25 @@
     };
 
     /**
+     * Formats the specified policy.
+     *
+     * @param dataContext
+     * @returns {string}
+     */
+    var formatPolicy = function (dataContext) {
+        if (dataContext.component.resource.startsWith('/restricted-components')) {
+            // restricted components policy
+            return restrictedComponentResourceParser(dataContext);
+        } else if (nfCommon.isUndefinedOrNull(dataContext.component.componentReference)) {
+            // global policy
+            return globalResourceParser(dataContext);
+        } else {
+            // not restricted/global policy... check if user has access to the component reference
+            return componentResourceParser(dataContext);
+        }
+    };
+
+    /**
      * Sorts the specified data using the specified sort details.
      *
      * @param {object} sortDetails
@@ -962,26 +993,14 @@
 
                     // if the user has permission to the policy
                     if (a.permissions.canRead === true) {
-                        // check if Global policy
-                        if (nfCommon.isUndefinedOrNull(a.component.componentReference)) {
-                            aString = globalResourceParser(a);
-                        } else {
-                            // not a global policy... check if user has access to the component reference
-                            aString = componentResourceParser(a);
-                        }
+                        aString = formatPolicy(a);
                     } else {
                         aString = a.id;
                     }
 
                     // if the user has permission to the policy
                     if (b.permissions.canRead === true) {
-                        // check if Global policy
-                        if (nfCommon.isUndefinedOrNull(b.component.componentReference)) {
-                            bString = globalResourceParser(b);
-                        } else {
-                            // not a global policy... check if user has access to the component reference
-                            bString = componentResourceParser(b);
-                        }
+                        bString = formatPolicy(b);
                     } else {
                         bString = b.id;
                     }

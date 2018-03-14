@@ -17,9 +17,11 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Set;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds the users identity.
@@ -37,6 +39,7 @@ public class CurrentUserEntity extends Entity {
     private PermissionsDTO policiesPermissions;
     private PermissionsDTO systemPermissions;
     private PermissionsDTO restrictedComponentsPermissions;
+    private Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions;
 
     private boolean canVersionFlows;
 
@@ -146,6 +149,18 @@ public class CurrentUserEntity extends Entity {
 
     public void setRestrictedComponentsPermissions(PermissionsDTO restrictedComponentsPermissions) {
         this.restrictedComponentsPermissions = restrictedComponentsPermissions;
+    }
+
+    /**
+     * @return permissions for specific component restrictions
+     */
+    @ApiModelProperty("Permissions for specific component restrictions.")
+    public Set<ComponentRestrictionPermissionDTO> getComponentRestrictionPermissions() {
+        return componentRestrictionPermissions;
+    }
+
+    public void setComponentRestrictionPermissions(Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions) {
+        this.componentRestrictionPermissions = componentRestrictionPermissions;
     }
 
     /**

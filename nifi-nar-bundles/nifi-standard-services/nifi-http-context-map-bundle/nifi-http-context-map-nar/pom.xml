@@ -31,11 +31,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
-        	<groupId>org.apache.nifi</groupId>
-        	<artifactId>nifi-http-context-map</artifactId>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-http-context-map</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -24,7 +24,6 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -35,8 +34,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
-@Ignore("This is an integration test and requires a copy of MongoDB running on localhost")
-public class TestMongoDBControllerService {
+public class MongoDBControllerServiceIT {
     private static final String DB_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
     private static final String COL_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
 

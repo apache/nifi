@@ -33,7 +33,6 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -46,8 +45,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-@Ignore("Integration tests that cause failures in some environments")
-public class PutMongoRecordTest extends MongoWriteTestBase {
+public class PutMongoRecordIT extends MongoWriteTestBase {
 
     private MockRecordParser recordReader;
 

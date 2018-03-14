@@ -18,6 +18,7 @@ package org.apache.nifi.jms.processors;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
@@ -36,8 +37,22 @@ abstract class MessageBodyToBytesConverter {
      * @return  byte array representing the {@link TextMessage}
      */
     public static byte[] toBytes(TextMessage message) {
+        return MessageBodyToBytesConverter.toBytes(message, null);
+    }
+
+    /**
+     *
+     * @param message instance of {@link TextMessage}
+     * @param charset character set used to interpret the TextMessage
+     * @return  byte array representing the {@link TextMessage}
+     */
+    public static byte[] toBytes(TextMessage message, Charset charset) {
         try {
-            return message.getText().getBytes();
+            if (charset == null) {
+                return message.getText().getBytes();
+            } else {
+                return message.getText().getBytes(charset);
+            }
         } catch (JMSException e) {
             throw new MessageConversionException("Failed to convert BytesMessage to byte[]", e);
         }

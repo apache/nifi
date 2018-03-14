@@ -63,6 +63,7 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,6 +152,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
+    public Class<?> getComponentClass() {
+        return getControllerServiceImplementation().getClass();
+    }
+
+    @Override
     public boolean isDeprecated() {
         return getControllerServiceImplementation().getClass().isAnnotationPresent(DeprecationNotice.class);
     }
@@ -190,7 +196,8 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             if (isActive()) {
                 throw new IllegalStateException("Cannot reload Controller Service while service is active");
             }
-
+            String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+            setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
             getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
         }
     }

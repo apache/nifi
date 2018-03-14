@@ -268,7 +268,7 @@ public class FetchHBaseRow extends AbstractProcessor {
 
         FlowFile handlerFlowFile = handler.getFlowFile();
         if (!handler.handledRow()) {
-            getLogger().error("Row {} not found in {}, transferring to not found", new Object[] {rowId, tableName});
+            getLogger().debug("Row {} not found in {}, transferring to not found", new Object[] {rowId, tableName});
             session.transfer(handlerFlowFile, REL_NOT_FOUND);
             return;
         }

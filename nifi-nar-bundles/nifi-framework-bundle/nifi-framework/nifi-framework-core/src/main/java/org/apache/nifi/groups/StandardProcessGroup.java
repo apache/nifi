@@ -1220,6 +1220,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             } else if (state == ScheduledState.RUNNING) {
                 return CompletableFuture.completedFuture(null);
             }
+            processor.reloadAdditionalResourcesIfNecessary();
 
             return scheduler.startProcessor(processor, failIfStopping);
         } finally {
@@ -4072,8 +4073,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setAnnotationData(proposed.getAnnotationData());
         processor.setBulletinLevel(LogLevel.valueOf(proposed.getBulletinLevel()));
         processor.setComments(proposed.getComments());
-        processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
-        processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
         processor.setName(proposed.getName());
         processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
@@ -4082,6 +4081,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
         processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
         processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
+        processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
+        processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
         processor.setStyle(proposed.getStyle());
         processor.setYieldPeriod(proposed.getYieldDuration());
         processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
@@ -4098,15 +4099,28 @@ public final class StandardProcessGroup implements ProcessGroup {
     private Map<String, String> populatePropertiesMap(final Map<PropertyDescriptor, String> currentProperties, final Map<String, String> proposedProperties,
         final Map<String, VersionedPropertyDescriptor> proposedDescriptors, final ProcessGroup group) {
 
+        // since VersionedPropertyDescriptor currently doesn't know if it is sensitive or not,
+        // keep track of which property descriptors are sensitive from the current properties
+        final Set<String> sensitiveProperties = new HashSet<>();
+
         final Map<String, String> fullPropertyMap = new HashMap<>();
         for (final PropertyDescriptor property : currentProperties.keySet()) {
-            fullPropertyMap.put(property.getName(), null);
+            if (property.isSensitive()) {
+                sensitiveProperties.add(property.getName());
+            } else {
+                fullPropertyMap.put(property.getName(), null);
+            }
         }
 
         if (proposedProperties != null) {
             for (final Map.Entry<String, String> entry : proposedProperties.entrySet()) {
                 final String propertyName = entry.getKey();
                 final VersionedPropertyDescriptor descriptor = proposedDescriptors.get(propertyName);
+
+                // skip any sensitive properties so we can retain whatever is currently set
+                if (sensitiveProperties.contains(propertyName)) {
+                    continue;
+                }
 
                 String value;
                 if (descriptor != null && descriptor.getIdentifiesControllerService()) {

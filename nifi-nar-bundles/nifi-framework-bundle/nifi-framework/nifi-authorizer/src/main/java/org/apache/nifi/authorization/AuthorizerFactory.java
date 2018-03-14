@@ -101,9 +101,11 @@ public final class AuthorizerFactory {
     }
 
     public static Authorizer installIntegrityChecks(final Authorizer baseAuthorizer) {
+        Authorizer authorizer;
+
         if (baseAuthorizer instanceof ManagedAuthorizer) {
             final ManagedAuthorizer baseManagedAuthorizer = (ManagedAuthorizer) baseAuthorizer;
-            return new ManagedAuthorizer() {
+            authorizer = new ManagedAuthorizer() {
                 @Override
                 public String getFingerprint() throws AuthorizationAccessException {
                     return baseManagedAuthorizer.getFingerprint();
@@ -395,7 +397,7 @@ public final class AuthorizerFactory {
                 }
             };
         } else {
-            return new Authorizer() {
+            authorizer = new Authorizer() {
                 @Override
                 public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
                     final AuthorizationResult result = baseAuthorizer.authorize(request);
@@ -422,6 +424,19 @@ public final class AuthorizerFactory {
                 }
             };
         }
+
+        // conditionally add support for the audit methods
+        if (baseAuthorizer instanceof AuthorizationAuditor) {
+            final AuthorizationAuditorInvocationHandler invocationHandler = new AuthorizationAuditorInvocationHandler(authorizer, (AuthorizationAuditor) baseAuthorizer);
+
+            final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(authorizer.getClass());
+            interfaceList.add(AuthorizationAuditor.class);
+            final Class<?>[] interfaces = interfaceList.toArray(new Class<?>[interfaceList.size()]);
+
+            authorizer = (Authorizer) Proxy.newProxyInstance(authorizer.getClass().getClassLoader(), interfaces, invocationHandler);
+        }
+
+        return authorizer;
     }
 
     /**
@@ -433,7 +448,6 @@ public final class AuthorizerFactory {
     public static Authorizer withNarLoader(final Authorizer baseAuthorizer, final ClassLoader classLoader) {
         final AuthorizerInvocationHandler invocationHandler = new AuthorizerInvocationHandler(baseAuthorizer, classLoader);
 
-        // extract all interfaces... baseAuthorizer is non null so getAllInterfaces is non null
         final List<Class<?>> interfaceList = ClassUtils.getAllInterfaces(baseAuthorizer.getClass());
         final Class<?>[] interfaces = interfaceList.toArray(new Class<?>[interfaceList.size()]);
 

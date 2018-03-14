@@ -33,6 +33,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
@@ -110,6 +111,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -808,7 +810,6 @@ public class ControllerFacade implements Authorizable {
         final List<Resource> resources = new ArrayList<>();
         resources.add(ResourceFactory.getFlowResource());
         resources.add(ResourceFactory.getSystemResource());
-        resources.add(ResourceFactory.getRestrictedComponentsResource());
         resources.add(ResourceFactory.getControllerResource());
         resources.add(ResourceFactory.getCountersResource());
         resources.add(ResourceFactory.getProvenanceResource());
@@ -817,6 +818,10 @@ public class ControllerFacade implements Authorizable {
         resources.add(ResourceFactory.getProxyResource());
         resources.add(ResourceFactory.getResourceResource());
         resources.add(ResourceFactory.getSiteToSiteResource());
+
+        // restricted components
+        resources.add(ResourceFactory.getRestrictedComponentsResource());
+        Arrays.stream(RequiredPermission.values()).forEach(requiredPermission -> resources.add(ResourceFactory.getRestrictedComponentsResource(requiredPermission)));
 
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 

@@ -26,7 +26,9 @@
     <artifactId>nifi-atlas-bundle</artifactId>
     <version>1.6.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-
+    <properties>
+        <atlas.version>0.8.1</atlas.version>
+    </properties>
     <modules>
         <module>nifi-atlas-reporting-task</module>
         <module>nifi-atlas-nar</module>

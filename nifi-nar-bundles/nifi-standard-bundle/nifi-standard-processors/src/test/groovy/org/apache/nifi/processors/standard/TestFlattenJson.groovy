@@ -134,4 +134,61 @@ class TestFlattenJson {
             ])
         }
     }
+
+    @Test
+    void testFlattenModeNormal() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                first: [
+                        second: [
+                                third: [
+                                        "one", "two", "three", "four", "five"
+                                ]
+                        ]
+                ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
+        baseTest(testRunner, json,5) { parsed ->
+            Assert.assertEquals("Separator not applied.", "one", parsed["first.second.third[0]"])
+        }
+    }
+
+    @Test
+    void testFlattenModeDotNotation() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                first: [
+                        second: [
+                                third: [
+                                        "one", "two", "three", "four", "five"
+                                ]
+                        ]
+                ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_DOT_NOTATION)
+        baseTest(testRunner, json,5) { parsed ->
+            Assert.assertEquals("Separator not applied.", "one", parsed["first.second.third.0"])
+        }
+    }
+
+    @Test
+    void testFlattenSlash() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                first: [
+                        second: [
+                                third: [
+                                        "http://localhost/value1", "http://localhost/value2"
+                                ]
+                        ]
+                ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
+        baseTest(testRunner, json,2) { parsed ->
+            Assert.assertEquals("Separator not applied.", "http://localhost/value1", parsed["first.second.third[0]"])
+        }
+    }
 }

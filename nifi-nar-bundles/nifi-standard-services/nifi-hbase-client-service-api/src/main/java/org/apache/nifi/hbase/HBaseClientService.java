@@ -151,6 +151,23 @@ public interface HBaseClientService extends ControllerService {
     void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException;
 
     /**
+     * Scans the given table for the given range of row keys or time rage and passes the result to a handler.<br/>
+     *
+     * @param tableName the name of an HBase table to scan
+     * @param startRow the row identifier to start scanning at
+     * @param endRow the row identifier to end scanning at
+     * @param filterExpression  optional filter expression, if not specified no filtering is performed
+     * @param timerangeMin the minimum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param timerangeMax the maximum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param limitRows the maximum number of rows to be returned by scanner
+     * @param isReversed whether this scan is a reversed one.
+     * @param columns optional columns to return, if not specified all columns are returned
+     * @param handler a handler to process rows of the result
+     */
+    void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin, Long timerangeMax, Integer limitRows,
+            Boolean isReversed, Collection<Column> columns, ResultHandler handler) throws IOException;
+
+    /**
      * Converts the given boolean to it's byte representation.
      *
      * @param b a boolean

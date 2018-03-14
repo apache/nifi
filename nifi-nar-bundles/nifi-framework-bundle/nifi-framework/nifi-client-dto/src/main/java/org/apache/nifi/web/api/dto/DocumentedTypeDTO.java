@@ -33,7 +33,9 @@ public class DocumentedTypeDTO {
     private BundleDTO bundle;
     private List<ControllerServiceApiDTO> controllerServiceApis;
     private String description;
+    private boolean restricted;
     private String usageRestriction;
+    private Set<ExplicitRestrictionDTO> explicitRestrictions;
     private String deprecationReason;
     private Set<String> tags;
 
@@ -52,10 +54,38 @@ public class DocumentedTypeDTO {
     }
 
     /**
+     * @return Whether this type is restricted
+     */
+    @ApiModelProperty(
+            value = "Whether this type is restricted."
+    )
+    public boolean isRestricted() {
+        return restricted;
+    }
+
+    public void setRestricted(boolean restricted) {
+        this.restricted = restricted;
+    }
+
+    /**
+     * @return An optional collection of explicit restrictions
+     */
+    @ApiModelProperty(
+            value = "An optional collection of explicit restrictions. If specified, these explicit restrictions will be enfored."
+    )
+    public Set<ExplicitRestrictionDTO> getExplicitRestrictions() {
+        return explicitRestrictions;
+    }
+
+    public void setExplicitRestrictions(Set<ExplicitRestrictionDTO> explicitRestrictions) {
+        this.explicitRestrictions = explicitRestrictions;
+    }
+
+    /**
      * @return An optional description of why the usage of this component is restricted
      */
     @ApiModelProperty(
-            value = "The description of why the usage of this component is restricted."
+            value = "The optional description of why the usage of this component is restricted."
     )
     public String getUsageRestriction() {
         return usageRestriction;

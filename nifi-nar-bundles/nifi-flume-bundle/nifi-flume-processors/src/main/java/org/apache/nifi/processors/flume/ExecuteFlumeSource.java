@@ -29,12 +29,14 @@ import org.apache.flume.source.EventDrivenSourceRunner;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -55,7 +57,13 @@ import java.util.concurrent.atomic.AtomicReference;
 @Tags({"flume", "hadoop", "get", "source", "restricted"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Execute a Flume source. Each Flume Event is sent to the success relationship as a FlowFile")
-@Restricted("Provides operator the ability to execute arbitrary Flume configurations assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary Flume configurations assuming all permissions that NiFi has.")
+        }
+)
 public class ExecuteFlumeSource extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
