@@ -99,7 +99,7 @@ public class JMSPublisherConsumerIT {
      * used. The may change to the point where all message types are supported
      * at which point this test will no be longer required.
      */
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void validateFailOnUnsupportedMessageType() throws Exception {
         final String destinationName = "validateFailOnUnsupportedMessageType";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
