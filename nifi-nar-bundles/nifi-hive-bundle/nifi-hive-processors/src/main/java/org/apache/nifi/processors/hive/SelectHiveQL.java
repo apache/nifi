@@ -410,10 +410,9 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                                 new Object[]{flowfile, nrOfRows.get()});
 
                         if (context.hasIncomingConnection()) {
-                            // If the flow file came from an incoming connection, issue a Modify Content provenance event
-
-                            session.getProvenanceReporter().modifyContent(flowfile, "Retrieved " + nrOfRows.get() + " rows",
-                                    stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                            // If the flow file came from an incoming connection, issue a Fetch provenance event
+                            session.getProvenanceReporter().fetch(flowfile, dbcpService.getConnectionURL(),
+                                    "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                         } else {
                             // If we created a flow file from rows received from Hive, issue a Receive provenance event
                             session.getProvenanceReporter().receive(flowfile, dbcpService.getConnectionURL(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
