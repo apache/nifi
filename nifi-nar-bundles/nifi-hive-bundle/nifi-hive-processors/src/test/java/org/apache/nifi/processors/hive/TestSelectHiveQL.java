@@ -25,6 +25,8 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -118,11 +120,26 @@ public class TestSelectHiveQL {
     public void testNoIncomingConnection() throws ClassNotFoundException, SQLException, InitializationException, IOException {
         runner.setIncomingConnection(false);
         invokeOnTrigger(QUERY_WITHOUT_EL, false, "Avro");
+
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final ProvenanceEventRecord provenance0 = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, provenance0.getEventType());
+        assertEquals("jdbc:derby:target/db;create=true", provenance0.getTransitUri());
     }
 
     @Test
     public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
         invokeOnTrigger(QUERY_WITH_EL, true, "Avro");
+
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(2, provenanceEvents.size());
+
+        final ProvenanceEventRecord provenance0 = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.FETCH, provenance0.getEventType());
+        assertEquals("jdbc:derby:target/db;create=true", provenance0.getTransitUri());
+
+        final ProvenanceEventRecord provenance1 = provenanceEvents.get(1);
+        assertEquals(ProvenanceEventType.FORK, provenance1.getEventType());
     }
 
 
