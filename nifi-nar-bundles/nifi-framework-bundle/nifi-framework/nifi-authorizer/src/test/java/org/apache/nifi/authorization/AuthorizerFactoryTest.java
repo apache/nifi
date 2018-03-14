@@ -289,6 +289,8 @@ public class AuthorizerFactoryTest {
         Authorizer authorizer = AuthorizerFactory.installIntegrityChecks(mockAuthorizer);
         authorizer.onConfigured(context);
 
+        assertTrue(authorizer instanceof AuthorizationAuditor);
+
         final AuthorizationRequest accessAttempt = new AuthorizationRequest.Builder()
                 .resource(new MockResource("resource1", "Resource 1"))
                 .identity("user-1")

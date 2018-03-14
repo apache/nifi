@@ -172,6 +172,8 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                     // ensure it was found
                     if (authorizer == null) {
                         throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
+                    } else {
+                        authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
                     }
                 }
             }
@@ -350,7 +352,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
-        return AuthorizerFactory.installIntegrityChecks(AuthorizerFactory.withNarLoader(instance, authorizerClassLoader));
+        return AuthorizerFactory.withNarLoader(instance, authorizerClassLoader);
     }
 
     private AuthorizerConfigurationContext loadAuthorizerConfiguration(final String identifier, final List<Property> properties) {

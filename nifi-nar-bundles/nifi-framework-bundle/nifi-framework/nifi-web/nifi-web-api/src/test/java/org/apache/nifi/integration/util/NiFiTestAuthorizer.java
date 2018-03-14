@@ -25,9 +25,11 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.components.RequiredPermission;
 
 /**
- * Contains extra rules to convenience when in component based access control tests.
+ * Contains extra rules to convenience when in component based access control
+ * tests.
  */
 public class NiFiTestAuthorizer implements Authorizer {
 
@@ -40,6 +42,7 @@ public class NiFiTestAuthorizer implements Authorizer {
     public static final String WRITE_USER_DN = "write@nifi";
     public static final String READ_WRITE_USER_DN = "readwrite@nifi";
     public static final String PRIVILEGED_USER_DN = "privileged@nifi";
+    public static final String EXECUTED_CODE_USER_DN = "executecode@nifi";
 
     public static final String TOKEN_USER = "user@nifi";
 
@@ -88,15 +91,28 @@ public class NiFiTestAuthorizer implements Authorizer {
             }
         }
 
+        // execute code access
+        if (ResourceFactory.getRestrictedComponentsResource(RequiredPermission.EXECUTE_CODE).getIdentifier().equals(request.getResource().getIdentifier())) {
+            if (EXECUTED_CODE_USER_DN.equals(request.getIdentity())) {
+                return AuthorizationResult.approved();
+            } else {
+                return AuthorizationResult.denied();
+            }
+        }
+
         // read access
-        if (READ_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) || PRIVILEGED_USER_DN.equals(request.getIdentity())) {
+        if (READ_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity())
+                || PRIVILEGED_USER_DN.equals(request.getIdentity()) || EXECUTED_CODE_USER_DN.equals(request.getIdentity())) {
+
             if (RequestAction.READ.equals(request.getAction())) {
                 return AuthorizationResult.approved();
             }
         }
 
         // write access
-        if (WRITE_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) || PRIVILEGED_USER_DN.equals(request.getIdentity())) {
+        if (WRITE_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity())
+                || PRIVILEGED_USER_DN.equals(request.getIdentity()) || EXECUTED_CODE_USER_DN.equals(request.getIdentity())) {
+
             if (RequestAction.WRITE.equals(request.getAction())) {
                 return AuthorizationResult.approved();
             }

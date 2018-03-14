@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.documentation.example;
 
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
@@ -32,6 +34,9 @@ import java.util.List;
 @CapabilityDescription("A helper reporting task to do...")
 @Tags({"first", "second", "third"})
 @Restricted("reporting task restriction description")
+@SystemResourceConsideration(resource = SystemResource.CPU)
+@SystemResourceConsideration(resource = SystemResource.DISK, description = "Customized disk usage description")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "")
 public class FullyDocumentedReportingTask extends AbstractReportingTask {
 
     public static final PropertyDescriptor SHOW_DELTAS = new PropertyDescriptor.Builder()

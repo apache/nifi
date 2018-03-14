@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -78,7 +79,8 @@ final class JMSConsumer extends JMSWorker {
     }
 
 
-    public void consume(final String destinationName, final boolean durable, final boolean shared, final String subscriberName, final ConsumerCallback consumerCallback) {
+    public void consume(final String destinationName, final boolean durable, final boolean shared, final String subscriberName, final String charset,
+                        final ConsumerCallback consumerCallback) {
         this.jmsTemplate.execute(new SessionCallback<Void>() {
             @Override
             public Void doInJms(final Session session) throws JMSException {
@@ -95,7 +97,7 @@ final class JMSConsumer extends JMSWorker {
                     if (message != null) {
                         byte[] messageBody = null;
                         if (message instanceof TextMessage) {
-                            messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message);
+                            messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message, Charset.forName(charset));
                         } else if (message instanceof BytesMessage) {
                             messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
                         } else {

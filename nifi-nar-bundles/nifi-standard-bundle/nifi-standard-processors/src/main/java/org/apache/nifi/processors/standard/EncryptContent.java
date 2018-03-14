@@ -30,10 +30,12 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -67,6 +69,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG"})
 @CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a password and randomly generated salt, or asymmetric encryption using a public and secret key.")
+@SystemResourceConsideration(resource = SystemResource.CPU)
 public class EncryptContent extends AbstractProcessor {
 
     public static final String ENCRYPT_MODE = "Encrypt";

@@ -14,20 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization.resource;
+package org.apache.nifi.annotation.behavior;
 
-import org.apache.nifi.authorization.Resource;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class RestrictedComponentsAuthorizable implements Authorizable {
-
-    @Override
-    public Authorizable getParentAuthorizable() {
-        return null;
-    }
-
-    @Override
-    public Resource getResource() {
-        return ResourceFactory.getRestrictedComponentsResource();
-    }
-
+/**
+ * Annotation that may be placed on a
+ * {@link org.apache.nifi.components.ConfigurableComponent Component} describes how this component may impact
+ * system resources based on its configuration.
+ */
+@Documented
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface SystemResourceConsiderations {
+    SystemResourceConsideration[] value();
 }

@@ -137,6 +137,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     public static final int MAX_INDEXING_FAILURE_COUNT = 5; // how many indexing failures we will tolerate before skipping indexing for a prov file
     public static final int MAX_JOURNAL_ROLLOVER_RETRIES = 5;
 
+    private static final float PURGE_OLD_EVENTS_HIGH_WATER = 0.9f;
+    private static final float PURGE_OLD_EVENTS_LOW_WATER = 0.88f;
+    private static final float ROLLOVER_HIGH_WATER = 0.99f;
+
     private static final Logger logger = LoggerFactory.getLogger(PersistentProvenanceRepository.class);
 
     private final long maxPartitionMillis;
@@ -945,13 +949,13 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         };
 
         // If we have too much data (at least 90% of our max capacity), start aging it off
-        if (bytesUsed > configuration.getMaxStorageCapacity() * 0.9) {
+        if (bytesUsed > configuration.getMaxStorageCapacity() * PURGE_OLD_EVENTS_HIGH_WATER) {
             Collections.sort(sortedByBasename, sortByBasenameComparator);
 
             for (final File file : sortedByBasename) {
                 toPurge.add(file);
                 bytesUsed -= file.length();
-                if (bytesUsed < configuration.getMaxStorageCapacity()) {
+                if (bytesUsed < configuration.getMaxStorageCapacity() * PURGE_OLD_EVENTS_LOW_WATER) {
                     // we've shrunk the repo size down enough to stop
                     break;
                 }
@@ -1369,7 +1373,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             int journalFileCount = getJournalCount();
             long repoSize = getSize(getLogFiles(), 0L);
             final int journalCountThreshold = configuration.getJournalCount() * 5;
-            final long sizeThreshold = (long) (configuration.getMaxStorageCapacity() * 1.1D); // do not go over 10% of max capacity
+            final long sizeThreshold = (long) (configuration.getMaxStorageCapacity() * ROLLOVER_HIGH_WATER);
 
             // check if we need to apply backpressure.
             // If we have too many journal files, or if the repo becomes too large, backpressure is necessary. Without it,
@@ -1759,9 +1763,8 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
                         boolean indexEvents = true;
                         while (!recordToReaderMap.isEmpty()) {
-                            final Map.Entry<StandardProvenanceEventRecord, RecordReader> entry = recordToReaderMap.entrySet().iterator().next();
-                            final StandardProvenanceEventRecord record = entry.getKey();
-                            final RecordReader reader = entry.getValue();
+                            final StandardProvenanceEventRecord record = recordToReaderMap.firstKey();
+                            final RecordReader reader = recordToReaderMap.get(record);
 
                             writer.writeRecord(record);
                             final int blockIndex = writer.getTocWriter().getCurrentBlockIndex();

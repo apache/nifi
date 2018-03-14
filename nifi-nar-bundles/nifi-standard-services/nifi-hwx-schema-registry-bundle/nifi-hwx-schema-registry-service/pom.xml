@@ -27,7 +27,10 @@ limitations under the License.
 
     <artifactId>nifi-hwx-schema-registry-service</artifactId>
     <packaging>jar</packaging>
-
+    <properties>
+        <hwx.registry.version>0.3.0</hwx.registry.version>
+        <jackson.version>2.9.1</jackson.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -36,6 +39,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -44,6 +48,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -52,6 +57,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
+            <version>1.8.1</version>
         </dependency>
  
         <!-- Schema Registry Serdes Jar that also pulls in registry client jars -->
@@ -172,10 +178,10 @@ limitations under the License.
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                 </exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-annotations</artifactId>
-				</exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
@@ -227,6 +233,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <version>1.6.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

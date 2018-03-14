@@ -86,6 +86,7 @@ import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -242,6 +243,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public boolean isRestricted() {
         return getProcessor().getClass().isAnnotationPresent(Restricted.class);
+    }
+
+    @Override
+    public Class<?> getComponentClass() {
+        return getProcessor().getClass();
     }
 
     @Override
@@ -622,7 +628,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
         if (taskCount < 1 && getSchedulingStrategy() != SchedulingStrategy.EVENT_DRIVEN) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Cannot set Concurrent Tasks to " + taskCount + " for component "
+                    + getIdentifier() + " because Scheduling Strategy is not Event Driven");
         }
         if (!isTriggeredSerially()) {
             concurrentTaskCount.set(taskCount);
@@ -884,7 +891,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (isRunning()) {
             throw new IllegalStateException("Cannot reload Processor while the Processor is running");
         }
-
+        String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
 

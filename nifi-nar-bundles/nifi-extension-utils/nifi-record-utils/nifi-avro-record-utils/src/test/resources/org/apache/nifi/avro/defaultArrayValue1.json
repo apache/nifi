@@ -1,0 +1,16 @@
+{
+	"type": "record",
+	"name": "Foo1",
+	"namespace": "foo.namespace",
+	"fields": [
+		{
+			"name": "listOfInt",
+			"type": {
+				"type": "array",
+				"items": "int"
+			},
+			"doc": "array of ints",
+			"default": 0
+		}
+	]
+}

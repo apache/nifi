@@ -25,7 +25,6 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Calendar;
@@ -33,8 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@Ignore("This is an integration test and requires a copy of MongoDB running on localhost")
-public class TestMongoDBLookupService {
+public class MongoDBLookupServiceIT {
     private static final String DB_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
     private static final String COL_NAME = String.format("nifi_test-%d", Calendar.getInstance().getTimeInMillis());
 
@@ -82,14 +80,13 @@ public class TestMongoDBLookupService {
         clean.putAll(criteria);
         service.delete(new Document(clean));
 
-        boolean error = false;
         try {
-            service.lookup(criteria);
+            result = service.lookup(criteria);
         } catch (LookupFailureException ex) {
-            error = true;
+            Assert.fail();
         }
 
-        Assert.assertTrue("An error should have been thrown.", error);
+        Assert.assertTrue(!result.isPresent());
     }
 
     @Test
@@ -113,14 +110,13 @@ public class TestMongoDBLookupService {
         clean.putAll(criteria);
         service.delete(new Document(clean));
 
-        boolean error = false;
         try {
-            service.lookup(criteria);
+            result = service.lookup(criteria);
         } catch (LookupFailureException ex) {
-            error = true;
+            Assert.fail();
         }
 
-        Assert.assertTrue("An error should have been thrown.", error);
+        Assert.assertTrue(!result.isPresent());
     }
 
     @Test
