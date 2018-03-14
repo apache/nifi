@@ -1595,8 +1595,8 @@ public final class DtoFactory {
             return null;
         }
 
-        final Set<RemoteProcessGroupPortDTO> inputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
-        final Set<RemoteProcessGroupPortDTO> outputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
+        final Set<RemoteProcessGroupPortDTO> inputPorts = new HashSet<>();
+        final Set<RemoteProcessGroupPortDTO> outputPorts = new HashSet<>();
 
         int activeRemoteInputPortCount = 0;
         int inactiveRemoteInputPortCount = 0;
@@ -4080,44 +4080,6 @@ public final class DtoFactory {
         copy.setControllerServices(controllerServices);
 
         return copy;
-    }
-
-    private static class SortedRemoteGroupPortComparator implements Comparator<RemoteProcessGroupPortDTO> {
-
-        @Override
-        public int compare(final RemoteProcessGroupPortDTO o1, final RemoteProcessGroupPortDTO o2) {
-            if (o2 == null) {
-                return -1;
-            } else if (o1 == null) {
-                return 1;
-            }
-
-            final String name1 = o1.getName();
-            final String name2 = o2.getName();
-            if (name2 == null) {
-                return -1;
-            } else if (name1 == null) {
-                return 1;
-            } else {
-                int compareResult = Collator.getInstance(Locale.US).compare(name2, name2);
-
-                // if the names are same, use the id
-                if (compareResult == 0) {
-                    final String id1 = o1.getId();
-                    final String id2 = o2.getId();
-                    if (id2 == null) {
-                        compareResult = -1;
-                    } else if (id1 == null) {
-                        compareResult = 1;
-                    } else {
-                        compareResult = id1.compareTo(id2);
-                    }
-                }
-
-                return compareResult;
-            }
-
-        }
     }
 
     /**
