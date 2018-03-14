@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.atlas.NiFiAtlasHook;
 import org.apache.nifi.atlas.NiFiAtlasClient;
@@ -553,8 +554,14 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     @OnUnscheduled
     public void onUnscheduled() {
         if (consumer != null) {
+            // Tell provenance consumer to stop pulling more provenance events.
+            // This should be called from @OnUnscheduled to stop the loop in the thread called from onTrigger.
             consumer.setScheduled(false);
         }
+    }
+
+    @OnStopped
+    public void onStopped() {
         if (nifiAtlasHook != null) {
             nifiAtlasHook.close();
             nifiAtlasHook = null;
