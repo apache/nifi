@@ -179,7 +179,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
 
     private final JsonFactory factory = new JsonFactory();
 
-    private volatile NullSuppression nullSuppression;
+    private volatile String nullSuppression;
 
     static {
         final Set<Relationship> _rels = new HashSet<>();
@@ -306,16 +306,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 return;
         }
 
-        final NullSuppression suppression;
-        final String suppressNullValue = context.getProperty(SUPPRESS_NULLS).getValue();
-        if (ALWAYS_SUPPRESS.getValue().equals(suppressNullValue)) {
-            suppression = NullSuppression.ALWAYS_SUPPRESS;
-        } else if (SUPPRESS_MISSING.getValue().equals(suppressNullValue)) {
-            suppression = NullSuppression.SUPPRESS_MISSING;
-        } else {
-            suppression = NullSuppression.NEVER_SUPPRESS;
-        }
-        this.nullSuppression = suppression;
+        this.nullSuppression = context.getProperty(SUPPRESS_NULLS).getValue();
 
         final String id_path = context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final RecordPath recordPath = StringUtils.isEmpty(id_path) ? null : recordPathCache.getCompiled(id_path);
@@ -483,7 +474,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
             final String fieldName = field.getFieldName();
             final Object value = record.getValue(field);
             if (value == null) {
-                if (nullSuppression == NullSuppression.NEVER_SUPPRESS || (nullSuppression == NullSuppression.SUPPRESS_MISSING) && record.getRawFieldNames().contains(fieldName)) {
+                if (nullSuppression.equals(NEVER_SUPPRESS.getValue()) || (nullSuppression.equals(SUPPRESS_MISSING.getValue())) && record.getRawFieldNames().contains(fieldName)) {
                     generator.writeNullField(fieldName);
                 }
 
@@ -501,7 +492,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
     @SuppressWarnings("unchecked")
     private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType) throws IOException {
         if (value == null) {
-            if (nullSuppression == NullSuppression.NEVER_SUPPRESS || ((nullSuppression == NullSuppression.SUPPRESS_MISSING) && fieldName != null && !fieldName.equals(""))) {
+            if (nullSuppression.equals(NEVER_SUPPRESS.getValue()) || ((nullSuppression.equals(SUPPRESS_MISSING.getValue())) && fieldName != null && !fieldName.equals(""))) {
                 generator.writeNullField(fieldName);
             }
 
