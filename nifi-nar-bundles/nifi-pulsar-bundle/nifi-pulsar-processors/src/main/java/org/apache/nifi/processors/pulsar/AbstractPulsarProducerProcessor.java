@@ -16,56 +16,40 @@
  */
 package org.apache.nifi.processors.pulsar;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Properties;
-import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.pulsar.PulsarClientPool;
 import org.apache.nifi.pulsar.PulsarProducer;
 import org.apache.nifi.pulsar.cache.LRUCache;
 import org.apache.nifi.pulsar.pool.PulsarProducerFactory;
 import org.apache.nifi.pulsar.pool.ResourcePool;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.StringUtils;
 import org.apache.pulsar.client.api.CompressionType;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerConfiguration;
-import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode;
 
-@Tags({"Apache", "Pulsar", "Put", "Send", "Message", "PubSub"})
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Pulsar using the Pulsar 1.21 Producer API."
-    + "The messages to send may be individual FlowFiles or may be delimited, using a "
-    + "user-specified delimiter, such as a new-line. "
-    + "The complementary NiFi processor for fetching messages is ConsumePulsar.")
-@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
-        + "FlowFiles that are routed to success.")
-public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
+public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProcessor {
 
-    protected static final String MSG_COUNT = "msg.count";
+    public static final String MSG_COUNT = "msg.count";
+    public static final String TOPIC_NAME = "topic.name";
 
     static final AllowableValue COMPRESSION_TYPE_NONE = new AllowableValue("NONE", "None", "No compression");
     static final AllowableValue COMPRESSION_TYPE_LZ4 = new AllowableValue("LZ4", "LZ4", "Compress with LZ4 algorithm.");
@@ -93,6 +77,15 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
+            .build();
+
+    public static final PropertyDescriptor MAX_ASYNC_REQUESTS = new PropertyDescriptor.Builder()
+            .name("Maximum Async Requests")
+            .description("The maximum number of outstanding asynchronous publish requests for this processor. "
+                    + "Each asynchronous call requires memory, so avoid setting this value to high.")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("50")
             .build();
 
     public static final PropertyDescriptor BATCHING_ENABLED = new PropertyDescriptor.Builder()
@@ -164,42 +157,35 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
             .defaultValue("1000")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS;
+    protected LRUCache<String, PulsarProducer> producers;
+    protected ProducerConfiguration producerConfig;
 
-    private LRUCache<String, PulsarProducer> producers;
-    private ProducerConfiguration producerConfig;
+    // Pool for running multiple publish Async requests
+    protected ExecutorService publisherPool;
+    protected ExecutorCompletionService<MessageId> publisherService;
 
 
-    static {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PULSAR_CLIENT_SERVICE);
-        properties.add(TOPIC);
-        properties.add(ASYNC_ENABLED);
-        properties.add(BATCHING_ENABLED);
-        properties.add(BATCHING_MAX_MESSAGES);
-        properties.add(BATCH_INTERVAL);
-        properties.add(BLOCK_IF_QUEUE_FULL);
-        properties.add(COMPRESSION_TYPE);
-        properties.add(MESSAGE_ROUTING_MODE);
-        properties.add(PENDING_MAX_MESSAGES);
-
-        PROPERTIES = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
+    @OnScheduled
+    public void init(ProcessContext context) {
+        // We only need this if we are running in Async mode
+        if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+            publisherPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
+            publisherService = new ExecutorCompletionService<>(publisherPool);
+        }
     }
 
-    @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
-    }
+    @OnUnscheduled
+    public void shutDown(final ProcessContext context) {
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+       if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+           // Stop all the async publishers
+           try {
+              publisherPool.shutdown();
+              publisherPool.awaitTermination(10, TimeUnit.SECONDS);
+           } catch (InterruptedException e) {
+              getLogger().error("Unable to stop all the Pulsar Producers", e);
+           }
+       }
     }
 
     @OnStopped
@@ -208,94 +194,54 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
        getProducerCache(context).clear();
     }
 
-
-    @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
-        FlowFile flowFile = session.get();
-
-        if (flowFile == null)
-            return;
-
-        final ComponentLog logger = getLogger();
-        final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
-
-        if (StringUtils.isBlank(topic)) {
-            logger.error("Invalid topic specified {}", new Object[] {topic});
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        }
-
-        // Read the contents of the FlowFile into a byte array
-        final byte[] messageContent = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, messageContent, true);
-            }
-        });
-
-        // Nothing to do, so skip this Flow file.
-        if (messageContent == null || messageContent.length < 1) {
-            session.transfer(flowFile, REL_SUCCESS);
-            return;
-        }
+    protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
 
         try {
+              publisherService.submit(new Callable<MessageId>() {
+                 @Override
+                 public MessageId call() throws Exception {
+                   try {
+                     return producer.sendAsync(messageContent).handle((msgId, ex) -> {
+                       if (msgId != null) {
+                           session.putAttribute(flowFile, MSG_COUNT , "1");
+                           session.putAttribute(flowFile, TOPIC_NAME, producer.getTopic());
+                           session.adjustCounter("Messages Sent", 1, true);
+                           session.getProvenanceReporter().send(flowFile, "Sent async message to " + producer.getTopic() );
+                           session.transfer(flowFile, REL_SUCCESS);
+                           return msgId;
+                       } else {
+                          FlowFile failureFlowFile = session.create();
+                          session.transfer(failureFlowFile, REL_FAILURE);
+                          return null;
+                       }
+                   }).get();
 
-            Producer producer = getWrappedProducer(topic, context).getProducer();
+                 } catch (final Throwable t) {
+                   // This traps any exceptions thrown while calling the producer.sendAsync() method.
+                   session.transfer(flowFile, REL_FAILURE);
+                   return null;
+                 }
+              }
+             });
+          } catch (final RejectedExecutionException ex) {
+              // This can happen if the processor is being Unscheduled.
+          }
 
-            if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-                this.sendAsync(producer, session, flowFile, messageContent);
-            } else {
-                this.send(producer, session, flowFile, messageContent);
-            }
+      }
 
-        } catch (final PulsarClientException e) {
-            logger.error("Failed to connect to Pulsar Server due to {}", new Object[]{e});
-            session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
-        }
+      protected void handleAsync() {
 
-    }
+         try {
+            Future<MessageId> done = null;
+            do {
+               done = publisherService.poll(50, TimeUnit.MILLISECONDS);
+            } while (done != null);
+         } catch (InterruptedException e) {
+            getLogger().error("Trouble publishing messages ", e);
+         }
+      }
 
-
-    private void send(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) throws PulsarClientException {
-
-            MessageId msgId = producer.send(messageContent);
-
-            if (msgId != null) {
-                flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
-                session.adjustCounter("Messages Sent", 1, true);
-                session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
-                session.transfer(flowFile, REL_SUCCESS);
-
-        } else {
-            session.transfer(flowFile, REL_FAILURE);
-        }
-
-    }
-
-    private void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
-
-            producer.sendAsync(messageContent).handle((msgId, ex) -> {
-                if (msgId != null) {
-                    return msgId;
-                } else {
-                        // TODO Communicate the error back up to the onTrigger method so we can invalidate this producer.
-                        getLogger().warn("Problem ", ex);
-                    return null;
-                }
-            });
-
-            flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
-            session.adjustCounter("Messages Sent", 1, true);
-            session.getProvenanceReporter().send(flowFile, "Sent async message to " + producer.getTopic() );
-            session.transfer(flowFile, REL_SUCCESS);
-
-    }
-
-    private PulsarProducer getWrappedProducer(String topic, ProcessContext context) throws PulsarClientException, IllegalArgumentException {
+    protected PulsarProducer getWrappedProducer(String topic, ProcessContext context) throws PulsarClientException, IllegalArgumentException {
 
         PulsarProducer producer = getProducerCache(context).get(topic);
 

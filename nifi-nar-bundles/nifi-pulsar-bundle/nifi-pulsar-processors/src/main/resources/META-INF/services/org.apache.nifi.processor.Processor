@@ -13,4 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.pulsar.ConsumePulsar_1_0
+org.apache.nifi.processors.pulsar.ConsumePulsarRecord_1_0
 org.apache.nifi.processors.pulsar.PublishPulsar_1_0
+org.apache.nifi.processors.pulsar.PublishPulsarRecord_1_0
