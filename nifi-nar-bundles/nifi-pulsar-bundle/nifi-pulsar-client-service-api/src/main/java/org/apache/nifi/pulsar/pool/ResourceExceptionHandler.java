@@ -17,7 +17,20 @@
  */
 package org.apache.nifi.pulsar.pool;
 
+/**
+ * Wrapper interface for an exception handler that will be invoked
+ * in the event of any exception occurring while interacting with
+ * a @PoolableResource
+ *
+ * @author david
+ *
+ */
 public interface ResourceExceptionHandler {
 
+    /**
+     * Method to be called in the event of any exception occurring while interacting
+     * a @PoolableResource
+     * @param exc The Exception thrown by the @PoolableResource
+     */
     void handle(Exception exc);
 }

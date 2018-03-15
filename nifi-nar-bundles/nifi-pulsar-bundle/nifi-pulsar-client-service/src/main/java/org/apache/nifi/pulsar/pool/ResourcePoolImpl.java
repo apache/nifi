@@ -53,11 +53,10 @@ public class ResourcePoolImpl<R extends PoolableResource> implements ResourcePoo
     private R createResource(Properties props) {
         R resource = null;
         try {
-
             resource = factory.create(props);
-
-            if (resource == null)
+            if (resource == null) {
                 throw new ResourceCreationException("Unable to create resource");
+            }
 
         } catch (Exception e) {
             resourceExceptionHandler.handle(e);
@@ -113,8 +112,9 @@ public class ResourcePoolImpl<R extends PoolableResource> implements ResourcePoo
         try {
 
             // Attempt to close the connection
-            if (!resource.isClosed())
+            if (!resource.isClosed()) {
                 resource.close();
+            }
 
             pool.removeElement(resource);
             --max_resources;

@@ -58,7 +58,7 @@ import org.apache.pulsar.client.api.SubscriptionType;
 @CapabilityDescription("Consumes messages from Apache Pulsar "
         + "The complementary NiFi processor for sending messages is PublishPulsar.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
+public class ConsumePulsar_1_X extends AbstractPulsarProcessor {
 
     static final AllowableValue EXCLUSIVE = new AllowableValue("Exclusive", "Exclusive", "There can be only 1 consumer on the same topic with the same subscription name");
     static final AllowableValue SHARED = new AllowableValue("Shared", "Shared", "Multiple consumer will be able to use the same subscription name and the messages");
@@ -185,21 +185,21 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
 
     @OnScheduled
     public void init(ProcessContext context) {
-            pool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
-            completionService = new ExecutorCompletionService<>(pool);
+        pool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
+        completionService = new ExecutorCompletionService<>(pool);
     }
 
     @OnUnscheduled
     public void shutDown() {
-            // Stop all the async consumers
-            pool.shutdownNow();
+        // Stop all the async consumers
+        pool.shutdownNow();
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 
         try {
-            if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+            if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
                 // Launch consumers
                 consumeAsync(context, session);
 
@@ -225,18 +225,18 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
 
             if (msg != null) {
                 FlowFile flowFile = null;
-                    final byte[] value = msg.getData();
-                    if (value != null && value.length > 0) {
-                        flowFile = session.create();
-                        flowFile = session.write(flowFile, out -> {
-                            out.write(value);
-                        });
-                    }
+                final byte[] value = msg.getData();
+                if (value != null && value.length > 0) {
+                    flowFile = session.create();
+                    flowFile = session.write(flowFile, out -> {
+                        out.write(value);
+                    });
+                }
 
-                    session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
-                    session.transfer(flowFile, REL_SUCCESS);
-                    session.commit();
-                    getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg);
+                session.getProvenanceReporter().receive(flowFile, "From " + getWrappedConsumer(context).getTransitURL());
+                session.transfer(flowFile, REL_SUCCESS);
+                session.commit();
+                getWrappedConsumer(context).getConsumer().acknowledgeAsync(msg);
             }
 
         } catch (InterruptedException | ExecutionException | PulsarClientException e) {
@@ -251,9 +251,9 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
         getLogger().info("Disconnecting Pulsar Consumer");
         if (consumer != null) {
 
-                context.getProperty(PULSAR_CLIENT_SERVICE)
-                    .asControllerService(PulsarClientPool.class)
-                    .getConsumerPool().evict(consumer);
+            context.getProperty(PULSAR_CLIENT_SERVICE)
+                .asControllerService(PulsarClientPool.class)
+                .getConsumerPool().evict(consumer);
         }
 
         consumer = null;
@@ -266,14 +266,14 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
      */
     private void consumeAsync(ProcessContext context, ProcessSession session) throws PulsarClientException {
 
-            Consumer consumer = getWrappedConsumer(context).getConsumer();
+        Consumer consumer = getWrappedConsumer(context).getConsumer();
 
-            completionService.submit(new Callable<Message>() {
-                @Override
-                public Message call() throws Exception {
-                        return consumer.receiveAsync().get();
-                }
-              });
+        completionService.submit(new Callable<Message>() {
+            @Override
+            public Message call() throws Exception {
+                return consumer.receiveAsync().get();
+            }
+        });
 
     }
 
@@ -293,19 +293,19 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
 
         try {
 
-                msg = consumer.receive();
-                final byte[] value = msg.getData();
+            msg = consumer.receive();
+            final byte[] value = msg.getData();
 
-                if (value != null && value.length > 0) {
-                    flowFile = session.create();
-                    flowFile = session.write(flowFile, out -> {
-                        out.write(value);
-                    });
+            if (value != null && value.length > 0) {
+                flowFile = session.create();
+                flowFile = session.write(flowFile, out -> {
+                    out.write(value);
+                });
 
-                    session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
+                session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPIC).getValue());
                 session.transfer(flowFile, REL_SUCCESS);
                 logger.info("Created {} from {} messages received from Pulsar Server and transferred to 'success'",
-                            new Object[]{flowFile, 1});
+                        new Object[]{flowFile, 1});
 
                 session.commit();
 
@@ -324,10 +324,10 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
                 getLogger().info("Acknowledging message " + msg.getMessageId());
                 consumer.acknowledge(msg);
 
-                } else {
-                    // We didn't consume any data, so
-                    session.commit();
-                }
+            } else {
+                // We didn't consume any data, so
+                session.commit();
+            }
 
         } catch (PulsarClientException e) {
             context.yield();
@@ -338,8 +338,9 @@ public class ConsumePulsar_1_0 extends AbstractPulsarProcessor {
 
     private PulsarConsumer getWrappedConsumer(ProcessContext context) throws PulsarClientException {
 
-        if (consumer != null)
+        if (consumer != null) {
             return consumer;
+        }
 
         final PulsarClientPool pulsarClientService = context.getProperty(PULSAR_CLIENT_SERVICE)
                 .asControllerService(PulsarClientPool.class);

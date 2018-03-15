@@ -16,10 +16,28 @@
  */
 package org.apache.nifi.pulsar.pool;
 
+/**
+ * Service interface for any object that can be pooled for re-use., which
+ * defines methods for closing the object, effectively marking it no longer
+ * usable.
+ *
+ * @author david
+ *
+ */
 public interface PoolableResource {
 
+    /**
+     * Closes the object, marking it as no longer usable.
+     * Typically this is called if interactions with the
+     * object have resulted in some sort of communication error.
+     */
     public void close();
 
+    /**
+     * Check to see if the object is usable.
+     *
+     * @return true if the close method on this object has been called.
+     */
     public boolean isClosed();
 
 }

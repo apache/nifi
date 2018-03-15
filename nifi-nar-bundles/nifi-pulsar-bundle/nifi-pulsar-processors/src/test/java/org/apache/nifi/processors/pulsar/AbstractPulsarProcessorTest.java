@@ -32,6 +32,6 @@ public abstract class AbstractPulsarProcessorTest {
         final MockPulsarClientService pulsarClient = new MockPulsarClientService(mockClient);
         runner.addControllerService("pulsarClient", pulsarClient);
         runner.enableControllerService(pulsarClient);
-        runner.setProperty(PublishPulsar_1_0.PULSAR_CLIENT_SERVICE, "pulsarClient");
+        runner.setProperty(PublishPulsar_1_X.PULSAR_CLIENT_SERVICE, "pulsarClient");
     }
 }

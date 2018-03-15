@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.pulsar;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,14 +38,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.pulsar.PulsarClientPool;
 import org.apache.nifi.pulsar.PulsarProducer;
 import org.apache.nifi.pulsar.cache.LRUCache;
 import org.apache.nifi.pulsar.pool.PulsarProducerFactory;
 import org.apache.nifi.pulsar.pool.ResourcePool;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
 import org.apache.pulsar.client.api.CompressionType;
 import org.apache.pulsar.client.api.MessageId;
@@ -56,14 +53,14 @@ import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode;
 import org.apache.pulsar.client.api.PulsarClientException;
 
 @Tags({"Apache", "Pulsar", "Put", "Send", "Message", "PubSub"})
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Pulsar using the Pulsar 1.21 Producer API."
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Pulsar using the Pulsar 1.X Producer API."
     + "The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line. "
-    + "The complementary NiFi processor for fetching messages is ConsumePulsar.")
+    + "The complementary NiFi processor for fetching messages is ConsumePulsar_1_X.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
         + "FlowFiles that are routed to success.")
-public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
+public class PublishPulsar_1_X extends AbstractPulsarProcessor {
 
     protected static final String MSG_COUNT = "msg.count";
 
@@ -214,8 +211,9 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
 
         FlowFile flowFile = session.get();
 
-        if (flowFile == null)
+        if (flowFile == null) {
             return;
+        }
 
         final ComponentLog logger = getLogger();
         final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
@@ -227,14 +225,10 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
         }
 
         // Read the contents of the FlowFile into a byte array
-        final byte[] messageContent = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, messageContent, true);
-            }
-        });
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        session.exportTo(flowFile, baos);
 
+        final byte[] messageContent = baos.toByteArray();
         // Nothing to do, so skip this Flow file.
         if (messageContent == null || messageContent.length < 1) {
             session.transfer(flowFile, REL_SUCCESS);
@@ -245,7 +239,7 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
 
             Producer producer = getWrappedProducer(topic, context).getProducer();
 
-            if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+            if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
                 this.sendAsync(producer, session, flowFile, messageContent);
             } else {
                 this.send(producer, session, flowFile, messageContent);
@@ -262,13 +256,13 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
 
     private void send(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) throws PulsarClientException {
 
-            MessageId msgId = producer.send(messageContent);
+        MessageId msgId = producer.send(messageContent);
 
-            if (msgId != null) {
-                flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
-                session.adjustCounter("Messages Sent", 1, true);
-                session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
-                session.transfer(flowFile, REL_SUCCESS);
+        if (msgId != null) {
+            flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
+            session.adjustCounter("Messages Sent", 1, true);
+            session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
+            session.transfer(flowFile, REL_SUCCESS);
 
         } else {
             session.transfer(flowFile, REL_FAILURE);
@@ -278,20 +272,19 @@ public class PublishPulsar_1_0 extends AbstractPulsarProcessor {
 
     private void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
 
-            producer.sendAsync(messageContent).handle((msgId, ex) -> {
-                if (msgId != null) {
-                    return msgId;
-                } else {
-                        // TODO Communicate the error back up to the onTrigger method so we can invalidate this producer.
-                        getLogger().warn("Problem ", ex);
-                    return null;
-                }
-            });
+        producer.sendAsync(messageContent).handle((msgId, ex) -> {
+            if (msgId != null) {
+                return msgId;
+            } else {
+                getLogger().warn("Problem ", ex);
+                return null;
+            }
+        });
 
-            flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
-            session.adjustCounter("Messages Sent", 1, true);
-            session.getProvenanceReporter().send(flowFile, "Sent async message to " + producer.getTopic() );
-            session.transfer(flowFile, REL_SUCCESS);
+        flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
+        session.adjustCounter("Messages Sent", 1, true);
+        session.getProvenanceReporter().send(flowFile, "Sent async message to " + producer.getTopic() );
+        session.transfer(flowFile, REL_SUCCESS);
 
     }
 
