@@ -18,18 +18,24 @@ package org.apache.nifi.processor.util.bin;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Note: {@code Bin} objects are NOT thread safe. If multiple threads access a {@code Bin}, the caller must synchronize
  * access.
  */
 public class Bin {
+    private static final Logger logger = LoggerFactory.getLogger(Bin.class);
+
     private final ProcessSession session;
     private final long creationMomentEpochNs;
     private final long minimumSizeBytes;
@@ -40,6 +46,7 @@ public class Bin {
     private final String fileCountAttribute;
 
     final List<FlowFile> binContents = new ArrayList<>();
+    private final Set<String> binIndexSet = new HashSet<>();
     long size;
     int successiveFailedOfferings = 0;
 
@@ -127,6 +134,7 @@ public class Bin {
             return false;
         }
 
+        // fileCountAttribute is non-null for defragment mode
         if (fileCountAttribute != null) {
             final String countValue = flowFile.getAttribute(fileCountAttribute);
             final Integer count = toInteger(countValue);
@@ -134,6 +142,14 @@ public class Bin {
                 int currentMaxEntries = this.maximumEntries;
                 this.maximumEntries = Math.min(count, currentMaxEntries);
                 this.minimumEntries = currentMaxEntries;
+            }
+
+            final String index = flowFile.getAttribute("fragment.index");
+            if (index == null || index.isEmpty() || !binIndexSet.add(index)) {
+                // Do not accept flowfile with duplicate fragment index value
+                logger.warn("Duplicate or missing value for 'fragment.index' in degragment mode. Flowfile {} not allowed in Bin", new Object[] { flowFile });
+                successiveFailedOfferings++;
+                return false;
             }
         }
 
