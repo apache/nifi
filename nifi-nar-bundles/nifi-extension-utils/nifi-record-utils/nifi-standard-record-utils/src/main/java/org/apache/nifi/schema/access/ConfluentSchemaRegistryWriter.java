@@ -17,6 +17,9 @@
 
 package org.apache.nifi.schema.access;
 
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -27,16 +30,13 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-
 public class ConfluentSchemaRegistryWriter implements SchemaAccessWriter {
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
 
     @Override
     public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
         final SchemaIdentifier identifier = schema.getIdentifier();
-        final long id = identifier.getIdentifier().getAsLong();
+        final Long id = identifier.getIdentifier().getAsLong();
 
         // This encoding follows the pattern that is provided for serializing data by the Confluent Schema Registry serializer
         // as it is provided at:
@@ -45,7 +45,7 @@ public class ConfluentSchemaRegistryWriter implements SchemaAccessWriter {
         // representing the schema id.
         final ByteBuffer bb = ByteBuffer.allocate(5);
         bb.put((byte) 0);
-        bb.putInt((int) id);
+        bb.putInt(id.intValue());
 
         out.write(bb.array());
     }

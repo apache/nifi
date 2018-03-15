@@ -17,7 +17,10 @@
 
 package org.apache.nifi.schema.access;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -25,10 +28,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Collections;
 
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class TestHortonworksEncodedSchemaReferenceWriter {
 
@@ -36,7 +36,7 @@ public class TestHortonworksEncodedSchemaReferenceWriter {
     public void testHeader() throws IOException {
         final HortonworksEncodedSchemaReferenceWriter writer = new HortonworksEncodedSchemaReferenceWriter();
 
-        final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList(), SchemaIdentifier.of("name", 48L, 2));
+        final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList(), SchemaIdentifier.builder().name("name").id( 48L).version( 2).build());
 
         final byte[] header;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {

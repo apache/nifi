@@ -19,10 +19,11 @@ package org.apache.nifi.schema.access;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -30,7 +31,9 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class SchemaNameAsAttribute implements SchemaAccessWriter {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME);
-    private static final String SCHEMA_NAME_ATTRIBUTE = "schema.name";
+    static final String SCHEMA_NAME_ATTRIBUTE = "schema.name";
+    static final String SCHEMA_BRANCH_ATTRIBUTE = "schema.branch";
+    static final String SCHEMA_VERSION_ATTRIBUTE = "schema.version";
 
     @Override
     public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
@@ -38,17 +41,34 @@ public class SchemaNameAsAttribute implements SchemaAccessWriter {
 
     @Override
     public Map<String, String> getAttributes(final RecordSchema schema) {
+        final Map<String,String> attributes = new HashMap<>(3);
+
         final SchemaIdentifier identifier = schema.getIdentifier();
+
         final Optional<String> nameOption = identifier.getName();
         if (nameOption.isPresent()) {
-            return Collections.singletonMap(SCHEMA_NAME_ATTRIBUTE, nameOption.get());
+            attributes.put(SCHEMA_NAME_ATTRIBUTE, nameOption.get());
         }
-        return Collections.emptyMap();
+
+        final OptionalInt versionOption = identifier.getVersion();
+        if (versionOption.isPresent()) {
+            attributes.put(SCHEMA_VERSION_ATTRIBUTE, String.valueOf(versionOption.getAsInt()));
+        }
+
+        final Optional<String> branchOption = identifier.getBranch();
+        if (branchOption.isPresent()) {
+            attributes.put(SCHEMA_BRANCH_ATTRIBUTE, branchOption.get());
+        }
+
+        return attributes;
     }
 
     @Override
     public void validateSchema(final RecordSchema schema) throws SchemaNotFoundException {
         final SchemaIdentifier schemaId = schema.getIdentifier();
+        if (schemaId == null) {
+            throw new SchemaNotFoundException("Cannot write Schema Name As Attribute because Schema Identifier is not known");
+        }
         if (!schemaId.getName().isPresent()) {
             throw new SchemaNotFoundException("Cannot write Schema Name As Attribute because the Schema Name is not known");
         }
