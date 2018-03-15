@@ -29,34 +29,28 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
     public static final AllowableValue TCP_VALUE = new AllowableValue("TCP", "TCP");
     public static final AllowableValue UDP_VALUE = new AllowableValue("UDP", "UDP");
 
-    public static final PropertyDescriptor PROTOCOL = new PropertyDescriptor
+    public static final PropertyDescriptor PROTOCOL_PROP = new PropertyDescriptor
             .Builder().name("Protocol")
             .description("The protocol for Syslog communication.")
             .required(true)
             .allowableValues(TCP_VALUE, UDP_VALUE)
             .defaultValue(UDP_VALUE.getValue())
             .build();
-    public static final PropertyDescriptor PORT = new PropertyDescriptor
+    public static final PropertyDescriptor.Builder PORT_PROP_BUILDER = new PropertyDescriptor
             .Builder().name("Port")
             .description("The port for Syslog communication.")
             .required(true)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .addValidator(StandardValidators.PORT_VALIDATOR);
+    public static final PropertyDescriptor.Builder CHARSET_PROP_BUILDER = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("Specifies the character set of the Syslog messages")
             .required(true)
             .defaultValue("UTF-8")
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR);
+    public static final PropertyDescriptor.Builder TIMEOUT_PROP_BUILDER = new PropertyDescriptor.Builder()
             .name("Timeout")
             .description("The timeout for connecting to and communicating with the syslog server. Does not apply to UDP")
             .required(false)
             .defaultValue("10 seconds")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
-
-
-
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR);
 }
