@@ -16,28 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -77,6 +55,29 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"syslog", "listen", "udp", "tcp", "logs"})
@@ -114,6 +115,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .defaultValue("10000")
         .required(true)
         .build();
+
     public static final PropertyDescriptor RECV_BUFFER_SIZE = new PropertyDescriptor.Builder()
         .name("Receive Buffer Size")
         .displayName("Receive Buffer Size")
@@ -285,13 +287,13 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final int port = context.getProperty(PORT).asInteger();
+        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         final String protocol = context.getProperty(PROTOCOL).getValue();
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        final String charSet = context.getProperty(CHARSET).getValue();
+        final String charSet = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         messageDemarcatorBytes = msgDemarcator.getBytes(Charset.forName(charSet));
 
@@ -413,7 +415,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
 
-        final String port = context.getProperty(PORT).getValue();
+        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
         final String protocol = context.getProperty(PROTOCOL).getValue();
 
         final Map<String, String> defaultAttributes = new HashMap<>(4);
