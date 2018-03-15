@@ -49,7 +49,7 @@ public class TestHortonworksAttributeSchemaReferenceWriter {
     }
 
     @Test
-    public void testGetAttributes() {
+    public void testGetAttributesWithoutBranch() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).version(2).build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
@@ -66,6 +66,28 @@ public class TestHortonworksAttributeSchemaReferenceWriter {
 
         Assert.assertEquals(String.valueOf(HortonworksAttributeSchemaReferenceWriter.LATEST_PROTOCOL_VERSION),
                 attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE));
+    }
+
+    @Test
+    public void testGetAttributesWithBranch() {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).version(2).branch("foo").build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter();
+        final Map<String,String> attributes = schemaAccessWriter.getAttributes(recordSchema);
+
+        Assert.assertEquals(4, attributes.size());
+
+        Assert.assertEquals(String.valueOf(schemaIdentifier.getIdentifier().getAsLong()),
+                attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE));
+
+        Assert.assertEquals(String.valueOf(schemaIdentifier.getVersion().getAsInt()),
+                attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE));
+
+        Assert.assertEquals(String.valueOf(HortonworksAttributeSchemaReferenceWriter.LATEST_PROTOCOL_VERSION),
+                attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE));
+
+        Assert.assertEquals("foo", attributes.get(HortonworksAttributeSchemaReferenceWriter.SCHEMA_BRANCH_ATTRIBUTE));
     }
 
     private RecordSchema createRecordSchema(final SchemaIdentifier schemaIdentifier) {

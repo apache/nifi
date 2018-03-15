@@ -30,6 +30,7 @@ import java.util.Set;
 public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWriter {
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
     static final int LATEST_PROTOCOL_VERSION = 1;
+    static final String SCHEMA_BRANCH_ATTRIBUTE = "schema.branch";
 
     @Override
     public void writeHeader(RecordSchema schema, OutputStream out) throws IOException {
@@ -46,6 +47,10 @@ public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWr
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE, String.valueOf(schemaId));
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE, String.valueOf(schemaVersion));
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, String.valueOf(LATEST_PROTOCOL_VERSION));
+
+        if (id.getBranch().isPresent()) {
+            attributes.put(SCHEMA_BRANCH_ATTRIBUTE, id.getBranch().get());
+        }
 
         return attributes;
     }

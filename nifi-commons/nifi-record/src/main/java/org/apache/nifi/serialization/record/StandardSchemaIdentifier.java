@@ -82,7 +82,7 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
     }
 
     /**
-     * Builder to create instances of Schema
+     * Builder to create instances of SchemaIdentifier.
      */
     public static class Builder implements SchemaIdentifier.Builder {
 

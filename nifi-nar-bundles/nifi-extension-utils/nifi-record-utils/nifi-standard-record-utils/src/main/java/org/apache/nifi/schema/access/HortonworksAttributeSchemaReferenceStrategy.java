@@ -35,6 +35,7 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
     public static final String SCHEMA_VERSION_ATTRIBUTE = "schema.version";
     public static final String SCHEMA_PROTOCOL_VERSION_ATTRIBUTE = "schema.protocol.version";
 
+
     private final SchemaRegistry schemaRegistry;
 
 
