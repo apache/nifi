@@ -703,14 +703,37 @@ public class StatusMerger {
         target.setMaxHeapBytes(add(target.getMaxHeapBytes(), toMerge.getMaxHeapBytes()));
         target.setMaxHeap(FormatUtils.formatDataSize(target.getMaxHeapBytes()));
 
-        mergeGarbageCollectionDiagnostics(target.getGarbageCollectionDiagnostics(), toMerge.getGarbageCollectionDiagnostics(), numMillis);
+        final List<GarbageCollectionDiagnosticsDTO> mergedGcDiagnosticsDtos = mergeGarbageCollectionDiagnostics(target.getGarbageCollectionDiagnostics(),
+            toMerge.getGarbageCollectionDiagnostics(), numMillis);
+        target.setGarbageCollectionDiagnostics(mergedGcDiagnosticsDtos);
     }
 
-    private static void mergeGarbageCollectionDiagnostics(final List<GarbageCollectionDiagnosticsDTO> target, final List<GarbageCollectionDiagnosticsDTO> toMerge, final long numMillis) {
+    private static List<GarbageCollectionDiagnosticsDTO> mergeGarbageCollectionDiagnostics(final List<GarbageCollectionDiagnosticsDTO> target,
+            final List<GarbageCollectionDiagnosticsDTO> toMerge, final long numMillis) {
+
         final Map<String, Map<Date, GCDiagnosticsSnapshotDTO>> metricsByMemoryMgr = new HashMap<>();
         merge(target, metricsByMemoryMgr, numMillis);
         merge(toMerge, metricsByMemoryMgr, numMillis);
+
+        final List<GarbageCollectionDiagnosticsDTO> gcDiagnosticsDtos = new ArrayList<>();
+        for (final Map.Entry<String, Map<Date, GCDiagnosticsSnapshotDTO>> entry : metricsByMemoryMgr.entrySet()) {
+            final String memoryManagerName = entry.getKey();
+
+            final Map<Date, GCDiagnosticsSnapshotDTO> snapshotMap = entry.getValue();
+
+            final GarbageCollectionDiagnosticsDTO gcDiagnosticsDto = new GarbageCollectionDiagnosticsDTO();
+            gcDiagnosticsDto.setMemoryManagerName(memoryManagerName);
+
+            final List<GCDiagnosticsSnapshotDTO> gcDiagnosticsSnapshots = new ArrayList<>(snapshotMap.values());
+            Collections.sort(gcDiagnosticsSnapshots, (a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+
+            gcDiagnosticsDto.setSnapshots(gcDiagnosticsSnapshots);
+            gcDiagnosticsDtos.add(gcDiagnosticsDto);
+        }
+
+        return gcDiagnosticsDtos;
     }
+
 
     private static void merge(final List<GarbageCollectionDiagnosticsDTO> toMerge, final Map<String, Map<Date, GCDiagnosticsSnapshotDTO>> metricsByMemoryMgr, final long numMillis) {
         for (final GarbageCollectionDiagnosticsDTO gcDiagnostics : toMerge) {
