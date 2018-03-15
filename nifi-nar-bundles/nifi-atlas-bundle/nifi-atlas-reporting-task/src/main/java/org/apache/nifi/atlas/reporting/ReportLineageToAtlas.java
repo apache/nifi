@@ -92,10 +92,12 @@ import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.
 import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_START_POSITION;
 
 @Tags({"atlas", "lineage"})
-@CapabilityDescription("Publishes NiFi flow data set level lineage to Apache Atlas." +
-        " By reporting flow information to Atlas, an end-to-end Process and DataSet lineage such as across NiFi environments and other systems" +
-        " connected by technologies, for example NiFi Site-to-Site, Kafka topic or Hive tables." +
-        " There are limitations and required configurations for both NiFi and Atlas. See 'Additional Details' for further description.")
+@CapabilityDescription("Report NiFi flow data set level lineage to Apache Atlas." +
+        " End-to-end lineages across NiFi environments and other systems can be reported if those are" +
+        " connected by different protocols and data set, such as NiFi Site-to-Site, Kafka topic or Hive tables ... etc." +
+        " Atlas lineage reported by this reporting task can be useful to grasp the high level relationships between processes and data sets," +
+        " in addition to NiFi provenance events providing detailed event level lineage." +
+        " See 'Additional Details' for further description and limitations.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 @DynamicProperty(name = "hostnamePattern.<ClusterName>", value = "hostname Regex patterns", description = RegexClusterResolver.PATTERN_PROPERTY_PREFIX_DESC)
 // In order for each reporting task instance to have its own static objects such as KafkaNotification.
@@ -268,7 +270,11 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     static final PropertyDescriptor NIFI_LINEAGE_STRATEGY = new PropertyDescriptor.Builder()
             .name("nifi-lineage-strategy")
             .displayName("NiFi Lineage Strategy")
-            .description("Specifies granularity on how NiFi data flow should be reported to Atlas.")
+            .description("Specifies granularity on how NiFi data flow should be reported to Atlas." +
+                    " NOTE: It is strongly recommended to keep using the same strategy once this reporting task started to keep Atlas data clean." +
+                    " Switching strategies will not delete Atlas entities created by the old strategy." +
+                    " Having mixed entities created by different strategies makes Atlas lineage graph noisy." +
+                    " For more detailed description on each strategy and differences, refer 'NiFi Lineage Strategy' section in Additional Details.")
             .required(true)
             .allowableValues(LINEAGE_STRATEGY_SIMPLE_PATH, LINEAGE_STRATEGY_COMPLETE_PATH)
             .defaultValue(LINEAGE_STRATEGY_SIMPLE_PATH.getValue())
