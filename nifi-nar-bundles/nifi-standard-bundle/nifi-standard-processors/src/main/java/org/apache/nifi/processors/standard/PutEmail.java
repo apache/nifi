@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +51,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -66,11 +69,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.stream.io.StreamUtils;
 
 @SupportsBatching
 @Tags({"email", "put", "notify", "smtp"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends an e-mail to configured recipients for each incoming FlowFile")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a String object) "
+        + "will be read into memory in case the property to use the flow file content as the email body is set to true.")
 public class PutEmail extends AbstractProcessor {
 
     public static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
@@ -182,9 +188,8 @@ public class PutEmail extends AbstractProcessor {
     public static final PropertyDescriptor MESSAGE = new PropertyDescriptor.Builder()
             .name("Message")
             .description("The body of the email message")
-            .required(true)
+            .required(false)
             .expressionLanguageSupported(true)
-            .defaultValue("")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor ATTACH_FILE = new PropertyDescriptor.Builder()
@@ -192,6 +197,15 @@ public class PutEmail extends AbstractProcessor {
             .description("Specifies whether or not the FlowFile content should be attached to the email")
             .required(true)
             .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+    public static final PropertyDescriptor CONTENT_AS_MESSAGE = new PropertyDescriptor.Builder()
+            .name("email-ff-content-as-message")
+            .displayName("Flow file content as message")
+            .description("Specifies whether or not the FlowFile content should be the message of the email. If true, the 'Message' property is ignored.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();
     public static final PropertyDescriptor INCLUDE_ALL_ATTRIBUTES = new PropertyDescriptor.Builder()
@@ -248,6 +262,7 @@ public class PutEmail extends AbstractProcessor {
         properties.add(BCC);
         properties.add(SUBJECT);
         properties.add(MESSAGE);
+        properties.add(CONTENT_AS_MESSAGE);
         properties.add(ATTACH_FILE);
         properties.add(INCLUDE_ALL_ATTRIBUTES);
         this.properties = Collections.unmodifiableList(properties);
@@ -305,11 +320,8 @@ public class PutEmail extends AbstractProcessor {
 
             message.setHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue());
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
-            String messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
 
-            if (context.getProperty(INCLUDE_ALL_ATTRIBUTES).asBoolean()) {
-                messageText = formatAttributes(flowFile, messageText);
-            }
+            String messageText = getMessage(flowFile, context, session);
 
             String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
             message.setContent(messageText, contentType);
@@ -348,6 +360,31 @@ public class PutEmail extends AbstractProcessor {
             logger.error("Failed to send email for {}: {}; routing to failure", new Object[]{flowFile, e.getMessage()}, e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    private String getMessage(final FlowFile flowFile, final ProcessContext context, final ProcessSession session) {
+        String messageText = "";
+
+        if(context.getProperty(CONTENT_AS_MESSAGE).evaluateAttributeExpressions(flowFile).asBoolean()) {
+            // reading all the content of the input flow file
+            final byte[] byteBuffer = new byte[(int) flowFile.getSize()];
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(InputStream in) throws IOException {
+                    StreamUtils.fillBuffer(in, byteBuffer, false);
+                }
+            });
+
+            messageText = new String(byteBuffer, 0, byteBuffer.length, Charset.forName("UTF-8"));
+        } else if (context.getProperty(MESSAGE).isSet()) {
+            messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
+        }
+
+        if (context.getProperty(INCLUDE_ALL_ATTRIBUTES).asBoolean()) {
+            return formatAttributes(flowFile, messageText);
+        }
+
+        return messageText;
     }
 
     /**
