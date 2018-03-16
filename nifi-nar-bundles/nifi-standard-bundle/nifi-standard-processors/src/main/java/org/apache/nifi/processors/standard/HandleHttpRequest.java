@@ -514,22 +514,15 @@ public class HandleHttpRequest extends AbstractProcessor {
         final long start = System.nanoTime();
         final HttpServletRequest request = container.getRequest();
         FlowFile flowFile = session.create();
-        try {
-            flowFile = session.importFrom(request.getInputStream(), flowFile);
+        try (OutputStream flowFileOut = session.write(flowFile)) {
+            StreamUtils.copy(request.getInputStream(), flowFileOut);
         } catch (final IOException e) {
+            // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, eg.
+            // bad requests, the connection to the client is not closed. In order to address also these cases, we try
+            // and answer with a BAD_REQUEST, which lets the client know that the request has not been correctly
+            // processed and makes it aware that the connection can be closed.
             getLogger().error("Failed to receive content from HTTP Request from {} due to {}",
                     new Object[]{request.getRemoteAddr(), e});
-            session.remove(flowFile);
-            return;
-        } catch (final FlowFileAccessException e) {
-            // some bad requests can produce a IOException on the HTTP stream, which makes a FlowFileAccessException to
-            // be thrown. We should handle these cases here, while other FlowFileAccessException are re-thrown
-            if (!(e.getCause() != null && e.getCause() instanceof FlowFileAccessException
-                && e.getCause().getCause() != null && e.getCause().getCause() instanceof IOException)) {
-                throw e;
-            }
-            getLogger().error("Failed to receive content from HTTP Request from {} due to {}",
-                new Object[]{request.getRemoteAddr(), e.getCause().getCause()});
             session.remove(flowFile);
 
             try {
@@ -539,7 +532,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                 container.getContext().complete();
             } catch (final IOException ioe) {
                 getLogger().warn("Failed to send HTTP response to {} due to {}",
-                    new Object[]{request.getRemoteAddr(), ioe});
+                        new Object[]{request.getRemoteAddr(), ioe});
             }
             return;
         }
