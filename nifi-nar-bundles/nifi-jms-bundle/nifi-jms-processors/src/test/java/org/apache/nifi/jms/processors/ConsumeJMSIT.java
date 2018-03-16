@@ -33,7 +33,7 @@ import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
-public class ConsumeJMSTest {
+public class ConsumeJMSIT {
 
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
