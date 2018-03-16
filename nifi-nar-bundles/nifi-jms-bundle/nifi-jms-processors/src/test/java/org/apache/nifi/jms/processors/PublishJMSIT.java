@@ -39,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PublishJMSTest {
+public class PublishJMSIT {
 
     @Test(timeout = 10000)
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
