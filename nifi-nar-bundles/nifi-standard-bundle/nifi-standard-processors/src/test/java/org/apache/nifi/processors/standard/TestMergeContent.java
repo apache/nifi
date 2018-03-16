@@ -87,6 +87,9 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
         runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
 
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assertEquals(1024 * 6, bundle.getSize());
+
         // Queue should not be empty because the first FlowFile will be transferred back to the input queue
         // when we run out @OnStopped logic, since it won't be transferred to any bin.
         runner.assertQueueNotEmpty();
@@ -887,6 +890,33 @@ public class TestMergeContent {
     }
 
     @Test
+    public void testDefragmentWithTooManyFragements() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "4");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+
+        runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
+        runner.enqueue("Panama".getBytes("UTF-8"), attributes);
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+    }
+
+    @Test
     public void testDefragmentWithTooFewFragments() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
@@ -988,13 +1018,11 @@ public class TestMergeContent {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("segment.identifier", "1");
         attributes.put("segment.count", "4");
         attributes.put("segment.index", "1");
         attributes.put("segment.original.filename", "originalfilename");
-
         runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
         attributes.put("segment.index", "2");
         runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
@@ -1002,9 +1030,7 @@ public class TestMergeContent {
         runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
         attributes.put("segment.index", "4");
         runner.enqueue("Panama".getBytes("UTF-8"), attributes);
-
         runner.run();
-
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
         final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
