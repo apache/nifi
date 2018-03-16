@@ -72,9 +72,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor MAX_ENTRIES = new PropertyDescriptor.Builder()
             .name("Maximum Number of Entries")
-            .description("The maximum number of files to include in a bundle. If not specified, there is no maximum.")
+            .description("The maximum number of files to include in a bundle")
             .defaultValue("1000")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
