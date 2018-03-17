@@ -158,7 +158,7 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
-    private ElasticSearchClientService clientService;
+    private volatile ElasticSearchClientService clientService;
 
     static {
         final Set<Relationship> _rels = new HashSet<>();
@@ -242,17 +242,19 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
                 List<FlowFile> hitsFlowFiles = handleHits(response.getHits(), context, session, input);
                 List<FlowFile> aggsFlowFiles = handleAggregations(response.getAggregations(), context, session, input);
 
+                final String transitUri = clientService.getTransitUrl(index, type);
+
                 if (hitsFlowFiles.size() > 0) {
+                    session.transfer(hitsFlowFiles, REL_HITS);
                     for (FlowFile ff : hitsFlowFiles) {
-                        session.transfer(ff, REL_HITS);
-                        session.getProvenanceReporter().send(ff, clientService.getTransitUrl(index, type));
+                        session.getProvenanceReporter().send(ff, transitUri);
                     }
                 }
 
                 if (aggsFlowFiles.size() > 0) {
+                    session.transfer(aggsFlowFiles, REL_AGGREGATIONS);
                     for (FlowFile ff : aggsFlowFiles) {
-                        session.transfer(ff, REL_AGGREGATIONS);
-                        session.getProvenanceReporter().send(ff, clientService.getTransitUrl(index, type));
+                        session.getProvenanceReporter().send(ff, transitUri);
                     }
                 }
             }
@@ -264,6 +266,7 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             if (input != null) {
                 session.transfer(input, REL_FAILURE);
             }
+            context.yield();
         }
     }
 

@@ -140,4 +140,42 @@ public class JsonQueryElasticsearchTest {
         runner.run(1, true, true);
         testCounts(runner, 1, 1, 0, 2);
     }
+
+    @Test
+    public void testErrorDuringSearch() throws Exception {
+        String query = "{\n" +
+                "\t\"query\": {\n" +
+                "\t\t\"match_all\": {}\n" +
+                "\t},\n" +
+                "\t\"aggs\": {\n" +
+                "\t\t\"test_agg\": {\n" +
+                "\t\t\t\"terms\": {\n" +
+                "\t\t\t\t\"field\": \"msg\"\n" +
+                "\t\t\t}\n" +
+                "\t\t},\n" +
+                "\t\t\"test_agg2\": {\n" +
+                "\t\t\t\"terms\": {\n" +
+                "\t\t\t\t\"field\": \"msg\"\n" +
+                "\t\t\t}\n" +
+                "\t\t}\n" +
+                "\t}\n" +
+                "}";
+
+
+        JsonQueryElasticsearch processor = new JsonQueryElasticsearch();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        TestElasticSearchClientService service = new TestElasticSearchClientService(true);
+        service.setThrowErrorInSearch(true);
+        runner.addControllerService("esService", service);
+        runner.enableControllerService(service);
+        runner.setProperty(JsonQueryElasticsearch.CLIENT_SERVICE, "esService");
+        runner.setProperty(JsonQueryElasticsearch.INDEX, INDEX_NAME);
+        runner.setProperty(JsonQueryElasticsearch.TYPE, "message");
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(JsonQueryElasticsearch.QUERY, query);
+
+        runner.enqueue("test");
+        runner.run(1, true, true);
+        testCounts(runner, 0, 0, 1, 0);
+    }
 }

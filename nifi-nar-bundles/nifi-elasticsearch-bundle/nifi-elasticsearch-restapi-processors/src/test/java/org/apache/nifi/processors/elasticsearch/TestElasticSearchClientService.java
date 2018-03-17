@@ -29,27 +29,23 @@ import java.util.Optional;
 
 public class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     private boolean returnAggs;
+    private boolean throwErrorInSearch;
 
     public TestElasticSearchClientService(boolean returnAggs) {
         this.returnAggs = returnAggs;
     }
 
     @Override
-    public Optional<SearchResponse> search(String query, String index, String type) {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            List<Map<String, Object>> hits = (List<Map<String, Object>>)mapper.readValue(HITS_RESULT, List.class);
-            Map<String, Object> aggs = returnAggs ? (Map<String, Object>)mapper.readValue(AGGS_RESULT, Map.class) :  null;
-            SearchResponse response = new SearchResponse(hits, aggs, 15, 5, false);
-            return Optional.of(response);
-        } catch (IOException e) {
-            return Optional.empty();
+    public Optional<SearchResponse> search(String query, String index, String type) throws IOException {
+        if (throwErrorInSearch) {
+            throw new IOException();
         }
-    }
 
-    @Override
-    public Optional<SearchResponse> search(Map<String, Object> query, String index, String type) {
-        return Optional.empty();
+        ObjectMapper mapper = new ObjectMapper();
+        List<Map<String, Object>> hits = (List<Map<String, Object>>)mapper.readValue(HITS_RESULT, List.class);
+        Map<String, Object> aggs = returnAggs ? (Map<String, Object>)mapper.readValue(AGGS_RESULT, Map.class) :  null;
+        SearchResponse response = new SearchResponse(hits, aggs, 15, 5, false);
+        return Optional.of(response);
     }
 
     @Override
@@ -204,4 +200,8 @@ public class TestElasticSearchClientService extends AbstractControllerService im
             "        }\n" +
             "      }\n" +
             "    ]";
+
+    public void setThrowErrorInSearch(boolean throwErrorInSearch) {
+        this.throwErrorInSearch = throwErrorInSearch;
+    }
 }

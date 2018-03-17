@@ -17,7 +17,6 @@
 
 package org.apache.nifi.elasticsearch;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
@@ -33,7 +32,6 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.elasticsearch.client.Response;
@@ -44,10 +42,9 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyStore;
 import java.security.SecureRandom;
@@ -61,22 +58,23 @@ import java.util.Optional;
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
     private ObjectMapper mapper = new ObjectMapper();
 
-    private List<PropertyDescriptor> properties;
+    static final private List<PropertyDescriptor> properties;
 
     private RestClient client;
 
     private String url;
 
-    @Override
-    protected void init(ControllerServiceInitializationContext config) {
-        properties = new ArrayList<>();
-        properties.add(ElasticSearchClientService.HTTP_HOSTS);
-        properties.add(ElasticSearchClientService.USERNAME);
-        properties.add(ElasticSearchClientService.PASSWORD);
-        properties.add(ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
-        properties.add(ElasticSearchClientService.CONNECT_TIMEOUT);
-        properties.add(ElasticSearchClientService.SOCKET_TIMEOUT);
-        properties.add(ElasticSearchClientService.RETRY_TIMEOUT);
+    static {
+        List _props = new ArrayList();
+        _props.add(ElasticSearchClientService.HTTP_HOSTS);
+        _props.add(ElasticSearchClientService.USERNAME);
+        _props.add(ElasticSearchClientService.PASSWORD);
+        _props.add(ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
+        _props.add(ElasticSearchClientService.CONNECT_TIMEOUT);
+        _props.add(ElasticSearchClientService.SOCKET_TIMEOUT);
+        _props.add(ElasticSearchClientService.RETRY_TIMEOUT);
+
+        properties = Collections.unmodifiableList(_props);
     }
 
     @Override
@@ -100,7 +98,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         this.url = null;
     }
 
-    private void setupClient(ConfigurationContext context) throws Exception {
+    private void setupClient(ConfigurationContext context) throws MalformedURLException {
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
         String[] hostsSplit = hosts.split(",[\\s]*");
         this.url = hostsSplit[0];
@@ -121,7 +119,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
         RestClientBuilder builder = RestClient.builder(hh)
                 .setHttpClientConfigCallback(httpClientBuilder -> {
-                    if (sslService != null) {
+                    if (sslService != null && sslService.isKeyStoreConfigured() && sslService.isTrustStoreConfigured()) {
                         try {
                             KeyStore keyStore = KeyStore.getInstance(sslService.getKeyStoreType());
                             KeyStore trustStore = KeyStore.getInstance("JKS");
@@ -144,7 +142,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                             context1.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
                             httpClientBuilder = httpClientBuilder.setSSLContext(context1);
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            getLogger().error("Error setting up SSL.", e);
                         }
                     }
 
@@ -158,29 +156,16 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     return httpClientBuilder;
                 })
                 .setRequestConfigCallback(requestConfigBuilder -> {
-                    try {
-                        requestConfigBuilder.setConnectTimeout(connectTimeout);
-                        requestConfigBuilder.setSocketTimeout(readTimeout);
-                        return requestConfigBuilder;
-                    } catch (Exception ex) {
-                        try {
-                            PrintWriter writer = new PrintWriter(new FileWriter("/tmp/out.log"));
-                            writer.println(requestConfigBuilder == null);
-                            writer.println(readTimeout == null);
-                            ex.printStackTrace(writer);
-                            writer.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        throw new RuntimeException(ex);
-                    }
+                    requestConfigBuilder.setConnectTimeout(connectTimeout);
+                    requestConfigBuilder.setSocketTimeout(readTimeout);
+                    return requestConfigBuilder;
                 })
                 .setMaxRetryTimeoutMillis(retryTimeout);
 
         this.client = builder.build();
     }
 
-    private Response runQuery(String query, String index, String type) throws Exception {
+    private Response runQuery(String query, String index, String type) throws IOException {
         StringBuilder sb = new StringBuilder()
                 .append("/")
                 .append(index);
@@ -197,49 +182,34 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     @Override
-    public Optional<SearchResponse> search(String query, String index, String type) {
-        try {
-            Response response = runQuery(query, index, type);
-            Map<String, Object> parsed = mapper.readValue(IOUtils.toString(response.getEntity().getContent()), Map.class);
+    public Optional<SearchResponse> search(String query, String index, String type) throws IOException {
+        Response response = runQuery(query, index, type);
+        Map<String, Object> parsed = mapper.readValue(IOUtils.toString(response.getEntity().getContent()), Map.class);
 
-            int took = (Integer)parsed.get("took");
-            boolean timedOut = (Boolean)parsed.get("timed_out");
-            Map<String, Object> aggregations = parsed.get("aggregations") != null
-                    ? (Map<String, Object>)parsed.get("aggregations") : new HashMap<>();
-            Map<String, Object> hitsParent = (Map<String, Object>)parsed.get("hits");
-            int count = (Integer)hitsParent.get("total");
-            List<Map<String, Object>> hits = (List<Map<String, Object>>)hitsParent.get("hits");
+        int took = (Integer)parsed.get("took");
+        boolean timedOut = (Boolean)parsed.get("timed_out");
+        Map<String, Object> aggregations = parsed.get("aggregations") != null
+                ? (Map<String, Object>)parsed.get("aggregations") : new HashMap<>();
+        Map<String, Object> hitsParent = (Map<String, Object>)parsed.get("hits");
+        int count = (Integer)hitsParent.get("total");
+        List<Map<String, Object>> hits = (List<Map<String, Object>>)hitsParent.get("hits");
 
-            SearchResponse esr = new SearchResponse(hits, aggregations, count, took, timedOut);
+        SearchResponse esr = new SearchResponse(hits, aggregations, count, took, timedOut);
 
-            if (getLogger().isDebugEnabled()) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("******************");
-                sb.append(String.format("Took: %d", took));
-                sb.append(String.format("Timed out: %s", timedOut));
-                sb.append(String.format("Aggregation count: %d", aggregations.size()));
-                sb.append(String.format("Hit count: %d", hits.size()));
-                sb.append(String.format("Total found: %d", count));
-                sb.append("******************");
+        if (getLogger().isDebugEnabled()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("******************");
+            sb.append(String.format("Took: %d", took));
+            sb.append(String.format("Timed out: %s", timedOut));
+            sb.append(String.format("Aggregation count: %d", aggregations.size()));
+            sb.append(String.format("Hit count: %d", hits.size()));
+            sb.append(String.format("Total found: %d", count));
+            sb.append("******************");
 
-                getLogger().debug(sb.toString());
-            }
-
-            return Optional.of(esr);
-        } catch (Exception ex) {
-            getLogger().error("Error running search.", ex);
-            return Optional.empty();
+            getLogger().debug(sb.toString());
         }
-    }
 
-    @Override
-    public Optional<SearchResponse> search(Map<String, Object> query, String index, String type) {
-        try {
-            return search(mapper.writeValueAsString(query), index, type);
-        } catch (JsonProcessingException e) {
-            getLogger().error("Error trying to turn parameters into JSON string", new Object[]{ query }, e);
-            return Optional.empty();
-        }
+        return Optional.of(esr);
     }
 
     @Override

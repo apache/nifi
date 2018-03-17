@@ -23,7 +23,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
-import java.util.Map;
+import java.io.IOException;
 import java.util.Optional;
 
 @Tags({"elasticsearch", "client"})
@@ -95,17 +95,7 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param type The type to target. Optional. Will not be used in future versions of ElasticSearch.
      * @return An optional containing a SearchResponse object if successful, empty otherwise.
      */
-    Optional<SearchResponse> search(String query, String index, String type);
-
-    /**
-     * Perform a search using the JSON DSL.
-     *
-     * @param query A Map reprensenting the query.
-     * @param index The index to target. Optional.
-     * @param type The type to target. Optional. Will not be used in future versions of ElasticSearch.
-     * @return An optional containing a SearchResponse object if successful, empty otherwise.
-     */
-    Optional<SearchResponse> search(Map<String, Object> query, String index, String type);
+    Optional<SearchResponse> search(String query, String index, String type) throws IOException;
 
     /**
      * Build a transit URL to use with the provenance reporter.
