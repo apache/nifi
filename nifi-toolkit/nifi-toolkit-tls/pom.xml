@@ -24,7 +24,7 @@
     <description>Tooling to make tls configuration easier</description>
     <properties>
         <jersey.version>2.26</jersey.version>
-        <jackson.version>2.9.1</jackson.version>
+        <jackson.version>2.9.4</jackson.version>
     </properties>
     <dependencies>
         <dependency>
