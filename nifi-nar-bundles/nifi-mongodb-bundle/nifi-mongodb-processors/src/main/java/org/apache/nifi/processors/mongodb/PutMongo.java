@@ -30,6 +30,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -38,11 +40,13 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StringUtils;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -85,20 +89,29 @@ public class PutMongo extends AbstractMongoProcessor {
     static final PropertyDescriptor UPDATE_QUERY_KEY = new PropertyDescriptor.Builder()
         .name("Update Query Key")
         .description("Key name used to build the update query criteria; this property is valid only when using update mode, "
-                + "otherwise it is ignored")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .defaultValue("_id")
+                + "otherwise it is ignored. Example: _id")
+        .required(false)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .expressionLanguageSupported(true)
         .build();
+    static final PropertyDescriptor UPDATE_QUERY = new PropertyDescriptor.Builder()
+        .name("putmongo-update-query")
+        .displayName("Update Query")
+        .description("Specify a full MongoDB query to be used for the lookup query to do an update/upsert.")
+        .required(false)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .expressionLanguageSupported(true)
+        .build();
+
     static final PropertyDescriptor UPDATE_MODE = new PropertyDescriptor.Builder()
-            .displayName("Update Mode")
-            .name("put-mongo-update-mode")
-            .required(true)
-            .allowableValues(UPDATE_WITH_DOC, UPDATE_WITH_OPERATORS)
-            .defaultValue(UPDATE_WITH_DOC.getValue())
-            .description("Choose an update mode. You can either supply a JSON document to use as a direct replacement " +
-                    "or specify a document that contains update operators like $set and $unset")
-            .build();
+        .displayName("Update Mode")
+        .name("put-mongo-update-mode")
+        .required(true)
+        .allowableValues(UPDATE_WITH_DOC, UPDATE_WITH_OPERATORS)
+        .defaultValue(UPDATE_WITH_DOC.getValue())
+        .description("Choose an update mode. You can either supply a JSON document to use as a direct replacement " +
+                "or specify a document that contains update operators like $set and $unset")
+        .build();
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
         .description("The Character Set in which the data is encoded")
@@ -116,6 +129,7 @@ public class PutMongo extends AbstractMongoProcessor {
         _propertyDescriptors.add(MODE);
         _propertyDescriptors.add(UPSERT);
         _propertyDescriptors.add(UPDATE_QUERY_KEY);
+        _propertyDescriptors.add(UPDATE_QUERY);
         _propertyDescriptors.add(UPDATE_MODE);
         _propertyDescriptors.add(WRITE_CONCERN);
         _propertyDescriptors.add(CHARACTER_SET);
@@ -135,6 +149,30 @@ public class PutMongo extends AbstractMongoProcessor {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propertyDescriptors;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        List<ValidationResult> problems = new ArrayList<>();
+
+        final boolean queryKey = validationContext.getProperty(UPDATE_QUERY_KEY).isSet();
+        final boolean query    = validationContext.getProperty(UPDATE_QUERY).isSet();
+
+        if (queryKey && query) {
+            problems.add(new ValidationResult.Builder()
+                .valid(false)
+                .explanation("Both update query key and update query cannot be set at the same time.")
+                .build()
+            );
+        } else if (!queryKey && !query) {
+            problems.add(new ValidationResult.Builder()
+                .valid(false)
+                .explanation("Either the update query key or the update query field must be set.")
+                .build()
+            );
+        }
+
+        return problems;
     }
 
     @Override
@@ -168,14 +206,16 @@ public class PutMongo extends AbstractMongoProcessor {
             } else {
                 // update
                 final boolean upsert = context.getProperty(UPSERT).asBoolean();
-                final String updateKey = context.getProperty(UPDATE_QUERY_KEY).getValue();
+                final String updateKey = context.getProperty(UPDATE_QUERY_KEY).evaluateAttributeExpressions(flowFile).getValue();
+                final String filterQuery = context.getProperty(UPDATE_QUERY).evaluateAttributeExpressions(flowFile).getValue();
+                final Document query;
 
-                Object keyVal = ((Map)doc).get(updateKey);
-                if (updateKey.equals("_id") && ObjectId.isValid(((String)keyVal))) {
-                    keyVal = new ObjectId((String) keyVal);
+                if (!StringUtils.isBlank(updateKey)) {
+                    query = parseUpdateKey(updateKey, (Map)doc);
+                    removeUpdateKeys(updateKey, (Map)doc);
+                } else {
+                    query = Document.parse(filterQuery);
                 }
-
-                final Document query = new Document(updateKey, keyVal);
 
                 if (updateMode.equals(UPDATE_WITH_DOC.getValue())) {
                     collection.replaceOne(query, (Document)doc, new UpdateOptions().upsert(upsert));
@@ -195,6 +235,33 @@ public class PutMongo extends AbstractMongoProcessor {
             context.yield();
         }
     }
+
+    private void removeUpdateKeys(String updateKeyParam, Map doc) {
+        String[] parts = updateKeyParam.split(",[\\s]*");
+        for (String part : parts) {
+            if (part.contains(".")) {
+                doc.remove(part);
+            }
+        }
+    }
+
+    private Document parseUpdateKey(String updateKey, Map doc) {
+        Document retVal;
+        if (updateKey.equals("_id") && ObjectId.isValid(((String) doc.get(updateKey)))) {
+            retVal = new Document("_id", new ObjectId((String) doc.get(updateKey)));
+        } else if (updateKey.contains(",")) {
+            String[] parts = updateKey.split(",[\\s]*");
+            retVal = new Document();
+            for (String part : parts) {
+                retVal.append(part, doc.get(part));
+            }
+        } else {
+            retVal = new Document(updateKey, doc.get(updateKey));
+        }
+
+        return retVal;
+    }
+
 
     protected WriteConcern getWriteConcern(final ProcessContext context) {
         final String writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
