@@ -188,9 +188,8 @@ public class PutEmail extends AbstractProcessor {
     public static final PropertyDescriptor MESSAGE = new PropertyDescriptor.Builder()
             .name("Message")
             .description("The body of the email message")
-            .required(true)
+            .required(false)
             .expressionLanguageSupported(true)
-            .defaultValue("")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor ATTACH_FILE = new PropertyDescriptor.Builder()
@@ -364,7 +363,7 @@ public class PutEmail extends AbstractProcessor {
     }
 
     private String getMessage(final FlowFile flowFile, final ProcessContext context, final ProcessSession session) {
-        String messageText = null;
+        String messageText = "";
 
         if(context.getProperty(CONTENT_AS_MESSAGE).evaluateAttributeExpressions(flowFile).asBoolean()) {
             // reading all the content of the input flow file
@@ -377,7 +376,7 @@ public class PutEmail extends AbstractProcessor {
             });
 
             messageText = new String(byteBuffer, 0, byteBuffer.length, Charset.forName("UTF-8"));
-        } else {
+        } else if (context.getProperty(MESSAGE).isSet()) {
             messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
         }
 
