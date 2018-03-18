@@ -98,6 +98,7 @@ public class PutMongo extends AbstractMongoProcessor {
     static final PropertyDescriptor UPDATE_QUERY = new PropertyDescriptor.Builder()
         .name("putmongo-update-query")
         .displayName("Update Query")
+        .description("Specify a full MongoDB query to be used for the lookup query to do an update/upsert.")
         .required(false)
         .addValidator(Validator.VALID)
         .expressionLanguageSupported(true)
@@ -208,14 +209,14 @@ public class PutMongo extends AbstractMongoProcessor {
                 // update
                 final boolean upsert = context.getProperty(UPSERT).asBoolean();
                 final String updateKey = context.getProperty(UPDATE_QUERY_KEY).getValue();
-                final String updateQuery = context.getProperty(UPDATE_QUERY).evaluateAttributeExpressions(flowFile).getValue();
+                final String filterQuery = context.getProperty(UPDATE_QUERY).evaluateAttributeExpressions(flowFile).getValue();
                 final Document query;
 
                 if (!StringUtils.isBlank(updateKey)) {
                     query = parseUpdateKey(updateKey, (Map)doc);
                     removeUpdateKeys(updateKey, (Map)doc);
                 } else {
-                    query = Document.parse(updateQuery);
+                    query = Document.parse(filterQuery);
                 }
 
                 if (updateMode.equals(UPDATE_WITH_DOC.getValue())) {

@@ -151,6 +151,7 @@ public class PutMongoIT extends MongoWriteTestBase {
             .append("name", "John Smith")
             .append("department", "Engineering");
         collection.insertOne(document);
+
         String updateBody = "{\n" +
             "\t\"name\": \"John Smith\",\n" +
             "\t\"$set\": {\n" +
@@ -167,6 +168,54 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.setValidateExpressionUsage(true);
         runner.enqueue(updateBody);
         updateTests(document);
+    }
+
+    @Test
+    public void testUpdateWithFullDocByKeys() {
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "name,department");
+        testUpdateFullDocument();
+    }
+
+    @Test
+    public void testUpdateWithFullDocByQuery() {
+        String query = "{ \"name\": \"John Smith\"}";
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "");
+        runner.setProperty(PutMongo.UPDATE_QUERY, query);
+        testUpdateFullDocument();
+    }
+
+    private void testUpdateFullDocument() {
+        Document document = new Document()
+                .append("name", "John Smith")
+                .append("department", "Engineering");
+        collection.insertOne(document);
+        String updateBody = "{\n" +
+                "\t\"name\": \"John Smith\",\n" +
+                "\t\"department\": \"Engineering\",\n" +
+                "\t\"contacts\": {\n" +
+                "\t\t\"phone\": \"555-555-5555\",\n" +
+                "\t\t\"email\": \"john.smith@test.com\",\n" +
+                "\t\t\"twitter\": \"@JohnSmith\"\n" +
+                "\t}\n" +
+                "}";
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_DOC);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody);
+        runner.run();
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
+
+        MongoCursor<Document> cursor = collection.find(document).iterator();
+        Document found = cursor.next();
+        Assert.assertEquals(found.get("name"), document.get("name"));
+        Assert.assertEquals(found.get("department"), document.get("department"));
+        Document contacts = (Document)found.get("contacts");
+        Assert.assertNotNull(contacts);
+        Assert.assertEquals(contacts.get("twitter"), "@JohnSmith");
+        Assert.assertEquals(contacts.get("email"), "john.smith@test.com");
+        Assert.assertEquals(contacts.get("phone"), "555-555-5555");
+        Assert.assertEquals(collection.count(document), 1);
     }
 
     @Test
