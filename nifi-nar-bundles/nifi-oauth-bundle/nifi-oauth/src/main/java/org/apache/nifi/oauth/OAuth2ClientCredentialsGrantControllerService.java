@@ -91,7 +91,7 @@ public class OAuth2ClientCredentialsGrantControllerService
 
     /**
      * @param context the configuration context
-     * @throws InitializationException if unable to create a database connection
+     * @throws InitializationException
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {

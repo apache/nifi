@@ -68,44 +68,50 @@ public class OAuthHTTPConnectionClient
         Map<String, List<String>> responseHeaders = new HashMap<String, List<String>>();
         int responseCode;
         try {
-            URL url = new URL(request.getLocationUri());
+            String locURI = request.getLocationUri();
+            if (locURI.startsWith("https")) {
+                URL url = new URL(request.getLocationUri());
 
-            c = url.openConnection();
-            responseCode = -1;
-            if (c instanceof HttpURLConnection) {
-                HttpURLConnection httpURLConnection = (HttpURLConnection) c;
+                c = url.openConnection();
+                responseCode = -1;
+                if (c instanceof HttpURLConnection) {
+                    HttpURLConnection httpURLConnection = (HttpURLConnection) c;
 
-                if (headers != null && !headers.isEmpty()) {
-                    for (Map.Entry<String, String> header : headers.entrySet()) {
-                        httpURLConnection.addRequestProperty(header.getKey(), header.getValue());
+                    if (headers != null && !headers.isEmpty()) {
+                        for (Map.Entry<String, String> header : headers.entrySet()) {
+                            httpURLConnection.addRequestProperty(header.getKey(), header.getValue());
+                        }
                     }
-                }
 
-                if (request.getHeaders() != null) {
-                    for (Map.Entry<String, String> header : request.getHeaders().entrySet()) {
-                        httpURLConnection.addRequestProperty(header.getKey(), header.getValue());
+                    if (request.getHeaders() != null) {
+                        for (Map.Entry<String, String> header : request.getHeaders().entrySet()) {
+                            httpURLConnection.addRequestProperty(header.getKey(), header.getValue());
+                        }
                     }
+
+                    if (OAuthUtils.isEmpty(requestMethod)) {
+                        httpURLConnection.setRequestMethod(OAuth.HttpMethod.GET);
+                    } else {
+                        httpURLConnection.setRequestMethod(requestMethod);
+                        setRequestBody(request, requestMethod, httpURLConnection);
+                    }
+
+                    httpURLConnection.connect();
+
+                    InputStream inputStream;
+                    responseCode = httpURLConnection.getResponseCode();
+                    if (responseCode == 400 || responseCode == 405 || responseCode == 401 || responseCode == 403) {
+                        inputStream = httpURLConnection.getErrorStream();
+                    } else {
+                        inputStream = httpURLConnection.getInputStream();
+                    }
+
+                    responseHeaders = httpURLConnection.getHeaderFields();
+                    responseBody = inputStream;
                 }
-
-                if (OAuthUtils.isEmpty(requestMethod)) {
-                    httpURLConnection.setRequestMethod(OAuth.HttpMethod.GET);
-                } else {
-                    httpURLConnection.setRequestMethod(requestMethod);
-                    setRequestBody(request, requestMethod, httpURLConnection);
-                }
-
-                httpURLConnection.connect();
-
-                InputStream inputStream;
-                responseCode = httpURLConnection.getResponseCode();
-                if (responseCode == 400 || responseCode == 405 || responseCode == 401 || responseCode == 403) {
-                    inputStream = httpURLConnection.getErrorStream();
-                } else {
-                    inputStream = httpURLConnection.getInputStream();
-                }
-
-                responseHeaders = httpURLConnection.getHeaderFields();
-                responseBody = inputStream;
+            } else {
+                throw new OAuthSystemException("OAuth authentication endpoint " + request.getLocationUri() + " is not " +
+                        "HTTPS. HTTPS is required for an OAuth authentication endpoint to be valid");
             }
         } catch (IOException e) {
             throw new OAuthSystemException(e);
@@ -143,13 +149,6 @@ public class OAuthHTTPConnectionClient
     public static class CustomOAuthAccessTokenResponse
         extends OAuthAccessTokenResponse {
 
-        // Names of the fields that should be pulled from the JSON response.
-        private String accessTokenName = null;
-        private String tokenTypeName = null;
-        private String scopeName = null;
-        private String expireInName = null;
-        private String expireTimeName = null;
-
         private String accessToken;
         private int responseCode;
         private String tokenType;
@@ -160,13 +159,6 @@ public class OAuthHTTPConnectionClient
         public CustomOAuthAccessTokenResponse(InputStream responseBody, String contentType, int responseCode,
                 Map<String, List<String>> responseHeaders, String accessTokenName, String tokenTypeName, String scopeName,
                 String expireInName, String expireTimeName) throws OAuthProblemException {
-
-            // Set the field names
-            this.accessTokenName = accessTokenName;
-            this.tokenTypeName = tokenTypeName;
-            this.scopeName = scopeName;
-            this.expireInName = expireInName;
-            this.expireTimeName = expireTimeName;
 
             setResponseCode(responseCode);
             this.responseCode = responseCode;

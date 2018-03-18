@@ -22,8 +22,12 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -39,26 +43,44 @@ public abstract class AbstractOAuthControllerService
     protected long lastResponseTimestamp = -1;
     protected Map<String, String> extraHeaders = new HashMap<String, String>();
     protected String authUrl = null;
-    protected long expireTimeSafetyNetSeconds = -1;
     protected String accessTokenRespName = null;
     protected String expireTimeRespName = null;
     protected String expireInRespName = null;
     protected String tokenTypeRespName = null;
     protected String scopeRespName = null;
 
+    public static final Validator HTTPS_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            final ValidationResult.Builder builder = new ValidationResult.Builder();
+            builder.subject(subject).input(input);
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return builder.valid(true).explanation("Contains Expression Language").build();
+            }
+
+            if (!input.startsWith("https")) {
+                return builder.valid(false).explanation("OAuth2 authorization endpoint must use HTTPS").build();
+            } else {
+                return builder.valid(true).build();
+            }
+        }
+    };
+
     public static final PropertyDescriptor AUTH_SERVER_URL = new PropertyDescriptor
             .Builder().name("oauth2_authorization_server_url")
             .displayName("OAuth2 Authorization Server")
-            .description("OAuth2 Authorization Server that grants access to the protected resources on the behalf of the resource owner.")
+            .description("HTTPS OAuth2 Authorization Server that grants access to the protected resources on " +
+                    "the behalf of the resource owner.")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(HTTPS_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor RESPONSE_ACCESS_TOKEN_FIELD_NAME = new PropertyDescriptor
             .Builder().name("JSON_response_access_token_name")
             .displayName("JSON response 'access_token' name")
-            .description("Name of the field in the JSON response that contains the access token. IETF OAuth2 spec default is 'access_token' if your API provider's" +
+            .description("Name of the field in the JSON response that contains the access token. " +
+                    "IETF OAuth2 spec default is 'access_token' if your API provider's" +
                     " response field is different this is where you can change that.")
             .defaultValue("access_token")
             .required(true)
@@ -69,7 +91,8 @@ public abstract class AbstractOAuthControllerService
     public static final PropertyDescriptor RESPONSE_EXPIRE_TIME_FIELD_NAME = new PropertyDescriptor
             .Builder().name("JSON_response_access_token_name")
             .displayName("JSON response 'expire_time' name")
-            .description("Name of the field in the JSON response that contains the expire time. IETF OAuth2 spec default is 'expire_time' if your API provider's" +
+            .description("Name of the field in the JSON response that contains the expire time. IETF OAuth2 spec " +
+                    "default is 'expire_time' if your API provider's" +
                     " response field is different this is where you can change that.")
             .defaultValue("expire_time")
             .required(true)
