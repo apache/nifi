@@ -18,13 +18,9 @@ package org.apache.nifi.processors.influxdb;
 import static org.junit.Assert.assertEquals;
 import java.util.List;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.influxdb.InfluxDB;
-import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,63 +29,22 @@ import org.junit.Test;
  * on local host with default port and has database test with table test. Please set user
  * and password if applicable before running the integration tests.
  */
-public class ITPutInfluxDB {
-
-    private TestRunner runner;
-    private InfluxDB influxDB;
-    private String dbName = "test";
-    private String dbUrl = "http://localhost:8086";
-    private String user = "admin";
-    private String password = "admin";
+public class ITPutInfluxDB extends AbstractITInfluxDB {
 
     @Before
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutInfluxDB.class);
-        runner.setProperty(PutInfluxDB.DB_NAME, dbName);
-        runner.setProperty(PutInfluxDB.USERNAME, user);
-        runner.setProperty(PutInfluxDB.PASSWORD, password);
-        runner.setProperty(PutInfluxDB.INFLUX_DB_URL, dbUrl);
-        runner.setProperty(PutInfluxDB.CHARSET, "UTF-8");
+        initializeRunner();
         runner.setProperty(PutInfluxDB.CONSISTENCY_LEVEL,PutInfluxDB.CONSISTENCY_LEVEL_ONE.getValue());
-        runner.setProperty(PutInfluxDB.RETENTION_POLICY,"autogen");
+        runner.setProperty(PutInfluxDB.RETENTION_POLICY, DEFAULT_RETENTION_POLICY);
         runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "1 KB");
         runner.assertValid();
-        influxDB = InfluxDBFactory.connect(dbUrl,user,password);
-        if ( influxDB.databaseExists(dbName) ) {
-            QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
-            checkError(result);
-            result = influxDB.query(new Query("DROP measurement testm", dbName));
-            checkError(result);
-            result = influxDB.query(new Query("DROP database " + dbName, dbName));
-            Thread.sleep(1000);
-        }
-        influxDB.createDatabase(dbName);
-        int max = 10;
-        while (!influxDB.databaseExists(dbName) && (max-- < 0)) {
-            Thread.sleep(5);
-        }
-        if ( ! influxDB.databaseExists(dbName) ) {
-            throw new Exception("unable to create database " + dbName);
-        }
-    }
-
-    protected void checkError(QueryResult result) {
-        if ( result.hasError() ) {
-            throw new IllegalStateException("Error while dropping measurements " + result.getError());
-        }
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        runner = null;
-        if ( influxDB != null ) {
-            influxDB.close();
-        }
+        initInfluxDB();
     }
 
     @Test
     public void testValidSinglePoint() {
-        String message = "water,country=US,city=newark rain=1,humidity=0.6";
+        String message = "water,country=US,city=newark rain=1,humidity=0.6 ";
         byte [] bytes = message.getBytes();
         runner.enqueue(bytes);
         runner.run(1,true,true);
