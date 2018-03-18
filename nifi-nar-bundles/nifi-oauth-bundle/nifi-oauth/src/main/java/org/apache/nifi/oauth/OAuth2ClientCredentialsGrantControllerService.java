@@ -53,6 +53,7 @@ public class OAuth2ClientCredentialsGrantControllerService
             .displayName("OAuth2 Client ID")
             .description("OAuth2 Client ID passed to the authorization server")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -62,6 +63,7 @@ public class OAuth2ClientCredentialsGrantControllerService
             .description("OAuth2 Client Secret that will be passed to the authorization server in exchange for an access token")
             .sensitive(true)
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
