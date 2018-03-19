@@ -92,7 +92,7 @@ import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.
 
 @Tags({"atlas", "lineage"})
 @CapabilityDescription("Report NiFi flow data set level lineage to Apache Atlas." +
-        " End-to-end lineages across NiFi environments and other systems can be reported those are" +
+        " End-to-end lineages across NiFi environments and other systems can be reported if those are" +
         " connected by different protocols and data set, such as NiFi Site-to-Site, Kafka topic or Hive tables ... etc." +
         " Atlas lineage reported by this reporting task can be useful to grasp the high level relationships between processes and data sets," +
         " in addition to NiFi provenance events providing detailed event level lineage." +
