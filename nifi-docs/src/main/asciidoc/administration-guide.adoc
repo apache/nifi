@@ -2782,7 +2782,7 @@ The H2 Settings section defines the settings for the H2 database, which keeps tr
 
 |====
 |*Property*|*Description*
-|nifi.database.directory|The location of the H2 database directory. The default value is `./database_repository`.
+|nifi.database.directory*|The location of the H2 database directory. The default value is `./database_repository`.
 |nifi.h2.url.append|This property specifies additional arguments to add to the connection string for the H2 database. The default value should be used and should not be changed. It is: `;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE`.
 |====
 
