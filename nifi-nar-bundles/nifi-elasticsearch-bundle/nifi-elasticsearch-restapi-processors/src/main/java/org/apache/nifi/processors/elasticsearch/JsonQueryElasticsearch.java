@@ -38,15 +38,16 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @WritesAttributes({
@@ -57,7 +58,8 @@ import java.util.Set;
 @EventDriven
 @Tags({"elasticsearch", "elasticsearch 5", "query", "read", "get", "json"})
 @CapabilityDescription("A processor that allows the user to run a query (with aggregations) written with the " +
-        "ElasticSearch JSON DSL. It currently does not support pagination.")
+        "ElasticSearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
+        "processor, it will use the flowfile's content for the query.")
 public class JsonQueryElasticsearch extends AbstractProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
             .description("All original flowfiles that don't cause an error to occur go to this relationship. " +
@@ -234,30 +236,37 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             final String query = getQuery(input, context, session);
             final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
             final String type = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
+            final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).isSet()
+                ? context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(input).getValue()
+                : null;
 
-            Optional<SearchResponse> resp = clientService.search(query, index, type);
-            if (resp.isPresent()) {
-                SearchResponse response = resp.get();
+            SearchResponse response = clientService.search(query, index, type);
 
-                List<FlowFile> hitsFlowFiles = handleHits(response.getHits(), context, session, input);
-                List<FlowFile> aggsFlowFiles = handleAggregations(response.getAggregations(), context, session, input);
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+            if (!StringUtils.isBlank(queryAttr)) {
+                attributes.put(queryAttr, query);
+            }
 
-                final String transitUri = clientService.getTransitUrl(index, type);
+            List<FlowFile> hitsFlowFiles = handleHits(response.getHits(), context, session, input, attributes);
+            List<FlowFile> aggsFlowFiles = handleAggregations(response.getAggregations(), context, session, input, attributes);
 
-                if (hitsFlowFiles.size() > 0) {
-                    session.transfer(hitsFlowFiles, REL_HITS);
-                    for (FlowFile ff : hitsFlowFiles) {
-                        session.getProvenanceReporter().send(ff, transitUri);
-                    }
-                }
+            final String transitUri = clientService.getTransitUrl(index, type);
 
-                if (aggsFlowFiles.size() > 0) {
-                    session.transfer(aggsFlowFiles, REL_AGGREGATIONS);
-                    for (FlowFile ff : aggsFlowFiles) {
-                        session.getProvenanceReporter().send(ff, transitUri);
-                    }
+            if (hitsFlowFiles.size() > 0) {
+                session.transfer(hitsFlowFiles, REL_HITS);
+                for (FlowFile ff : hitsFlowFiles) {
+                    session.getProvenanceReporter().send(ff, transitUri);
                 }
             }
+
+            if (aggsFlowFiles.size() > 0) {
+                session.transfer(aggsFlowFiles, REL_AGGREGATIONS);
+                for (FlowFile ff : aggsFlowFiles) {
+                    session.getProvenanceReporter().send(ff, transitUri);
+                }
+            }
+
             if (input != null) {
                 session.transfer(input, REL_ORIGINAL);
             }
@@ -270,18 +279,16 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
         }
     }
 
-    private FlowFile writeAggregationFlowFileContents(String name, String json, ProcessSession session, FlowFile aggFlowFile) {
+    private FlowFile writeAggregationFlowFileContents(String name, String json, ProcessSession session, FlowFile aggFlowFile, Map<String, String> attributes) {
         aggFlowFile = session.write(aggFlowFile, out -> out.write(json.getBytes()));
         if (name != null) {
             aggFlowFile = session.putAttribute(aggFlowFile, "aggregation.name", name);
         }
 
-        aggFlowFile = session.putAttribute(aggFlowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
-
-        return aggFlowFile;
+        return session.putAllAttributes(aggFlowFile, attributes);
     }
 
-    private List<FlowFile> handleAggregations(Map<String, Object> aggregations, ProcessContext context, ProcessSession session, FlowFile parent) throws IOException {
+    private List<FlowFile> handleAggregations(Map<String, Object> aggregations, ProcessContext context, ProcessSession session, FlowFile parent, Map<String, String> attributes) throws IOException {
         List<FlowFile> retVal = new ArrayList<>();
         if (aggregations == null) {
             return retVal;
@@ -292,23 +299,23 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             for (Map.Entry<String, Object> agg : aggregations.entrySet()) {
                 FlowFile aggFlowFile = parent != null ? session.create(parent) : session.create();
                 String aggJson = mapper.writeValueAsString(agg.getValue());
-                retVal.add(writeAggregationFlowFileContents(agg.getKey(), aggJson, session, aggFlowFile));
+                retVal.add(writeAggregationFlowFileContents(agg.getKey(), aggJson, session, aggFlowFile, attributes));
             }
         } else {
             String json = mapper.writeValueAsString(aggregations);
-            retVal.add(writeAggregationFlowFileContents(null, json, session, parent != null ? session.create(parent) : session.create()));
+            retVal.add(writeAggregationFlowFileContents(null, json, session, parent != null ? session.create(parent) : session.create(), attributes));
         }
 
         return retVal;
     }
 
-    private FlowFile writeHitFlowFile(String json, ProcessSession session, FlowFile hitFlowFile) {
+    private FlowFile writeHitFlowFile(String json, ProcessSession session, FlowFile hitFlowFile, Map<String, String> attributes) {
         hitFlowFile = session.write(hitFlowFile, out -> out.write(json.getBytes()));
 
-        return session.putAttribute(hitFlowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
+        return session.putAllAttributes(hitFlowFile, attributes);
     }
 
-    private List<FlowFile> handleHits(List<Map<String, Object>> hits, ProcessContext context, ProcessSession session, FlowFile parent) throws IOException {
+    private List<FlowFile> handleHits(List<Map<String, Object>> hits, ProcessContext context, ProcessSession session, FlowFile parent, Map<String, String> attributes) throws IOException {
         String splitUpValue = context.getProperty(SPLIT_UP_HITS).getValue();
         List<FlowFile> retVal = new ArrayList<>();
         if (splitUpValue.equals(SPLIT_UP_YES.getValue())) {
@@ -316,12 +323,12 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
                 FlowFile hitFlowFile = parent != null ? session.create(parent) : session.create();
                 String json = mapper.writeValueAsString(hit);
 
-                retVal.add(writeHitFlowFile(json, session, hitFlowFile));
+                retVal.add(writeHitFlowFile(json, session, hitFlowFile, attributes));
             }
         } else {
             FlowFile hitFlowFile = parent != null ? session.create(parent) : session.create();
             String json = mapper.writeValueAsString(hits);
-            retVal.add(writeHitFlowFile(json, session, hitFlowFile));
+            retVal.add(writeHitFlowFile(json, session, hitFlowFile, attributes));
         }
 
         return retVal;

@@ -46,14 +46,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
     private ObjectMapper mapper = new ObjectMapper();
@@ -63,9 +68,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private RestClient client;
 
     private String url;
+    private Charset charset;
 
     static {
-        List _props = new ArrayList();
+        List<PropertyDescriptor> _props = new ArrayList();
         _props.add(ElasticSearchClientService.HTTP_HOSTS);
         _props.add(ElasticSearchClientService.USERNAME);
         _props.add(ElasticSearchClientService.PASSWORD);
@@ -73,6 +79,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         _props.add(ElasticSearchClientService.CONNECT_TIMEOUT);
         _props.add(ElasticSearchClientService.SOCKET_TIMEOUT);
         _props.add(ElasticSearchClientService.RETRY_TIMEOUT);
+        _props.add(ElasticSearchClientService.CHARSET);
 
         properties = Collections.unmodifiableList(_props);
     }
@@ -86,6 +93,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         try {
             setupClient(context);
+            charset = Charset.forName(context.getProperty(CHARSET).getValue());
         } catch (Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
             throw new InitializationException(ex);
@@ -98,7 +106,31 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         this.url = null;
     }
 
-    private void setupClient(ConfigurationContext context) throws MalformedURLException {
+    private SSLContext buildSslContext(SSLContextService sslService) throws IOException, CertificateException,
+            NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, KeyManagementException {
+        KeyStore keyStore = KeyStore.getInstance(sslService.getKeyStoreType());
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+
+        try (final InputStream is = new FileInputStream(sslService.getKeyStoreFile())) {
+            keyStore.load(is, sslService.getKeyStorePassword().toCharArray());
+        }
+
+        try (final InputStream is = new FileInputStream(sslService.getTrustStoreFile())) {
+            trustStore.load(is, sslService.getTrustStorePassword().toCharArray());
+        }
+
+        final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory
+                .getDefaultAlgorithm());
+        kmf.init(keyStore, sslService.getKeyStorePassword().toCharArray());
+        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory
+                .getDefaultAlgorithm());
+        tmf.init(keyStore);
+        SSLContext context1 = SSLContext.getInstance(sslService.getSslAlgorithm());
+        context1.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+        return context1;
+    }
+
+    private void setupClient(ConfigurationContext context) throws MalformedURLException, InitializationException {
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
         String[] hostsSplit = hosts.split(",[\\s]*");
         this.url = hostsSplit[0];
@@ -117,50 +149,37 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             hh[x] = new HttpHost(u.getHost(), u.getPort(), u.getProtocol());
         }
 
+        final SSLContext sslContext;
+        try {
+            sslContext = (sslService != null && sslService.isKeyStoreConfigured() && sslService.isTrustStoreConfigured())
+                ? buildSslContext(sslService) : null;
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | UnrecoverableKeyException
+                | KeyStoreException | KeyManagementException e) {
+            getLogger().error("Error building up SSL Context from the supplied configuration.", e);
+            throw new InitializationException(e);
+        }
+
         RestClientBuilder builder = RestClient.builder(hh)
-                .setHttpClientConfigCallback(httpClientBuilder -> {
-                    if (sslService != null && sslService.isKeyStoreConfigured() && sslService.isTrustStoreConfigured()) {
-                        try {
-                            KeyStore keyStore = KeyStore.getInstance(sslService.getKeyStoreType());
-                            KeyStore trustStore = KeyStore.getInstance("JKS");
+            .setHttpClientConfigCallback(httpClientBuilder -> {
+                if (sslContext != null) {
+                    httpClientBuilder = httpClientBuilder.setSSLContext(sslContext);
+                }
 
-                            try (final InputStream is = new FileInputStream(sslService.getKeyStoreFile())) {
-                                keyStore.load(is, sslService.getKeyStorePassword().toCharArray());
-                            }
+                if (username != null && password != null) {
+                    final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                    credentialsProvider.setCredentials(AuthScope.ANY,
+                            new UsernamePasswordCredentials(username, password));
+                    httpClientBuilder = httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                }
 
-                            try (final InputStream is = new FileInputStream(sslService.getTrustStoreFile())) {
-                                trustStore.load(is, sslService.getTrustStorePassword().toCharArray());
-                            }
-
-                            final KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory
-                                    .getDefaultAlgorithm());
-                            kmf.init(keyStore, sslService.getKeyStorePassword().toCharArray());
-                            final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory
-                                    .getDefaultAlgorithm());
-                            tmf.init(keyStore);
-                            SSLContext context1 = SSLContext.getInstance(sslService.getSslAlgorithm());
-                            context1.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
-                            httpClientBuilder = httpClientBuilder.setSSLContext(context1);
-                        } catch (Exception e) {
-                            getLogger().error("Error setting up SSL.", e);
-                        }
-                    }
-
-                    if (username != null && password != null) {
-                        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                        credentialsProvider.setCredentials(AuthScope.ANY,
-                                new UsernamePasswordCredentials(username, password));
-                        httpClientBuilder = httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                    }
-
-                    return httpClientBuilder;
-                })
-                .setRequestConfigCallback(requestConfigBuilder -> {
-                    requestConfigBuilder.setConnectTimeout(connectTimeout);
-                    requestConfigBuilder.setSocketTimeout(readTimeout);
-                    return requestConfigBuilder;
-                })
-                .setMaxRetryTimeoutMillis(retryTimeout);
+                return httpClientBuilder;
+            })
+            .setRequestConfigCallback(requestConfigBuilder -> {
+                requestConfigBuilder.setConnectTimeout(connectTimeout);
+                requestConfigBuilder.setSocketTimeout(readTimeout);
+                return requestConfigBuilder;
+            })
+            .setMaxRetryTimeoutMillis(retryTimeout);
 
         this.client = builder.build();
     }
@@ -181,10 +200,25 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return client.performRequest("POST", sb.toString(), Collections.emptyMap(), queryEntity);
     }
 
+    private Map<String, Object> parseResponse(Response response) throws IOException {
+        final int code = response.getStatusLine().getStatusCode();
+
+        if (code >= 200 & code < 300) {
+            InputStream inputStream = response.getEntity().getContent();
+            byte[] result = IOUtils.toByteArray(inputStream);
+            inputStream.close();
+            return mapper.readValue(new String(result, charset), Map.class);
+        } else {
+            String errorMessage = String.format("ElasticSearch reported an error while trying to run the query: %s",
+                response.getStatusLine().getReasonPhrase());
+            throw new IOException(errorMessage);
+        }
+    }
+
     @Override
-    public Optional<SearchResponse> search(String query, String index, String type) throws IOException {
+    public SearchResponse search(String query, String index, String type) throws IOException {
         Response response = runQuery(query, index, type);
-        Map<String, Object> parsed = mapper.readValue(IOUtils.toString(response.getEntity().getContent()), Map.class);
+        Map<String, Object> parsed = parseResponse(response);
 
         int took = (Integer)parsed.get("took");
         boolean timedOut = (Boolean)parsed.get("timed_out");
@@ -209,7 +243,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             getLogger().debug(sb.toString());
         }
 
-        return Optional.of(esr);
+        return esr;
     }
 
     @Override

@@ -25,7 +25,6 @@ import org.apache.nifi.elasticsearch.SearchResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     private boolean returnAggs;
@@ -36,7 +35,7 @@ public class TestElasticSearchClientService extends AbstractControllerService im
     }
 
     @Override
-    public Optional<SearchResponse> search(String query, String index, String type) throws IOException {
+    public SearchResponse search(String query, String index, String type) throws IOException {
         if (throwErrorInSearch) {
             throw new IOException();
         }
@@ -45,7 +44,7 @@ public class TestElasticSearchClientService extends AbstractControllerService im
         List<Map<String, Object>> hits = (List<Map<String, Object>>)mapper.readValue(HITS_RESULT, List.class);
         Map<String, Object> aggs = returnAggs ? (Map<String, Object>)mapper.readValue(AGGS_RESULT, Map.class) :  null;
         SearchResponse response = new SearchResponse(hits, aggs, 15, 5, false);
-        return Optional.of(response);
+        return response;
     }
 
     @Override

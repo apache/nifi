@@ -17,9 +17,13 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.List;
 
 public class JsonQueryElasticsearchTest {
     private static final String INDEX_NAME = "messages";
@@ -177,5 +181,52 @@ public class JsonQueryElasticsearchTest {
         runner.enqueue("test");
         runner.run(1, true, true);
         testCounts(runner, 0, 0, 1, 0);
+    }
+
+    @Test
+    public void testQueryAttribute() throws Exception {
+        final String query = "{\n" +
+                "\t\"query\": {\n" +
+                "\t\t\"match_all\": {}\n" +
+                "\t},\n" +
+                "\t\"aggs\": {\n" +
+                "\t\t\"test_agg\": {\n" +
+                "\t\t\t\"terms\": {\n" +
+                "\t\t\t\t\"field\": \"msg\"\n" +
+                "\t\t\t}\n" +
+                "\t\t},\n" +
+                "\t\t\"test_agg2\": {\n" +
+                "\t\t\t\"terms\": {\n" +
+                "\t\t\t\t\"field\": \"msg\"\n" +
+                "\t\t\t}\n" +
+                "\t\t}\n" +
+                "\t}\n" +
+                "}";
+        final String queryAttr = "es.query";
+
+
+        JsonQueryElasticsearch processor = new JsonQueryElasticsearch();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        TestElasticSearchClientService service = new TestElasticSearchClientService(true);
+        runner.addControllerService("esService", service);
+        runner.enableControllerService(service);
+        runner.setProperty(JsonQueryElasticsearch.CLIENT_SERVICE, "esService");
+        runner.setProperty(JsonQueryElasticsearch.INDEX, INDEX_NAME);
+        runner.setProperty(JsonQueryElasticsearch.TYPE, "message");
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(JsonQueryElasticsearch.QUERY, query);
+        runner.setProperty(JsonQueryElasticsearch.QUERY_ATTRIBUTE, queryAttr);
+
+        runner.enqueue("test");
+        runner.run(1, true, true);
+        testCounts(runner, 1, 1, 0, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(JsonQueryElasticsearch.REL_AGGREGATIONS);
+        flowFiles.addAll(runner.getFlowFilesForRelationship(JsonQueryElasticsearch.REL_HITS));
+
+        for (MockFlowFile mockFlowFile : flowFiles) {
+            String attr = mockFlowFile.getAttribute(queryAttr);
+            Assert.assertNotNull("Missing query attribute", attr);
+            Assert.assertEquals("Query had wrong value.", query, attr);
+        }
     }
 }

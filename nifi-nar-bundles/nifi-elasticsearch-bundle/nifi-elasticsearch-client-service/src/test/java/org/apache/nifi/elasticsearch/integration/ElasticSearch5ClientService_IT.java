@@ -17,8 +17,8 @@
 
 package org.apache.nifi.elasticsearch.integration;
 
-import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
+import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -30,7 +30,6 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class ElasticSearch5ClientService_IT {
 
@@ -75,19 +74,17 @@ public class ElasticSearch5ClientService_IT {
                 "\t\t}\n" +
                 "\t}\n" +
                 "}";
-        Optional<SearchResponse> response = service.search(query, "messages", "message");
+        SearchResponse response = service.search(query, "messages", "message");
         Assert.assertNotNull("Response was null", response);
-        Assert.assertNotNull("Response was missing", response.get());
 
-        SearchResponse resp = response.get();
-        Assert.assertEquals("Wrong count", resp.getNumberOfHits(), 15);
-        Assert.assertFalse("Timed out", resp.isTimedOut());
-        Assert.assertNotNull("Hits was null", resp.getHits());
-        Assert.assertEquals("Wrong number of hits", 10, resp.getHits().size());
-        Assert.assertNotNull("Aggregations are missing", resp.getAggregations());
-        Assert.assertEquals("Aggregation count is wrong", 1, resp.getAggregations().size());
+        Assert.assertEquals("Wrong count", response.getNumberOfHits(), 15);
+        Assert.assertFalse("Timed out", response.isTimedOut());
+        Assert.assertNotNull("Hits was null", response.getHits());
+        Assert.assertEquals("Wrong number of hits", 10, response.getHits().size());
+        Assert.assertNotNull("Aggregations are missing", response.getAggregations());
+        Assert.assertEquals("Aggregation count is wrong", 1, response.getAggregations().size());
 
-        Map<String, Object> termCounts = (Map<String, Object>) resp.getAggregations().get("term_counts");
+        Map<String, Object> termCounts = (Map<String, Object>) response.getAggregations().get("term_counts");
         Assert.assertNotNull("Term counts was missing", termCounts);
         List<Map<String, Object>> buckets = (List<Map<String, Object>>) termCounts.get("buckets");
         Assert.assertNotNull("Buckets branch was empty", buckets);

@@ -24,13 +24,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @Tags({"elasticsearch", "client"})
 @CapabilityDescription("A controller service for accessing an ElasticSearch client.")
 public interface ElasticSearchClientService extends ControllerService {
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
-            .name("el5-http-hosts")
+            .name("el-cs-http-hosts")
             .displayName("HTTP Hosts")
             .description("A comma-separated list of HTTP hosts that host ElasticSearch query nodes.")
             .required(true)
@@ -38,7 +37,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("el5-ssl-context-service")
+            .name("el-cs-ssl-context-service")
             .displayName("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                     + "connections. This service only applies if the Elasticsearch endpoint(s) have been secured with TLS/SSL.")
@@ -46,7 +45,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .identifiesControllerService(SSLContextService.class)
             .build();
     PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-            .name("el5-username")
+            .name("el-cs-username")
             .displayName("Username")
             .description("The username to use with XPack security.")
             .required(false)
@@ -54,7 +53,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("el5-password")
+            .name("el-cs-password")
             .displayName("Password")
             .description("The password to use with XPack security.")
             .required(false)
@@ -63,7 +62,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el5-connect-timeout")
+            .name("el-cs-connect-timeout")
             .displayName("Connect timeout")
             .description("Controls the amount of time, in milliseconds, before a timeout occurs when trying to connect.")
             .required(true)
@@ -71,7 +70,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     PropertyDescriptor SOCKET_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el5-socket-timeout")
+            .name("el-cs-socket-timeout")
             .displayName("Read timeout")
             .description("Controls the amount of time, in milliseconds, before a timeout occurs when waiting for a response.")
             .required(true)
@@ -79,12 +78,20 @@ public interface ElasticSearchClientService extends ControllerService {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     PropertyDescriptor RETRY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el5-retry-timeout")
+            .name("el-cs-retry-timeout")
             .displayName("Retry timeout")
             .description("Controls the amount of time, in milliseconds, before a timeout occurs when retrying the operation.")
             .required(true)
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+    PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("el-cs-charset")
+            .displayName("Charset")
+            .description("The charset to use for interpreting the response from ElasticSearch.")
+            .required(true)
+            .defaultValue("UTF-8")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     /**
@@ -93,9 +100,9 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param query A JSON string reprensenting the query.
      * @param index The index to target. Optional.
      * @param type The type to target. Optional. Will not be used in future versions of ElasticSearch.
-     * @return An optional containing a SearchResponse object if successful, empty otherwise.
+     * @return A SearchResponse object if successful.
      */
-    Optional<SearchResponse> search(String query, String index, String type) throws IOException;
+    SearchResponse search(String query, String index, String type) throws IOException;
 
     /**
      * Build a transit URL to use with the provenance reporter.
