@@ -69,7 +69,7 @@ public class OAuthHTTPConnectionClient
         int responseCode;
         try {
             String locURI = request.getLocationUri();
-            if (locURI.startsWith("https")) {
+            if (locURI != null && locURI.startsWith("https")) {
                 URL url = new URL(request.getLocationUri());
 
                 c = url.openConnection();

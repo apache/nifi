@@ -1,20 +1,18 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * <p>
- * Created on 7/25/17.
  */
 
 package org.apache.nifi.oauth;
@@ -36,8 +34,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.oltu.oauth2.client.HttpClient;
 import org.apache.oltu.oauth2.client.request.OAuthClientRequest;
-import org.apache.oltu.oauth2.common.exception.OAuthProblemException;
-import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.apache.oltu.oauth2.common.message.types.GrantType;
 
 @Tags({ "oauth2", "client", "secret", "post"})
@@ -87,13 +83,14 @@ public class OAuth2ClientCredentialsGrantControllerService
         return properties;
     }
 
+    private HttpClient con = null;
     private String clientId = null;
     private String clientSecret = null;
     private Base64.Encoder enc = Base64.getEncoder();
 
     /**
      * @param context the configuration context
-     * @throws InitializationException
+     * @throws InitializationException error which occurred while trying to setup the client properties.
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
@@ -105,7 +102,6 @@ public class OAuth2ClientCredentialsGrantControllerService
     }
 
     public boolean authenticate() {
-        HttpClient con = null;
 
         try {
 
@@ -136,22 +132,19 @@ public class OAuth2ClientCredentialsGrantControllerService
             con = new OAuthHTTPConnectionClient(accessTokenRespName, tokenTypeRespName, scopeRespName, expireInRespName, expireTimeRespName);
             OAuthHTTPConnectionClient.CustomOAuthAccessTokenResponse authResp = con.execute(headerRequest, null, "POST", OAuthHTTPConnectionClient.CustomOAuthAccessTokenResponse.class);
 
-            this.accessToken = authResp.getAccessToken();
-            this.expiresIn = authResp.getExpiresIn();
-            this.refreshToken = authResp.getRefreshToken();
-            this.tokenType = authResp.getTokenType();
-            this.lastResponseTimestamp = System.currentTimeMillis();
+            if (authResp != null) {
+                this.accessToken = authResp.getAccessToken();
+                this.expiresIn = authResp.getExpiresIn();
+                this.refreshToken = authResp.getRefreshToken();
+                this.tokenType = authResp.getTokenType();
+                this.lastResponseTimestamp = System.currentTimeMillis();
 
-            if (getLogger().isDebugEnabled()) {
-                getLogger().debug("Local variables set and OAuth2 InvokeHTTP processor is now ready for operation with Access Token");
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().debug("Local variables set and OAuth2 InvokeHTTP processor is now ready for operation with Access Token");
+                }
+                return true;
             }
 
-            return true;
-
-        } catch (OAuthProblemException ope) {
-            getLogger().error(ope.getMessage());
-        } catch (OAuthSystemException ose) {
-            getLogger().error(ose.getMessage());
         } catch (Exception e) {
             getLogger().error(e.getMessage());
         } finally {
@@ -164,6 +157,14 @@ public class OAuth2ClientCredentialsGrantControllerService
 
     @OnDisabled
     public void shutdown() {
+        // nothing to do here
+    }
 
+    public HttpClient getCon() {
+        return con;
+    }
+
+    public void setCon(HttpClient con) {
+        this.con = con;
     }
 }
