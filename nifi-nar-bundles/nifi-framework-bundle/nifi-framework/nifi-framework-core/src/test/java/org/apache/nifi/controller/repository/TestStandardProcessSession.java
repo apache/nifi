@@ -260,6 +260,7 @@ public class TestStandardProcessSession {
             }
         }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 
+        Mockito.when(connection.getIdentifier()).thenReturn("conn-uuid");
         return connection;
     }
 

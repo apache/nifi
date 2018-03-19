@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Arrays;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;

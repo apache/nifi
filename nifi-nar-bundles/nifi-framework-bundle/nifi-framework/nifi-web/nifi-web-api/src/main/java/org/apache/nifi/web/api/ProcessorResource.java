@@ -226,29 +226,25 @@ public class ProcessorResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response terminateProcessor(
-        @QueryParam(VERSION) final LongParameter version,
-        @ApiParam(value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.", required = false) @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-        @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String id) throws InterruptedException {
+            @ApiParam(value = "The processor id.", required = true) @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
         }
 
-        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         final ProcessorEntity requestProcessorEntity = new ProcessorEntity();
         requestProcessorEntity.setId(id);
 
         return withWriteLock(
             serviceFacade,
             requestProcessorEntity,
-            requestRevision,
             lookup -> {
                 final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
                 authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             () -> serviceFacade.verifyTerminateProcessor(id),
-            (revision, processorEntity) -> {
-                final ProcessorEntity entity = serviceFacade.terminateProcessor(requestProcessorEntity.getId());
+            processorEntity -> {
+                final ProcessorEntity entity = serviceFacade.terminateProcessor(processorEntity.getId());
                 populateRemainingProcessorEntityContent(entity);
 
                 return generateOkResponse(entity).build();

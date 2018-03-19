@@ -81,7 +81,7 @@ public interface ProcessorDAO {
     /**
      * Terminates the processor with the given ID
      *
-     * @param processorId
+     * @param processorId the id of the processor to terminate
      */
     void terminate(String processorId);
 

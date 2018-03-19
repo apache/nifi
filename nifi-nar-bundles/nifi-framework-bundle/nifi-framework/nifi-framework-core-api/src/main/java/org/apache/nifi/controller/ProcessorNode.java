@@ -77,7 +77,7 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
      * how long they have been active, one can use {@link #getActiveThreads()} and then filter the results
      * to include only those {@link ActiveThreadInfo} objects for which the thread is terminated. For example:
      * {@code getActiveThreads().stream().filter(ActiveThreadInfo::isTerminated).collect(Collectors.toList());}
-     * 
+     *
      * @return the number of threads that are still 'active' in this Processor but have been terminated.
      */
     public abstract int getTerminatedThreadCount();

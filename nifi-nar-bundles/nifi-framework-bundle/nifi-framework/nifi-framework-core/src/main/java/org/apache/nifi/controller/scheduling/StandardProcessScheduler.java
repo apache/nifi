@@ -138,6 +138,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             return;
         }
 
+        agent.setMaxThreadCount(maxThreadCount);
     }
 
     public void setSchedulingAgent(final SchedulingStrategy strategy, final SchedulingAgent agent) {

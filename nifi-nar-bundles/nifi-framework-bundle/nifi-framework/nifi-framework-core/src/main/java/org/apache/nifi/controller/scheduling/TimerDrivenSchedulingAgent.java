@@ -222,7 +222,7 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
     @Override
     public void incrementMaxThreadCount(int toAdd) {
         final int corePoolSize = flowEngine.getCorePoolSize();
-        if (corePoolSize - toAdd < 1) {
+        if (toAdd < 0 && corePoolSize + toAdd < 1) {
             throw new IllegalStateException("Cannot remove " + (-toAdd) + " threads from pool because there are only " + corePoolSize + " threads in the pool");
         }
 

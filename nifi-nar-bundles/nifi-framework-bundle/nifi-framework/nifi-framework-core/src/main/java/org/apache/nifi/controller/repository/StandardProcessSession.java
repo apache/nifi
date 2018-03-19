@@ -2668,7 +2668,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // Get the current Content Claim from the record and see if we already have
         // an OutputStream that we can append to.
         final ContentClaim oldClaim = record.getCurrentClaim();
-        ByteCountingOutputStream outStream = appendableStreams.get(oldClaim);
+        ByteCountingOutputStream outStream = oldClaim == null ? null : appendableStreams.get(oldClaim);
         long originalByteWrittenCount = 0;
 
         ContentClaim newClaim = null;
