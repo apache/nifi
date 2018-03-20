@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.util.metrics;
+package org.apache.nifi.reporting.ambari.metrics;
 
 /**
  * The Metric names to send to Ambari.
@@ -51,9 +51,5 @@ public interface MetricNames {
     String JVM_FILE_DESCRIPTOR_USAGE = "jvm.file_descriptor_usage";
     String JVM_GC_RUNS = "jvm.gc.runs";
     String JVM_GC_TIME = "jvm.gc.time";
-
-    // OS Metrics
-    String LOAD1MN = "loadAverage1min";
-    String CORES = "availableCores";
 
 }
