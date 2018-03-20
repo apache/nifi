@@ -101,7 +101,7 @@ import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 @DynamicProperty(name = "hostnamePattern.<ClusterName>", value = "hostname Regex patterns", description = RegexClusterResolver.PATTERN_PROPERTY_PREFIX_DESC)
 // In order for each reporting task instance to have its own static objects such as KafkaNotification.
-@RequiresInstanceClassLoading
+@RequiresInstanceClassLoading(reloadEveryRestart = true)
 public class ReportLineageToAtlas extends AbstractReportingTask {
 
     static final PropertyDescriptor ATLAS_URLS = new PropertyDescriptor.Builder()

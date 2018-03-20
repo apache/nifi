@@ -36,6 +36,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -311,7 +312,12 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
         final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
-        if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
+
+        final RequiresInstanceClassLoading instanceClassLoadingAnnotation
+                = this.getComponent().getClass().getAnnotation(RequiresInstanceClassLoading.class);
+        if(instanceClassLoadingAnnotation != null
+                && (instanceClassLoadingAnnotation.reloadEveryRestart()
+                    || !StringUtils.equals(additionalResourcesFingerprint, newFingerprint))) {
             setAdditionalResourcesFingerprint(newFingerprint);
             try {
                 logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());

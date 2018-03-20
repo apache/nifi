@@ -51,4 +51,6 @@ public @interface RequiresInstanceClassLoading {
 
     boolean cloneAncestorResources() default false;
 
+    // TODO: documentation
+    boolean reloadEveryRestart() default false;
 }
