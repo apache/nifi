@@ -1027,7 +1027,7 @@ public class QueryDatabaseTableTest {
 
         runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TYPE_LIST");
         runner.setProperty(QueryDatabaseTable.SQL_QUERY, "SELECT b.type, b.descr, name, scale, created_on, bignum FROM TEST_QUERY_DB_TABLE a INNER JOIN TYPE_LIST b ON (a.type=b.type)");
-        runner.setProperty(QueryDatabaseTable.WHERE_CLAUSE, "b.type = 'male'");
+        runner.setProperty(QueryDatabaseTable.WHERE_CLAUSE, "type = 'male'");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");

@@ -291,20 +291,30 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     if (shouldCleanCache){
                         columnTypeMap.clear();
                     }
+
+                    final List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.toLowerCase().split(","));
+                    final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
+
+                    for(String maxValueColumn:maxValueColumnNameList){
+                        String colKey = getStateKey(tableName, maxValueColumn.trim());
+                        maxValueQualifiedColumnNameList.add(colKey);
+                    }
+
                     for (int i = 1; i <= numCols; i++) {
                         String colName = resultSetMetaData.getColumnName(i).toLowerCase();
                         String colKey = getStateKey(tableName, colName);
+
+                        //only include columns that are part of the maximum value tracking column list
+                        if(!maxValueQualifiedColumnNameList.contains(colKey)){
+                            continue;
+                        }
+
                         int colType = resultSetMetaData.getColumnType(i);
                         columnTypeMap.putIfAbsent(colKey, colType);
                     }
 
-                    List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.split(","));
-
-                    for(String maxValueColumn:maxValueColumnNameList){
-                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase());
-                        if(!columnTypeMap.containsKey(colKey)){
-                            throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
-                        }
+                    if(maxValueQualifiedColumnNameList.size() > 0 && columnTypeMap.size() != maxValueQualifiedColumnNameList.size()){
+                        throw new ProcessException("One or more columns of the maximum value columns not found in the table/query specified: " + maxValueColumnNames);
                     }
                 } else {
                     throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
