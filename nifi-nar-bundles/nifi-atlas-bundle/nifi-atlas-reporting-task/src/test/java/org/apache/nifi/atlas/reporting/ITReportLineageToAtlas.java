@@ -76,6 +76,7 @@ import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.LINEAGE_STRATEGY_COMPLETE_PATH;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_LINEAGE_STRATEGY;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_USER_ID;
 import static org.apache.nifi.atlas.reporting.SimpleProvenanceRecord.pr;
 import static org.apache.nifi.provenance.ProvenanceEventType.ATTRIBUTES_MODIFIED;
 import static org.apache.nifi.provenance.ProvenanceEventType.CREATE;
@@ -434,6 +435,7 @@ public class ITReportLineageToAtlas {
         tc.properties.put(ATLAS_URLS, TARGET_ATLAS_URL);
         tc.properties.put(ATLAS_USER, "admin");
         tc.properties.put(ATLAS_PASSWORD, "admin");
+        tc.properties.put(NIFI_USER_ID, "reporting-task-user");
         tc.properties.put(new PropertyDescriptor.Builder().name("hostnamePattern.example").dynamic(true).build(), ".*");
 
 

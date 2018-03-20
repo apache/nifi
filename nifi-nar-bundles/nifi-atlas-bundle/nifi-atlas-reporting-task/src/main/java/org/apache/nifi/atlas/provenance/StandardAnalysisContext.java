@@ -39,12 +39,14 @@ public class StandardAnalysisContext implements AnalysisContext {
     private final NiFiFlow nifiFlow;
     private final ClusterResolver clusterResolver;
     private final ProvenanceRepository provenanceRepository;
+    private final NiFiUser niFiUser;
 
     public StandardAnalysisContext(NiFiFlow nifiFlow, ClusterResolver clusterResolver,
-                                   ProvenanceRepository provenanceRepository) {
+                                   ProvenanceRepository provenanceRepository, String nifiUserId) {
         this.nifiFlow = nifiFlow;
         this.clusterResolver = clusterResolver;
         this.provenanceRepository = provenanceRepository;
+        this.niFiUser = new QueryNiFiUser(nifiUserId);
     }
 
     @Override
@@ -85,21 +87,25 @@ public class StandardAnalysisContext implements AnalysisContext {
 
     @Override
     public ComputeLineageResult queryLineage(long eventId) {
-        final ComputeLineageSubmission submission = provenanceRepository.submitLineageComputation(eventId, NIFI_USER);
+        final ComputeLineageSubmission submission = provenanceRepository.submitLineageComputation(eventId, niFiUser);
         return getLineageResult(eventId, submission);
     }
 
     public ComputeLineageResult findParents(long eventId) {
-        final ComputeLineageSubmission submission = provenanceRepository.submitExpandParents(eventId, NIFI_USER);
+        final ComputeLineageSubmission submission = provenanceRepository.submitExpandParents(eventId, niFiUser);
         return getLineageResult(eventId, submission);
     }
 
-    // NOTE: This user is required to avoid NullPointerException at PersistentProvenanceRepository.submitLineageComputation
-    private static final QueryNiFiUser NIFI_USER = new QueryNiFiUser();
     private static class QueryNiFiUser implements NiFiUser {
+        private final String nifiUserId;
+
+        private QueryNiFiUser(String nifiUserId) {
+            this.nifiUserId = nifiUserId;
+        }
+
         @Override
         public String getIdentity() {
-            return StandardAnalysisContext.class.getSimpleName();
+            return nifiUserId;
         }
 
         @Override
@@ -114,7 +120,7 @@ public class StandardAnalysisContext implements AnalysisContext {
 
         @Override
         public boolean isAnonymous() {
-            return true;
+            return false;
         }
 
         @Override
