@@ -142,10 +142,10 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         client.start();
         activeSessions.clear();
 
-        webSocketUri = new URI(context.getProperty(WS_URI).getValue());
-        connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        webSocketUri = new URI(context.getProperty(WS_URI).evaluateAttributeExpressions().getValue());
+        connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
-        final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         sessionMaintenanceScheduler = Executors.newSingleThreadScheduledExecutor();
         sessionMaintenanceScheduler.scheduleAtFixedRate(() -> {

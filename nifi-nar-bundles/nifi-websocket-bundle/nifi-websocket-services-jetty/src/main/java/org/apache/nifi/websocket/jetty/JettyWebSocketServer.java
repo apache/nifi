@@ -180,7 +180,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
         server.setHandler(handlerCollection);
 
-        listenPort = context.getProperty(LISTEN_PORT).asInteger();
+        listenPort = context.getProperty(LISTEN_PORT).evaluateAttributeExpressions().asInteger();
         final SslContextFactory sslContextFactory = createSslFactory(context);
 
         final ServerConnector serverConnector = createConnector(sslContextFactory, listenPort);
