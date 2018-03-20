@@ -45,6 +45,7 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -73,6 +74,9 @@ import java.util.concurrent.TimeUnit;
         }
 )
 public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReportingTask {
+
+    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    static final String LAST_EVENT_ID_KEY = "last_event_id";
 
     static final AllowableValue BEGINNING_OF_STREAM = new AllowableValue("beginning-of-stream", "Beginning of Stream",
         "Start reading provenance Events from the beginning of the stream (the oldest event first)");
@@ -302,7 +306,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     }
 
 
-    private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
+    static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
                                 final String componentName, final String processGroupId, final String processGroupName, final String hostname, final URL nifiUrl, final String applicationName,
                                 final String platform, final String nodeIdentifier) {
         addField(builder, "eventId", UUID.randomUUID().toString());
@@ -366,12 +370,32 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         builder.add(key, mapBuilder);
     }
 
-    private void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values) {
+    private static void addField(final JsonObjectBuilder builder, final String key, final Long value) {
+        if (value != null) {
+            builder.add(key, value.longValue());
+        }
+    }
+
+    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values) {
         if (values == null) {
             return;
         }
 
         builder.add(key, createJsonArray(factory, values));
+    }
+
+    private static void addField(final JsonObjectBuilder builder, final String key, final String value) {
+        addField(builder, key, value, false);
+    }
+
+    private static void addField(final JsonObjectBuilder builder, final String key, final String value, final boolean allowNullValues) {
+        if (value == null) {
+            if (allowNullValues) {
+                builder.add(key, JsonValue.NULL);
+            }
+        } else {
+            builder.add(key, value);
+        }
     }
 
     private static JsonArrayBuilder createJsonArray(JsonBuilderFactory factory, final Collection<String> values) {
