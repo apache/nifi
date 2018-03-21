@@ -75,7 +75,9 @@ import org.apache.nifi.record.path.functions.SubstringAfter;
 import org.apache.nifi.record.path.functions.SubstringAfterLast;
 import org.apache.nifi.record.path.functions.SubstringBefore;
 import org.apache.nifi.record.path.functions.SubstringBeforeLast;
+import org.apache.nifi.record.path.functions.ToBytes;
 import org.apache.nifi.record.path.functions.ToDate;
+import org.apache.nifi.record.path.functions.ToString;
 
 public class RecordPathCompiler {
 
@@ -249,6 +251,14 @@ public class RecordPathCompiler {
                     case "toDate": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
                         return new ToDate(args[0], args[1], absolute);
+                    }
+                    case "toString": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new ToString(args[0], args[1], absolute);
+                    }
+                    case "toBytes": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new ToBytes(args[0], args[1], absolute);
                     }
                     case "format": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
