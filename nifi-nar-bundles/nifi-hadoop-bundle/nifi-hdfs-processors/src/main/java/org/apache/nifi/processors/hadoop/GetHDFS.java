@@ -78,19 +78,14 @@ import java.util.regex.Pattern;
             + "is set to /tmp, then files picked up from /tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to true and "
             + "a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to \"abc/1/2/3\".") })
 @SeeAlso({PutHDFS.class, ListHDFS.class})
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
-                        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
-                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
-        }
-)
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
+    @Restriction(
+        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class GetHDFS extends AbstractHadoopProcessor {
 
     public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
@@ -387,7 +382,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
                 final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
 
-                flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath);
+                flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath.isEmpty() ? "." : relativePath);
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                 if (!keepSourceFiles && !getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.delete(file, false))) {

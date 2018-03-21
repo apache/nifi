@@ -16,35 +16,76 @@
  */
 package org.apache.nifi.atlas.security;
 
-import org.apache.atlas.AtlasClientV2;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.util.StringUtils;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_KEYTAB;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_PRINCIPAL;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.atlas.AtlasClientV2;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.atlas.reporting.ReportLineageToAtlas;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+
 public class Kerberos implements AtlasAuthN {
+    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     private String principal;
     private String keytab;
 
     @Override
     public Collection<ValidationResult> validate(ValidationContext context) {
-        return Stream.of(
-                validateRequiredField(context, NIFI_KERBEROS_PRINCIPAL),
-                validateRequiredField(context, NIFI_KERBEROS_KEYTAB)
-        ).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
+        final List<ValidationResult> problems = new ArrayList<>();
+
+        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+
+        final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        final String resolvedPrincipal;
+        final String resolvedKeytab;
+        if (credentialsService == null) {
+            resolvedPrincipal = explicitPrincipal;
+            resolvedKeytab = explicitKeytab;
+        } else {
+            resolvedPrincipal = credentialsService.getPrincipal();
+            resolvedKeytab = credentialsService.getKeytab();
+        }
+
+        if (resolvedPrincipal == null || resolvedKeytab == null) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("Both the Principal and the Keytab must be specified when using Kerberos authentication, either via the explicit properties or the Kerberos Credentials Service.")
+                .build());
+        }
+
+        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
+                .build());
+        }
+
+        final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
+        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
+                    + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
+                .build());
+        }
+
+        return problems;
     }
 
     @Override
@@ -54,15 +95,17 @@ public class Kerberos implements AtlasAuthN {
 
     @Override
     public void configure(PropertyContext context) {
-        principal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        keytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
 
-        if (StringUtils.isEmpty(principal)) {
-            throw new IllegalArgumentException("Principal is required for Kerberos auth.");
-        }
+        final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-        if (StringUtils.isEmpty(keytab)){
-            throw new IllegalArgumentException("Keytab is required for Kerberos auth.");
+        if (credentialsService == null) {
+            principal = explicitPrincipal;
+            keytab = explicitKeytab;
+        } else {
+            principal = credentialsService.getPrincipal();
+            keytab = credentialsService.getKeytab();
         }
     }
 

@@ -54,6 +54,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -88,6 +89,8 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_KEYTAB;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_PRINCIPAL;
 import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_BATCH_SIZE;
 import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_START_POSITION;
 
@@ -246,6 +249,14 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
+
 
     static final PropertyDescriptor KAFKA_KERBEROS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("kafka-kerberos-service-name-kafka")
@@ -315,6 +326,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         // Following properties are required if ATLAS_CONF_CREATE is enabled.
         // Otherwise should be left blank.
         properties.add(ATLAS_CONF_CREATE);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(NIFI_KERBEROS_PRINCIPAL);
         properties.add(NIFI_KERBEROS_KEYTAB);
         properties.add(KAFKA_KERBEROS_SERVICE_NAME);
@@ -394,13 +406,37 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             results.add(invalidSSLService.explanation("required by SSL Kafka connection").build());
         }
 
+        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+
+        final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        String principal;
+        String keytab;
+        if (credentialsService == null) {
+            principal = explicitPrincipal;
+            keytab = explicitKeytab;
+        } else {
+            principal = credentialsService.getPrincipal();
+            keytab = credentialsService.getKeytab();
+        }
+
         if (SEC_SASL_PLAINTEXT.equals(kafkaSecurityProtocol) || SEC_SASL_SSL.equals(kafkaSecurityProtocol)) {
-            Stream.of(NIFI_KERBEROS_PRINCIPAL, NIFI_KERBEROS_KEYTAB, KAFKA_KERBEROS_SERVICE_NAME)
-                    .filter(p -> !context.getProperty(p).isSet())
-                    .forEach(p -> results.add(new ValidationResult.Builder()
-                            .subject(p.getDisplayName())
-                            .explanation("required by Kafka SASL authentication.")
-                            .valid(false).build()));
+            if (!context.getProperty(KAFKA_KERBEROS_SERVICE_NAME).isSet()) {
+                results.add(new ValidationResult.Builder()
+                    .subject(KAFKA_KERBEROS_SERVICE_NAME.getDisplayName())
+                    .explanation("Required by Kafka SASL authentication.")
+                    .valid(false)
+                    .build());
+            }
+
+            if (keytab == null || principal == null) {
+                results.add(new ValidationResult.Builder()
+                    .subject("Kerberos Authentication")
+                    .explanation("Keytab and Principal are required for Kerberos authentication with Apache Kafka.")
+                    .valid(false)
+                    .build());
+            }
         }
     }
 
@@ -726,8 +762,21 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
      * @param context Context
      */
     private void setKafkaJaasConfig(Map<Object, Object> mapToPopulate, PropertyContext context) {
-        String keytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
-        String principal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        String keytab;
+        String principal;
+        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+
+        final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        if (credentialsService == null) {
+            principal = explicitPrincipal;
+            keytab = explicitKeytab;
+        } else {
+            principal = credentialsService.getPrincipal();
+            keytab = credentialsService.getKeytab();
+        }
+
         String serviceName = context.getProperty(KAFKA_KERBEROS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
         if(StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
             mapToPopulate.put("atlas.jaas.KafkaClient.loginModuleControlFlag", "required");

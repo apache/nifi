@@ -59,16 +59,11 @@ import java.util.regex.Pattern;
         + " no incoming connections no flowfiles will be transfered to any output relationships.  If there is an incoming"
         + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
         + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
-                        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
-                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
-        }
-)
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+})
 @WritesAttributes({
         @WritesAttribute(attribute="hdfs.filename", description="HDFS file to be deleted. "
                 + "If multiple files are deleted, then only the last filename is set."),
