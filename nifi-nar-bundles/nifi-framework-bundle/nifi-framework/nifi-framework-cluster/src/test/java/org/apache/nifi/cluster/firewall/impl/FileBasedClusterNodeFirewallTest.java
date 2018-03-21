@@ -27,7 +27,6 @@ import java.net.UnknownHostException;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -82,7 +81,6 @@ public class FileBasedClusterNodeFirewallTest {
      * We have two garbage lines in our test config file, ensure they didn't get turned into hosts.
      */
     @Test
-    @Ignore("DOn't commit this! ")
     public void ensureBadDataWasIgnored() {
         assumeTrue(badHostsDoNotResolve);
         assertFalse("firewall treated our malformed data as a host. If " +
