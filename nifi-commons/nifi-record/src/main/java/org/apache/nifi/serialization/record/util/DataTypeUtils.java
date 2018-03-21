@@ -18,6 +18,8 @@
 package org.apache.nifi.serialization.record.util;
 
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -84,7 +86,11 @@ public class DataTypeUtils {
     private static final Supplier<DateFormat> DEFAULT_TIMESTAMP_FORMAT = () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
-        return convertType(value, dataType, DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIMESTAMP_FORMAT, fieldName);
+        return convertType(value, dataType, fieldName, StandardCharsets.UTF_8);
+    }
+
+    public static Object convertType(final Object value, final DataType dataType, final String fieldName, final Charset charset) {
+        return convertType(value, dataType, DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIMESTAMP_FORMAT, fieldName, charset);
     }
 
     public static DateFormat getDateFormat(final RecordFieldType fieldType, final Supplier<DateFormat> dateFormat,
@@ -102,7 +108,12 @@ public class DataTypeUtils {
     }
 
     public static Object convertType(final Object value, final DataType dataType, final Supplier<DateFormat> dateFormat, final Supplier<DateFormat> timeFormat,
-        final Supplier<DateFormat> timestampFormat, final String fieldName) {
+                                     final Supplier<DateFormat> timestampFormat, final String fieldName) {
+        return convertType(value, dataType, dateFormat, timeFormat, timestampFormat, fieldName, StandardCharsets.UTF_8);
+    }
+
+    public static Object convertType(final Object value, final DataType dataType, final Supplier<DateFormat> dateFormat, final Supplier<DateFormat> timeFormat,
+        final Supplier<DateFormat> timestampFormat, final String fieldName, final Charset charset) {
 
         if (value == null) {
             return null;
@@ -130,19 +141,19 @@ public class DataTypeUtils {
             case SHORT:
                 return toShort(value, fieldName);
             case STRING:
-                return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat));
+                return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat), charset);
             case TIME:
                 return toTime(value, timeFormat, fieldName);
             case TIMESTAMP:
                 return toTimestamp(value, timestampFormat, fieldName);
             case ARRAY:
-                return toArray(value, fieldName);
+                return toArray(value, fieldName, ((ArrayDataType)dataType).getElementType(), charset);
             case MAP:
                 return toMap(value, fieldName);
             case RECORD:
                 final RecordDataType recordType = (RecordDataType) dataType;
                 final RecordSchema childSchema = recordType.getChildSchema();
-                return toRecord(value, childSchema, fieldName);
+                return toRecord(value, childSchema, fieldName, charset);
             case CHOICE: {
                 final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
                 final DataType chosenDataType = chooseDataType(value, choiceDataType);
@@ -151,7 +162,7 @@ public class DataTypeUtils {
                         + " for field " + fieldName + " to any of the following available Sub-Types for a Choice: " + choiceDataType.getPossibleSubTypes());
                 }
 
-                return convertType(value, chosenDataType, fieldName);
+                return convertType(value, chosenDataType, fieldName, charset);
             }
         }
 
@@ -162,7 +173,7 @@ public class DataTypeUtils {
     public static boolean isCompatibleDataType(final Object value, final DataType dataType) {
         switch (dataType.getFieldType()) {
             case ARRAY:
-                return isArrayTypeCompatible(value);
+                return isArrayTypeCompatible(value, ((ArrayDataType) dataType).getElementType());
             case BIGINT:
                 return isBigIntTypeCompatible(value);
             case BOOLEAN:
@@ -217,6 +228,10 @@ public class DataTypeUtils {
     }
 
     public static Record toRecord(final Object value, final RecordSchema recordSchema, final String fieldName) {
+        return toRecord(value, recordSchema, fieldName, StandardCharsets.UTF_8);
+    }
+
+    public static Record toRecord(final Object value, final RecordSchema recordSchema, final String fieldName, final Charset charset) {
         if (value == null) {
             return null;
         }
@@ -247,7 +262,7 @@ public class DataTypeUtils {
                 }
 
                 final Object rawValue = entry.getValue();
-                final Object coercedValue = convertType(rawValue, desiredTypeOption.get(), fieldName);
+                final Object coercedValue = convertType(rawValue, desiredTypeOption.get(), fieldName, charset);
                 coercedValues.put(key, coercedValue);
             }
 
@@ -261,7 +276,11 @@ public class DataTypeUtils {
         return value != null && value instanceof Record;
     }
 
-    public static Object[] toArray(final Object value, final String fieldName) {
+    public static Object[] toArray(final Object value, final String fieldName, final DataType elementDataType) {
+        return toArray(value, fieldName, elementDataType, StandardCharsets.UTF_8);
+    }
+
+    public static Object[] toArray(final Object value, final String fieldName, final DataType elementDataType, final Charset charset) {
         if (value == null) {
             return null;
         }
@@ -270,11 +289,32 @@ public class DataTypeUtils {
             return (Object[]) value;
         }
 
+        if (value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType)) {
+            byte[] src = ((String) value).getBytes(charset);
+            Byte[] dest = new Byte[src.length];
+            for (int i = 0; i < src.length; i++) {
+                dest[i] = src[i];
+            }
+            return dest;
+        }
+
+        if (value instanceof byte[]) {
+            byte[] src = (byte[]) value;
+            Byte[] dest = new Byte[src.length];
+            for (int i = 0; i < src.length; i++) {
+                dest[i] = src[i];
+            }
+            return dest;
+        }
+
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
     }
 
-    public static boolean isArrayTypeCompatible(final Object value) {
-        return value != null && value instanceof Object[];
+    public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType) {
+        return value != null
+                // Either an object array or a String to be converted to byte[]
+                && (value instanceof Object[]
+                || (value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType)));
     }
 
     @SuppressWarnings("unchecked")
@@ -416,6 +456,10 @@ public class DataTypeUtils {
 
 
     public static String toString(final Object value, final Supplier<DateFormat> format) {
+        return toString(value, format, StandardCharsets.UTF_8);
+    }
+
+    public static String toString(final Object value, final Supplier<DateFormat> format, final Charset charset) {
         if (value == null) {
             return null;
         }
@@ -432,6 +476,32 @@ public class DataTypeUtils {
             return formatDate((java.util.Date) value, format);
         }
 
+        if (value instanceof byte[]) {
+            return new String((byte[])value, charset);
+        }
+
+        if (value instanceof Byte[]) {
+            Byte[] src = (Byte[]) value;
+            byte[] dest = new byte[src.length];
+            for(int i=0;i<src.length;i++) {
+                dest[i] = src[i];
+            }
+            return new String(dest, charset);
+        }
+        if (value instanceof Object[]) {
+            Object[] o = (Object[]) value;
+            if (o.length > 0) {
+
+                byte[] dest = new byte[o.length];
+                for (int i = 0; i < o.length; i++) {
+                    dest[i] = (byte) o[i];
+                }
+                return new String(dest, charset);
+            } else {
+                return ""; // Empty array = empty string
+            }
+        }
+
         return value.toString();
     }
 
@@ -445,6 +515,10 @@ public class DataTypeUtils {
     }
 
     public static String toString(final Object value, final String format) {
+        return toString(value, format, StandardCharsets.UTF_8);
+    }
+
+    public static String toString(final Object value, final String format, final Charset charset) {
         if (value == null) {
             return null;
         }
@@ -472,6 +546,10 @@ public class DataTypeUtils {
 
         if (value instanceof Object[]) {
             return Arrays.toString((Object[]) value);
+        }
+
+        if (value instanceof byte[]) {
+            return new String((byte[]) value, charset);
         }
 
         return value.toString();
@@ -1099,5 +1177,13 @@ public class DataTypeUtils {
         }
 
         return true;
+    }
+
+    public static Charset getCharset(String charsetName) {
+        if(charsetName == null) {
+            return StandardCharsets.UTF_8;
+        } else {
+            return Charset.forName(charsetName);
+        }
     }
 }
