@@ -17,9 +17,6 @@
 
 package org.apache.nifi.registry.flow;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -28,9 +25,14 @@ import org.apache.nifi.util.Tuple;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class FlowRegistryUtils {
 
-    public static boolean containsRestrictedComponent(final VersionedProcessGroup group) {
+    public static Set<ConfigurableComponent> getRestrictedComponents(final VersionedProcessGroup group) {
+        final Set<ConfigurableComponent> restrictedComponents = new HashSet<>();
+
         final Set<Tuple<String, BundleCoordinate>> componentTypes = new HashSet<>();
         populateComponentTypes(group, componentTypes);
 
@@ -42,11 +44,11 @@ public class FlowRegistryUtils {
 
             final boolean isRestricted = component.getClass().isAnnotationPresent(Restricted.class);
             if (isRestricted) {
-                return true;
+                restrictedComponents.add(component);
             }
         }
 
-        return false;
+        return restrictedComponents;
     }
 
     private static void populateComponentTypes(final VersionedProcessGroup group, final Set<Tuple<String, BundleCoordinate>> componentTypes) {
