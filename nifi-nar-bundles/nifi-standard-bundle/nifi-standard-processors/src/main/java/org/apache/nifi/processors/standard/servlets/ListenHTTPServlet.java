@@ -269,6 +269,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.getProvenanceReporter().receive(flowFile, request.getRequestURL().toString(), sourceSystemFlowFileIdentifier, "Remote DN=" + foundSubject, transferMillis);
                 flowFile = session.putAttribute(flowFile, "restlistener.remote.source.host", request.getRemoteHost());
+                flowFile = session.putAttribute(flowFile, "restlistener.request.uri", request.getRequestURI());
                 flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
                 flowFileSet.add(flowFile);
 
