@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-kerberos-iaa-providers-bundle</artifactId>
-        <version>1.6.0</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-kerberos-iaa-providers</artifactId>
     <packaging>jar</packaging>
@@ -38,12 +38,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.security.kerberos</groupId>
