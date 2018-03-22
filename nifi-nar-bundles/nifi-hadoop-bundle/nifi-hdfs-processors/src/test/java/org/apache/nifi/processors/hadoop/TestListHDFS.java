@@ -381,6 +381,31 @@ public class TestListHDFS {
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
     }
 
+    @Test
+    public void testListAfterDirectoryChange() throws InterruptedException {
+        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 100L,0L, create777(), "owner", "group", new Path("/test1/testFile-1_1.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test2"), new FileStatus(1L, false, 1, 1L, 150L,0L, create777(), "owner", "group", new Path("/test2/testFile-2_1.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 200L,0L, create777(), "owner", "group", new Path("/test1/testFile-1_2.txt")));
+
+        runner.setProperty(ListHDFS.DIRECTORY, "/test1");
+
+        runner.run(); // Initial run, latest file from /test1 will be ignored
+
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run(); // Latest file i.e. testFile-1_2.txt from /test1 should also be picked up now
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
+
+        runner.setProperty(ListHDFS.DIRECTORY, "/test2"); // Changing directory should reset the state
+
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run(); // Will ignore the files for this cycle
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
+
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run(); // Since state has been reset, testFile-2_1.txt from /test2 should be picked up
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
+    }
+
 
     private FsPermission create777() {
         return new FsPermission((short) 0777);
