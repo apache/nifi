@@ -21,11 +21,13 @@ import org.apache.nifi.atlas.NiFiFlow;
 import org.apache.nifi.atlas.NiFiFlowPath;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
+import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.LineageNodeType;
+import org.apache.nifi.provenance.lineage.ProvenanceEventLineageNode;
 import org.apache.nifi.util.Tuple;
 
 import java.nio.charset.StandardCharsets;
@@ -60,6 +62,15 @@ public class CompleteFlowPathLineage extends AbstractLineageStrategy {
             return;
         }
         final ComputeLineageResult lineage = analysisContext.queryLineage(event.getEventId());
+        if (lineage == null) {
+            throw new RuntimeException("Failed to query NiFi provenance lineage.");
+        }
+
+        // Check if there's any lineage.nodes.type == UNKNOWN
+        if (lineage.getNodes().stream().filter(n -> n instanceof ProvenanceEventLineageNode)
+                .map(n -> (ProvenanceEventLineageNode) n).anyMatch(n -> ProvenanceEventType.UNKNOWN.equals(n.getEventType()))) {
+            throw new AuthorizationAccessException("NiFi provenance lineage was queried, but did not return full detail due to lack of required privilege.");
+        }
 
         // Construct a tree model to traverse backwards.
         final Map<String, List<LineageNode>> lineageTree = new HashMap<>();

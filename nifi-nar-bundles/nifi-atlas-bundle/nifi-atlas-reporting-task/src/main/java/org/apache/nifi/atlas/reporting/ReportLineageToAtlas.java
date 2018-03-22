@@ -45,6 +45,7 @@ import org.apache.nifi.atlas.resolver.RegexClusterResolver;
 import org.apache.nifi.atlas.security.AtlasAuthN;
 import org.apache.nifi.atlas.security.Basic;
 import org.apache.nifi.atlas.security.Kerberos;
+import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -194,6 +195,21 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .defaultValue("false")
             .build();
 
+    static final PropertyDescriptor NIFI_USER_ID = new PropertyDescriptor.Builder()
+            .name("nifi-user-id")
+            .displayName("NiFi User ID to Query Provenance Events")
+            .description("Specify a NiFi user ID." +
+                    " ReportLineageToAtlas impersonate this user when it makes NiFi provenance query requests." +
+                    " If NiFi is secured, sufficient policies need to be assigned to the user" +
+                    " so that ReportLineageToAtlas can access NiFi provenance data in full detail." +
+                    " The required policies are: 'query provenance' and 'view the data' for the root Process Group." +
+                    " NOTE: Policies need to be assigned directly to the user. Group level policies can not be used for this component.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(ReportLineageToAtlas.class.getSimpleName())
+            .build();
+
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("SSL Context Service")
@@ -321,6 +337,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         properties.add(NIFI_LINEAGE_STRATEGY);
         properties.add(PROVENANCE_START_POSITION);
         properties.add(PROVENANCE_BATCH_SIZE);
+        properties.add(NIFI_USER_ID);
         properties.add(SSL_CONTEXT_SERVICE);
 
         // Following properties are required if ATLAS_CONF_CREATE is enabled.
@@ -620,6 +637,12 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             return;
         }
 
+        final String nifiUserId = context.getProperty(NIFI_USER_ID).evaluateAttributeExpressions().getValue();
+        if (isEmpty(nifiUserId)) {
+            getLogger().warn("NiFi user id is empty, make sure '" + NIFI_USER_ID.getDisplayName() + "' is configured correctly.");
+            return;
+        }
+
         // If standalone or being primary node in a NiFi cluster, this node is responsible for doing primary tasks.
         final boolean isResponsibleForPrimaryTasks = !isClustered || getNodeTypeProvider().isPrimary();
 
@@ -661,7 +684,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         // If a node notifies an event related to a NiFi component which is not yet created by NiFi primary node,
         // then the notification message will fail due to having a reference to a non-existing entity.
         nifiAtlasHook.setAtlasClient(atlasClient);
-        consumeNiFiProvenanceEvents(context, nifiFlow);
+        consumeNiFiProvenanceEvents(context, nifiFlow, nifiUserId);
 
     }
 
@@ -704,15 +727,19 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         return nifiFlow;
     }
 
-    private void consumeNiFiProvenanceEvents(ReportingContext context, NiFiFlow nifiFlow) {
+    private void consumeNiFiProvenanceEvents(ReportingContext context, NiFiFlow nifiFlow, String nifiUserId) {
         final EventAccess eventAccess = context.getEventAccess();
         final AnalysisContext analysisContext = new StandardAnalysisContext(nifiFlow, clusterResolvers,
                 // FIXME: This class cast shouldn't be necessary to query lineage. Possible refactor target in next major update.
-                (ProvenanceRepository)eventAccess.getProvenanceRepository());
+                (ProvenanceRepository)eventAccess.getProvenanceRepository(), nifiUserId);
         consumer.consumeEvents(context, (componentMapHolder, events) -> {
             for (ProvenanceEventRecord event : events) {
                 try {
                     lineageStrategy.processEvent(analysisContext, nifiFlow, event);
+                } catch (AuthorizationAccessException e) {
+                    // If the exception would be thrown for every event, then stop consuming immediately.
+                    getLogger().error("Failed to process NiFi provenance events.", e);
+                    return;
                 } catch (Exception e) {
                     // If something went wrong, log it and continue with other records.
                     getLogger().error("Skipping failed analyzing event {} due to {}.", new Object[]{event, e, e});
