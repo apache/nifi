@@ -59,17 +59,9 @@ public class ToString extends RecordPathSegment {
                             stringValue = ""; // Empty array = empty string
                         }
                     } else if (!(fv.getValue() instanceof byte[])) {
-                        return fv;
+                        stringValue = fv.getValue().toString();
                     } else {
-                        try {
-                            stringValue = DataTypeUtils.toString(fv.getValue(), (String) null, charset);
-                        } catch (final Exception e) {
-                            return fv;
-                        }
-
-                        if (stringValue == null) {
-                            return fv;
-                        }
+                        stringValue = DataTypeUtils.toString(fv.getValue(), (String) null, charset);
                     }
                     return new StandardFieldValue(stringValue, fv.getField(), fv.getParent().orElse(null));
                 });
@@ -85,11 +77,7 @@ public class ToString extends RecordPathSegment {
             return null;
         }
 
-        try {
-            return DataTypeUtils.getCharset(charsetString);
-        } catch (final Exception e) {
-            return null;
-        }
+        return DataTypeUtils.getCharset(charsetString);
     }
 
 }

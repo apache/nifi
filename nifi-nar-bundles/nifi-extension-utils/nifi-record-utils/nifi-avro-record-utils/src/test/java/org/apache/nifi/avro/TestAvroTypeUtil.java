@@ -404,6 +404,13 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testStringToNullableBytesConversion() {
+        Object o = AvroTypeUtil.convertToAvroObject("Hello", Schema.createUnion(Schema.create(Type.NULL), Schema.create(Type.BYTES)), StandardCharsets.UTF_16);
+        assertTrue(o instanceof ByteBuffer);
+        assertEquals("Hello", new String(((ByteBuffer) o).array(), StandardCharsets.UTF_16));
+    }
+
+    @Test
     public void testBytesToStringConversion() {
         final Charset charset = Charset.forName("UTF_32LE");
         Object o = AvroTypeUtil.convertToAvroObject("Hello".getBytes(charset), Schema.create(Type.STRING), charset);

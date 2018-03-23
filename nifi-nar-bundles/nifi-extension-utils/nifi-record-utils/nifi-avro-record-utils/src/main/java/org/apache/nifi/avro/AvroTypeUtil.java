@@ -800,7 +800,7 @@ public class AvroTypeUtil {
                 }
                 break;
             case ARRAY:
-                if (value instanceof Array || value instanceof List) {
+                if (value instanceof Array || value instanceof List || value instanceof ByteBuffer) {
                     return true;
                 }
                 break;

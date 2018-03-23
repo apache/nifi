@@ -21,6 +21,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.text.DateFormat;
@@ -1227,6 +1228,22 @@ public class TestRecordPath {
         assertEquals("Hello World!", RecordPath.compile("toString(/bytes, \"UTF-16\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+    @Test(expected = IllegalCharsetNameException.class)
+    public void testToStringBadCharset() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("bytes", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()))));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
+        final Record record = new MapRecord(schema, values);
+
+        RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+    }
+
     @Test
     public void testToBytes() {
         final List<RecordField> fields = new ArrayList<>();
@@ -1242,6 +1259,22 @@ public class TestRecordPath {
 
         assertArrayEquals("Hello World!".getBytes(StandardCharsets.UTF_16LE),
                 (byte[]) RecordPath.compile("toBytes(/s, \"UTF-16LE\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test(expected = IllegalCharsetNameException.class)
+    public void testToBytesBadCharset() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("s", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("s", "Hello World!");
+        final Record record = new MapRecord(schema, values);
+
+        RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
     }
 
     private List<RecordField> getDefaultFields() {

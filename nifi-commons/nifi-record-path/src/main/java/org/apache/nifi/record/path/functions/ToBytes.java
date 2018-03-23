@@ -45,20 +45,16 @@ public class ToBytes extends RecordPathSegment {
                 .map(fv -> {
 
                     if (!(fv.getValue() instanceof String)) {
-                        return fv;
+                        throw new IllegalArgumentException("Argument supplied to toBytes must be a String");
                     }
 
                     final Charset charset = getCharset(this.charsetSegment, context);
 
                     final byte[] bytesValue;
-                    try {
-                        Byte[] src = (Byte[]) DataTypeUtils.toArray(fv.getValue(), fv.getField().getFieldName(), RecordFieldType.BYTE.getDataType(), charset);
-                        bytesValue = new byte[src.length];
-                        for(int i=0;i<src.length;i++) {
-                            bytesValue[i] = src[i];
-                        }
-                    } catch (final Exception e) {
-                        return fv;
+                    Byte[] src = (Byte[]) DataTypeUtils.toArray(fv.getValue(), fv.getField().getFieldName(), RecordFieldType.BYTE.getDataType(), charset);
+                    bytesValue = new byte[src.length];
+                    for (int i = 0; i < src.length; i++) {
+                        bytesValue[i] = src[i];
                     }
 
                     return new StandardFieldValue(bytesValue, fv.getField(), fv.getParent().orElse(null));
@@ -75,11 +71,6 @@ public class ToBytes extends RecordPathSegment {
             return null;
         }
 
-        try {
-            return DataTypeUtils.getCharset(charsetString);
-        } catch (final Exception e) {
-            return null;
-        }
+        return DataTypeUtils.getCharset(charsetString);
     }
-
 }

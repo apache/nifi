@@ -313,10 +313,9 @@ public class DataTypeUtils {
 
     public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType) {
         return value != null
-                // Either an object array or a String to be converted to byte[] or a ByteBuffer (from Avro, e.g.)
+                // Either an object array or a String to be converted to byte[]
                 && (value instanceof Object[]
-                || (value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType))
-                || value instanceof ByteBuffer);
+                || (value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType)));
     }
 
     @SuppressWarnings("unchecked")
@@ -482,11 +481,6 @@ public class DataTypeUtils {
             return new String((byte[])value, charset);
         }
 
-        if (value instanceof ByteBuffer) {
-            ByteBuffer bb = (ByteBuffer)value;
-            return bb.hasArray() ? new String(bb.array(), charset) : "";
-        }
-
         if (value instanceof Byte[]) {
             Byte[] src = (Byte[]) value;
             byte[] dest = new byte[src.length];
@@ -557,10 +551,6 @@ public class DataTypeUtils {
 
         if (value instanceof byte[]) {
             return new String((byte[]) value, charset);
-        }
-        if (value instanceof ByteBuffer) {
-            ByteBuffer bb = (ByteBuffer)value;
-            return bb.hasArray() ? new String(bb.array(), charset) : "";
         }
 
         return value.toString();
@@ -1194,11 +1184,7 @@ public class DataTypeUtils {
         if(charsetName == null) {
             return StandardCharsets.UTF_8;
         } else {
-            try {
-                return Charset.forName(charsetName);
-            } catch(Exception e) {
-                return StandardCharsets.UTF_8;
-            }
+            return Charset.forName(charsetName);
         }
     }
 }

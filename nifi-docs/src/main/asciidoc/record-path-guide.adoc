@@ -504,7 +504,8 @@ The following record path would parse the eventDate field into a Date:
 
 === toString
 
-Converts a byte[] to a String, using the given character set.  For example, given a schema such as:
+Converts a value to a String, using the given character set if the input type is "bytes".  For example,
+given a schema such as:
 
 ----
 {
