@@ -1,26 +1,38 @@
 {
   "name": "apache-nifi",
+  "description": "Apache NiFi 3rd party client side resources.",
   "dependencies": {
-    "font-awesome": "4.6.1",
-    "angular-material": "1.0.8",
-    "angular-resource": "1.5.5",
-    "angular-route": "1.5.5",
-    "jquery": "3.1.1",
-    "jquery-ui-dist": "1.12.1",
-    "jquery-minicolors": "2.1.10",
-    "jquery-form": "3.50.0",
-    "qtip2": "3.0.3",
-    "slickgrid": "2.3.3",
-    "jsonlint": "1.6.2",
     "JSON2": "0.1.0",
-    "reset.css": "2.0.2",
+    "angular": "1.5.11",
+    "angular-aria": "1.5.11",
+    "angular-animate": "1.5.11",
+    "angular-messages": "1.5.11",
+    "angular-mocks": "1.5.11",
+    "angular-resource": "1.5.5",
+    "angular-sanitize": "1.5.11",
+    "angular-route": "1.5.5",
+    "angular-material": "1.0.8",
     "d3": "4.13.0",
     "d3-selection-multi": "1.0.1",
-    "url-search-params": "0.6.1"
+    "jquery-minicolors": "2.1.10",
+    "jquery-ui-dist": "1.12.1",
+    "font-awesome": "4.6.1",
+    "jquery": "3.1.1",
+    "reset.css": "2.0.2",
+    "jquery-form": "3.50.0",
+    "url-search-params": "0.6.1",
+    "jsonlint": "1.6.2",
+    "qtip2": "3.0.3",
+    "slickgrid": "2.3.3"
   },
-  "description": "Apache NiFi 3rd party client side resources.",
+  "scripts": {
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/apache/nifi"
-  }
+    "url": "git+https://github.com/apache/nifi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/apache/nifi/issues"
+  },
+  "homepage": "https://github.com/apache/nifi#readme"
 }
