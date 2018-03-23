@@ -253,7 +253,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        return eventIndex.submitQuery(query, createEventAuthorizer(user), user.getIdentity());
+        return eventIndex.submitQuery(query, createEventAuthorizer(user), user == null ? null : user.getIdentity());
     }
 
     @Override
