@@ -174,7 +174,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
             @Override
             public boolean select(final ProvenanceEventRecord value) {
-                if (user != null && !isAuthorized(value, user)) {
+                if (!isAuthorized(value, user)) {
                     return false;
                 }
 
@@ -256,7 +256,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     public boolean isAuthorized(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return true;
         }
 
@@ -276,7 +276,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     protected void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
@@ -442,14 +442,15 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
             throw new IllegalArgumentException("Query End Time cannot be before Query Start Time");
         }
 
+        final String userId = user == null ? null : user.getIdentity();
         if (query.getSearchTerms().isEmpty() && query.getStartDate() == null && query.getEndDate() == null) {
-            final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, user.getIdentity());
+            final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, userId);
             queryExecService.submit(new QueryRunnable(ringBuffer, createFilter(query, user), query.getMaxResults(), result));
             querySubmissionMap.put(query.getIdentifier(), result);
             return result;
         }
 
-        final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, user.getIdentity());
+        final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, userId);
         querySubmissionMap.put(query.getIdentifier(), result);
         queryExecService.submit(new QueryRunnable(ringBuffer, createFilter(query, user), query.getMaxResults(), result));
 
@@ -501,7 +502,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     public ComputeLineageSubmission submitLineageComputation(final long eventId, final NiFiUser user) {
         final ProvenanceEventRecord event = getEvent(eventId);
         if (event == null) {
-            final String userId = user.getIdentity();
+            final String userId = user == null ? null : user.getIdentity();
             final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, userId);
             result.getResult().setError("Could not find event with ID " + eventId);
             lineageSubmissionMap.put(result.getLineageIdentifier(), result);
@@ -542,7 +543,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public ComputeLineageSubmission submitExpandParents(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         final ProvenanceEventRecord event = getEvent(eventId, user);
         if (event == null) {
@@ -573,7 +574,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public ComputeLineageSubmission submitExpandChildren(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         final ProvenanceEventRecord event = getEvent(eventId, user);
         if (event == null) {
@@ -619,14 +620,14 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
 
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType, final Long eventId) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
         final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, 1, userId);
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
 
         final Filter<ProvenanceEventRecord> filter = new Filter<ProvenanceEventRecord>() {
             @Override
             public boolean select(final ProvenanceEventRecord event) {
-                if (user != null && !isAuthorized(event, user)) {
+                if (!isAuthorized(event, user)) {
                     return false;
                 }
 

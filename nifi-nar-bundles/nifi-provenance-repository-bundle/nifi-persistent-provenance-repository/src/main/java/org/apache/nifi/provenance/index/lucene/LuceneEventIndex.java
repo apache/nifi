@@ -356,13 +356,13 @@ public class LuceneEventIndex implements EventIndex {
             eventOption = eventStore.getEvent(eventId);
         } catch (final Exception e) {
             logger.error("Failed to retrieve Provenance Event with ID " + eventId + " to calculate data lineage due to: " + e, e);
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Failed to retrieve Provenance Event with ID " + eventId + ". See logs for more information.");
             return result;
         }
 
         if (!eventOption.isPresent()) {
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Could not find Provenance Event with ID " + eventId);
             lineageSubmissionMap.put(result.getLineageIdentifier(), result);
             return result;
@@ -378,7 +378,7 @@ public class LuceneEventIndex implements EventIndex {
         final LineageComputationType computationType, final Long eventId, final long startTimestamp, final long endTimestamp) {
 
         final List<File> indexDirs = directoryManager.getDirectories(startTimestamp, endTimestamp);
-        final AsyncLineageSubmission submission = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user.getIdentity());
+        final AsyncLineageSubmission submission = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user == null ? null : user.getIdentity());
         lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
         final BooleanQuery lineageQuery = buildLineageQuery(flowFileUuids);
@@ -501,7 +501,7 @@ public class LuceneEventIndex implements EventIndex {
 
     @Override
     public ComputeLineageSubmission submitExpandChildren(final long eventId, final NiFiUser user, final EventAuthorizer authorizer) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final Optional<ProvenanceEventRecord> eventOption = eventStore.getEvent(eventId);
@@ -541,7 +541,7 @@ public class LuceneEventIndex implements EventIndex {
 
     @Override
     public ComputeLineageSubmission submitExpandParents(final long eventId, final NiFiUser user, final EventAuthorizer authorizer) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final Optional<ProvenanceEventRecord> eventOption = eventStore.getEvent(eventId);
