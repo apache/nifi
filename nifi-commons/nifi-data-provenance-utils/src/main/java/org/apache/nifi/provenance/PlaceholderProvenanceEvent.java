@@ -30,12 +30,18 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     private final long eventId;
     private final long eventTime;
     private final String flowFileUuid;
+    private final ProvenanceEventType eventType;
+    private final List<String> childUuids;
+    private final List<String> parentUuids;
 
     public PlaceholderProvenanceEvent(final ProvenanceEventRecord original) {
         this.componentId = original.getComponentId();
         this.eventId = original.getEventId();
         this.eventTime = original.getEventTime();
         this.flowFileUuid = original.getFlowFileUuid();
+        this.eventType = original.getEventType();
+        this.childUuids = original.getChildUuids();
+        this.parentUuids = original.getParentUuids();
     }
 
     @Override
@@ -120,12 +126,12 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
 
     @Override
     public List<String> getParentUuids() {
-        return null;
+        return parentUuids;
     }
 
     @Override
     public List<String> getChildUuids() {
-        return null;
+        return childUuids;
     }
 
     @Override
@@ -196,5 +202,9 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     @Override
     public String getBestEventIdentifier() {
         return Long.toString(getEventId());
+    }
+
+    ProvenanceEventType getOriginalEventType() {
+        return this.eventType;
     }
 }

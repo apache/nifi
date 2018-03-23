@@ -247,6 +247,8 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
 
             // Create an edge that connects this node to the previous node for the same FlowFile UUID.
             final LineageNode lastNode = lastEventMap.get(record.getFlowFileUuid());
+            final ProvenanceEventType eventType = record instanceof PlaceholderProvenanceEvent
+                    ? ((PlaceholderProvenanceEvent) record).getOriginalEventType() : record.getEventType();
             if (lastNode != null) {
                 // We calculate the Edge UUID based on whether or not this event is a SPAWN.
                 // If this event is a SPAWN, then we want to use the previous node's UUID because a
@@ -255,7 +257,7 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
                 // the UUID of this record is appropriate, so we just use it.
                 final String edgeUuid;
 
-                switch (record.getEventType()) {
+                switch (eventType) {
                     case JOIN:
                     case CLONE:
                     case REPLAY:
@@ -271,7 +273,7 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
 
             lastEventMap.put(record.getFlowFileUuid(), lineageNode);
 
-            switch (record.getEventType()) {
+            switch (eventType) {
                 case FORK:
                 case JOIN:
                 case REPLAY:
