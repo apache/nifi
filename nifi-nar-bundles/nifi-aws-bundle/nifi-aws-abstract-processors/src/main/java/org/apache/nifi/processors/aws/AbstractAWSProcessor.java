@@ -156,11 +156,11 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
-    private static AllowableValue createAllowableValue(final Regions region) {
+    protected static AllowableValue createAllowableValue(final Regions region) {
         return new AllowableValue(region.getName(), AWSRegions.getRegionDisplayName(region.getName()));
     }
 
-    private static AllowableValue[] getAvailableRegions() {
+    protected static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
         for (final Regions region : Regions.values()) {
             values.add(createAllowableValue(region));
