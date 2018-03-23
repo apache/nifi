@@ -65,3 +65,26 @@ This includes derived works from Apache Solr available under Apache Software Lic
 This includes derived works from Apache Hadoop available under Apache Software License V2. Portions of the code found in
   https://github.com/apache/hadoop/blob/release-2.7.3-RC2/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/security/UserGroupInformation.java
   The code can be found nifi-commons/nifi-security-utils/src/main/java/org/apache/nifi/security/krb/KeytabUser.java
+This includes derived works from apigateway-generic-java-sdk (ASLv2 licenced) project (https://github.com/rpgreen/apigateway-generic-java-sdk):
+  The derived work is adapted from
+    main/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+    test/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClientTest.java
+      LambdaMatcher.java
+  and can be found in the directories:
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-abstract-processors/src/main/../wag/client/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+      Validate.java
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-processors/src/test/../wag/
+      RequestMatcher.java
+      GetAWSGatewayApiTest.java
+
