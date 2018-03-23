@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.livy;
 
 import org.apache.nifi.controller.livy.LivySessionController;
+import org.apache.nifi.processors.standard.TestServer;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
