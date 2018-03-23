@@ -27,6 +27,7 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
+import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiProperties
@@ -62,6 +63,8 @@ class ConfigEncryptionTool {
     public String outputAuthorizersPath
     public String flowXmlPath
     public String outputFlowXmlPath
+    // If this value can be set by the running user, it can point to a manipulated file anywhere
+    private static String secureHashPath = "./secure_hash.key"
 
     private String keyHex
     private String migrationKeyHex
@@ -81,6 +84,7 @@ class ConfigEncryptionTool {
 
     private boolean usingPassword = true
     private boolean usingPasswordMigration = true
+    private boolean usingSecureHash = false
     private boolean migration = false
     private boolean isVerbose = false
     private boolean handlingNiFiProperties = false
@@ -104,6 +108,8 @@ class ConfigEncryptionTool {
     private static final String PASSWORD_ARG = "password"
     private static final String KEY_MIGRATION_ARG = "oldKey"
     private static final String PASSWORD_MIGRATION_ARG = "oldPassword"
+    private static final String HASHED_KEY_MIGRATION_ARG = "secureHashKey"
+    private static final String HASHED_PASSWORD_MIGRATION_ARG = "secureHash"
     private static final String USE_KEY_ARG = "useRawKey"
     private static final String MIGRATION_ARG = "migrate"
     private static final String PROPS_KEY_ARG = "propsKey"
@@ -115,10 +121,11 @@ class ConfigEncryptionTool {
     private static final String DEFAULT_NIFI_SENSITIVE_PROPS_KEY = "nififtw!"
     private static final int MIN_PASSWORD_LENGTH = 12
 
-    // Strong parameters as of 12 Aug 2016
+    // Strong parameters as of 12 Aug 2016 (for key derivation)
     private static final int SCRYPT_N = 2**16
     private static final int SCRYPT_R = 8
     private static final int SCRYPT_P = 1
+    static final String CURRENT_SCRYPT_VERSION = "s0"
 
     // Hard-coded values from StandardPBEByteEncryptor which will be removed during refactor of all flow encryption code in NIFI-1465
     private static final int DEFAULT_KDF_ITERATIONS = 1000
@@ -142,7 +149,8 @@ class ConfigEncryptionTool {
             "files or in flow.xml.gz to be encrypted with a new key."
 
     private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.ldap.LdapProvider"
-    private static final String LDAP_PROVIDER_REGEX = /(?s)<provider>(?:(?!<provider>).)*?<class>\s*org\.apache\.nifi\.ldap\.LdapProvider.*?<\/provider>/
+    private static
+    final String LDAP_PROVIDER_REGEX = /(?s)<provider>(?:(?!<provider>).)*?<class>\s*org\.apache\.nifi\.ldap\.LdapProvider.*?<\/provider>/
     /* Explanation of LDAP_PROVIDER_REGEX:
      *   (?s)                             -> single-line mode (i.e., `.` in regex matches newlines)
      *   <provider>                       -> find occurrence of `<provider>` literally (case-sensitive)
@@ -212,6 +220,8 @@ class ConfigEncryptionTool {
         options.addOption(Option.builder("e").longOpt(KEY_MIGRATION_ARG).hasArg(true).argName("keyhex").desc("The old raw hexadecimal key to use during key migration").build())
         options.addOption(Option.builder("p").longOpt(PASSWORD_ARG).hasArg(true).argName("password").desc("The password from which to derive the key to use to encrypt the sensitive properties").build())
         options.addOption(Option.builder("w").longOpt(PASSWORD_MIGRATION_ARG).hasArg(true).argName("password").desc("The old password from which to derive the key during migration").build())
+        options.addOption(Option.builder("y").longOpt(HASHED_KEY_MIGRATION_ARG).hasArg(true).argName("hashed_keyhex").desc("The old securely-hashed hexadecimal key to authenticate during key migration (see NiFi Admin Guide)").build())
+        options.addOption(Option.builder("z").longOpt(HASHED_PASSWORD_MIGRATION_ARG).hasArg(true).argName("hashed_password").desc("The old securely-hashed password to authenticate during key migration (see NiFi Admin Guide)").build())
         options.addOption(Option.builder("r").longOpt(USE_KEY_ARG).hasArg(false).desc("If provided, the secure console will prompt for the raw key value in hexadecimal form").build())
         options.addOption(Option.builder("m").longOpt(MIGRATION_ARG).hasArg(false).desc("If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key").build())
         options.addOption(Option.builder("x").longOpt(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG).hasArg(false).desc("If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified").build())
@@ -224,11 +234,11 @@ class ConfigEncryptionTool {
         return new ConfigEncryptionTool().options
     }
 
-    /**
-     * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
-     *
-     * @param errorMessage the optional error message
-     */
+/**
+ * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
+ *
+ * @param errorMessage the optional error message
+ */
     void printUsage(String errorMessage) {
         if (errorMessage) {
             System.out.println(errorMessage)
@@ -236,7 +246,8 @@ class ConfigEncryptionTool {
         }
         HelpFormatter helpFormatter = new HelpFormatter()
         helpFormatter.setWidth(160)
-        helpFormatter.setOptionComparator(null) // preserve manual ordering of options when printing instead of alphabetical
+        helpFormatter.setOptionComparator(null)
+        // preserve manual ordering of options when printing instead of alphabetical
         helpFormatter.printHelp(ConfigEncryptionTool.class.getCanonicalName(), header, options, FOOTER, true)
     }
 
@@ -361,6 +372,16 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Key migration mode activated")
                 }
+                if (isSecureHashArgumentPresent(commandLine)) {
+                    logger.info("Secure hash argument present")
+                    // Check for old key/password and throw error
+                    if (commandLine.hasOption(KEY_MIGRATION_ARG) || commandLine.hasOption(PASSWORD_MIGRATION_ARG)) {
+                        printUsageAndThrow("If the '-w'/'--${PASSWORD_MIGRATION_ARG}' or '-e'/'--${KEY_MIGRATION_ARG}' arguments are present, '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG} and '-y'/'--${HASHED_KEY_MIGRATION_ARG} cannot be used", ExitCode.INVALID_ARGS)
+                    }
+
+                    // Set boolean flag to true
+                    usingSecureHash = true
+                }
                 if (commandLine.hasOption(PASSWORD_MIGRATION_ARG)) {
                     usingPasswordMigration = true
                     if (commandLine.hasOption(KEY_MIGRATION_ARG)) {
@@ -370,7 +391,8 @@ class ConfigEncryptionTool {
                     }
                 } else {
                     migrationKeyHex = commandLine.getOptionValue(KEY_MIGRATION_ARG)
-                    usingPasswordMigration = !migrationKeyHex
+                    // Use the "migration password" value if the migration key hex is absent and the secure hash password/key hex is absent (if either are present, the migration password is not)
+                    usingPasswordMigration = !migrationKeyHex && !usingSecureHash
                 }
             } else {
                 if (commandLine.hasOption(PASSWORD_MIGRATION_ARG) || commandLine.hasOption(KEY_MIGRATION_ARG)) {
@@ -410,15 +432,18 @@ class ConfigEncryptionTool {
         return commandLine
     }
 
-    /**
-     * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
-     *
-     * @param device
-     * @param keyHex
-     * @param password
-     * @param usingPassword
-     * @return
-     */
+    static boolean isSecureHashArgumentPresent(CommandLine commandLine) {
+        commandLine.hasOption(HASHED_PASSWORD_MIGRATION_ARG) || commandLine.hasOption(HASHED_KEY_MIGRATION_ARG)
+    }
+/**
+ * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
+ *
+ * @param device
+ * @param keyHex
+ * @param password
+ * @param usingPassword
+ * @return
+ */
     private String getKeyInternal(TextDevice device = TextDevices.defaultTextDevice(), String keyHex, String password, boolean usingPassword) {
         if (usingPassword) {
             if (!password) {
@@ -446,10 +471,15 @@ class ConfigEncryptionTool {
     }
 
     private String getMigrationKey() {
-        getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
+        if (usingSecureHash) {
+            // Retrieve the key from bootstrap.conf because the caller only has the hashed version available
+            return readMasterKeyFromBootstrap()
+        } else {
+            return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
+        }
     }
 
-    private String getFlowPassword(TextDevice textDevice = TextDevices.defaultTextDevice()) {
+    private static String getFlowPassword(TextDevice textDevice = TextDevices.defaultTextDevice()) {
         readPasswordFromConsole(textDevice)
     }
 
@@ -461,6 +491,10 @@ class ConfigEncryptionTool {
     private static String readPasswordFromConsole(TextDevice textDevice) {
         textDevice.printf("Enter the password: ")
         new String(textDevice.readPassword())
+    }
+
+    private String readMasterKeyFromBootstrap() {
+        NiFiPropertiesLoader.extractKeyFromBootstrapFile(bootstrapConfPath)
     }
 
     /**
@@ -831,7 +865,9 @@ class ConfigEncryptionTool {
         try {
             def doc = new XmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
-            def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }.property.findAll {
+            def passwords = doc.userGroupProvider.find {
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
+            }.property.findAll {
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
             }
 
@@ -1167,6 +1203,41 @@ class ConfigEncryptionTool {
         }
     }
 
+    /**
+     * Writes the contents of the secure hash configuration file (hashed value of current migration password/key hex) to the output {@code secure_hash.key} file.
+     *
+     * @throw IOException if there is a problem reading or writing the secure_hash.key file
+     */
+    private void writeSecureHash() throws IOException {
+        if (!secureHashPath) {
+            throw new IllegalArgumentException("Cannot write hashed password/key to empty secure_hash.key path")
+        }
+
+        File secureHashFile = new File(secureHashPath)
+
+        if (isSafeToWrite(secureHashFile)) {
+            try {
+                List<String> secureHashFileLines = []
+                // Calculate the secure hash of the current key (and password if provided) using current default values for cost params and random salt
+                String secureHashKey = secureHashKey(keyHex)
+                secureHashFileLines << "secureHashKey=${secureHashKey}"
+                if (password) {
+                    String secureHashPassword = secureHashPassword(password)
+                    secureHashFileLines << "secureHashPassword=${secureHashPassword}"
+                }
+
+                // Write the updated values back to the file
+                secureHashFile.text = secureHashFileLines.join("\n")
+            } catch (IOException e) {
+                def msg = "Encountered an exception updating the secure_hash.key file with the hashed value(s)"
+                logger.error(msg, e)
+                throw e
+            }
+        } else {
+            throw new IOException("The secure_hash.key file at ${secureHashPath} must be writable by the user running this tool")
+        }
+    }
+
     private
     static List<String> serializeNiFiPropertiesAndPreserveFormat(NiFiProperties niFiProperties, File originalPropertiesFile) {
         List<String> lines = originalPropertiesFile.readLines()
@@ -1277,13 +1348,17 @@ class ConfigEncryptionTool {
         }
 
         // Generate a 128 bit salt
-        byte[] salt = generateScryptSalt()
+        byte[] salt = generateScryptSaltForKeyDerivation()
         int keyLengthInBytes = getValidKeyLengths().max() / 8
         byte[] derivedKeyBytes = SCrypt.generate(password.getBytes(StandardCharsets.UTF_8), salt, SCRYPT_N, SCRYPT_R, SCRYPT_P, keyLengthInBytes)
         Hex.encodeHexString(derivedKeyBytes).toUpperCase()
     }
 
-    private static byte[] generateScryptSalt() {
+    /**
+     * Returns a static "raw" salt (the 128 bits of random data used when generating the hash, not the "complete" {@code $s0$e0101$ABCDEFGHIJKLMNOPQRSTUV} salt format).
+     * @return the raw salt in byte[] form
+     */
+    private static byte[] generateScryptSaltForKeyDerivation() {
 //        byte[] salt = new byte[16]
 //        new SecureRandom().nextBytes(salt)
 //        salt
@@ -1292,6 +1367,32 @@ class ConfigEncryptionTool {
         compatibility concerns
         */
         "NIFI_SCRYPT_SALT".getBytes(StandardCharsets.UTF_8)
+    }
+
+    private static byte[] generateRandomSalt(int bits = 128) {
+        byte[] salt = new byte[bits / 8]
+        new SecureRandom().nextBytes(salt)
+        salt
+    }
+
+    /**
+     * Generates an scrypt salt using the provided parameters and encodes it in the proper format. If a value is not provided, the listed default will be used.
+     *
+     * @param rawSalt the raw 128 bit salt to use (default is to generate a random value)
+     * @param n the CPU/memory cost factor (default is {@value ConfigEncryptionTool#SCRYPT_N})
+     * @param r the blocksize factor (default is {@value ConfigEncryptionTool#SCRYPT_R})
+     * @param p the parallelization factor (default is {@value ConfigEncryptionTool#SCRYPT_P})
+     * @param version the salt version identifier (default is {@value ConfigEncryptionTool#CURRENT_SCRYPT_VERSION})
+     * @return the scrypt-formatted salt (e.g. {@code $s0$e0101$ABCDEFGHIJKLMNOPQRSTUV})
+     */
+    private
+    static String generateScryptSalt(byte[] rawSalt = generateRandomSalt(128), int n = SCRYPT_N, int r = SCRYPT_R, int p = SCRYPT_P, String version = CURRENT_SCRYPT_VERSION) {
+        String formattedSalt = Scrypt.formatSalt(rawSalt, n, r, p)
+        def versionString = "\$${version}\$"
+        if (!formattedSalt.startsWith(versionString)) {
+            formattedSalt = formattedSalt.replaceFirst(/$\w{2}$/, versionString)
+        }
+        return formattedSalt
     }
 
     private String getExistingFlowPassword() {
@@ -1314,6 +1415,33 @@ class ConfigEncryptionTool {
         } else {
             return false
         }
+    }
+
+    static String secureHashPassword(String password, String salt = generateScryptSalt()) {
+        // If empty, generate complete salt
+        if (!salt) {
+            salt = generateScryptSalt()
+        }
+
+        // The findAll() drops any empty elements
+        def saltComponents = salt.split('\\$').findAll()
+        if (saltComponents.size() < 3) {
+            throw new IllegalArgumentException("The provided salt was not in valid scrypt format")
+        }
+        if (saltComponents.first() != CURRENT_SCRYPT_VERSION) {
+           throw new IllegalArgumentException("Currently, only scrypt hashes with version ${CURRENT_SCRYPT_VERSION} are supported")
+        }
+
+        // Split the encoded params into N, R, P
+        List<Integer> params = Scrypt.parseParameters(saltComponents[1])
+
+        // Generate the hashed format
+        Scrypt.scrypt(password, Base64.decoder.decode(saltComponents[2]), params[0], params[1], params[2], 256)
+    }
+
+    static String secureHashKey(String keyHex, String salt = generateScryptSalt()) {
+        // Lowercase the key hex, then call secureHashPassword() as the algorithm is the same
+        secureHashPassword(keyHex?.toLowerCase(), salt)
     }
 
     /**
@@ -1471,6 +1599,9 @@ class ConfigEncryptionTool {
                 synchronized (this) {
                     if (!tool.ignorePropertiesFiles) {
                         tool.writeKeyToBootstrapConf()
+
+                        // Always write the secure hash in case the next invocation needs it
+                        tool.writeSecureHash()
                     }
                     if (tool.handlingFlowXml) {
                         tool.writeFlowXmlToFile(tool.flowXml)

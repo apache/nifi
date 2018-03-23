@@ -20,11 +20,13 @@ import org.apache.commons.lang3.SystemUtils
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Assume
@@ -65,6 +67,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
     public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
     private static final String PASSWORD = "thisIsABadPassword"
+
+    private static final String STATIC_SALT = "ABCDEFGHIJKLMNOPQRSTUV"
+    private static final String HASHED_PASSWORD = ""
+    private static final String HASHED_KEY_HEX = ""
+
     // From ConfigEncryptionTool.deriveKeyFromPassword("thisIsABadPassword")
     private static
     final String PASSWORD_KEY_HEX_256 = "2C576A9585DB862F5ECBEE5B4FFFCCA14B18D8365968D7081651006507AD2BDE"
@@ -403,6 +410,66 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert msg =~ "Only one of '-w'/'--oldPassword' and '-e'/'--oldKey' can be used"
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationPasswordAndHashedPasswordBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -w oldPassword -z oldPasswordHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationPasswordAndHashedKeyBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -w oldPassword -y oldKeyHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationKeyAndHashedPasswordBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -e oldKey -z oldPasswordHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationKeyAndHashedKeyBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -e oldKey -y oldKeyHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
     }
 
     @Test
@@ -1913,6 +1980,260 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assert
 
         // Assertions in common method above
+    }
+
+    /**
+     * Helper method to execute key migration test for varying combinations of new key/password with securely hashed key/password.
+     *
+     * @param scenario a human-readable description of the test scenario
+     * @param scenarioArgs a list of the arguments specific to this scenario to be passed to the tool
+     * @param oldHashedPassword the secure hash of the original password
+     * @param newPassword the new password
+     * @param oldHashedKeyHex the original key hex (if present, original hashed password is ignored)
+     * @param newKeyHex the new key hex (if present, new password is ignored; if not, this is derived)
+     */
+    private void performSecureHashKeyMigration(String scenario, List scenarioArgs, String oldHashedPassword = HASHED_PASSWORD, String newPassword = PASSWORD.reverse(), String oldHashedKeyHex = "", String newKeyHex = "") {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        // Initial set up
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key_password.conf" :
+                "src/test/resources/bootstrap_with_master_key_password_128.conf"
+        File originalKeyFile = new File(bootstrapPath)
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(originalKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+
+        // Copy the hashed credentials file
+
+        // TODO: May need different versions (or modify in-place) for password present/not
+        String secureHashedPasswordPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/secure_hashed.key" :
+                "src/test/resources/secure_hashed_128.key"
+        File originalSecureHashedPasswordFile = new File(secureHashedPasswordPath)
+        File secureHashedFile = new File("target/tmp/tmp_secure_hash.key")
+        secureHashedFile.delete()
+        Files.copy(originalSecureHashedPasswordFile.toPath(), secureHashedFile.toPath())
+
+        // Perform necessary key derivations
+        if (!newKeyHex) {
+            newKeyHex = ConfigEncryptionTool.deriveKeyFromPassword(newPassword)
+            logger.info("Migration key derived from password [${newPassword}]: \t${newKeyHex}")
+        } else {
+            logger.info("Migration key provided directly: \t${newKeyHex}")
+        }
+
+        // Extract old key hex from bootstrap.conf
+        String oldKeyHex = originalKeyLine.split("=", 2).last()
+        logger.info("Extracted old key hex from bootstrap.conf: ${oldKeyHex}")
+
+        String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ?
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_password.properties" :
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_password_128.properties"
+        File inputPropertiesFile = new File(inputPropertiesPath)
+        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        outputPropertiesFile.delete()
+
+        // Log original sensitive properties (encrypted with first key)
+        NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(oldKeyHex).load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        final String EXPECTED_NEW_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + newKeyHex
+
+        // Act
+        String[] args = ["-n", inputPropertiesFile.path,
+                         "-b", bootstrapFile.path,
+                         "-o", outputPropertiesFile.path,
+                         "-m",
+                         "-v"]
+
+        List<String> localArgs = args + scenarioArgs
+        logger.info("Running [${scenario}] with args: ${localArgs}")
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                assert outputPropertiesFile.exists()
+                final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was re-encrypted)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                assert updatedProperties.size() >= inputProperties.size()
+                originalSensitiveValues.every { String key, String originalValue ->
+                    assert updatedProperties.getProperty(key) != originalValue
+                }
+
+                // Check that the new NiFiProperties instance matches the output file (values still encrypted)
+                updatedProperties.getPropertyKeys().every { String key ->
+                    assert updatedPropertiesLines.contains("${key}=${updatedProperties.getProperty(key)}".toString())
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_NEW_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Check that the secure hash was persisted to the secure_hash.key
+                final List<String> updatedSecureHashLines = secureHashedFile.readLines()
+                String updatedSecureHashLine = updatedSecureHashLines.first()
+                logger.info("Updated secure hash line: ${updatedSecureHashLine}")
+
+                final String EXPECTED_NEW_SECURE_HASH_LINE = newPassword ? "secureHashPassword=${ConfigEncryptionTool.secureHashPassword(newPassword, STATIC_SALT)}" : "secureHashKey=${ConfigEncryptionTool.secureHashKey(newKeyHex, STATIC_SALT)}"
+                assert updatedSecureHashLine == EXPECTED_NEW_SECURE_HASH_LINE
+                assert updatedSecureHashLines.size() == 1
+
+                // Clean up
+                outputPropertiesFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        logger.info("Migrating key (${scenario}) with ${localArgs.join(" ")}")
+
+        // Override the "final" secure hash file path
+        ConfigEncryptionTool.secureHashPath = secureHashedFile.path
+        ConfigEncryptionTool.main(localArgs as String[])
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    /**
+     * Ideally all of the combination tests would be a single test with iterative argument lists, but due to the System.exit(), it can only be captured once per test.
+     */
+    @Test
+    void testShouldMigrateFromHashedPasswordToPassword() {
+        // Arrange
+        String scenario = "hashed password to password"
+        def args = ["-z", HASHED_PASSWORD, "-p", PASSWORD.reverse()]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, HASHED_PASSWORD, PASSWORD.reverse())
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    void testShouldMigrateFromHashedPasswordToKey() {
+        // Arrange
+        String scenario = "hashed password to key"
+        def args = ["-z", HASHED_PASSWORD, "-k", KEY_HEX]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, HASHED_PASSWORD, "", "", KEY_HEX)
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    void testShouldMigrateFromHashedKeyToPassword() {
+        // Arrange
+        String scenario = "hashed key to password"
+        def args = ["-y", HASHED_KEY_HEX, "-p", PASSWORD.reverse()]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, "", PASSWORD.reverse(), HASHED_KEY_HEX, "")
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    void testShouldMigrateFromHashedKeyToKey() {
+        // Arrange
+        String scenario = "hashed key to key"
+        def args = ["-y", HASHED_KEY_HEX, "-k", KEY_HEX]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, "", "", HASHED_KEY_HEX, KEY_HEX)
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    void testShouldDeriveSecureHashOfPassword() {
+        // Arrange
+        def testPasswords = ["password", "thisIsABadPassword", "bWZerzZo6fw9ZrDz*YfM6CVj2Ktx(YJd"]
+
+        // All zero, 22 (16B) Base64 static, 40 (32B) Base64 randomly-generated
+        def salts = [
+                Hex.decode("00" * 16),
+                Base64.decoder.decode("ABCDEFGHIJKLMNOPQRSTUV"),
+                Base64.decoder.decode("eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc=")
+        ]
+
+        // These values were generated using CET#secureHashPassword() and verified using src/test/resources/scrypt.py
+        def passwordHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$99aTTB39TJo69aZCONQmRdyWOgYsDi+1MI+8D0EgMNM"
+        ]
+        def badPasswordHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$Gk7K9YmlsWbd8FS7e4RKVWnkg9vlsqYnlD593pJ71gg",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$Ri78VZbrp2cCVmGh2a9Nbfdov8LPnFb49MYyzPCaXmE",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$rZIrP2qdIY7LN4CZAMgbCzl3YhXz6WhaNyXJXqFIjaI"
+        ]
+        def randomPasswordHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$GxH68bGykmPDZ6gaPIGOONOT2omlZ7cd0xlcZ9UsY/0",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$KLGZjWlo59sbCbtmTg5b4k0Nu+biWZRRzhPhN7K5kkI",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$6Ql6Efd2ac44ERoV31CL3Q0J3LffNZKN4elyMHux99Y"
+        ]
+
+        def expectedHashes = [
+                (testPasswords[0]): passwordHashes,
+                (testPasswords[1]): badPasswordHashes,
+                (testPasswords[2]): randomPasswordHashes
+        ]
+
+        // Low cost factors for performance
+        int n = 2**4
+        int r = 8
+        int p = 1
+        logger.info("Cost factors for test: N=${n}, R=${r}, P=${p}")
+
+        // Act
+        testPasswords.each { String password ->
+            salts.eachWithIndex { byte[] rawSalt, int i ->
+                logger.info("Hashing '${password}' with salt ${Base64.encoder.encodeToString(rawSalt)}")
+                String formattedSalt = Scrypt.formatSalt(rawSalt, n, r, p)
+                logger.info("Formatted salt: ${formattedSalt}")
+                String generatedHash = ConfigEncryptionTool.secureHashPassword(password, formattedSalt)
+                logger.info("Generated hash: ${generatedHash}")
+
+                // Assert
+                String expectedHash = expectedHashes[(password)][i]
+                logger.info("Comparing to expectedHashes['${password}'][${i}]: ${expectedHash}")
+
+                // Remember to perform constant-time equality check in production code
+                assert generatedHash == expectedHash
+            }
+        }
     }
 
     @Test
@@ -3463,7 +3784,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 def originalAuthorizersParsedXml = new XmlSlurper().parseText(originalAuthorizersXmlContent)
                 def updatedAuthorizersParsedXml = new XmlSlurper().parseText(updatedAuthorizersXmlContent)
                 assert originalAuthorizersParsedXml != updatedAuthorizersParsedXml
-                assert originalAuthorizersParsedXml.'**'.findAll { it.@encryption } != updatedAuthorizersParsedXml.'**'.findAll {
+                assert originalAuthorizersParsedXml.'**'.findAll {
+                    it.@encryption
+                } != updatedAuthorizersParsedXml.'**'.findAll {
                     it.@encryption
                 }
                 def authorizersEncryptedValues = updatedAuthorizersParsedXml.userGroupProvider.find {
@@ -3476,7 +3799,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }
-                def authorizersTrimmedSerializedLines = updatedAuthorizersXmlContent.split("\n").collect { it.trim() }.findAll { it }
+                def authorizersTrimmedSerializedLines = updatedAuthorizersXmlContent.split("\n").collect {
+                    it.trim()
+                }.findAll { it }
                 assert authorizersTrimmedLines.size() == authorizersTrimmedSerializedLines.size()
 
                 /*** Bootstrap assertions ***/
@@ -3998,7 +4323,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Assert
                 // Get the updated nifi.properties and check the sensitive key
                 final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
-                String updatedSensitiveKeyLine = updatedPropertiesLines.find { it.startsWith(NiFiProperties.SENSITIVE_PROPS_KEY) }
+                String updatedSensitiveKeyLine = updatedPropertiesLines.find {
+                    it.startsWith(NiFiProperties.SENSITIVE_PROPS_KEY)
+                }
                 logger.info("Updated key line: ${updatedSensitiveKeyLine}")
 
                 // Check that the output values for everything are the same except the sensitive props key
