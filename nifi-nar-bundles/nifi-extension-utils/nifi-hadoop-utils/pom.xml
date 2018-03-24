@@ -24,7 +24,7 @@
     <version>1.7.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <properties>
-        <hadoop.version>2.7.3</hadoop.version>
+        <hadoop.version>3.0.0</hadoop.version>
     </properties>
     <dependencies>
         <dependency>
