@@ -171,8 +171,7 @@ public class PropertyDescriptorDTO {
      * @return specifies the scope of expression language evaluation
      */
     @ApiModelProperty(
-            value = "Scope of the EL evaluation for the property",
-            allowableValues = "NONE, VARIABLE_REGISTRY, FLOWFILE_ATTRIBUTES"
+            value = "Scope of the EL evaluation for the property."
     )
     public String getScopeEl() {
         return scopeEl;

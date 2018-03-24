@@ -18,12 +18,12 @@ package org.apache.nifi.documentation.html;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.Restriction;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -35,6 +35,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
@@ -541,7 +542,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                             break;
                         case NONE:
                         default:
-                            // scope is not defined in this case
+                            // in case legacy/deprecated method has been used to specify EL support
+                            text += " (undefined scope)";
                             break;
                     }
 
@@ -615,18 +617,28 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 xmlStreamWriter.writeEmptyElement("br");
                 String text;
-                switch(dynamicProperty.expressionLanguageScope()) {
-                    case FLOWFILE_ATTRIBUTES:
-                        text = "Supports Expression Language: true (will be evaluated using flow file attributes and registry)";
-                        break;
-                    case VARIABLE_REGISTRY:
-                        text = "Supports Expression Language: true (will be evaluated using registry only)";
-                        break;
-                    case NONE:
-                    default:
+
+                if(dynamicProperty.expressionLanguageScope().equals(ExpressionLanguageScope.NONE)) {
+                    if(dynamicProperty.supportsExpressionLanguage()) {
+                        text = "Supports Expression Language: true (undefined scope)";
+                    } else {
                         text = "Supports Expression Language: false";
-                        break;
+                    }
+                } else {
+                    switch(dynamicProperty.expressionLanguageScope()) {
+                        case FLOWFILE_ATTRIBUTES:
+                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and registry)";
+                            break;
+                        case VARIABLE_REGISTRY:
+                            text = "Supports Expression Language: true (will be evaluated using registry only)";
+                            break;
+                        case NONE:
+                        default:
+                            text = "Supports Expression Language: false";
+                            break;
+                    }
                 }
+
                 writeSimpleElement(xmlStreamWriter, "strong", text);
                 xmlStreamWriter.writeEndElement();
                 xmlStreamWriter.writeEndElement();

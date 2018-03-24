@@ -43,16 +43,26 @@ public enum ExpressionLanguageScope {
     /**
      * Expression language is disabled
      */
-    NONE,
+    NONE("Not Supported"),
 
     /**
      * Expression language is evaluated against variables in registry
      */
-    VARIABLE_REGISTRY,
+    VARIABLE_REGISTRY("Variable Registry Only"),
 
     /**
      * Expression language is evaluated per flow file using attributes
      */
-    FLOWFILE_ATTRIBUTES;
+    FLOWFILE_ATTRIBUTES("Variable Registry and FlowFile Attributes");
+
+    private String description;
+
+    private ExpressionLanguageScope(String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return this.description;
+    }
 
 }

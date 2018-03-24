@@ -105,6 +105,7 @@ import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -3577,7 +3578,12 @@ public final class DtoFactory {
         dto.setDescription(propertyDescriptor.getDescription());
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
-        dto.setScopeEl(propertyDescriptor.getExpressionLanguageScope().toString());
+
+        // to support legacy/deprecated method .expressionLanguageSupported(true)
+        String description = propertyDescriptor.isExpressionLanguageSupported()
+                && propertyDescriptor.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)
+                ? "true (undefined scope)" : propertyDescriptor.getExpressionLanguageScope().getDescription();
+        dto.setScopeEl(description);
 
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {

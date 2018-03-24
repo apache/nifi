@@ -108,6 +108,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
             .name("Optional Property")
             .description("This is a property you can use or not")
             .required(false)
+            .expressionLanguageSupported(true) // test documentation of deprecated method
             .build();
 
     public static final PropertyDescriptor TYPE_PROPERTY = new PropertyDescriptor.Builder()
@@ -115,6 +116,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
             .description("This is the type of something that you can choose.  It has several possible values")
             .allowableValues("yes", "no", "maybe", "possibly", "not likely", "longer option name")
             .required(true)
+            .expressionLanguageSupported(false) // test documentation of deprecated method
             .build();
 
     public static final PropertyDescriptor SERVICE_PROPERTY = new PropertyDescriptor.Builder()

@@ -86,9 +86,12 @@ public class ProcessorDocumentationWriterTest {
         assertNotContains(results, "No tags provided.");
         assertNotContains(results, "Additional Details...");
 
+        // check expression language scope
+        assertContains(results, "Supports Expression Language: true (will be evaluated using registry only)");
+        assertContains(results, "Supports Expression Language: true (undefined scope)");
+
         // verify dynamic properties
         assertContains(results, "Routes FlowFiles to relationships based on XPath");
-        assertContains(results, "(will be evaluated using flow file attributes and registry)");
 
         // input requirement
         assertContains(results, "This component does not allow an incoming relationship.");
