@@ -307,6 +307,12 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      */
     @Override
     public synchronized void reloadAdditionalResourcesIfNecessary() {
+        // Components that don't have any PropertyDescriptors marked `dynamicallyModifiesClasspath`
+        // won't have the fingerprint i.e. will be null, in such cases do nothing
+        if (additionalResourcesFingerprint == null) {
+            return;
+        }
+
         final List<PropertyDescriptor> descriptors = new ArrayList<>(this.getProperties().keySet());
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
