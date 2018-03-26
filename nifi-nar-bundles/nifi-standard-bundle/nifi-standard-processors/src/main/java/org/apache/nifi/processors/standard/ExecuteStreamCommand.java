@@ -132,7 +132,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"command execution", "command", "stream", "execute", "restricted"})
+@Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({

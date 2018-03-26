@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -215,6 +213,7 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
+import javax.ws.rs.WebApplicationException;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -2626,6 +2625,10 @@ public final class DtoFactory {
             for (final String tag : tagsAnnotation.value()) {
                 tags.add(tag);
             }
+        }
+
+        if (cls.isAnnotationPresent(Restricted.class)) {
+            tags.add("restricted");
         }
 
         return tags;

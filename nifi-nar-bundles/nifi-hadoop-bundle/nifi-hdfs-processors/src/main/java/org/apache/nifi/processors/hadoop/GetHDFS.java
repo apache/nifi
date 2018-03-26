@@ -70,7 +70,7 @@ import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem", "restricted"})
+@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
 @CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
