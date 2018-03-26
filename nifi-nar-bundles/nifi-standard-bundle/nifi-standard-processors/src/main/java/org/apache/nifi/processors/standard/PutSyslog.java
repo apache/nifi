@@ -80,23 +80,6 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .expressionLanguageSupported(true)
             .build();
 
-    public static final PropertyDescriptor PORT = PORT_PROP_BUILDER
-            .expressionLanguageSupported(true)
-            .description("The port for Syslog communication. Note that Expression language is not evaluated per FlowFile.")
-            .build();
-
-    public static final PropertyDescriptor PROTOCOL = PROTOCOL_PROP;
-
-    public static final PropertyDescriptor CHARSET = CHARSET_PROP_BUILDER
-            .expressionLanguageSupported(true)
-            .description("Specifies the character set of the Syslog messages. Note that Expression language is not evaluated per FlowFile.")
-            .build();
-
-    public static final PropertyDescriptor TIMEOUT = TIMEOUT_PROP_BUILDER
-            .expressionLanguageSupported(true)
-            .description("The timeout for connecting to and communicating with the syslog server. Does not apply to UDP. Note that Expression language is not evaluated per FlowFile.")
-            .build();
-
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Size of Socket Send Buffer")
             .description("The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System " +

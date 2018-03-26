@@ -116,17 +116,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .required(true)
         .build();
 
-    public static final PropertyDescriptor PORT = PORT_PROP_BUILDER
-            .build();
-
-    public static final PropertyDescriptor PROTOCOL = PROTOCOL_PROP;
-
-    public static final PropertyDescriptor CHARSET = CHARSET_PROP_BUILDER
-            .build();
-
-    public static final PropertyDescriptor TIMEOUT = TIMEOUT_PROP_BUILDER
-            .build();
-
     public static final PropertyDescriptor RECV_BUFFER_SIZE = new PropertyDescriptor.Builder()
         .name("Receive Buffer Size")
         .displayName("Receive Buffer Size")
@@ -298,13 +287,13 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final int port = context.getProperty(PORT).asInteger();
+        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         final String protocol = context.getProperty(PROTOCOL).getValue();
         final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        final String charSet = context.getProperty(CHARSET).getValue();
+        final String charSet = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         messageDemarcatorBytes = msgDemarcator.getBytes(Charset.forName(charSet));
 
@@ -426,7 +415,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
 
-        final String port = context.getProperty(PORT).getValue();
+        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
         final String protocol = context.getProperty(PROTOCOL).getValue();
 
         final Map<String, String> defaultAttributes = new HashMap<>(4);
