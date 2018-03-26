@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupRecord, e.g.)
  */
-@Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "restricted"})
+@Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from an incoming flow file.")
 @Restricted(
         restrictions = {

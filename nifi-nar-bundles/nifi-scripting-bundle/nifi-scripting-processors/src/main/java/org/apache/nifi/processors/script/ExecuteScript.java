@@ -58,7 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure", "restricted"})
+@Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure"})
 @CapabilityDescription("Experimental - Executes a script given the flow file and a process session.  The script is responsible for "
         + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back. Experimental: "

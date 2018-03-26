@@ -48,7 +48,7 @@ import java.util.Set;
  * This processor runs a Flume sink
  */
 @TriggerSerially
-@Tags({"flume", "hadoop", "put", "sink", "restricted"})
+@Tags({"flume", "hadoop", "put", "sink"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Execute a Flume sink. Each input FlowFile is converted into a Flume Event for processing by the sink.")
 @Restricted(

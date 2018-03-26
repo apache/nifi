@@ -43,7 +43,7 @@ import java.util.Map;
 /**
  * A RecordSetWriter implementation that allows the user to script the RecordWriter instance
  */
-@Tags({"record", "writer", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "restricted"})
+@Tags({"record", "writer", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted RecordSetWriterFactory instance in order to write records to an outgoing flow file.")
 @Restricted(
         restrictions = {

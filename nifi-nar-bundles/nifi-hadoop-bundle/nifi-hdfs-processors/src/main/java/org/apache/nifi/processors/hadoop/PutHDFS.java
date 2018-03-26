@@ -66,7 +66,7 @@ import java.util.concurrent.TimeUnit;
  * This processor copies FlowFiles to HDFS.
  */
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"hadoop", "HDFS", "put", "copy", "filesystem", "restricted"})
+@Tags({"hadoop", "HDFS", "put", "copy", "filesystem"})
 @CapabilityDescription("Write FlowFile data to Hadoop Distributed File System (HDFS)")
 @ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
 @WritesAttributes({
