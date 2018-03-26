@@ -59,7 +59,8 @@ import java.util.Set;
 @Tags({"elasticsearch", "elasticsearch 5", "query", "read", "get", "json"})
 @CapabilityDescription("A processor that allows the user to run a query (with aggregations) written with the " +
         "ElasticSearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
-        "processor, it will use the flowfile's content for the query.")
+        "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +
+        "from ElasticSearch will be loaded into memory all at once and converted into the resulting flowfiles.")
 public class JsonQueryElasticsearch extends AbstractProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
             .description("All original flowfiles that don't cause an error to occur go to this relationship. " +
