@@ -25,6 +25,7 @@
     <modules>
         <module>nifi-distributed-cache-client-service-api</module>
         <module>nifi-distributed-cache-services-bundle</module>
+        <module>nifi-elasticsearch-client-service-api</module>
         <module>nifi-load-distribution-service-api</module>
         <module>nifi-http-context-map-api</module>
         <module>nifi-lookup-service-api</module>

@@ -12,6 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.processors.elasticsearch.FetchElasticsearch5
-org.apache.nifi.processors.elasticsearch.PutElasticsearch5
-org.apache.nifi.processors.elasticsearch.DeleteElasticsearch5
+#create mapping
+PUT:messages/:{ "mappings":{"message":{ "properties":{ "msg":{"type":"keyword"}}}}}
+#add document
+PUT:messages/message/1:{ "msg ":"one" }
+PUT:messages/message/2:{ "msg ":"two" }
+PUT:messages/message/3:{ "msg ":"two" }
+PUT:messages/message/4:{ "msg ":"three" }
+PUT:messages/message/5:{ "msg ":"three" }
+PUT:messages/message/6:{ "msg ":"three" }
+PUT:messages/message/7:{ "msg ":"four" }
+PUT:messages/message/8:{ "msg ":"four" }
+PUT:messages/message/9:{ "msg ":"four" }
+PUT:messages/message/10:{ "msg ":"four" }
+PUT:messages/message/11:{ "msg ":"five" }
+PUT:messages/message/12:{ "msg ":"five" }
+PUT:messages/message/13:{ "msg ":"five" }
+PUT:messages/message/14:{ "msg ":"five" }
+PUT:messages/message/15:{ "msg ":"five" }
