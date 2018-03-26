@@ -52,7 +52,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-@Tags({"bulletin", "site", "site to site", "restricted"})
+@Tags({"bulletin", "site", "site to site"})
 @CapabilityDescription("Publishes Bulletin events using the Site To Site protocol. Note: only up to 5 bulletins are stored per component and up to "
         + "10 bulletins at controller level for a duration of up to 5 minutes. If this reporting task is not scheduled frequently enough some bulletins "
         + "may not be sent.")

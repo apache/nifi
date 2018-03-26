@@ -68,7 +68,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"command", "process", "source", "external", "invoke", "script", "restricted"})
+@Tags({"command", "process", "source", "external", "invoke", "script"})
 @CapabilityDescription("Runs an operating system command specified by the user and writes the output of that command to a FlowFile. If the command is expected "
         + "to be long-running, the Processor can output the partial data on a specified interval. When this option is used, the output is expected to be in textual "
         + "format, as it typically does not make sense to split binary data on arbitrary time-based intervals.")

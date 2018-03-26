@@ -64,7 +64,7 @@ import java.util.regex.Pattern;
 /**
  * This processor renames files on HDFS.
  */
-@Tags({"hadoop", "HDFS", "put", "move", "filesystem", "restricted", "moveHDFS"})
+@Tags({"hadoop", "HDFS", "put", "move", "filesystem", "moveHDFS"})
 @CapabilityDescription("Rename existing files or a directory of files (non-recursive) on Hadoop Distributed File System (HDFS).")
 @ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
 @WritesAttributes({
