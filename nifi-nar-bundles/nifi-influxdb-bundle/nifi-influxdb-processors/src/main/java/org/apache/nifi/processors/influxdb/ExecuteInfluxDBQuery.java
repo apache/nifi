@@ -30,11 +30,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import com.google.gson.Gson;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -48,11 +50,11 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @EventDriven
 @SupportsBatching
-@Tags({"influxdb", "measurement","get", "read", "query", "timeseries"})
-@CapabilityDescription("Processor to execute InfluxDB query from the content of a FlowFile.  Please check details of the supported queries in InfluxDB documentation (https://www.influxdb.com/).")
+@Tags({"influxdb", "measurement", "get", "read", "query", "timeseries"})
+@CapabilityDescription("Processor to execute InfluxDB query from the content of a FlowFile (preferred) or a scheduled query.  Please check details of the supported queries in InfluxDB documentation (https://www.influxdb.com/).")
 @WritesAttributes({
     @WritesAttribute(attribute = AbstractInfluxDBProcessor.INFLUX_DB_ERROR_MESSAGE, description = "InfluxDB error message"),
     @WritesAttribute(attribute = ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY, description = "InfluxDB executed query"),
@@ -70,6 +72,16 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             .expressionLanguageSupported(true)
             .allowableValues(Arrays.stream(TimeUnit.values()).map( v -> v.name()).collect(Collectors.toSet()))
             .sensitive(false)
+            .build();
+
+    public static final PropertyDescriptor INFLUX_DB_SCHEDULED_QUERY = new PropertyDescriptor.Builder()
+            .name("influxdb-scheduled-query")
+            .displayName("InfluxDB Schedued Query")
+            .description("The scheduled InfluxDB query to execute. "
+                    + "Note: If there are incoming connections, then the query is created from incoming FlowFile's content and scheduled query is ignored.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -96,6 +108,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
         tempDescriptors.add(INFLUX_DB_URL);
         tempDescriptors.add(INFLUX_DB_CONNECTION_TIMEOUT);
         tempDescriptors.add(INFLUX_DB_QUERY_RESULT_TIMEUNIT);
+        tempDescriptors.add(INFLUX_DB_SCHEDULED_QUERY);
         tempDescriptors.add(USERNAME);
         tempDescriptors.add(PASSWORD);
         tempDescriptors.add(CHARSET);
@@ -115,29 +128,62 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
+        // Either input connection or scheduled query is required
+        if ( ! context.getProperty(INFLUX_DB_SCHEDULED_QUERY).isSet()
+           && ! context.hasIncomingConnection() ) {
+            String error = "The InfluxDB Query processor requires input connection or scheduled InfluxDB query";
+            getLogger().error(error);
+            throw new ProcessException(error);
+        }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
-        }
-        if ( flowFile.getSize() == 0) {
-            getLogger().error("Empty query");
-            flowFile = session.putAttribute(flowFile, INFLUX_DB_ERROR_MESSAGE, "Empty query size is " + flowFile.getSize());
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        }
 
-        Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
-        String database = context.getProperty(DB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        TimeUnit queryResultTimeunit =
-            TimeUnit.valueOf(context.getProperty(INFLUX_DB_QUERY_RESULT_TIMEUNIT).evaluateAttributeExpressions(flowFile).getValue());
+        String query = null;
+        String database = null;
+        TimeUnit queryResultTimeunit = null;
+        Charset charset = null;
+        FlowFile outgoingFlowFile = null;
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        session.exportTo(flowFile, baos);
-        String query = new String(baos.toByteArray(), charset);
+        // If there are incoming connections, prepare query params from flow file
+        if ( context.hasIncomingConnection() ) {
+            FlowFile incomingFlowFile = session.get();
+
+            if ( incomingFlowFile == null && context.hasNonLoopConnection() ) {
+                return;
+            }
+
+            if ( incomingFlowFile.getSize() == 0) {
+                getLogger().error("Empty query");
+                incomingFlowFile = session.putAttribute(incomingFlowFile, INFLUX_DB_ERROR_MESSAGE, "Empty query size is " + incomingFlowFile.getSize());
+                session.transfer(incomingFlowFile, REL_FAILURE);
+                return;
+            }
+
+            charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(incomingFlowFile).getValue());
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                session.exportTo(incomingFlowFile, baos);
+                baos.close();
+                query = new String(baos.toByteArray(), charset);
+            } catch(IOException ioe) {
+                getLogger().error("Exception while reading from FlowFile " + ioe.getLocalizedMessage(), ioe);
+                throw new ProcessException(ioe);
+            }
+
+            database = context.getProperty(DB_NAME).evaluateAttributeExpressions(incomingFlowFile).getValue();
+            queryResultTimeunit = TimeUnit.valueOf(context.getProperty(INFLUX_DB_QUERY_RESULT_TIMEUNIT).evaluateAttributeExpressions(incomingFlowFile).getValue());
+
+            outgoingFlowFile = incomingFlowFile;
+        } else {
+            charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
+            query = context.getProperty(INFLUX_DB_SCHEDULED_QUERY).evaluateAttributeExpressions().getValue();
+            database = context.getProperty(DB_NAME).evaluateAttributeExpressions().getValue();
+            queryResultTimeunit = TimeUnit.valueOf(context.getProperty(INFLUX_DB_QUERY_RESULT_TIMEUNIT).evaluateAttributeExpressions().getValue());
+
+            outgoingFlowFile = session.create();
+        }
 
         try {
             long startTimeMillis = System.currentTimeMillis();
@@ -149,34 +195,40 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             }
 
             ByteArrayInputStream bais = new ByteArrayInputStream(json.getBytes(charset));
-            session.importFrom(bais, flowFile);
+            session.importFrom(bais, outgoingFlowFile);
+            bais.close();
+
             final long endTimeMillis = System.currentTimeMillis();
 
             if ( ! result.hasError() ) {
-                flowFile = session.putAttribute(flowFile, INFLUX_DB_EXECUTED_QUERY, String.valueOf(query));
-                session.transfer(flowFile, REL_SUCCESS);
+                outgoingFlowFile = session.putAttribute(outgoingFlowFile, INFLUX_DB_EXECUTED_QUERY, String.valueOf(query));
+                session.transfer(outgoingFlowFile, REL_SUCCESS);
             } else {
-                flowFile = populateErrorAttributes(session, flowFile, query, result.getError());
-                session.transfer(flowFile, REL_FAILURE);
+                outgoingFlowFile = populateErrorAttributes(session, outgoingFlowFile, query, result.getError());
+                session.transfer(outgoingFlowFile, REL_FAILURE);
             }
 
-            session.getProvenanceReporter().send(flowFile, new StringBuilder("influxdb://")
-                .append(context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue()).append("/")
-                .append(database).toString(),
+            session.getProvenanceReporter().send(outgoingFlowFile, makeProvenanceUrl(context, database),
                 (endTimeMillis - startTimeMillis));
         } catch (Exception exception) {
-            flowFile = populateErrorAttributes(session, flowFile, query, exception.getMessage());
+            outgoingFlowFile = populateErrorAttributes(session, outgoingFlowFile, query, exception.getMessage());
             if ( exception.getCause() instanceof SocketTimeoutException ) {
                 getLogger().error("Failed to read from influxDB due SocketTimeoutException to {} and retrying",
-                        new Object[]{exception.getLocalizedMessage()}, exception);
-                session.transfer(flowFile, REL_RETRY);
+                        new Object[]{exception.getCause().getLocalizedMessage()}, exception.getCause());
+                session.transfer(outgoingFlowFile, REL_RETRY);
             } else {
                 getLogger().error("Failed to read from influxDB due to {}",
                         new Object[]{exception.getLocalizedMessage()}, exception);
-                session.transfer(flowFile, REL_FAILURE);
+                session.transfer(outgoingFlowFile, REL_FAILURE);
             }
             context.yield();
         }
+    }
+
+    protected String makeProvenanceUrl(final ProcessContext context, String database) {
+        return new StringBuilder("influxdb://")
+            .append(context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue()).append("/")
+            .append(database).toString();
     }
 
     protected QueryResult executeQuery(final ProcessContext context, String database, String query, TimeUnit timeunit) {

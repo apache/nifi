@@ -18,6 +18,7 @@ package org.apache.nifi.processors.influxdb;
 
 import static org.junit.Assert.assertEquals;
 
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -96,6 +97,38 @@ public class TestExecutetInfluxDBQuery {
         runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_FAILURE, 1);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_FAILURE);
+
+        assertEquals(flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE),"runtime exception");
+    }
+
+    @Test
+    public void testQueryThrowsRuntimeExceptionWithSocketTimeoutException() {
+        mockExecuteInfluxDBQuery = new ExecuteInfluxDBQuery() {
+            @Override
+            protected InfluxDB makeConnection(String username, String password, String influxDbUrl, long connectionTimeout) {
+                return null;
+            }
+
+            @Override
+            protected QueryResult executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit) {
+                throw new RuntimeException("runtime exception", new SocketTimeoutException("timeout"));
+            }
+
+        };
+        runner = TestRunners.newTestRunner(mockExecuteInfluxDBQuery);
+        runner.setProperty(ExecuteInfluxDBQuery.DB_NAME, "test");
+        runner.setProperty(ExecuteInfluxDBQuery.USERNAME, "u1");
+        runner.setProperty(ExecuteInfluxDBQuery.PASSWORD, "p1");
+        runner.setProperty(ExecuteInfluxDBQuery.CHARSET, "UTF-8");
+        runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_URL, "http://dbUrl");
+        runner.assertValid();
+
+        byte [] bytes = "select * from /.*/".getBytes();
+        runner.enqueue(bytes);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_RETRY, 1);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_RETRY);
 
         assertEquals(flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE),"runtime exception");
     }

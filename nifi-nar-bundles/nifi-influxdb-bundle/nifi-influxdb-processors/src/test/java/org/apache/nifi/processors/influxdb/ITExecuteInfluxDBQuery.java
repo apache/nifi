@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.influxdb;
 import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -36,9 +37,29 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
 
     @Before
     public void setUp() throws Exception {
+        initInfluxDB();
         runner = TestRunners.newTestRunner(ExecuteInfluxDBQuery.class);
         initializeRunner();
-        initInfluxDB();
+    }
+
+    @Test
+    public void testValidScheduleQueryWithNoIncoming() {
+        String message = "water,country=US,city=newark rain=1,humidity=0.6 1501002274856668652";
+        influxDB.write(dbName, DEFAULT_RETENTION_POLICY, InfluxDB.ConsistencyLevel.ONE, message);
+
+        String query = "select * from water";
+        runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_SCHEDULED_QUERY, query);
+
+        runner.setIncomingConnection(false);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
+        assertEquals("Value should be equal", 1, flowFiles.size());
+        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
+        flowFiles.get(0).assertContentEquals(
+            "{\"results\":[{\"series\":[{\"name\":\"water\",\"columns\":[\"time\",\"city\",\"country\",\"humidity\",\"rain\"],\"values\":"
+            + "[[1.50100227485666867E18,\"newark\",\"US\",0.6,1.0]]}]}]}");
     }
 
     @Test
@@ -60,7 +81,41 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
     }
 
     @Test
-    public void testEmptyQuery() {
+    public void testShowDatabases() {
+        String query = "show databases";
+        byte [] bytes = query.getBytes();
+        runner.enqueue(bytes);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
+        assertEquals("Value should be equal", 1, flowFiles.size());
+        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
+
+        String result = new String(flowFiles.get(0).toByteArray());
+
+        Assert.assertTrue("content should contain _internal " + result, result.contains("_internal"));
+        Assert.assertTrue("content should contain test " + result, result.contains("test"));
+    }
+
+    @Test
+    public void testCreateDB() {
+        String query = "create database test1";
+        byte [] bytes = query.getBytes();
+        runner.enqueue(bytes);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
+        assertEquals("Value should be equal", 1, flowFiles.size());
+        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
+
+        flowFiles.get(0).assertContentEquals("{\"results\":[{}]}");
+
+    }
+
+    @Test
+    public void testEmptyFlowFileQuery() {
         String query = "";
         byte [] bytes = query.getBytes();
         runner.enqueue(bytes);
@@ -72,6 +127,19 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal", 1, flowFilesFailure.size());
         assertEquals("Value should be equal","Empty query size is 0", flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",null, flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
+    }
+
+    @Test
+    public void testNoFlowFileNoScheduledInfluxDBQuery() {
+        try {
+            runner.setIncomingConnection(false);
+            runner.run(1,true,true);
+            Assert.fail("Should throw assertion error");
+        } catch(AssertionError error) {
+            assertEquals("Message should be same",
+                "Could not invoke methods annotated with @OnScheduled annotation due to: java.lang.reflect.InvocationTargetException",
+                    error.getLocalizedMessage());
+        }
     }
 
     @Test

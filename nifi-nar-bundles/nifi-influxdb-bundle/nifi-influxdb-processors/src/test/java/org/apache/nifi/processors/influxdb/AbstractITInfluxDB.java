@@ -36,14 +36,7 @@ public class AbstractITInfluxDB {
 
     protected void initInfluxDB() throws InterruptedException, Exception {
         influxDB = InfluxDBFactory.connect(dbUrl,user,password);
-        if ( influxDB.databaseExists(dbName) ) {
-            QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
-            checkError(result);
-            result = influxDB.query(new Query("DROP measurement testm", dbName));
-            checkError(result);
-            result = influxDB.query(new Query("DROP database " + dbName, dbName));
-            Thread.sleep(1000);
-        }
+        cleanUpDatabase();
         influxDB.createDatabase(dbName);
         int max = 10;
         while (!influxDB.databaseExists(dbName) && (max-- < 0)) {
@@ -51,6 +44,17 @@ public class AbstractITInfluxDB {
         }
         if ( ! influxDB.databaseExists(dbName) ) {
             throw new Exception("unable to create database " + dbName);
+        }
+    }
+
+    protected void cleanUpDatabase() throws InterruptedException {
+        if ( influxDB.databaseExists(dbName) ) {
+            QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
+            checkError(result);
+            result = influxDB.query(new Query("DROP measurement testm", dbName));
+            checkError(result);
+            result = influxDB.query(new Query("DROP database " + dbName, dbName));
+            Thread.sleep(1000);
         }
     }
 
@@ -64,6 +68,7 @@ public class AbstractITInfluxDB {
     public void tearDown() throws Exception {
         runner = null;
         if ( influxDB != null ) {
+            cleanUpDatabase();
             influxDB.close();
         }
     }
