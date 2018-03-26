@@ -253,7 +253,7 @@ public class TestListenSyslog {
         public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
             properties.remove(PORT);
-            properties.add(new PropertyDescriptor.Builder().name(PORT.getName()).addValidator(Validator.VALID).build());
+            properties.add(new PropertyDescriptor.Builder().name(PORT.getName()).expressionLanguageSupported(true).addValidator(Validator.VALID).build());
             return properties;
         }
 
