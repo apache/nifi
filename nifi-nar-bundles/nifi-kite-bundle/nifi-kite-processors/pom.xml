@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-kite-bundle</artifactId>
-        <version>1.6.0</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-kite-processors</artifactId>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
 
         <!-- Kite -->
@@ -208,7 +208,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <!-- must override implicitly dependency on avro to get more recent codec factory options-->
@@ -284,7 +284,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-utils</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
 
     </dependencies>
