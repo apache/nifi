@@ -28,9 +28,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+
+import javax.security.auth.Subject;
 import javax.servlet.Servlet;
+import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -53,6 +57,11 @@ import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
+import org.eclipse.jetty.security.AbstractLoginService;
+import org.eclipse.jetty.security.ConstraintMapping;
+import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.security.DefaultUserIdentity;
+import org.eclipse.jetty.security.authentication.BasicAuthenticator;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -60,9 +69,14 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.UserIdentity;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.security.Constraint;
+import org.eclipse.jetty.util.security.Credential;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
@@ -134,6 +148,37 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .build();
 
+ // Per RFC 7235, 2617, and 2616.
+    // basic-credentials = base64-user-pass
+    // base64-user-pass = userid ":" password
+    // userid = *<TEXT excluding ":">
+    // password = *TEXT
+    //
+    // OCTET = <any 8-bit sequence of data>
+    // CTL = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
+    // LWS = [CRLF] 1*( SP | HT )
+    // TEXT = <any OCTET except CTLs but including LWS>
+    //
+    // Per RFC 7230, username & password in URL are now disallowed in HTTP and HTTPS URIs.
+    public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+            .name("Basic Authentication Username")
+            .displayName("Basic Authentication Username")
+            .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+            .build();
+
+    public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Basic Authentication Password")
+            .displayName("Basic Authentication Password")
+            .description("The password to be used by the client to authenticate against the Remote URL.")
+            .required(false)
+            .sensitive(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+            .build();
+
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
     public static final String CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER = "sessionFactoryHolder";
@@ -165,6 +210,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(MAX_UNCONFIRMED_TIME);
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
         descriptors.add(RETURN_CODE);
+        descriptors.add(PROP_BASIC_AUTH_USERNAME);
+        descriptors.add(PROP_BASIC_AUTH_PASSWORD);
         this.properties = Collections.unmodifiableList(descriptors);
     }
 
@@ -213,6 +260,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
+        final String authenticationUsername = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue());
+        final String authenticationPassword = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue());
         throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
@@ -250,6 +299,14 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        
+        ConstraintSecurityHandler security = null;
+        if (!authenticationUsername.isEmpty())
+        {
+	        security = basicAuth(authenticationUsername,authenticationPassword,"Forbidden");
+	        server.setHandler(security);
+	        server.addBean(security.getLoginService());
+        }
 
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
@@ -273,7 +330,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         // add the connector to the server
         server.setConnectors(new Connector[] {connector});
 
-        final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, (keystorePath != null));
+        final ServletContextHandler contextHandler = new ServletContextHandler(security != null ? security : server, "/", true, (security != null || keystorePath != null));
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
             // Note: servlets must have a path annotation - this will NPE otherwise
@@ -307,6 +364,66 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         }
 
         this.server = server;
+    }
+    
+    static private class MemoryLoginService extends AbstractLoginService
+    {
+    	private UserIdentity identity_;
+    	private String username_;
+    	private String password_;
+    	
+    	public MemoryLoginService(String username, String password)
+    	{
+    		identity_ = new DefaultUserIdentity(new Subject(),null,new String[] {"admin"});
+    		username_ = username;
+    		password_ = password;
+    	}
+    	
+		@Override
+		protected String[] loadRoleInfo(UserPrincipal arg0) {
+			return null;
+		}
+
+		@Override
+		protected UserPrincipal loadUserInfo(String arg0) {
+			return null;
+		}
+		
+		@Override
+		public UserIdentity login(String username, Object credentials, ServletRequest request)
+		{
+			String scredentials = (String)credentials;
+			if ((username.compareTo(username_) == 0) && (scredentials.compareTo(password_) == 0))
+			{
+				return identity_;	
+			}
+			return UserIdentity.UNAUTHENTICATED_IDENTITY;
+		}
+    }
+    
+    private static final ConstraintSecurityHandler basicAuth(String username, String password, String realm) {
+
+    	ConstraintSecurityHandler security = new ConstraintSecurityHandler();
+
+        MemoryLoginService loginService = new MemoryLoginService(username, password);
+    	loginService.setName(realm);
+
+    	Constraint constraint = new Constraint();
+        constraint.setName(Constraint.__BASIC_AUTH);
+        constraint.setAuthenticate(true);
+        constraint.setRoles(new String[] { username,"admin" });
+        
+        ConstraintMapping mapping = new ConstraintMapping();
+        mapping.setPathSpec("/*");
+        mapping.setConstraint(constraint);
+        
+        security.setConstraintMappings(Collections.singletonList(mapping));
+        security.setAuthenticator(new BasicAuthenticator());
+        security.setRealmName(realm);
+        security.addConstraintMapping(mapping);
+        security.setLoginService(loginService);
+        
+        return security;
     }
 
     @OnScheduled
