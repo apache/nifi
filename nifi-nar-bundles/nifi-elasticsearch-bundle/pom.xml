@@ -23,6 +23,8 @@ language governing permissions and limitations under the License. -->
     <packaging>pom</packaging>
 
     <modules>
+	    <module>nifi-elasticsearch-client-service-api</module>
+        <module>nifi-elasticsearch-client-service-api-nar</module> 
         <module>nifi-elasticsearch-client-service</module>
         <module>nifi-elasticsearch-client-service-nar</module>
         <module>nifi-elasticsearch-nar</module>
