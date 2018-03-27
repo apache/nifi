@@ -74,10 +74,10 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             .sensitive(false)
             .build();
 
-    public static final PropertyDescriptor INFLUX_DB_SCHEDULED_QUERY = new PropertyDescriptor.Builder()
-            .name("influxdb-scheduled-query")
-            .displayName("InfluxDB Schedued Query")
-            .description("The scheduled InfluxDB query to execute. "
+    public static final PropertyDescriptor INFLUX_DB_QUERY = new PropertyDescriptor.Builder()
+            .name("influxdb-query")
+            .displayName("InfluxDB Query")
+            .description("The InfluxDB query to execute. "
                     + "Note: If there are incoming connections, then the query is created from incoming FlowFile's content and scheduled query is ignored.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -108,7 +108,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
         tempDescriptors.add(INFLUX_DB_URL);
         tempDescriptors.add(INFLUX_DB_CONNECTION_TIMEOUT);
         tempDescriptors.add(INFLUX_DB_QUERY_RESULT_TIMEUNIT);
-        tempDescriptors.add(INFLUX_DB_SCHEDULED_QUERY);
+        tempDescriptors.add(INFLUX_DB_QUERY);
         tempDescriptors.add(USERNAME);
         tempDescriptors.add(PASSWORD);
         tempDescriptors.add(CHARSET);
@@ -129,7 +129,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         // Either input connection or scheduled query is required
-        if ( ! context.getProperty(INFLUX_DB_SCHEDULED_QUERY).isSet()
+        if ( ! context.getProperty(INFLUX_DB_QUERY).isSet()
            && ! context.hasIncomingConnection() ) {
             String error = "The InfluxDB Query processor requires input connection or scheduled InfluxDB query";
             getLogger().error(error);
@@ -178,7 +178,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             outgoingFlowFile = incomingFlowFile;
         } else {
             charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
-            query = context.getProperty(INFLUX_DB_SCHEDULED_QUERY).evaluateAttributeExpressions().getValue();
+            query = context.getProperty(INFLUX_DB_QUERY).evaluateAttributeExpressions().getValue();
             database = context.getProperty(DB_NAME).evaluateAttributeExpressions().getValue();
             queryResultTimeunit = TimeUnit.valueOf(context.getProperty(INFLUX_DB_QUERY_RESULT_TIMEUNIT).evaluateAttributeExpressions().getValue());
 
@@ -188,6 +188,13 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
         try {
             long startTimeMillis = System.currentTimeMillis();
             QueryResult result = executeQuery(context, database, query, queryResultTimeunit);
+
+            if ( result == null ) {
+                String message = "Query Result was " + result;
+                getLogger().error(message);
+                throw new NullPointerException(message);
+            }
+
             String json = gson.toJson(result);
 
             if ( getLogger().isDebugEnabled() ) {

@@ -48,7 +48,7 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         influxDB.write(dbName, DEFAULT_RETENTION_POLICY, InfluxDB.ConsistencyLevel.ONE, message);
 
         String query = "select * from water";
-        runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_SCHEDULED_QUERY, query);
+        runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_QUERY, query);
 
         runner.setIncomingConnection(false);
         runner.run(1,true,true);
