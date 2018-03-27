@@ -399,7 +399,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     public void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
@@ -2004,7 +2004,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
         final int numQueries = querySubmissionMap.size();
 
         if (numQueries > MAX_UNDELETED_QUERY_RESULTS) {

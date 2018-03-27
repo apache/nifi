@@ -222,7 +222,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     private void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
