@@ -18,7 +18,6 @@ package org.apache.nifi.atlas.provenance;
 
 import org.apache.nifi.atlas.NiFiFlow;
 import org.apache.nifi.atlas.resolver.ClusterResolver;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -28,9 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class StandardAnalysisContext implements AnalysisContext {
@@ -85,42 +82,13 @@ public class StandardAnalysisContext implements AnalysisContext {
 
     @Override
     public ComputeLineageResult queryLineage(long eventId) {
-        final ComputeLineageSubmission submission = provenanceRepository.submitLineageComputation(eventId, NIFI_USER);
+        final ComputeLineageSubmission submission = provenanceRepository.submitLineageComputation(eventId, null);
         return getLineageResult(eventId, submission);
     }
 
     public ComputeLineageResult findParents(long eventId) {
-        final ComputeLineageSubmission submission = provenanceRepository.submitExpandParents(eventId, NIFI_USER);
+        final ComputeLineageSubmission submission = provenanceRepository.submitExpandParents(eventId, null);
         return getLineageResult(eventId, submission);
-    }
-
-    // NOTE: This user is required to avoid NullPointerException at PersistentProvenanceRepository.submitLineageComputation
-    private static final QueryNiFiUser NIFI_USER = new QueryNiFiUser();
-    private static class QueryNiFiUser implements NiFiUser {
-        @Override
-        public String getIdentity() {
-            return StandardAnalysisContext.class.getSimpleName();
-        }
-
-        @Override
-        public Set<String> getGroups() {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public NiFiUser getChain() {
-            return null;
-        }
-
-        @Override
-        public boolean isAnonymous() {
-            return true;
-        }
-
-        @Override
-        public String getClientAddress() {
-            return null;
-        }
     }
 
     @Override
