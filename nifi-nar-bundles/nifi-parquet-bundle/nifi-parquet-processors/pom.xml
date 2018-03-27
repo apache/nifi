@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-parquet-bundle</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.6.0</version>
     </parent>
     <artifactId>nifi-parquet-processors</artifactId>
     <packaging>jar</packaging>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-record-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -72,13 +72,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.6.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.6.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
