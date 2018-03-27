@@ -18,31 +18,30 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-standard-services</artifactId>
+        <artifactId>nifi-elasticsearch-bundle</artifactId>
         <version>1.6.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-elasticsearch-client-service-api</artifactId>
-    <packaging>jar</packaging>
+    <artifactId>nifi-elasticsearch-client-service-api-nar</artifactId>
+    <version>1.6.0-SNAPSHOT</version>
+    <packaging>nar</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
             <version>1.6.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-utils</artifactId>
+            <artifactId>nifi-elasticsearch-client-service-api</artifactId>
             <version>1.6.0-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service-api</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
+
 </project>
