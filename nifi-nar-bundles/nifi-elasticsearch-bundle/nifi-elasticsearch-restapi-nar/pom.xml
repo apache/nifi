@@ -29,7 +29,7 @@ language governing permissions and limitations under the License. -->
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <artifactId>nifi-elasticsearch-client-service-api-nar</artifactId>
             <version>1.6.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
