@@ -301,6 +301,12 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         
         ConstraintSecurityHandler security = null;
+        if (!authenticationUsername.isEmpty())
+        {
+	        security = basicAuth(authenticationUsername,authenticationPassword,"Forbidden");
+	        server.setHandler(security);
+	        server.addBean(security.getLoginService());
+        }
 
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
