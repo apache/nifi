@@ -54,6 +54,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -136,10 +137,10 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({
-    @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
-    @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
-    @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
-    @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
+        @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
+        @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
+        @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
+        @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -184,7 +185,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
                     ValidationResult result = new ValidationResult.Builder()
-                    .subject(subject).valid(true).input(input).build();
+                            .subject(subject).valid(true).input(input).build();
                     List<String> args = ArgumentUtils.splitArgs(input, context.getProperty(ARG_DELIMITER).getValue().charAt(0));
                     for (String arg : args) {
                         ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.validate(subject, arg, context);
@@ -298,11 +299,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-        .name(propertyDescriptorName)
-        .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
-        .dynamic(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+                .name(propertyDescriptorName)
+                .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+                .dynamic(true)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .build();
     }
 
     @Override
@@ -349,6 +350,16 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         builder.directory(dir);
         builder.redirectInput(Redirect.PIPE);
         builder.redirectOutput(Redirect.PIPE);
+        final File errorOut;
+        try {
+            errorOut = File.createTempFile("out", null);
+            errorOut.deleteOnExit();
+            builder.redirectError(errorOut);
+        } catch (IOException e) {
+            logger.error("Could not create temporary file for error logging", e);
+            throw new ProcessException(e);
+        }
+
         final Process process;
         try {
             process = builder.start();
@@ -358,9 +369,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         }
         try (final OutputStream pos = process.getOutputStream();
              final InputStream pis = process.getInputStream();
-             final InputStream pes = process.getErrorStream();
-             final BufferedInputStream bis = new BufferedInputStream(pis);
-             final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(pes))) {
+             final BufferedInputStream bis = new BufferedInputStream(pis)) {
             int exitCode = -1;
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
             FlowFile outputFlowFile = putToAttribute ? inputFlowFile : session.create(inputFlowFile);
@@ -380,10 +389,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             Map<String, String> attributes = new HashMap<>();
 
             final StringBuilder strBldr = new StringBuilder();
-            try {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    strBldr.append(line).append("\n");
+            try (final InputStream is = new FileInputStream(errorOut)) {
+                int c;
+                while ((c = is.read()) != -1) {
+                    strBldr.append((char) c);
                 }
             } catch (IOException e) {
                 strBldr.append("Unknown...could not read Process's Std Error");
