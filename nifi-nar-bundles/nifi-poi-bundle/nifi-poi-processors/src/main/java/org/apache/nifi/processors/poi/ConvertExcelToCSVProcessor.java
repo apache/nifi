@@ -108,6 +108,7 @@ public class ConvertExcelToCSVProcessor
                     + "Empty rows of data anywhere in the spreadsheet will always be skipped, no matter what this value is set to.")
             .required(true)
             .defaultValue("0")
+	        .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -117,6 +118,7 @@ public class ConvertExcelToCSVProcessor
             .description("Comma delimited list of column numbers to skip. Use the columns number and not the letter designation. "
                     + "Use this to skip over columns anywhere in your worksheet that you don't want extracted as part of the record.")
             .required(false)
+	        .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -202,9 +204,9 @@ public class ConvertExcelToCSVProcessor
         final CSVFormat csvFormat = CSVUtils.createCSVFormat(context);
 
         //Switch to 0 based index
-        final int firstRow = context.getProperty(ROWS_TO_SKIP).asInteger() - 1;
+        final int firstRow = Integer.parseInt(context.getProperty(ROWS_TO_SKIP).evaluateAttributeExpressions().getValue()) - 1;
         final String[] sColumnsToSkip = StringUtils
-                .split(context.getProperty(COLUMNS_TO_SKIP).getValue(), ",");
+                .split(context.getProperty(COLUMNS_TO_SKIP).evaluateAttributeExpressions().getValue(), ",");
 
         final List<Integer> columnsToSkip = new ArrayList<>();
 
@@ -627,3 +629,4 @@ public class ConvertExcelToCSVProcessor
         }
     }
 }
+
