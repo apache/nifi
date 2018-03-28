@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
@@ -96,5 +97,9 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
     public String getControllerServiceName(final String serviceIdentifier) {
         final ControllerServiceConfiguration status = controllerServiceMap.get(serviceIdentifier);
         return status == null ? null : serviceIdentifier;
+    }
+
+    public InputRequirement getInputRequirement() {
+        return null;
     }
 }

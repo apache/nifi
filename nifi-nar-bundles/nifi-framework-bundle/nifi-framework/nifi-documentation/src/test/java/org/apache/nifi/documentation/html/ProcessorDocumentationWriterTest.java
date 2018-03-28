@@ -16,8 +16,14 @@
  */
 package org.apache.nifi.documentation.html;
 
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
+import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.documentation.DocumentationWriter;
@@ -28,12 +34,6 @@ import org.apache.nifi.documentation.example.ProcessorWithLogger;
 import org.apache.nifi.init.ProcessorInitializer;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
-import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
 
 public class ProcessorDocumentationWriterTest {
 
@@ -85,6 +85,13 @@ public class ProcessorDocumentationWriterTest {
 
         assertNotContains(results, "No tags provided.");
         assertNotContains(results, "Additional Details...");
+
+        // check expression language scope
+        assertContains(results, "Supports Expression Language: true (will be evaluated using registry only)");
+        assertContains(results, "Supports Expression Language: true (undefined scope)");
+
+        // verify dynamic properties
+        assertContains(results, "Routes FlowFiles to relationships based on XPath");
 
         // input requirement
         assertContains(results, "This component does not allow an incoming relationship.");

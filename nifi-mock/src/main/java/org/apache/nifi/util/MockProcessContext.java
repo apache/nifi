@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -58,6 +59,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean allowExpressionValidation = true;
     private volatile boolean incomingConnection = true;
     private volatile boolean nonLoopConnection = true;
+    private volatile InputRequirement inputRequirement = null;
     private int maxConcurrentTasks = 1;
 
     private volatile Set<Relationship> connections = new HashSet<>();
@@ -67,7 +69,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private volatile boolean isPrimaryNode;
 
     public MockProcessContext(final ConfigurableComponent component) {
-        this(component, new MockStateManager(component),VariableRegistry.EMPTY_REGISTRY);
+        this(component, new MockStateManager(component), VariableRegistry.EMPTY_REGISTRY);
     }
 
     /**
@@ -79,6 +81,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
      */
     public MockProcessContext(final ConfigurableComponent component, final StateManager stateManager, final VariableRegistry variableRegistry) {
         this.component = Objects.requireNonNull(component);
+        this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
         this.stateManager = stateManager;
         this.variableRegistry = variableRegistry;
     }
@@ -410,4 +413,10 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
         }
         isPrimaryNode = primaryNode;
     }
+
+    @Override
+    public InputRequirement getInputRequirement() {
+        return inputRequirement;
+    }
+
 }

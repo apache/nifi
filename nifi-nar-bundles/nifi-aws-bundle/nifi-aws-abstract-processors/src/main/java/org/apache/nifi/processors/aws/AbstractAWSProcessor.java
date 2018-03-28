@@ -182,12 +182,14 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         config.setConnectionTimeout(commsTimeout);
         config.setSocketTimeout(commsTimeout);
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
-            // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
-            SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-            config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+        if(this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
+            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            if (sslContextService != null) {
+                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
+                // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
+                SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
+                config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+            }
         }
 
         if (context.getProperty(PROXY_HOST).isSet()) {

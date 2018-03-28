@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -40,7 +41,9 @@ public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
     public static final String PAGE = "Page";
 
-    public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder().name("storage-account-key").displayName("Storage Account Key")
+    public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
+            .name("storage-account-key")
+            .displayName("Storage Account Key")
             .description("The storage account key. This is an admin-like password providing access to every container in this account. It is recommended " +
                     "one uses Shared Access Signature (SAS) token instead for fine-grained control with policies. " +
                     "There are certain risks in allowing the account key to be stored as a flowfile " +
@@ -48,18 +51,34 @@ public final class AzureStorageUtils {
                     "be fetched dynamically from a flow file attribute, care must be taken to restrict access to " +
                     "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
                     "In addition, the provenance repositories may be put on encrypted disk partitions.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(false).sensitive(true).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .sensitive(true)
+            .build();
 
-    public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder().name("storage-account-name").displayName("Storage Account Name")
+    public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
+            .name("storage-account-name")
+            .displayName("Storage Account Name")
             .description("The storage account name.  There are certain risks in allowing the account name to be stored as a flowfile " +
                     "attribute. While it does provide for a more flexible flow by allowing the account name to " +
                     "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
                     "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
                     "In addition, the provenance repositories may be put on encrypted disk partitions.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(true).sensitive(true).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .sensitive(true)
+            .build();
 
-    public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder().name("container-name").displayName("Container Name")
-            .description("Name of the Azure storage container").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).required(true).build();
+    public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
+            .name("container-name")
+            .displayName("Container Name")
+            .description("Name of the Azure storage container")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor PROP_SAS_TOKEN = new PropertyDescriptor.Builder()
             .name("storage-sas-token")
@@ -71,7 +90,7 @@ public final class AzureStorageUtils {
                     "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
                     "In addition, the provenance repositories may be put on encrypted disk partitions.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

@@ -33,6 +33,7 @@ import org.apache.kudu.client.SessionConfiguration;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 
 import org.apache.nifi.processor.AbstractProcessor;
@@ -61,7 +62,7 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .description("List all kudu masters's ip with port (e.g. 7051), comma separated")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
@@ -69,7 +70,7 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .description("The name of the Kudu Table to put data into")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -117,7 +118,7 @@ public abstract class AbstractKudu extends AbstractProcessor {
             .defaultValue("100")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(2, 100000, true))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected static final Relationship REL_SUCCESS = new Relationship.Builder()

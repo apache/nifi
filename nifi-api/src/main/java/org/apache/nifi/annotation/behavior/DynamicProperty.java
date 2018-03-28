@@ -24,6 +24,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 /**
  * An annotation that may be placed on a {@link ConfigurableComponent} to
@@ -38,9 +39,13 @@ public @interface DynamicProperty {
 
     String name();
 
+    @Deprecated
     boolean supportsExpressionLanguage() default false;
 
     String value();
 
     String description();
+
+    ExpressionLanguageScope expressionLanguageScope() default ExpressionLanguageScope.NONE;
+
 }

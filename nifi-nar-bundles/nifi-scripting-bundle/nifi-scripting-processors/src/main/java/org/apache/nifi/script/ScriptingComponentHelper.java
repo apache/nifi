@@ -17,6 +17,7 @@
 package org.apache.nifi.script;
 
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.File;
@@ -175,7 +176,7 @@ public class ScriptingComponentHelper {
                     .allowableValues(engines)
                     .defaultValue(engines[0].getValue())
                     .required(true)
-                    .expressionLanguageSupported(false)
+                    .expressionLanguageSupported(ExpressionLanguageScope.NONE)
                     .build();
             descriptors.add(SCRIPT_ENGINE);
         }

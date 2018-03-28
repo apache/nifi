@@ -53,8 +53,6 @@ public class ITFetchAzureBlobStorage {
         final TestRunner runner = TestRunners.newTestRunner(new FetchAzureBlobStorage());
 
         try {
-            runner.setValidateExpressionUsage(true);
-
             runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
             runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
             runner.setProperty(AzureStorageUtils.CONTAINER, containerName);

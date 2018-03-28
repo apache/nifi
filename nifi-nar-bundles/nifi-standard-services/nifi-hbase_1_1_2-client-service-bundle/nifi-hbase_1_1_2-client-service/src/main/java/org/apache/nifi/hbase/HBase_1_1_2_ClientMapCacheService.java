@@ -32,6 +32,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import java.io.ByteArrayOutputStream;
 import org.apache.nifi.reporting.InitializationException;
@@ -63,7 +64,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         .name("HBase Cache Table Name")
         .description("Name of the table on HBase to use for the cache.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -71,7 +72,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         .name("HBase Column Family")
         .description("Name of the column family on HBase to use for the cache.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("f")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -81,7 +82,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         .description("Name of the column qualifier on HBase to use for the cache")
         .defaultValue("q")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 

@@ -44,6 +44,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.api.druid.DruidTranquilityService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -96,7 +97,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("A data source is the Druid equivalent of a database table.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ZOOKEEPER_CONNECTION_STRING = new PropertyDescriptor.Builder()
@@ -105,7 +106,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("A comma-separated list of host:port pairs, each corresponding to a ZooKeeper server. Ex: localhost:2181")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ZOOKEEPER_RETRY_BASE_SLEEP_TIME = new PropertyDescriptor.Builder()
@@ -114,7 +115,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("When a connection to Zookeeper needs to be retried, this property specifies the amount of time (in milliseconds) to wait at first before retrying.")
             .required(true)
             .defaultValue("1000")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -124,7 +125,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("When a connection to Zookeeper needs to be retried, this property specifies how many times to attempt reconnection.")
             .required(true)
             .defaultValue("20")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -134,7 +135,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("When a connection to Zookeeper needs to be retried, this property specifies the amount of time to sleep (in milliseconds) between retries.")
             .required(true)
             .defaultValue("30000")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -145,7 +146,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("druid/overlord")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DRUID_DISCOVERY_PATH = new PropertyDescriptor.Builder()
@@ -155,7 +156,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("/druid/discovery")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor CLUSTER_PARTITIONS = new PropertyDescriptor.Builder()
@@ -164,7 +165,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("The number of partitions in the Druid cluster.")
             .required(true)
             .defaultValue("1")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -174,7 +175,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("The replication factor for the Druid cluster.")
             .required(true)
             .defaultValue("1")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -185,7 +186,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("timestamp")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor AGGREGATOR_JSON = new PropertyDescriptor.Builder()
@@ -226,7 +227,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
                     return new ValidationResult.Builder().subject(subject).input(value).valid(false).explanation(subject + " is not valid Aggregator JSON").build();
                 }
             })
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DIMENSIONS_LIST = new PropertyDescriptor.Builder()
@@ -235,7 +236,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("A comma separated list of field names that will be stored as dimensions on ingest.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SEGMENT_GRANULARITY = new PropertyDescriptor.Builder()
@@ -285,7 +286,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("2000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor MAX_PENDING_BATCHES = new PropertyDescriptor.Builder()
@@ -295,7 +296,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("5")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LINGER_MILLIS = new PropertyDescriptor.Builder()
@@ -307,7 +308,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("1000")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private static final List<PropertyDescriptor> properties;
@@ -381,7 +382,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         final String windowPeriod = context.getProperty(WINDOW_PERIOD).getValue();
         final String indexRetryPeriod = context.getProperty(INDEX_RETRY_PERIOD).getValue();
         final String aggregatorJSON = context.getProperty(AGGREGATOR_JSON).evaluateAttributeExpressions().getValue();
-        final String dimensionsStringList = context.getProperty(DIMENSIONS_LIST).getValue();
+        final String dimensionsStringList = context.getProperty(DIMENSIONS_LIST).evaluateAttributeExpressions().getValue();
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final int maxPendingBatches = context.getProperty(MAX_PENDING_BATCHES).evaluateAttributeExpressions().asInteger();
         final int lingerMillis = context.getProperty(LINGER_MILLIS).evaluateAttributeExpressions().asInteger();

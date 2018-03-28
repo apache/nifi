@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -154,7 +155,7 @@ public class InferAvroSchema
                     " as the underlying data. Setting this property will cause the value of" +
                     " \"" + GET_CSV_HEADER_DEFINITION_FROM_INPUT.getName() + "\" to be ignored instead using this value.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -170,14 +171,14 @@ public class InferAvroSchema
                     " no data is skipped.")
             .required(true)
             .defaultValue("0")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor DELIMITER = new PropertyDescriptor.Builder()
             .name("CSV delimiter")
             .description("Delimiter character for CSV records")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(CHAR_VALIDATOR)
             .defaultValue(",")
             .build();
@@ -188,7 +189,7 @@ public class InferAvroSchema
                     " in the CSV FlowFile content data.")
             .required(true)
             .defaultValue("\\")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -198,7 +199,7 @@ public class InferAvroSchema
                     " character in the CSV FlowFile content data.")
             .required(true)
             .defaultValue("'")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -207,7 +208,7 @@ public class InferAvroSchema
             .description("Value to be placed in the Avro record schema \"name\" field. The value must adhere to the Avro naming "
                     + "rules for fullname. If Expression Language is present then the evaluated value must adhere to the Avro naming rules.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createRegexMatchingValidator(AVRO_RECORD_NAME_PATTERN))
             .build();
 
@@ -216,7 +217,7 @@ public class InferAvroSchema
             .description("Character encoding of CSV data.")
             .required(true)
             .defaultValue("UTF-8")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
@@ -236,7 +237,7 @@ public class InferAvroSchema
                     " the appropriate type. However the default value of 10 is almost always enough.")
             .required(true)
             .defaultValue("10")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
