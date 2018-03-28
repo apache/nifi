@@ -15,14 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.attribute.expression.language.compile;
+package org.apache.nifi.attribute.expression.language;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.expression.AttributeValueDecorator;
 
-public class CompiledExpression {
+public class CompiledExpression implements Expression {
     private final Evaluator<?> rootEvaluator;
     private final Tree tree;
     private final String expression;
@@ -49,5 +51,10 @@ public class CompiledExpression {
 
     public Set<Evaluator<?>> getAllEvaluators() {
         return allEvaluators;
+    }
+
+    @Override
+    public String evaluate(final Map<String, String> variables, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) {
+        return Query.evaluateExpression(getTree(), expression, variables, decorator, stateVariables);
     }
 }
