@@ -25,10 +25,10 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.repository.ProcessContext;
+import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
-import org.apache.nifi.controller.scheduling.ProcessContextFactory;
+import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.util.FormatUtils;
@@ -42,9 +42,9 @@ public class ExpireFlowFiles implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ExpireFlowFiles.class);
 
     private final FlowController flowController;
-    private final ProcessContextFactory contextFactory;
+    private final RepositoryContextFactory contextFactory;
 
-    public ExpireFlowFiles(final FlowController flowController, final ProcessContextFactory contextFactory) {
+    public ExpireFlowFiles(final FlowController flowController, final RepositoryContextFactory contextFactory) {
         this.flowController = flowController;
         this.contextFactory = contextFactory;
     }
@@ -60,8 +60,8 @@ public class ExpireFlowFiles implements Runnable {
     }
 
     private StandardProcessSession createSession(final Connectable connectable) {
-        final ProcessContext context = contextFactory.newProcessContext(connectable, new AtomicLong(0L));
-        final StandardProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context);
+        final RepositoryContext context = contextFactory.newProcessContext(connectable, new AtomicLong(0L));
+        final StandardProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context, () -> false);
         return sessionFactory.createSession();
     }
 

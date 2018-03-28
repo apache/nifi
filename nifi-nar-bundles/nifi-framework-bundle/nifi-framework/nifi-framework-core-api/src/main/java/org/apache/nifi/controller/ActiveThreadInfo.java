@@ -21,11 +21,13 @@ public class ActiveThreadInfo {
     private final String threadName;
     private final String stackTrace;
     private final long activeMillis;
+    private final boolean terminated;
 
-    public ActiveThreadInfo(final String threadName, final String stackTrace, final long activeMillis) {
+    public ActiveThreadInfo(final String threadName, final String stackTrace, final long activeMillis, final boolean terminated) {
         this.threadName = threadName;
         this.stackTrace = stackTrace;
         this.activeMillis = activeMillis;
+        this.terminated = terminated;
     }
 
     public String getThreadName() {
@@ -38,5 +40,9 @@ public class ActiveThreadInfo {
 
     public long getActiveMillis() {
         return activeMillis;
+    }
+
+    public boolean isTerminated() {
+        return terminated;
     }
 }

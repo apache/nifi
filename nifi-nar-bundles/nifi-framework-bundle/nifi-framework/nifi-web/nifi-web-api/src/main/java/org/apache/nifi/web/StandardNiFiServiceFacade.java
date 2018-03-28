@@ -1186,6 +1186,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ProcessorEntity terminateProcessor(final String processorId) {
+        processorDAO.terminate(processorId);
+        return getProcessor(processorId);
+    }
+
+    @Override
+    public void verifyTerminateProcessor(final String processorId) {
+        processorDAO.verifyTerminate(processorId);
+    }
+
+    @Override
     public LabelEntity deleteLabel(final Revision revision, final String labelId) {
         final Label label = labelDAO.getLabel(labelId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(label);

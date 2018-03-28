@@ -14,23 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processor;
 
-import org.apache.nifi.processor.exception.ProcessException;
+package org.apache.nifi.controller.repository;
 
-public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor {
+import org.apache.nifi.processor.ProcessSessionFactory;
 
-    @Override
-    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        final ProcessSession session = sessionFactory.createSession();
-        try {
-            onTrigger(context, session);
-            session.commit();
-        } catch (final Throwable t) {
-            session.rollback(true);
-            throw t;
-        }
-    }
-
-    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
+public interface ActiveProcessSessionFactory extends ProcessSessionFactory {
+    void terminateActiveSessions();
 }
