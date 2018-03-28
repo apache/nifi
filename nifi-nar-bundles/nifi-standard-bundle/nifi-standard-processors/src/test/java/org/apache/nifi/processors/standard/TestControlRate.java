@@ -16,18 +16,50 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
-import org.junit.Test;
-
 import static org.apache.nifi.processors.standard.ControlRate.MAX_FLOW_FILES_PER_BATCH;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
+
 public class TestControlRate {
+
+    @Test
+    public void testLimitExceededThenOtherLimitNotExceeded() {
+        // If we have flowfiles queued that have different values for the "Rate Controlled Attribute"
+        // and we encounter a FlowFile whose rate should be throttled, we should continue pulling other flowfiles
+        // whose rate does not need to be throttled.
+        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "3");
+        runner.setProperty(ControlRate.TIME_PERIOD, "1 min");
+        runner.setProperty(ControlRate.GROUPING_ATTRIBUTE_NAME, "group");
+
+        final Map<String, String> group1 = Collections.singletonMap("group", "1");
+        final Map<String, String> group2 = Collections.singletonMap("group", "2");
+
+        for (int i = 0; i < 5; i++) {
+            runner.enqueue("test data", group1);
+        }
+
+        runner.enqueue("test data", group2);
+
+        // Run several times, just to allow the processor to terminate the first poll if it wishes to
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 4);
+
+        final List<MockFlowFile> output = runner.getFlowFilesForRelationship(ControlRate.REL_SUCCESS);
+        assertEquals(3L, output.stream().filter(ff -> ff.getAttribute("group").equals("1")).count());
+        assertEquals(1L, output.stream().filter(ff -> ff.getAttribute("group").equals("2")).count());
+    }
 
     @Test
     public void testFileCountRate() throws InterruptedException {
