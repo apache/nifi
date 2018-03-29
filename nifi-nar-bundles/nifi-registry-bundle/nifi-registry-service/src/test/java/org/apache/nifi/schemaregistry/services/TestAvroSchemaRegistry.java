@@ -111,4 +111,23 @@ public class TestAvroSchemaRegistry {
         results = delegate.customValidate(validationContext);
         results.forEach(result -> assertTrue(result.isValid()));
     }
+
+    @Test
+    public void validateInitialPropertiesOnEnable() throws Exception {
+        String schemaName = "foo";
+        String schemaText = "{\"name\": \"" + schemaName + "\", \"type\": \"record\", \"fields\": []}";
+
+        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(schemaName).dynamic(true).build();
+        properties.put(descriptor, schemaText);
+
+        ConfigurationContext configContext = mock(ConfigurationContext.class);
+        when(configContext.getProperties()).thenReturn(properties);
+
+        AvroSchemaRegistry registry = new AvroSchemaRegistry();
+        registry.onEnabled(configContext);
+        RecordSchema recordSchema = registry.retrieveSchema(SchemaIdentifier.builder().name(schemaName).build());
+        assertEquals(schemaText, recordSchema.getSchemaText().get());
+        assertEquals(0, recordSchema.getFieldCount());
+    }
 }
