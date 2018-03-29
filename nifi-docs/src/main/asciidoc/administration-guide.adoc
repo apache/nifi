@@ -3078,7 +3078,7 @@ In order to support such deployments, remote NiFi clusters need to expose its Si
 |nifi.remote.route.{protocol}.{name}.when|Boolean value, 'true' or 'false'. Controls whether the routing definition for this name should be used.
 |nifi.remote.route.{protocol}.{name}.hostname|Specify hostname that will be introduced to Site-to-Site clients for further communications.
 |nifi.remote.route.{protocol}.{name}.port|Specify port number that will be introduced to Site-to-Site clients for further communications.
-|nifi.remote.route.{protocol}.{name}.secure|Boolean value, 'true' or 'false'. Specify whether the remote peer should be accessed via secure protocol.
+|nifi.remote.route.{protocol}.{name}.secure|Boolean value, 'true' or 'false'. Specify whether the remote peer should be accessed via secure protocol. Defaults to 'false'.
 |====
 
 All of above routing properties can use NiFi Expression Language to compute target peer description from request context. Available variables are:
@@ -3134,14 +3134,14 @@ In this example, Nginx is used as a reverse proxy.
 
 image:s2s-rproxy-servername.svg["Server name to Node mapping"]
 
-1. Client1 initiates Site-to-Site protocol, the request is routed to one of upstream NiFi nodes. The NiFi node computes Site-to-Site port for RAW. By routing 'example1', port 10443 is returned.
-2. Client1 asks peers to 'nifi.example.com:10443', the request is routed to 'nifi0:8081'. The NiFi node computes available peers, by 'example1' routing rule, 'nifi0:8081' is converted to 'nifi0.example.com:10443', so are nifi1 and nifi2. As a result, 'nifi0.eample.com:10443', 'nifi1.example.com:10443' and 'nifi2.example.com:10443' are returned.
+1. Client1 initiates Site-to-Site protocol, the request is routed to one of upstream NiFi nodes. The NiFi node computes Site-to-Site port for RAW. By the routing rule 'example1' in nifi.properties shown below, port 10443 is returned.
+2. Client1 asks peers to 'nifi.example.com:10443', the request is routed to 'nifi0:8081'. The NiFi node computes available peers, by 'example1' routing rule, 'nifi0:8081' is converted to 'nifi0.example.com:10443', so are nifi1 and nifi2. As a result, 'nifi0.example.com:10443', 'nifi1.example.com:10443' and 'nifi2.example.com:10443' are returned.
 3. Client1 decides to use 'nifi2.example.com:10443' for further communication.
 4. On the other hand, Client2 has two URIs for Site-to-Site bootstrap URIs, and initiates the protocol using one of them. The 'example1' routing does not match this for this request, and port 8081 is returned.
 5. Client2 asks peers from 'nifi1:8081'. The 'example1' does not match, so the original 'nifi0:8081', 'nifi1:8081' and 'nifi2:8081' are returned as they are.
 6. Client2 decides to use 'nifi2:8081' for further communication.
 
-nifi.properties (all node has the same routing configuration)
+Routing rule 'example1' is defined in nifi.properties (all node has the same routing configuration):
 ....
 # S2S Routing for RAW, using server name to node
 nifi.remote.route.raw.example1.when=\
@@ -3152,6 +3152,7 @@ nifi.remote.route.raw.example1.hostname=${s2s.target.hostname}.example.com
 nifi.remote.route.raw.example1.port=10443
 nifi.remote.route.raw.example1.secure=true
 ....
+
 
 nginx.conf
 ....

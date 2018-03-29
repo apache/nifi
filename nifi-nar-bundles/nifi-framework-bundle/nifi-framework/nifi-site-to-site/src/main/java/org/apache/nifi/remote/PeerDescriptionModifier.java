@@ -47,15 +47,16 @@ public class PeerDescriptionModifier {
         private PreparedQuery port;
         private PreparedQuery secure;
 
-        private boolean isValid() {
+        private Route validate() {
             if (hostname == null) {
-                logger.warn("Ignore invalid route definition {} because 'hostname' is not specified.", name);return false;
+                throw new IllegalArgumentException(
+                        format("Found an invalid Site-to-Site route definition [%s] 'hostname' is not specified.", name));
             }
             if (port == null) {
-                logger.warn("Ignore invalid route definition {} because 'port' is not specified.", name);
-                return false;
+                throw new IllegalArgumentException(
+                        format("Found an invalid Site-to-Site route definition [%s] 'port' is not specified.", name));
             }
-            return true;
+            return this;
         }
 
         private PeerDescription getTarget(final Map<String, String> variables) {
@@ -69,10 +70,7 @@ public class PeerDescriptionModifier {
                 throw new IllegalStateException("Target port was not resolved for the route definition " + name);
             }
 
-            String targetIsSecure = secure == null ? null : secure.evaluateExpressions(variables, null);
-            if (isBlank(targetIsSecure)) {
-                targetIsSecure = "false";
-            }
+            final String targetIsSecure = secure == null ? null : secure.evaluateExpressions(variables, null);
             return new PeerDescription(targetHostName, Integer.valueOf(targetPortStr), Boolean.valueOf(targetIsSecure));
         }
     }
@@ -84,34 +82,41 @@ public class PeerDescriptionModifier {
 
     public PeerDescriptionModifier(final NiFiProperties properties) {
         final Map<String, List<String>> routeDefinitions = properties.getPropertyKeys().stream()
-                .filter(k -> k.startsWith(PROPERTY_PREFIX))
-                .collect(Collectors.groupingBy(k -> k.substring(PROPERTY_PREFIX.length(), k.lastIndexOf('.'))));
+                .filter(propertyKey -> propertyKey.startsWith(PROPERTY_PREFIX))
+                .collect(Collectors.groupingBy(propertyKey -> propertyKey.substring(PROPERTY_PREFIX.length(), propertyKey.lastIndexOf('.'))));
 
-        routes = routeDefinitions.entrySet().stream().map(r -> {
+        routes = routeDefinitions.entrySet().stream().map(routeDefinition -> {
             final Route route = new Route();
-            final String[] key = r.getKey().split("\\.");
-            route.protocol = SiteToSiteTransportProtocol.valueOf(key[0].toUpperCase());
-            route.name = key[1];
-            r.getValue().forEach(k -> {
-                final String name = k.substring(k.lastIndexOf('.') + 1);
-                final String value = properties.getProperty(k);
-                switch (name) {
+            // E.g. raw.example1, http.example2
+            final String[] protocolAndRoutingName = routeDefinition.getKey().split("\\.");
+            route.protocol = SiteToSiteTransportProtocol.valueOf(protocolAndRoutingName[0].toUpperCase());
+            route.name = protocolAndRoutingName[1];
+            routeDefinition.getValue().forEach(propertyKey -> {
+                final String routingConfigName = propertyKey.substring(propertyKey.lastIndexOf('.') + 1);
+                final String routingConfigValue = properties.getProperty(propertyKey);
+                switch (routingConfigName) {
                     case "when":
-                        route.predicate = Query.prepare(value);
+                        route.predicate = Query.prepare(routingConfigValue);
                         break;
                     case "hostname":
-                        route.hostname = Query.prepare(value);
+                        route.hostname = Query.prepare(routingConfigValue);
                         break;
                     case "port":
-                        route.port = Query.prepare(value);
+                        route.port = Query.prepare(routingConfigValue);
                         break;
                     case "secure":
-                        route.secure = Query.prepare(value);
+                        route.secure = Query.prepare(routingConfigValue);
                         break;
+                    default:
+                        throw new IllegalArgumentException(
+                                format("Found an invalid Site-to-Site route definition [%s]." +
+                                                " '%s' is not a valid routing configuration name." +
+                                                " Should be one of 'when', 'hostname', 'port' or 'secure'.",
+                                        route.name, routingConfigName));
                 }
             });
             return route;
-        }).filter(Route::isValid).collect(Collectors.groupingBy(r -> r.protocol));
+        }).map(Route::validate).collect(Collectors.groupingBy(r -> r.protocol));
 
     }
 
