@@ -198,15 +198,15 @@ public class ConvertExcelToCSVProcessor
             return;
         }
 
-        final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions().getValue();
+        final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions(flowFile).getValue();
         final boolean formatValues = context.getProperty(FORMAT_VALUES).asBoolean();
 
         final CSVFormat csvFormat = CSVUtils.createCSVFormat(context);
 
         //Switch to 0 based index
-        final int firstRow = Integer.parseInt(context.getProperty(ROWS_TO_SKIP).evaluateAttributeExpressions().getValue()) - 1;
+        final int firstRow = context.getProperty(ROWS_TO_SKIP).evaluateAttributeExpressions(flowFile).asInteger() - 1;
         final String[] sColumnsToSkip = StringUtils
-                .split(context.getProperty(COLUMNS_TO_SKIP).evaluateAttributeExpressions().getValue(), ",");
+                .split(context.getProperty(COLUMNS_TO_SKIP).evaluateAttributeExpressions(flowFile).getValue(), ",");
 
         final List<Integer> columnsToSkip = new ArrayList<>();
 
