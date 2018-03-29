@@ -19,11 +19,13 @@ package org.apache.nifi.schemaregistry.services;
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -71,6 +73,13 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(VALIDATE_FIELD_NAMES);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+    }
+
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        context.getProperties().forEach((descriptor, value) -> {
+            onPropertyModified(descriptor, null, value);
+        });
     }
 
     @Override
