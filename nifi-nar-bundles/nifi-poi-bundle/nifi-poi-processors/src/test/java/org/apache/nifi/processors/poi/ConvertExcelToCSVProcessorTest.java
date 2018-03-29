@@ -161,9 +161,11 @@ public class ConvertExcelToCSVProcessorTest {
 
     @Test
     public void testSkipRowsWithEL() throws Exception {
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("rowsToSkip", "2");
         testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath());
 
-        testRunner.setProperty(ConvertExcelToCSVProcessor.ROWS_TO_SKIP, "${literal('2')}");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.ROWS_TO_SKIP, "${rowsToSkip}");
         testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
 
         testRunner.run();
@@ -215,9 +217,11 @@ public class ConvertExcelToCSVProcessorTest {
 
     @Test
     public void testSkipColumnsWithEL() throws Exception {
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("columnsToSkip", "2");
         testRunner.enqueue(new File("src/test/resources/dataformatting.xlsx").toPath());
 
-        testRunner.setProperty(ConvertExcelToCSVProcessor.COLUMNS_TO_SKIP, "${literal('2')}");
+        testRunner.setProperty(ConvertExcelToCSVProcessor.COLUMNS_TO_SKIP, "${columnsToSkip}");
         testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_VALUES, "true");
 
         testRunner.run();
