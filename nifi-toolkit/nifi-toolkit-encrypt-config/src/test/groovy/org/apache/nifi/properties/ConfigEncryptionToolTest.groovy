@@ -68,7 +68,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
     private static final String PASSWORD = "thisIsABadPassword"
 
-    private static final String STATIC_SALT = "ABCDEFGHIJKLMNOPQRSTUV"
+    private static final String STATIC_SALT = "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUV"
+    private static final String SCRYPT_SALT_PATTERN = /\$\w{2}\$\w{5,}\$[\w\/\=\+]+/
     private static final String HASHED_PASSWORD = ""
     private static final String HASHED_KEY_HEX = ""
 
@@ -2092,17 +2093,38 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
                 // Check that the secure hash was persisted to the secure_hash.key
                 final List<String> updatedSecureHashLines = secureHashedFile.readLines()
-                String updatedSecureHashLine = updatedSecureHashLines.first()
-                logger.info("Updated secure hash line: ${updatedSecureHashLine}")
+                String updatedSecureHashKeyLine = updatedSecureHashLines.find { it.startsWith("secureHashKey=")}
+                logger.info("Updated secure hash lines: \n${updatedSecureHashLines.join("\n")}")
 
-                final String EXPECTED_NEW_SECURE_HASH_LINE = newPassword ? "secureHashPassword=${ConfigEncryptionTool.secureHashPassword(newPassword, STATIC_SALT)}" : "secureHashKey=${ConfigEncryptionTool.secureHashKey(newKeyHex, STATIC_SALT)}"
-                assert updatedSecureHashLine == EXPECTED_NEW_SECURE_HASH_LINE
-                assert updatedSecureHashLines.size() == 1
+                int expectedSecureHashLineCount = 1
+
+                // Extract the salt(s) so the credentials can be hashed with the same salt
+                final String keySalt = updatedSecureHashKeyLine.find(SCRYPT_SALT_PATTERN)
+logger.info("Extracted key salt:      ${keySalt}")
+
+                final String EXPECTED_NEW_SECURE_HASH_KEY_LINE = "secureHashKey=${ConfigEncryptionTool.secureHashKey(newKeyHex, keySalt)}"
+
+                // Only evaluate the secure hash password line if the raw password was provided (otherwise, can't store hash)
+                if (newPassword) {
+                    String updatedSecureHashPasswordLine = updatedSecureHashLines.find { it.startsWith("secureHashPassword=")}
+                    final String passwordSalt = updatedSecureHashPasswordLine.find(SCRYPT_SALT_PATTERN)
+                    logger.info("Extracted password salt: ${passwordSalt}")
+                    final String EXPECTED_NEW_SECURE_HASH_PASSWORD_LINE = "secureHashPassword=${ConfigEncryptionTool.secureHashPassword(newPassword, passwordSalt)}"
+                    expectedSecureHashLineCount = 2
+
+                    logger.info("Asserting \n${updatedSecureHashPasswordLine} == \n${EXPECTED_NEW_SECURE_HASH_PASSWORD_LINE}")
+                    assert updatedSecureHashPasswordLine == EXPECTED_NEW_SECURE_HASH_PASSWORD_LINE
+                }
+
+                logger.info("Asserting \n${updatedSecureHashKeyLine} == \n${EXPECTED_NEW_SECURE_HASH_KEY_LINE}")
+                assert updatedSecureHashKeyLine == EXPECTED_NEW_SECURE_HASH_KEY_LINE
+                assert updatedSecureHashLines.size() == expectedSecureHashLineCount
 
                 // Clean up
                 outputPropertiesFile.deleteOnExit()
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
+                secureHashedFile.deleteOnExit()
             }
         })
 

@@ -185,6 +185,7 @@ class ConfigEncryptionTool {
 
     private static final String DEFAULT_PROVIDER = BouncyCastleProvider.PROVIDER_NAME
     private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+    static private final int AMBARI_COMPATIBLE_SCRYPT_HASH_LENGTH = 256
 
     private static String buildHeader(String description = DEFAULT_DESCRIPTION) {
         "${SEP}${description}${SEP * 2}"
@@ -1436,7 +1437,7 @@ class ConfigEncryptionTool {
         List<Integer> params = Scrypt.parseParameters(saltComponents[1])
 
         // Generate the hashed format
-        Scrypt.scrypt(password, Base64.decoder.decode(saltComponents[2]), params[0], params[1], params[2], 256)
+        Scrypt.scrypt(password, Base64.decoder.decode(saltComponents[2]), params[0], params[1], params[2], AMBARI_COMPATIBLE_SCRYPT_HASH_LENGTH)
     }
 
     static String secureHashKey(String keyHex, String salt = generateScryptSalt()) {
