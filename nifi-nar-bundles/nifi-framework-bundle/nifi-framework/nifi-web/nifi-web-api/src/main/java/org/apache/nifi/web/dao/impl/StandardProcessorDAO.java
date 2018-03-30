@@ -395,7 +395,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     configDTO.getSchedulingPeriod(),
                     configDTO.getSchedulingStrategy(),
                     configDTO.getExecutionNode(),
-                    configDTO.isExecutionNodeRestricted(),
                     configDTO.getYieldDuration())) {
 
                 modificationRequest = true;

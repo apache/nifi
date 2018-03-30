@@ -215,7 +215,7 @@
                     }
 
                     var executionNode = details.config['executionNode'];
-                    var executionNodeRestricted = details.config['executionNodeRestricted']
+                    var executionNodeRestricted = details.executionNodeRestricted
 
                     // only show the execution-node when applicable
                     if (nfClusterSummary.isClustered() && executionNodeRestricted !== true) {

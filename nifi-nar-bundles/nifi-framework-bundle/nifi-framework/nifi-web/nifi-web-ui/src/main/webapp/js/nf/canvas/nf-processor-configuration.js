@@ -328,7 +328,6 @@
         }
 
         processorConfigDto['executionNode'] = $('#execution-node-combo').combo('getSelectedOption').value;
-        processorConfigDto['executionNodeRestricted'] = processor.config['executionNodeRestricted']
         processorConfigDto['penaltyDuration'] = $('#penalty-duration').val();
         processorConfigDto['yieldDuration'] = $('#yield-duration').val();
         processorConfigDto['bulletinLevel'] = $('#bulletin-level-combo').combo('getSelectedOption').value;
@@ -733,7 +732,7 @@
                     });
 
                     var executionNode = processor.config['executionNode'];
-                    var executionNodeRestricted = processor.config['executionNodeRestricted']
+                    var executionNodeRestricted = processor.executionNodeRestricted
 
                     // initialize the execution node combo
                     $('#execution-node-combo').combo({

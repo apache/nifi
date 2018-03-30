@@ -2780,6 +2780,7 @@ public final class DtoFactory {
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(node.isRestricted());
         dto.setDeprecated(node.isDeprecated());
+        dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
         dto.setExtensionMissing(node.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
         dto.setVersionedComponentId(node.getVersionedComponentId().orElse(null));
@@ -3557,7 +3558,6 @@ public final class DtoFactory {
         dto.setBulletinLevel(procNode.getBulletinLevel().name());
         dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         dto.setExecutionNode(procNode.getExecutionNode().name());
-        dto.setExecutionNodeRestricted(procNode.isExecutionNodeRestricted());
         dto.setAnnotationData(procNode.getAnnotationData());
 
         // set up the default values for concurrent tasks and scheduling period
@@ -3758,6 +3758,7 @@ public final class DtoFactory {
         copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setSupportsBatching(original.getSupportsBatching());
         copy.setPersistsState(original.getPersistsState());
+        copy.setExecutionNodeRestricted(original.isExecutionNodeRestricted());
         copy.setExtensionMissing(original.getExtensionMissing());
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setValidationErrors(copy(original.getValidationErrors()));
@@ -3773,7 +3774,6 @@ public final class DtoFactory {
         copy.setComments(original.getComments());
         copy.setSchedulingStrategy(original.getSchedulingStrategy());
         copy.setExecutionNode(original.getExecutionNode());
-        copy.setExecutionNodeRestricted(original.isExecutionNodeRestricted());
         copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
         copy.setCustomUiUrl(original.getCustomUiUrl());
         copy.setDescriptors(copy(original.getDescriptors()));

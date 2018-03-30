@@ -44,7 +44,6 @@ public class ProcessorConfigDTO {
     private String comments;
     private String customUiUrl;
     private Boolean lossTolerant;
-    private Boolean executionNodeRestricted;
 
     // annotation data
     private String annotationData;
@@ -102,20 +101,6 @@ public class ProcessorConfigDTO {
 
     public void setExecutionNode(String executionNode) {
         this.executionNode = executionNode;
-    }
-
-    /**
-     * @return whether or not this processor is restricted to run only in primary node
-     */
-    @ApiModelProperty(
-            value = "Indicates if the execution node of a processor is restricted to run only on the primary node"
-    )
-    public Boolean isExecutionNodeRestricted() {
-        return executionNodeRestricted;
-    }
-
-    public void setExecutionNodeRestricted(Boolean executionNodeRestricted) {
-        this.executionNodeRestricted = executionNodeRestricted;
     }
 
     /**

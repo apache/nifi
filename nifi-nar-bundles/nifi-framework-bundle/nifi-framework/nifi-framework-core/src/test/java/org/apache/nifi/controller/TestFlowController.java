@@ -765,6 +765,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -786,7 +787,6 @@ public class TestFlowController {
         configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
         configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
         configDTO.setLossTolerant(processorNode.isLossTolerant());
-        configDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         configDTO.setComments(processorNode.getComments());
         configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
@@ -819,6 +819,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -840,7 +841,6 @@ public class TestFlowController {
         configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
         configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
         configDTO.setLossTolerant(processorNode.isLossTolerant());
-        configDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         configDTO.setComments(processorNode.getComments());
         configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
@@ -875,6 +875,7 @@ public class TestFlowController {
         processorDTO.setInputRequirement(processorNode.getInputRequirement().name());
         processorDTO.setPersistsState(processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         processorDTO.setRestricted(processorNode.isRestricted());
+        processorDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         processorDTO.setExtensionMissing(processorNode.isExtensionMissing());
 
         processorDTO.setType(processorNode.getCanonicalClassName());
@@ -896,7 +897,6 @@ public class TestFlowController {
         configDTO.setRunDurationMillis(processorNode.getRunDuration(TimeUnit.MILLISECONDS));
         configDTO.setConcurrentlySchedulableTaskCount(processorNode.getMaxConcurrentTasks());
         configDTO.setLossTolerant(processorNode.isLossTolerant());
-        configDTO.setExecutionNodeRestricted(processorNode.isExecutionNodeRestricted());
         configDTO.setComments(processorNode.getComments());
         configDTO.setBulletinLevel(processorNode.getBulletinLevel().name());
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());

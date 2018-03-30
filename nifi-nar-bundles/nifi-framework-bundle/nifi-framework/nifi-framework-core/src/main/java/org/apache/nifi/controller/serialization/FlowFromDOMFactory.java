@@ -431,7 +431,6 @@ public class FlowFromDOMFactory {
         configDto.setYieldDuration(getString(element, "yieldPeriod"));
         configDto.setBulletinLevel(getString(element, "bulletinLevel"));
         configDto.setLossTolerant(getBoolean(element, "lossTolerant"));
-        configDto.setExecutionNodeRestricted(getBoolean(element, "executionNodeRestricted"));
         final ScheduledState scheduledState = getScheduledState(element);
         dto.setState(scheduledState.toString());
 

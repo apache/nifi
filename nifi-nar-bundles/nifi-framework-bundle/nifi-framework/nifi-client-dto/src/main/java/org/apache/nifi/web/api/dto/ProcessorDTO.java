@@ -43,6 +43,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean restricted;
     private Boolean deprecated;
     private Boolean isExtensionMissing;
+    private Boolean executionNodeRestricted;
     private Boolean multipleVersionsAvailable;
     private String inputRequirement;
 
@@ -320,4 +321,17 @@ public class ProcessorDTO extends ComponentDTO {
         this.description = description;
     }
 
+    /**
+     * @return whether or not this processor is restricted to run only in primary node
+     */
+    @ApiModelProperty(
+            value = "Indicates if the execution node of a processor is restricted to run only on the primary node"
+    )
+    public Boolean isExecutionNodeRestricted() {
+        return executionNodeRestricted;
+    }
+
+    public void setExecutionNodeRestricted(Boolean executionNodeRestricted) {
+        this.executionNodeRestricted = executionNodeRestricted;
+    }
 }
