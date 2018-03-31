@@ -257,7 +257,7 @@
                         "type": "record",
                         "fields" : [
                           {"name": "attr", "type": "string"},
-                          {"name": "embedded_field", "type": "string"}
+                          {"name": "embedded_field", "type": "string"},
                           {"name": "another_embedded_field", "type": "string"}
                         ]
                     }
@@ -275,7 +275,7 @@
 
     <p>
         For further explanation of the logic of this reader, an example of an array of records shall be demonstrated.
-        The following record contains the field "array_element", which repeatedly occurs. The field contains two
+        The following record contains the field "array_field", which repeatedly occurs. The field contains two
         embedded fields.
     </p>
 
@@ -349,29 +349,29 @@
 
     <code>
             <pre>
-				{
+                {
                   "namespace": "nifi",
                   "name": "test",
                   "type": "record",
                   "fields": [
                     { "name": "field_enclosing_array",
                       "type": {
-					    "name": "EmbeddedRecord",
+                        "name": "EmbeddedRecord",
                         "type": "record",
-						"fields" : [
-						  {
+                        "fields" : [
+                          {
                             "name": "element",
-					        "type": {
-						      "type": "array",
-							  "items": "string"
-						    }
-						  }
-						]
-					  }
-					},
-					{ "name": "field_without_array", "type": "string" }
+                            "type": {
+                              "type": "array",
+                              "items": "string"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    { "name": "field_without_array", "type": "string" }
                   ]
-				}
+                }
             </pre>
     </code>
     </body>

@@ -50,6 +50,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
                     "In the case of a mismatch, an exception is thrown. The treatment of such FlowFiles depends on the implementation " +
                     "of respective Processors.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(false)
             .build();
 
@@ -60,6 +61,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
                     "In the case of a mismatch, the respective record will be skipped. If this property is not set, each level 2 starting tag will be treated " +
                     "as the beginning of a record.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(false)
             .build();
 
@@ -68,6 +70,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .displayName("Attribute Prefix")
             .description("If this property is set, the name of attributes will be appended by a prefix when they are added to a record.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(false)
             .build();
 
@@ -79,6 +82,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
                     "If tags with content shall be parsed together with attributes (e. g. <field attribute=\"123\">content</field>), " +
                     "they have to be defined as records. For additional information, see the section of processor usage.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(false)
             .build();
 
@@ -111,10 +115,18 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final ConfigurationContext context = getConfigurationContext();
 
         final RecordSchema schema = getSchema(variables, in, null);
-        final String rootName = context.getProperty(VALIDATE_ROOT_TAG).isSet() ? context.getProperty(VALIDATE_ROOT_TAG).getValue().trim() : null;
-        final String recordName = context.getProperty(VALIDATE_RECORD_TAG).isSet() ? context.getProperty(VALIDATE_RECORD_TAG).getValue().trim() : null;
-        final String attributePrefix = context.getProperty(ATTRIBUTE_PREFIX).isSet() ? context.getProperty(ATTRIBUTE_PREFIX).getValue().trim() : null;
-        final String contentFieldName = context.getProperty(CONTENT_FIELD_NAME).isSet() ? context.getProperty(CONTENT_FIELD_NAME).getValue().trim() : null;
+
+        final String rootName = context.getProperty(VALIDATE_ROOT_TAG).isSet() ?
+                context.getProperty(VALIDATE_ROOT_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
+
+        final String recordName = context.getProperty(VALIDATE_RECORD_TAG).isSet() ?
+                context.getProperty(VALIDATE_RECORD_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
+
+        final String attributePrefix = context.getProperty(ATTRIBUTE_PREFIX).isSet() ?
+                context.getProperty(ATTRIBUTE_PREFIX).evaluateAttributeExpressions(variables).getValue().trim() : null;
+
+        final String contentFieldName = context.getProperty(CONTENT_FIELD_NAME).isSet() ?
+                context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
         return new XMLRecordReader(in, schema, rootName, recordName, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
     }

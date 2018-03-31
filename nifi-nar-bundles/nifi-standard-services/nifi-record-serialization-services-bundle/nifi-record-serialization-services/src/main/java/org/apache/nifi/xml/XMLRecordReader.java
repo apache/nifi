@@ -84,6 +84,10 @@ public class XMLRecordReader implements RecordReader {
 
         try {
             final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+
+            // Avoid namespace replacements
+            xmlInputFactory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false);
+
             xmlEventReader = xmlInputFactory.createXMLEventReader(in);
             final StartElement rootTag = getNextStartTag();
 
@@ -489,5 +493,10 @@ public class XMLRecordReader implements RecordReader {
 
     @Override
     public void close() throws IOException {
+        try {
+            xmlEventReader.close();
+        } catch (XMLStreamException e) {
+            logger.error("Unable to close XMLEventReader");
+        }
     }
 }
