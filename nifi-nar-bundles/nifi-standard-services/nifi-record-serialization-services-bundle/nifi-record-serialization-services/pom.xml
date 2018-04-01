@@ -122,12 +122,16 @@
                         <exclude>src/test/resources/xml/people4.xml</exclude>
                         <exclude>src/test/resources/xml/people_array.xml</exclude>
                         <exclude>src/test/resources/xml/people_array_simple.xml</exclude>
+                        <exclude>src/test/resources/xml/people_cdata.xml</exclude>
                         <exclude>src/test/resources/xml/people_complex1.xml</exclude>
                         <exclude>src/test/resources/xml/people_complex2.xml</exclude>
                         <exclude>src/test/resources/xml/people_empty.xml</exclude>
                         <exclude>src/test/resources/xml/people_invalid.xml</exclude>
+                        <exclude>src/test/resources/xml/people_namespace.xml</exclude>
                         <exclude>src/test/resources/xml/people_nested.xml</exclude>
                         <exclude>src/test/resources/xml/people_no_attributes.xml</exclude>
+                        <exclude>src/test/resources/xml/people_with_header_and_comments.xml</exclude>
+                        <exclude>src/test/resources/xml/testschema</exclude>
                     </excludes>
                 </configuration>
             </plugin>

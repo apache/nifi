@@ -116,17 +116,17 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
 
         final RecordSchema schema = getSchema(variables, in, null);
 
-        final String rootName = context.getProperty(VALIDATE_ROOT_TAG).isSet() ?
-                context.getProperty(VALIDATE_ROOT_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
+        final String rootName = context.getProperty(VALIDATE_ROOT_TAG).isSet()
+                ? context.getProperty(VALIDATE_ROOT_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
-        final String recordName = context.getProperty(VALIDATE_RECORD_TAG).isSet() ?
-                context.getProperty(VALIDATE_RECORD_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
+        final String recordName = context.getProperty(VALIDATE_RECORD_TAG).isSet()
+                ? context.getProperty(VALIDATE_RECORD_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
-        final String attributePrefix = context.getProperty(ATTRIBUTE_PREFIX).isSet() ?
-                context.getProperty(ATTRIBUTE_PREFIX).evaluateAttributeExpressions(variables).getValue().trim() : null;
+        final String attributePrefix = context.getProperty(ATTRIBUTE_PREFIX).isSet()
+                ? context.getProperty(ATTRIBUTE_PREFIX).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
-        final String contentFieldName = context.getProperty(CONTENT_FIELD_NAME).isSet() ?
-                context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue().trim() : null;
+        final String contentFieldName = context.getProperty(CONTENT_FIELD_NAME).isSet()
+                ? context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
         return new XMLRecordReader(in, schema, rootName, recordName, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
     }
