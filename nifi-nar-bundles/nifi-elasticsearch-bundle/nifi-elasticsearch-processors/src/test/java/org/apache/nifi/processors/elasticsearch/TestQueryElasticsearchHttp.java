@@ -78,6 +78,25 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
+    public void testQueryElasticsearchOnTrigger_withInput_withQueryInAttrs() throws IOException {
+        runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.QUERY,
+                "source:Twitter AND identifier:\"${identifier}\"");
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
+        runner.assertValid();
+
+        runAndVerifySuccess(true);
+    }
+
+    @Test
     public void testQueryElasticsearchOnTrigger_withInput_EL() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
@@ -161,6 +180,7 @@ public class TestQueryElasticsearchHttp {
         out.assertAttributeEquals("filename", "abc-97b-ASVsZu_"
                 + "vShwtGCJpGOObmuSqUJRUC3L_-SEND-S3");
         }
+        out.assertAttributeExists("es.query.url");
     }
 
     // By default, 3 files should go to Success
