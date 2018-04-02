@@ -1502,6 +1502,8 @@ public final class DtoFactory {
             processGroupId = null;
         }
 
+        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
+        dto.setProperties(new LinkedHashMap<String, String>());
         if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
             final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
                 @Override
@@ -1518,8 +1520,6 @@ public final class DtoFactory {
             orderedProperties.putAll(sortedProperties);
 
             // build the descriptor and property dtos
-            dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-            dto.setProperties(new LinkedHashMap<String, String>());
             for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
                 final PropertyDescriptor descriptor = entry.getKey();
 
