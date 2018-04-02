@@ -65,7 +65,7 @@ public class RestrictedComponentsAuthorizableFactory {
             @Override
             public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
                 if (user == null) {
-                    throw new AccessDeniedException("Unknown user.");
+                    return AuthorizationResult.denied("Unknown user.");
                 }
 
                 final AuthorizationResult resourceResult = Authorizable.super.checkAuthorization(authorizer, action, user, resourceContext);
