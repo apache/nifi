@@ -22,24 +22,21 @@
         <version>1.6.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-mongodb-nar</artifactId>
+    <artifactId>nifi-mongodb-client-service-api-nar</artifactId>
     <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
 
     <dependencies>
-        <dependency>
+	    <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mongodb-client-service-api-nar</artifactId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
             <version>1.6.0-SNAPSHOT</version>
-            <type>nar</type>
+	        <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mongodb-processors</artifactId>
+            <artifactId>nifi-mongodb-client-service-api</artifactId>
+	        <version>1.6.0-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
-
 </project>
