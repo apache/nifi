@@ -325,8 +325,8 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final boolean targetIsContent = context.getProperty(TARGET).getValue()
                 .equals(TARGET_FLOW_FILE_CONTENT);
-        final boolean includeQueryInAttrs = context.getProperty(INCLUDE_QUERY_IN_ATTRS).isSet() ?
-                context.getProperty(INCLUDE_QUERY_IN_ATTRS).evaluateAttributeExpressions(flowFile).asBoolean(): false;
+        final boolean includeQueryInAttrs = context.getProperty(INCLUDE_QUERY_IN_ATTRS).isSet()
+                ?context.getProperty(INCLUDE_QUERY_IN_ATTRS).evaluateAttributeExpressions(flowFile).asBoolean(): false;
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
@@ -362,7 +362,8 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                         logger, startNanos, targetIsContent, includeQueryInAttrs);
                 fromIndex += pageSize;
                 getResponse.close();
-            } while (numResults > 0 && !hitLimit);
+            }
+            while (numResults > 0 && !hitLimit);
 
             if (flowFile != null) {
                 session.remove(flowFile);
