@@ -112,6 +112,16 @@ public class ValidateRecord extends AbstractProcessor {
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
+    static final PropertyDescriptor INVALID_RECORD_WRITER = new PropertyDescriptor.Builder()
+        .name("invalid-record-writer")
+        .displayName("Record Writer for Invalid Records")
+        .description("If specified, this Controller Service will be used to write out any records that are invalid. "
+            + "If not specified, the writer specified by the \"Record Writer\" property will be used. This is useful, for example, when the configured "
+            + "Record Writer cannot write data that does not adhere to its schema (as is the case with Avro) or when it is desirable to keep invalid records "
+            + "in their original format while converting valid records to another format.")
+        .identifiesControllerService(RecordSetWriterFactory.class)
+        .required(false)
+        .build();
     static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
         .name("schema-access-strategy")
         .displayName("Schema Access Strategy")
@@ -186,6 +196,7 @@ public class ValidateRecord extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
+        properties.add(INVALID_RECORD_WRITER);
         properties.add(SCHEMA_ACCESS_STRATEGY);
         properties.add(SCHEMA_REGISTRY);
         properties.add(SCHEMA_NAME);
@@ -237,7 +248,10 @@ public class ValidateRecord extends AbstractProcessor {
             return;
         }
 
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final RecordSetWriterFactory validRecordWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final RecordSetWriterFactory invalidRecordWriterFactory = context.getProperty(INVALID_RECORD_WRITER).isSet()
+            ? context.getProperty(INVALID_RECORD_WRITER).asControllerService(RecordSetWriterFactory.class)
+            : validRecordWriterFactory;
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final boolean allowExtraFields = context.getProperty(ALLOW_EXTRA_FIELDS).asBoolean();
@@ -277,7 +291,7 @@ public class ValidateRecord extends AbstractProcessor {
                             validFlowFile = session.create(flowFile);
                         }
 
-                        validWriter = writer = createIfNecessary(validWriter, writerFactory, session, validFlowFile, record.getSchema());
+                        validWriter = writer = createIfNecessary(validWriter, validRecordWriterFactory, session, validFlowFile, record.getSchema());
                     } else {
                         invalidCount++;
                         logValidationErrors(flowFile, recordCount, result);
@@ -286,7 +300,7 @@ public class ValidateRecord extends AbstractProcessor {
                             invalidFlowFile = session.create(flowFile);
                         }
 
-                        invalidWriter = writer = createIfNecessary(invalidWriter, writerFactory, session, invalidFlowFile, record.getSchema());
+                        invalidWriter = writer = createIfNecessary(invalidWriter, invalidRecordWriterFactory, session, invalidFlowFile, record.getSchema());
 
                         // Add all of the validation errors to our Set<ValidationError> but only keep up to MAX_VALIDATION_ERRORS because if
                         // we keep too many then we both use up a lot of heap and risk outputting so much information in the Provenance Event
@@ -380,7 +394,7 @@ public class ValidateRecord extends AbstractProcessor {
             session.adjustCounter("Records Validated", recordCount, false);
             session.adjustCounter("Records Found Valid", validCount, false);
             session.adjustCounter("Records Found Invalid", invalidCount, false);
-        } catch (final IOException | MalformedRecordException | SchemaNotFoundException e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             if (validFlowFile != null) {
