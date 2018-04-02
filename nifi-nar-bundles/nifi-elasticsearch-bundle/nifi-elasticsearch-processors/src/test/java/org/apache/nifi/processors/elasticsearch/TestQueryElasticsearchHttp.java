@@ -79,6 +79,27 @@ public class TestQueryElasticsearchHttp {
     }
 
     @Test
+    public void testQueryElasticsearchOnTrigger_withInput_withQueryInAttrs() throws IOException {
+        runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.QUERY,
+                "source:Twitter AND identifier:\"${identifier}\"");
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.INCLUDE_QUERY_IN_ATTRS, "true");
+        runner.assertValid();
+
+        runAndVerifySuccess(true,true);
+    }
+
+    @Test
     public void testQueryElasticsearchOnTrigger_withInput_EL() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setValidateExpressionUsage(true);
@@ -147,7 +168,7 @@ public class TestQueryElasticsearchHttp {
         runAndVerifySuccess(true);
     }
 
-    private void runAndVerifySuccess(int expectedResults, boolean targetIsContent) {
+    private void runAndVerifySuccess(int expectedResults, boolean targetIsContent, boolean checkQueryAttr) {
         runner.enqueue("blah".getBytes(), new HashMap<String, String>() {
             {
                 put("identifier", "28039652140");
@@ -165,11 +186,18 @@ public class TestQueryElasticsearchHttp {
         out.assertAttributeEquals("filename", "abc-97b-ASVsZu_"
                 + "vShwtGCJpGOObmuSqUJRUC3L_-SEND-S3");
         }
+        if(checkQueryAttr) {
+            out.assertAttributeExists("es.query.url");
+        }
     }
 
     // By default, 3 files should go to Success
     private void runAndVerifySuccess(boolean targetIsContent) {
-        runAndVerifySuccess(3, targetIsContent);
+        runAndVerifySuccess(3, targetIsContent, false);
+    }
+
+    private void runAndVerifySuccess(boolean targetIsContent, boolean checkQueryAttr) {
+        runAndVerifySuccess(3, targetIsContent, checkQueryAttr);
     }
 
     @Test
@@ -210,7 +238,7 @@ public class TestQueryElasticsearchHttp {
         runner.assertValid();
         runner.setProperty(QueryElasticsearchHttp.LIMIT, "2");
 
-        runAndVerifySuccess(2, true);
+        runAndVerifySuccess(2, true, false);
     }
 
     @Test
