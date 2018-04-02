@@ -115,6 +115,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     @Before
     void setUp() throws Exception {
+        // Manually override the constant path to allow for easy cleanup
+        ConfigEncryptionTool.secureHashPath = "target/tmp/secure_hash.key"
     }
 
     @After
@@ -2016,7 +2018,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Copy the hashed credentials file
 
-        // TODO: May need different versions (or modify in-place) for password present/not
         String secureHashedPasswordPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/secure_hashed.key" :
                 "src/test/resources/secure_hashed_128.key"
         File originalSecureHashedPasswordFile = new File(secureHashedPasswordPath)
