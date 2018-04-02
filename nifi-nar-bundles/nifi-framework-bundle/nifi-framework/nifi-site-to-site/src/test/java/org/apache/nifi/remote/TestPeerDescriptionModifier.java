@@ -83,9 +83,39 @@ public class TestPeerDescriptionModifier {
             new PeerDescriptionModifier(properties);
             fail("Should throw an Exception");
         } catch (IllegalArgumentException e) {
-            assertEquals("Found an invalid Site-to-Site route definition [invalid-name]." +
-                    " 'unsupported' is not a valid routing configuration name." +
-                    " Should be one of 'when', 'hostname', 'port' or 'secure'.", e.getMessage());
+            assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.raw.invalid-name.unsupported'." +
+                    " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
+                    " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testInvalidPropertyKeyNoProtocol() {
+        Properties props = new Properties();
+        props.put("nifi.remote.route.", "true");
+        final NiFiProperties properties = new StandardNiFiProperties(props);
+        try {
+            new PeerDescriptionModifier(properties);
+            fail("Should throw an Exception");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.'." +
+                    " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
+                    " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testInvalidPropertyKeyNoName() {
+        Properties props = new Properties();
+        props.put("nifi.remote.route.http.", "true");
+        final NiFiProperties properties = new StandardNiFiProperties(props);
+        try {
+            new PeerDescriptionModifier(properties);
+            fail("Should throw an Exception");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.http.'." +
+                    " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
+                    " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", e.getMessage());
         }
     }
 
