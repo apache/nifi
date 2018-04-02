@@ -17,7 +17,11 @@
 package org.apache.nifi.processors.influxdb;
 import static org.junit.Assert.assertEquals;
 import org.junit.Assert;
+
+import java.io.StringReader;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.processor.ProcessContext;
@@ -25,8 +29,11 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.QueryResult;
+import org.influxdb.dto.QueryResult.Series;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.gson.Gson;
 
 /**
  * Integration test for executing InfluxDB queries. Please ensure that the InfluxDB is running
@@ -35,6 +42,7 @@ import org.junit.Test;
  */
 public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
 
+    protected Gson gson = new Gson();
     @Before
     public void setUp() throws Exception {
         initInfluxDB();
@@ -57,9 +65,10 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
-        flowFiles.get(0).assertContentEquals(
-            "{\"results\":[{\"series\":[{\"name\":\"water\",\"columns\":[\"time\",\"city\",\"country\",\"humidity\",\"rain\"],\"values\":"
-            + "[[1.50100227485666867E18,\"newark\",\"US\",0.6,1.0]]}]}]}");
+
+        QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        Series series = queryResult.getResults().get(0).getSeries().get(0);
+        validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"newark",1.0);
     }
 
     @Test
@@ -75,9 +84,10 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
-        flowFiles.get(0).assertContentEquals(
-            "{\"results\":[{\"series\":[{\"name\":\"water\",\"columns\":[\"time\",\"city\",\"country\",\"humidity\",\"rain\"],\"values\":"
-            + "[[1.50100227485666867E18,\"newark\",\"US\",0.6,1.0]]}]}]}");
+
+        QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        Series series = queryResult.getResults().get(0).getSeries().get(0);
+        validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"newark",1.0);
     }
 
     @Test
@@ -93,9 +103,14 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         String result = new String(flowFiles.get(0).toByteArray());
-
-        Assert.assertTrue("content should contain _internal " + result, result.contains("_internal"));
-        Assert.assertTrue("content should contain test " + result, result.contains("test"));
+        QueryResult queryResult = gson.fromJson(new StringReader(result), QueryResult.class);
+        Series series = queryResult.getResults().get(0).getSeries().get(0);
+        assertEquals("series name should be same", "databases", series.getName());
+        assertEquals("series column should be same", "name", series.getColumns().get(0));
+        boolean internal = series.getValues().get(0).stream().anyMatch(o -> o.equals("_internal"));
+        Assert.assertTrue("content should contain _internal " + queryResult, internal);
+        boolean test = series.getValues().stream().flatMap(i -> ((List<Object>)i).stream()).anyMatch(o -> o.equals("test"));
+        Assert.assertTrue("content should contain test " + queryResult, test);
     }
 
     @Test
@@ -110,8 +125,72 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
-        flowFiles.get(0).assertContentEquals("{\"results\":[{}]}");
+        QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        assertEquals("results array should be empty", 1, queryResult.getResults().size());
+        assertEquals("No series", null, queryResult.getResults().get(0).getSeries());
+    }
 
+    @Test
+    public void testEmptyFlowFileQueryWithScheduledQuery() {
+        String message = "water,country=US,city=newark rain=1,humidity=0.6 1501002274856668652";
+        influxDB.write(dbName, DEFAULT_RETENTION_POLICY, InfluxDB.ConsistencyLevel.ONE, message);
+
+        String query = "select * from water";
+        runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_QUERY, query);
+
+        byte [] bytes = new byte [] {};
+        runner.enqueue(bytes);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
+        assertEquals("Value should be equal", 1, flowFiles.size());
+        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
+
+        QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        Series series = queryResult.getResults().get(0).getSeries().get(0);
+        validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"newark",1.0);
+    }
+
+    @Test
+    public void testEmptyFlowFileQueryWithScheduledQueryEL() {
+        String message = "water,country=US,city=newark rain=1,humidity=0.6 1501002274856668652";
+        influxDB.write(dbName, DEFAULT_RETENTION_POLICY, InfluxDB.ConsistencyLevel.ONE, message);
+
+        String query = "select * from ${measurement}";
+        runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_QUERY, query);
+
+        byte [] bytes = new byte [] {};
+        Map<String,String> properties = new HashMap<>();
+        properties.put("measurement","water");
+        runner.enqueue(bytes, properties);
+        runner.run(1,true,true);
+        runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
+        assertEquals("Value should be equal", 1, flowFiles.size());
+        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertEquals("Value should be equal",query.replace("${measurement}", "water"), flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
+
+        QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        Series series = queryResult.getResults().get(0).getSeries().get(0);
+        validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"newark",1.0);
+    }
+
+    protected void validateSeries(String name, List<String> columns, List<Object> values, String city, double rain) {
+        assertEquals("Series name should be same","water", name);
+        assertEquals("Series columns should be same","time", columns.get(0));
+        assertEquals("Series columns should be same","city", columns.get(1));
+        assertEquals("Series columns should be same","country", columns.get(2));
+        assertEquals("Series columns should be same","humidity", columns.get(3));
+        assertEquals("Series columns should be same","rain", columns.get(4));
+
+        assertEquals("time value should be same", 1.50100227485666867E18, values.get(0));
+        assertEquals("city value should be same", city, values.get(1));
+        assertEquals("contry value should be same", "US", values.get(2));
+        assertEquals("humidity value should be same", 0.6, values.get(3));
+        assertEquals("rain value should be same", rain, values.get(4));
     }
 
     @Test
@@ -125,7 +204,7 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal", 0, flowFilesSuccess.size());
         List<MockFlowFile> flowFilesFailure = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_FAILURE);
         assertEquals("Value should be equal", 1, flowFilesFailure.size());
-        assertEquals("Value should be equal","Empty query size is 0", flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertEquals("Value should be equal","FlowFile query is empty and no scheduled query is set", flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",null, flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
     }
 
@@ -157,9 +236,12 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
-        flowFiles.get(0).assertContentEquals(
-                "{\"results\":[{\"series\":[{\"name\":\"water\",\"columns\":[\"time\",\"city\",\"country\",\"humidity\",\"rain\"],\"values\":"
-                + "[[1.50100227485666867E18,\"newark\",\"US\",0.6,1.0],[1.50100227485666867E18,\"nyc\",\"US\",0.6,2.0]]}]}]}");
+        QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        Series series1 = queryResult.getResults().get(0).getSeries().get(0);
+        validateSeries(series1.getName(),series1.getColumns(), series1.getValues().get(0),"newark",1.0);
+
+        Series series2 = queryResult.getResults().get(0).getSeries().get(0);
+        validateSeries(series2.getName(),series2.getColumns(), series2.getValues().get(1),"nyc",2.0);
     }
 
     @Test
@@ -217,9 +299,11 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal", 1, flowFiles.size());
         assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
-        flowFiles.get(0).assertContentEquals(
-            "{\"results\":[{\"series\":[{\"name\":\"water\",\"columns\":[\"time\",\"city\",\"country\",\"humidity\",\"rain\"],\"values\":"
-            + "[[1.50100227485666867E18,\"nyc\",\"US\",0.6,1.0]]}]}]}");
+
+        QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        assertEquals("Result size should be same", 1, queryResult.getResults().size());
+        Series series = queryResult.getResults().get(0).getSeries().get(0);
+        validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"nyc",1.0);
     }
 
     @Test

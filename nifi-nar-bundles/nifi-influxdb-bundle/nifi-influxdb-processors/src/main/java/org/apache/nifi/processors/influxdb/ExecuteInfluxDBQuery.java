@@ -78,7 +78,8 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             .name("influxdb-query")
             .displayName("InfluxDB Query")
             .description("The InfluxDB query to execute. "
-                    + "Note: If there are incoming connections, then the query is created from incoming FlowFile's content and scheduled query is ignored.")
+                + "Note: If there are incoming connections, then the query is created from incoming FlowFile's content otherwise"
+                + " it is created from this property.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -154,46 +155,40 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
                 return;
             }
 
-            if ( incomingFlowFile.getSize() == 0) {
-                getLogger().error("Empty query");
-                incomingFlowFile = session.putAttribute(incomingFlowFile, INFLUX_DB_ERROR_MESSAGE, "Empty query size is " + incomingFlowFile.getSize());
-                session.transfer(incomingFlowFile, REL_FAILURE);
-                return;
-            }
-
             charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(incomingFlowFile).getValue());
-            try {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                session.exportTo(incomingFlowFile, baos);
-                baos.close();
-                query = new String(baos.toByteArray(), charset);
-            } catch(IOException ioe) {
-                getLogger().error("Exception while reading from FlowFile " + ioe.getLocalizedMessage(), ioe);
-                throw new ProcessException(ioe);
+            if ( incomingFlowFile.getSize() == 0 ) {
+                if ( context.getProperty(INFLUX_DB_QUERY).isSet() ) {
+                    query = context.getProperty(INFLUX_DB_QUERY).evaluateAttributeExpressions(incomingFlowFile).getValue();
+                } else {
+                    String message = "FlowFile query is empty and no scheduled query is set";
+                    getLogger().error(message);
+                    incomingFlowFile = session.putAttribute(incomingFlowFile, INFLUX_DB_ERROR_MESSAGE, message);
+                    session.transfer(incomingFlowFile, REL_FAILURE);
+                    return;
+                }
+            } else {
+
+                try {
+                    query = getQuery(session, charset, incomingFlowFile);
+                } catch(IOException ioe) {
+                    getLogger().error("Exception while reading from FlowFile " + ioe.getLocalizedMessage(), ioe);
+                    throw new ProcessException(ioe);
+                }
             }
-
-            database = context.getProperty(DB_NAME).evaluateAttributeExpressions(incomingFlowFile).getValue();
-            queryResultTimeunit = TimeUnit.valueOf(context.getProperty(INFLUX_DB_QUERY_RESULT_TIMEUNIT).evaluateAttributeExpressions(incomingFlowFile).getValue());
-
             outgoingFlowFile = incomingFlowFile;
-        } else {
-            charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
-            query = context.getProperty(INFLUX_DB_QUERY).evaluateAttributeExpressions().getValue();
-            database = context.getProperty(DB_NAME).evaluateAttributeExpressions().getValue();
-            queryResultTimeunit = TimeUnit.valueOf(context.getProperty(INFLUX_DB_QUERY_RESULT_TIMEUNIT).evaluateAttributeExpressions().getValue());
 
+        } else {
             outgoingFlowFile = session.create();
+            charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(outgoingFlowFile).getValue());
+            query = context.getProperty(INFLUX_DB_QUERY).evaluateAttributeExpressions(outgoingFlowFile).getValue();
         }
+
+        database = context.getProperty(DB_NAME).evaluateAttributeExpressions(outgoingFlowFile).getValue();
+        queryResultTimeunit = TimeUnit.valueOf(context.getProperty(INFLUX_DB_QUERY_RESULT_TIMEUNIT).evaluateAttributeExpressions(outgoingFlowFile).getValue());
 
         try {
             long startTimeMillis = System.currentTimeMillis();
             QueryResult result = executeQuery(context, database, query, queryResultTimeunit);
-
-            if ( result == null ) {
-                String message = "Query Result was " + result;
-                getLogger().error(message);
-                throw new NullPointerException(message);
-            }
 
             String json = gson.toJson(result);
 
@@ -209,22 +204,22 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
 
             if ( ! result.hasError() ) {
                 outgoingFlowFile = session.putAttribute(outgoingFlowFile, INFLUX_DB_EXECUTED_QUERY, String.valueOf(query));
+                session.getProvenanceReporter().send(outgoingFlowFile, makeProvenanceUrl(context, database, outgoingFlowFile),
+                        (endTimeMillis - startTimeMillis));
                 session.transfer(outgoingFlowFile, REL_SUCCESS);
             } else {
                 outgoingFlowFile = populateErrorAttributes(session, outgoingFlowFile, query, result.getError());
                 session.transfer(outgoingFlowFile, REL_FAILURE);
             }
 
-            session.getProvenanceReporter().send(outgoingFlowFile, makeProvenanceUrl(context, database),
-                (endTimeMillis - startTimeMillis));
         } catch (Exception exception) {
             outgoingFlowFile = populateErrorAttributes(session, outgoingFlowFile, query, exception.getMessage());
             if ( exception.getCause() instanceof SocketTimeoutException ) {
-                getLogger().error("Failed to read from influxDB due SocketTimeoutException to {} and retrying",
+                getLogger().error("Failed to read from InfluxDB due SocketTimeoutException to {} and retrying",
                         new Object[]{exception.getCause().getLocalizedMessage()}, exception.getCause());
                 session.transfer(outgoingFlowFile, REL_RETRY);
             } else {
-                getLogger().error("Failed to read from influxDB due to {}",
+                getLogger().error("Failed to read from InfluxDB due to {}",
                         new Object[]{exception.getLocalizedMessage()}, exception);
                 session.transfer(outgoingFlowFile, REL_FAILURE);
             }
@@ -232,9 +227,17 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
         }
     }
 
-    protected String makeProvenanceUrl(final ProcessContext context, String database) {
+    protected String getQuery(final ProcessSession session, Charset charset, FlowFile incomingFlowFile)
+            throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        session.exportTo(incomingFlowFile, baos);
+        baos.close();
+        return new String(baos.toByteArray(), charset);
+    }
+
+    protected String makeProvenanceUrl(final ProcessContext context, String database, FlowFile flowFile) {
         return new StringBuilder("influxdb://")
-            .append(context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue()).append("/")
+            .append(context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions(flowFile).getValue()).append("/")
             .append(database).toString();
     }
 

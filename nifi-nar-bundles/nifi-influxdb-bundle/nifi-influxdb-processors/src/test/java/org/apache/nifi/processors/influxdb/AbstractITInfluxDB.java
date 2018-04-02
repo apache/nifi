@@ -36,7 +36,6 @@ public class AbstractITInfluxDB {
 
     protected void initInfluxDB() throws InterruptedException, Exception {
         influxDB = InfluxDBFactory.connect(dbUrl,user,password);
-        cleanUpDatabase();
         influxDB.createDatabase(dbName);
         int max = 10;
         while (!influxDB.databaseExists(dbName) && (max-- < 0)) {
