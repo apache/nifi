@@ -220,7 +220,7 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
                          }
                  });
             } catch (final RejectedExecutionException ex) {
-                    // This can happen if the processor is being Unscheduled.
+                // This can happen if the processor is being Unscheduled.
             }
 
         }

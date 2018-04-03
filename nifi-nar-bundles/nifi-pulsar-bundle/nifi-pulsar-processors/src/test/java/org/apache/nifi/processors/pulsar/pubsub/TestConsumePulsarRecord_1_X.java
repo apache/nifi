@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class TestConsumePulsarRecord_1_x {
+public class TestConsumePulsarRecord_1_X {
 
     protected static String BAD_MSG = "Malformed message";
     protected static String MOCKED_MSG = "Mocked Message, 1";
@@ -140,6 +140,13 @@ public class TestConsumePulsarRecord_1_x {
         runner.setProperty(ConsumePulsarRecord_1_X.TOPIC, topic);
         runner.setProperty(ConsumePulsarRecord_1_X.SUBSCRIPTION, sub);
         runner.setProperty(ConsumePulsarRecord_1_X.BATCH_SIZE, batchSize + "");
+
+        if (async) {
+          runner.setProperty(ConsumePulsarRecord_1_X.MAX_WAIT_TIME, "5 sec");
+        } else {
+          runner.setProperty(ConsumePulsarRecord_1_X.MAX_WAIT_TIME, "0 sec");
+        }
+
         runner.run(iterations, true);
 
         runner.assertAllFlowFilesTransferred(ConsumePulsarRecord_1_X.REL_SUCCESS);

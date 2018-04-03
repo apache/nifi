@@ -25,12 +25,12 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord_1_X;
-import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsarRecord_1_x;
+import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsarRecord_1_X;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 
-public class TestAsyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_x {
+public class TestAsyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_X {
 
     @Test
     public void emptyMessageTest() throws PulsarClientException {
@@ -49,7 +49,7 @@ public class TestAsyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_
     @Test
     public void singleMalformedMessageTest() throws PulsarClientException {
        when(mockMessage.getData()).thenReturn(BAD_MSG.getBytes());
-           runner.setProperty(ConsumePulsarRecord_1_X.TOPIC, DEFAULT_TOPIC);
+       runner.setProperty(ConsumePulsarRecord_1_X.TOPIC, DEFAULT_TOPIC);
        runner.setProperty(ConsumePulsarRecord_1_X.SUBSCRIPTION, DEFAULT_SUB);
        runner.setProperty(ConsumePulsarRecord_1_X.BATCH_SIZE, 1 + "");
        runner.setProperty(ConsumePulsarRecord_1_X.ASYNC_ENABLED, Boolean.toString(true));

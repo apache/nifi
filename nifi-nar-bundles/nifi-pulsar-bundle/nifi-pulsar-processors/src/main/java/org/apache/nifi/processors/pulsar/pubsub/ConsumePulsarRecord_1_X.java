@@ -145,7 +145,7 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
         List<Message> messages = null;
         try {
             if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-                   // Launch consumers
+                // Launch consumers
                 consumeAsync(context, session);
 
                 // Handle completed consumers

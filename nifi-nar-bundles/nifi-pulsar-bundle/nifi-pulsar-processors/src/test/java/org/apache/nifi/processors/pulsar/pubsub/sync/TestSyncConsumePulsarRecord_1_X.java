@@ -18,7 +18,7 @@ package org.apache.nifi.processors.pulsar.pubsub.sync;
 
 
 import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord_1_X;
-import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsarRecord_1_x;
+import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsarRecord_1_X;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
@@ -33,7 +33,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class TestSyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_x {
+public class TestSyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_X {
 
     @Test
     public void emptyMessageTest() throws PulsarClientException {
@@ -113,6 +113,7 @@ public class TestSyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_x
        runner.setProperty(ConsumePulsarRecord_1_X.TOPIC, DEFAULT_TOPIC);
        runner.setProperty(ConsumePulsarRecord_1_X.SUBSCRIPTION, DEFAULT_SUB);
        runner.setProperty(ConsumePulsarRecord_1_X.BATCH_SIZE, 1 + "");
+       runner.setProperty(ConsumePulsarRecord_1_X.MAX_WAIT_TIME, "0 sec");
        runner.run(1, true);
 
        List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord_1_X.REL_SUCCESS);
