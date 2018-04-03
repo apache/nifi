@@ -110,8 +110,8 @@ public class PutKudu extends AbstractKudu {
                         break;
                     case INT8:
                     case INT16:
-                        short temp = (short)record.getAsInt(colName).intValue();
-                        row.addShort(colIdx, temp);
+                        row.addShort(colIdx, record.getAsInt(colName).shortValue());
+                        break;
                     case INT32:
                         row.addInt(colIdx, record.getAsInt(colName));
                         break;
