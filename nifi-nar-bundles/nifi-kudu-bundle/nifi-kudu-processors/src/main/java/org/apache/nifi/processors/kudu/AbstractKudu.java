@@ -83,9 +83,10 @@ public abstract class AbstractKudu extends AbstractProcessor {
 
     protected static final PropertyDescriptor SKIP_HEAD_LINE = new PropertyDescriptor.Builder()
             .name("Skip head line")
-            .description("Set it to true if your first line is the header line e.g. column names")
+            .description("Deprecated. Used to ignore header lines, but this should be handled by a RecordReader " +
+                    "(e.g. \"Treat First Line as Header\" property of CSVReader)")
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
