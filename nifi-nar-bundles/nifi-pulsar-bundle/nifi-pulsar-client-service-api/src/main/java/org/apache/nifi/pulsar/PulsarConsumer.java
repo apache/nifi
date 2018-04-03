@@ -23,17 +23,19 @@ import org.apache.pulsar.client.impl.ConsumerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("unused")
+
 public class PulsarConsumer implements PoolableResource {
 
     private static final Logger logger = LoggerFactory.getLogger(PulsarConsumer.class);
 
     private final Consumer consumer;
+    private String pulsarBrokerRootUrl;
     private final String topicName;
     private final String subscriptionName;
     private boolean closed = false;
 
-    public PulsarConsumer(Consumer consumer, String topic, String subscription) throws PulsarClientException {
+    public PulsarConsumer(Consumer consumer, String pulsarBrokerRootUrl, String topic, String subscription) throws PulsarClientException {
+      this.pulsarBrokerRootUrl = pulsarBrokerRootUrl;
       this.consumer = consumer;
       this.topicName = topic;
       this.subscriptionName = subscription;
@@ -65,4 +67,12 @@ public class PulsarConsumer implements PoolableResource {
       return this.consumer.getStats();
     }
 
+    public String getTransitURL() {
+       StringBuffer sb = new StringBuffer();
+        sb.append(pulsarBrokerRootUrl).append("/")
+          .append(topicName).append("/")
+          .append(subscriptionName);
+
+       return sb.toString();
+    }
 }

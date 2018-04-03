@@ -30,6 +30,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -43,6 +44,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
+import org.apache.nifi.processors.pulsar.ConsumePulsar_1_X;
+import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -67,7 +70,7 @@ import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_WRITER;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
         + "FlowFiles that are routed to success.")
-@SeeAlso({PublishPulsar_1_0.class, ConsumePulsar_1_0.class, ConsumePulsarRecord_1_0.class})
+@SeeAlso({PublishPulsar_1_X.class, ConsumePulsar_1_X.class, ConsumePulsarRecord_1_0.class})
 public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES;

@@ -128,7 +128,7 @@ public class MockPulsarClientService extends AbstractControllerService implement
         String topic = props.getProperty(PulsarConsumerFactory.TOPIC_NAME);
         String subscription = props.getProperty(PulsarConsumerFactory.SUBSCRIPTION_NAME);
         try {
-            return new PulsarConsumer(mockClient.subscribe(topic, subscription), topic, subscription);
+            return new PulsarConsumer(mockClient.subscribe(topic, subscription), "", topic, subscription);
         } catch (PulsarClientException e) {
             return null;
         }

@@ -19,15 +19,9 @@ package org.apache.nifi.pulsar;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestStandardPulsarClientService {
-
-    @Before
-    public void init() {
-
-    }
 
     @Test
     public void testService() throws InitializationException {
@@ -36,7 +30,7 @@ public class TestStandardPulsarClientService {
         runner.addControllerService("test-good", service);
 
         runner.setProperty(service, StandardPulsarClientPool.PULSAR_SERVICE_URL, "localhost:6667");
-        // runner.enableControllerService(service);
+        runner.enableControllerService(service);
 
         runner.assertValid(service);
     }

@@ -30,9 +30,11 @@ public class PulsarConsumerFactory implements ResourceFactory<PulsarConsumer> {
     public static final String CONSUMER_CONFIG = "Consumer-Configuration";
 
     private PulsarClient client;
+    private String pulsarBrokerRootUrl;
 
-    public PulsarConsumerFactory(PulsarClient client) {
+    public PulsarConsumerFactory(PulsarClient client, String pulsarBrokerRootUrl) {
       this.client = client;
+      this.pulsarBrokerRootUrl = pulsarBrokerRootUrl;
     }
 
     @Override
@@ -44,8 +46,8 @@ public class PulsarConsumerFactory implements ResourceFactory<PulsarConsumer> {
 
       try {
         // If we have a ProducerConfiguration then use it, otherwise a topic name will suffice
-        return (config == null) ? new PulsarConsumer(client.subscribe(topic, subscription), topic, subscription) :
-              new PulsarConsumer(client.subscribe(topic, subscription, config), topic, subscription);
+        return (config == null) ? new PulsarConsumer(client.subscribe(topic, subscription), pulsarBrokerRootUrl, topic, subscription) :
+              new PulsarConsumer(client.subscribe(topic, subscription, config), pulsarBrokerRootUrl, topic, subscription);
 
        } catch (PulsarClientException e) {
          throw new ResourceCreationException(e);

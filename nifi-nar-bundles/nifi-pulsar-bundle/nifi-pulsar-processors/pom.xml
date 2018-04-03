@@ -54,9 +54,9 @@
             <scope>provided</scope>
 	    </dependency>
         <dependency>
-    			<groupId>org.apache.pulsar</groupId>
-    			<artifactId>pulsar-client</artifactId>
-    			<version>1.21.0-incubating</version>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-client</artifactId>
+            <version>1.21.0-incubating</version>
 		</dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -12,7 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.processors.pulsar.ConsumePulsar_1_0
-org.apache.nifi.processors.pulsar.ConsumePulsarRecord_1_0
-org.apache.nifi.processors.pulsar.PublishPulsar_1_0
-org.apache.nifi.processors.pulsar.PublishPulsarRecord_1_0
+org.apache.nifi.processors.pulsar.ConsumePulsar_1_X
+org.apache.nifi.processors.pulsar.PublishPulsar_1_X
+org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord_1_0
+org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord_1_0
+
+

@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
+
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessor;
+import org.apache.nifi.processors.pulsar.ConsumePulsar_1_X;
+import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -75,7 +78,7 @@ import org.apache.nifi.flowfile.FlowFile;
     @WritesAttribute(attribute = "record.count", description = "The number of records received")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@SeeAlso({PublishPulsar_1_0.class, ConsumePulsar_1_0.class, PublishPulsarRecord_1_0.class})
+@SeeAlso({PublishPulsar_1_X.class, ConsumePulsar_1_X.class, PublishPulsarRecord_1_0.class})
 public class ConsumePulsarRecord_1_0 extends AbstractPulsarConsumerProcessor {
 
     public static final String MSG_COUNT = "record.count";

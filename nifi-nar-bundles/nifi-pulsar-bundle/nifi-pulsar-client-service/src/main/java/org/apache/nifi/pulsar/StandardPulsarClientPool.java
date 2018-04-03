@@ -184,32 +184,29 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
     }
 
     /**
-     * @param context
-     *            the configuration context
-     * @throws InitializationException
-     *             if unable to create a database connection
+     * @param context the configuration context
+     * @throws InitializationException if unable to create a database connection
+     * @throws UnsupportedAuthenticationException if the Broker URL uses a non-supported authentication mechanism
      */
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException {
+    public void onEnabled(final ConfigurationContext context) throws InitializationException, UnsupportedAuthenticationException {
 
             createClient(context);
 
-            if (this.client == null)
+            if (this.client == null) {
                 throw new InitializationException("Unable to create Pulsar Client");
+            }
 
             producers = new ResourcePoolImpl<PulsarProducer>(new PulsarProducerFactory(client), context.getProperty(MAX_PRODUCERS).asInteger());
-            consumers = new ResourcePoolImpl<PulsarConsumer>(new PulsarConsumerFactory(client), context.getProperty(MAX_CONSUMERS).asInteger());
+            consumers = new ResourcePoolImpl<PulsarConsumer>(new PulsarConsumerFactory(client,
+                buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).getValue(), getClientConfig(context).isUseTls())),
+                context.getProperty(MAX_CONSUMERS).asInteger());
 
     }
 
     private void createClient(final ConfigurationContext context) throws InitializationException {
 
-            // We can't create a client without a service URL.
-            if (!context.getProperty(PULSAR_SERVICE_URL).isSet()) {
-                return;
-            }
-
-            try {
+        try {
             this.client = PulsarClient.create(buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).getValue(),
                         getClientConfig(context).isUseTls()), getClientConfig(context));
 
@@ -223,8 +220,9 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
         StringBuilder builder = new StringBuilder();
         builder.append("pulsar");
 
-        if (tlsEnabled)
-                builder.append("+ssl");
+        if (tlsEnabled) {
+           builder.append("+ssl");
+        }
 
         builder.append("://");
         builder.append(uri);

@@ -18,7 +18,7 @@ package org.apache.nifi.processors.pulsar.pubsub;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.nifi.processors.pulsar.pubsub.PublishPulsar_1_0;
+import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
 import org.apache.pulsar.client.api.MessageId;
@@ -42,7 +42,7 @@ public class TestPublishPulsar_1_0 extends AbstractPulsarProcessorTest {
     @Before
     public void init() throws InitializationException {
 
-        runner = TestRunners.newTestRunner(PublishPulsar_1_0.class);
+        runner = TestRunners.newTestRunner(PublishPulsar_1_X.class);
 
         mockClient = mock(PulsarClient.class);
         mockProducer = mock(Producer.class);

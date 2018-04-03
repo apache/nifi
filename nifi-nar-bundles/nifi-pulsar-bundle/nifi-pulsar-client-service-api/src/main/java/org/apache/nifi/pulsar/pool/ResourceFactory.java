@@ -18,7 +18,23 @@ package org.apache.nifi.pulsar.pool;
 
 import java.util.Properties;
 
+/**
+ * Factory pattern interface for @PoolableResource objects. Concrete implementations
+ * of this interface will be responsible for the creation of @PoolableResource objects
+ * based on the Properties passed in.
+ *
+ * @author david
+ *
+ * @param <R> The type of @PoolableResource this factory will create
+ *
+ */
 public interface ResourceFactory<R extends PoolableResource> {
 
+    /**
+     * Create a @PoolableResource based on the properties passed in.
+     * @param props The properties used to configure the @PoolableResource
+     * @return @PoolableResource of type R
+     * @throws ResourceCreationException if the factory cannot instantiate a @PoolableResource object
+     */
     public R create(Properties props) throws ResourceCreationException;
 }

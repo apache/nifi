@@ -25,9 +25,30 @@ import org.apache.nifi.pulsar.pool.ResourcePool;
 @Tags({"Pulsar"})
 @CapabilityDescription("Provides the ability to create Pulsar Producer / Consumer instances on demand, based on the configuration."
                      + "properties defined")
+/**
+ * Service definition for apache Pulsar Client ControllerService
+ * responsible for maintaining a pool of @PulsarProducer and
+ * @PulsarConsumer objects.
+ *
+ * Since both of these objects can be reused, in a manner similar
+ * to database connections, and the cost to create these objects is
+ * relatively high. The PulsarClientPool keeps these objects in pools
+ * for re-use.
+ *
+ * @author david
+ *
+ */
 public interface PulsarClientPool extends ControllerService {
 
+    /**
+     * Returns the pool of @PulsarProducer objects.
+     * @return ResourcePool
+     */
     public ResourcePool<PulsarProducer> getProducerPool();
 
+    /**
+     * Returns the pool of @PulsarConsumer objects.
+     * @return ResourcePool
+     */
     public ResourcePool<PulsarConsumer> getConsumerPool();
 }

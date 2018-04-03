@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsar_1_0;
+import org.apache.nifi.processors.pulsar.ConsumePulsar_1_X;
 import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsar_1_0;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -35,14 +35,14 @@ public class TestAsyncConsumePulsar_1_0 extends TestConsumePulsar_1_0 {
     public void nullMessageTest() throws PulsarClientException {
         when(mockMessage.getData()).thenReturn(null);
 
-        runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
-        runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
-        runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(true));
+        runner.setProperty(ConsumePulsar_1_X.TOPIC, "foo");
+        runner.setProperty(ConsumePulsar_1_X.SUBSCRIPTION, "bar");
+        runner.setProperty(ConsumePulsar_1_X.ASYNC_ENABLED, Boolean.toString(true));
         runner.run();
-        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_X.REL_SUCCESS);
 
         // Make sure no Flowfiles were generated
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_0.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_X.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
 
         verify(mockConsumer, times(0)).acknowledge(mockMessage);
@@ -53,14 +53,14 @@ public class TestAsyncConsumePulsar_1_0 extends TestConsumePulsar_1_0 {
     public void pulsarClientExceptionTest() throws PulsarClientException {
         when(mockConsumer.receive()).thenThrow(PulsarClientException.class);
 
-        runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
-        runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
-        runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(true));
+        runner.setProperty(ConsumePulsar_1_X.TOPIC, "foo");
+        runner.setProperty(ConsumePulsar_1_X.SUBSCRIPTION, "bar");
+        runner.setProperty(ConsumePulsar_1_X.ASYNC_ENABLED, Boolean.toString(true));
         runner.run();
-        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_X.REL_SUCCESS);
 
         // Make sure no Flowfiles were generated
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_0.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_X.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
 
         verify(mockConsumer, times(0)).acknowledge(mockMessage);
@@ -70,14 +70,14 @@ public class TestAsyncConsumePulsar_1_0 extends TestConsumePulsar_1_0 {
     public void emptyMessageTest() {
         when(mockMessage.getData()).thenReturn("".getBytes());
 
-        runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
-        runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
-        runner.setProperty(ConsumePulsar_1_0.ASYNC_ENABLED, Boolean.toString(true));
+        runner.setProperty(ConsumePulsar_1_X.TOPIC, "foo");
+        runner.setProperty(ConsumePulsar_1_X.SUBSCRIPTION, "bar");
+        runner.setProperty(ConsumePulsar_1_X.ASYNC_ENABLED, Boolean.toString(true));
         runner.run();
-        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_X.REL_SUCCESS);
 
         // Make sure no Flowfiles were generated
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_0.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_X.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
@@ -99,10 +99,10 @@ public class TestAsyncConsumePulsar_1_0 extends TestConsumePulsar_1_0 {
     public void onStoppedTest() throws NoSuchMethodException, SecurityException, PulsarClientException {
         when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
 
-        runner.setProperty(ConsumePulsar_1_0.TOPIC, "foo");
-        runner.setProperty(ConsumePulsar_1_0.SUBSCRIPTION, "bar");
+        runner.setProperty(ConsumePulsar_1_X.TOPIC, "foo");
+        runner.setProperty(ConsumePulsar_1_X.SUBSCRIPTION, "bar");
         runner.run(10, true);
-        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_X.REL_SUCCESS);
 
         runner.assertQueueEmpty();
 
