@@ -72,7 +72,7 @@ import java.util.stream.Stream;
         + "To retrieve more records, use the ScrollElasticsearchHttp processor.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The filename attribute is set to the document identifier"),
-        @WritesAttribute(attribute = "es.hitCount", description = "The number of hits for a query"),
+        @WritesAttribute(attribute = "es.query.hitcount", description = "The number of hits for a query"),
         @WritesAttribute(attribute = "es.id", description = "The Elasticsearch document identifier"),
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.query.url", description = "The Elasticsearch query that was built"),
@@ -411,7 +411,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     || queryInfoRouteStrategy == QueryInfoRouteStrategy.ALWAYS) {
                 FlowFile queryInfo = flowFile == null ? session.create() : session.create(flowFile);
                 session.putAttribute(queryInfo, "es.query.url", url.toExternalForm());
-                session.putAttribute(queryInfo, "es.query.hitCount", String.valueOf(hits.size()));
+                session.putAttribute(queryInfo, "es.query.hitcount", String.valueOf(hits.size()));
                 session.putAttribute(queryInfo, MIME_TYPE.key(), "application/json");
                 session.transfer(queryInfo,REL_QUERY_INFO);
             }
