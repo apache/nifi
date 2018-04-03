@@ -21,7 +21,10 @@ import org.apache.nifi.toolkit.cli.impl.command.AbstractCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.CurrentUser;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetRootId;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGChangeVersion;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGDisableControllerServices;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGEnableControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetAllVersions;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVars;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVersion;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGImport;
@@ -68,6 +71,9 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGGetAllVersions());
         commands.add(new PGList());
         commands.add(new PGStatus());
+        commands.add(new PGGetControllerServices());
+        commands.add(new PGEnableControllerServices());
+        commands.add(new PGDisableControllerServices());
         return new ArrayList<>(commands);
     }
 }

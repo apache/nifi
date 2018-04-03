@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
+import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
@@ -77,5 +79,22 @@ public interface FlowClient {
      */
     VersionedFlowSnapshotMetadataSetEntity getVersions(String registryId, String bucketId, String flowId)
             throws NiFiClientException, IOException;
+
+
+    /**
+     * Retrieves the controller services for the given group.
+     *
+     * @param groupId the process group id
+     * @return tje controller services entity
+     */
+    ControllerServicesEntity getControllerServices(String groupId) throws NiFiClientException, IOException;
+
+    /**
+     * Enable or disable controller services in the given process group.
+     *
+     * @param activateControllerServicesEntity the entity indicating the process group to enable/disable services for
+     * @return the activate response
+     */
+    ActivateControllerServicesEntity activateControllerServices(ActivateControllerServicesEntity activateControllerServicesEntity) throws NiFiClientException, IOException;
 
 }
