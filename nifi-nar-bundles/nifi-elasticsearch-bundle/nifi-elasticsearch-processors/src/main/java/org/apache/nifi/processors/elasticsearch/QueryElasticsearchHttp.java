@@ -124,7 +124,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final Relationship REL_QUERY_INFO = new Relationship.Builder()
             .name("query-info")
             .description(
-                    "Depending on the setting of the Generate Query Info property, a FlowFile is routed to this relationship with " +
+                    "Depending on the setting of the Routing Strategy for Query Info property, a FlowFile is routed to this relationship with " +
                             "the incoming FlowFile's attributes (if present), the number of hits, and the Elasticsearch query")
             .build();
 
