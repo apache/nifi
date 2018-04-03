@@ -1502,39 +1502,43 @@ public final class DtoFactory {
             processGroupId = null;
         }
 
+        // ensure descriptors is non null
+        if (propertyDescriptors == null) {
+            propertyDescriptors = new ArrayList<>();
+        }
+
+        // process properties unconditionally since dynamic properties are available here and not in getPropertyDescriptors
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
+            @Override
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
+                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
+            }
+        });
+        sortedProperties.putAll(component.getProperties());
+
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            orderedProperties.put(descriptor, null);
+        }
+        orderedProperties.putAll(sortedProperties);
+
+        // build the descriptor and property dtos
         dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
         dto.setProperties(new LinkedHashMap<String, String>());
-        if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
-            final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-                @Override
-                public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-                    return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-                }
-            });
-            sortedProperties.putAll(component.getProperties());
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
 
-            final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
-            for (final PropertyDescriptor descriptor : propertyDescriptors) {
-                orderedProperties.put(descriptor, null);
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
+
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
             }
-            orderedProperties.putAll(sortedProperties);
 
-            // build the descriptor and property dtos
-            for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
-
-                // store the property descriptor
-                dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
-
-                // determine the property value - don't include sensitive properties
-                String propertyValue = entry.getValue();
-                if (propertyValue != null && descriptor.isSensitive()) {
-                    propertyValue = SENSITIVE_VALUE_MASK;
-                }
-
-                // set the property value
-                dto.getProperties().put(descriptor.getName(), propertyValue);
-            }
+            // set the property value
+            dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
         if (validationErrors != null && !validationErrors.isEmpty()) {
