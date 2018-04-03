@@ -207,15 +207,6 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .required(false)
             .build();
 
-    public static final PropertyDescriptor INCLUDE_QUERY_IN_ATTRS = new PropertyDescriptor.Builder()
-            .name("include-query-in-attrs").displayName("Include query url in attributes")
-            .description("If set, the query url sent to Elasticsearch will be included in the attributes as es.query.url.")
-            .required(false).expressionLanguageSupported(true)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-
     private volatile Set<Relationship> relationships = new HashSet<>(Arrays.asList(new Relationship[] {REL_SUCCESS, REL_FAILURE, REL_RETRY}));
     private static final List<PropertyDescriptor> propertyDescriptors;
     private QueryInfoRouteStrategy queryInfoRouteStrategy = QueryInfoRouteStrategy.NEVER;
@@ -325,8 +316,6 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final boolean targetIsContent = context.getProperty(TARGET).getValue()
                 .equals(TARGET_FLOW_FILE_CONTENT);
-        final boolean includeQueryInAttrs = context.getProperty(INCLUDE_QUERY_IN_ATTRS).isSet()
-                ?context.getProperty(INCLUDE_QUERY_IN_ATTRS).evaluateAttributeExpressions(flowFile).asBoolean(): false;
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
@@ -359,7 +348,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
                 numResults = this.getPage(getResponse, queryUrl, context, session, flowFile,
-                        logger, startNanos, targetIsContent, includeQueryInAttrs);
+                        logger, startNanos, targetIsContent);
                 fromIndex += pageSize;
                 getResponse.close();
             }
@@ -396,7 +385,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private int getPage(final Response getResponse, final URL url, final ProcessContext context,
             final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
-            final long startNanos, boolean targetIsContent, boolean includeQueryInAttrs)
+            final long startNanos, boolean targetIsContent)
             throws IOException {
         List<FlowFile> page = new ArrayList<>();
         final int statusCode = getResponse.code();
@@ -433,9 +422,8 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.id", retrievedId);
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.index", retrievedIndex);
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.type", retrievedType);
-                if (includeQueryInAttrs) {
-                    documentFlowFile = session.putAttribute(documentFlowFile, "es.query.url", url.toExternalForm());
-                }
+                documentFlowFile = session.putAttribute(documentFlowFile, "es.query.url", url.toExternalForm());
+
                 if (targetIsContent) {
                     documentFlowFile = session.putAttribute(documentFlowFile, "filename", retrievedId);
                     documentFlowFile = session.putAttribute(documentFlowFile, "mime.type", "application/json");

@@ -208,7 +208,6 @@ public class TestQueryElasticsearchHttpNoHits {
                         if (targetIsContent) {
                                 out.assertAttributeEquals("es.query.hitcount", String.valueOf(expectedHits));
                                 Assert.assertTrue(out.getAttribute("es.query.url").startsWith("http://127.0.0.1:9200/doc/status/_search?q=source:Twitter%20AND%20identifier:%22%22&size=2"));
-
                         }
                 }
 

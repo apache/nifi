@@ -93,10 +93,8 @@ public class TestQueryElasticsearchHttp {
         runner.assertValid();
         runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
         runner.assertValid();
-        runner.setProperty(QueryElasticsearchHttp.INCLUDE_QUERY_IN_ATTRS, "true");
-        runner.assertValid();
 
-        runAndVerifySuccess(true,true);
+        runAndVerifySuccess(true);
     }
 
     @Test
@@ -168,7 +166,7 @@ public class TestQueryElasticsearchHttp {
         runAndVerifySuccess(true);
     }
 
-    private void runAndVerifySuccess(int expectedResults, boolean targetIsContent, boolean checkQueryAttr) {
+    private void runAndVerifySuccess(int expectedResults, boolean targetIsContent) {
         runner.enqueue("blah".getBytes(), new HashMap<String, String>() {
             {
                 put("identifier", "28039652140");
@@ -186,18 +184,12 @@ public class TestQueryElasticsearchHttp {
         out.assertAttributeEquals("filename", "abc-97b-ASVsZu_"
                 + "vShwtGCJpGOObmuSqUJRUC3L_-SEND-S3");
         }
-        if(checkQueryAttr) {
-            out.assertAttributeExists("es.query.url");
-        }
+        out.assertAttributeExists("es.query.url");
     }
 
     // By default, 3 files should go to Success
     private void runAndVerifySuccess(boolean targetIsContent) {
-        runAndVerifySuccess(3, targetIsContent, false);
-    }
-
-    private void runAndVerifySuccess(boolean targetIsContent, boolean checkQueryAttr) {
-        runAndVerifySuccess(3, targetIsContent, checkQueryAttr);
+        runAndVerifySuccess(3, targetIsContent);
     }
 
     @Test
@@ -238,7 +230,7 @@ public class TestQueryElasticsearchHttp {
         runner.assertValid();
         runner.setProperty(QueryElasticsearchHttp.LIMIT, "2");
 
-        runAndVerifySuccess(2, true, false);
+        runAndVerifySuccess(2, true);
     }
 
     @Test
