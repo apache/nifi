@@ -22,13 +22,13 @@ import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 
-import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
-import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsar_1_0;
+import org.apache.nifi.processors.pulsar.pubsub.PublishPulsar_1_X;
+import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsar_1_X;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 
-public class TestAsyncPublishPulsar_1_0 extends TestPublishPulsar_1_0 {
+public class TestAsyncPublishPulsar_1_X extends TestPublishPulsar_1_X {
 
     @Test
     public void singleFlowFileTest() throws UnsupportedEncodingException, PulsarClientException, InterruptedException {
@@ -70,7 +70,7 @@ public class TestAsyncPublishPulsar_1_0 extends TestPublishPulsar_1_0 {
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar_1_X.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content);
         outFile.assertAttributeEquals(PublishPulsar_1_X.MSG_COUNT, "1");
-        
+
         // Verify that the send method on the producer was called with the expected content
         verify(mockProducer, times(20)).sendAsync(content.getBytes());
     }
@@ -92,7 +92,7 @@ public class TestAsyncPublishPulsar_1_0 extends TestPublishPulsar_1_0 {
         final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar_1_X.REL_SUCCESS).get(0);
         outFile.assertContentEquals(content);
         outFile.assertAttributeEquals(PublishPulsar_1_X.MSG_COUNT, "1");
-        
+
         verify(mockProducer, times(99)).sendAsync(content.getBytes());
 
     }

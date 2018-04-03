@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.processors.pulsar.pubsub;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -39,6 +39,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.pulsar.AbstractPulsarProcessor;
 import org.apache.nifi.pulsar.PulsarClientPool;
 import org.apache.nifi.pulsar.PulsarProducer;
 import org.apache.nifi.pulsar.cache.LRUCache;

@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
+import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_READER;
+import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_WRITER;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,8 +47,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
-import org.apache.nifi.processors.pulsar.ConsumePulsar_1_X;
-import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -60,9 +61,6 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 
-import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_READER;
-import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_WRITER;
-
 @Tags({"Apache", "Pulsar", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "1.0"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Pulsar using the Pulsar 1.x client API. "
     + "The contents of the FlowFile are expected to be record-oriented data that can be read by the configured Record Reader. "
@@ -70,8 +68,8 @@ import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_WRITER;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
         + "FlowFiles that are routed to success.")
-@SeeAlso({PublishPulsar_1_X.class, ConsumePulsar_1_X.class, ConsumePulsarRecord_1_0.class})
-public class PublishPulsarRecord_1_0 extends AbstractPulsarProducerProcessor {
+@SeeAlso({PublishPulsar_1_X.class, ConsumePulsar_1_X.class, ConsumePulsarRecord_1_X.class})
+public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES;
     private static final Set<Relationship> RELATIONSHIPS;

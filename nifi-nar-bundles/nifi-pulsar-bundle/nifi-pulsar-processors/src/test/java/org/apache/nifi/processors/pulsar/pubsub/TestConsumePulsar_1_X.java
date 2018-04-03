@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import org.apache.nifi.processors.pulsar.ConsumePulsar_1_X;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
@@ -42,7 +41,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class TestConsumePulsar_1_0 extends AbstractPulsarProcessorTest {
+public class TestConsumePulsar_1_X extends AbstractPulsarProcessorTest {
 
     @Mock
     protected Consumer mockConsumer;

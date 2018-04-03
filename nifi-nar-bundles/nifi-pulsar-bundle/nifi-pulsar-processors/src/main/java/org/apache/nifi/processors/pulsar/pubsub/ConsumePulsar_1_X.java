@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.processors.pulsar.pubsub;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.pulsar.AbstractPulsarProcessor;
 import org.apache.nifi.pulsar.PulsarClientPool;
 import org.apache.nifi.pulsar.PulsarConsumer;
 import org.apache.nifi.pulsar.pool.PulsarConsumerFactory;
@@ -231,7 +232,6 @@ public class ConsumePulsar_1_X extends AbstractPulsarProcessor {
                     flowFile = session.write(flowFile, out -> {
                         out.write(value);
                     });
-                
 
                    session.getProvenanceReporter().receive(flowFile, "From " + getWrappedConsumer(context).getTransitURL());
                    session.transfer(flowFile, REL_SUCCESS);

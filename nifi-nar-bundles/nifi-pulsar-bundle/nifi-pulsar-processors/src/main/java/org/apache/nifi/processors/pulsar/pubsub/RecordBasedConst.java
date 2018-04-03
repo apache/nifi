@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar;
+package org.apache.nifi.processors.pulsar.pubsub;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.serialization.RecordReaderFactory;

@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_READER;
-import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_WRITER;
+import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_READER;
+import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_WRITER;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -49,7 +49,7 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 import org.mockito.Mock;
 
-public class TestPublishPulsarRecord_1_0 {
+public class TestPublishPulsarRecord_1_X {
 
     protected static final String TOPIC_NAME = "unit-test";
 
@@ -94,7 +94,7 @@ public class TestPublishPulsarRecord_1_0 {
            e.printStackTrace();
         }
 
-        runner = TestRunners.newTestRunner(PublishPulsarRecord_1_0.class);
+        runner = TestRunners.newTestRunner(PublishPulsarRecord_1_X.class);
 
         final String readerId = "record-reader";
         final MockRecordParser readerService = new MockRecordParser();
@@ -138,7 +138,7 @@ public class TestPublishPulsarRecord_1_0 {
 
         runner.enqueue(content.getBytes("UTF-8"), attributes );
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_FAILURE);
 
         // Confirm that no Producer as created
         verify(mockClient, times(0)).createProducer(anyString());
@@ -155,7 +155,7 @@ public class TestPublishPulsarRecord_1_0 {
 
         runner.enqueue(content.getBytes("UTF-8"), attributes );
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_SUCCESS);
 
         // Verify that we sent the data to topic-b.
         verify(mockClient, times(1)).createProducer(TOPIC_NAME);

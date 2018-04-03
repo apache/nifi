@@ -23,13 +23,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import org.apache.nifi.processors.pulsar.ConsumePulsar_1_X;
-import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsar_1_0;
+import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsar_1_X;
+import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsar_1_X;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 
-public class TestSyncConsumePulsar_1_0 extends TestConsumePulsar_1_0 {
+public class TestSyncConsumePulsar_1_X extends TestConsumePulsar_1_X {
 
     @Test
     public void nullMessageTest() throws PulsarClientException {

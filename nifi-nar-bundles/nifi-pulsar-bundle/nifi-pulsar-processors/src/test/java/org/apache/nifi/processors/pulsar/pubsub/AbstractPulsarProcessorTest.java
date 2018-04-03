@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockPulsarClientService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;

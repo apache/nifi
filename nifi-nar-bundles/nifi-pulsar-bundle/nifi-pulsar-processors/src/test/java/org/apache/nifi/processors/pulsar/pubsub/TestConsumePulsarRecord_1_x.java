@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_READER;
-import static org.apache.nifi.processors.pulsar.RecordBasedConst.RECORD_WRITER;
+import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_READER;
+import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_WRITER;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class TestConsumePulsarRecord_1_0 {
+public class TestConsumePulsarRecord_1_x {
 
     protected static String BAD_MSG = "Malformed message";
     protected static String MOCKED_MSG = "Mocked Message, 1";
@@ -86,7 +86,7 @@ public class TestConsumePulsarRecord_1_0 {
             e.printStackTrace();
         }
 
-        runner = TestRunners.newTestRunner(ConsumePulsarRecord_1_0.class);
+        runner = TestRunners.newTestRunner(ConsumePulsarRecord_1_X.class);
 
         final String readerId = "record-reader";
         final MockRecordParser readerService = new MockRecordParser();
@@ -136,15 +136,15 @@ public class TestConsumePulsarRecord_1_0 {
 
         when(mockMessage.getData()).thenReturn(msg.getBytes());
 
-        runner.setProperty(ConsumePulsarRecord_1_0.ASYNC_ENABLED, Boolean.toString(async));
-        runner.setProperty(ConsumePulsarRecord_1_0.TOPIC, topic);
-        runner.setProperty(ConsumePulsarRecord_1_0.SUBSCRIPTION, sub);
-        runner.setProperty(ConsumePulsarRecord_1_0.BATCH_SIZE, batchSize + "");
+        runner.setProperty(ConsumePulsarRecord_1_X.ASYNC_ENABLED, Boolean.toString(async));
+        runner.setProperty(ConsumePulsarRecord_1_X.TOPIC, topic);
+        runner.setProperty(ConsumePulsarRecord_1_X.SUBSCRIPTION, sub);
+        runner.setProperty(ConsumePulsarRecord_1_X.BATCH_SIZE, batchSize + "");
         runner.run(iterations, true);
 
-        runner.assertAllFlowFilesTransferred(ConsumePulsarRecord_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsarRecord_1_X.REL_SUCCESS);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord_1_0.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord_1_X.REL_SUCCESS);
         assertEquals(iterations, flowFiles.size());
 
         if (async) {

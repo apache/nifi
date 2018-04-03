@@ -25,15 +25,15 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
-import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsar_1_0;
+import org.apache.nifi.processors.pulsar.pubsub.PublishPulsar_1_X;
+import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsar_1_X;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 
-public class TestSyncPublishPulsar_1_0 extends TestPublishPulsar_1_0 {
+public class TestSyncPublishPulsar_1_X extends TestPublishPulsar_1_X {
 
     @SuppressWarnings("unchecked")
     @Test

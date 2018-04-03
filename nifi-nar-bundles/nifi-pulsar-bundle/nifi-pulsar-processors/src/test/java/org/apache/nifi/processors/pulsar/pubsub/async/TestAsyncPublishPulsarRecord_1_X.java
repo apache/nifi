@@ -24,15 +24,15 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
-import org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord_1_0;
-import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsarRecord_1_0;
+import org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord_1_X;
+import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsarRecord_1_X;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 
-public class TestAsyncPublishPulsarRecord_1_0 extends TestPublishPulsarRecord_1_0 {
+public class TestAsyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X {
 
     @SuppressWarnings("unchecked")
     @Test
@@ -52,9 +52,9 @@ public class TestAsyncPublishPulsarRecord_1_0 extends TestPublishPulsarRecord_1_
         runner.run();
 
         verify(mockProducer, times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_FAILURE);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_FAILURE);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_FAILURE);
         assertEquals(1, results.size());
 
         String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
@@ -71,7 +71,7 @@ public class TestAsyncPublishPulsarRecord_1_0 extends TestPublishPulsarRecord_1_
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_FAILURE);
 
         verify(mockProducer, times(0)).send(content.getBytes());
     }
@@ -85,13 +85,13 @@ public class TestAsyncPublishPulsarRecord_1_0 extends TestPublishPulsarRecord_1_
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_SUCCESS);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_SUCCESS);
         MockFlowFile result = results.get(0);
 
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "1");
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.TOPIC_NAME, TOPIC_NAME);
+        result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "1");
+        result.assertAttributeEquals(PublishPulsarRecord_1_X.TOPIC_NAME, TOPIC_NAME);
 
         verify(mockProducer, times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
 
@@ -108,16 +108,16 @@ public class TestAsyncPublishPulsarRecord_1_0 extends TestPublishPulsarRecord_1_
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_SUCCESS);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_SUCCESS);
         assertEquals(1, results.size());
 
         MockFlowFile result = results.get(0);
 
         result.assertContentEquals(sb.toString());
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "3");
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.TOPIC_NAME, TOPIC_NAME);
+        result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "3");
+        result.assertAttributeEquals(PublishPulsarRecord_1_X.TOPIC_NAME, TOPIC_NAME);
 
         verify(mockProducer, times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
         verify(mockProducer, times(1)).sendAsync("\"John Doe\",\"35\"\n".getBytes());
@@ -138,15 +138,15 @@ public class TestAsyncPublishPulsarRecord_1_0 extends TestPublishPulsarRecord_1_
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.setProperty(AbstractPulsarProducerProcessor.ASYNC_ENABLED, Boolean.TRUE.toString());
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_0.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_SUCCESS);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_0.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_SUCCESS);
         assertEquals(1, results.size());
 
         MockFlowFile result = results.get(0);
         result.assertContentEquals(sb.toString());
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.MSG_COUNT, "98634");
-        result.assertAttributeEquals(PublishPulsarRecord_1_0.TOPIC_NAME, TOPIC_NAME);
+        result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "98634");
+        result.assertAttributeEquals(PublishPulsarRecord_1_X.TOPIC_NAME, TOPIC_NAME);
 
         verify(mockProducer, times(98634)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
 

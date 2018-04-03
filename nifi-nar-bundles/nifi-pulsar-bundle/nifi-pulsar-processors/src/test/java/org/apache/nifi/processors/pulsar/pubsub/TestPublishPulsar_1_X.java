@@ -18,7 +18,6 @@ package org.apache.nifi.processors.pulsar.pubsub;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.nifi.processors.pulsar.PublishPulsar_1_X;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
 import org.apache.pulsar.client.api.MessageId;
@@ -34,7 +33,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestPublishPulsar_1_0 extends AbstractPulsarProcessorTest {
+public class TestPublishPulsar_1_X extends AbstractPulsarProcessorTest {
 
     @Mock
     protected Producer mockProducer;
