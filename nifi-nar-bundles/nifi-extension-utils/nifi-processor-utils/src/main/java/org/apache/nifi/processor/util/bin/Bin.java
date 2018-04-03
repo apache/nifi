@@ -48,10 +48,10 @@ public class Bin {
     private volatile int maximumEntries = Integer.MAX_VALUE;
     private final String fileCountAttribute;
 
-    final List<FlowFile> binContents = new ArrayList<>();
+    private final List<FlowFile> binContents = new ArrayList<>();
     private final Set<String> binIndexSet = new HashSet<>();
-    long size;
-    int successiveFailedOfferings = 0;
+    private long size;
+    private int successiveFailedOfferings = 0;
 
     /**
      * Constructs a new bin
@@ -141,11 +141,11 @@ public class Bin {
         if (fileCountAttribute != null) {
             final String countValue = flowFile.getAttribute(fileCountAttribute);
             final Integer count = toInteger(countValue);
-            if (count != null) {
-                int currentMaxEntries = this.maximumEntries;
-                this.maximumEntries = Math.min(count, currentMaxEntries);
-                this.minimumEntries = currentMaxEntries;
+            if (count == null) {
+                return false;
             }
+            this.maximumEntries = count;
+            this.minimumEntries = count;
 
             final String index = flowFile.getAttribute(FRAGMENT_INDEX_ATTRIBUTE);
             if (index == null || index.isEmpty() || !binIndexSet.add(index)) {
