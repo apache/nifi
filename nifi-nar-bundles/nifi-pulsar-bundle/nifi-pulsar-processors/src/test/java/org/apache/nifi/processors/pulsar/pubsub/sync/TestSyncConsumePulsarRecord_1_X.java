@@ -152,6 +152,7 @@ public class TestSyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_x
        runner.setProperty(ConsumePulsarRecord_1_X.TOPIC, DEFAULT_TOPIC);
        runner.setProperty(ConsumePulsarRecord_1_X.SUBSCRIPTION, DEFAULT_SUB);
        runner.setProperty(ConsumePulsarRecord_1_X.BATCH_SIZE, 50 + "");
+       runner.setProperty(ConsumePulsarRecord_1_X.MAX_WAIT_TIME, "0 sec");
        runner.run(1, true);
 
        List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord_1_X.REL_PARSE_FAILURE);
