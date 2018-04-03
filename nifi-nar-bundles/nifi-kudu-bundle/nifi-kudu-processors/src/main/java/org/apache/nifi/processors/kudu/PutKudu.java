@@ -23,7 +23,6 @@ import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.Operation;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -34,6 +33,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.serialization.record.Record;
+
+import com.google.common.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -75,25 +76,28 @@ public class PutKudu extends AbstractKudu {
     @Override
     protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
         Upsert upsert = kuduTable.newUpsert();
-        this.insert(kuduTable, upsert, record, fieldNames);
+        this.buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames);
         return upsert;
     }
 
     @Override
     protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
         Insert insert = kuduTable.newInsert();
-        this.insert(kuduTable, insert, record, fieldNames);
+        this.buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames);
         return insert;
     }
 
-    private void insert(KuduTable kuduTable, Operation operation, Record record, List<String> fieldNames){
-        PartialRow row = operation.getRow();
-        Schema colSchema = kuduTable.getSchema();
-
+    @VisibleForTesting
+    void buildPartialRow(Schema colSchema, PartialRow row, Record record, List<String> fieldNames) {
         for (String colName : fieldNames) {
             int colIdx = this.getColumnIndex(colSchema, colName);
             if (colIdx != -1) {
                 Type colType = colSchema.getColumnByIndex(colIdx).getType();
+
+                if (record.getValue(colName) == null) {
+                    row.setNull(colName);
+                    continue;
+                }
 
                 switch (colType.getDataType()) {
                     case BOOL:

@@ -17,6 +17,9 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder;
+import org.apache.kudu.Schema;
+import org.apache.kudu.Type;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -27,8 +30,12 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -41,6 +48,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -271,5 +279,47 @@ public class TestPutKudu {
 
         flowFile.assertContentEquals("string".getBytes());
         flowFile.assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "50");
+    }
+
+    @Test
+    public void testBuildRow() {
+        buildPartialRow((long) 1, "foo", (short) 10);
+    }
+
+    @Test
+    public void testBuildPartialRowNullable() {
+        buildPartialRow((long) 1, null, (short) 10);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildPartialRowNullPrimaryKey() {
+        buildPartialRow(null, "foo", (short) 10);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildPartialRowNotNullable() {
+        buildPartialRow((long) 1, "foo", null);
+    }
+
+    private void buildPartialRow(Long id, String name, Short age) {
+        final Schema kuduSchema = new Schema(Arrays.asList(
+            new ColumnSchemaBuilder("id", Type.INT64).key(true).build(),
+            new ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
+            new ColumnSchemaBuilder("age", Type.INT16).nullable(false).build()));
+        final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("id", RecordFieldType.BIGINT.getDataType()),
+            new RecordField("name", RecordFieldType.STRING.getDataType()),
+            new RecordField("age", RecordFieldType.SHORT.getDataType())));
+
+        Map<String, Object> values = new HashMap<>();
+        values.put("id", id);
+        values.put("name", name);
+        values.put("age", age);
+        new PutKudu().buildPartialRow(
+            kuduSchema,
+            kuduSchema.newPartialRow(),
+            new MapRecord(schema, values),
+            schema.getFieldNames()
+        );
     }
 }
