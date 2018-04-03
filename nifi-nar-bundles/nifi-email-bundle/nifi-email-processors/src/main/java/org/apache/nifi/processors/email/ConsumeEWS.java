@@ -407,10 +407,15 @@ public class ConsumeEWS extends AbstractProcessor {
         MultiPartEmail mm;
 
         if(ewsMessage.getBody().getBodyType() == BodyType.HTML){
-            mm = new HtmlEmail().setHtmlMsg(bodyText);
+            mm = new HtmlEmail();
+            if(!StringUtils.isEmpty(bodyText)){
+                ((HtmlEmail)mm).setHtmlMsg(bodyText);
+            }
         } else {
             mm = new MultiPartEmail();
-            mm.setMsg(bodyText);
+            if(!StringUtils.isEmpty(bodyText)){
+                mm.setMsg(bodyText);
+            }
         }
         mm.setHostName("NiFi-EWS");
         //from
