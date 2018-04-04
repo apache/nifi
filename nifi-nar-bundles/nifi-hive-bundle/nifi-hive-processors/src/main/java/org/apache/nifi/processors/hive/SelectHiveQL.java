@@ -352,7 +352,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 String baseFilename = (fileToProcess != null) ? fileToProcess.getAttribute(CoreAttributes.FILENAME.key()) : null;
                 while (true) {
                     final AtomicLong nrOfRows = new AtomicLong(0L);
-                    flowfile = (flowfile == null) ? session.create() : session.create(flowfile);
+                    flowfile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                     if (baseFilename == null) {
                         baseFilename = flowfile.getAttribute(CoreAttributes.FILENAME.key());
                     }
