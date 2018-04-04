@@ -135,11 +135,11 @@ public class TestSelectHiveQL {
         assertEquals(2, provenanceEvents.size());
 
         final ProvenanceEventRecord provenance0 = provenanceEvents.get(0);
-        assertEquals(ProvenanceEventType.FETCH, provenance0.getEventType());
-        assertEquals("jdbc:derby:target/db;create=true", provenance0.getTransitUri());
+        assertEquals(ProvenanceEventType.FORK, provenance0.getEventType());
 
         final ProvenanceEventRecord provenance1 = provenanceEvents.get(1);
-        assertEquals(ProvenanceEventType.FORK, provenance1.getEventType());
+        assertEquals(ProvenanceEventType.FETCH, provenance1.getEventType());
+        assertEquals("jdbc:derby:target/db;create=true", provenance1.getTransitUri());
     }
 
 
@@ -405,6 +405,10 @@ public class TestSelectHiveQL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS).get(0);
+        // Assert the attributes from the incoming flow file are preserved in the outgoing flow file(s)
+        flowFile.assertAttributeEquals("hiveql.args.1.value", "1");
+        flowFile.assertAttributeEquals("hiveql.args.1.type", String.valueOf(Types.INTEGER));
         runner.clearTransferState();
     }
 
