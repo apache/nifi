@@ -263,8 +263,10 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                     }
 
                     if (putInAttribute) {
+                        session.getProvenanceReporter().modifyAttributes(flowFile);
                         logger.info("Found a cache key of {} and added an attribute to {} with it's value.", new Object[]{cacheKey, flowFile});
                     } else {
+                        session.getProvenanceReporter().modifyContent(flowFile);
                         logger.info("Found a cache key of {} and replaced the contents of {} with it's value.", new Object[]{cacheKey, flowFile});
                     }
                 }

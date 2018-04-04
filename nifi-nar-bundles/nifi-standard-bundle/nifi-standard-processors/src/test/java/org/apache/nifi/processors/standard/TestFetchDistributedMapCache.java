@@ -20,12 +20,15 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -117,7 +120,8 @@ public class TestFetchDistributedMapCache {
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_SUCCESS).get(0);
         outputFlowFile.assertContentEquals("value");
         runner.clearTransferState();
-
+        assertEquals(runner.getProvenanceEvents().size(), 1);
+        assertEquals(runner.getProvenanceEvents().get(0).getEventType(), ProvenanceEventType.CONTENT_MODIFIED);
     }
 
     @Test
@@ -139,7 +143,8 @@ public class TestFetchDistributedMapCache {
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_SUCCESS).get(0);
         outputFlowFile.assertAttributeEquals("test","value");
         runner.clearTransferState();
-
+        assertEquals(runner.getProvenanceEvents().size(), 1);
+        assertEquals(runner.getProvenanceEvents().get(0).getEventType(), ProvenanceEventType.ATTRIBUTES_MODIFIED);
     }
 
     @Test
