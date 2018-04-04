@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.influxdb;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import org.junit.Assert;
 
 import java.io.StringReader;
@@ -63,7 +66,7 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertNull("Value should be null", flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
@@ -82,7 +85,7 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertNull("Value should be null", flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
@@ -99,7 +102,7 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertNull("Value should be null", flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         String result = new String(flowFiles.get(0).toByteArray());
@@ -122,12 +125,13 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertNull("Value should be null", flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
-        assertEquals("results array should be empty", 1, queryResult.getResults().size());
-        assertEquals("No series", null, queryResult.getResults().get(0).getSeries());
+        assertNotNull("QueryResult should not be null", queryResult.getResults());
+        assertEquals("results array should be same size", 1, queryResult.getResults().size());
+        assertNull("No series", queryResult.getResults().get(0).getSeries());
     }
 
     @Test
@@ -149,6 +153,8 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        assertNotNull("QueryResult should not be null", queryResult.getResults());
+        assertEquals("results array should be same size", 1, queryResult.getResults().size());
         Series series = queryResult.getResults().get(0).getSeries().get(0);
         validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"newark",1.0);
     }
@@ -170,10 +176,12 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertNull("Value should be null",flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query.replace("${measurement}", "water"), flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        assertNotNull("QueryResult should not be null", queryResult.getResults());
+        assertEquals("results array should be same size", 1, queryResult.getResults().size());
         Series series = queryResult.getResults().get(0).getSeries().get(0);
         validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"newark",1.0);
     }
@@ -205,7 +213,7 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         List<MockFlowFile> flowFilesFailure = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_FAILURE);
         assertEquals("Value should be equal", 1, flowFilesFailure.size());
         assertEquals("Value should be equal","FlowFile query is empty and no scheduled query is set", flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
-        assertEquals("Value should be equal",null, flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
+        assertNull("Value should be null", flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
     }
 
     @Test
@@ -234,9 +242,12 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertNull("Value should be null", flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
         QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        assertNotNull("QueryResult should not be null", queryResult.getResults());
+        assertEquals("results array should be same size", 1, queryResult.getResults().size());
+        assertEquals("Series size should be same",1, queryResult.getResults().get(0).getSeries().size());
         Series series1 = queryResult.getResults().get(0).getSeries().get(0);
         validateSeries(series1.getName(),series1.getColumns(), series1.getValues().get(0),"newark",1.0);
 
@@ -297,10 +308,11 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal",null, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+        assertNull("Value should be null", flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
         assertEquals("Value should be equal",query, flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
 
         QueryResult queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResult.class);
+        assertNotNull("QueryResult should not be null", queryResult.getResults());
         assertEquals("Result size should be same", 1, queryResult.getResults().size());
         Series series = queryResult.getResults().get(0).getSeries().get(0);
         validateSeries(series.getName(), series.getColumns(), series.getValues().get(0),"nyc",1.0);
