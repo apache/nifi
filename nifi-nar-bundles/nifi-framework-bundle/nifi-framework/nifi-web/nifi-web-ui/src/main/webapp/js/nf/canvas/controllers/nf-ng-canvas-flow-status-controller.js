@@ -67,6 +67,8 @@
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
             this.activeThreadCount = "-";
+            this.terminatedThreadCount = "-";
+            this.threadCounts = "-";
             this.totalQueued = "-";
             this.controllerTransmittingCount = "-";
             this.controllerNotTransmittingCount = "-";
@@ -437,26 +439,47 @@
             },
 
             /**
+             * Returns whether there are any terminated threads.
+             *
+             * @returns {boolean} whether there are any terminated threads
+             */
+            hasTerminatedThreads: function () {
+                if (Number.isInteger(this.terminatedThreadCount)) {
+                    return this.terminatedThreadCount > 0;
+                } else {
+                    return false;
+                }
+            },
+
+            /**
+             * Returns any additional styles to apply to the thread counts.
+             *
+             * @returns {string}
+             */
+            getExtraThreadStyles: function () {
+                if (Number.isInteger(this.terminatedThreadCount) && this.terminatedThreadCount > 0) {
+                    return 'warning';
+                } else if (this.activeThreadCount === 0) {
+                    return 'zero';
+                }
+
+                return '';
+            },
+
+            /**
              * Update the flow status counts.
              *
              * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
              */
             update: function (status) {
-                var controllerInvalidCount = (nfCommon.isDefinedAndNotNull(status.invalidCount)) ? status.invalidCount : 0;
-
-                if (this.controllerInvalidCount > 0) {
-                    $('#controller-invalid-count').parent().removeClass('zero').addClass('invalid');
-                } else {
-                    $('#controller-invalid-count').parent().removeClass('invalid').addClass('zero');
-                }
-
                 // update the report values
                 this.activeThreadCount = status.activeThreadCount;
+                this.terminatedThreadCount = status.terminatedThreadCount;
 
-                if (this.activeThreadCount > 0) {
-                    $('#flow-status-container').find('.icon-threads').removeClass('zero');
+                if (this.hasTerminatedThreads()) {
+                    this.threadCounts = this.activeThreadCount + ' (' + this.terminatedThreadCount + ')';
                 } else {
-                    $('#flow-status-container').find('.icon-threads').addClass('zero');
+                    this.threadCounts = this.activeThreadCount;
                 }
 
                 this.totalQueued = status.queued;

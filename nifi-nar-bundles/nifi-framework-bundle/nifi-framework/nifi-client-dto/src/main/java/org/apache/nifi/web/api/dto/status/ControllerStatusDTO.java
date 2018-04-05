@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ControllerStatusDTO implements Cloneable {
 
     private Integer activeThreadCount = 0;
+    private Integer terminatedThreadCount = 0;
     private String queued;
     private Integer flowFilesQueued = 0;
     private Long bytesQueued = 0L;
@@ -56,6 +57,20 @@ public class ControllerStatusDTO implements Cloneable {
 
     public void setActiveThreadCount(Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
+    }
+
+    /**
+     * The terminated thread count.
+     *
+     * @return The terminated thread count
+     */
+    @ApiModelProperty("The number of terminated threads in the NiFi.")
+    public Integer getTerminatedThreadCount() {
+        return terminatedThreadCount;
+    }
+
+    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+        this.terminatedThreadCount = terminatedThreadCount;
     }
 
     /**
@@ -209,6 +224,7 @@ public class ControllerStatusDTO implements Cloneable {
     public ControllerStatusDTO clone() {
         final ControllerStatusDTO other = new ControllerStatusDTO();
         other.setActiveThreadCount(getActiveThreadCount());
+        other.setTerminatedThreadCount(getTerminatedThreadCount());
         other.setQueued(getQueued());
         other.setFlowFilesQueued(getFlowFilesQueued());
         other.setBytesQueued(getBytesQueued());

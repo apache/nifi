@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.web.controller;
 
-import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
-
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -45,11 +41,11 @@ import org.apache.nifi.controller.ContentAvailability;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowController.GroupStatusCounts;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -113,6 +109,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Collator;
@@ -135,6 +132,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 
 public class ControllerFacade implements Authorizable {
 
@@ -572,13 +571,14 @@ public class ControllerFacade implements Authorizable {
      */
     public ControllerStatusDTO getControllerStatus() {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final GroupStatusCounts groupStatusCounts = flowController.getGroupStatusCounts(rootGroup);
 
-        final QueueSize controllerQueueSize = flowController.getTotalFlowFileCount(rootGroup);
         final ControllerStatusDTO controllerStatus = new ControllerStatusDTO();
-        controllerStatus.setActiveThreadCount(flowController.getActiveThreadCount());
-        controllerStatus.setQueued(FormatUtils.formatCount(controllerQueueSize.getObjectCount()) + " / " + FormatUtils.formatDataSize(controllerQueueSize.getByteCount()));
-        controllerStatus.setBytesQueued(controllerQueueSize.getByteCount());
-        controllerStatus.setFlowFilesQueued(controllerQueueSize.getObjectCount());
+        controllerStatus.setActiveThreadCount(groupStatusCounts.getActiveThreadCount());
+        controllerStatus.setTerminatedThreadCount(groupStatusCounts.getTerminatedThreadCount());
+        controllerStatus.setQueued(FormatUtils.formatCount(groupStatusCounts.getQueuedCount()) + " / " + FormatUtils.formatDataSize(groupStatusCounts.getQueuedContentSize()));
+        controllerStatus.setBytesQueued(groupStatusCounts.getQueuedContentSize());
+        controllerStatus.setFlowFilesQueued(groupStatusCounts.getQueuedCount());
 
         final ProcessGroupCounts counts = rootGroup.getCounts();
         controllerStatus.setRunningCount(counts.getRunningCount());
