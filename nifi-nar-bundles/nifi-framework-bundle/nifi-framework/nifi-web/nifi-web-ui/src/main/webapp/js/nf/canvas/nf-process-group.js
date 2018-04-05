@@ -172,7 +172,7 @@
             .attrs({
                 'x': 10,
                 'y': 20,
-                'width': 316,
+                'width': 300,
                 'height': 16,
                 'class': 'process-group-name'
             });
@@ -1214,9 +1214,9 @@
                                 if (isUnderVersionControl(processGroupData)) {
                                     var versionControlX = parseInt(versionControl.attr('x'), 10);
                                     var processGroupNameX = parseInt(d3.select(this).attr('x'), 10);
-                                    return 316 - (processGroupNameX - versionControlX);
+                                    return 300 - (processGroupNameX - versionControlX);
                                 } else {
-                                    return 316;
+                                    return 300;
                                 }
                             }
                         })

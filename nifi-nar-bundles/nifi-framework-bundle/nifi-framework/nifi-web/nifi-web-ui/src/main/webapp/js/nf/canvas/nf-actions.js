@@ -767,6 +767,25 @@
         },
 
         /**
+         * Terminates active threads for the selected component.
+         *
+         * @param {selection} selection
+         */
+        terminate: function (selection) {
+            if (selection.size() === 1 && nfCanvasUtils.isProcessor(selection)) {
+                var selectionData = selection.datum();
+
+                $.ajax({
+                    type: 'DELETE',
+                    url: selectionData.uri + '/threads',
+                    dataType: 'json'
+                }).done(function (response) {
+                    nfProcessor.set(response);
+                }).fail(nfErrorHandler.handleAjaxError);
+            }
+        },
+
+        /**
          * Enables transmission for the components in the specified selection.
          *
          * @argument {selection} selection      The selection

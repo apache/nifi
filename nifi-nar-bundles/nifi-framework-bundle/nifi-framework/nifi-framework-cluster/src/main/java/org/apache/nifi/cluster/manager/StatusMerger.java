@@ -17,17 +17,6 @@
 
 package org.apache.nifi.cluster.manager;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -69,6 +58,17 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 public class StatusMerger {
     private static final String ZERO_COUNT = "0";
     private static final String ZERO_BYTES = "0 bytes";
@@ -82,6 +82,7 @@ public class StatusMerger {
         }
 
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         target.setBytesQueued(target.getBytesQueued() + toMerge.getBytesQueued());
         target.setFlowFilesQueued(target.getFlowFilesQueued() + toMerge.getFlowFilesQueued());
 
@@ -158,6 +159,7 @@ public class StatusMerger {
         target.setFlowFilesSent(target.getFlowFilesSent() + toMerge.getFlowFilesSent());
 
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         updatePrettyPrintedFields(target);
 
         // connection status
@@ -431,6 +433,7 @@ public class StatusMerger {
         target.setTaskCount(target.getTaskCount() + toMerge.getTaskCount());
         target.setTasksDurationNanos(target.getTasksDurationNanos() + toMerge.getTasksDurationNanos());
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         updatePrettyPrintedFields(target);
     }
 
