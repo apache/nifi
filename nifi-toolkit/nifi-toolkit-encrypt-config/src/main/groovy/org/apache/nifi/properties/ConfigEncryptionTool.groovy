@@ -45,6 +45,7 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.nio.charset.StandardCharsets
+import java.security.InvalidKeyException
 import java.security.KeyException
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -71,6 +72,8 @@ class ConfigEncryptionTool {
     private String migrationKeyHex
     private String password
     private String migrationPassword
+    private String secureHashKey
+    private String secureHashPassword
 
     // This is the raw value used in nifi.sensitive.props.key
     private String flowPropertiesPassword
@@ -377,9 +380,22 @@ class ConfigEncryptionTool {
                 }
                 if (isSecureHashArgumentPresent(commandLine)) {
                     logger.info("Secure hash argument present")
+
                     // Check for old key/password and throw error
                     if (commandLine.hasOption(KEY_MIGRATION_ARG) || commandLine.hasOption(PASSWORD_MIGRATION_ARG)) {
                         printUsageAndThrow("If the '-w'/'--${PASSWORD_MIGRATION_ARG}' or '-e'/'--${KEY_MIGRATION_ARG}' arguments are present, '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG} and '-y'/'--${HASHED_KEY_MIGRATION_ARG} cannot be used", ExitCode.INVALID_ARGS)
+                    }
+
+                    // Check for both key and password and throw error
+                    if (commandLine.hasOption(HASHED_KEY_MIGRATION_ARG) && commandLine.hasOption(HASHED_PASSWORD_MIGRATION_ARG)) {
+                        printUsageAndThrow("Only one of '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG} and '-y'/'--${HASHED_KEY_MIGRATION_ARG} can be used together", ExitCode.INVALID_ARGS)
+                    }
+
+                    // Extract flags to field
+                    if (commandLine.hasOption(HASHED_KEY_MIGRATION_ARG)) {
+                        secureHashKey = commandLine.getOptionValue(HASHED_KEY_MIGRATION_ARG)
+                    } else {
+                        secureHashPassword = commandLine.getOptionValue(HASHED_PASSWORD_MIGRATION_ARG)
                     }
 
                     // Set boolean flag to true
@@ -475,10 +491,40 @@ class ConfigEncryptionTool {
 
     private String getMigrationKey() {
         if (usingSecureHash) {
-            // Retrieve the key from bootstrap.conf because the caller only has the hashed version available
-            return readMasterKeyFromBootstrap()
+            // The boolean flag for "key" means the expression should evaluate to true when key is present and password is not
+            String knownHashValue = readSecureHashValueFromFile(secureHashKey && !secureHashPassword)
+            if (checkHashedValue(knownHashValue, getProvidedSecureHashValue())) {
+                // Retrieve the key from bootstrap.conf because the caller only has the hashed version available
+                return readMasterKeyFromBootstrap()
+            } else {
+                throw new InvalidKeyException("The provided hashed key/password is not correct")
+            }
         } else {
             return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
+        }
+    }
+
+    private String getProvidedSecureHashValue() {
+        if (usingSecureHash) {
+            return secureHashPassword ?: secureHashKey
+        } else {
+            return ""
+        }
+    }
+
+    private static String readSecureHashValueFromFile(boolean readKey = true) {
+        File secureHashFile = new File(secureHashPath)
+        if (!secureHashFile.canRead()) {
+            throw new IOException("Cannot read from secure hash file")
+        }
+        List<String> lines = secureHashFile.readLines()
+        String linePrefix = readKey ? "secureHashKey" : "secureHashPassword"
+        String relevantLine = lines.find { it.startsWith(linePrefix) }
+        String hashValue = relevantLine?.split("=")?.last()
+        if (!hashValue) {
+            throw new InvalidKeyException("The secure hash of the ${readKey ? "key" : "password"} could not be read from the stored file")
+        } else {
+            return hashValue
         }
     }
 
@@ -501,11 +547,11 @@ class ConfigEncryptionTool {
      *
      * @param knownHashValue
      * @param unknownHashValue
-     * @return true if the hash values are equal
+     * @return true if the hash values are present and equal
      */
     static boolean checkHashedValue(String knownHashValue, String unknownHashValue) {
         if (!knownHashValue || !unknownHashValue) {
-            throw new IllegalArgumentException("Both hash values must be provided")
+           return false
         }
 
         // The values should be in scrypt format
