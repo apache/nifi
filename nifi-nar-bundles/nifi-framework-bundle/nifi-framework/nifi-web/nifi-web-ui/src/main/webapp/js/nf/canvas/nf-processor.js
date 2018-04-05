@@ -148,7 +148,7 @@
             .attrs({
                 'x': 75,
                 'y': 18,
-                'width': 210,
+                'width': 230,
                 'height': 14,
                 'class': 'processor-name'
             });
@@ -278,7 +278,7 @@
                             'class': 'processor-bundle',
                             'x': 75,
                             'y': 45,
-                            'width': 230,
+                            'width': 200,
                             'height': 12
                         });
 
@@ -547,7 +547,7 @@
                     details.append('text')
                         .attrs({
                             'class': 'active-thread-count-icon',
-                            'y': 45
+                            'y': 46
                         })
                         .text('\ue83f');
 
@@ -555,7 +555,7 @@
                     details.append('text')
                         .attrs({
                             'class': 'active-thread-count',
-                            'y': 45
+                            'y': 46
                         });
 
                     // ---------

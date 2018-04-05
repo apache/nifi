@@ -77,6 +77,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     private String sent;
 
     private Integer activeThreadCount = 0;
+    private Integer terminatedThreadCount = 0;
 
     /**
      * The id for the process group.
@@ -128,11 +129,23 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     }
 
     /**
+     * @return number of threads currently terminated for this process group
+     */
+    @ApiModelProperty("The number of threads currently terminated for the process group.")
+    public Integer getTerminatedThreadCount() {
+        return terminatedThreadCount;
+    }
+
+    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+        this.terminatedThreadCount = terminatedThreadCount;
+    }
+
+    /**
      * The status of all connections in this process group.
      *
      * @return The status of all connections
      */
-    @ApiModelProperty("The status of all conenctions in the process group.")
+    @ApiModelProperty("The status of all connections in the process group.")
     public Collection<ConnectionStatusSnapshotEntity> getConnectionStatusSnapshots() {
         return connectionStatusSnapshots;
     }
@@ -523,6 +536,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         other.setSent(getSent());
 
         other.setActiveThreadCount(getActiveThreadCount());
+        other.setTerminatedThreadCount(getTerminatedThreadCount());
 
         other.setConnectionStatusSnapshots(copy(getConnectionStatusSnapshots()));
         other.setProcessorStatusSnapshots(copy(getProcessorStatusSnapshots()));

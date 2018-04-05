@@ -51,6 +51,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     private String tasks;
     private String tasksDuration;
     private Integer activeThreadCount = 0;
+    private Integer terminatedThreadCount = 0;
 
     /* getters / setters */
     /**
@@ -189,6 +190,18 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     }
 
     /**
+     * @return number of threads currently terminated for this Processor
+     */
+    @ApiModelProperty("The number of threads currently terminated for the processor.")
+    public Integer getTerminatedThreadCount() {
+        return terminatedThreadCount;
+    }
+
+    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+        this.terminatedThreadCount = terminatedThreadCount;
+    }
+
+    /**
      * @return number of task this connectable has had over the last 5 minutes
      */
     @ApiModelProperty("The total number of task this connectable has completed over the last 5 minutes.")
@@ -304,6 +317,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setTasksDuration(getTasksDuration());
         other.setTasksDurationNanos(getTasksDurationNanos());
         other.setActiveThreadCount(getActiveThreadCount());
+        other.setTerminatedThreadCount(getTerminatedThreadCount());
         other.setInput(getInput());
         other.setOutput(getOutput());
         other.setRead(getRead());

@@ -16,34 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
@@ -85,6 +57,34 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -330,7 +330,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public void commit() {
+    public synchronized void commit() {
         verifyTaskActive();
         checkpoint();
         commit(this.checkpoint);
@@ -946,7 +946,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         verifyTaskActive();
     }
 
-    private void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
+    private synchronized void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
         if (LOG.isDebugEnabled()) {
             LOG.debug("{} session rollback called, FlowFile records are {} {}",
                     this, loggableFlowfileInfo(), new Throwable("Stack Trace on rollback"));
@@ -1163,6 +1163,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private void acknowledgeRecords() {
         for (final Map.Entry<FlowFileQueue, Set<FlowFileRecord>> entry : unacknowledgedFlowFiles.entrySet()) {
+            LOG.trace("Acknowledging {} for {}", entry.getValue(), entry.getKey());
             entry.getKey().acknowledge(entry.getValue());
         }
         unacknowledgedFlowFiles.clear();

@@ -996,7 +996,10 @@ public final class DtoFactory {
         snapshot.setBytesSent(processGroupStatus.getBytesSent());
         snapshot.setFlowFilesReceived(processGroupStatus.getFlowFilesReceived());
         snapshot.setBytesReceived(processGroupStatus.getBytesReceived());
+
         snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(processGroupStatus.getTerminatedThreadCount());
+
         StatusMerger.updatePrettyPrintedFields(snapshot);
         return processGroupStatusDto;
     }
@@ -1161,6 +1164,7 @@ public final class DtoFactory {
         snapshot.setExecutionNode(procStatus.getExecutionNode().toString());
 
         snapshot.setActiveThreadCount(procStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(procStatus.getTerminatedThreadCount());
         snapshot.setType(procStatus.getType());
 
         StatusMerger.updatePrettyPrintedFields(snapshot);
