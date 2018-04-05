@@ -46,6 +46,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.nio.charset.StandardCharsets
 import java.security.KeyException
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.Security
 import java.util.zip.GZIPInputStream
@@ -126,6 +127,7 @@ class ConfigEncryptionTool {
     private static final int SCRYPT_R = 8
     private static final int SCRYPT_P = 1
     static final String CURRENT_SCRYPT_VERSION = "s0"
+    private static final String NIFI_SCRYPT_PATTERN = /^\$\w{2}\$\w{5,}\$[\w\/\=\+]{22,}\$[\w\/\=\+]{43}$/
 
     // Hard-coded values from StandardPBEByteEncryptor which will be removed during refactor of all flow encryption code in NIFI-1465
     private static final int DEFAULT_KDF_ITERATIONS = 1000
@@ -478,6 +480,48 @@ class ConfigEncryptionTool {
         } else {
             return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
         }
+    }
+
+    /**
+     * Returns true if the hash values are equivalent. Currently performs a *constant-time equality* check on the two values. As the scrypt format does not allow for reversing, two "equivalent" but non-identical hash values cannot be compared for equality.
+     *
+     * Example (byte equivalent):
+     *
+     * KHV: {@code $s0$40801$AAAAAAAAAAAAAAAAAAAAAA$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM}
+     * UHV: {@code $s0$40801$AAAAAAAAAAAAAAAAAAAAAA$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM}
+     * Result: EQUAL
+     *
+     * Example (semantically equivalent):
+     *
+     * KHV: {@code $s0$40801$AAAAAAAAAAAAAAAAAAAAAA$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM}
+     * UHV: {@code $s0$40801$ABCDEFGHIJKLMNOPQRSTUQ$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8}
+     * Result: NOT EQUAL
+     *
+     * Even though both hash values are the result of the input "password", by design the hash values cannot be reversed to a common origin to determine their equality. If the raw input was known, both hashes could be determined to be valid, thus asserting the correctness of the raw input and the functional equivalence of the hash values.
+     *
+     * @param knownHashValue
+     * @param unknownHashValue
+     * @return true if the hash values are equal
+     */
+    static boolean checkHashedValue(String knownHashValue, String unknownHashValue) {
+        if (!knownHashValue || !unknownHashValue) {
+            throw new IllegalArgumentException("Both hash values must be provided")
+        }
+
+        // The values should be in scrypt format
+        // TODO: Verify scrypt format
+
+        return MessageDigest.isEqual(knownHashValue.getBytes(StandardCharsets.UTF_8), unknownHashValue.getBytes(StandardCharsets.UTF_8))
+    }
+
+    /**
+     * Returns true if the provided hash is in the valid format for NiFi secured hash storage. NiFi enforces additional constraints over the minimum Scrypt requirements (16+ byte [22+ B64] salt, 32 byte [43 B64] hash).
+     *
+     * @param hash the hash to verify
+     * @return true if the format is acceptable
+     */
+    static boolean verifyHashFormat(String hash) {
+        hash =~ NIFI_SCRYPT_PATTERN
     }
 
     private static String getFlowPassword(TextDevice textDevice = TextDevices.defaultTextDevice()) {
@@ -1430,7 +1474,7 @@ class ConfigEncryptionTool {
             throw new IllegalArgumentException("The provided salt was not in valid scrypt format")
         }
         if (saltComponents.first() != CURRENT_SCRYPT_VERSION) {
-           throw new IllegalArgumentException("Currently, only scrypt hashes with version ${CURRENT_SCRYPT_VERSION} are supported")
+            throw new IllegalArgumentException("Currently, only scrypt hashes with version ${CURRENT_SCRYPT_VERSION} are supported")
         }
 
         // Split the encoded params into N, R, P

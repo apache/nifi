@@ -2094,20 +2094,22 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
                 // Check that the secure hash was persisted to the secure_hash.key
                 final List<String> updatedSecureHashLines = secureHashedFile.readLines()
-                String updatedSecureHashKeyLine = updatedSecureHashLines.find { it.startsWith("secureHashKey=")}
+                String updatedSecureHashKeyLine = updatedSecureHashLines.find { it.startsWith("secureHashKey=") }
                 logger.info("Updated secure hash lines: \n${updatedSecureHashLines.join("\n")}")
 
                 int expectedSecureHashLineCount = 1
 
                 // Extract the salt(s) so the credentials can be hashed with the same salt
                 final String keySalt = updatedSecureHashKeyLine.find(SCRYPT_SALT_PATTERN)
-logger.info("Extracted key salt:      ${keySalt}")
+                logger.info("Extracted key salt:      ${keySalt}")
 
                 final String EXPECTED_NEW_SECURE_HASH_KEY_LINE = "secureHashKey=${ConfigEncryptionTool.secureHashKey(newKeyHex, keySalt)}"
 
                 // Only evaluate the secure hash password line if the raw password was provided (otherwise, can't store hash)
                 if (newPassword) {
-                    String updatedSecureHashPasswordLine = updatedSecureHashLines.find { it.startsWith("secureHashPassword=")}
+                    String updatedSecureHashPasswordLine = updatedSecureHashLines.find {
+                        it.startsWith("secureHashPassword=")
+                    }
                     final String passwordSalt = updatedSecureHashPasswordLine.find(SCRYPT_SALT_PATTERN)
                     logger.info("Extracted password salt: ${passwordSalt}")
                     final String EXPECTED_NEW_SECURE_HASH_PASSWORD_LINE = "secureHashPassword=${ConfigEncryptionTool.secureHashPassword(newPassword, passwordSalt)}"
@@ -2200,6 +2202,21 @@ logger.info("Extracted key salt:      ${keySalt}")
     }
 
     @Test
+    void testShouldFailToMigrateFromIncorrectHashedPasswordToPassword() {
+        // Arrange
+        String scenario = "(incorrect) hashed password to password"
+        final String INCORRECT_HASHED_PASSWORD = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$thisIsDefinitelyNotTheCorrectPasswordHashxx"
+        def args = ["-z", INCORRECT_HASHED_PASSWORD, "-p", PASSWORD.reverse()]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, HASHED_PASSWORD, PASSWORD.reverse())
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
     void testShouldDeriveSecureHashOfPassword() {
         // Arrange
         def testPasswords = ["password", "thisIsABadPassword", "bWZerzZo6fw9ZrDz*YfM6CVj2Ktx(YJd"]
@@ -2257,6 +2274,112 @@ logger.info("Extracted key salt:      ${keySalt}")
                 assert generatedHash == expectedHash
             }
         }
+    }
+
+    @Test
+    void testShouldVerifySecureHashOfPassword() {
+        // Arrange
+        String password = "password"
+
+        // This is a known existing hash of "password"
+        String existingHashedPassword = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM"
+        logger.info("Known existing hash: ${existingHashedPassword}")
+
+        // Low cost factors for performance
+        int n = 2**4
+        int r = 8
+        int p = 1
+        logger.info("Cost factors for test: N=${n}, R=${r}, P=${p}")
+
+        byte[] rawSalt = Hex.decode("00" * 16)
+
+        // This is a generated hash of "password"
+        String formattedSalt = Scrypt.formatSalt(rawSalt, n, r, p)
+        logger.info("Formatted salt: ${formattedSalt}")
+        String hashedPassword = ConfigEncryptionTool.secureHashPassword(password, formattedSalt)
+        logger.info("Generated hash: ${hashedPassword}")
+
+        // This is a generated hash of "password" using a different salt
+        byte[] otherRawSalt = Hex.decode("01" * 16)
+        String otherFormattedSalt = Scrypt.formatSalt(otherRawSalt, n, r, p)
+        logger.info("Formatted salt: ${otherFormattedSalt}")
+        String otherHashedPassword = ConfigEncryptionTool.secureHashPassword(password, otherFormattedSalt)
+        logger.info("Generated hash: ${otherHashedPassword}")
+
+        // Act
+        logger.info("Checking \n${existingHashedPassword} against hash(${password}, ${formattedSalt}) -> \n${hashedPassword}")
+        boolean hashIsIdentical = ConfigEncryptionTool.checkHashedValue(existingHashedPassword, hashedPassword)
+        logger.info("Hash values equal: ${hashIsIdentical}")
+
+        logger.info("Checking \n${existingHashedPassword} against hash(${password}, ${otherFormattedSalt}) -> \n${otherHashedPassword}")
+        boolean otherHashIsIdentical = ConfigEncryptionTool.checkHashedValue(existingHashedPassword, otherHashedPassword)
+        logger.info("Hash values equal: ${otherHashIsIdentical}")
+
+        // Assert
+        assert hashIsIdentical
+        assert !otherHashIsIdentical
+    }
+
+    @Test
+    void testCheckHashedValueShouldVerifyScryptFormat() {
+        // Arrange
+        def validHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$99aTTB39TJo69aZCONQmRdyWOgYsDi+1MI+8D0EgMNM",
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$Gk7K9YmlsWbd8FS7e4RKVWnkg9vlsqYnlD593pJ71gg",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$Ri78VZbrp2cCVmGh2a9Nbfdov8LPnFb49MYyzPCaXmE",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$rZIrP2qdIY7LN4CZAMgbCzl3YhXz6WhaNyXJXqFIjaI",
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$GxH68bGykmPDZ6gaPIGOONOT2omlZ7cd0xlcZ9UsY/0",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$KLGZjWlo59sbCbtmTg5b4k0Nu+biWZRRzhPhN7K5kkI",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$6Ql6Efd2ac44ERoV31CL3Q0J3LffNZKN4elyMHux99Y"
+        ]
+
+        // Some of these are valid "scrypt" hashes but do not conform to the additional requirements NiFi imposes
+        def invalidHashes = [
+                "\$s1\$40801\$AAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM",
+                "\$s0\$\$ABCDEFGHIJKLMNOPQRSTUQ\$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8",
+                "\$s0\$40801\$\$99aTTB39TJo69aZCONQmRdyWOgYsDi+1MI+8D0EgMNM",
+                "\$s0\$40801\$!!!!\$Gk7K9YmlsWbd8FS7e4RKVWnkg9vlsqYnlD593pJ71gg",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$xxxx",
+        ]
+
+        // Low cost factors for performance
+        int n = 2**4
+        int r = 8
+        int p = 1
+        logger.info("Cost factors for test: N=${n}, R=${r}, P=${p}")
+
+        // Act
+        logger.info("Checking ${validHashes.size()} valid hashes")
+        validHashes.each { String hash ->
+            logger.info("Verifying hash format: ${hash}")
+            boolean validFormat = ConfigEncryptionTool.verifyHashFormat(hash)
+            logger.info("Valid format: ${validFormat}")
+
+            // Assert
+            assert validFormat
+        }
+
+        logger.info("Checking ${invalidHashes.size()} invalid hashes")
+        invalidHashes.each { String invalidHash ->
+            logger.info("Verifying hash format: ${invalidHash}")
+            boolean validFormat = ConfigEncryptionTool.verifyHashFormat(invalidHash)
+            logger.info("Valid format: ${validFormat}")
+
+            // Assert
+            assert !validFormat
+        }
+    }
+
+    @Test
+    void testGetMigrationKeyShouldVerifySecureHashOfPassword() {
+        fail()
+    }
+
+    @Test
+    void testGetMigrationKeyShouldVerifySecureHashOfKey() {
+        fail()
     }
 
     @Test
