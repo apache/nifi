@@ -290,11 +290,7 @@ public class TailFile extends AbstractProcessor {
         this.requireStateLookup = true;
     }
 
-    @OnScheduled
-    public void recoverState(final ProcessContext context) throws IOException {
-        // set isMultiChanging
-        isMultiChanging.set(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue()));
-
+    private List<String> lookup(final ProcessContext context) {
         // set last lookup to now
         lastLookup.set(new Date().getTime());
 
@@ -306,13 +302,21 @@ public class TailFile extends AbstractProcessor {
 
         if(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
             filesToTail.addAll(getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
-                    context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
-                    context.getProperty(RECURSIVE).asBoolean(),
-                    maxAge));
+                context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(RECURSIVE).asBoolean(),
+                maxAge));
         } else {
             filesToTail.add(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
         }
+        return filesToTail;
+    }
 
+    @OnScheduled
+    public void recoverState(final ProcessContext context) throws IOException {
+        // set isMultiChanging
+        isMultiChanging.set(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue()));
+
+        List<String> filesToTail = lookup(context);
 
         final Scope scope = getStateScope(context);
         final StateMap stateMap = context.getStateManager().getState(scope);
@@ -577,7 +581,10 @@ public class TailFile extends AbstractProcessor {
             long timeSinceLastLookup = new Date().getTime() - lastLookup.get();
             if(timeSinceLastLookup > context.getProperty(LOOKUP_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS)) {
                 try {
-                    recoverState(context);
+                    final List<String> filesToTail = lookup(context);
+                    final Scope scope = getStateScope(context);
+                    final StateMap stateMap = context.getStateManager().getState(scope);
+                    initStates(filesToTail, stateMap.toMap(), false);
                 } catch (IOException e) {
                     getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
                     context.yield();
