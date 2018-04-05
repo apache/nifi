@@ -263,7 +263,9 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval) {
+    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
+                                                           final Long defaultBackPressureObjectThreshold,
+                                                           final String defaultBackPressureDataSizeThreshold) {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
@@ -276,6 +278,9 @@ public final class DtoFactory {
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
         dto.setCurrentTime(now);
+
+        dto.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        dto.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
 
         return dto;
     }

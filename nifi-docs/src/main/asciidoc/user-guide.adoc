@@ -1008,6 +1008,7 @@ applying back pressure. This value is configured by entering a number followed b
 kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
 
 NOTE: By default each new connection added will have a default Back Pressure Object Threshold of 10,000 objects and Back Pressure Data Size Threshold of 1 GB.
+These defaults can be changed by modifying the appropriate properties in the `nifi.properties` file.
 
 When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
 
