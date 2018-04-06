@@ -269,19 +269,17 @@ image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 
 Restricted components will be marked with a
 image:restricted.png["Restricted"]
-icon next to their name. Hovering over the tooltip will display the specific restrictions this component requires. If the component
-does not list any specific restrictions it will require access to restricted components regardless of restrictions. These are components
+icon next to their name. These are components
 that can be used to execute arbitrary unsanitized code provided by the operator through the NiFi REST API/UI or can be used to obtain
 or alter data on the NiFi host system using the NiFi OS credentials. These components could be used by an otherwise authorized NiFi
 user to go beyond the intended use of the application, escalate privilege, or could expose data about the internals of the NiFi process
 or the host system. All of these capabilities should be considered privileged, and admins should be aware of these capabilities and
-explicitly enable them for a subset of trusted users.
-
-Before a user is allowed to create and modify restricted components they must be granted access to restricted components. This can be
+explicitly enable them for a subset of trusted users. Before a user is allowed to create and modify restricted components they must be granted access. Hovering over the image:restricted.png["Restricted"]
+icon will display the specific permissions a restricted component requires. Permissions can be
 assigned regardless of restrictions. In this case, the user will have access to all restricted components. Alternatively, users can
 be assigned access to specific restrictions. If the user has been granted access to all restrictions a component requires, they will
 have access to that component assuming otherwise sufficient permissions. For more information refer to
-<<UI-with-multi-tenant-authorization>>.
+<<UI-with-multi-tenant-authorization>> and <<Restricted_Components_in_Versioned_Flows>>.
 
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
@@ -1935,6 +1933,108 @@ image::process-group-version-control-stopped.png["Version Control Stopped on Pro
 
 === Nested Versioned Flows
 A versioned process group can contain other versioned process groups.  However, local changes to a parent process group cannot be reverted or saved if it contains a child process group that also has local changes.  The child process group must first be reverted or have its changes committed for those actions to be performed on the parent process group.
+
+[[Restricted_Components_in_Versioned_Flows]]
+=== Restricted Components in Versioned Flows
+To import a versioned flow or revert local changes in a versioned flow, a user must have access to all the components in the versioned flow. As such, it is recommended that restricted components are created at the root process group level if they are to be utilized in versioned flows. Let's walk through some examples to illustrate the benefits of this configuration. Assume the following:
+
+* There are two users, "sys_admin" and "test_user" who have access to both view and modify the root process group.
+
+* "sys_admin" has access to all restricted components.
++
+image::sys_admin-restricted-component-access-policy.png["Sys_admin Restricted Component Access Policy"]
+
+* "test_user" has access to restricted components requiring 'read filesystem' and 'write filesystem'.
++
+image::test_user-restricted-component-read-filesystem.png["Test_user Restricted Component Read Filesystem"]
++
+image::test_user-restricted-component-write-filesystem.png["Test_user Restricted Component Write Filesystem"]
+
+==== Restricted Controller Service Created in Root Process Group
+In this first example, sys_admin creates a KeytabCredentialsService controller service at the root process group level.
+
+image:keytabCredentialsService-rpg.png["KeytabCredentialsService Controller Service RPG Level"]
+
+KeytabCredentialService controller service is a restricted component that requires 'access keytab' permissions:
+
+image:keytabcredentialsservice-permissions.png["KeytabCredentialService Required Permissions"]
+
+Sys_admin creates a process group ABC containing a flow with GetFile and PutHDFS processors:
+
+image:abc-restricted-component-flow.png["Restricted Component Flow"]
+
+GetFile processor is a restricted component that requires 'write filesystem' and 'read filesystem' permissions:
+
+image:getfile-permissions.png["GetFile Required Permissions"]
+
+PutHDFS is a restricted component that requires 'write filesystem' permissions:
+
+image:puthdfs-permissions.png["PutHDFS Required Permissions"]
+
+The PutHDFS processor is configured to use the root process group level KeytabCredentialsService controller service:
+
+image:puthdfs-properties.png["PutHDFS Properties"]
+
+Sys_admin saves the process group as a versioned flow:
+
+image:abc-versioned-flow.png["ABC Versioned Flow"]
+
+Test_user changes the flow by removing the KeytabCredentialsService controller service:
+
+image:puthdfs-no-kerberosCS.png["PutHDFS No Kerberos CS"]
+
+If test_user chooses to revert this change:
+
+image:test_user-revert-local-changes.png["Test_user Revert Local Changes]
+
+the revert is successful:
+
+image:revert-success.png["Revert Local Changes Successful"]
+
+Additionally, if test_user chooses to import the ABC versioned flow:
+
+image:test_user-import-abc-flow.png["Test_user Import Flow"]
+
+The import is successful:
+
+image:test_user-import-success.png["Test_user Import Successful"]
+
+==== Restricted Controller Service Created in Process Group
+Now, consider a second scenario where the controller service is created on the process group level.
+
+Sys_admin creates a process group XYZ:
+
+image:xyz-process-group.png["XYZ Process Group"]
+
+Sys_admin creates a KeytabCredentialsService controller service at the process group level:
+
+image:keytabCredentialsService-pg.png["KeytabCredentialsService Controller Service PG Level"]
+
+The same GetFile and PutHDFS flow is created in the process group:
+
+image:xyz-flow.png["XYZ Versioned Flow"]
+
+However, PutHDFS now references the process group level controller service:
+
+image:puthdfs-properties_2.png["PutHDFS Properties"]
+
+Sys_admin saves the process group as a versioned flow.
+
+Test_user changes the flow by removing the KeytabCredentialsService controller service. However, with this configuration, if test_user attempts to revert this change:
+
+image:test_user-revert-local-changes-2.png["Test_user Revert Local Changes"]
+
+the revert is unsuccessful because test_user does not have the 'access keytab' permissions required by the KeytabCredentialService controller service:
+
+image:revert-failure.png["Revert Local Changes Fails"]
+
+Similarly, if test_user tries to import the XYZ versioned flow:
+
+image:test_user-import-xyz-flow.png["Test_user Import Flow"]
+
+The import fails:
+
+image:import-xyz-flow-fails.png["XYZ Import Fails"]
 
 
 [[templates]]
