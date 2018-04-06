@@ -18,31 +18,23 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-solr-bundle</artifactId>
+        <artifactId>nifi-pulsar-bundle</artifactId>
         <version>1.6.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-solr-nar</artifactId>
-    <version>1.6.0-SNAPSHOT</version>
-   
-    <packaging>nar</packaging>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
+    <artifactId>nifi-pulsar-client-service-api</artifactId>
+    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-solr-processors</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <artifactId>nifi-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
-            <type>nar</type>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-client</artifactId>
+            <version>1.21.0-incubating</version>
 		</dependency>
     </dependencies>
-
 </project>

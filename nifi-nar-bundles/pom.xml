@@ -93,6 +93,9 @@
         <module>nifi-spark-bundle</module>
         <module>nifi-atlas-bundle</module>
         <module>nifi-druid-bundle</module>
+        <module>nifi-pulsar-bundle</module>
+        
+        
   </modules>
 
     <build>
