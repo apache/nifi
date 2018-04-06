@@ -3605,7 +3605,7 @@ public final class DtoFactory {
         String description = propertyDescriptor.isExpressionLanguageSupported()
                 && propertyDescriptor.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)
                 ? "true (undefined scope)" : propertyDescriptor.getExpressionLanguageScope().getDescription();
-        dto.setScopeEl(description);
+        dto.setExpressionLanguageScope(description);
 
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {
