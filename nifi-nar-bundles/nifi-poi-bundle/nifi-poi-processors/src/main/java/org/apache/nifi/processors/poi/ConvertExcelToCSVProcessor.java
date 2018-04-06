@@ -97,7 +97,7 @@ public class ConvertExcelToCSVProcessor
                     " is left blank then all of the sheets will be extracted from the Excel document. The list of names is case in-sensitive. Any sheets not " +
                     "specified in this value will be ignored.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -109,7 +109,7 @@ public class ConvertExcelToCSVProcessor
                     + "Empty rows of data anywhere in the spreadsheet will always be skipped, no matter what this value is set to.")
             .required(true)
             .defaultValue("0")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -119,7 +119,7 @@ public class ConvertExcelToCSVProcessor
             .description("Comma delimited list of column numbers to skip. Use the columns number and not the letter designation. "
                     + "Use this to skip over columns anywhere in your worksheet that you don't want extracted as part of the record.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
