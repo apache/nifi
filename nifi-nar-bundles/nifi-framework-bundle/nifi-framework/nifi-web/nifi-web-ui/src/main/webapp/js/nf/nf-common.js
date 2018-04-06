@@ -900,7 +900,7 @@
                     tipContent.push('<b>Default value:</b> ' + nfCommon.escapeHtml(propertyDescriptor.defaultValue));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.supportsEl)) {
-                    tipContent.push('<b>Expression language scope:</b> ' + nfCommon.escapeHtml(propertyDescriptor.scopeEl));
+                    tipContent.push('<b>Expression language scope:</b> ' + nfCommon.escapeHtml(propertyDescriptor.expressionLanguageScope));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.identifiesControllerService)) {
                     var formattedType = nfCommon.formatType({

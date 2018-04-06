@@ -525,8 +525,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
                     String text = "Supports Expression Language: true";
-                    final String perFF = " (will be evaluated using flow file attributes and registry)";
-                    final String registry = " (will be evaluated using registry only)";
+                    final String perFF = " (will be evaluated using flow file attributes and variable registry)";
+                    final String registry = " (will be evaluated using variable registry only)";
                     final InputRequirement inputRequirement = configurableComponent.getClass().getAnnotation(InputRequirement.class);
 
                     switch(property.getExpressionLanguageScope()) {
@@ -627,10 +627,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 } else {
                     switch(dynamicProperty.expressionLanguageScope()) {
                         case FLOWFILE_ATTRIBUTES:
-                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and registry)";
+                            text = "Supports Expression Language: true (will be evaluated using flow file attributes and variable registry)";
                             break;
                         case VARIABLE_REGISTRY:
-                            text = "Supports Expression Language: true (will be evaluated using registry only)";
+                            text = "Supports Expression Language: true (will be evaluated using variable registry only)";
                             break;
                         case NONE:
                         default:
