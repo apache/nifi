@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.Insert;
@@ -36,6 +37,7 @@ import org.apache.nifi.serialization.record.Record;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -88,18 +90,19 @@ public class PutKudu extends AbstractKudu {
     }
 
     @VisibleForTesting
-    void buildPartialRow(Schema colSchema, PartialRow row, Record record, List<String> fieldNames) {
+    void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames) {
         for (String colName : fieldNames) {
-            int colIdx = this.getColumnIndex(colSchema, colName);
+            int colIdx = this.getColumnIndex(schema, colName);
             if (colIdx != -1) {
-                Type colType = colSchema.getColumnByIndex(colIdx).getType();
+                ColumnSchema colSchema = schema.getColumnByIndex(colIdx);
+                Type colType = colSchema.getType();
 
                 if (record.getValue(colName) == null) {
                     row.setNull(colName);
                     continue;
                 }
 
-                switch (colType.getDataType()) {
+                switch (colType.getDataType(colSchema.getTypeAttributes())) {
                     case BOOL:
                         row.addBoolean(colIdx, record.getAsBoolean(colName));
                         break;
@@ -126,6 +129,11 @@ public class PutKudu extends AbstractKudu {
                         break;
                     case STRING:
                         row.addString(colIdx, record.getAsString(colName));
+                        break;
+                    case DECIMAL32:
+                    case DECIMAL64:
+                    case DECIMAL128:
+                        row.addDecimal(colIdx, new BigDecimal(record.getAsString(colName)));
                         break;
                     default:
                         throw new IllegalStateException(String.format("unknown column type %s", colType));
