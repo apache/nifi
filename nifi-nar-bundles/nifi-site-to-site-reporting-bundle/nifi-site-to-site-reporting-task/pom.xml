@@ -18,12 +18,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-site-to-site-reporting-bundle</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-site-to-site-reporting-task</artifactId>
     <description>Publishes NiFi metrics and provenance events via S2S</description>
-    <version>1.6.0-SNAPSHOT</version>
+    <version>1.7.0-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
@@ -33,17 +33,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-reporting-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -52,7 +52,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-site-to-site-client</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish</groupId>
@@ -73,13 +73,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
