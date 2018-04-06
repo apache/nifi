@@ -39,7 +39,7 @@ import org.apache.nifi.reporting.InitializationException;
 
 @CapabilityDescription("Provides a mechanism for specifying a Keytab and a Principal that other components are able to use in order to "
     + "perform authentication using Kerberos. By encapsulating this information into a Controller Service and allowing other components to make use of it "
-    + "(as opposed to specifying the principal and keytab directly in the processor) an administrative is able to choose which users are allowed to "
+    + "(as opposed to specifying the principal and keytab directly in the processor) an administrator is able to choose which users are allowed to "
     + "use which keytabs and principals. This provides a more robust security model for multi-tenant use cases.")
 @Tags({"Kerberos", "Keytab", "Principal", "Credentials", "Authentication", "Security"})
 @Restricted(restrictions = {
