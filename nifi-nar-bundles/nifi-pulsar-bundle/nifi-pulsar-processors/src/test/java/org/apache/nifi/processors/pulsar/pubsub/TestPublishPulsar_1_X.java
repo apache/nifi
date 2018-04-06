@@ -40,7 +40,7 @@ public class TestPublishPulsar_1_X extends AbstractPulsarProcessorTest {
 
     @Before
     public void init() throws InitializationException {
-
+        runner = TestRunners.newTestRunner(PublishPulsar_1_X.class);
         mockClient = mock(PulsarClient.class);
         mockProducer = mock(Producer.class);
 
@@ -71,7 +71,6 @@ public class TestPublishPulsar_1_X extends AbstractPulsarProcessorTest {
            e.printStackTrace();
         }
 
-        runner = TestRunners.newTestRunner(PublishPulsar_1_X.class);
         addPulsarClientService();
     }
 

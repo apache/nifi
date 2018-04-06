@@ -300,4 +300,5 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
              } while (completed != null);
         }
     }
+
 }

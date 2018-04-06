@@ -240,6 +240,7 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
          } catch (InterruptedException e) {
             getLogger().error("Trouble publishing messages ", e);
          }
+
     }
 
     protected PulsarProducer getWrappedProducer(String topic, ProcessContext context) throws PulsarClientException, IllegalArgumentException {
