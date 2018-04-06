@@ -104,6 +104,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     @Test
     public void testQueryAndUpdateKey() {
         TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         runner.setProperty(PutMongo.UPDATE_QUERY, "{}");
         runner.assertNotValid();
@@ -112,6 +113,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     @Test
     public void testNoQueryAndNoUpdateKey() {
         TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.removeProperty(PutMongo.UPDATE_QUERY);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "");
         runner.assertNotValid();
