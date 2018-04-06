@@ -109,6 +109,8 @@ public class PutKudu extends AbstractKudu {
                         row.addBinary(colIdx, record.getAsString(colName).getBytes());
                         break;
                     case INT8:
+                        row.addByte(colIdx, record.getAsInt(colName).byteValue());
+                        break;
                     case INT16:
                         row.addShort(colIdx, record.getAsInt(colName).shortValue());
                         break;
