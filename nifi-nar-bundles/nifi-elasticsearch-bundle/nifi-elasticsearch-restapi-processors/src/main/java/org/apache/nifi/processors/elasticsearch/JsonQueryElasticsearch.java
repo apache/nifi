@@ -75,7 +75,6 @@ public class JsonQueryElasticsearch extends AbstractProcessor implements Elastic
     public static final Relationship REL_AGGREGATIONS = new Relationship.Builder().name("aggregations")
             .description("Aggregations are routed to this relationship.")
             .build();
-    
     public static final AllowableValue SPLIT_UP_YES = new AllowableValue(
         "splitUp-yes",
         "Yes",
