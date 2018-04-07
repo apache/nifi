@@ -19,25 +19,66 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.elasticsearch.DeleteOperationResponse;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
+import org.apache.nifi.elasticsearch.IndexOperationRequest;
+import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.elasticsearch.SearchResponse;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
     private boolean returnAggs;
     private boolean throwErrorInSearch;
+    private boolean throwErrorInDelete;
 
     public TestElasticSearchClientService(boolean returnAggs) {
         this.returnAggs = returnAggs;
     }
 
     @Override
+    public IndexOperationResponse add(IndexOperationRequest operation) throws IOException {
+        return add(Arrays.asList(operation));
+    }
+
+    @Override
+    public IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException {
+        return new IndexOperationResponse(100L, 100L);
+    }
+
+    @Override
+    public DeleteOperationResponse deleteById(String index, String type, String id) throws IOException {
+        return deleteById(index, type, Arrays.asList(id));
+    }
+
+    @Override
+    public DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException {
+        if (throwErrorInDelete) {
+            throw new IOException("Simulated IOException");
+        }
+        return new DeleteOperationResponse(100L);
+    }
+
+    @Override
+    public DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException {
+        return deleteById(index, type, Arrays.asList("1"));
+    }
+
+    @Override
+    public Map<String, Object> get(String index, String type, String id) throws IOException {
+        return new HashMap<String, Object>(){{
+            put("msg", "one");
+        }};
+    }
+
+    @Override
     public SearchResponse search(String query, String index, String type) throws IOException {
         if (throwErrorInSearch) {
-            throw new IOException();
+            throw new IOException("Simulated IOException");
         }
 
         ObjectMapper mapper = new ObjectMapper();
@@ -202,5 +243,9 @@ public class TestElasticSearchClientService extends AbstractControllerService im
 
     public void setThrowErrorInSearch(boolean throwErrorInSearch) {
         this.throwErrorInSearch = throwErrorInSearch;
+    }
+
+    public void setThrowErrorInDelete(boolean throwErrorInDelete) {
+        this.throwErrorInDelete = throwErrorInDelete;
     }
 }
