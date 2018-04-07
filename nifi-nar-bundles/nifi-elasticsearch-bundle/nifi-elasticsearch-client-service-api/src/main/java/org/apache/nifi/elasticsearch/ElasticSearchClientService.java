@@ -25,6 +25,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 @Tags({"elasticsearch", "client"})
 @CapabilityDescription("A controller service for accessing an ElasticSearch client.")
@@ -94,6 +96,66 @@ public interface ElasticSearchClientService extends ControllerService {
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
+
+    /**
+     * Index a document.
+     *
+     * @param operation A document to index.
+     * @return IndexOperationResponse if successful
+     * @throws IOException thrown when there is an error.
+     */
+    IndexOperationResponse add(IndexOperationRequest operation) throws IOException;
+
+    /**
+     * Index multiple documents.
+     *
+     * @param operations A list of documents to index.
+     * @return IndexOperationResponse if successful.
+     * @throws IOException thrown when there is an error.
+     */
+    IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException;
+
+    /**
+     * Delete a document by its ID from an index.
+     *
+     * @param index The index to target.
+     * @param type The type to target. Optional.
+     * @param id The document ID to remove from the selected index.
+     * @return A DeleteOperationResponse object if successful.
+     */
+    DeleteOperationResponse deleteById(String index, String type, String id) throws IOException;
+
+
+    /**
+     * Delete multiple documents by ID from an index.
+     * @param index The index to target.
+     * @param type The type to target. Optional.
+     * @param ids A list of document IDs to remove from the selected index.
+     * @return A DeleteOperationResponse object if successful.
+     * @throws IOException thrown when there is an error.
+     */
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException;
+
+    /**
+     * Delete documents by query.
+     *
+     * @param query A valid JSON query to be used for finding documents to delete.
+     * @param index The index to target.
+     * @param type The type to target within the index. Optional.
+     * @return A DeleteOperationResponse object if successful.
+     */
+    DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException;
+
+    /**
+     * Get a document by ID.
+     *
+     * @param index The index that holds the document.
+     * @param type The document type. Optional.
+     * @param id The document ID
+     * @return Map if successful, null if not found.
+     * @throws IOException thrown when there is an error.
+     */
+    Map<String, Object> get(String index, String type, String id) throws IOException;
 
     /**
      * Perform a search using the JSON DSL.
