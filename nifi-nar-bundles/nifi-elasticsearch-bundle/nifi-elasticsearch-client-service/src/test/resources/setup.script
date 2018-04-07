@@ -14,6 +14,7 @@
 # limitations under the License.
 #create mapping
 PUT:messages/:{ "mappings":{"message":{ "properties":{ "msg":{"type":"keyword"}}}}}
+PUT:complex/:{"mappings":{"complex":{"properties":{"msg":{"type":"keyword"},"subField":{"type":"nested","properties":{"longField":{"type":"long"},"dateField":{"type":"date"}}}}}}}
 #add document
 PUT:messages/message/1:{ "msg":"one" }
 PUT:messages/message/2:{ "msg":"two" }
@@ -30,3 +31,4 @@ PUT:messages/message/12:{ "msg":"five" }
 PUT:messages/message/13:{ "msg":"five" }
 PUT:messages/message/14:{ "msg":"five" }
 PUT:messages/message/15:{ "msg":"five" }
+PUT:complex/complex/1:{"msg":"Hello, world","subField":{"longField":100000,"dateField":"2018-04-10T12:18:05Z"}}

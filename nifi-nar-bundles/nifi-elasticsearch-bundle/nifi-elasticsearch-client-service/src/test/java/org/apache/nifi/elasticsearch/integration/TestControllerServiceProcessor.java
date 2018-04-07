@@ -19,6 +19,7 @@ package org.apache.nifi.elasticsearch.integration;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
+import org.apache.nifi.elasticsearch.ElasticSearchLookupService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -35,6 +36,12 @@ public class TestControllerServiceProcessor extends AbstractProcessor {
             .identifiesControllerService(ElasticSearchClientServiceImpl.class)
             .required(true)
             .build();
+    static final PropertyDescriptor LOOKUP_SERVICE = new PropertyDescriptor.Builder()
+            .name("Lookup Service")
+            .description("ElasticSearchClientServiceImpl")
+            .identifiesControllerService(ElasticSearchLookupService.class)
+            .required(false)
+            .build();
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -44,6 +51,7 @@ public class TestControllerServiceProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(CLIENT_SERVICE);
+        propDescs.add(LOOKUP_SERVICE);
         return propDescs;
     }
 }
