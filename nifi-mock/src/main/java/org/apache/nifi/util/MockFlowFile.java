@@ -98,8 +98,8 @@ public class MockFlowFile implements FlowFileRecord {
         this.penalized = toCopy.isPenalized();
     }
 
-    void setPenalized() {
-        this.penalized = true;
+    void setPenalized(boolean penalized) {
+        this.penalized = penalized;
     }
 
     public long getCreationTime() {
