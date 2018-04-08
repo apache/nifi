@@ -259,7 +259,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 this.relationships = routeQueryInfoRels;
 
                 this.queryInfoRouteStrategy = QueryInfoRouteStrategy.ALWAYS;
-            }else if (NO_HITS.getValue().equalsIgnoreCase(newValue)) {
+            } else if (NO_HITS.getValue().equalsIgnoreCase(newValue)) {
                 final Set<Relationship> routeQueryInfoRels = new HashSet<>();
                 routeQueryInfoRels.add(REL_SUCCESS);
                 routeQueryInfoRels.add(REL_FAILURE);
@@ -268,8 +268,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 this.relationships = routeQueryInfoRels;
 
                 this.queryInfoRouteStrategy = QueryInfoRouteStrategy.NOHIT;
-            }
-            }else {
+            } else {
                 final Set<Relationship> successRels = new HashSet<>();
                 successRels.add(REL_SUCCESS);
                 successRels.add(REL_FAILURE);
@@ -279,6 +278,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 this.queryInfoRouteStrategy = QueryInfoRouteStrategy.NEVER;
             }
         }
+    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session)
