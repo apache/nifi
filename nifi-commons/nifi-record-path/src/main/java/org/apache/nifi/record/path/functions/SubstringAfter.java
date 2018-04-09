@@ -58,7 +58,7 @@ public class SubstringAfter extends RecordPathSegment {
                     return new StandardFieldValue("", fv.getField(), fv.getParent().orElse(null));
                 }
 
-                return new StandardFieldValue(value.substring(index + 1), fv.getField(), fv.getParent().orElse(null));
+                return new StandardFieldValue(value.substring(index + searchValue.length()), fv.getField(), fv.getParent().orElse(null));
             });
     }
 
