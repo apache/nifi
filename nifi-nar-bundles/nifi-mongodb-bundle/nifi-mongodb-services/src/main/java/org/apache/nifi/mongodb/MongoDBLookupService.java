@@ -20,22 +20,20 @@ package org.apache.nifi.mongodb;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
 import org.bson.Document;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,6 +41,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.apache.nifi.schema.access.SchemaAccessUtils.INFER_SCHEMA;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 
 @Tags({"mongo", "mongodb", "lookup", "record"})
 @CapabilityDescription(
@@ -52,31 +61,49 @@ import java.util.Set;
     "The query is limited to the first result (findOne in the Mongo documentation). If no \"Lookup Value Field\" is specified " +
     "then the entire MongoDB result document minus the _id field will be returned as a record."
 )
-public class MongoDBLookupService extends MongoDBControllerService implements LookupService<Object> {
+public class MongoDBLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Object> {
+    public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
+        .name("mongo-lookup-client-service")
+        .displayName("Client Service")
+        .description("A MongoDB controller service to use with this lookup service.")
+        .required(true)
+        .identifiesControllerService(MongoDBClientService.class)
+        .build();
 
     public static final PropertyDescriptor LOOKUP_VALUE_FIELD = new PropertyDescriptor.Builder()
-            .name("mongo-lookup-value-field")
-            .displayName("Lookup Value Field")
-            .description("The field whose value will be returned when the lookup key(s) match a record. If not specified then the entire " +
-                    "MongoDB result document minus the _id field will be returned as a record.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
+        .name("mongo-lookup-value-field")
+        .displayName("Lookup Value Field")
+        .description("The field whose value will be returned when the lookup key(s) match a record. If not specified then the entire " +
+                "MongoDB result document minus the _id field will be returned as a record.")
+        .addValidator(Validator.VALID)
+        .required(false)
+        .build();
+    public static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
+        .name("mongo-lookup-projection")
+        .displayName("Projection")
+        .description("Specifies a projection for limiting which fields will be returned.")
+        .required(false)
+        .build();
 
     private String lookupValueField;
 
-    private static final List<PropertyDescriptor> lookupDescriptors;
-
-    static {
-        lookupDescriptors = new ArrayList<>();
-        lookupDescriptors.addAll(descriptors);
-        lookupDescriptors.add(LOOKUP_VALUE_FIELD);
+    @Override
+    public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+        /*
+         * Unless the user hard-coded schema.name or schema.text into the schema access options, this is going
+         * to force schema detection.
+         */
+        return lookup(coordinates, new HashMap<>());
     }
 
     @Override
-    public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
-        Map<String, Object> clean = new HashMap<>();
-        clean.putAll(coordinates);
+    public Optional<Object> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+        Map<String, Object> clean = coordinates.entrySet().stream()
+            .filter(e -> !schemaNameProperty.equals(String.format("${%s}", e.getKey())))
+            .collect(Collectors.toMap(
+                e -> e.getKey(),
+                e -> e.getValue()
+            ));
         Document query = new Document(clean);
 
         if (coordinates.size() == 0) {
@@ -84,23 +111,15 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         }
 
         try {
-            Document result = this.findOne(query);
+            Document result = projection != null ? controllerService.findOne(query, projection) : controllerService.findOne(query);
 
             if(result == null) {
                 return Optional.empty();
             } else if (!StringUtils.isEmpty(lookupValueField)) {
                 return Optional.ofNullable(result.get(lookupValueField));
             } else {
-                final List<RecordField> fields = new ArrayList<>();
+                RecordSchema schema = loadSchema(context, result);
 
-                for (String key : result.keySet()) {
-                    if (key.equals("_id")) {
-                        continue;
-                    }
-                    fields.add(new RecordField(key, RecordFieldType.STRING.getDataType()));
-                }
-
-                final RecordSchema schema = new SimpleRecordSchema(fields);
                 return Optional.ofNullable(new MapRecord(schema, result));
             }
         } catch (Exception ex) {
@@ -109,10 +128,32 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         }
     }
 
-    @Override
+    private RecordSchema loadSchema(Map<String, String> context, Document doc) {
+        try {
+            return getSchema(context, doc, null);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private volatile Document projection;
+    private MongoDBClientService controllerService;
+    private String schemaNameProperty;
+
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
+    public void onEnabled(final ConfigurationContext context) {
         this.lookupValueField = context.getProperty(LOOKUP_VALUE_FIELD).getValue();
+        this.controllerService = context.getProperty(CONTROLLER_SERVICE).asControllerService(MongoDBClientService.class);
+
+        this.schemaNameProperty = context.getProperty(SchemaAccessUtils.SCHEMA_NAME).getValue();
+
+        String configuredProjection = context.getProperty(PROJECTION).isSet()
+            ? context.getProperty(PROJECTION).getValue()
+            : null;
+        if (!StringUtils.isBlank(configuredProjection)) {
+            projection = Document.parse(configuredProjection);
+        }
+
         super.onEnabled(context);
     }
 
@@ -128,6 +169,25 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return lookupDescriptors;
+        AllowableValue[] strategies = new AllowableValue[] {
+            SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, INFER_SCHEMA
+        };
+        List<PropertyDescriptor> _temp = new ArrayList<>();
+        _temp.add(new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
+                .allowableValues(strategies)
+                .defaultValue(getDefaultSchemaAccessStrategy().getValue())
+                .build());
+
+        _temp.add(SCHEMA_REGISTRY);
+        _temp.add(SCHEMA_NAME);
+        _temp.add(SCHEMA_VERSION);
+        _temp.add(SCHEMA_BRANCH_NAME);
+        _temp.add(SCHEMA_TEXT);
+        _temp.add(CONTROLLER_SERVICE);
+        _temp.add(LOOKUP_VALUE_FIELD);
+        _temp.add(PROJECTION);
+
+        return Collections.unmodifiableList(_temp);
     }
 }
