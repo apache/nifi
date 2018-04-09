@@ -253,4 +253,35 @@ public class TestPutEmail {
         assertNull(message.getRecipients(RecipientType.CC));
     }
 
+    @Test
+    public void testOutgoingMessageWithFlowfileContent() throws Exception {
+        // verifies that are set on the outgoing Message correctly
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put("sendContent", "true");
+        attributes.put("body", "Message Body");
+
+        runner.enqueue("Some Text".getBytes(), attributes);
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
+
+        // Verify that the Message was populated correctly
+        assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
+        Message message = processor.getMessages().get(0);
+        assertEquals("test@apache.org", message.getFrom()[0].toString());
+        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("Some Text", message.getContent());
+        assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
+        assertNull(message.getRecipients(RecipientType.BCC));
+        assertNull(message.getRecipients(RecipientType.CC));
+    }
+
 }

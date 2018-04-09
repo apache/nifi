@@ -108,6 +108,7 @@ public class ConvertExcelToCSVProcessor
                     + "Empty rows of data anywhere in the spreadsheet will always be skipped, no matter what this value is set to.")
             .required(true)
             .defaultValue("0")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -117,6 +118,7 @@ public class ConvertExcelToCSVProcessor
             .description("Comma delimited list of column numbers to skip. Use the columns number and not the letter designation. "
                     + "Use this to skip over columns anywhere in your worksheet that you don't want extracted as part of the record.")
             .required(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -165,9 +167,9 @@ public class ConvertExcelToCSVProcessor
         descriptors.add(CSVUtils.NULL_STRING);
         descriptors.add(CSVUtils.TRIM_FIELDS);
         descriptors.add(new PropertyDescriptor.Builder()
-                    .fromPropertyDescriptor(CSVUtils.QUOTE_MODE)
-                    .defaultValue(CSVUtils.QUOTE_NONE.getValue())
-                    .build());
+                .fromPropertyDescriptor(CSVUtils.QUOTE_MODE)
+                .defaultValue(CSVUtils.QUOTE_NONE.getValue())
+                .build());
         descriptors.add(CSVUtils.RECORD_SEPARATOR);
         descriptors.add(CSVUtils.TRAILING_DELIMITER);
         this.descriptors = Collections.unmodifiableList(descriptors);
@@ -196,15 +198,15 @@ public class ConvertExcelToCSVProcessor
             return;
         }
 
-        final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions().getValue();
+        final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions(flowFile).getValue();
         final boolean formatValues = context.getProperty(FORMAT_VALUES).asBoolean();
 
         final CSVFormat csvFormat = CSVUtils.createCSVFormat(context);
 
         //Switch to 0 based index
-        final int firstRow = context.getProperty(ROWS_TO_SKIP).asInteger() - 1;
+        final int firstRow = context.getProperty(ROWS_TO_SKIP).evaluateAttributeExpressions(flowFile).asInteger() - 1;
         final String[] sColumnsToSkip = StringUtils
-                .split(context.getProperty(COLUMNS_TO_SKIP).getValue(), ",");
+                .split(context.getProperty(COLUMNS_TO_SKIP).evaluateAttributeExpressions(flowFile).getValue(), ",");
 
         final List<Integer> columnsToSkip = new ArrayList<>();
 

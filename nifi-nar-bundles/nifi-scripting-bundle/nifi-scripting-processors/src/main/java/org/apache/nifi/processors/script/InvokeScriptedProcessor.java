@@ -61,7 +61,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "restricted"})
+@Tags({"script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Experimental - Invokes a script engine for a Processor defined in the given script. The script must define "
         + "a valid class that implements the Processor interface, and it must set a variable 'processor' to an instance of "
         + "the class. Processor methods such as onTrigger() will be delegated to the scripted Processor instance. Also any "
@@ -245,10 +245,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
                 || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
-            // Need to reset scriptEngine if the value has changed
-            if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
-                scriptEngine = null;
-            }
+            scriptEngine = null; //reset engine. This happens only when a processor is stopped, so there won't be any performance impact in run-time.
         } else if (instance != null) {
             // If the script provides a Processor, call its onPropertyModified() method
             try {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.mongodb;
 
+import com.mongodb.client.MongoCursor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -31,9 +32,11 @@ import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -43,6 +46,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         super.setup(PutMongo.class);
     }
 
+    @Override
     @After
     public void teardown() {
         super.teardown();
@@ -76,6 +80,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DATABASE_NAME);
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
         runner.setProperty(PutMongo.WRITE_CONCERN, "xyz");
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
@@ -97,7 +102,183 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
+    public void testQueryAndUpdateKey() {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
+        runner.setProperty(PutMongo.UPDATE_QUERY, "{}");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNoQueryAndNoUpdateKey() {
+        TestRunner runner = init(PutMongo.class);
+        runner.removeProperty(PutMongo.UPDATE_QUERY);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testBlankUpdateKey() {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "  ");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testUpdateQuery() {
+        TestRunner runner = init(PutMongo.class);
+        Document document = new Document()
+            .append("name", "John Smith")
+            .append("department", "Engineering");
+        collection.insertOne(document);
+        String updateBody = "{\n" +
+            "\t\"$set\": {\n" +
+            "\t\t\"email\": \"john.smith@test.com\",\n" +
+            "\t\t\"grade\": \"Sr. Principle Eng.\"\n" +
+            "\t},\n" +
+            "\t\"$inc\": {\n" +
+            "\t\t\"writes\": 1\n" +
+            "\t}\n" +
+            "}";
+        Map<String, String> attr = new HashMap<>();
+        attr.put("mongo.update.query", document.toJson());
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setProperty(PutMongo.UPDATE_QUERY, "${mongo.update.query}");
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody, attr);
+        updateTests(runner, document);
+    }
+
+    @Test
+    public void testUpdateBySimpleKey() {
+        TestRunner runner = init(PutMongo.class);
+        Document document = new Document()
+            .append("name", "John Smith")
+            .append("department", "Engineering");
+        collection.insertOne(document);
+
+        String updateBody = "{\n" +
+            "\t\"name\": \"John Smith\",\n" +
+            "\t\"$set\": {\n" +
+            "\t\t\"email\": \"john.smith@test.com\",\n" +
+            "\t\t\"grade\": \"Sr. Principle Eng.\"\n" +
+            "\t},\n" +
+            "\t\"$inc\": {\n" +
+            "\t\t\"writes\": 1\n" +
+            "\t}\n" +
+            "}";
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "name");
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody);
+        updateTests(runner, document);
+    }
+
+    @Test
+    public void testUpdateWithFullDocByKeys() {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "name,department");
+        testUpdateFullDocument(runner);
+    }
+
+    @Test
+    public void testUpdateWithFullDocByQuery() {
+        TestRunner runner = init(PutMongo.class);
+        String query = "{ \"name\": \"John Smith\"}";
+        runner.setProperty(PutMongo.UPDATE_QUERY, query);
+        testUpdateFullDocument(runner);
+    }
+
+    private void testUpdateFullDocument(TestRunner runner) {
+        Document document = new Document()
+                .append("name", "John Smith")
+                .append("department", "Engineering");
+        collection.insertOne(document);
+        String updateBody = "{\n" +
+                "\t\"name\": \"John Smith\",\n" +
+                "\t\"department\": \"Engineering\",\n" +
+                "\t\"contacts\": {\n" +
+                "\t\t\"phone\": \"555-555-5555\",\n" +
+                "\t\t\"email\": \"john.smith@test.com\",\n" +
+                "\t\t\"twitter\": \"@JohnSmith\"\n" +
+                "\t}\n" +
+                "}";
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_DOC);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody);
+        runner.run();
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
+
+        MongoCursor<Document> cursor = collection.find(document).iterator();
+        Document found = cursor.next();
+        Assert.assertEquals(found.get("name"), document.get("name"));
+        Assert.assertEquals(found.get("department"), document.get("department"));
+        Document contacts = (Document)found.get("contacts");
+        Assert.assertNotNull(contacts);
+        Assert.assertEquals(contacts.get("twitter"), "@JohnSmith");
+        Assert.assertEquals(contacts.get("email"), "john.smith@test.com");
+        Assert.assertEquals(contacts.get("phone"), "555-555-5555");
+        Assert.assertEquals(collection.count(document), 1);
+    }
+
+    @Test
+    public void testUpdateByComplexKey() {
+        TestRunner runner = init(PutMongo.class);
+        Document document = new Document()
+                .append("name", "John Smith")
+                .append("department", "Engineering")
+                .append("contacts", new Document().append("email", "john.smith@test.com")
+                .append("phone", "555-555-5555"));
+        collection.insertOne(document);
+        String updateBody = "{\n" +
+                "\t\"contacts.phone\": \"555-555-5555\",\n" +
+                "\t\"contacts.email\": \"john.smith@test.com\",\n" +
+                "\t\"$set\": {\n" +
+                "\t\t\"contacts.twitter\": \"@JohnSmith\"\n" +
+                "\t},\n" +
+                "\t\"$inc\": {\n" +
+                "\t\t\"writes\": 1\n" +
+                "\t}\n" +
+                "}";
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "contacts.phone,contacts.email");
+        runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setValidateExpressionUsage(true);
+        runner.enqueue(updateBody);
+        runner.run();
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
+
+        MongoCursor<Document> iterator = collection.find(new Document("name", "John Smith")).iterator();
+        Assert.assertTrue("Document did not come back.", iterator.hasNext());
+        Document val = iterator.next();
+        Map contacts = (Map)val.get("contacts");
+        Assert.assertNotNull(contacts);
+        Assert.assertTrue(contacts.containsKey("twitter") && contacts.get("twitter").equals("@JohnSmith"));
+        Assert.assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
+    }
+
+    private void updateTests(TestRunner runner, Document document) {
+        runner.run();
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
+
+        MongoCursor<Document> iterator = collection.find(document).iterator();
+        Assert.assertTrue("Document did not come back.", iterator.hasNext());
+        Document val = iterator.next();
+        Assert.assertTrue(val.containsKey("email") && val.get("email").equals("john.smith@test.com"));
+        Assert.assertTrue(val.containsKey("grade") && val.get("grade").equals("Sr. Principle Eng."));
+        Assert.assertTrue(val.containsKey("writes") && val.get("writes").equals(1));
+    }
+
+    @Test
     public void testInsertOne() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         Document doc = DOCUMENTS.get(0);
         byte[] bytes = documentToByteArray(doc);
 
@@ -115,6 +296,8 @@ public class PutMongoIT extends MongoWriteTestBase {
 
     @Test
     public void testInsertMany() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         for (Document doc : DOCUMENTS) {
             runner.enqueue(documentToByteArray(doc));
         }
@@ -132,6 +315,8 @@ public class PutMongoIT extends MongoWriteTestBase {
 
     @Test
     public void testInsertWithDuplicateKey() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         // pre-insert one document
         collection.insertOne(DOCUMENTS.get(0));
 
@@ -161,6 +346,8 @@ public class PutMongoIT extends MongoWriteTestBase {
      */
     @Test
     public void testUpdateDoesNotInsert() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         Document doc = DOCUMENTS.get(0);
         byte[] bytes = documentToByteArray(doc);
 
@@ -182,6 +369,8 @@ public class PutMongoIT extends MongoWriteTestBase {
      */
     @Test
     public void testUpsert() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         Document doc = DOCUMENTS.get(0);
         byte[] bytes = documentToByteArray(doc);
 
@@ -201,6 +390,8 @@ public class PutMongoIT extends MongoWriteTestBase {
 
     @Test
     public void testUpdate() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         Document doc = DOCUMENTS.get(0);
 
         // pre-insert document
@@ -227,6 +418,7 @@ public class PutMongoIT extends MongoWriteTestBase {
 
     @Test
     public void testUpsertWithOperators() throws Exception {
+        TestRunner runner = init(PutMongo.class);
         String upsert = "{\n" +
                 "  \"_id\": \"Test\",\n" +
                 "  \"$push\": {\n" +
@@ -234,6 +426,7 @@ public class PutMongoIT extends MongoWriteTestBase {
                 "  }\n" +
                 "}";
         runner.setProperty(PutMongo.UPDATE_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         runner.setProperty(PutMongo.MODE, "update");
         runner.setProperty(PutMongo.UPSERT, "true");
         for (int x = 0; x < 3; x++) {
@@ -273,6 +466,7 @@ public class PutMongoIT extends MongoWriteTestBase {
      */
     @Test
     public void testNiFi_4759_Regressions() {
+        TestRunner runner = init(PutMongo.class);
         String[] upserts = new String[]{
                 "{ \"_id\": \"12345\", \"$set\": { \"msg\": \"Hello, world\" } }",
                 "{ \"_id\": \"5a5617b9c1f5de6d8276e87d\", \"$set\": { \"msg\": \"Hello, world\" } }",

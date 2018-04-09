@@ -34,25 +34,28 @@ import com.rabbitmq.client.Connection;
 abstract class AMQPWorker implements AutoCloseable {
 
     private final static Logger logger = LoggerFactory.getLogger(AMQPWorker.class);
-
-    protected final Channel channel;
+    private final Channel channel;
 
     /**
      * Creates an instance of this worker initializing it with AMQP
      * {@link Connection} and creating a target {@link Channel} used by
      * sub-classes to interact with AMQP-based messaging system.
      *
-     * @param connection
-     *            instance of {@link Connection}
+     * @param connection instance of {@link Connection}
      */
-    public AMQPWorker(Connection connection) {
-        this.validateConnection(connection);
+    public AMQPWorker(final Connection connection) {
+        validateConnection(connection);
+
         try {
             this.channel = connection.createChannel();
         } catch (IOException e) {
             logger.error("Failed to create Channel for " + connection, e);
             throw new IllegalStateException(e);
         }
+    }
+
+    protected Channel getChannel() {
+        return channel;
     }
 
     /**
@@ -91,8 +94,7 @@ abstract class AMQPWorker implements AutoCloseable {
     /**
      * Validates that {@link Connection} is not null and open.
      *
-     * @param connection
-     *            instance of {@link Connection}
+     * @param connection instance of {@link Connection}
      */
     private void validateConnection(Connection connection) {
         if (connection == null) {

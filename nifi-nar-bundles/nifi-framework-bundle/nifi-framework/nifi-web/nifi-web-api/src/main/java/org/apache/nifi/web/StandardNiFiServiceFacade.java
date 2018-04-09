@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -284,8 +282,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -947,9 +945,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<VariableRegistryDTO> snapshot = updateComponent(user, revision,
             processGroupNode,
             () -> processGroupDAO.updateVariableRegistry(user, variableRegistryDto),
-            processGroup -> dtoFactory.createVariableRegistryDto(processGroup, revisionManager));
+            processGroup -> dtoFactory.createVariableRegistryDto(processGroup, revisionManager, user));
 
-        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode);
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroupNode, user);
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         return entityFactory.createVariableRegistryEntity(snapshot.getComponent(), updatedRevision, permissions);
     }
@@ -1183,6 +1181,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 dtoFactory.createProcessorDto(processor));
 
         return entityFactory.createProcessorEntity(snapshot, null, permissions, null, null);
+    }
+
+    @Override
+    public ProcessorEntity terminateProcessor(final String processorId) {
+        processorDAO.terminate(processorId);
+        return getProcessor(processorId);
+    }
+
+    @Override
+    public void verifyTerminateProcessor(final String processorId) {
+        processorDAO.verifyTerminate(processorId);
     }
 
     @Override

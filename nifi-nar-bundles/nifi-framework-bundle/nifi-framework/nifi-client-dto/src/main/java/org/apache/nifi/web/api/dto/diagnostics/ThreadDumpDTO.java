@@ -29,6 +29,7 @@ public class ThreadDumpDTO {
     private String stackTrace;
     private String threadName;
     private long threadActiveMillis;
+    private boolean taskTerminated;
 
     @ApiModelProperty("The ID of the node in the cluster")
     public String getNodeId() {
@@ -82,5 +83,15 @@ public class ThreadDumpDTO {
 
     public void setThreadActiveMillis(long threadActiveMillis) {
         this.threadActiveMillis = threadActiveMillis;
+    }
+
+    public void setTaskTerminated(final boolean terminated) {
+        this.taskTerminated = terminated;
+    }
+
+    @ApiModelProperty("Indicates whether or not the user has requested that the task be terminated. If this is true, it may indicate that "
+        + "the thread is in a state where it will continue running indefinitely without returning.")
+    public boolean isTaskTerminated() {
+        return taskTerminated;
     }
 }

@@ -51,7 +51,6 @@ import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.SystemBundle;
@@ -102,7 +101,7 @@ public class TestStandardProcessorNode {
             NiFiProperties.createBasicNiFiProperties(null, null), new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent);
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestClasspathResources", true);
 
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null);
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false);
         final SchedulingAgentCallback schedulingAgentCallback = new SchedulingAgentCallback() {
             @Override
             public void onTaskComplete() {
@@ -405,7 +404,7 @@ public class TestStandardProcessorNode {
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", null);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
-        final ComponentLog componentLog = Mockito.mock(ComponentLog.class);
+        final TerminationAwareLogger componentLog = Mockito.mock(TerminationAwareLogger.class);
 
         final Bundle systemBundle = SystemBundle.create(niFiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
@@ -422,7 +421,6 @@ public class TestStandardProcessorNode {
     private static class MockReloadComponent implements ReloadComponent {
 
         private String newType;
-        private BundleCoordinate bundleCoordinate;
         private final Set<URL> additionalUrls = new LinkedHashSet<>();
 
         public Set<URL> getAdditionalUrls() {
@@ -433,28 +431,23 @@ public class TestStandardProcessorNode {
             return newType;
         }
 
-        public BundleCoordinate getBundleCoordinate() {
-            return bundleCoordinate;
-        }
-
         @Override
         public void reload(ProcessorNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ProcessorInstantiationException {
-            reload(newType, bundleCoordinate, additionalUrls);
+            reload(newType, additionalUrls);
         }
 
         @Override
         public void reload(ControllerServiceNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ControllerServiceInstantiationException {
-            reload(newType, bundleCoordinate, additionalUrls);
+            reload(newType, additionalUrls);
         }
 
         @Override
         public void reload(ReportingTaskNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ReportingTaskInstantiationException {
-            reload(newType, bundleCoordinate, additionalUrls);
+            reload(newType, additionalUrls);
         }
 
-        private void reload(String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) {
+        private void reload(String newType, Set<URL> additionalUrls) {
             this.newType = newType;
-            this.bundleCoordinate = bundleCoordinate;
             this.additionalUrls.clear();
             if (additionalUrls != null) {
                 this.additionalUrls.addAll(additionalUrls);

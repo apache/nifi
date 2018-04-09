@@ -181,8 +181,13 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public ComponentAuthorizable getConfigurableComponent(final String type, final BundleDTO bundle) {
+        final ConfigurableComponent configurableComponent = controllerFacade.getTemporaryComponent(type, bundle);
+        return getConfigurableComponent(configurableComponent);
+    }
+
+    @Override
+    public ComponentAuthorizable getConfigurableComponent(ConfigurableComponent configurableComponent) {
         try {
-            final ConfigurableComponent configurableComponent = controllerFacade.getTemporaryComponent(type, bundle);
             return new ConfigurableComponentAuthorizable(configurableComponent);
         } catch (final Exception e) {
             throw new AccessDeniedException("Unable to create component to verify if it references any Controller Services.");

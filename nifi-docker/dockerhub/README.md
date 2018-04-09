@@ -134,3 +134,6 @@ can be published to the host.
 | HTTPS Port               | nifi.web.https.port           | 8443  |
 | Remote Input Socket Port | nifi.remote.input.socket.port | 10000 |
 
+=======
+**NOTE**: If mapping the HTTPS port specifying trusted hosts should be provided for the property _nifi.web.proxy.host_.  This property can be specified to running instances
+via specifying an environment variable at container instantiation of _NIFI\_WEB\_PROXY\_HOST_.

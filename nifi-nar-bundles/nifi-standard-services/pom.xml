@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.6.0</version>
     </parent>
     <artifactId>nifi-standard-services</artifactId>
     <packaging>pom</packaging>
@@ -41,7 +41,7 @@
         <module>nifi-record-serialization-service-api</module>
         <module>nifi-record-serialization-services-bundle</module>
         <module>nifi-hwx-schema-registry-bundle</module>
-        <module>nifi-mongodb-client-service-api</module>
-        <module>nifi-mongodb-services-bundle</module>
+        <module>nifi-kerberos-credentials-service-api</module>
+        <module>nifi-kerberos-credentials-service-bundle</module>
     </modules>
 </project>

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -215,6 +213,7 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
+import javax.ws.rs.WebApplicationException;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -1503,39 +1502,43 @@ public final class DtoFactory {
             processGroupId = null;
         }
 
-        if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
-            final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-                @Override
-                public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-                    return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-                }
-            });
-            sortedProperties.putAll(component.getProperties());
+        // ensure descriptors is non null
+        if (propertyDescriptors == null) {
+            propertyDescriptors = new ArrayList<>();
+        }
 
-            final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
-            for (final PropertyDescriptor descriptor : propertyDescriptors) {
-                orderedProperties.put(descriptor, null);
+        // process properties unconditionally since dynamic properties are available here and not in getPropertyDescriptors
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
+            @Override
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
+                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
-            orderedProperties.putAll(sortedProperties);
+        });
+        sortedProperties.putAll(component.getProperties());
 
-            // build the descriptor and property dtos
-            dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-            dto.setProperties(new LinkedHashMap<String, String>());
-            for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            orderedProperties.put(descriptor, null);
+        }
+        orderedProperties.putAll(sortedProperties);
 
-                // store the property descriptor
-                dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
+        // build the descriptor and property dtos
+        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
+        dto.setProperties(new LinkedHashMap<String, String>());
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
 
-                // determine the property value - don't include sensitive properties
-                String propertyValue = entry.getValue();
-                if (propertyValue != null && descriptor.isSensitive()) {
-                    propertyValue = SENSITIVE_VALUE_MASK;
-                }
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
 
-                // set the property value
-                dto.getProperties().put(descriptor.getName(), propertyValue);
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
             }
+
+            // set the property value
+            dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1595,8 +1598,8 @@ public final class DtoFactory {
             return null;
         }
 
-        final Set<RemoteProcessGroupPortDTO> inputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
-        final Set<RemoteProcessGroupPortDTO> outputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
+        final Set<RemoteProcessGroupPortDTO> inputPorts = new HashSet<>();
+        final Set<RemoteProcessGroupPortDTO> outputPorts = new HashSet<>();
 
         int activeRemoteInputPortCount = 0;
         int inactiveRemoteInputPortCount = 0;
@@ -2479,10 +2482,14 @@ public final class DtoFactory {
     }
 
     public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager) {
+        return createAffectedComponentEntities(affectedComponents, revisionManager, NiFiUserUtils.getNiFiUser());
+    }
+
+    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager, final NiFiUser user) {
         return affectedComponents.stream()
                 .map(component -> {
                     final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);
-                    final PermissionsDTO permissions = createPermissionsDto(component);
+                    final PermissionsDTO permissions = createPermissionsDto(component, user);
                     final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(component.getIdentifier()));
                     return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
                 })
@@ -2490,6 +2497,10 @@ public final class DtoFactory {
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
+        return createVariableRegistryDto(processGroup, revisionManager, NiFiUserUtils.getNiFiUser());
+    }
+
+    public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager, final NiFiUser user) {
         final ComponentVariableRegistry variableRegistry = processGroup.getVariableRegistry();
 
         final List<String> variableNames = variableRegistry.getVariableMap().keySet().stream()
@@ -2504,7 +2515,7 @@ public final class DtoFactory {
             variableDto.setValue(variableRegistry.getVariableValue(variableName));
             variableDto.setProcessGroupId(processGroup.getIdentifier());
 
-            final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager);
+            final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager, user);
 
             boolean canWrite = true;
             for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
@@ -2626,6 +2637,10 @@ public final class DtoFactory {
             for (final String tag : tagsAnnotation.value()) {
                 tags.add(tag);
             }
+        }
+
+        if (cls.isAnnotationPresent(Restricted.class)) {
+            tags.add("restricted");
         }
 
         return tags;
@@ -2796,7 +2811,7 @@ public final class DtoFactory {
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
-        dto.setSupportsBatching(node.isHighThroughputSupported());
+        dto.setSupportsBatching(node.isSessionBatchingSupported());
         dto.setConfig(createProcessorConfigDto(node));
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
@@ -3240,6 +3255,7 @@ public final class DtoFactory {
      * Creates a ControllerServiceDiagnosticsDTO from the given Controller Service with some additional supporting information
      *
      * @param serviceNode the controller service to create diagnostics for
+     * @param serviceEntityFactory a function to convert a controller service id to a controller service entity
      * @param serviceProvider the controller service provider
      * @return ControllerServiceDiagnosticsDTO for the given Controller Service
      */
@@ -3468,6 +3484,7 @@ public final class DtoFactory {
             dto.setStackTrace(threadInfo.getStackTrace());
             dto.setThreadActiveMillis(threadInfo.getActiveMillis());
             dto.setThreadName(threadInfo.getThreadName());
+            dto.setTaskTerminated(threadInfo.isTerminated());
             threadDumps.add(dto);
         }
 
@@ -4080,44 +4097,6 @@ public final class DtoFactory {
         copy.setControllerServices(controllerServices);
 
         return copy;
-    }
-
-    private static class SortedRemoteGroupPortComparator implements Comparator<RemoteProcessGroupPortDTO> {
-
-        @Override
-        public int compare(final RemoteProcessGroupPortDTO o1, final RemoteProcessGroupPortDTO o2) {
-            if (o2 == null) {
-                return -1;
-            } else if (o1 == null) {
-                return 1;
-            }
-
-            final String name1 = o1.getName();
-            final String name2 = o2.getName();
-            if (name2 == null) {
-                return -1;
-            } else if (name1 == null) {
-                return 1;
-            } else {
-                int compareResult = Collator.getInstance(Locale.US).compare(name2, name2);
-
-                // if the names are same, use the id
-                if (compareResult == 0) {
-                    final String id1 = o1.getId();
-                    final String id2 = o2.getId();
-                    if (id2 == null) {
-                        compareResult = -1;
-                    } else if (id1 == null) {
-                        compareResult = 1;
-                    } else {
-                        compareResult = id1.compareTo(id2);
-                    }
-                }
-
-                return compareResult;
-            }
-
-        }
     }
 
     /**

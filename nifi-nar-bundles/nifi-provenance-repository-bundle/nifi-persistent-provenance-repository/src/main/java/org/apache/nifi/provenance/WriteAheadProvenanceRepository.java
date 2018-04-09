@@ -222,7 +222,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     private void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
@@ -253,7 +253,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        return eventIndex.submitQuery(query, createEventAuthorizer(user), user.getIdentity());
+        return eventIndex.submitQuery(query, createEventAuthorizer(user), user == null ? null : user.getIdentity());
     }
 
     @Override

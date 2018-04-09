@@ -19,6 +19,7 @@ package org.apache.nifi.processors.mongodb;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -53,14 +54,19 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     public void setup() throws Exception {
         super.setup(PutMongoRecord.class);
         recordReader = new MockRecordParser();
-        runner.addControllerService("reader", recordReader);
-        runner.enableControllerService(recordReader);
-        runner.setProperty(PutMongoRecord.RECORD_READER_FACTORY, "reader");
     }
 
     @After
     public void teardown() {
         super.teardown();
+    }
+
+    private TestRunner init() throws InitializationException {
+        TestRunner runner = init(PutMongoRecord.class);
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.setProperty(PutMongoRecord.RECORD_READER_FACTORY, "reader");
+        return runner;
     }
 
     private byte[] documentToByteArray(Document doc) {
@@ -117,6 +123,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     public void testInsertFlatRecords() throws Exception {
+        TestRunner runner = init();
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
@@ -141,6 +148,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     public void testInsertNestedRecords() throws Exception {
+        TestRunner runner = init();
         recordReader.addSchemaField("id", RecordFieldType.INT);
         final List<RecordField> personFields = new ArrayList<>();
         final RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());

@@ -41,7 +41,7 @@ import java.io.IOException;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"parquet", "hadoop", "HDFS", "get", "ingest", "fetch", "source", "restricted", "record"})
+@Tags({"parquet", "hadoop", "HDFS", "get", "ingest", "fetch", "source", "record"})
 @CapabilityDescription("Reads from a given Parquet file and writes records to the content of the flow file using " +
         "the selected record writer. The original Parquet file will remain unchanged, and the content of the flow file " +
         "will be replaced with records of the selected type. This processor can be used with ListHDFS or ListFile to obtain " +
@@ -52,16 +52,11 @@ import java.io.IOException;
         @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file")
 })
 @SeeAlso({PutParquet.class})
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
-                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
-        }
-)
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class FetchParquet extends AbstractFetchHDFSRecord {
 
     @Override

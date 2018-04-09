@@ -110,7 +110,8 @@ import org.apache.nifi.util.FlowFilePackagerV3;
         + "attribute must be present on all FlowFiles when using the Defragment Merge Strategy and must be a unique (i.e., unique across all "
         + "FlowFiles that have the same value for the \"fragment.identifier\" attribute) integer "
         + "between 0 and the value of the fragment.count attribute. If two or more FlowFiles have the same value for the "
-        + "\"fragment.identifier\" attribute and the same value for the \"fragment.index\" attribute, the behavior of this Processor is undefined."),
+        + "\"fragment.identifier\" attribute and the same value for the \"fragment.index\" attribute, the first FlowFile processed will be "
+        + "accepted and subsequent FlowFiles will not be accepted into the Bin."),
     @ReadsAttribute(attribute = "fragment.count", description = "Applicable only if the <Merge Strategy> property is set to Defragment. This "
         + "attribute must be present on all FlowFiles with the same value for the fragment.identifier attribute. All FlowFiles in the same "
         + "bundle must have the same value for this attribute. The value of this attribute indicates how many FlowFiles should be expected "

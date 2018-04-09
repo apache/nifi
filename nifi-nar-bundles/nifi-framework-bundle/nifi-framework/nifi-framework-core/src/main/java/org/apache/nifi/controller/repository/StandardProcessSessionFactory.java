@@ -16,18 +16,21 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.processor.ProcessSessionFactory;
 
 public class StandardProcessSessionFactory implements ProcessSessionFactory {
 
-    private final ProcessContext context;
+    private final RepositoryContext context;
+    private final TaskTermination taskTermination;
 
-    public StandardProcessSessionFactory(final ProcessContext context) {
+    public StandardProcessSessionFactory(final RepositoryContext context, final TaskTermination taskTermination) {
         this.context = context;
+        this.taskTermination = taskTermination;
     }
 
     @Override
     public StandardProcessSession createSession() {
-        return new StandardProcessSession(context);
+        return new StandardProcessSession(context, taskTermination);
     }
 }

@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.atlas.NiFiAtlasHook;
 import org.apache.nifi.atlas.NiFiAtlasClient;
@@ -53,6 +54,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -87,14 +89,18 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_KEYTAB;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_KERBEROS_PRINCIPAL;
 import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_BATCH_SIZE;
 import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_START_POSITION;
 
 @Tags({"atlas", "lineage"})
-@CapabilityDescription("Publishes NiFi flow data set level lineage to Apache Atlas." +
-        " By reporting flow information to Atlas, an end-to-end Process and DataSet lineage such as across NiFi environments and other systems" +
-        " connected by technologies, for example NiFi Site-to-Site, Kafka topic or Hive tables." +
-        " There are limitations and required configurations for both NiFi and Atlas. See 'Additional Details' for further description.")
+@CapabilityDescription("Report NiFi flow data set level lineage to Apache Atlas." +
+        " End-to-end lineages across NiFi environments and other systems can be reported if those are" +
+        " connected by different protocols and data set, such as NiFi Site-to-Site, Kafka topic or Hive tables ... etc." +
+        " Atlas lineage reported by this reporting task can be useful to grasp the high level relationships between processes and data sets," +
+        " in addition to NiFi provenance events providing detailed event level lineage." +
+        " See 'Additional Details' for further description and limitations.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 @DynamicProperty(name = "hostnamePattern.<ClusterName>", value = "hostname Regex patterns", description = RegexClusterResolver.PATTERN_PROPERTY_PREFIX_DESC)
 // In order for each reporting task instance to have its own static objects such as KafkaNotification.
@@ -243,6 +249,14 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
+
 
     static final PropertyDescriptor KAFKA_KERBEROS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("kafka-kerberos-service-name-kafka")
@@ -267,7 +281,11 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     static final PropertyDescriptor NIFI_LINEAGE_STRATEGY = new PropertyDescriptor.Builder()
             .name("nifi-lineage-strategy")
             .displayName("NiFi Lineage Strategy")
-            .description("Specifies granularity on how NiFi data flow should be reported to Atlas.")
+            .description("Specifies granularity on how NiFi data flow should be reported to Atlas." +
+                    " NOTE: It is strongly recommended to keep using the same strategy once this reporting task started to keep Atlas data clean." +
+                    " Switching strategies will not delete Atlas entities created by the old strategy." +
+                    " Having mixed entities created by different strategies makes Atlas lineage graph noisy." +
+                    " For more detailed description on each strategy and differences, refer 'NiFi Lineage Strategy' section in Additional Details.")
             .required(true)
             .allowableValues(LINEAGE_STRATEGY_SIMPLE_PATH, LINEAGE_STRATEGY_COMPLETE_PATH)
             .defaultValue(LINEAGE_STRATEGY_SIMPLE_PATH.getValue())
@@ -308,6 +326,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         // Following properties are required if ATLAS_CONF_CREATE is enabled.
         // Otherwise should be left blank.
         properties.add(ATLAS_CONF_CREATE);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(NIFI_KERBEROS_PRINCIPAL);
         properties.add(NIFI_KERBEROS_KEYTAB);
         properties.add(KAFKA_KERBEROS_SERVICE_NAME);
@@ -387,13 +406,37 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             results.add(invalidSSLService.explanation("required by SSL Kafka connection").build());
         }
 
+        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+
+        final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        String principal;
+        String keytab;
+        if (credentialsService == null) {
+            principal = explicitPrincipal;
+            keytab = explicitKeytab;
+        } else {
+            principal = credentialsService.getPrincipal();
+            keytab = credentialsService.getKeytab();
+        }
+
         if (SEC_SASL_PLAINTEXT.equals(kafkaSecurityProtocol) || SEC_SASL_SSL.equals(kafkaSecurityProtocol)) {
-            Stream.of(NIFI_KERBEROS_PRINCIPAL, NIFI_KERBEROS_KEYTAB, KAFKA_KERBEROS_SERVICE_NAME)
-                    .filter(p -> !context.getProperty(p).isSet())
-                    .forEach(p -> results.add(new ValidationResult.Builder()
-                            .subject(p.getDisplayName())
-                            .explanation("required by Kafka SASL authentication.")
-                            .valid(false).build()));
+            if (!context.getProperty(KAFKA_KERBEROS_SERVICE_NAME).isSet()) {
+                results.add(new ValidationResult.Builder()
+                    .subject(KAFKA_KERBEROS_SERVICE_NAME.getDisplayName())
+                    .explanation("Required by Kafka SASL authentication.")
+                    .valid(false)
+                    .build());
+            }
+
+            if (keytab == null || principal == null) {
+                results.add(new ValidationResult.Builder()
+                    .subject("Kerberos Authentication")
+                    .explanation("Keytab and Principal are required for Kerberos authentication with Apache Kafka.")
+                    .valid(false)
+                    .build());
+            }
         }
     }
 
@@ -553,8 +596,14 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     @OnUnscheduled
     public void onUnscheduled() {
         if (consumer != null) {
+            // Tell provenance consumer to stop pulling more provenance events.
+            // This should be called from @OnUnscheduled to stop the loop in the thread called from onTrigger.
             consumer.setScheduled(false);
         }
+    }
+
+    @OnStopped
+    public void onStopped() {
         if (nifiAtlasHook != null) {
             nifiAtlasHook.close();
             nifiAtlasHook = null;
@@ -713,8 +762,21 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
      * @param context Context
      */
     private void setKafkaJaasConfig(Map<Object, Object> mapToPopulate, PropertyContext context) {
-        String keytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
-        String principal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        String keytab;
+        String principal;
+        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+
+        final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        if (credentialsService == null) {
+            principal = explicitPrincipal;
+            keytab = explicitKeytab;
+        } else {
+            principal = credentialsService.getPrincipal();
+            keytab = credentialsService.getKeytab();
+        }
+
         String serviceName = context.getProperty(KAFKA_KERBEROS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
         if(StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
             mapToPopulate.put("atlas.jaas.KafkaClient.loginModuleControlFlag", "required");

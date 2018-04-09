@@ -64,8 +64,8 @@ import org.slf4j.LoggerFactory;
         + "ConnectionFactory can be served once this service is configured successfully")
 @DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
         description = "The properties that are set following Java Beans convention where a property name is derived from the 'set*' method of the vendor "
-        + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQConnectionFactory.setChannel(String)' would imply 'channel' "
-        + "property and 'com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)' would imply 'transportType' property.")
+                + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQConnectionFactory.setChannel(String)' would imply 'channel' "
+                + "property and 'com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)' would imply 'transportType' property.")
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS"})
 public class JMSConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition {
 
@@ -138,7 +138,6 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
     }
 
     /**
-     *
      * @return new instance of {@link ConnectionFactory}
      */
     @Override
@@ -187,7 +186,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * service configuration. For example, 'channel' property will correspond to
      * 'setChannel(..) method and 'queueManager' property will correspond to
      * setQueueManager(..) method with a single argument.
-     *
+     * <p>
      * There are also few adjustments to accommodate well known brokers. For
      * example ActiveMQ ConnectionFactory accepts address of the Message Broker
      * in a form of URL while IBMs in the form of host/port pair (more common).
@@ -243,7 +242,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * 'propertyName'. For example, 'channel' property will correspond to
      * 'setChannel(..) method and 'queueManager' property will correspond to
      * setQueueManager(..) method with a single argument.
-     *
+     * <p>
      * NOTE: There is a limited type conversion to accommodate property value
      * types since all NiFi configuration properties comes as String. It is
      * accomplished by checking the argument type of the method and executing
@@ -257,21 +256,26 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      */
     private void setProperty(String propertyName, Object propertyValue) {
         String methodName = this.toMethodName(propertyName);
-        Method method = Utils.findMethod(methodName, this.connectionFactory.getClass());
-        if (method != null) {
+        Method[] methods = Utils.findMethods(methodName, this.connectionFactory.getClass());
+        if (methods != null && methods.length > 0) {
             try {
-                Class<?> returnType = method.getParameterTypes()[0];
-                if (String.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, propertyValue);
-                } else if (int.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, Integer.parseInt((String) propertyValue));
-                } else if (long.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, Long.parseLong((String) propertyValue));
-                } else if (boolean.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, Boolean.parseBoolean((String) propertyValue));
-                } else {
-                    method.invoke(this.connectionFactory, propertyValue);
+                for (Method method : methods) {
+                    Class<?> returnType = method.getParameterTypes()[0];
+                    if (String.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, propertyValue);
+                        return;
+                    } else if (int.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, Integer.parseInt((String) propertyValue));
+                        return;
+                    } else if (long.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, Long.parseLong((String) propertyValue));
+                        return;
+                    } else if (boolean.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, Boolean.parseBoolean((String) propertyValue));
+                        return;
+                    }
                 }
+                methods[0].invoke(this.connectionFactory, propertyValue);
             } catch (Exception e) {
                 throw new IllegalStateException("Failed to set property " + propertyName, e);
             }

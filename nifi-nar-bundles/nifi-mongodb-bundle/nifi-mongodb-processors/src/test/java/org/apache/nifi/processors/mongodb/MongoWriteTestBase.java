@@ -38,28 +38,27 @@ public class MongoWriteTestBase {
             new Document("_id", "doc_3").append("a", 1).append("b", 3)
     );
 
-    protected TestRunner runner;
     protected MongoClient mongoClient;
     protected MongoCollection<Document> collection;
 
     public void setup(Class processor) {
         DATABASE_NAME = processor.getSimpleName().toLowerCase();
-        runner = TestRunners.newTestRunner(processor);
+        mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
+        collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
+    }
+
+    public TestRunner init(Class processor) {
+        TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setVariable("uri", MONGO_URI);
         runner.setVariable("db", DATABASE_NAME);
         runner.setVariable("collection", COLLECTION_NAME);
         runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
-
-        mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
-
-        collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
+        return runner;
     }
 
     public void teardown() {
-        runner = null;
-
         mongoClient.getDatabase(DATABASE_NAME).drop();
     }
 }
