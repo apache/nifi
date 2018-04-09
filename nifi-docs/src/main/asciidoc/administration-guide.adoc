@@ -2343,7 +2343,7 @@ link:http://docs.oracle.com/javase/7/docs/technotes/guides/security/jgss/tutoria
 
 One of the most important notes in the above Troubleshooting guide is the mechanism for turning on Debug output for Kerberos.
 This is done by setting the `sun.security.krb5.debug` environment variable.
-In NiFi, this is accomplished by adding the following line to the _$NIFI_HOME/conf/bootstrap.conf` file:
+In NiFi, this is accomplished by adding the following line to the _$NIFI_HOME/conf/bootstrap.conf_ file:
 
 [source]
 java.arg.16=-Dsun.security.krb5.debug=true
@@ -2802,14 +2802,14 @@ to configure it on a separate drive if available.
 |====
 |*Property*|*Description*
 |nifi.flowfile.repository.implementation|The FlowFile Repository implementation. The default value is `org.apache.nifi.controller.repository.WriteAheadFlowFileRepository` and should only be changed with caution. To store flowfiles in memory instead of on disk (accepting data loss in the event of power/machine failure or a restart of NiFi), set this property to `org.apache.nifi.controller.repository.VolatileFlowFileRepository`.
-|nifi.flowfile.repository.wal.implementation|If the repository implementation is configured to use the `WriteAheadFlowFileRepository`, this property can be used to specify which implementation of the 
+|nifi.flowfile.repository.wal.implementation|If the repository implementation is configured to use the `WriteAheadFlowFileRepository`, this property can be used to specify which implementation of the
 Write-Ahead Log should be used. The default value is `org.apache.nifi.wali.SequentialAccessWriteAheadLog`. This version of the write-ahead log was added in version 1.6.0 of Apache NiFi and was developed
 in order to address an issue that exists in the older implementation. In the event of power loss or an operating system crash, the old implementation was susceptible to recovering FlowFiles
 incorrectly. This could potentially lead to the wrong attributes or content being assigned to a FlowFile upon restart, following the power loss or OS crash. However, one can still choose to opt into
 using the previous implementation and accept that risk, if desired (for example, if the new implementation were to exhibit some unexpected error).
 To do so, set the value of this property to `org.wali.MinimalLockingWriteAheadLog`.
 If the value of this property is changed, upon restart, NiFi will still recover the records written using the previously configured repository and delete the files written by the previously configured
-implementation.   
+implementation.
 |nifi.flowfile.repository.directory*|The location of the FlowFile Repository. The default value is `./flowfile_repository`.
 |nifi.flowfile.repository.partitions|The number of partitions. The default value is `256`.
 |nifi.flowfile.repository.checkpoint.interval| The FlowFile Repository checkpoint interval. The default value is `2 mins`.
@@ -3381,7 +3381,7 @@ Security Configuration section of this Administrator's Guide.
 |nifi.sensitive.props.key|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |nifi.sensitive.props.algorithm|The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 |nifi.sensitive.props.provider|The sensitive property provider. The default value is `BC`.
-|nifi.sensitive.props.additional.keys|The comma separated list of properties to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
+|nifi.sensitive.props.additional.keys|The comma separated list of properties in `nifi.properties` to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |nifi.security.keystore*|The full path and name of the keystore. It is blank by default.
 |nifi.security.keystoreType|The keystore type. It is blank by default.
 |nifi.security.keystorePasswd|The keystore password. It is blank by default.
