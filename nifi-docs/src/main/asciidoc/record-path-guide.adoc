@@ -502,6 +502,63 @@ The following record path would parse the eventDate field into a Date:
 
 `toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")`
 
+=== toString
+
+Converts a value to a String, using the given character set if the input type is "bytes".  For example,
+given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "bytes", "type" : "bytes"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "bytes" : "Hello World!"
+}
+----
+
+The following record path would parse the bytes field into a String:
+
+`toString( /bytes, "UTF-8")`
+
+=== toBytes
+
+Converts a String to byte[], using the given character set.  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" },
+    { "name": "s", "type" : "string"}
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "My Event",
+  "s" : "Hello World!"
+}
+----
+
+The following record path would convert the String field into a byte array using UTF-16 encoding:
+
+`toBytes( /s, "UTF-16")`
+
 === format
 
 Converts a Date to a String in the given format.
