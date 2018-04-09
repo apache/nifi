@@ -17,9 +17,11 @@
 
 package org.apache.nifi.mongodb;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.lookup.LookupFailureException;
@@ -32,12 +34,14 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.StringUtils;
 import org.bson.Document;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +66,19 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .build();
+    public static final PropertyDescriptor RECORD_SCHEMA = new PropertyDescriptor.Builder()
+        .name("mongo-lookup-record-schema")
+        .displayName("Record Schema")
+        .description("If specified, this avro schema will be used for all objects loaded from MongoDB using this service. If left blank, " +
+                "the service will attempt to determine the schema from the results.")
+        .required(false)
+        .build();
+    public static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
+            .name("mongo-lookup-projection")
+            .displayName("Projection")
+            .description("Specifies a projection for limiting which fields will be returned.")
+            .required(false)
+            .build();
 
     private String lookupValueField;
 
@@ -71,6 +88,8 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         lookupDescriptors = new ArrayList<>();
         lookupDescriptors.addAll(descriptors);
         lookupDescriptors.add(LOOKUP_VALUE_FIELD);
+        lookupDescriptors.add(RECORD_SCHEMA);
+        lookupDescriptors.add(PROJECTION);
     }
 
     @Override
@@ -84,24 +103,15 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         }
 
         try {
-            Document result = this.findOne(query);
+            Document result = projection != null ? this.findOne(query, projection) : this.findOne(query);
 
             if(result == null) {
                 return Optional.empty();
             } else if (!StringUtils.isEmpty(lookupValueField)) {
                 return Optional.ofNullable(result.get(lookupValueField));
             } else {
-                final List<RecordField> fields = new ArrayList<>();
-
-                for (String key : result.keySet()) {
-                    if (key.equals("_id")) {
-                        continue;
-                    }
-                    fields.add(new RecordField(key, RecordFieldType.STRING.getDataType()));
-                }
-
-                final RecordSchema schema = new SimpleRecordSchema(fields);
-                return Optional.ofNullable(new MapRecord(schema, result));
+                RecordSchema toUse = schema != null ? schema : convertSchema(result);
+                return Optional.ofNullable(new MapRecord(toUse, result));
             }
         } catch (Exception ex) {
             getLogger().error("Error during lookup {}", new Object[]{ query.toJson() }, ex);
@@ -109,10 +119,57 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         }
     }
 
+    private RecordSchema convertSchema(Map<String, Object> result) {
+        List<RecordField> fields = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : result.entrySet()) {
+
+            RecordField field;
+            if (entry.getValue() instanceof Integer) {
+                field = new RecordField(entry.getKey(), RecordFieldType.INT.getDataType());
+            } else if (entry.getValue() instanceof Long) {
+                field = new RecordField(entry.getKey(), RecordFieldType.LONG.getDataType());
+            } else if (entry.getValue() instanceof Boolean) {
+                field = new RecordField(entry.getKey(), RecordFieldType.BOOLEAN.getDataType());
+            } else if (entry.getValue() instanceof Double) {
+                field = new RecordField(entry.getKey(), RecordFieldType.DOUBLE.getDataType());
+            } else if (entry.getValue() instanceof Date) {
+                field = new RecordField(entry.getKey(), RecordFieldType.DATE.getDataType());
+            } else if (entry.getValue() instanceof List) {
+                field = new RecordField(entry.getKey(), RecordFieldType.ARRAY.getDataType());
+            } else if (entry.getValue() instanceof Map) {
+                RecordSchema nestedSchema = convertSchema((Map)entry.getValue());
+                RecordDataType rdt = new RecordDataType(nestedSchema);
+                field = new RecordField(entry.getKey(), rdt);
+            } else {
+                field = new RecordField(entry.getKey(), RecordFieldType.STRING.getDataType());
+            }
+            fields.add(field);
+        }
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private volatile RecordSchema schema;
+    private volatile Document projection;
+
     @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
         this.lookupValueField = context.getProperty(LOOKUP_VALUE_FIELD).getValue();
+        String configuredSchema = context.getProperty(RECORD_SCHEMA).isSet()
+            ? context.getProperty(RECORD_SCHEMA).getValue()
+            : null;
+        if (!StringUtils.isBlank(configuredSchema)) {
+            schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(configuredSchema));
+        }
+
+        String configuredProjection = context.getProperty(PROJECTION).isSet()
+            ? context.getProperty(PROJECTION).getValue()
+            : null;
+        if (!StringUtils.isBlank(configuredProjection)) {
+            projection = Document.parse(configuredProjection);
+        }
+
         super.onEnabled(context);
     }
 

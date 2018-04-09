@@ -19,6 +19,9 @@ package org.apache.nifi.mongodb;
 
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
@@ -27,8 +30,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -51,13 +58,13 @@ public class MongoDBLookupServiceIT {
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         service.dropDatabase();
         service.onDisable();
     }
 
     @Test
-    public void testInit() throws Exception {
+    public void testInit() {
         runner.enableControllerService(service);
         runner.assertValid(service);
     }
@@ -92,9 +99,25 @@ public class MongoDBLookupServiceIT {
     @Test
     public void testLookupRecord() throws Exception {
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "");
+        runner.setProperty(service, MongoDBLookupService.PROJECTION, "{ \"_id\": 0 }");
         runner.enableControllerService(service);
-        Document document = service.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
-        service.insert(document);
+
+        Date d = new Date();
+        Timestamp ts = new Timestamp(new Date().getTime());
+        List list = Arrays.asList("a", "b", "c", "d", "e");
+
+        service.insert(new Document()
+            .append("uuid", "x-y-z")
+            .append("dateField", d)
+            .append("longField", 10000L)
+            .append("stringField", "Hello, world")
+            .append("timestampField", ts)
+            .append("decimalField", Double.MAX_VALUE / 2.0)
+            .append("subrecordField", new Document()
+                .append("nestedString", "test")
+                .append("nestedLong", new Long(1000)))
+            .append("arrayField", list)
+        );
 
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
@@ -103,8 +126,20 @@ public class MongoDBLookupServiceIT {
         Assert.assertNotNull("The value was null.", result.get());
         Assert.assertTrue("The value was wrong.", result.get() instanceof MapRecord);
         MapRecord record = (MapRecord)result.get();
-        Assert.assertEquals("The value was wrong.", "Hello, world", record.getAsString("message"));
-        Assert.assertEquals("The value was wrong.", "x-y-z", record.getAsString("uuid"));
+        RecordSchema subSchema = ((RecordDataType)record.getSchema().getField("subrecordField").get().getDataType()).getChildSchema();
+
+        Assert.assertEquals("The value was wrong.", "Hello, world", record.getValue("stringField"));
+        Assert.assertEquals("The value was wrong.", "x-y-z", record.getValue("uuid"));
+        Assert.assertEquals(new Long(10000), record.getValue("longField"));
+        Assert.assertEquals((Double.MAX_VALUE / 2.0), record.getValue("decimalField"));
+        Assert.assertEquals(d, record.getValue("dateField"));
+        Assert.assertEquals(ts.getTime(), ((Date)record.getValue("timestampField")).getTime());
+
+        Record subRecord = record.getAsRecord("subrecordField", subSchema);
+        Assert.assertNotNull(subRecord);
+        Assert.assertEquals("test", subRecord.getValue("nestedString"));
+        Assert.assertEquals(new Long(1000), subRecord.getValue("nestedLong"));
+        Assert.assertEquals(list, record.getValue("arrayField"));
 
         Map<String, Object> clean = new HashMap<>();
         clean.putAll(criteria);
@@ -120,7 +155,7 @@ public class MongoDBLookupServiceIT {
     }
 
     @Test
-    public void testServiceParameters() throws Exception {
+    public void testServiceParameters() {
         runner.enableControllerService(service);
         Document document = service.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
         service.insert(document);

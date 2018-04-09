@@ -80,6 +80,17 @@ public class MongoDBControllerService extends AbstractMongoDBControllerService i
     }
 
     @Override
+    public Document findOne(Document query, Document projection) {
+        MongoCursor<Document> cursor  = projection != null
+                ? this.col.find(query).projection(projection).limit(1).iterator()
+                : this.col.find(query).limit(1).iterator();
+        Document retVal = cursor.tryNext();
+        cursor.close();
+
+        return retVal;
+    }
+
+    @Override
     public List<Document> findMany(Document query) {
         return findMany(query, null, -1);
     }

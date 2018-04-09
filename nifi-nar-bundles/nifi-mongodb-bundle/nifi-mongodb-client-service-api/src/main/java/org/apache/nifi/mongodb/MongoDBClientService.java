@@ -31,6 +31,7 @@ public interface MongoDBClientService extends ControllerService {
     void delete(Document query);
     boolean exists(Document query);
     Document findOne(Document query);
+    Document findOne(Document query, Document projection);
     List<Document> findMany(Document query);
     List<Document> findMany(Document query, int limit);
     List<Document> findMany(Document query, Document sort, int limit);
