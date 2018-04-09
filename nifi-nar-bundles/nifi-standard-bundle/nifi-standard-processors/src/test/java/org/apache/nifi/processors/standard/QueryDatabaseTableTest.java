@@ -40,9 +40,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.io.File;
 import java.io.IOException;
@@ -989,7 +987,7 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testCustomSQL() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testCustomSQL() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();

@@ -155,7 +155,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .displayName("Additional WHERE clause")
             .description("A custom clause to be added in the WHERE condition when building SQL queries.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -165,7 +165,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .description("A custom SQL query used to retrieve data. Instead of building a SQL query from "
                     + "other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -268,7 +268,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 // approach as in Apache Drill
                 String query;
 
-                if(StringUtils.isEmpty(sqlQuery)) {
+                if (StringUtils.isEmpty(sqlQuery)) {
                     query = dbAdapter.getSelectStatement(tableName, maxValueColumnNames, "1 = 0", null, null, null);
                 } else {
                     StringBuilder sbQuery = getWrappedQuery(sqlQuery, tableName);
@@ -281,14 +281,14 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 int numCols = resultSetMetaData.getColumnCount();
                 if (numCols > 0) {
-                    if (shouldCleanCache){
+                    if (shouldCleanCache) {
                         columnTypeMap.clear();
                     }
 
                     final List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.toLowerCase().split(","));
                     final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
 
-                    for(String maxValueColumn:maxValueColumnNameList){
+                    for (String maxValueColumn:maxValueColumnNameList) {
                         String colKey = getStateKey(tableName, maxValueColumn.trim());
                         maxValueQualifiedColumnNameList.add(colKey);
                     }
@@ -298,7 +298,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                         String colKey = getStateKey(tableName, colName);
 
                         //only include columns that are part of the maximum value tracking column list
-                        if(!maxValueQualifiedColumnNameList.contains(colKey)){
+                        if (!maxValueQualifiedColumnNameList.contains(colKey)) {
                             continue;
                         }
 
@@ -306,12 +306,16 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                         columnTypeMap.putIfAbsent(colKey, colType);
                     }
 
-                    if(maxValueQualifiedColumnNameList.size() > 0 && columnTypeMap.size() != maxValueQualifiedColumnNameList.size()){
-                        throw new ProcessException("One or more columns of the maximum value columns not found in the table/query specified: " + maxValueColumnNames);
+                    for (String maxValueColumn:maxValueColumnNameList) {
+                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase());
+                        if (!columnTypeMap.containsKey(colKey)) {
+                            throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
+                        }
                     }
                 } else {
                     throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
                 }
+
             } catch (SQLException e) {
                 throw new ProcessException("Unable to communicate with database in order to determine column types", e);
             }

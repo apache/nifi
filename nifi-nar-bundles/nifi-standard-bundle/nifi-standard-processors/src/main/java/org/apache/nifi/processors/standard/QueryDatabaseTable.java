@@ -422,7 +422,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         }
         final StringBuilder query;
 
-        if(sqlQuery == null){
+        if (StringUtils.isEmpty(sqlQuery)) {
             query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
         } else {
             query = getWrappedQuery(sqlQuery, tableName);
