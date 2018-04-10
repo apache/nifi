@@ -2488,14 +2488,10 @@ public final class DtoFactory {
     }
 
     public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager) {
-        return createAffectedComponentEntities(affectedComponents, revisionManager, NiFiUserUtils.getNiFiUser());
-    }
-
-    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager, final NiFiUser user) {
         return affectedComponents.stream()
                 .map(component -> {
                     final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);
-                    final PermissionsDTO permissions = createPermissionsDto(component, user);
+                    final PermissionsDTO permissions = createPermissionsDto(component);
                     final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(component.getIdentifier()));
                     return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
                 })
@@ -2503,10 +2499,6 @@ public final class DtoFactory {
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
-        return createVariableRegistryDto(processGroup, revisionManager, NiFiUserUtils.getNiFiUser());
-    }
-
-    public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager, final NiFiUser user) {
         final ComponentVariableRegistry variableRegistry = processGroup.getVariableRegistry();
 
         final List<String> variableNames = variableRegistry.getVariableMap().keySet().stream()
@@ -2521,7 +2513,7 @@ public final class DtoFactory {
             variableDto.setValue(variableRegistry.getVariableValue(variableName));
             variableDto.setProcessGroupId(processGroup.getIdentifier());
 
-            final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager, user);
+            final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager);
 
             boolean canWrite = true;
             for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
