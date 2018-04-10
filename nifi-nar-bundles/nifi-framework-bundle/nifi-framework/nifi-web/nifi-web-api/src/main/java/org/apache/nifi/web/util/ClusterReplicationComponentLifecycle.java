@@ -18,6 +18,7 @@
 package org.apache.nifi.web.util;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
@@ -65,7 +66,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
 
     @Override
-    public Set<AffectedComponentEntity> scheduleComponents(final URI exampleUri, final NiFiUser user, final String groupId, final Set<AffectedComponentEntity> components,
+    public Set<AffectedComponentEntity> scheduleComponents(final URI exampleUri, final String groupId, final Set<AffectedComponentEntity> components,
             final ScheduledState desiredState, final Pause pause) throws LifecycleManagementException {
 
         final Set<String> componentIds = components.stream()
@@ -95,6 +96,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         final Map<String, String> headers = new HashMap<>();
         headers.put("content-type", MediaType.APPLICATION_JSON);
 
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
         try {
             final NodeResponse clusterResponse;
@@ -122,7 +125,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         final Set<AffectedComponentEntity> updatedEntities = components.stream()
-            .map(component -> AffectedComponentUtils.updateEntity(component, serviceFacade, dtoFactory, user))
+            .map(component -> AffectedComponentUtils.updateEntity(component, serviceFacade, dtoFactory))
             .collect(Collectors.toSet());
         return updatedEntities;
     }
@@ -274,7 +277,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
 
     @Override
-    public Set<AffectedComponentEntity> activateControllerServices(final URI originalUri, final NiFiUser user, final String groupId, final Set<AffectedComponentEntity> affectedServices,
+    public Set<AffectedComponentEntity> activateControllerServices(final URI originalUri, final String groupId, final Set<AffectedComponentEntity> affectedServices,
         final ControllerServiceState desiredState, final Pause pause) throws LifecycleManagementException {
 
         final Set<String> affectedServiceIds = affectedServices.stream()
@@ -300,6 +303,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("content-type", MediaType.APPLICATION_JSON);
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
         try {
@@ -328,7 +333,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         return affectedServices.stream()
-            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId(), user))
+            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId()))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
     }

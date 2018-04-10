@@ -549,14 +549,6 @@ public interface NiFiServiceFacade {
     ProcessorDiagnosticsEntity getProcessorDiagnostics(String id);
 
     /**
-     * Gets the Processor transfer object for the specified id, as it is visible to the given user
-     *
-     * @param id Id of the processor to return
-     * @return The Processor transfer object
-     */
-    ProcessorEntity getProcessor(String id, NiFiUser user);
-
-    /**
      * Gets the processor status.
      *
      * @param id id
@@ -803,15 +795,6 @@ public interface NiFiServiceFacade {
     PortEntity getInputPort(String inputPortId);
 
     /**
-     * Gets an input port as it is available to the given user
-     *
-     * @param inputPortId The input port id
-     * @param user the user
-     * @return port
-     */
-    PortEntity getInputPort(String inputPortId, NiFiUser user);
-
-    /**
      * Gets all input ports in a given group.
      *
      * @param groupId The id of the group
@@ -879,15 +862,6 @@ public interface NiFiServiceFacade {
      * @return port
      */
     PortEntity getOutputPort(String outputPortId);
-
-    /**
-     * Gets an output port as it is available to the given user
-     *
-     * @param outputPortId The output port id
-     * @param user the user
-     * @return port
-     */
-    PortEntity getOutputPort(String outputPortId, NiFiUser user);
 
     /**
      * Gets all output ports in a given group.
@@ -1002,15 +976,6 @@ public interface NiFiServiceFacade {
     VariableRegistryEntity updateVariableRegistry(Revision revision, VariableRegistryDTO variableRegistryDto);
 
     /**
-     * Updates the variable registry on behalf of the given user
-     *
-     * @param user the user who performed the action
-     * @param revision Revision to compare with current base revision
-     * @param variableRegistryDto the Variable Registry
-     */
-    VariableRegistryEntity updateVariableRegistry(NiFiUser user, Revision revision, VariableRegistryDTO variableRegistryDto);
-
-    /**
      * Determines which components will be affected by updating the given Variable Registry.
      *
      * @param variableRegistryDto the variable registry
@@ -1064,17 +1029,6 @@ public interface NiFiServiceFacade {
     ActivateControllerServicesEntity activateControllerServices(String processGroupId, ControllerServiceState state, Map<String, Revision> serviceRevisions);
 
     /**
-     * Enables or disables the controller services with the given IDs & Revisions on behalf of the given user
-     *
-     * @param user the user performing the action
-     * @param processGroupId the ID of the process group
-     * @param state the desired state of the services
-     * @param serviceRevisions a mapping of Controller Service ID to current Revision
-     * @return snapshot
-     */
-    ActivateControllerServicesEntity activateControllerServices(NiFiUser user, String processGroupId, ControllerServiceState state, Map<String, Revision> serviceRevisions);
-
-    /**
      * Schedules all applicable components under the specified ProcessGroup on behalf of the currently logged in user.
      *
      * @param processGroupId The ProcessGroup id
@@ -1083,17 +1037,6 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     ScheduleComponentsEntity scheduleComponents(String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions);
-
-    /**
-     * Schedules all applicable components under the specified ProcessGroup on behalf of the given user.
-     *
-     * @param user the user performing the action
-     * @param processGroupId The ProcessGroup id
-     * @param state schedule state
-     * @param componentRevisions components and their revision
-     * @return snapshot
-     */
-    ScheduleComponentsEntity scheduleComponents(NiFiUser user, String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions);
 
     /**
      * Updates the specified process group.
@@ -1162,31 +1105,12 @@ public interface NiFiServiceFacade {
     RemoteProcessGroupEntity getRemoteProcessGroup(String remoteProcessGroupId);
 
     /**
-     * Gets a remote process group as it is visible to the given user
-     *
-     * @param remoteProcessGroupId The id of the remote process group
-     * @param user the user requesting the action
-     * @return group
-     */
-    RemoteProcessGroupEntity getRemoteProcessGroup(String remoteProcessGroupId, NiFiUser user);
-
-
-    /**
      * Gets all remote process groups in the a given parent group.
      *
      * @param groupId The id of the parent group
      * @return group
      */
     Set<RemoteProcessGroupEntity> getRemoteProcessGroups(String groupId);
-
-    /**
-     * Gets all remote process groups in the a given parent group as they are visible to the given user
-     *
-     * @param groupId The id of the parent group
-     * @param user the user making the request
-     * @return group
-     */
-    Set<RemoteProcessGroupEntity> getRemoteProcessGroups(String groupId, NiFiUser user);
 
     /**
      * Gets the remote process group status.
@@ -1456,10 +1380,9 @@ public interface NiFiServiceFacade {
      *
      * @param processGroupId the ID of the Process Group to update
      * @param updatedSnapshot the snapshot to update the Process Group to
-     * @param user the user making the request
      * @return the set of all components that would be affected by updating the Process Group
      */
-    Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(String processGroupId, VersionedFlowSnapshot updatedSnapshot, NiFiUser user);
+    Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(String processGroupId, VersionedFlowSnapshot updatedSnapshot);
 
     /**
      * Verifies that the Process Group with the given identifier can be updated to the proposed flow
@@ -1499,7 +1422,6 @@ public interface NiFiServiceFacade {
     /**
      * Updates the Process group with the given ID to match the new snapshot
      *
-     * @param user the user performing the request
      * @param revision the revision of the Process Group
      * @param groupId the ID of the Process Group
      * @param versionControlInfo the Version Control information
@@ -1510,7 +1432,7 @@ public interface NiFiServiceFacade {
      *            update the contents of that Process Group
      * @return the Process Group
      */
-    ProcessGroupEntity updateProcessGroupContents(NiFiUser user, Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot,
+    ProcessGroupEntity updateProcessGroupContents(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot,
                                                   String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     // ----------------------------------------
@@ -1785,32 +1707,12 @@ public interface NiFiServiceFacade {
     Set<ControllerServiceEntity> getControllerServices(String groupId, boolean includeAncestorGroups, boolean includeDescendantGroups);
 
     /**
-     * Gets all controller services that belong to the given group and its parent/ancestor groups
-     *
-     * @param groupId the id of the process group of interest
-     * @param includeAncestorGroups if true, parent and ancestor groups' services will be returned as well
-     * @param includeDescendantGroups if true, child and descendant groups' services will be returned as well
-     * @param user the user that is retrieving the Controller Services
-     * @return services
-     */
-    Set<ControllerServiceEntity> getControllerServices(String groupId, boolean includeAncestorGroups, boolean includeDescendantGroups, NiFiUser user);
-
-    /**
      * Gets the specified controller service.
      *
      * @param controllerServiceId id
      * @return service
      */
     ControllerServiceEntity getControllerService(String controllerServiceId);
-
-    /**
-     * Gets the specified controller service as it is visible to the given user
-     *
-     * @param controllerServiceId id
-     * @param user the user making the request
-     * @return service
-     */
-    ControllerServiceEntity getControllerService(String controllerServiceId, NiFiUser user);
 
     /**
      * Get the descriptor for the specified property of the specified controller service.
