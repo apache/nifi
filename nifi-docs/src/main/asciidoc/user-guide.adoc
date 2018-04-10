@@ -533,26 +533,26 @@ such as when a DFM starts an entire Process Group, this (disabled) Processor sho
 
 Below the Name configuration, the Processor's unique identifier is displayed along with the Processor's type and NAR bundle. These values cannot be modified.
 
-Next are two dialogues for configuring `Penalty duration' and `Yield duration'. During the normal course of processing a
+Next are two dialogues for configuring 'Penalty Duration' and 'Yield Duration'. During the normal course of processing a
 piece of data (a FlowFile), an event may occur that indicates that the data cannot be processed at this time but the
 data may be processable at a later time. When this occurs, the Processor may choose to Penalize the FlowFile. This will
 prevent the FlowFile from being Processed for some period of time. For example, if the Processor is to push the data
 to a remote service, but the remote service already has a file with the same name as the filename that the Processor
-is specifying, the Processor may penalize the FlowFile. The `Penalty duration' allows the DFM to specify how long the
+is specifying, the Processor may penalize the FlowFile. The 'Penalty Duration' allows the DFM to specify how long the
 FlowFile should be penalized. The default value is 30 seconds.
 
 Similarly, the Processor may determine that some situation exists such that the Processor can no longer make any progress,
 regardless of the data that it is processing. For example, if a Processor is to push data to a remote service and that
-service is not responding, the Processor cannot make any progress. As a result, the Processor should `yield,' which will
+service is not responding, the Processor cannot make any progress. As a result, the Processor should 'yield', which will
 prevent the Processor from being scheduled to run for some period of time. That period of time is specified by setting
-the `Yield duration.' The default value is 1 second.
+the 'Yield Duration'. The default value is 1 second.
 
 The last configurable option on the left-hand side of the Settings tab is the Bulletin level. Whenever the Processor writes
 to its log, the Processor also will generate a Bulletin. This setting indicates the lowest level of Bulletin that should be
 shown in the User Interface. By default, the Bulletin level is set to WARN, which means it will display all warning and error-level
 bulletins.
 
-The right-hand side of the Settings tab contains an `Auto-terminate relationships' section. Each of the Relationships that is
+The right-hand side of the Settings tab contains an 'Automatically Terminate Relationships' section. Each of the Relationships that is
 defined by the Processor is listed here, along with its description. In order for a Processor to be considered valid and
 able to run, each Relationship defined by the Processor must be either connected to a downstream component or auto-terminated.
 If a Relationship is auto-terminated, any FlowFile that is routed to that Relationship will be removed from the flow and
@@ -572,12 +572,12 @@ image::scheduling-tab.png["Scheduling Tab"]
 The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
 
 *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
-	at which the Processor is run is defined by the `Run schedule' option (see below).
+	at which the Processor is run is defined by the 'Run Schedule' option (see below).
 
 *Event driven*: When this mode is selected, the Processor will be triggered to run by an event, and that event occurs when FlowFiles enter Connections
 	feeding this Processor. This mode is currently considered experimental and is not supported by all Processors. When this mode is
-	selected, the `Run schedule' option is not configurable, as the Processor is not triggered to run periodically but
-        as the result of an event. Additionally, this is the only mode for which the `Concurrent tasks'
+	selected, the 'Run Schedule' option is not configurable, as the Processor is not triggered to run periodically but
+        as the result of an event. Additionally, this is the only mode for which the 'Concurrent Tasks'
 	option can be set to 0. In this case, the number of threads is limited only by the size of the Event-Driven Thread Pool that
 	the administrator has configured.
 
@@ -635,14 +635,14 @@ For example:
 
 For additional information and examples, see the link:http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial^] in the Quartz documentation.
 
-Next, the Scheduling Tab provides a configuration option named `Concurrent tasks`. This controls how many threads the Processor
+Next, the Scheduling Tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
 will use. Said a different way, this controls how many FlowFiles should be processed by this Processor at the same time. Increasing
 this value will typically allow the Processor to handle more data in the same amount of time. However, it does this by using system
 resources that then are not usable by other Processors. This essentially provides a relative weighting of Processors -- it controls
 how much of the system's resources should be allocated to this Processor instead of other Processors. This field is available for
 most Processors. There are, however, some types of Processors that can only be scheduled with a single Concurrent task.
 
-The "Run schedule" dictates how often the Processor should be scheduled to run. The valid values for this field depend on the selected
+The 'Run Schedule' dictates how often the Processor should be scheduled to run. The valid values for this field depend on the selected
 Scheduling Strategy (see above). If using the Event driven Scheduling Strategy, this field is not available. When using the Timer driven
 Scheduling Strategy, this value is a time duration specified by a number followed by a time unit. For example, `1 second` or `5 mins`.
 The default value of `0 sec` means that the Processor should run as often as possible as long as it has data to process. This is true
@@ -651,11 +651,17 @@ applicable for the CRON driven Scheduling Strategy, see the description of the C
 
 When configured for clustering, an Execution setting will be available. This setting is used to determine which node(s) the Processor will be
 scheduled to execute. Selecting 'All Nodes' will result in this Processor being scheduled on every node in the cluster. Selecting
-'Primary Node' will result in this Processor being scheduled on the Primary Node only.
+'Primary Node' will result in this Processor being scheduled on the Primary Node only.  Processors that have been configured for 'Primary Node' execution are identified by a "P" next to the processor icon:
 
-The right-hand side of the tab contains a slider for choosing the `Run duration.' This controls how long the Processor should be scheduled
-to run each time that it is triggered. On the left-hand side of the slider, it is marked `Lower latency' while the right-hand side
-is marked `Higher throughput.' When a Processor finishes running, it must update the repository in order to transfer the FlowFiles to
+image::primary-node-processor.png["Primary Node Processor"]
+
+To quickly identify 'Primary Node' processors, the "P" icon is also shown in the Processors tab on the Summary page:
+
+image::primary-node-processors-summary.png["Primary Node Processors in Summary Page"]
+
+The right-hand side of the Scheduling tab contains a slider for choosing the 'Run Duration'. This controls how long the Processor should be scheduled
+to run each time that it is triggered. On the left-hand side of the slider, it is marked 'Lower latency' while the right-hand side
+is marked 'Higher throughput'. When a Processor finishes running, it must update the repository in order to transfer the FlowFiles to
 the next Connection. Updating the repository is expensive, so the more work that can be done at once before updating the repository,
 the more work the Processor can handle (Higher throughput). However, this means that the next Processor cannot start processing
 those FlowFiles until the previous Process updates this repository. As a result, the latency will be longer (the time required to process
@@ -670,7 +676,7 @@ must define which Properties make sense for its use case. Below, we see the Prop
 
 image::properties-tab.png["Properties Tab"]
 
-This Processor, by default, has only a single property: `Routing Strategy.' The default value is `Route to Property name.' Next to
+This Processor, by default, has only a single property: 'Routing Strategy'. The default value is 'Route to Property name'. Next to
 the name of this property is a small question-mark symbol (
 image:iconInfo.png["Question Mark"]
 ). This help symbol is seen in other places throughout the User Interface, and it indicates that more information is available.
@@ -709,7 +715,7 @@ image::comments-tab.png["Comments Tab"]
 
 === Additional Help
 
-You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting `Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
+You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting 'Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
 
 [[Using_Custom_Properties]]
 === Using Custom Properties with Expression Language
@@ -958,7 +964,7 @@ image:addConnect.png["Connection Bubble"]
 image:processor-connection-bubble.png["Processor with Connection Bubble"]
 
 The user drags the Connection bubble from one component to another until the second component is highlighted. When the user
-releases the mouse, a 'Create Connection' dialog appears. This dialog consists of two tabs: `Details' and `Settings'. They are
+releases the mouse, a 'Create Connection' dialog appears. This dialog consists of two tabs: 'Details' and 'Settings'. They are
 discussed in detail below. Note that it is possible to draw a connection so that it loops back on the same processor. This can be
 useful if the DFM wants the processor to try to re-process FlowFiles if they go down a failure Relationship. To create this type of looping
 connection, simply drag the connection bubble away and then back to the same processor until it is highlighted. Then release the mouse
@@ -975,7 +981,7 @@ Additionally, this tab provides the ability to choose which Relationships should
 Relationship must be selected. If only one Relationship is available, it is automatically selected.
 
 NOTE: If multiple Connections are added with the same Relationship, any FlowFile that is routed to that Relationship will
-automatically be `cloned', and a copy will be sent to each of those Connections.
+automatically be 'cloned', and a copy will be sent to each of those Connections.
 
 ==== Settings
 
@@ -1022,17 +1028,17 @@ image:back_pressure_full.png["Back Pressure Queue Full"]
 
 ===== Prioritization
 The right-hand side of the tab provides the ability to prioritize the data in the queue so that higher priority data is
-processed first. Prioritizers can be dragged from the top (`Available prioritizers') to the bottom (`Selected prioritizers').
-Multiple prioritizers can be selected. The prioritizer that is at the top of the `Selected prioritizers' list is the highest
+processed first. Prioritizers can be dragged from the top ('Available prioritizers') to the bottom ('Selected prioritizers').
+Multiple prioritizers can be selected. The prioritizer that is at the top of the 'Selected prioritizers' list is the highest
 priority. If two FlowFiles have the same value according to this prioritizer, the second prioritizer will determine which
-FlowFile to process first, and so on. If a prioritizer is no longer desired, it can then be dragged from the `Selected
-prioritizers' list to the `Available prioritizers' list.
+FlowFile to process first, and so on. If a prioritizer is no longer desired, it can then be dragged from the 'Selected
+prioritizers' list to the 'Available prioritizers' list.
 
 The following prioritizers are available:
 
 - *FirstInFirstOutPrioritizer*: Given two FlowFiles, the one that reached the connection first will be processed first.
 - *NewestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is newest in the dataflow will be processed first.
-- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected.'
+- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected'.
 - *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be processed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
 
 ===== Changing Configuration and Context Menu Options
@@ -1819,7 +1825,7 @@ Version state information is also shown in the "Process Groups" tab of the Summa
 
 image::version-state-summary-page.png["Version State in Summary Page"]
 
-NOTE: To see the most recent version states, it may be necessary to right-click on the NiFi canvas and select `Refresh' from the context menu.
+NOTE: To see the most recent version states, it may be necessary to right-click on the NiFi canvas and select 'Refresh' from the context menu.
 
 === Import a Versioned Flow
 When a NiFi instance is connected to a registry, an "Import" link will appear in the Add Process Group dialog.
