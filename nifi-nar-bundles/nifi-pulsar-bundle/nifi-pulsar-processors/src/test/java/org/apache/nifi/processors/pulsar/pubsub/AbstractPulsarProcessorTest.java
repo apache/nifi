@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
+import org.apache.nifi.processors.pulsar.AbstractPulsarProcessor;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockPulsarClientService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -33,6 +34,6 @@ public abstract class AbstractPulsarProcessorTest {
         final MockPulsarClientService pulsarClient = new MockPulsarClientService(mockClient);
         runner.addControllerService("pulsarClient", pulsarClient);
         runner.enableControllerService(pulsarClient);
-        runner.setProperty(PublishPulsar_1_X.PULSAR_CLIENT_SERVICE, "pulsarClient");
+        runner.setProperty(AbstractPulsarProcessor.PULSAR_CLIENT_SERVICE, "pulsarClient");
     }
 }

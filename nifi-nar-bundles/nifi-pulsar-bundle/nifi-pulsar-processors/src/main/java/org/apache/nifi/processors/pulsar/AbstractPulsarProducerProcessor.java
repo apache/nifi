@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -66,7 +67,7 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
             .description("The name of the Pulsar Topic.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor ASYNC_ENABLED = new PropertyDescriptor.Builder()
@@ -181,7 +182,7 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
            // Stop all the async publishers
            try {
               publisherPool.shutdown();
-              publisherPool.awaitTermination(10, TimeUnit.SECONDS);
+              publisherPool.awaitTermination(20, TimeUnit.SECONDS);
            } catch (InterruptedException e) {
               getLogger().error("Unable to stop all the Pulsar Producers", e);
            }
@@ -229,7 +230,7 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
 
       }
 
-      protected void handleAsync() {
+    protected void handleAsync() {
 
          try {
             Future<MessageId> done = null;
@@ -239,7 +240,7 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
          } catch (InterruptedException e) {
             getLogger().error("Trouble publishing messages ", e);
          }
-      }
+    }
 
     protected PulsarProducer getWrappedProducer(String topic, ProcessContext context) throws PulsarClientException, IllegalArgumentException {
 

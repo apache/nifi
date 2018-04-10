@@ -121,7 +121,7 @@ public class TestConsumePulsarRecord_1_X {
     }
 
     protected List<MockFlowFile> sendMessages(String msg, boolean async, int iterations) throws PulsarClientException {
-            return sendMessages(msg, DEFAULT_TOPIC, DEFAULT_SUB, async, iterations, 1);
+        return sendMessages(msg, DEFAULT_TOPIC, DEFAULT_SUB, async, iterations, 1);
     }
 
     protected List<MockFlowFile> sendMessages(String msg, boolean async, int iterations, int batchSize) throws PulsarClientException {
@@ -129,7 +129,7 @@ public class TestConsumePulsarRecord_1_X {
     }
 
     protected List<MockFlowFile> sendMessages(String msg, String topic, String sub, boolean async, int iterations) throws PulsarClientException {
-       return sendMessages(msg, topic, sub, async, iterations, 1);
+        return sendMessages(msg, topic, sub, async, iterations, 1);
     }
 
     protected List<MockFlowFile> sendMessages(String msg, String topic, String sub, boolean async, int iterations, int batchSize) throws PulsarClientException {

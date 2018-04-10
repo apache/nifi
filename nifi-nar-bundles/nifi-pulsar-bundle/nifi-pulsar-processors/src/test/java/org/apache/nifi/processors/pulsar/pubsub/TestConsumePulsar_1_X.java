@@ -77,22 +77,22 @@ public class TestConsumePulsar_1_X extends AbstractPulsarProcessorTest {
 
     @Test
     public void singleSyncMessageTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", false, 1);
+        this.sendMessages("Mocked Message", "foo", "bar", false, 1);
     }
 
     @Test
     public void multipleSyncMessagesTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", false, 40);
+        this.sendMessages("Mocked Message", "foo", "bar", false, 40);
     }
 
     @Test
     public void singleAsyncMessageTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", true, 1);
+        this.sendMessages("Mocked Message", "foo", "bar", true, 1);
     }
 
     @Test
     public void multipleAsyncMessagesTest() throws PulsarClientException {
-            this.sendMessages("Mocked Message", "foo", "bar", true, 40);
+        this.sendMessages("Mocked Message", "foo", "bar", true, 40);
     }
 
     /*
