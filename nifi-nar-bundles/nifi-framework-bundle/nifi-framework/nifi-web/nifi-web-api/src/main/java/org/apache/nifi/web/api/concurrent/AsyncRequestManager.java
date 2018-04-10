@@ -17,6 +17,15 @@
 
 package org.apache.nifi.web.api.concurrent;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +41,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.web.ResourceNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AsyncRequestManager<T> implements RequestManager<T> {
     private static final Logger logger = LoggerFactory.getLogger(AsyncRequestManager.class);
@@ -106,10 +110,17 @@ public class AsyncRequestManager<T> implements RequestManager<T> {
             @Override
             public void run() {
                 try {
+                    // set the user authentication token
+                    final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(request.getUser()));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+
                     task.accept(request);
                 } catch (final Exception e) {
                     logger.error("Failed to perform asynchronous task", e);
                     request.setFailureReason("Encountered unexpected error when performing asynchronous task: " + e);
+                } finally {
+                    // clear the authentication token
+                    SecurityContextHolder.getContext().setAuthentication(null);
                 }
             }
         });

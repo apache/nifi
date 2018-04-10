@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.dao;
 
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
@@ -93,10 +92,11 @@ public interface ProcessGroupDAO {
     /**
      * Enables or disables the controller services in the specified process group
      *
+     * @param groupId id
      * @param state the desired state
      * @param serviceIds the ID's of the services to enable or disable
      */
-    Future<Void> activateControllerServices(ControllerServiceState state, Collection<String> serviceIds);
+    Future<Void> activateControllerServices(String groupId, ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Updates the specified process group.
@@ -118,7 +118,7 @@ public interface ProcessGroupDAO {
      *            update the contents of that Process Group
      * @return the process group
      */
-    ProcessGroup updateProcessGroupFlow(String groupId, NiFiUser user, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
+    ProcessGroup updateProcessGroupFlow(String groupId, VersionedFlowSnapshot proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
                                         boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
@@ -141,11 +141,10 @@ public interface ProcessGroupDAO {
     /**
      * Updates the specified variable registry
      *
-     * @param user the user performing the update
      * @param variableRegistry the Variable Registry
      * @return the Process Group that was updated
      */
-    ProcessGroup updateVariableRegistry(NiFiUser user, VariableRegistryDTO variableRegistry);
+    ProcessGroup updateVariableRegistry(VariableRegistryDTO variableRegistry);
 
     /**
      * Verifies that the specified updates to a current Process Group can be applied at this time
