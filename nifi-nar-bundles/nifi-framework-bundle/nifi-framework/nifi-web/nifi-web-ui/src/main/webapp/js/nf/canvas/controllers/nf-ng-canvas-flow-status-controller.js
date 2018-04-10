@@ -477,7 +477,7 @@
                 this.terminatedThreadCount = status.terminatedThreadCount;
 
                 if (this.hasTerminatedThreads()) {
-                    this.threadCounts = this.activeThreadCount + ' / ' + this.terminatedThreadCount;
+                    this.threadCounts = this.activeThreadCount + ' (' + this.terminatedThreadCount + ')';
                 } else {
                     this.threadCounts = this.activeThreadCount;
                 }

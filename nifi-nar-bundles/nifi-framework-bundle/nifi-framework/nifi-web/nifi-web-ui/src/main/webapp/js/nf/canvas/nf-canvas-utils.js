@@ -778,9 +778,9 @@
             // if there is active threads show the count, otherwise hide
             if (activeThreads > 0 || terminatedThreads > 0) {
                 var generateThreadsTip = function () {
-                    var tip = 'There are ' + activeThreads + ' active threads';
+                    var tip = activeThreads + ' active threads';
                     if (terminatedThreads > 0) {
-                        tip += ' and ' + terminatedThreads + ' terminated threads';
+                        tip += ' (' + terminatedThreads + ' terminated)';
                     }
 
                     return tip;
@@ -790,7 +790,7 @@
                 var activeThreadCount = selection.select('text.active-thread-count')
                     .text(function () {
                         if (terminatedThreads > 0) {
-                            return activeThreads + ' / ' + terminatedThreads;
+                            return activeThreads + ' (' + terminatedThreads + ')';
                         } else {
                             return activeThreads;
                         }
