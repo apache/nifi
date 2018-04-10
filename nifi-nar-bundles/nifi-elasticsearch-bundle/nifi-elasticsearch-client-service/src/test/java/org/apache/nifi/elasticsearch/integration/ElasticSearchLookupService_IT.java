@@ -18,7 +18,6 @@
 package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.avro.SchemaParseException;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
 import org.apache.nifi.elasticsearch.ElasticSearchLookupService;
