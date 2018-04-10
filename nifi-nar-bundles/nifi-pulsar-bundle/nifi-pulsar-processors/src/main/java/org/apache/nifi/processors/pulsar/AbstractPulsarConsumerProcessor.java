@@ -21,7 +21,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -284,20 +283,6 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
 
         public AsyncAcknowledgmentMonitorThread(final ExecutorCompletionService<Void> ackService) {
              this.ackService = ackService;
-        }
-
-        @Override
-        public void run() {
-             handleAsyncAcks();
-        }
-
-        protected void handleAsyncAcks() {
-             Future<Void> completed = null;
-             do {
-                 try {
-                        completed = ackService.poll(0, TimeUnit.SECONDS);
-                    } catch (InterruptedException e) { /* Ignore these */ }
-             } while (completed != null);
         }
     }
 
