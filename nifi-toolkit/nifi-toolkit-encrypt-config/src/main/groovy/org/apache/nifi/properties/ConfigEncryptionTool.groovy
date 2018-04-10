@@ -608,7 +608,9 @@ class ConfigEncryptionTool {
         }
 
         // The values should be in scrypt format
-        // TODO: Verify scrypt format
+        if (!verifyHashFormat(knownHashValue) || !verifyHashFormat(unknownHashValue)) {
+            return false
+        }
 
         return MessageDigest.isEqual(knownHashValue.getBytes(StandardCharsets.UTF_8), unknownHashValue.getBytes(StandardCharsets.UTF_8))
     }

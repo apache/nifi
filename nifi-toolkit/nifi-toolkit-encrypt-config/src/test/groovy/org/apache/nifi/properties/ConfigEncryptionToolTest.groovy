@@ -485,7 +485,20 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
     }
 
-    // TODO: Add 4 failing tests for hashed key and password flags both present
+    @Test
+    void testParseShouldFailIfHashedPasswordAndHashedKeyBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -z oldPasswordHashed -y oldKeyHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Only one of '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' can be used together"
+    }
 
     @Test
     void testParseShouldFailIfPropertiesAndProvidersMissing() {
@@ -5145,7 +5158,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final List<String> IGNORED_ARGS = ["currentHashParams"]
 
         // Create a list with combinations of h[elp] and v[erbose], individual flags, and empty flag
-        def args = GroovyCollections.combinations(HELP_AND_VERBOSE_ARGS as Iterable) + HELP_AND_VERBOSE_ARGS.flatten().collect { [it] } + [[""]]
+        def args = GroovyCollections.combinations(HELP_AND_VERBOSE_ARGS as Iterable) + HELP_AND_VERBOSE_ARGS.flatten().collect {
+            [it]
+        } + [[""]]
         String acceptableArg = "--currentHashParams"
         String unacceptableArg = "--migrate"
 
@@ -5245,7 +5260,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         int r = ConfigEncryptionTool.SCRYPT_R
         int p = ConfigEncryptionTool.SCRYPT_P
 
-        String expectedJsonParams = new JsonBuilder([N: N, r: r, p: p, salt: "<some 22 char B64 str>" ]).toString()
+        String expectedJsonParams = new JsonBuilder([N: N, r: r, p: p, salt: "<some 22 char B64 str>"]).toString()
         logger.info("Expected JSON params: ${expectedJsonParams}")
 
         // Set up assertions for after System.exit()
@@ -5290,22 +5305,42 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions defined above
     }
 
-    @Ignore("Not yet implemented")
     @Test
     void testShouldFailOnCurrentHashParamsIfOtherFlagsPresent() {
         // Arrange
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
-        // TODO: Try with -v/-h (and long opts); everything else should fail
+        def validOpts = [
+                "",
+                "-v",
+                "--verbose"
+        ]
+
+        def invalidOpts = [
+                "--migrate",
+                "-f flow.xml.gz",
+                "-n nifi.properties",
+                "-o output"
+        ]
 
         // Act
-        def msg = shouldFail(CommandLineParseException) {
-            tool.parse([arg] as String[])
+        validOpts.each { String valid ->
+            def args = (valid + " --currentHashParams").split(" ")
+            logger.info("Testing with ${args}")
+            tool.parse(args as String[])
         }
 
-        // Assert
-        assert msg == null
-        assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        invalidOpts.each { String invalid ->
+            def args = (invalid + " --currentHashParams").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '--currentHashParams' is specified, only '-h'/'--help' and '-v'/'--verbose' are allowed"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
     }
 
 // TODO: Test with 128/256-bit available
