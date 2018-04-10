@@ -69,5 +69,10 @@ public enum ExitCode {
     /**
      * Unable to read nifi.properties
      */
-    ERROR_READING_NIFI_PROPERTIES
+    ERROR_READING_NIFI_PROPERTIES,
+
+    /**
+     * Unable to read existing configuration value or file
+     */
+    ERROR_READING_CONFIG
 }

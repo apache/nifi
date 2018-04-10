@@ -17,6 +17,7 @@
 package org.apache.nifi.properties
 
 import groovy.io.GroovyPrintWriter
+import groovy.json.JsonBuilder
 import groovy.xml.XmlUtil
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
@@ -27,6 +28,7 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
+import org.apache.nifi.security.util.crypto.CipherUtility
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
@@ -96,6 +98,7 @@ class ConfigEncryptionTool {
     private boolean handlingAuthorizers = false
     private boolean handlingFlowXml = false
     private boolean ignorePropertiesFiles = false
+    private boolean queryingCurrentHashParams = false
 
     private static final String HELP_ARG = "help"
     private static final String VERBOSE_ARG = "verbose"
@@ -113,19 +116,24 @@ class ConfigEncryptionTool {
     private static final String KEY_MIGRATION_ARG = "oldKey"
     private static final String PASSWORD_MIGRATION_ARG = "oldPassword"
     private static final String HASHED_KEY_MIGRATION_ARG = "secureHashKey"
-    private static final String HASHED_PASSWORD_MIGRATION_ARG = "secureHash"
+    private static final String HASHED_PASSWORD_MIGRATION_ARG = "secureHashPassword"
     private static final String USE_KEY_ARG = "useRawKey"
     private static final String MIGRATION_ARG = "migrate"
     private static final String PROPS_KEY_ARG = "propsKey"
     private static final String DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG = "encryptFlowXmlOnly"
     private static final String NEW_FLOW_ALGORITHM_ARG = "newFlowAlgorithm"
     private static final String NEW_FLOW_PROVIDER_ARG = "newFlowProvider"
+    private static final String CURRENT_HASH_PARAMS_ARG = "currentHashParams"
+
+    // Static holder to avoid re-generating the options object multiple times in an invocation
+    private static Options staticOptions
 
     // Hard-coded fallback value from {@link org.apache.nifi.encrypt.StringEncryptor}
     private static final String DEFAULT_NIFI_SENSITIVE_PROPS_KEY = "nififtw!"
     private static final int MIN_PASSWORD_LENGTH = 12
 
     // Strong parameters as of 12 Aug 2016 (for key derivation)
+    // This value can remain an int until best practice specifies a value above 2**32
     private static final int SCRYPT_N = 2**16
     private static final int SCRYPT_R = 8
     private static final int SCRYPT_P = 1
@@ -210,7 +218,11 @@ class ConfigEncryptionTool {
 
     ConfigEncryptionTool(String description) {
         this.header = buildHeader(description)
-        this.options = new Options()
+        this.options = getCliOptions()
+    }
+
+    static Options buildOptions() {
+        Options options = new Options()
         options.addOption(Option.builder("h").longOpt(HELP_ARG).hasArg(false).desc("Show usage information (this message)").build())
         options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).hasArg(false).desc("Sets verbose mode (default false)").build())
         options.addOption(Option.builder("n").longOpt(NIFI_PROPERTIES_ARG).hasArg(true).argName("file").desc("The nifi.properties file containing unprotected config values (will be overwritten unless -o is specified)").build())
@@ -234,10 +246,15 @@ class ConfigEncryptionTool {
         options.addOption(Option.builder("s").longOpt(PROPS_KEY_ARG).hasArg(true).argName("password|keyhex").desc("The password or key to use to encrypt the sensitive processor properties in flow.xml.gz").build())
         options.addOption(Option.builder("A").longOpt(NEW_FLOW_ALGORITHM_ARG).hasArg(true).argName("algorithm").desc("The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz").build())
         options.addOption(Option.builder("P").longOpt(NEW_FLOW_PROVIDER_ARG).hasArg(true).argName("algorithm").desc("The security provider to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+        options.addOption(Option.builder().longOpt(CURRENT_HASH_PARAMS_ARG).hasArg(false).desc("Returns the current salt and cost params used to store the hashed key/password").build())
+        options
     }
 
     static Options getCliOptions() {
-        return new ConfigEncryptionTool().options
+        if (!staticOptions) {
+            staticOptions = buildOptions()
+        }
+        return staticOptions
     }
 
 /**
@@ -273,6 +290,17 @@ class ConfigEncryptionTool {
             }
 
             isVerbose = commandLine.hasOption(VERBOSE_ARG)
+
+            // If this flag is present, ensure no other options are present and then fail/return
+            if (commandLine.hasOption(CURRENT_HASH_PARAMS_ARG)) {
+                queryingCurrentHashParams = true
+                if (commandLineHasActionFlags(commandLine, [CURRENT_HASH_PARAMS_ARG])) {
+                    printUsageAndThrow("When '--${CURRENT_HASH_PARAMS_ARG}' is specified, only '-h'/'--${HELP_ARG}' and '-v'/'--${VERBOSE_ARG}' are allowed", ExitCode.INVALID_ARGS)
+                } else {
+                    // Otherwise return (avoid unnecessary parsing)
+                    return commandLine
+                }
+            }
 
             bootstrapConfPath = commandLine.getOptionValue(BOOTSTRAP_CONF_ARG)
 
@@ -383,12 +411,12 @@ class ConfigEncryptionTool {
 
                     // Check for old key/password and throw error
                     if (commandLine.hasOption(KEY_MIGRATION_ARG) || commandLine.hasOption(PASSWORD_MIGRATION_ARG)) {
-                        printUsageAndThrow("If the '-w'/'--${PASSWORD_MIGRATION_ARG}' or '-e'/'--${KEY_MIGRATION_ARG}' arguments are present, '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG} and '-y'/'--${HASHED_KEY_MIGRATION_ARG} cannot be used", ExitCode.INVALID_ARGS)
+                        printUsageAndThrow("If the '-w'/'--${PASSWORD_MIGRATION_ARG}' or '-e'/'--${KEY_MIGRATION_ARG}' arguments are present, '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG}' and '-y'/'--${HASHED_KEY_MIGRATION_ARG}' cannot be used", ExitCode.INVALID_ARGS)
                     }
 
                     // Check for both key and password and throw error
                     if (commandLine.hasOption(HASHED_KEY_MIGRATION_ARG) && commandLine.hasOption(HASHED_PASSWORD_MIGRATION_ARG)) {
-                        printUsageAndThrow("Only one of '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG} and '-y'/'--${HASHED_KEY_MIGRATION_ARG} can be used together", ExitCode.INVALID_ARGS)
+                        printUsageAndThrow("Only one of '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG}' and '-y'/'--${HASHED_KEY_MIGRATION_ARG}' can be used together", ExitCode.INVALID_ARGS)
                     }
 
                     // Extract flags to field
@@ -449,6 +477,31 @@ class ConfigEncryptionTool {
             printUsageAndThrow("Error parsing command line. (" + e.getMessage() + ")", ExitCode.ERROR_PARSING_COMMAND_LINE)
         }
         return commandLine
+    }
+
+    boolean commandLineHasActionFlags(CommandLine commandLine, List<String> acceptableOptionStrings = []) {
+        // Resolve the list of Option objects corresponding to "help" and "verbose"
+        final List<Option> ALWAYS_ACCEPTABLE_OPTIONS = resolveOptions([HELP_ARG, VERBOSE_ARG])
+
+        // Resolve the list of Option objects corresponding to the provided "additional acceptable options"
+        List<Option> acceptableOptions = resolveOptions(acceptableOptionStrings)
+
+        // Determine the options submitted to the command line that are not acceptable
+        List<Option> invalidOptions = commandLine.options - (acceptableOptions + ALWAYS_ACCEPTABLE_OPTIONS)
+        if (invalidOptions) {
+            if (isVerbose) {
+                logger.error("In this mode, the following options are invalid: ${invalidOptions}")
+            }
+            return true
+        } else {
+            return false
+        }
+    }
+
+    static List<Option> resolveOptions(List<String> strings) {
+        strings?.collect { String opt ->
+            getCliOptions().options.find { it.opt == opt || it.longOpt == opt }
+        }
     }
 
     static boolean isSecureHashArgumentPresent(CommandLine commandLine) {
@@ -551,7 +604,7 @@ class ConfigEncryptionTool {
      */
     static boolean checkHashedValue(String knownHashValue, String unknownHashValue) {
         if (!knownHashValue || !unknownHashValue) {
-           return false
+            return false
         }
 
         // The values should be in scrypt format
@@ -1535,6 +1588,46 @@ class ConfigEncryptionTool {
         secureHashPassword(keyHex?.toLowerCase(), salt)
     }
 
+
+    private String getCurrentHashParams() {
+        try {
+            int N
+            int r
+            int p
+            String base64Salt
+
+            try {
+                String secureHash = readSecureHashValueFromFile()
+
+                // The findAll() drops any empty elements
+                def hashComponents = secureHash.split('\\$').findAll()
+                if (hashComponents.size() < 3) {
+                    throw new IllegalArgumentException("The provided secure hash was not in valid scrypt format")
+                }
+                if (hashComponents.first() != CURRENT_SCRYPT_VERSION) {
+                    throw new IllegalArgumentException("Currently, only scrypt hashes with version ${CURRENT_SCRYPT_VERSION} are supported")
+                }
+
+                // Split the encoded params into N, R, P
+                List<Integer> params = Scrypt.parseParameters(hashComponents[1])
+                N = params[0]
+                r = params[1]
+                p = params[2]
+                base64Salt = hashComponents[2]
+            } catch (IOException | InvalidKeyException e) {
+                // These exceptions occur if the file doesn't exist, can't be read, or doesn't have secure hashes populated
+                N = SCRYPT_N
+                r = SCRYPT_R
+                p = SCRYPT_P
+                base64Salt = CipherUtility.encodeBase64NoPadding(generateRandomSalt())
+            }
+            return new JsonBuilder([N: N, r: r, p: p, salt: base64Salt]).toString()
+        } catch (Exception e) {
+            logger.error("Encountered an exception getting current hash parameters: ${e.getLocalizedMessage()}")
+            printUsageAndThrow(e.getLocalizedMessage(), ExitCode.ERROR_READING_CONFIG)
+        }
+    }
+
     /**
      * Runs main tool logic (parsing arguments, reading files, protecting properties, and writing key and properties out to destination files).
      *
@@ -1548,6 +1641,12 @@ class ConfigEncryptionTool {
         try {
             try {
                 tool.parse(args)
+
+                // Ensure the only content written to STDOUT is the JSON (consumable by other processes)
+                if (tool.queryingCurrentHashParams) {
+                    System.out.println(tool.getCurrentHashParams())
+                    System.exit(ExitCode.SUCCESS.ordinal())
+                }
 
                 boolean existingNiFiPropertiesAreEncrypted = tool.niFiPropertiesAreEncrypted()
                 if (!tool.ignorePropertiesFiles || (tool.handlingFlowXml && existingNiFiPropertiesAreEncrypted)) {

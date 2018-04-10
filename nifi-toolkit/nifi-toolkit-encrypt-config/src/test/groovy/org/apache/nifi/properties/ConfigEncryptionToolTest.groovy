@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.properties
 
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import org.apache.commons.cli.CommandLine
+import org.apache.commons.cli.CommandLineParser
+import org.apache.commons.cli.DefaultParser
 import org.apache.commons.lang3.SystemUtils
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
@@ -72,9 +77,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final String SCRYPT_SALT_PATTERN = /\$\w{2}\$\w{5,}\$[\w\/\=\+]+/
 
     // Hash of "password" with 00 * 16 salt
-    private static final String HASHED_PASSWORD = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM"
+    private static
+    final String HASHED_PASSWORD = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM"
     // Hash of [key derived from "password"] with 00 * 16 salt
-    private static final String HASHED_KEY_HEX = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$pJOGA9sPL+pRzynnwt6G2FfVTyLQdbKSbk6W8IKId8E"
+    private static
+    final String HASHED_KEY_HEX = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$pJOGA9sPL+pRzynnwt6G2FfVTyLQdbKSbk6W8IKId8E"
 
     // From ConfigEncryptionTool.deriveKeyFromPassword("thisIsABadPassword")
     private static
@@ -430,7 +437,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
     }
 
     @Test
@@ -445,7 +452,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
     }
 
     @Test
@@ -460,7 +467,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
     }
 
     @Test
@@ -475,7 +482,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHash and '-y'/'--secureHashKey cannot be used"
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
     }
 
     // TODO: Add 4 failing tests for hashed key and password flags both present
@@ -2503,7 +2510,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         Files.copy(bootstrapWithKeyFile.toPath(), bootstrapFile.toPath())
 
-        String expectedMigrationKey = bootstrapFile.readLines().find { it.startsWith("nifi.bootstrap.sensitive.key=") }.split("=").last()
+        String expectedMigrationKey = bootstrapFile.readLines().find {
+            it.startsWith("nifi.bootstrap.sensitive.key=")
+        }.split("=").last()
         logger.info("Retrieved expected migration key ${expectedMigrationKey} from bootstrap.conf")
 
         File secureHashSourceFile = new File("src/test/resources/secure_hash.key")
@@ -2556,7 +2565,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         Files.copy(bootstrapWithKeyFile.toPath(), bootstrapFile.toPath())
 
-        String expectedMigrationKey = bootstrapFile.readLines().find { it.startsWith("nifi.bootstrap.sensitive.key=") }.split("=").last()
+        String expectedMigrationKey = bootstrapFile.readLines().find {
+            it.startsWith("nifi.bootstrap.sensitive.key=")
+        }.split("=").last()
         logger.info("Retrieved expected migration key ${expectedMigrationKey} from bootstrap.conf")
 
         File secureHashSourceFile = new File("src/test/resources/secure_hash.key")
@@ -5127,7 +5138,177 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert tool.loadFlowXml() == xmlContent
     }
 
-    // TODO: Test with 128/256-bit available
+    @Test
+    void testShouldDetectActionFlags() {
+        // Arrange
+        final def HELP_AND_VERBOSE_ARGS = [["-h", "--help"], ["-v", "--verbose"]]
+        final List<String> IGNORED_ARGS = ["currentHashParams"]
+
+        // Create a list with combinations of h[elp] and v[erbose], individual flags, and empty flag
+        def args = GroovyCollections.combinations(HELP_AND_VERBOSE_ARGS as Iterable) + HELP_AND_VERBOSE_ARGS.flatten().collect { [it] } + [[""]]
+        String acceptableArg = "--currentHashParams"
+        String unacceptableArg = "--migrate"
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+        CommandLineParser parser = new DefaultParser()
+
+        // Act
+        args.each { List<String> invocationArgs ->
+            // Run each scenario with an allowed argument and without
+            [IGNORED_ARGS, []].each { List<String> acceptableArgs ->
+                // Check ""/-h/-v alone
+                logger.info("Checking '${invocationArgs.join(" ")}' with acceptable args: ${acceptableArgs}")
+                CommandLine commandLine = parser.parse(ConfigEncryptionTool.getCliOptions(), invocationArgs as String[])
+                boolean cleanRun = tool.commandLineHasActionFlags(commandLine, acceptableArgs)
+                logger.info("Clean run has action flags: ${cleanRun} | Expected: false")
+
+                // Check with an allowed/ignored arg
+                def allowedArgs = invocationArgs + acceptableArg
+                logger.info("Checking '${allowedArgs.join(" ")}' with acceptable args: ${acceptableArgs}")
+                commandLine = parser.parse(ConfigEncryptionTool.getCliOptions(), allowedArgs as String[])
+                boolean allowedRun = tool.commandLineHasActionFlags(commandLine, acceptableArgs)
+                logger.info("Allowed run has action flags: ${allowedRun} | Expected: ${acceptableArgs.isEmpty().toString()}")
+
+                // Check with an unallowed arg
+                def unallowedArgs = invocationArgs + unacceptableArg
+                logger.info("Checking '${unallowedArgs.join(" ")}' with acceptable args: ${acceptableArgs}")
+                commandLine = parser.parse(ConfigEncryptionTool.getCliOptions(), unallowedArgs as String[])
+                boolean unallowedRun = tool.commandLineHasActionFlags(commandLine, acceptableArgs)
+                logger.info("Unallowed run has action flags: ${unallowedRun} | Expected: true")
+
+                // Assert
+                assert !cleanRun
+                assert allowedRun == acceptableArgs.isEmpty()
+                assert unallowedRun
+            }
+        }
+    }
+
+    @Test
+    void testShouldReturnCurrentHashParams() {
+        // Arrange
+
+        // Params from secure_hash.key
+        int N = 2**4
+        int r = 8
+        int p = 1
+        String base64Salt = "A" * 22
+
+        String expectedJsonParams = new JsonBuilder([N: N, r: r, p: p, salt: base64Salt]).toString()
+        logger.info("Expected JSON params: ${expectedJsonParams}")
+
+        // Set up assertions for after System.exit()
+        exit.expectSystemExitWithStatus(0)
+
+        // Initial set up
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        // Copy the hashed credentials file
+        String secureHashedPasswordPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/secure_hash.key" :
+                "src/test/resources/secure_hash_128.key"
+        File originalSecureHashedPasswordFile = new File(secureHashedPasswordPath)
+        File secureHashedFile = new File("target/tmp/tmp_secure_hash.key")
+        secureHashedFile.delete()
+        Files.copy(originalSecureHashedPasswordFile.toPath(), secureHashedFile.toPath())
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                // If JSON ordering changes, may need to capture and build JSON object from this text
+                assert systemOutRule.getLog().contains(expectedJsonParams)
+
+                // Clean up
+                tmpDir.deleteOnExit()
+                secureHashedFile.deleteOnExit()
+            }
+        })
+
+        // Override the "final" secure hash file path
+        ConfigEncryptionTool.secureHashPath = secureHashedFile.path
+
+        // Act
+        ConfigEncryptionTool.main(["--currentHashParams"] as String[])
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldReturnDefaultHashParamsIfNonePresent() {
+        // Arrange
+
+        // Default params
+        int N = ConfigEncryptionTool.SCRYPT_N
+        int r = ConfigEncryptionTool.SCRYPT_R
+        int p = ConfigEncryptionTool.SCRYPT_P
+
+        String expectedJsonParams = new JsonBuilder([N: N, r: r, p: p, salt: "<some 22 char B64 str>" ]).toString()
+        logger.info("Expected JSON params: ${expectedJsonParams}")
+
+        // Set up assertions for after System.exit()
+        exit.expectSystemExitWithStatus(0)
+
+        // Initial set up
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        // Ensure the file is not present
+        File secureHashedFile = new File("target/tmp/tmp_secure_hash.key")
+        secureHashedFile.delete()
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                // If JSON ordering changes, may need to capture and build JSON object from this text
+                List<String> returnedJSONParams = systemOutRule.getLog().readLines()
+                logger.returned("Returned JSON params: ${returnedJSONParams.join("\n")}")
+
+                JsonSlurper slurper = new JsonSlurper()
+                def expectedJson = slurper.parseText(expectedJsonParams)
+                def returnedJson = slurper.parseText(returnedJSONParams.first())
+                assert returnedJson.N == expectedJson.N
+                assert returnedJson.r == expectedJson.r
+                assert returnedJson.p == expectedJson.p
+                assert returnedJson.salt =~ /[\w\/]{22}/
+
+                // Clean up
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Override the "final" secure hash file path
+        ConfigEncryptionTool.secureHashPath = secureHashedFile.path
+
+        // Act
+        ConfigEncryptionTool.main(["--currentHashParams"] as String[])
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Ignore("Not yet implemented")
+    @Test
+    void testShouldFailOnCurrentHashParamsIfOtherFlagsPresent() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // TODO: Try with -v/-h (and long opts); everything else should fail
+
+        // Act
+        def msg = shouldFail(CommandLineParseException) {
+            tool.parse([arg] as String[])
+        }
+
+        // Assert
+        assert msg == null
+        assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+    }
+
+// TODO: Test with 128/256-bit available
 }
 
 class TestAppender extends AppenderSkeleton {
