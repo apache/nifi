@@ -14,20 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.api.livy;
+package org.apache.nifi.controller.api.livy.exception;
 
-import java.io.IOException;
-import java.util.Map;
+public class SessionManagerException extends Exception {
 
-import org.apache.http.client.HttpClient;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
+    private static final long serialVersionUID = 1L;
 
-public interface LivySessionService extends ControllerService {
-    String APPLICATION_JSON = "application/json";
-    String USER = "nifi";
+    public SessionManagerException(final Throwable t) {
+        super(t);
+    }
 
-    Map<String, String> getSession() throws SessionManagerException;
-
-    HttpClient getConnection() throws IOException, SessionManagerException;
 }

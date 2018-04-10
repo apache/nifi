@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.api.livy;
+package org.apache.nifi.hadoop;
 
-import java.io.IOException;
-import java.util.Map;
+import org.apache.http.auth.AuthScheme;
+import org.apache.http.auth.AuthSchemeProvider;
+import org.apache.http.protocol.HttpContext;
 
-import org.apache.http.client.HttpClient;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
+/**
+ * Provider class for KerberosKeytabSPNegoAuthScheme.
+ */
+public class KerberosKeytabSPNegoAuthSchemeProvider implements AuthSchemeProvider {
 
-public interface LivySessionService extends ControllerService {
-    String APPLICATION_JSON = "application/json";
-    String USER = "nifi";
+    public AuthScheme create(HttpContext context) {
+        return new KerberosKeytabSPNegoScheme();
+    }
 
-    Map<String, String> getSession() throws SessionManagerException;
-
-    HttpClient getConnection() throws IOException, SessionManagerException;
 }
