@@ -33,7 +33,7 @@ public interface ElasticSearchRestProcessor {
     PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("el-rest-fetch-index")
             .displayName("Index")
-            .description("The name of the index to read from")
+            .description("The name of the index to use.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -51,14 +51,8 @@ public interface ElasticSearchRestProcessor {
     PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("el-rest-query")
             .displayName("Query")
-            .description("A query in JSON syntax, not Lucene syntax. Ex: " +
-                    "{\n" +
-                    "\t\"query\": {\n" +
-                    "\t\t\"match\": {\n" +
-                    "\t\t\t\"name\": \"John Smith\"\n" +
-                    "\t\t}\n" +
-                    "\t}\n" +
-                    "}")
+            .description("A query in JSON syntax, not Lucene syntax. Ex: {\"query\":{\"match\":{\"somefield\":\"somevalue\"}}}. " +
+                    "If this parameter is not set, the query will be ready from the flowfile content.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
