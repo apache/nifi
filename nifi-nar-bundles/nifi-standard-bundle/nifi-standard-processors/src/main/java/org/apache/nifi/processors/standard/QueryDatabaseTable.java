@@ -303,7 +303,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
             final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
-            logger.debug("Executing query {}", new Object[]{selectQuery});
+            if (logger.isDebugEnabled()) {
+                logger.debug("Executing query {}", new Object[] { selectQuery });
+            }
             try (final ResultSet resultSet = st.executeQuery(selectQuery)) {
                 int fragmentIndex=0;
                 while(true) {

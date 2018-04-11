@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
- * A generic database adapter that generates ANSI SQL.
+ * A Apache Phoenix database adapter that generates ANSI SQL.
  */
 public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
     public static final String NAME = "Phoenix";
