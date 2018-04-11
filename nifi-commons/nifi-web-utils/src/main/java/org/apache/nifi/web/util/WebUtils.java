@@ -17,23 +17,18 @@
 package org.apache.nifi.web.util;
 
 import java.net.URI;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import javax.net.ssl.HostnameVerifier;
+
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.UriBuilderException;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.slf4j.Logger;
@@ -100,29 +95,7 @@ public final class WebUtils {
         if (ctx != null) {
 
             // custom hostname verifier that checks subject alternative names against the hostname of the URI
-            final HostnameVerifier hostnameVerifier = new HostnameVerifier() {
-                @Override
-                public boolean verify(final String hostname, final SSLSession ssls) {
-
-                    try {
-                        for (final Certificate peerCertificate : ssls.getPeerCertificates()) {
-                            if (peerCertificate instanceof X509Certificate) {
-                                final X509Certificate x509Cert = (X509Certificate) peerCertificate;
-                                final List<String> subjectAltNames = CertificateUtils.getSubjectAlternativeNames(x509Cert);
-                                if (subjectAltNames.contains(hostname.toLowerCase())) {
-                                    return true;
-                                }
-                            }
-                        }
-                    } catch (final SSLPeerUnverifiedException | CertificateParsingException ex) {
-                        logger.warn("Hostname Verification encountered exception verifying hostname due to: " + ex, ex);
-                    }
-
-                    return false;
-                }
-            };
-
-            clientBuilder = clientBuilder.sslContext(ctx).hostnameVerifier(hostnameVerifier);
+            clientBuilder = clientBuilder.sslContext(ctx).hostnameVerifier(new NiFiHostnameVerifier());
         }
 
         clientBuilder = clientBuilder.register(ObjectMapperResolver.class).register(JacksonJaxbJsonProvider.class);

@@ -19,7 +19,7 @@ package org.apache.nifi.controller.service;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 
 /**
  * Provides a collection of components that are referencing a Controller Service
@@ -35,7 +35,7 @@ public interface ControllerServiceReference {
      * @return a {@link Set} of all components that are referencing this
      * Controller Service
      */
-    Set<ConfiguredComponent> getReferencingComponents();
+    Set<ComponentNode> getReferencingComponents();
 
     /**
      * @return a {@link Set} of all Processors, Reporting Tasks, and Controller
@@ -43,7 +43,7 @@ public interface ControllerServiceReference {
      * the case of Processors and Reporting Tasks) or enabled (in the case of
      * Controller Services)
      */
-    Set<ConfiguredComponent> getActiveReferences();
+    Set<ComponentNode> getActiveReferences();
 
     /**
      * Returns a List of all components that reference this Controller Service (recursively) that

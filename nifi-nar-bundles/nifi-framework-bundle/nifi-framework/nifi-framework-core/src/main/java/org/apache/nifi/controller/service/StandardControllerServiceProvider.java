@@ -47,7 +47,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
@@ -90,9 +91,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private final NiFiProperties nifiProperties;
 
     private final ConcurrentMap<String, ControllerServiceNode> serviceCache = new ConcurrentHashMap<>();
+    private final ValidationTrigger validationTrigger;
 
     public StandardControllerServiceProvider(final FlowController flowController, final StandardProcessScheduler scheduler, final BulletinRepository bulletinRepo,
-            final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry, final NiFiProperties nifiProperties) {
+        final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry, final NiFiProperties nifiProperties, final ValidationTrigger validationTrigger) {
 
         this.flowController = flowController;
         this.processScheduler = scheduler;
@@ -100,6 +102,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         this.stateManagerProvider = stateManagerProvider;
         this.variableRegistry = variableRegistry;
         this.nifiProperties = nifiProperties;
+        this.validationTrigger = validationTrigger;
     }
 
     private StateManager getStateManager(final String componentId) {
@@ -160,7 +163,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
             final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                    id, validationContextFactory, this, componentVarRegistry, flowController);
+                id, validationContextFactory, this, componentVarRegistry, flowController, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
 
             invocationHandler.setServiceNode(serviceNode);
@@ -239,20 +242,20 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, id,
-                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, componentVarRegistry, flowController, true);
+            new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, componentVarRegistry, flowController, validationTrigger, true);
 
         serviceCache.putIfAbsent(id, serviceNode);
         return serviceNode;
     }
 
     @Override
-    public Set<ConfiguredComponent> disableReferencingServices(final ControllerServiceNode serviceNode) {
+    public Set<ComponentNode> disableReferencingServices(final ControllerServiceNode serviceNode) {
         // Get a list of all Controller Services that need to be disabled, in the order that they need to be disabled.
         final List<ControllerServiceNode> toDisable = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
 
         final Set<ControllerServiceNode> serviceSet = new HashSet<>(toDisable);
 
-        final Set<ConfiguredComponent> updated = new HashSet<>();
+        final Set<ComponentNode> updated = new HashSet<>();
         for (final ControllerServiceNode nodeToDisable : toDisable) {
             if (nodeToDisable.isActive()) {
                 nodeToDisable.verifyCanDisable(serviceSet);
@@ -266,13 +269,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Set<ConfiguredComponent> scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+    public Set<ComponentNode> scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
         final List<ProcessorNode> processors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
         final List<ReportingTaskNode> reportingTasks = serviceNode.getReferences().findRecursiveReferences(ReportingTaskNode.class);
 
-        final Set<ConfiguredComponent> updated = new HashSet<>();
+        final Set<ComponentNode> updated = new HashSet<>();
 
         // verify that  we can start all components (that are not disabled) before doing anything
         for (final ProcessorNode node : processors) {
@@ -306,13 +309,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Set<ConfiguredComponent> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+    public Set<ComponentNode> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
         final List<ProcessorNode> processors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
         final List<ReportingTaskNode> reportingTasks = serviceNode.getReferences().findRecursiveReferences(ReportingTaskNode.class);
 
-        final Set<ConfiguredComponent> updated = new HashSet<>();
+        final Set<ComponentNode> updated = new HashSet<>();
 
         // verify that  we can stop all components (that are running) before doing anything
         for (final ProcessorNode node : processors) {
@@ -720,18 +723,18 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
 
     @Override
-    public Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode) {
+    public Set<ComponentNode> enableReferencingServices(final ControllerServiceNode serviceNode) {
         final List<ControllerServiceNode> recursiveReferences = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
         logger.debug("Enabling the following Referencing Services for {}: {}", serviceNode, recursiveReferences);
         return enableReferencingServices(serviceNode, recursiveReferences);
     }
 
-    private Set<ConfiguredComponent> enableReferencingServices(final ControllerServiceNode serviceNode, final List<ControllerServiceNode> recursiveReferences) {
+    private Set<ComponentNode> enableReferencingServices(final ControllerServiceNode serviceNode, final List<ControllerServiceNode> recursiveReferences) {
         if (!serviceNode.isActive()) {
             serviceNode.verifyCanEnable(new HashSet<>(recursiveReferences));
         }
 
-        final Set<ConfiguredComponent> updated = new HashSet<>();
+        final Set<ComponentNode> updated = new HashSet<>();
 
         final Set<ControllerServiceNode> ifEnabled = new HashSet<>();
         for (final ControllerServiceNode nodeToEnable : recursiveReferences) {

@@ -48,9 +48,11 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.AbstractConfiguredComponent;
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.AbstractComponentNode;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ReloadComponent;
@@ -68,7 +70,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StandardControllerServiceNode extends AbstractConfiguredComponent implements ControllerServiceNode {
+public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
 
@@ -81,7 +83,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    private final Set<ConfiguredComponent> referencingComponents = new HashSet<>();
+    private final Set<ComponentNode> referencingComponents = new HashSet<>();
     private String comment;
     private ProcessGroup processGroup;
 
@@ -89,18 +91,20 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
-                                         final ControllerServiceProvider serviceProvider, final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent) {
+                                         final ControllerServiceProvider serviceProvider, final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent,
+                                         final ValidationTrigger validationTrigger) {
 
-        this(implementation, proxiedControllerService, invocationHandler, id, validationContextFactory, serviceProvider,
-            implementation.getComponent().getClass().getSimpleName(), implementation.getComponent().getClass().getCanonicalName(), variableRegistry, reloadComponent, false);
+        this(implementation, proxiedControllerService, invocationHandler, id, validationContextFactory, serviceProvider, implementation.getComponent().getClass().getSimpleName(),
+            implementation.getComponent().getClass().getCanonicalName(), variableRegistry, reloadComponent, validationTrigger, false);
     }
 
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
                                          final ControllerServiceProvider serviceProvider, final String componentType, final String componentCanonicalClass,
-                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
+                                         final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger,
+                                         final boolean isExtensionMissing) {
 
-        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, isExtensionMissing);
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, validationTrigger, isExtensionMissing);
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
@@ -218,7 +222,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         writeLock.lock();
         try {
             this.processGroup = group;
-            invalidateValidationContext();
+            resetValidationState();
         } finally {
             writeLock.unlock();
         }
@@ -235,7 +239,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
-    public void addReference(final ConfiguredComponent referencingComponent) {
+    public void addReference(final ComponentNode referencingComponent) {
         writeLock.lock();
         try {
             referencingComponents.add(referencingComponent);
@@ -260,7 +264,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
 
     @Override
-    public void removeReference(final ConfiguredComponent referencingComponent) {
+    public void removeReference(final ComponentNode referencingComponent) {
         writeLock.lock();
         try {
             referencingComponents.remove(referencingComponent);
@@ -297,7 +301,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         final ControllerServiceReference references = getReferences();
 
         final Set<String> activeReferencesIdentifiers = new HashSet<>();
-        for (final ConfiguredComponent activeReference : references.getActiveReferences()) {
+        for (final ComponentNode activeReference : references.getActiveReferences()) {
             if (!ignoreReferences.contains(activeReference)) {
                 activeReferencesIdentifiers.add(activeReference.getIdentifier());
             }
@@ -315,8 +319,23 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
 
-        if (!isValid()) {
-            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
+        // If service is invalid, perform validation again to verify. We do this in case the service
+        // is invalid due to a dependency on another service, such that the other service was disabled
+        // when validation was performed - but may now be enabled.
+        // TODO: Instead, we should just look at validation results and filter out any that are due to service dependencies, if those services are now enabled.
+        // TODO: Noticed a bug on nifi cluster. Had JsonPathReader. Indicated was valid. Clicked Enable.
+        //       It failed, indicating that there were no Json Paths defined (even though there were). Node was then kicked out of cluster.
+        //       Then opened configuration to verify. Clicked Apply. Now shows as invalid on 2 out of the 3 nodes...
+        //       After I refresh, shows valid. Click to configure / Apply again, says invalid due to no Json Paths defined.
+        if (getValidationStatus() == ValidationStatus.INVALID) {
+            performValidation();
+        }
+
+        switch (getValidationStatus()) {
+            case INVALID:
+                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
+            case VALIDATING:
+                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because its validation has not yet completed");
         }
     }
 
@@ -326,16 +345,9 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
 
-        final Set<String> ids = new HashSet<>();
-        for (final ControllerServiceNode node : ignoredReferences) {
-            ids.add(node.getIdentifier());
-        }
-
-        final Collection<ValidationResult> validationResults = getValidationErrors(ids);
-        for (final ValidationResult result : validationResults) {
-            if (!result.isValid()) {
-                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + result);
-            }
+        final Collection<ValidationResult> validationErrors = getValidationErrors(ignoredReferences);
+        if (ignoredReferences != null && !validationErrors.isEmpty()) {
+            throw new IllegalStateException("Controller Service with ID " + getIdentifier() + " cannot be enabled because it is not currently valid");
         }
     }
 
@@ -379,6 +391,19 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public boolean isActive() {
         return this.active.get();
+    }
+
+    @Override
+    public boolean isValidationNecessary() {
+        switch (getState()) {
+            case DISABLED:
+            case DISABLING:
+                return true;
+            case ENABLED:
+            case ENABLING:
+            default:
+                return false;
+        }
     }
 
     /**
@@ -506,9 +531,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         return future;
     }
 
-    /**
-     *
-     */
+
     private void invokeDisable(ConfigurationContext configContext) {
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getControllerServiceImplementation().getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
@@ -525,15 +548,6 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     public String getProcessGroupIdentifier() {
         final ProcessGroup procGroup = getProcessGroup();
         return procGroup == null ? null : procGroup.getIdentifier();
-    }
-
-    @Override
-    public Collection<ValidationResult> getValidationErrors(Set<String> serviceIdentifiersNotToValidate) {
-        Collection<ValidationResult> results = null;
-        if (getState() == ControllerServiceState.DISABLED) {
-            results = super.getValidationErrors(serviceIdentifiersNotToValidate);
-        }
-        return results != null ? results : Collections.emptySet();
     }
 
     @Override

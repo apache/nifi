@@ -62,7 +62,7 @@ public class SSLContextServiceTest {
     public void testBad1() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
+        final Map<String, String> properties = new HashMap<>();
         runner.addControllerService("test-bad1", service, properties);
         runner.assertNotValid(service);
     }
@@ -71,7 +71,7 @@ public class SSLContextServiceTest {
     public void testBad2() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
         properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
         runner.addControllerService("test-bad2", service, properties);
@@ -82,7 +82,7 @@ public class SSLContextServiceTest {
     public void testBad3() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
         properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
         properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
@@ -95,7 +95,7 @@ public class SSLContextServiceTest {
     public void testBad4() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
         properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "wrongpassword");
         properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
@@ -111,7 +111,7 @@ public class SSLContextServiceTest {
     public void testBad5() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final SSLContextService service = new StandardSSLContextService();
-        final Map<String, String> properties = new HashMap<String, String>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/DOES-NOT-EXIST.jks");
         properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
         properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
@@ -224,7 +224,7 @@ public class SSLContextServiceTest {
         // Assert
 
         // Have to exhaust the cached result by checking n-1 more times
-        for (int i = 2; i < sslContextService.getValidationCacheExpiration(); i++) {
+        for (int i = 2; i <= sslContextService.getValidationCacheExpiration(); i++) {
             validationResults = sslContextService.customValidate(validationContext);
             assertTrue("validation results is not empty", validationResults.isEmpty());
             logger.info("(" + i + ") StandardSSLContextService#customValidate() returned true even though the keystore file is no longer available");
@@ -240,7 +240,7 @@ public class SSLContextServiceTest {
         try {
             TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             SSLContextService service = new StandardSSLContextService();
-            HashMap<String, String> properties = new HashMap<String, String>();
+            HashMap<String, String> properties = new HashMap<>();
             properties.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
             properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
             properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
@@ -261,7 +261,7 @@ public class SSLContextServiceTest {
         try {
             TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             SSLContextService service = new StandardSSLContextService();
-            HashMap<String, String> properties = new HashMap<String, String>();
+            HashMap<String, String> properties = new HashMap<>();
             properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
             properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
             properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
@@ -285,7 +285,7 @@ public class SSLContextServiceTest {
         try {
             final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             final SSLContextService service = new StandardSSLContextService();
-            final Map<String, String> properties = new HashMap<String, String>();
+            final Map<String, String> properties = new HashMap<>();
             properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/diffpass-ks.jks");
             properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "storepassword");
             properties.put(StandardSSLContextService.KEY_PASSWORD.getName(), "keypassword");
@@ -310,7 +310,7 @@ public class SSLContextServiceTest {
         try {
             final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             final SSLContextService service = new StandardSSLContextService();
-            final Map<String, String> properties = new HashMap<String, String>();
+            final Map<String, String> properties = new HashMap<>();
             properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/diffpass-ks.jks");
             properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "storepassword");
             properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");

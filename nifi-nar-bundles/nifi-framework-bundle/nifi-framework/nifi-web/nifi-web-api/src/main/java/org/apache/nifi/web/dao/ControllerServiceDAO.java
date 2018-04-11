@@ -18,7 +18,7 @@ package org.apache.nifi.web.dao;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -81,7 +81,7 @@ public interface ControllerServiceDAO {
      * @param controllerServiceState the value of state
      * @return the set of all components that were modified as a result of this action
      */
-    Set<ConfiguredComponent> updateControllerServiceReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
+    Set<ComponentNode> updateControllerServiceReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
 
     /**
      * Determines whether this controller service can be updated.

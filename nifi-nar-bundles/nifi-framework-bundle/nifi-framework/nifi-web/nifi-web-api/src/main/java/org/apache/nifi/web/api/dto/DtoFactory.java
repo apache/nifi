@@ -71,7 +71,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ActiveThreadInfo;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
@@ -1472,7 +1472,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ConfiguredComponent component) {
+    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ComponentNode component) {
         final ControllerServiceReferencingComponentDTO dto = new ControllerServiceReferencingComponentDTO();
         dto.setId(component.getIdentifier());
         dto.setName(component.getName());
@@ -1913,7 +1913,7 @@ public final class DtoFactory {
     }
 
 
-    public AffectedComponentDTO createAffectedComponentDto(final ConfiguredComponent component) {
+    public AffectedComponentDTO createAffectedComponentDto(final ComponentNode component) {
         final AffectedComponentDTO dto = new AffectedComponentDTO();
         dto.setId(component.getIdentifier());
         dto.setName(component.getName());
@@ -2491,7 +2491,7 @@ public final class DtoFactory {
         return deprecationNotice == null ? null : deprecationNotice.reason();
     }
 
-    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager) {
+    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ComponentNode> affectedComponents, final RevisionManager revisionManager) {
         return affectedComponents.stream()
                 .map(component -> {
                     final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);

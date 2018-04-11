@@ -22,17 +22,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 
 public class StandardControllerServiceReference implements ControllerServiceReference {
 
     private final ControllerServiceNode referenced;
-    private final Set<ConfiguredComponent> components;
+    private final Set<ComponentNode> components;
 
     public StandardControllerServiceReference(final ControllerServiceNode referencedService,
-            final Set<ConfiguredComponent> referencingComponents) {
+            final Set<ComponentNode> referencingComponents) {
         this.referenced = referencedService;
         this.components = new HashSet<>(referencingComponents);
     }
@@ -43,11 +43,11 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
     }
 
     @Override
-    public Set<ConfiguredComponent> getReferencingComponents() {
+    public Set<ComponentNode> getReferencingComponents() {
         return Collections.unmodifiableSet(components);
     }
 
-    private boolean isRunning(final ConfiguredComponent component) {
+    private boolean isRunning(final ComponentNode component) {
         if (component instanceof ReportingTaskNode) {
             return ((ReportingTaskNode) component).isRunning();
         }
@@ -60,11 +60,11 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
     }
 
     @Override
-    public Set<ConfiguredComponent> getActiveReferences() {
-        final Set<ConfiguredComponent> activeReferences = new HashSet<>();
+    public Set<ComponentNode> getActiveReferences() {
+        final Set<ComponentNode> activeReferences = new HashSet<>();
         final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
 
-        for (final ConfiguredComponent component : components) {
+        for (final ComponentNode component : components) {
             if (component instanceof ControllerServiceNode) {
                 serviceNodes.add((ControllerServiceNode) component);
 
@@ -80,17 +80,17 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
         return activeReferences;
     }
 
-    private Set<ConfiguredComponent> getActiveIndirectReferences(final Set<ControllerServiceNode> referencingServices) {
+    private Set<ComponentNode> getActiveIndirectReferences(final Set<ControllerServiceNode> referencingServices) {
         if (referencingServices.isEmpty()) {
             return Collections.emptySet();
         }
 
-        final Set<ConfiguredComponent> references = new HashSet<>();
+        final Set<ComponentNode> references = new HashSet<>();
         for (final ControllerServiceNode referencingService : referencingServices) {
             final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
             final ControllerServiceReference ref = referencingService.getReferences();
 
-            for (final ConfiguredComponent component : ref.getReferencingComponents()) {
+            for (final ComponentNode component : ref.getReferencingComponents()) {
                 if (component instanceof ControllerServiceNode) {
                     serviceNodes.add((ControllerServiceNode) component);
                 } else if (isRunning(component)) {
@@ -113,7 +113,7 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
     private <T> List<T> findRecursiveReferences(final ControllerServiceNode referencedNode, final Class<T> componentType) {
         final List<T> references = new ArrayList<>();
 
-        for (final ConfiguredComponent referencingComponent : referencedNode.getReferences().getReferencingComponents()) {
+        for (final ComponentNode referencingComponent : referencedNode.getReferences().getReferencingComponents()) {
             if (componentType.isAssignableFrom(referencingComponent.getClass())) {
                 references.add(componentType.cast(referencingComponent));
             }

@@ -45,6 +45,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.w3c.dom.Document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -96,9 +97,10 @@ public class StandardFlowServiceTest {
         byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
         flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
 
-        FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+        StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
+        final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+        serializer.serialize(doc, baos);
 
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
@@ -120,9 +122,10 @@ public class StandardFlowServiceTest {
         flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-inheritable.xml"));
         flowService.load(new StandardDataFlow(flowBytes, null, null, new HashSet<>()));
 
-        FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+        StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
+        final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+        serializer.serialize(doc, baos);
 
         String expectedFlow = new String(flowBytes).trim();
         String actualFlow = new String(baos.toByteArray()).trim();
@@ -140,9 +143,10 @@ public class StandardFlowServiceTest {
             fail("should have thrown " + UninheritableFlowException.class);
         } catch (UninheritableFlowException ufe) {
 
-            FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+            StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
+            final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+            serializer.serialize(doc, baos);
 
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();
@@ -162,9 +166,10 @@ public class StandardFlowServiceTest {
             fail("should have thrown " + FlowSerializationException.class);
         } catch (FlowSerializationException ufe) {
 
-            FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
+            StandardFlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serializer.serialize(flowController, baos, ScheduledStateLookup.IDENTITY_LOOKUP);
+            final Document doc = serializer.transform(flowController, ScheduledStateLookup.IDENTITY_LOOKUP);
+            serializer.serialize(doc, baos);
 
             String expectedFlow = new String(originalBytes).trim();
             String actualFlow = new String(baos.toByteArray()).trim();

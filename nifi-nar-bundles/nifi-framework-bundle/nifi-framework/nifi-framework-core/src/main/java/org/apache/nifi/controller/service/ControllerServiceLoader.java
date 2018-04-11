@@ -156,6 +156,7 @@ public class ControllerServiceLoader {
     public static void enableControllerServices(final Collection<ControllerServiceNode> nodesToEnable, final FlowController controller, final boolean autoResumeState) {
         // Start services
         if (autoResumeState) {
+            nodesToEnable.stream().forEach(ControllerServiceNode::performValidation); // validate services before attempting to enable them
             controller.enableControllerServices(nodesToEnable);
         }
     }

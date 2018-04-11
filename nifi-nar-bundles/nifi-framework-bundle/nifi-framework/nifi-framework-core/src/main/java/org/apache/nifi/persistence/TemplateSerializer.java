@@ -28,6 +28,16 @@ import java.io.IOException;
 
 public final class TemplateSerializer {
 
+    private static final JAXBContext jaxbContext;
+
+    static {
+        try {
+            jaxbContext = JAXBContext.newInstance(TemplateDTO.class);
+        } catch (final JAXBException e) {
+            throw new RuntimeException("Cannot create JAXBContext for serializing templates", e);
+        }
+    }
+
     /**
      * This method when called assumes the Framework Nar ClassLoader is in the
      * classloader hierarchy of the current context class loader.
@@ -39,8 +49,7 @@ public final class TemplateSerializer {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final BufferedOutputStream bos = new BufferedOutputStream(baos);
 
-            JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
-            Marshaller marshaller = context.createMarshaller();
+            final Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             marshaller.marshal(dto, bos);
 
