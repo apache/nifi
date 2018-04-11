@@ -37,6 +37,7 @@ public class PropertyDescriptorDTO {
     private Boolean sensitive;
     private Boolean dynamic;
     private Boolean supportsEl;
+    private String expressionLanguageScope;
     private String identifiesControllerService;
     private BundleDTO identifiesControllerServiceBundle;
 
@@ -164,6 +165,20 @@ public class PropertyDescriptorDTO {
 
     public void setSupportsEl(Boolean supportsEl) {
         this.supportsEl = supportsEl;
+    }
+
+    /**
+     * @return specifies the scope of expression language evaluation
+     */
+    @ApiModelProperty(
+            value = "Scope of the Expression Language evaluation for the property."
+    )
+    public String getExpressionLanguageScope() {
+        return expressionLanguageScope;
+    }
+
+    public void setExpressionLanguageScope(String scope) {
+        this.expressionLanguageScope = scope;
     }
 
     /**

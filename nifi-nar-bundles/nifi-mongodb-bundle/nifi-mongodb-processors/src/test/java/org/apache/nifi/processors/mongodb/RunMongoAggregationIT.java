@@ -59,7 +59,6 @@ public class RunMongoAggregationIT {
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         runner.setProperty(RunMongoAggregation.QUERY_ATTRIBUTE, AGG_ATTR);
-        runner.setValidateExpressionUsage(true);
 
         mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
 

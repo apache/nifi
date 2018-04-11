@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -56,7 +57,7 @@ public class LogMessage extends AbstractProcessor {
             .description("The Log Level to use when logging the message")
             .allowableValues(MessageLogLevel.values())
             .defaultValue(MessageLogLevel.info.toString())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor LOG_PREFIX = new PropertyDescriptor.Builder()
@@ -66,7 +67,7 @@ public class LogMessage extends AbstractProcessor {
             .description("Log prefix appended to the log lines. " +
                     "It helps to distinguish the output of multiple LogMessage processors.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor LOG_MESSAGE = new PropertyDescriptor.Builder()
@@ -75,7 +76,7 @@ public class LogMessage extends AbstractProcessor {
             .required(false)
             .description("The log message to emit")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -120,7 +121,12 @@ public class LogMessage extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
 
-        final String logLevelValue = context.getProperty(LOG_LEVEL).getValue().toLowerCase();
+        final FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
+        final String logLevelValue = context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(flowFile).getValue().toLowerCase();
 
         final MessageLogLevel logLevel;
         try {
@@ -151,11 +157,6 @@ public class LogMessage extends AbstractProcessor {
 
         if (!isLogLevelEnabled) {
             transferChunk(session);
-            return;
-        }
-
-        final FlowFile flowFile = session.get();
-        if (flowFile == null) {
             return;
         }
 

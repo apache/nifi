@@ -205,7 +205,7 @@ public class TestStandardProcessSession {
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
         final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null,
-                processScheduler, swapManager, null, 10000);
+                processScheduler, swapManager, null, 10000, 0L, "0 B");
         return Mockito.spy(actualQueue);
     }
 

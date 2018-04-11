@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.UUID;
+
 import org.apache.nifi.processors.azure.AbstractAzureBlobStorageIT;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.UUID;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT{
 
@@ -42,8 +43,6 @@ public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT{
         final TestRunner runner = TestRunners.newTestRunner(DeleteAzureBlobStorage.class);
 
         try {
-            runner.setValidateExpressionUsage(true);
-
             runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
             runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
             runner.setProperty(AzureStorageUtils.CONTAINER, containerName);

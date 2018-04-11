@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 /**
  * An immutable object for holding information about a type of component
@@ -78,7 +79,13 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
      * indicates whether or not this property supports the Attribute Expression
      * Language
      */
+    @Deprecated
     private final boolean expressionLanguageSupported;
+    /**
+     * indicates whether or nor this property will evaluate expression language
+     * against the flow file attributes
+     */
+    private final ExpressionLanguageScope expressionLanguageScope;
     /**
      * indicates whether or not this property represents resources that should be added
      * to the classpath for this instance of the component
@@ -109,6 +116,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         this.dynamic = builder.dynamic;
         this.dynamicallyModifiesClasspath = builder.dynamicallyModifiesClasspath;
         this.expressionLanguageSupported = builder.expressionLanguageSupported;
+        this.expressionLanguageScope = builder.expressionLanguageScope;
         this.controllerServiceDefinition = builder.controllerServiceDefinition;
         this.validators = new ArrayList<>(builder.validators);
     }
@@ -236,7 +244,11 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         private List<AllowableValue> allowableValues = null;
         private boolean required = false;
         private boolean sensitive = false;
+
+        @Deprecated
         private boolean expressionLanguageSupported = false;
+
+        private ExpressionLanguageScope expressionLanguageScope = ExpressionLanguageScope.NONE;
         private boolean dynamic = false;
         private boolean dynamicallyModifiesClasspath = false;
         private Class<? extends ControllerService> controllerServiceDefinition;
@@ -253,6 +265,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             this.dynamic = specDescriptor.dynamic;
             this.dynamicallyModifiesClasspath = specDescriptor.dynamicallyModifiesClasspath;
             this.expressionLanguageSupported = specDescriptor.expressionLanguageSupported;
+            this.expressionLanguageScope = specDescriptor.expressionLanguageScope;
             this.controllerServiceDefinition = specDescriptor.getControllerServiceDefinition();
             this.validators = new ArrayList<>(specDescriptor.validators);
             return this;
@@ -297,8 +310,20 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * @param supported true if yes; false otherwise
          * @return the builder
          */
+        @Deprecated
         public Builder expressionLanguageSupported(final boolean supported) {
             this.expressionLanguageSupported = supported;
+            return this;
+        }
+
+        /**
+         * Sets the scope of the expression language evaluation
+         *
+         * @param expressionLanguageScope scope of the expression language evaluation
+         * @return the builder
+         */
+        public Builder expressionLanguageSupported(final ExpressionLanguageScope expressionLanguageScope) {
+            this.expressionLanguageScope = expressionLanguageScope;
             return this;
         }
 
@@ -513,7 +538,11 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     }
 
     public boolean isExpressionLanguageSupported() {
-        return expressionLanguageSupported;
+        return expressionLanguageSupported || !expressionLanguageScope.equals(ExpressionLanguageScope.NONE);
+    }
+
+    public ExpressionLanguageScope getExpressionLanguageScope() {
+        return expressionLanguageScope;
     }
 
     public boolean isDynamicClasspathModifier() {

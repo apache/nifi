@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -82,7 +83,7 @@ import java.util.stream.Stream;
 @DynamicProperty(
         name = "A URL query parameter",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
@@ -129,16 +130,22 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .build();
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("query-es-query").displayName("Query")
-            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)").required(true)
-            .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .name("query-es-query")
+            .displayName("Query")
+            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
-            .name("query-es-index").displayName("Index")
+            .name("query-es-index")
+            .displayName("Index")
             .description("The name of the index to read from. If the property is set "
-                            + "to _all, the query will match across all indexes.").required(true)
-            .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                            + "to _all, the query will match across all indexes.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
@@ -148,7 +155,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
                             + "the the query will match across all types.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -159,7 +166,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     "A comma-separated list of fields to retrieve from the document. If the Fields property is left blank, "
                             + "then the entire document's source will be retrieved.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -169,20 +176,29 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .description(
                     "A sort parameter (e.g., timestamp:asc). If the Sort property is left blank, "
                             + "then the results will be retrieved in document order.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("query-es-size").displayName("Page Size").defaultValue("20")
+            .name("query-es-size")
+            .displayName("Page Size")
+            .defaultValue("20")
             .description("Determines how many documents to return per page during scrolling.")
-            .required(true).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
-            .name("query-es-limit").displayName("Limit")
+            .name("query-es-limit")
+            .displayName("Limit")
             .description("If set, limits the number of results that will be returned.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor TARGET = new PropertyDescriptor.Builder()
             .name("query-es-target")
@@ -192,10 +208,12 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                             + "response will be written as the content of the flow file.  In the case of 'Flow file attributes', "
                             + "the original flow file (if applicable) will be cloned for each result, and all return fields will be placed "
                             + "in a flow file attribute of the same name, but prefixed by 'es.result.'")
-            .required(true).expressionLanguageSupported(false)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue(TARGET_FLOW_FILE_CONTENT)
             .allowableValues(TARGET_FLOW_FILE_CONTENT, TARGET_FLOW_FILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor ROUTING_QUERY_INFO_STRATEGY = new PropertyDescriptor.Builder()
             .name("routing-query-info-strategy")

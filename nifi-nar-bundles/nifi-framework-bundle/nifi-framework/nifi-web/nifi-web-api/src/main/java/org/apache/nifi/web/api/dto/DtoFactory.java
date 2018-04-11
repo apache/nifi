@@ -103,6 +103,7 @@ import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -263,7 +264,9 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval) {
+    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
+                                                           final Long defaultBackPressureObjectThreshold,
+                                                           final String defaultBackPressureDataSizeThreshold) {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
@@ -276,6 +279,9 @@ public final class DtoFactory {
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
         dto.setCurrentTime(now);
+
+        dto.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        dto.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
 
         return dto;
     }
@@ -3594,6 +3600,12 @@ public final class DtoFactory {
         dto.setDescription(propertyDescriptor.getDescription());
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
+
+        // to support legacy/deprecated method .expressionLanguageSupported(true)
+        String description = propertyDescriptor.isExpressionLanguageSupported()
+                && propertyDescriptor.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)
+                ? "true (undefined scope)" : propertyDescriptor.getExpressionLanguageScope().getDescription();
+        dto.setExpressionLanguageScope(description);
 
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {

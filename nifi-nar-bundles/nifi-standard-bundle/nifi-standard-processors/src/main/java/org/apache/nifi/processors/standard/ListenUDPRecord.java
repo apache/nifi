@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -89,7 +90,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             .description("IP, or name, of a remote host. Only Datagrams from the specified Sending Host Port and this host will "
                 + "be accepted. Improves Performance. May be a system property or an environment variable.")
             .addValidator(new HostValidator())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SENDING_HOST_PORT = new PropertyDescriptor.Builder()
@@ -98,7 +99,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             .description("Port being used by remote host to send Datagrams. Only Datagrams from the specified Sending Host and "
                 + "this port will be accepted. Improves Performance. May be a system property or an environment variable.")
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -106,7 +107,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             .displayName("Record Reader")
             .description("The Record Reader to use for reading the content of incoming datagrams.")
             .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
 
@@ -115,7 +116,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             .displayName("Record Writer")
             .description("The Record Writer to use in order to serialize the data before writing to a flow file.")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
 
@@ -135,7 +136,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             .description("The maximum number of datagrams to write as records to a single FlowFile. The Batch Size will only be reached when " +
                     "data is coming in more frequently than the Poll Timeout.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("1000")
             .required(true)
             .build();

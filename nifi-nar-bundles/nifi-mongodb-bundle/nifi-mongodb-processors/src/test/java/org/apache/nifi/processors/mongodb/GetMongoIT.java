@@ -359,7 +359,6 @@ public class GetMongoIT {
         runner.setIncomingConnection(true);
         runner.setProperty(GetMongo.QUERY, query);
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "10");
-        runner.setValidateExpressionUsage(true);
         runner.enqueue("test", attributes);
         runner.run(1, true, true);
 

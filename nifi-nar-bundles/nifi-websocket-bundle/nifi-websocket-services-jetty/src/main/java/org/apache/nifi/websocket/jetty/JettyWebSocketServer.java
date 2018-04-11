@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
@@ -90,7 +91,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             .displayName("Listen Port")
             .description("The port number on which this WebSocketServer listens to.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -180,7 +181,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
         server.setHandler(handlerCollection);
 
-        listenPort = context.getProperty(LISTEN_PORT).asInteger();
+        listenPort = context.getProperty(LISTEN_PORT).evaluateAttributeExpressions().asInteger();
         final SslContextFactory sslContextFactory = createSslFactory(context);
 
         final ServerConnector serverConnector = createConnector(sslContextFactory, listenPort);

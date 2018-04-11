@@ -43,6 +43,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -145,7 +146,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .description("If specified, two FlowFiles will be binned together only if they have the same value for "
             + "this Attribute. If not specified, FlowFiles are bundled by the order in which they are pulled from the queue.")
         .required(false)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
         .defaultValue(null)
         .build();

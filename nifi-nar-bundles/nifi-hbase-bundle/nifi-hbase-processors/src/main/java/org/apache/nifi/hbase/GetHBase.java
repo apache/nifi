@@ -59,6 +59,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.io.JsonRowSerializer;
 import org.apache.nifi.hbase.io.RowSerializer;
@@ -121,7 +122,7 @@ public class GetHBase extends AbstractProcessor {
             .name("Table Name")
             .description("The name of the HBase Table to put data into")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor COLUMNS = new PropertyDescriptor.Builder()
@@ -129,14 +130,14 @@ public class GetHBase extends AbstractProcessor {
             .description("A comma-separated list of \"<colFamily>:<colQualifier>\" pairs to return when scanning. To return all columns " +
                     "for a given family, leave off the qualifier such as \"<colFamily1>,<colFamily2>\".")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
             .build();
     static final PropertyDescriptor FILTER_EXPRESSION = new PropertyDescriptor.Builder()
             .name("Filter Expression")
             .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property.")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor INITIAL_TIMERANGE = new PropertyDescriptor.Builder()
@@ -144,7 +145,7 @@ public class GetHBase extends AbstractProcessor {
             .description("The time range to use on the first scan of a table. None will pull the entire table on the first scan, " +
                     "Current Time will pull entries from that point forward.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(NONE, CURRENT_TIME)
             .defaultValue(NONE.getValue())
             .build();

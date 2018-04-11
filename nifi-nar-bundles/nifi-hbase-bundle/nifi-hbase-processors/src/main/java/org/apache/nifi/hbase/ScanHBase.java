@@ -39,6 +39,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hbase.io.JsonFullRowSerializer;
@@ -86,7 +87,7 @@ public class ScanHBase extends AbstractProcessor {
             .name("scanhbase-table-name")
             .description("The name of the HBase Table to fetch from.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -95,7 +96,7 @@ public class ScanHBase extends AbstractProcessor {
             .name("scanhbase-start-rowkey")
             .description("The rowkey to start scan from.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -104,7 +105,7 @@ public class ScanHBase extends AbstractProcessor {
             .name("scanhbase-end-rowkey")
             .description("The row key to end scan by.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -113,7 +114,7 @@ public class ScanHBase extends AbstractProcessor {
             .name("scanhbase-time-range-min")
             .description("Time range min value. Both min and max values for time range should be either blank or provided.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
 
@@ -122,7 +123,7 @@ public class ScanHBase extends AbstractProcessor {
             .name("scanhbase-time-range-max")
             .description("Time range max value. Both min and max values for time range should be either blank or provided.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
 
@@ -131,7 +132,7 @@ public class ScanHBase extends AbstractProcessor {
             .name("scanhbase-limit")
             .description("Limit number of rows retrieved by scan.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -140,7 +141,7 @@ public class ScanHBase extends AbstractProcessor {
             .name("scanhbase-bulk-size")
             .description("Limits number of rows in single flow file content. Set to 0 to avoid multiple flow files.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("0")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
@@ -149,7 +150,7 @@ public class ScanHBase extends AbstractProcessor {
             .displayName("Reversed order")
             .name("scanhbase-reversed-order")
             .description("Set whether this scan is a reversed one. This is false by default which means forward(normal) scan.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
             .required(false)
             .defaultValue("false")
@@ -162,7 +163,7 @@ public class ScanHBase extends AbstractProcessor {
             .description("An HBase filter expression that will be applied to the scan. This property can not be used when also using the Columns property. "
                     + "Example: \"ValueFilter( =, 'binaryprefix:commit' )\"")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -172,7 +173,7 @@ public class ScanHBase extends AbstractProcessor {
             .description("An optional comma-separated list of \"<colFamily>:<colQualifier>\" pairs to fetch. To return all columns " +
                     "for a given family, leave off the qualifier such as \"<colFamily1>,<colFamily2>\".")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
             .build();
 

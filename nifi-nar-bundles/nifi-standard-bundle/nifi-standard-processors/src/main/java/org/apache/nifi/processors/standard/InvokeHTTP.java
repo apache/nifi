@@ -46,6 +46,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -126,9 +127,9 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
     @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
     @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
         + "will become the attribute key and the value would be the body of the HTTP response.")})
-@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", supportsExpressionLanguage = true, description = "Send request header "
-        + "with a key matching the Dynamic Property Key and a value created by evaluating the Attribute Expression Language set in the value "
-        + "of the Dynamic Property.")
+@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                    description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
+                            + "the Attribute Expression Language set in the value of the Dynamic Property.")
 public final class InvokeHTTP extends AbstractProcessor {
 
     // flowfile attribute keys returned after reading the response
@@ -163,7 +164,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
@@ -171,7 +172,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .name("Remote URL")
             .description("Remote URL which will be connected to, including scheme, host, port, path.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -241,7 +242,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The fully qualified hostname or IP address of the proxy server")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_PORT = new PropertyDescriptor.Builder()
@@ -249,7 +250,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The port of the proxy server")
             .required(false)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_USER = new PropertyDescriptor.Builder()
@@ -258,7 +259,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Username to set when authenticating against proxy")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
@@ -268,7 +269,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
@@ -276,7 +277,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
                     + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
@@ -324,7 +325,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("If set, the response body received back will be put into an attribute of the original FlowFile instead of a separate "
                     + "FlowFile. The attribute key to put to is determined by evaluating value of this property. ")
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor PROP_PUT_ATTRIBUTE_MAX_LENGTH = new PropertyDescriptor.Builder()
@@ -497,7 +498,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .dynamic(true)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
     }
 

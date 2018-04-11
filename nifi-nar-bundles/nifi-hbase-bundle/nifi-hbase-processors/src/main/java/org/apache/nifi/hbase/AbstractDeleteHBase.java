@@ -19,6 +19,7 @@ package org.apache.nifi.hbase;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -42,14 +43,14 @@ public abstract class AbstractDeleteHBase extends AbstractProcessor {
             .name("Table Name")
             .description("The name of the HBase Table.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor ROW_ID = new PropertyDescriptor.Builder()
             .name("Row Identifier")
             .description("Specifies the Row ID to use when deleting data into HBase")
             .required(false) // not all sub-classes will require this
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

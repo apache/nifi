@@ -37,6 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -95,7 +96,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Event Hub Namespace")
             .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
@@ -103,7 +104,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Event Hub Name")
             .description("The name of the Azure Event Hub to pull messages from.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     // TODO: Do we need to support custom service endpoints as GetAzureEventHub does? Is it possible?
@@ -112,7 +113,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Shared Access Policy Name")
             .description("The name of the Event Hub Shared Access Policy. This Policy must have Listen permissions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
@@ -120,7 +121,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Shared Access Policy Primary Key")
             .description("The primary key of the Event Hub Shared Access Policy.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .required(true)
             .build();
@@ -129,7 +130,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Event Hub Consumer Group")
             .description("The name of the Event Hub Consumer Group to use.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("$Default")
             .required(true)
             .build();
@@ -139,7 +140,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .description("The hostname of this Event Hub Consumer instance." +
                     " If not specified, an unique identifier is generated in 'nifi-<UUID>' format.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
 
@@ -149,7 +150,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .description("The Record Reader to use for reading received messages." +
                     " The Event Hub name can be referred by Expression Language '${eventhub.name}' to access a schema.")
             .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
@@ -159,7 +160,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     " The Event Hub name can be referred by Expression Language '${eventhub.name}' to access a schema." +
                     " If not specified, each message will create a FlowFile.")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
 
@@ -188,7 +189,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     " https://github.com/Azure/azure-event-hubs-java/issues/125")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("300")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -202,7 +203,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     " The higher number, the higher throughput, but possibly less consistent.")
             .defaultValue("10")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     static final PropertyDescriptor RECEIVE_TIMEOUT = new PropertyDescriptor.Builder()
@@ -211,7 +212,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .description("The amount of time this consumer should wait to receive the Prefetch Count before returning.")
             .defaultValue("1 min")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     static final PropertyDescriptor STORAGE_ACCOUNT_NAME = new PropertyDescriptor.Builder()
@@ -219,7 +220,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Storage Account Name")
             .description("Name of the Azure Storage account to store Event Hub Consumer Group state.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     static final PropertyDescriptor STORAGE_ACCOUNT_KEY = new PropertyDescriptor.Builder()
@@ -228,7 +229,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .description("The Azure Storage account key to store Event Hub Consumer Group state.")
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
     static final PropertyDescriptor STORAGE_CONTAINER_NAME = new PropertyDescriptor.Builder()
@@ -237,7 +238,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .description("Name of the Azure Storage Container to store Event Hub Consumer Group state." +
                     " If not specified, Event Hub name is used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
 

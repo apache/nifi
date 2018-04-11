@@ -94,7 +94,7 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
         final long startNanos = System.nanoTime();
         final ComponentLog logger = getLogger();
         String docId = null;
-        if (!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())) {
+        if (context.getProperty(DOC_ID).isSet()) {
             docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(inFile).getValue();
         } else {
             final byte[] content = new byte[(int) inFile.getSize()];

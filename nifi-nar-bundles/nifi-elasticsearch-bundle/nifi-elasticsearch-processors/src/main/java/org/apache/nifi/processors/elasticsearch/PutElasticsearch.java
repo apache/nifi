@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -81,7 +82,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .name("Identifier Attribute")
             .description("The name of the attribute containing the identifier for each FlowFile")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
 
@@ -89,7 +90,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .name("Index")
             .description("The name of the index to insert into")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
                     AttributeExpression.ResultType.STRING, true))
             .build();
@@ -98,7 +99,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .name("Type")
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
@@ -106,7 +107,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .name("Index Operation")
             .description("The type of the operation used to index (index, update, upsert)")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .defaultValue("index")
             .build();
@@ -117,7 +118,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("100")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private static final Set<Relationship> relationships;

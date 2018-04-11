@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
+import java.io.IOException;
+
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.sns.PutSNS;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-
-import java.io.IOException;
 
 /**
  * Provides integration level testing with actual AWS CloudWatch resources for {@link PutCloudWatchMetric} and requires additional configuration and resources to work.
@@ -50,7 +50,6 @@ public class ITPutCloudWatchMetric {
     @Test
     public void testPublishWithCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
-        runner.setValidateExpressionUsage(false);
 
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
         runner.addControllerService("awsCredentialsProvider", serviceImpl);

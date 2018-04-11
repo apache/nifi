@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -59,7 +60,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("WebSocket URI")
             .description("The WebSocket URI this client connects to.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .addValidator((subject, input, context) -> {
                 final ValidationResult.Builder result = new ValidationResult.Builder()
@@ -82,7 +83,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("Connection Timeout")
             .description("The timeout to connect the WebSocket URI.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("3 sec")
             .build();
@@ -97,7 +98,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                     " so that a WebSocket client can reuse the same session id transparently after it reconnects successfully. " +
                     " The maintenance activity is executed until corresponding processors or this controller service is stopped.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 sec")
             .build();
@@ -142,10 +143,10 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         client.start();
         activeSessions.clear();
 
-        webSocketUri = new URI(context.getProperty(WS_URI).getValue());
-        connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        webSocketUri = new URI(context.getProperty(WS_URI).evaluateAttributeExpressions().getValue());
+        connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
-        final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         sessionMaintenanceScheduler = Executors.newSingleThreadScheduledExecutor();
         sessionMaintenanceScheduler.scheduleAtFixedRate(() -> {

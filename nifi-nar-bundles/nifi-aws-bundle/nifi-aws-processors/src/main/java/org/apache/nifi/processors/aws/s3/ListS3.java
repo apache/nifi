@@ -40,6 +40,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -84,7 +85,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final PropertyDescriptor DELIMITER = new PropertyDescriptor.Builder()
             .name("delimiter")
             .displayName("Delimiter")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The string used to delimit directories within the bucket. Please consult the AWS documentation " +
@@ -94,7 +95,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder()
             .name("prefix")
             .displayName("Prefix")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
@@ -103,7 +104,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final PropertyDescriptor USE_VERSIONS = new PropertyDescriptor.Builder()
             .name("use-versions")
             .displayName("Use Versions")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
@@ -114,7 +115,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final PropertyDescriptor LIST_TYPE = new PropertyDescriptor.Builder()
             .name("list-type")
             .displayName("List Type")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .allowableValues(
