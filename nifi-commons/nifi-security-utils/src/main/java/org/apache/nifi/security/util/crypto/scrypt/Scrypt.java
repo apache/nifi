@@ -200,13 +200,14 @@ public class Scrypt {
      * <p>
      * s0 -- version. Currently only "s0" is supported
      * 40801 -- hex-encoded N, r, p parameters. {@see Scrypt#encodeParams()} for format
-     * ABCDEFGHIJKLMNOPQRSTUQ -- Base64-encoded (URL-safe, no padding) salt value. By default, 22 characters (16 bytes) but can be an arbitrary length between 11 and 64 characters (8 - 48 bytes) of random salt data
-     * hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8 -- the Base64-encoded (URL-safe, no padding) resulting hash component. By default, 43 characters (32 bytes) but can be an arbitrary length between 1 and MAX (depends on implementation, see RFC 7914)
-     *
-     * @see Scrypt#formatSalt(byte[], int, int, int)
+     * ABCDEFGHIJKLMNOPQRSTUQ -- Base64-encoded (URL-safe, no padding) salt value.
+     * By default, 22 characters (16 bytes) but can be an arbitrary length between 11 and 64 characters (8 - 48 bytes) of random salt data
+     * hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8 -- the Base64-encoded (URL-safe, no padding)
+     * resulting hash component. By default, 43 characters (32 bytes) but can be an arbitrary length between 1 and MAX (depends on implementation, see RFC 7914)
      *
      * @param hash the hash to verify
      * @return true if the format is acceptable
+     * @see Scrypt#formatSalt(byte[], int, int, int)
      */
     public static boolean verifyHashFormat(String hash) {
         if (StringUtils.isBlank(hash)) {
