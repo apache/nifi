@@ -219,7 +219,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .name("routing-query-info-strategy")
             .displayName("Routing Strategy for Query Info")
             .description("Specifies when to generate and route Query Info after a successful query")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(ALWAYS, NEVER, NO_HITS)
             .defaultValue(NEVER.getValue())
             .required(false)
