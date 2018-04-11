@@ -1878,7 +1878,7 @@ The following actions are not considered local changes:
 * updating a processor that was referencing a non-existent controller service to reference an externally available controller service
 * modifying variables
 
-WARNING: Variables do not support sensitive values and will be included when versioning a Process Group.
+WARNING: Variables do not support sensitive values and will be included when versioning a Process Group. See <<Variables_in_Versioned_Flows>> for more information.
 
 ==== Show Local Changes
 The local changes made to a versioned process group can be viewed in the Show Local Changes dialog by selecting "Version->Show local changes" from the context menu.
@@ -1939,6 +1939,40 @@ image::process-group-version-control-stopped.png["Version Control Stopped on Pro
 
 === Nested Versioned Flows
 A versioned process group can contain other versioned process groups.  However, local changes to a parent process group cannot be reverted or saved if it contains a child process group that also has local changes.  The child process group must first be reverted or have its changes committed for those actions to be performed on the parent process group.
+
+[[Variables_in_Versioned_Flows]]
+=== Variables in Versioned Flows
+Variables are included when a process group is placed under version control.  If a versioned flow is imported that references a variable not defined in the versioned process group, the reference is maintained if the variable exists.  If the referenced variable does not exist, a copy of the variable will be defined in the process group.  To illustrate, assume the variable “RPG_Var" is defined in the root process group:
+
+image::rpg-variable.png["Root Process Group Defined Variable"]
+
+A process group PG1 is created:
+
+image::PG1_process_group.png["PG1 Process Group"]
+
+The GetFile processor in PG1 references the variable "RPG_Var":
+
+image::PG1_variable_reference.png["PG1 References RPG Variable"]
+
+PG1 is saved as a versioned flow:
+
+image::PG1_versioned_flow.png["PG1 Versioned Flow"]
+
+If PG1 versioned flow is imported into this same NiFi instance:
+
+image::PG1_imported_same.png["PG1 Imported to Same NiFi"]
+
+the added GetFile processor will also reference the "RPG_Var" variable that exists in the root process group:
+
+image::PG1_variable_ref_2.png["Both PG1 Reference RPG Variable"]
+
+If PG1 versioned flow is imported into a different NiFi instance where "RPG_Var" does not exist:
+
+image::PG1_imported_diff.png["PG1 Imported to Different NiFi"]
+
+A "RPG_Var" variable is created in the PG1 process group:
+
+image::PG1_variable_ref_PG.png["PG1 References PG Variable Copy"]
 
 [[Restricted_Components_in_Versioned_Flows]]
 === Restricted Components in Versioned Flows
