@@ -30,6 +30,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+import org.apache.nifi.processors.standard.db.impl.PhoenixDatabaseAdapter;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -428,33 +429,44 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     protected static String getLiteralByType(int type, String value, String databaseType) {
         // Format value based on column type. For example, strings and timestamps need to be quoted
         switch (type) {
-            // For string-represented values, put in single quotes
-            case CHAR:
-            case LONGNVARCHAR:
-            case LONGVARCHAR:
-            case NCHAR:
-            case NVARCHAR:
-            case VARCHAR:
-            case ROWID:
-            case DATE:
-            case TIME:
-                return "'" + value + "'";
-            case TIMESTAMP:
-                if (!StringUtils.isEmpty(databaseType) && databaseType.contains("Oracle")) {
-                    // For backwards compatibility, the type might be TIMESTAMP but the state value is in DATE format. This should be a one-time occurrence as the next maximum value
-                    // should be stored as a full timestamp. Even so, check to see if the value is missing time-of-day information, and use the "date" coercion rather than the
-                    // "timestamp" coercion in that case
-                    if (value.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                        return "date '" + value + "'";
-                    } else {
-                        return "timestamp '" + value + "'";
-                    }
+        // For string-represented values, put in single quotes
+        case CHAR:
+        case LONGNVARCHAR:
+        case LONGVARCHAR:
+        case NCHAR:
+        case NVARCHAR:
+        case VARCHAR:
+        case ROWID: return "'" + value + "'";
+        case TIME:
+            if (PhoenixDatabaseAdapter.NAME.equals(databaseType)) {
+                return "time '" + value + "'";
+            }
+        case DATE:
+        case TIMESTAMP:
+            // TODO delegate to database adapter the conversion instead of using if in this
+            // class.
+            // TODO (cont) if a new else is added, please refactor the code.
+            // Ideally we should probably have a method on the adapter to get a clause that
+            // coerces a
+            // column to a Timestamp if need be (the generic one can be a no-op)
+            if (!StringUtils.isEmpty(databaseType) && (databaseType.contains("Oracle") || PhoenixDatabaseAdapter.NAME.equals(databaseType))) {
+                // For backwards compatibility, the type might be TIMESTAMP but the state value
+                // is in DATE format. This should be a one-time occurrence as the next maximum
+                // value
+                // should be stored as a full timestamp. Even so, check to see if the value is
+                // missing time-of-day information, and use the "date" coercion rather than the
+                // "timestamp" coercion in that case
+                if (value.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                    return "date '" + value + "'";
                 } else {
-                    return "'" + value + "'";
+                    return "timestamp '" + value + "'";
                 }
-                // Else leave as is (numeric types, e.g.)
-            default:
-                return value;
+            } else {
+                return "'" + value + "'";
+            }
+            // Else leave as is (numeric types, e.g.)
+        default:
+            return value;
         }
     }
 
