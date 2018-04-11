@@ -290,7 +290,7 @@ public class JdbcCommon {
             final ResultSetMetaData meta = rs.getMetaData();
             final int nrOfColumns = meta.getColumnCount();
             long nrOfRows = 0;
-            while (rs.next()) {
+            while (callNextOnResultSet(rs)) {
                 if (callback != null) {
                     callback.processRow(rs);
                 }
@@ -848,6 +848,35 @@ public class JdbcCommon {
             case "ISO_INSTANT": return DateTimeFormatter.ISO_INSTANT;
             case "RFC_1123_DATE_TIME": return DateTimeFormatter.RFC_1123_DATE_TIME;
             default: return DateTimeFormatter.ofPattern(pattern);
+        }
+    }
+
+    /**
+     * Calls to {@link ResultSet#next()} and wraps the call on a try/catch to
+     * prevent breaking caller functionality on closed result set.
+     * <p>
+     * See also
+     * <a href="https://issues.apache.org/jira/browse/NIFI-5070">NIFI-5070</a>.
+     * </p>
+     * 
+     * @param rs the resultSet
+     * @return <code>rs.next()</code> or false if the result set is close.
+     * @throws SQLException if a database access error ocurrs.
+     * @throws NullPointerException if <code>rs</code> is null.
+     */
+    private static boolean callNextOnResultSet(final ResultSet rs) throws SQLException {
+        try {
+            return rs.next();
+        } catch (SQLException e) {
+            try {
+                if (rs.isClosed()) {
+                    // it is expected in this case according the ResultSet#next javadoc.
+                    return false;
+                }
+            } catch (SQLException innerEx) {
+                // do nothing. We want to throw the rs.next() original exception.
+            }
+            throw e;
         }
     }
 

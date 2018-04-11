@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -67,10 +69,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.apache.nifi.processors.standard.util.JdbcCommon.AvroConversionOptions;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -83,6 +88,8 @@ public class TestJdbcCommon {
 
     @ClassRule
     public static TemporaryFolder folder = new TemporaryFolder();
+    @Rule
+    public ExpectedException exceptionRule = ExpectedException.none();
 
     /**
      * Setting up Connection is expensive operation.
@@ -135,7 +142,7 @@ public class TestJdbcCommon {
         final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
         when(resultSetMetaData.getColumnCount()).thenReturn(0);
-        when(resultSetMetaData.getTableName(1)).thenThrow(SQLException.class);
+        doThrow(SQLException.class).when(resultSetMetaData).getTableName(1);
 
         final Schema schema = JdbcCommon.createSchema(resultSet);
         assertNotNull(schema);
@@ -616,6 +623,117 @@ public class TestJdbcCommon {
                 record = dataFileReader.next(record);
                 assertEquals(Short.toString(s), record.get("t_int").toString());
             }
+        }
+    }
+
+    /**
+     * <p>
+     * According {@link ResultSet#next()}, if it's called on a closed resultSet, it
+     * may throws an {@link SQLException}. This test checks when resultSet.next()
+     * throws an SQLException and the resultSet is not closed, the expected
+     * behaviour is to propagate that exception because it was caused by a DB error.
+     * </p>
+     * See <a href="https://issues.apache.org/jira/browse/NIFI-5070">NIFI-5070</a>
+     * for more information.
+     * 
+     * @throws SQLException it is expected the exception be thrown.
+     */
+    @Test
+    public void givenAnExceptionOnNoClosedResultSetWhenCallingNextShouldFail() throws SQLException {
+        // Given
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        final ResultSet rs = mock(ResultSet.class);
+        try {
+            when(metadata.getColumnCount()).thenReturn(1);
+            when(metadata.getColumnType(1)).thenReturn(Types.TINYINT);
+            when(metadata.getColumnName(1)).thenReturn("t_int");
+            when(metadata.getTableName(1)).thenReturn("table");
+            when(rs.getMetaData()).thenReturn(metadata);
+            when(rs.isClosed()).thenReturn(false); // It is a DB error.
+            SQLException expectedException = new SQLException("DB error");
+            doThrow(expectedException).when(rs).next();
+            // Expected the exception thrown by rs.next()
+            exceptionRule.expect(is(expectedException));
+
+            // When
+            JdbcCommon.convertToAvroStream(rs, new ByteArrayOutputStream(), mock(AvroConversionOptions.class), null);
+            // It is expected the exception
+        } catch (SQLException e) {
+            throw e;
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: "+e);
+        }
+    }
+
+    /**
+     * <p>
+     * According {@link ResultSet#next()}, if it's called on a closed resultSet, it
+     * may throws an {@link SQLException}. This test checks when both resultSet.next() and resultSet.isClosed()
+     * methods throw an SQLException, the expected
+     * behaviour is to propagate that exception raised by rs.next() method.
+     * </p>
+     * See <a href="https://issues.apache.org/jira/browse/NIFI-5070">NIFI-5070</a>
+     * for more information.
+     * 
+     * @throws SQLException it is expected the exception be thrown.
+     */
+    @Test
+    public void givenAnErrorOnDBWhenCallingNextShouldReturnOriginalException() throws SQLException {
+        // Given
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        final ResultSet rs = mock(ResultSet.class);
+        try {
+            when(metadata.getColumnCount()).thenReturn(1);
+            when(metadata.getColumnType(1)).thenReturn(Types.TINYINT);
+            when(metadata.getColumnName(1)).thenReturn("t_int");
+            when(metadata.getTableName(1)).thenReturn("table");
+            when(rs.getMetaData()).thenReturn(metadata);
+            when(rs.isClosed()).thenReturn(false); // It is a DB error.
+            SQLException expectedException = new SQLException("DB error");
+            doThrow(expectedException).when(rs).next();
+            doThrow(new SQLException("DB error on calling Close")).when(rs).isClosed();
+            // Expected the exception thrown by rs.next()
+            exceptionRule.expect(is(expectedException));
+
+            // When
+            JdbcCommon.convertToAvroStream(rs, new ByteArrayOutputStream(), mock(AvroConversionOptions.class), null);
+            // It is expected the exception
+        } catch (SQLException e) {
+            throw e;
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: "+e);
+        }
+    }
+
+    /**
+     * <p>
+     * According {@link ResultSet#next()}, if it's called on a non closed resultSet,
+     * it may throws an {@link SQLException} when the result set type is
+     * TYPE_FORWARD_ONLY. This test checks when resultSet.next() throws an
+     * SQLException and the resultSet is closed, the expected behaviour is continue
+     * the execution as it the result set next() method returns false.
+     * </p>
+     * See <a href="https://issues.apache.org/jira/browse/NIFI-5070">NIFI-5070</a>
+     * for more information.
+     */
+    @Test
+    public void givenAnExceptionOnClosedResultSetWhenCallingNextShouldNotFail() {
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        final ResultSet rs = mock(ResultSet.class);
+        try {
+            when(metadata.getColumnCount()).thenReturn(1);
+            when(metadata.getColumnType(1)).thenReturn(Types.TINYINT);
+            when(metadata.getColumnName(1)).thenReturn("t_int");
+            when(metadata.getTableName(1)).thenReturn("table");
+            when(rs.getMetaData()).thenReturn(metadata);
+            when(rs.isClosed()).thenReturn(true); // Simulates that rs.next() throws an exception because rs is closed.
+            doThrow(SQLException.class).when(rs).next();
+
+            // When
+            JdbcCommon.convertToAvroStream(rs, new ByteArrayOutputStream(), mock(AvroConversionOptions.class), null);
+            // no exception excepted
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: " + e);
         }
     }
 
