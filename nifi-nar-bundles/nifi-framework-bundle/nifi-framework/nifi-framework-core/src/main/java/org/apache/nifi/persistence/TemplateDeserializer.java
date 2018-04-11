@@ -31,16 +31,25 @@ import java.io.InputStream;
 
 public class TemplateDeserializer {
 
+    private static final JAXBContext jaxbContext;
+
+    static {
+        try {
+            jaxbContext = JAXBContext.newInstance(TemplateDTO.class);
+        } catch (final JAXBException e) {
+            throw new RuntimeException("Cannot create JAXBContext for serializing templates", e);
+        }
+    }
+
     public static TemplateDTO deserialize(final InputStream inStream) {
        return deserialize(new StreamSource(inStream));
     }
 
     public static TemplateDTO deserialize(final StreamSource source) {
         try {
-            JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
-            XMLStreamReader xsr = XmlUtils.createSafeReader(source);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
-            JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
+            final XMLStreamReader xsr = XmlUtils.createSafeReader(source);
+            final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+            final JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
             return templateElement.getValue();
         } catch (final JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);

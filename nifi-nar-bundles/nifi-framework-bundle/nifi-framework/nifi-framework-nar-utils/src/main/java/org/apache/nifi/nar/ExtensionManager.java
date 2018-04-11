@@ -381,7 +381,7 @@ public class ExtensionManager {
 
         if (logger.isTraceEnabled()) {
             for (URL url : instanceClassLoader.getURLs()) {
-                logger.trace("URL resource {} for {}...", new Object[]{url.toExternalForm(), instanceIdentifier});
+                logger.trace("URL resource {} for {}...", new Object[] {url.toExternalForm(), instanceIdentifier});
             }
         }
 

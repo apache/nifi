@@ -24,20 +24,28 @@ import org.apache.nifi.controller.FlowController;
  * Serializes the flow configuration of a controller instance to an output stream.
  *
  */
-public interface FlowSerializer {
+public interface FlowSerializer<T> {
 
     public static final String ENC_PREFIX = "enc{";
     public static final String ENC_SUFFIX = "}";
 
     /**
-     * Serializes the flow configuration of a controller instance.
+     * Transforms the flow configuration of a controller instance into something that can serialized
      *
      * @param controller a controller
-     * @param os an output stream to write the configuration to
      * @param stateLookup a lookup that can be used to determine the ScheduledState of a Processor
      *
+     * @return a form of the flow configuration that can be serialized by the {@link #serialize(Object, OutputStream)} method
      * @throws FlowSerializationException if serialization failed
      */
-    void serialize(FlowController controller, OutputStream os, ScheduledStateLookup stateLookup) throws FlowSerializationException;
+    T transform(FlowController controller, ScheduledStateLookup stateLookup) throws FlowSerializationException;
 
+    /**
+     * Serializes the flow configuration to the given Output Stream
+     *
+     * @param flowConfiguration the flow configuration to serialize
+     * @param os the output stream to serialize to
+     * @throws FlowSerializationException if serialization failed
+     */
+    void serialize(T flowConfiguration, OutputStream os) throws FlowSerializationException;
 }

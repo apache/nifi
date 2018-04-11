@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -35,9 +36,10 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 
-public interface ConfiguredComponent extends ComponentAuthorizable {
+public interface ComponentNode extends ComponentAuthorizable {
 
     @Override
     public String getIdentifier();
@@ -59,8 +61,6 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
     public Map<PropertyDescriptor, String> getProperties();
 
     public String getProperty(final PropertyDescriptor property);
-
-    boolean isValid();
 
     void reload(Set<URL> additionalUrls) throws Exception;
 
@@ -113,9 +113,56 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
     boolean isDeprecated();
 
     /**
+     * Indicates whether or not validation should be run on the component, based on its current state.
+     *
+     * @return <code>true</code> if the component needs validation, <code>false</code> otherwise
+     */
+    boolean isValidationNecessary();
+
+    /**
      * @return the variable registry for this component
      */
     ComponentVariableRegistry getVariableRegistry();
+
+    /**
+     * Returns the processor's current Validation Status
+     *
+     * @return the processor's current Validation Status
+     */
+    public abstract ValidationStatus getValidationStatus();
+
+    /**
+     * Returns the processor's Validation Status, waiting up to the given amount of time for the Validation to complete
+     * if it is currently in the process of validating. If the processor is currently in the process of validation and
+     * the validation logic does not complete in the given amount of time, or if the thread is interrupted, then a Validation Status
+     * of {@link ValidationStatus#VALIDATING VALIDATING} will be returned.
+     *
+     * @param timeout the max amount of time to wait
+     * @param unit the time unit
+     * @return the ValidationStatus
+     */
+    public abstract ValidationStatus getValidationStatus(long timeout, TimeUnit unit);
+
+    /**
+     * Asynchronously begins the validation process
+     */
+    public abstract void performValidation();
+
+    /**
+     * Returns a {@link List} of all {@link PropertyDescriptor}s that this
+     * component supports.
+     *
+     * @return PropertyDescriptor objects this component currently supports
+     */
+    List<PropertyDescriptor> getPropertyDescriptors();
+
+    /**
+     * @param name to lookup the descriptor
+     * @return the PropertyDescriptor with the given name, if it exists;
+     *         otherwise, returns <code>null</code>
+     */
+    PropertyDescriptor getPropertyDescriptor(String name);
+
 
     @Override
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {

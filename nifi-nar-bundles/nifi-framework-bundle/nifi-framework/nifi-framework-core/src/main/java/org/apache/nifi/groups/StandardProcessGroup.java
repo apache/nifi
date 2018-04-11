@@ -16,6 +16,31 @@
  */
 package org.apache.nifi.groups;
 
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -32,6 +57,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -41,8 +67,8 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -118,31 +144,6 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -297,7 +298,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     disabled++;
                 } else if (procNode.isRunning()) {
                     running++;
-                } else if (!procNode.isValid()) {
+                } else if (procNode.getValidationStatus() == ValidationStatus.INVALID) {
                     invalid++;
                 } else {
                     stopped++;
@@ -543,6 +544,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Input Port of this Process Group");
             }
 
+            scheduler.onPortRemoved(port);
             onComponentModified();
 
             flowController.onInputPortRemoved(port);
@@ -618,6 +620,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Output Port of this Process Group");
             }
 
+            scheduler.onPortRemoved(port);
             onComponentModified();
 
             flowController.onOutputPortRemoved(port);
@@ -812,6 +815,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.warn("Failed to clean up resources for {} due to {}", remoteGroup, e);
             }
 
+            remoteGroup.getInputPorts().stream().forEach(scheduler::onPortRemoved);
+            remoteGroup.getOutputPorts().stream().forEach(scheduler::onPortRemoved);
+
             remoteGroups.remove(remoteGroupId);
             LOG.info("{} removed from flow", remoteProcessGroup);
         } finally {
@@ -847,7 +853,7 @@ public final class StandardProcessGroup implements ProcessGroup {
      *
      * @param component the component whose invalid references should be removed
      */
-    private void updateControllerServiceReferences(final ConfiguredComponent component) {
+    private void updateControllerServiceReferences(final ComponentNode component) {
         for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
             final String serviceId = entry.getValue();
             if (serviceId == null) {
@@ -917,6 +923,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             scheduler.onProcessorRemoved(processor);
             flowController.onProcessorRemoved(processor);
 
+            LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
+
             final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
             scheduler.submitFrameworkTask(new Runnable() {
                 @Override
@@ -946,10 +954,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Set<ProcessorNode> getProcessors() {
+    public Collection<ProcessorNode> getProcessors() {
         readLock.lock();
         try {
-            return new LinkedHashSet<>(processors.values());
+            return processors.values();
         } finally {
             readLock.unlock();
         }
@@ -2163,7 +2171,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             // and notify the Process Group that a component has been modified. This way, we know to re-calculate
             // whether or not the Process Group has local modifications.
             service.getReferences().getReferencingComponents().stream()
-                .map(ConfiguredComponent::getProcessGroupIdentifier)
+                .map(ComponentNode::getProcessGroupIdentifier)
                 .filter(id -> !id.equals(getIdentifier()))
                 .forEach(groupId -> {
                     final ProcessGroup descendant = findProcessGroup(groupId);
@@ -2935,8 +2943,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Set<ConfiguredComponent> getComponentsAffectedByVariable(final String variableName) {
-        final Set<ConfiguredComponent> affected = new HashSet<>();
+    public Set<ComponentNode> getComponentsAffectedByVariable(final String variableName) {
+        final Set<ComponentNode> affected = new HashSet<>();
 
         // Determine any Processors that references the variable
         for (final ProcessorNode processor : getProcessors()) {
@@ -2956,7 +2964,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     affected.add(service);
 
                     final ControllerServiceReference reference = service.getReferences();
-                    affected.addAll(reference.findRecursiveReferences(ConfiguredComponent.class));
+                    affected.addAll(reference.findRecursiveReferences(ComponentNode.class));
                 }
             }
         }
@@ -2994,7 +3002,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         return updatedVariableNames;
     }
 
-    private List<VariableImpact> getVariableImpact(final ConfiguredComponent component) {
+    private List<VariableImpact> getVariableImpact(final ComponentNode component) {
         return component.getProperties().keySet().stream()
             .map(descriptor -> {
                 final String configuredVal = component.getProperty(descriptor);
