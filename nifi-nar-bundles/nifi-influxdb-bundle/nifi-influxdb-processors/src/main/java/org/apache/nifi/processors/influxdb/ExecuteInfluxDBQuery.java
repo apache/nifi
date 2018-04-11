@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -69,7 +70,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             .description("The time unit of query results from the InfluxDB")
             .defaultValue(TimeUnit.NANOSECONDS.name())
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .allowableValues(Arrays.stream(TimeUnit.values()).map( v -> v.name()).collect(Collectors.toSet()))
             .sensitive(false)
             .build();
@@ -82,7 +83,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
                 + " it is created from this property.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -204,7 +205,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
 
             if ( ! result.hasError() ) {
                 outgoingFlowFile = session.putAttribute(outgoingFlowFile, INFLUX_DB_EXECUTED_QUERY, String.valueOf(query));
-                session.getProvenanceReporter().send(outgoingFlowFile, makeProvenanceUrl(context, database, outgoingFlowFile),
+                session.getProvenanceReporter().send(outgoingFlowFile, makeProvenanceUrl(context, database),
                         (endTimeMillis - startTimeMillis));
                 session.transfer(outgoingFlowFile, REL_SUCCESS);
             } else {
@@ -235,9 +236,9 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
         return new String(baos.toByteArray(), charset);
     }
 
-    protected String makeProvenanceUrl(final ProcessContext context, String database, FlowFile flowFile) {
+    protected String makeProvenanceUrl(final ProcessContext context, String database) {
         return new StringBuilder("influxdb://")
-            .append(context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions(flowFile).getValue()).append("/")
+            .append(context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue()).append("/")
             .append(database).toString();
     }
 

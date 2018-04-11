@@ -51,6 +51,8 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         initInfluxDB();
         runner = TestRunners.newTestRunner(ExecuteInfluxDBQuery.class);
         initializeRunner();
+        runner.setVariable("influxDBUrl", "http://localhost:8086");
+        runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "${influxDBUrl}");
     }
 
     @Test
