@@ -32,6 +32,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -42,7 +43,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -297,7 +298,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     disabled++;
                 } else if (procNode.isRunning()) {
                     running++;
-                } else if (!procNode.isValid()) {
+                } else if (procNode.getValidationStatus() == ValidationStatus.INVALID) {
                     invalid++;
                 } else {
                     stopped++;
@@ -543,6 +544,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Input Port of this Process Group");
             }
 
+            scheduler.onPortRemoved(port);
             onComponentModified();
 
             flowController.onInputPortRemoved(port);
@@ -618,6 +620,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Output Port of this Process Group");
             }
 
+            scheduler.onPortRemoved(port);
             onComponentModified();
 
             flowController.onOutputPortRemoved(port);
@@ -812,6 +815,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.warn("Failed to clean up resources for {} due to {}", remoteGroup, e);
             }
 
+            remoteGroup.getInputPorts().stream().forEach(scheduler::onPortRemoved);
+            remoteGroup.getOutputPorts().stream().forEach(scheduler::onPortRemoved);
+
             remoteGroups.remove(remoteGroupId);
             LOG.info("{} removed from flow", remoteProcessGroup);
         } finally {
@@ -915,6 +921,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             onComponentModified();
 
             flowController.onProcessorRemoved(processor);
+            scheduler.onProcessorRemoved(processor);
+
             LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
 
             final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
@@ -2162,7 +2170,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             // and notify the Process Group that a component has been modified. This way, we know to re-calculate
             // whether or not the Process Group has local modifications.
             service.getReferences().getReferencingComponents().stream()
-                .map(ConfiguredComponent::getProcessGroupIdentifier)
+                .map(ComponentNode::getProcessGroupIdentifier)
                 .filter(id -> !id.equals(getIdentifier()))
                 .forEach(groupId -> {
                     final ProcessGroup descendant = findProcessGroup(groupId);
@@ -2934,8 +2942,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Set<ConfiguredComponent> getComponentsAffectedByVariable(final String variableName) {
-        final Set<ConfiguredComponent> affected = new HashSet<>();
+    public Set<ComponentNode> getComponentsAffectedByVariable(final String variableName) {
+        final Set<ComponentNode> affected = new HashSet<>();
 
         // Determine any Processors that references the variable
         for (final ProcessorNode processor : getProcessors()) {
@@ -2955,7 +2963,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     affected.add(service);
 
                     final ControllerServiceReference reference = service.getReferences();
-                    affected.addAll(reference.findRecursiveReferences(ConfiguredComponent.class));
+                    affected.addAll(reference.findRecursiveReferences(ComponentNode.class));
                 }
             }
         }
@@ -2993,7 +3001,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         return updatedVariableNames;
     }
 
-    private List<VariableImpact> getVariableImpact(final ConfiguredComponent component) {
+    private List<VariableImpact> getVariableImpact(final ComponentNode component) {
         return component.getProperties().keySet().stream()
             .map(descriptor -> {
                 final String configuredVal = component.getProperty(descriptor);

@@ -161,6 +161,7 @@ public class TestProcessorLifecycle {
         assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
 
         ProcessScheduler ps = fc.getProcessScheduler();
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
     }
@@ -185,6 +186,7 @@ public class TestProcessorLifecycle {
         this.noop(testProcessor);
         final ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         ps.startProcessor(testProcNode, true);
         ps.startProcessor(testProcNode, true);
@@ -343,6 +345,7 @@ public class TestProcessorLifecycle {
         this.longRunningOnSchedule(testProcessor, delay);
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 5000L);
 
@@ -377,6 +380,7 @@ public class TestProcessorLifecycle {
         testProcessor.keepFailingOnScheduledTimes = 2;
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 10000L);
         ps.stopProcessor(testProcNode);
@@ -406,6 +410,7 @@ public class TestProcessorLifecycle {
         testProcessor.keepFailingOnScheduledTimes = Integer.MAX_VALUE;
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.stopProcessor(testProcNode);
@@ -431,6 +436,7 @@ public class TestProcessorLifecycle {
         this.blockingInterruptableOnUnschedule(testProcessor);
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.stopProcessor(testProcNode);
@@ -456,6 +462,7 @@ public class TestProcessorLifecycle {
         this.blockingUninterruptableOnUnschedule(testProcessor);
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 3000L);
         ps.stopProcessor(testProcNode);
@@ -483,6 +490,7 @@ public class TestProcessorLifecycle {
         testProcessor.generateExceptionOnTrigger = true;
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.disableProcessor(testProcNode);
@@ -564,7 +572,10 @@ public class TestProcessorLifecycle {
         this.noop(testProcessor);
 
         ProcessScheduler ps = fc.getProcessScheduler();
+        testServiceNode.performValidation();
         ps.enableControllerService(testServiceNode);
+
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
 
         Thread.sleep(500);
@@ -600,6 +611,9 @@ public class TestProcessorLifecycle {
         testGroup.addConnection(connection);
 
         ProcessScheduler ps = fc.getProcessScheduler();
+
+        testProcNodeA.performValidation();
+        testProcNodeB.performValidation();
         ps.startProcessor(testProcNodeA, true);
         ps.startProcessor(testProcNodeB, true);
 

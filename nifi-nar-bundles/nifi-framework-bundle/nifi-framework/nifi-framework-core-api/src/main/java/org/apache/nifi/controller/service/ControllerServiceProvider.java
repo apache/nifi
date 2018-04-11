@@ -24,7 +24,7 @@ import java.util.concurrent.Future;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
@@ -138,7 +138,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    Set<ConfiguredComponent> unscheduleReferencingComponents(ControllerServiceNode serviceNode);
+    Set<ComponentNode> unscheduleReferencingComponents(ControllerServiceNode serviceNode);
 
     /**
      * Verifies that all Controller Services referencing the provided Controller
@@ -159,7 +159,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    Set<ConfiguredComponent> disableReferencingServices(ControllerServiceNode serviceNode);
+    Set<ComponentNode> disableReferencingServices(ControllerServiceNode serviceNode);
 
     /**
      * Verifies that all Controller Services referencing the provided
@@ -181,7 +181,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @return the set of all components that were updated as a result of this action
      */
-    Set<ConfiguredComponent> enableReferencingServices(ControllerServiceNode serviceNode);
+    Set<ComponentNode> enableReferencingServices(ControllerServiceNode serviceNode);
 
     /**
      * Verifies that all enabled Processors referencing the ControllerService
@@ -203,7 +203,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param serviceNode the node
      */
-    Set<ConfiguredComponent> scheduleReferencingComponents(ControllerServiceNode serviceNode);
+    Set<ComponentNode> scheduleReferencingComponents(ControllerServiceNode serviceNode);
 
     /**
      *

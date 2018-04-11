@@ -57,8 +57,12 @@ public class StandardSchedulingContext implements SchedulingContext {
             throw new IllegalStateException("Cannot lease Controller Service because Controller Service " + serviceNode.getProxiedControllerService().getIdentifier() + " is not currently enabled");
         }
 
-        if (!serviceNode.isValid()) {
-            throw new IllegalStateException("Cannot lease Controller Service because Controller Service " + serviceNode.getProxiedControllerService().getIdentifier() + " is not currently valid");
+        switch (serviceNode.getValidationStatus()) {
+            case INVALID:
+                throw new IllegalStateException("Cannot lease Controller Service because Controller Service " + serviceNode.getProxiedControllerService().getIdentifier() + " is not currently valid");
+            case VALIDATING:
+                throw new IllegalStateException("Cannot lease Controller Service because Controller Service "
+                    + serviceNode.getProxiedControllerService().getIdentifier() + " is in the process of validating its configuration");
         }
 
         serviceNode.addReference(processorNode);
