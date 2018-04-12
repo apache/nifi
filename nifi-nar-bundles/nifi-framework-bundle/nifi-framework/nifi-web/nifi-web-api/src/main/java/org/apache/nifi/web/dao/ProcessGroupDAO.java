@@ -84,10 +84,20 @@ public interface ProcessGroupDAO {
      *
      * @param groupId id
      * @param state scheduled state
+     * @param componentIds components
      *
      * @return a Future that can be used to wait for the services to finish starting or stopping
      */
     Future<Void> scheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
+
+    /**
+     * Enables or disabled the components in the specified process group.
+     *
+     * @param groupId id
+     * @param state scheduled state
+     * @param componentIds components
+     */
+    void enableComponents(String groupId, ScheduledState state, Set<String> componentIds);
 
     /**
      * Enables or disables the controller services in the specified process group
