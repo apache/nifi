@@ -502,39 +502,58 @@
          * @argument {selection} selection      The selection
          */
         enable: function (selection) {
-            var componentsToEnable = nfCanvasUtils.filterEnable(selection);
+            if (selection.empty()) {
+                // build the entity
+                var entity = {
+                    'id': nfCanvasUtils.getGroupId(),
+                    'state': 'ENABLED'
+                };
 
-            if (componentsToEnable.empty()) {
-                nfDialog.showOkDialog({
-                    headerText: 'Enable Components',
-                    dialogContent: 'No eligible components are selected. Please select the components to be enabled and ensure they are no longer running.'
-                });
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
             } else {
-                var enableRequests = [];
+                var componentsToEnable = nfCanvasUtils.filterEnable(selection);
 
-                // enable the selected processors
-                componentsToEnable.each(function (d) {
-                    var selected = d3.select(this);
+                if (!componentsToEnable.empty()) {
+                    var enableRequests = [];
 
-                    // build the entity
-                    var entity = {
-                        'revision': nfClient.getRevision(d),
-                        'component': {
-                            'id': d.id,
-                            'state': 'STOPPED'
+                    // enable the selected processors
+                    componentsToEnable.each(function (d) {
+                        var selected = d3.select(this);
+
+                        // prepare the request
+                        var uri, entity;
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
+                            entity = {
+                                'id': d.id,
+                                'state': 'ENABLED'
+                            }
+                        } else {
+                            uri = d.uri;
+                            entity = {
+                                'revision': nfClient.getRevision(d),
+                                'component': {
+                                    'id': d.id,
+                                    'state': 'STOPPED'
+                                }
+                            };
                         }
-                    };
 
-                    enableRequests.push(updateResource(d.uri, entity).done(function (response) {
-                        nfCanvasUtils.getComponentByType(d.type).set(response);
-                    }));
-                });
-
-                // inform Angular app once the updates have completed
-                if (enableRequests.length > 0) {
-                    $.when.apply(window, enableRequests).always(function () {
-                        nfNgBridge.digest();
+                        enableRequests.push(updateResource(uri, entity).done(function (response) {
+                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                                nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                            } else {
+                                nfCanvasUtils.getComponentByType(d.type).set(response);
+                            }
+                        }));
                     });
+
+                    // inform Angular app once the updates have completed
+                    if (enableRequests.length > 0) {
+                        $.when.apply(window, enableRequests).always(function () {
+                            nfNgBridge.digest();
+                        });
+                    }
                 }
             }
         },
@@ -545,39 +564,58 @@
          * @argument {selection} selection      The selection
          */
         disable: function (selection) {
-            var componentsToDisable = nfCanvasUtils.filterDisable(selection);
+            if (selection.empty()) {
+                // build the entity
+                var entity = {
+                    'id': nfCanvasUtils.getGroupId(),
+                    'state': 'DISABLED'
+                };
 
-            if (componentsToDisable.empty()) {
-                nfDialog.showOkDialog({
-                    headerText: 'Disable Components',
-                    dialogContent: 'No eligible components are selected. Please select the components to be disabled and ensure they are no longer running.'
-                });
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
             } else {
-                var disableRequests = [];
+                var componentsToDisable = nfCanvasUtils.filterDisable(selection);
 
-                // disable the selected components
-                componentsToDisable.each(function (d) {
-                    var selected = d3.select(this);
+                if (!componentsToDisable.empty()) {
+                    var disableRequests = [];
 
-                    // build the entity
-                    var entity = {
-                        'revision': nfClient.getRevision(d),
-                        'component': {
-                            'id': d.id,
-                            'state': 'DISABLED'
+                    // disable the selected components
+                    componentsToDisable.each(function (d) {
+                        var selected = d3.select(this);
+
+                        // prepare the request
+                        var uri, entity;
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
+                            entity = {
+                                'id': d.id,
+                                'state': 'DISABLED'
+                            }
+                        } else {
+                            uri = d.uri;
+                            entity = {
+                                'revision': nfClient.getRevision(d),
+                                'component': {
+                                     'id': d.id,
+                                    'state': 'DISABLED'
+                                }
+                            };
                         }
-                    };
 
-                    disableRequests.push(updateResource(d.uri, entity).done(function (response) {
-                        nfCanvasUtils.getComponentByType(d.type).set(response);
-                    }));
-                });
-
-                // inform Angular app once the updates have completed
-                if (disableRequests.length > 0) {
-                    $.when.apply(window, disableRequests).always(function () {
-                        nfNgBridge.digest();
+                        disableRequests.push(updateResource(uri, entity).done(function (response) {
+                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                                nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                            } else {
+                                nfCanvasUtils.getComponentByType(d.type).set(response);
+                            }
+                        }));
                     });
+
+                    // inform Angular app once the updates have completed
+                    if (disableRequests.length > 0) {
+                        $.when.apply(window, disableRequests).always(function () {
+                            nfNgBridge.digest();
+                        });
+                    }
                 }
             }
         },
@@ -618,12 +656,7 @@
                 });
 
                 // ensure there are startable components selected
-                if (componentsToStart.empty()) {
-                    nfDialog.showOkDialog({
-                        headerText: 'Start Components',
-                        dialogContent: 'No eligible components are selected. Please select the components to be started and ensure they are no longer running.'
-                    });
-                } else {
+                if (!componentsToStart.empty()) {
                     var startRequests = [];
 
                     // start each selected component
@@ -688,12 +721,7 @@
                 });
 
                 // ensure there are some component to stop
-                if (componentsToStop.empty()) {
-                    nfDialog.showOkDialog({
-                        headerText: 'Stop Components',
-                        dialogContent: 'No eligible components are selected. Please select the components to be stopped.'
-                    });
-                } else {
+                if (!componentsToStop.empty()) {
                     var stopRequests = [];
 
                     // stop each selected component
