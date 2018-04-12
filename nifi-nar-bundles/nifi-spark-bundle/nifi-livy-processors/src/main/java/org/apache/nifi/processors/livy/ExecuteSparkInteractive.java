@@ -193,6 +193,21 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
     private volatile List<PropertyDescriptor> properties;
     private volatile Set<Relationship> relationships;
 
+    public static String toCSV(String[] array) {
+        String result = "";
+
+        if (array.length > 0) {
+            StringBuilder sb = new StringBuilder();
+
+            for (String s : array) {
+                sb.append("\"").append(s.trim()).append("\"").append(",");
+            }
+
+            result = sb.deleteCharAt(sb.length() - 1).toString();
+        }
+        return result;
+    }
+
     @Override
     public void init(final ProcessorInitializationContext context) {
         List<PropertyDescriptor> properties = new ArrayList<>();
@@ -317,10 +332,11 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
 
                     //Incoming flow file is not an JSON file hence consider it to be an triggering point
 
-                    String batchPayload = "{ \"pyFiles\": [\"" +context.getProperty(PY_FILES).getValue()+ "\"]," +
-                            "\"args\": [\"" + context.getProperty(ARGS).getValue() + "\"]," +
+                    String batchPayload = "{ \"pyFiles\": [" + toCSV(context.getProperty(PY_FILES).getValue().split(",")) + "]," +
+                            "\"args\": [" + toCSV(context.getProperty(ARGS).getValue().split(",")) + "]," +
                             "\"file\" : \""+context.getProperty(MAIN_PY_FILE).getValue()+"\" }";
 
+                    log.debug("batchPayload: " + batchPayload);
                     final JSONObject result = submitSparkBatch(livyUrl, livySessionService, batchPayload, statusCheckInterval);
                     log.debug("ExecuteSparkInteractive Result of Job Submit: " + result);
 
