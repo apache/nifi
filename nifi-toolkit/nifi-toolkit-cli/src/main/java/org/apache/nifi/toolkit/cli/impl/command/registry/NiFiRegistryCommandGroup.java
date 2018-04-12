@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.DeleteBucket;
 import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.ListBuckets;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.CreateFlow;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.DeleteFlow;
+import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ExportFlowSnapshots;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ExportFlowVersion;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ImportFlowVersion;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ListFlowVersions;
@@ -60,6 +61,7 @@ public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
         commandList.add(new ImportFlowVersion());
         commandList.add(new SyncFlowVersions());
         commandList.add(new TransferFlowVersion());
+        commandList.add(new ExportFlowSnapshots());
         return new ArrayList<>(commandList);
     }
 }
