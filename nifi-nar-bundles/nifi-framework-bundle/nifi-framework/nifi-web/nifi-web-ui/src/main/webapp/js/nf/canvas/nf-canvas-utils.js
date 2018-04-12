@@ -1141,10 +1141,19 @@
                 var selected = d3.select(this);
                 var selectedData = selected.datum();
 
+                // enable always allowed for PGs since they will invoke the /flow endpoint for enabling all applicable components (based on permissions)
+                if (nfCanvasUtils.isProcessGroup(selected)) {
+                    return true;
+                }
+
+                // not a PG, verify permissions to modify
+                if (nfCanvasUtils.canModify(selected) === false) {
+                    return false;
+                }
+
                 // ensure its a processor, input port, or output port and supports modification and is disabled (can enable)
                 return ((nfCanvasUtils.isProcessor(selected) || nfCanvasUtils.isInputPort(selected) || nfCanvasUtils.isOutputPort(selected)) &&
-                nfCanvasUtils.supportsModification(selected) &&
-                selectedData.status.aggregateSnapshot.runStatus === 'Disabled');
+                    nfCanvasUtils.supportsModification(selected) && selectedData.status.aggregateSnapshot.runStatus === 'Disabled');
             });
         },
 
@@ -1155,11 +1164,7 @@
          */
         canEnable: function (selection) {
             if (selection.empty()) {
-                return false;
-            }
-
-            if (nfCanvasUtils.canModify(selection) === false) {
-                return false;
+                return true;
             }
 
             return nfCanvasUtils.filterEnable(selection).size() === selection.size();
@@ -1175,11 +1180,20 @@
                 var selected = d3.select(this);
                 var selectedData = selected.datum();
 
+                // disable always allowed for PGs since they will invoke the /flow endpoint for disabling all applicable components (based on permissions)
+                if (nfCanvasUtils.isProcessGroup(selected)) {
+                    return true;
+                }
+
+                // not a PG, verify permissions to modify
+                if (nfCanvasUtils.canModify(selected) === false) {
+                    return false;
+                }
+
                 // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
                 return ((nfCanvasUtils.isProcessor(selected) || nfCanvasUtils.isInputPort(selected) || nfCanvasUtils.isOutputPort(selected)) &&
-                nfCanvasUtils.supportsModification(selected) &&
-                (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' ||
-                selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
+                    nfCanvasUtils.supportsModification(selected) &&
+                    (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' || selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
             });
         },
 
@@ -1190,11 +1204,7 @@
          */
         canDisable: function (selection) {
             if (selection.empty()) {
-                return false;
-            }
-
-            if (nfCanvasUtils.canModify(selection) === false) {
-                return false;
+                return true;
             }
 
             return nfCanvasUtils.filterDisable(selection).size() === selection.size();

@@ -412,7 +412,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void startProcessing() {
         readLock.lock();
         try {
-            findAllProcessors().stream().filter(SCHEDULABLE_PROCESSORS).forEach(node -> {
+            findAllProcessors().stream().filter(START_PROCESSORS_FILTER).forEach(node -> {
                 try {
                     node.getProcessGroup().startProcessor(node, true);
                 } catch (final Throwable t) {
@@ -420,11 +420,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             });
 
-            findAllInputPorts().stream().filter(SCHEDULABLE_PORTS).forEach(port -> {
+            findAllInputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> {
                 port.getProcessGroup().startInputPort(port);
             });
 
-            findAllOutputPorts().stream().filter(SCHEDULABLE_PORTS).forEach(port -> {
+            findAllOutputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> {
                 port.getProcessGroup().startOutputPort(port);
             });
         } finally {
@@ -436,7 +436,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void stopProcessing() {
         readLock.lock();
         try {
-            findAllProcessors().stream().filter(UNSCHEDULABLE_PROCESSORS).forEach(node -> {
+            findAllProcessors().stream().filter(STOP_PROCESSORS_FILTER).forEach(node -> {
                 try {
                     node.getProcessGroup().stopProcessor(node);
                 } catch (final Throwable t) {
@@ -444,11 +444,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             });
 
-            findAllInputPorts().stream().filter(UNSCHEDULABLE_PORTS).forEach(port -> {
+            findAllInputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> {
                 port.getProcessGroup().stopInputPort(port);
             });
 
-            findAllOutputPorts().stream().filter(UNSCHEDULABLE_PORTS).forEach(port -> {
+            findAllOutputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> {
                 port.getProcessGroup().stopOutputPort(port);
             });
         } finally {

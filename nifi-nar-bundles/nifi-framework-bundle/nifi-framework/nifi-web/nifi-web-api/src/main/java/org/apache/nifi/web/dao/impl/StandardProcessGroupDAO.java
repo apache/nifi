@@ -171,7 +171,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         remotePort.getRemoteProcessGroup().startTransmitting(remotePort);
                         break;
                 }
-            } else {
+            } else if (ScheduledState.STOPPED.equals(state)) {
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
                         final CompletableFuture<?> processorFuture = connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
@@ -193,6 +193,40 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         }
 
         return future;
+    }
+
+    @Override
+    public void enableComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        for (final String componentId : componentIds) {
+            final Connectable connectable = group.findLocalConnectable(componentId);
+            if (ScheduledState.STOPPED.equals(state)) {
+                switch (connectable.getConnectableType()) {
+                    case PROCESSOR:
+                        connectable.getProcessGroup().enableProcessor((ProcessorNode) connectable);
+                        break;
+                    case INPUT_PORT:
+                        connectable.getProcessGroup().enableInputPort((Port) connectable);
+                        break;
+                    case OUTPUT_PORT:
+                        connectable.getProcessGroup().enableOutputPort((Port) connectable);
+                        break;
+                }
+            } else if (ScheduledState.DISABLED.equals(state)) {
+                switch (connectable.getConnectableType()) {
+                    case PROCESSOR:
+                        connectable.getProcessGroup().disableProcessor((ProcessorNode) connectable);
+                        break;
+                    case INPUT_PORT:
+                        connectable.getProcessGroup().disableInputPort((Port) connectable);
+                        break;
+                    case OUTPUT_PORT:
+                        connectable.getProcessGroup().disableOutputPort((Port) connectable);
+                        break;
+                }
+            }
+        }
     }
 
     @Override
