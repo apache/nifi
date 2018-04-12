@@ -94,7 +94,6 @@
         <org.slf4j.version>1.7.25</org.slf4j.version>
         <ranger.version>0.7.1</ranger.version>
         <jetty.version>9.4.3.v20170317</jetty.version>
-        <httpclient.version>4.5.5</httpclient.version>
     </properties>
 
     <repositories>
