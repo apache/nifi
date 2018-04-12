@@ -47,14 +47,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -124,7 +120,6 @@ public class PutSolrContentStream extends SolrProcessor {
 
     public static final String COLLECTION_PARAM_NAME = "collection";
     public static final String COMMIT_WITHIN_PARAM_NAME = "commitWithin";
-    public static final String REPEATING_PARAM_PATTERN = "\\w+\\.\\d+";
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
@@ -194,7 +189,7 @@ public class PutSolrContentStream extends SolrProcessor {
         final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFile).getValue();
         final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
         final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        final MultiMapSolrParams requestParams = new MultiMapSolrParams(getRequestParams(context, flowFile));
+        final MultiMapSolrParams requestParams = new MultiMapSolrParams(SolrUtils.getRequestParams(context, flowFile));
 
         StopWatch timer = new StopWatch(true);
         session.read(flowFile, new InputStreamCallback() {
@@ -292,36 +287,4 @@ public class PutSolrContentStream extends SolrProcessor {
         }
         return foundIOException;
     }
-
-    // get all of the dynamic properties and values into a Map for later adding to the Solr request
-    private Map<String, String[]> getRequestParams(ProcessContext context, FlowFile flowFile) {
-        final Map<String,String[]> paramsMap = new HashMap<>();
-        final SortedMap<String,String> repeatingParams = new TreeMap<>();
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            if (descriptor.isDynamic()) {
-                final String paramName = descriptor.getName();
-                final String paramValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
-
-                if (!paramValue.trim().isEmpty()) {
-                    if (paramName.matches(REPEATING_PARAM_PATTERN)) {
-                        repeatingParams.put(paramName, paramValue);
-                    } else {
-                        MultiMapSolrParams.addParam(paramName, paramValue, paramsMap);
-                    }
-                }
-            }
-        }
-
-        for (final Map.Entry<String,String> entry : repeatingParams.entrySet()) {
-            final String paramName = entry.getKey();
-            final String paramValue = entry.getValue();
-            final int idx = paramName.lastIndexOf(".");
-            MultiMapSolrParams.addParam(paramName.substring(0, idx), paramValue, paramsMap);
-        }
-
-        return paramsMap;
-    }
-
 }
