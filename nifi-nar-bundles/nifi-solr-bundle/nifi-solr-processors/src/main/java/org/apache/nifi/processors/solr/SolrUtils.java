@@ -28,8 +28,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
@@ -48,15 +51,19 @@ import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.params.MultiMapSolrParams;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 public class SolrUtils {
@@ -66,6 +73,15 @@ public class SolrUtils {
 
     public static final AllowableValue SOLR_TYPE_STANDARD = new AllowableValue(
             "Standard", "Standard", "A stand-alone Solr instance.");
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor
+            .Builder().name("Record Writer")
+            .displayName("Record Writer")
+            .description("The Record Writer to use in order to write Solr documents to FlowFiles. Must be set if \"Records\" is used as return type.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
 
     public static final PropertyDescriptor SOLR_TYPE = new PropertyDescriptor
             .Builder().name("Solr Type")
@@ -176,6 +192,8 @@ public class SolrUtils {
             .defaultValue("10 seconds")
             .build();
 
+    public static final String REPEATING_PARAM_PATTERN = "[\\w\\.]+\\.\\d+$";
+
     public static SolrClient createSolrClient(final PropertyContext context, final String solrLocation) {
         final Integer socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final Integer connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
@@ -220,8 +238,6 @@ public class SolrUtils {
         }
     }
 
-
-
     /**
      * Writes each SolrDocument to a record.
      */
@@ -244,7 +260,6 @@ public class SolrUtils {
         }
         return new ListRecordSet(schema, lr);
     }
-
 
     public static OutputStreamCallback getOutputStreamCallbackToTransformSolrResponseToXml(QueryResponse response) {
         return new QueryResponseOutputStreamCallback(response);
@@ -281,5 +296,33 @@ public class SolrUtils {
         }
     }
 
+    public static Map<String, String[]> getRequestParams(ProcessContext context, FlowFile flowFile) {
+        final Map<String,String[]> paramsMap = new HashMap<>();
+        final SortedMap<String,String> repeatingParams = new TreeMap<>();
 
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                final String paramName = descriptor.getName();
+                final String paramValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+
+                if (!paramValue.trim().isEmpty()) {
+                    if (paramName.matches(REPEATING_PARAM_PATTERN)) {
+                        repeatingParams.put(paramName, paramValue);
+                    } else {
+                        MultiMapSolrParams.addParam(paramName, paramValue, paramsMap);
+                    }
+                }
+            }
+        }
+
+        for (final Map.Entry<String,String> entry : repeatingParams.entrySet()) {
+            final String paramName = entry.getKey();
+            final String paramValue = entry.getValue();
+            final int idx = paramName.lastIndexOf(".");
+            MultiMapSolrParams.addParam(paramName.substring(0, idx), paramValue, paramsMap);
+        }
+
+        return paramsMap;
+    }
 }

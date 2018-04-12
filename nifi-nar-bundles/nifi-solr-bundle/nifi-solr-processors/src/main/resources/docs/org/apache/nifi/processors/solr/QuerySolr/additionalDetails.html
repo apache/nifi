@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>QuerySolr</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Usage Example</h2>
+
+<p>
+    This processor queries Solr and writes results to FlowFiles. The processor can be used at the
+    beginning of dataflows and later. Solr results can be written to FlowFiles as Solr XML or using
+    records functions (supporting CSV, JSON, etc.). Additionally, facets and stats can be retrieved.
+    They are written to FlowFiles in JSON and sent to designated relationships. Furthermore, the
+    processor can either be configured to retrieve only top results or full result sets.
+</p>
+
+<p>
+    Parameters that can be set multiple times have to be defined as dynamic properties (e. g. fq,
+    facet.field, stats.field). If these parameters must be set multiple times with different values,
+    properties can follow a naming convention:
+    name.number, where name is the parameter name and number is a unique number.
+    Repeating parameters will be sorted by their property name.
+</p>
+
+<p>
+    Example: Defining the fq parameter multiple times
+</p>
+
+<table>
+    <tr>
+        <th>Property Name</th>
+        <th>Property Value</th>
+    </tr>
+    <tr>
+        <td>fq.1</td>
+        <td><code>field1:value1</code></td>
+    </tr>
+    <tr>
+        <td>fq.2</td>
+        <td><code>field2:value2</code></td>
+    </tr>
+    <tr>
+        <td>fq.3</td>
+        <td><code>field3:value3</code></td>
+    </tr>
+</table>
+
+<p>
+    This definition will be appended to the Solr URL as follows:
+    fq=field1:value1&fq=field2:value2&fq=field3:value3
+</p>
+
+</body>
+</html>

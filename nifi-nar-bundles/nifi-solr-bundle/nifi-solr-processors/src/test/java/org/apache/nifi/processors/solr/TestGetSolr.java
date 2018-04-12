@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -54,6 +55,13 @@ public class TestGetSolr {
 
     static final String DEFAULT_SOLR_CORE = "testCollection";
 
+    final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+    final static String DATE_STRING_EARLIER = "1970-01-01T00:00:00.000Z";
+    final static String DATE_STRING_LATER = "1970-01-01T00:00:00.001Z";
+    static {
+        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
+    }
+
     private SolrClient solrClient;
 
     @Before
@@ -62,16 +70,18 @@ public class TestGetSolr {
         try {
 
             // create an EmbeddedSolrServer for the processor to use
-            String relPath = getClass().getProtectionDomain().getCodeSource()
+            final String relPath = getClass().getProtectionDomain().getCodeSource()
                     .getLocation().getFile() + "../../target";
 
             solrClient = EmbeddedSolrServerFactory.create(EmbeddedSolrServerFactory.DEFAULT_SOLR_HOME,
                     DEFAULT_SOLR_CORE, relPath);
 
+            final Date date = DATE_FORMAT.parse(DATE_STRING_EARLIER);
+
             for (int i = 0; i < 10; i++) {
                 SolrInputDocument doc = new SolrInputDocument();
                 doc.addField("id", "doc" + i);
-                doc.addField("created", new Date());
+                doc.addField("created", date);
                 doc.addField("string_single", "single" + i + ".1");
                 doc.addField("string_multi", "multi" + i + ".1");
                 doc.addField("string_multi", "multi" + i + ".2");
@@ -210,23 +220,20 @@ public class TestGetSolr {
     }
 
     @Test
-    public void testInitialDateFilter() throws IOException, SolrServerException {
-        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-        df.setTimeZone(TimeZone.getTimeZone("GMT"));
-        final Date dateToFilter = new Date();
-
+    public void testInitialDateFilter() throws IOException, SolrServerException, ParseException {
+        final Date dateToFilter = DATE_FORMAT.parse(DATE_STRING_LATER);
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
         TestRunner runner = createDefaultTestRunner(proc);
-        runner.setProperty(GetSolr.DATE_FILTER, df.format(dateToFilter));
+        runner.setProperty(GetSolr.DATE_FILTER, DATE_FORMAT.format(dateToFilter));
         runner.setProperty(GetSolr.BATCH_SIZE, "1");
 
         SolrInputDocument doc10 = new SolrInputDocument();
         doc10.addField("id", "doc10");
-        doc10.addField("created", new Date());
+        doc10.addField("created", dateToFilter);
         SolrInputDocument doc11 = new SolrInputDocument();
         doc11.addField("id", "doc11");
-        doc11.addField("created", new Date());
+        doc11.addField("created", dateToFilter);
 
         solrClient.add(doc10);
         solrClient.add(doc11);
@@ -292,7 +299,7 @@ public class TestGetSolr {
     }
 
     @Test
-    public void testRecordWriter() throws IOException, SolrServerException, InitializationException {
+    public void testRecordWriter() throws IOException, InitializationException {
         final org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor proc = new org.apache.nifi.processors.solr.TestGetSolr.TestableProcessor(solrClient);
 
         TestRunner runner = createDefaultTestRunner(proc);
@@ -309,7 +316,7 @@ public class TestGetSolr {
         runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
         runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
         runner.enableControllerService(jsonWriter);
-        runner.setProperty(GetSolr.RECORD_WRITER, "writer");
+        runner.setProperty(SolrUtils.RECORD_WRITER, "writer");
 
         runner.run(1,true, true);
         runner.assertQueueEmpty();
