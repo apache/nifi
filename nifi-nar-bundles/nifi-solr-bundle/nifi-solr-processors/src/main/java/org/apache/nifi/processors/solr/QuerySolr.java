@@ -100,8 +100,8 @@ import static org.apache.nifi.processors.solr.SolrUtils.RECORD_WRITER;
         @WritesAttribute(attribute = "solr.rows", description = "Number of Solr documents to be returned for the query"),
         @WritesAttribute(attribute = "solr.number.results", description = "Number of Solr documents that match the query"),
         @WritesAttribute(attribute = "mime.type", description = "The mime type of the data format"),
-        @WritesAttribute(attribute = "fetchsolr.exeption.class", description = "The Java exception class raised when the processor fails"),
-        @WritesAttribute(attribute = "fetchsolr.exeption.message", description = "The Java exception message raised when the processor fails")
+        @WritesAttribute(attribute = "querysolr.exeption.class", description = "The Java exception class raised when the processor fails"),
+        @WritesAttribute(attribute = "querysolr.exeption.message", description = "The Java exception message raised when the processor fails")
 })
 public class QuerySolr extends SolrProcessor {
 
@@ -121,8 +121,8 @@ public class QuerySolr extends SolrProcessor {
     public static final String ATTRIBUTE_SOLR_ROWS = "solr.rows";
     public static final String ATTRIBUTE_SOLR_NUMBER_RESULTS = "solr.number.results";
     public static final String ATTRIBUTE_QUERY_TIME = "solr.query.time";
-    public static final String EXCEPTION = "fetchsolr.exeption";
-    public static final String EXCEPTION_MESSAGE = "fetchsolr.exeption.message";
+    public static final String EXCEPTION = "querysolr.exeption";
+    public static final String EXCEPTION_MESSAGE = "querysolr.exeption.message";
 
     public static final PropertyDescriptor RETURN_TYPE = new PropertyDescriptor
             .Builder().name("return_type")
