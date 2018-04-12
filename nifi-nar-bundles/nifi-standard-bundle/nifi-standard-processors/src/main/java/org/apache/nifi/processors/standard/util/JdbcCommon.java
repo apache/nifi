@@ -858,7 +858,6 @@ public class JdbcCommon {
      * See also
      * <a href="https://issues.apache.org/jira/browse/NIFI-5070">NIFI-5070</a>.
      * </p>
-     * 
      * @param rs the resultSet
      * @return <code>rs.next()</code> or false if the result set is close.
      * @throws SQLException if a database access error ocurrs.

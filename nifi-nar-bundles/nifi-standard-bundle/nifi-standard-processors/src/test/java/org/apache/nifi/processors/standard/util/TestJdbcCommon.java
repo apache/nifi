@@ -635,7 +635,6 @@ public class TestJdbcCommon {
      * </p>
      * See <a href="https://issues.apache.org/jira/browse/NIFI-5070">NIFI-5070</a>
      * for more information.
-     * 
      * @throws SQLException it is expected the exception be thrown.
      */
     @Test
@@ -674,7 +673,6 @@ public class TestJdbcCommon {
      * </p>
      * See <a href="https://issues.apache.org/jira/browse/NIFI-5070">NIFI-5070</a>
      * for more information.
-     * 
      * @throws SQLException it is expected the exception be thrown.
      */
     @Test
