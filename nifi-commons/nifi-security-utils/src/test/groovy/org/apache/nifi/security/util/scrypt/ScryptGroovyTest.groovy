@@ -397,4 +397,60 @@ class ScryptGroovyTest {
             assert msg =~ "Hash cannot be empty|Hash is not properly formatted"
         }
     }
+
+    @Test
+    void testVerifyHashFormatShouldDetectValidHash() throws Exception {
+        // Arrange
+        final def VALID_HASHES = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$99aTTB39TJo69aZCONQmRdyWOgYsDi+1MI+8D0EgMNM",
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$Gk7K9YmlsWbd8FS7e4RKVWnkg9vlsqYnlD593pJ71gg",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$Ri78VZbrp2cCVmGh2a9Nbfdov8LPnFb49MYyzPCaXmE",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$rZIrP2qdIY7LN4CZAMgbCzl3YhXz6WhaNyXJXqFIjaI",
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$GxH68bGykmPDZ6gaPIGOONOT2omlZ7cd0xlcZ9UsY/0",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$KLGZjWlo59sbCbtmTg5b4k0Nu+biWZRRzhPhN7K5kkI",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$6Ql6Efd2ac44ERoV31CL3Q0J3LffNZKN4elyMHux99Y",
+                // Uncommon but technically valid
+                "\$s0\$F0801\$AAAAAAAAAAA\$A",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP\$A",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP",
+                "\$s0\$F0801\$AAAAAAAAAAA\$A",
+                "\$s0\$F0801\$AAAAAAAAAAA\$A",
+                "\$s0\$F0801\$AAAAAAAAAAA\$A",
+                "\$s0\$F0801\$AAAAAAAAAAA\$A",
+                "\$s0\$F0801\$AAAAAAAAAAA\$A",
+        ]
+
+        // Act
+        VALID_HASHES.each { String validHash ->
+            logger.info("Using hash: ${validHash}")
+
+            boolean isValidHash = Scrypt.verifyHashFormat(validHash)
+            logger.info("Hash is valid: ${isValidHash}")
+
+            // Assert
+            assert isValidHash
+        }
+    }
+
+    @Test
+    void testVerifyHashFormatShouldDetectInvalidHash() throws Exception {
+        // Arrange
+
+        // Even though the spec allows for empty salts, the JCE does not, so extend enforcement of that to the user boundary
+        final def INVALID_HASHES = ['', null, '$s0$a0801$', '$s0$a0801$abcdefghijklmnopqrstuv$']
+
+        // Act
+        INVALID_HASHES.each { String invalidHash ->
+            logger.info("Using hash: ${invalidHash}")
+
+            boolean isValidHash = Scrypt.verifyHashFormat(invalidHash)
+            logger.info("Hash is valid: ${isValidHash}")
+
+            // Assert
+            assert !isValidHash
+        }
+    }
 }

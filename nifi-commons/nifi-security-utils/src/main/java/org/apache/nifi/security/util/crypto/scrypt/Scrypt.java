@@ -24,6 +24,7 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
@@ -50,6 +51,8 @@ public class Scrypt {
     private static final Logger logger = LoggerFactory.getLogger(Scrypt.class);
 
     private static final int DEFAULT_SALT_LENGTH = 16;
+
+    private static final Pattern SCRYPT_PATTERN = Pattern.compile("^\\$\\w{2}\\$\\w{5,}\\$[\\w\\/\\=\\+]{11,64}\\$[\\w\\/\\=\\+]{1,256}$");
 
     /**
      * Hash the supplied plaintext password and generate output in the format described
@@ -158,11 +161,11 @@ public class Scrypt {
                 throw new IllegalArgumentException("Hash cannot be empty");
             }
 
-            String[] parts = hashed.split("\\$");
-
-            if (parts.length != 5 || !parts[1].equals("s0")) {
+            if (!verifyHashFormat(hashed)) {
                 throw new IllegalArgumentException("Hash is not properly formatted");
             }
+
+            String[] parts = hashed.split("\\$");
 
             List<Integer> splitParams = parseParameters(parts[2]);
             int n = splitParams.get(0);
@@ -186,6 +189,38 @@ public class Scrypt {
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("JVM doesn't support SHA1PRNG or HMAC_SHA256?");
         }
+    }
+
+    /**
+     * Returns true if the provided hash is a valid scrypt hash. Expected format:
+     * <p>
+     * {@code $s0$40801$ABCDEFGHIJKLMNOPQRSTUQ$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8}
+     * <p>
+     * Components:
+     * <p>
+     * s0 -- version. Currently only "s0" is supported
+     * 40801 -- hex-encoded N, r, p parameters. {@see Scrypt#encodeParams()} for format
+     * ABCDEFGHIJKLMNOPQRSTUQ -- Base64-encoded (URL-safe, no padding) salt value.
+     * By default, 22 characters (16 bytes) but can be an arbitrary length between 11 and 64 characters (8 - 48 bytes) of random salt data
+     * hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8 -- the Base64-encoded (URL-safe, no padding)
+     * resulting hash component. By default, 43 characters (32 bytes) but can be an arbitrary length between 1 and MAX (depends on implementation, see RFC 7914)
+     *
+     * @param hash the hash to verify
+     * @return true if the format is acceptable
+     * @see Scrypt#formatSalt(byte[], int, int, int)
+     */
+    public static boolean verifyHashFormat(String hash) {
+        if (StringUtils.isBlank(hash)) {
+            return false;
+        }
+
+        // Currently, only version s0 is supported
+        if (!hash.startsWith("$s0$")) {
+            return false;
+        }
+
+        // Check against the pattern
+        return SCRYPT_PATTERN.matcher(hash).matches();
     }
 
     /**
@@ -285,7 +320,7 @@ public class Scrypt {
             logger.warn("An empty salt was used for scrypt key derivation");
 //            throw new IllegalArgumentException("Salt cannot be empty");
             // as the Exception is not being thrown, prevent NPE if salt is null by setting it to empty array
-            if( salt == null ) salt = new byte[]{};
+            if (salt == null) salt = new byte[]{};
         }
 
         if (saltLength < 8 || saltLength > 32) {
