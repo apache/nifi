@@ -21,13 +21,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -54,11 +57,20 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input", "fetch", "restricted"})
+@Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input", "fetch"})
 @CapabilityDescription("Reads the contents of a file from disk and streams it into the contents of an incoming FlowFile. Once this is done, the file is optionally moved elsewhere or deleted "
     + "to help keep the file system organized.")
 @SeeAlso({GetFile.class, PutFile.class, ListFile.class})
-@Restricted("Provides operator the ability to read from and delete any file that NiFi has access to.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to."),
+                @Restriction(
+                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                        explanation = "Provides operator the ability to delete any file that NiFi has access to.")
+        }
+)
 public class FetchFile extends AbstractProcessor {
     static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");
     static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Moves the file to the directory specified by the <Move Destination Directory> property");
@@ -75,14 +87,14 @@ public class FetchFile extends AbstractProcessor {
         .name("File to Fetch")
         .description("The fully-qualified filename of the file to fetch from the file system")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${absolute.path}/${filename}")
         .required(true)
         .build();
     static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
         .name("Completion Strategy")
         .description("Specifies what to do with the original file on the file system once it has been pulled into NiFi")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(COMPLETION_NONE, COMPLETION_MOVE, COMPLETION_DELETE)
         .defaultValue(COMPLETION_NONE.getValue())
         .required(true)
@@ -91,7 +103,7 @@ public class FetchFile extends AbstractProcessor {
         .name("Move Destination Directory")
         .description("The directory to the move the original file to once it has been fetched from the file system. This property is ignored unless the Completion Strategy is set to \"Move File\". "
             + "If the directory does not exist, it will be created.")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();

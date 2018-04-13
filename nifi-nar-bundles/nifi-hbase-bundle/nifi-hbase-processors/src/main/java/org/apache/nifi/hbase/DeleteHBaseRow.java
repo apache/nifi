@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -72,7 +73,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("5")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -82,7 +83,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
             .required(true)
             .defaultValue("50")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor KEY_SEPARATOR = new PropertyDescriptor.Builder()
@@ -93,7 +94,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
             .required(true)
             .defaultValue(",")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("delete-char-set")

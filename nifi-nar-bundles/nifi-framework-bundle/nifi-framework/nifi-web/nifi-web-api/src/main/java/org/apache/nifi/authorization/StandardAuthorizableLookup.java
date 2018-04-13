@@ -24,12 +24,13 @@ import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
-import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizable;
+import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
@@ -70,7 +71,6 @@ import java.util.stream.Collectors;
 class StandardAuthorizableLookup implements AuthorizableLookup {
 
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
-    private static final Authorizable RESTRICTED_COMPONENTS_AUTHORIZABLE = new RestrictedComponentsAuthorizable();
 
     private static final Authorizable POLICIES_AUTHORIZABLE = new Authorizable() {
         @Override
@@ -181,8 +181,13 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public ComponentAuthorizable getConfigurableComponent(final String type, final BundleDTO bundle) {
+        final ConfigurableComponent configurableComponent = controllerFacade.getTemporaryComponent(type, bundle);
+        return getConfigurableComponent(configurableComponent);
+    }
+
+    @Override
+    public ComponentAuthorizable getConfigurableComponent(ConfigurableComponent configurableComponent) {
         try {
-            final ConfigurableComponent configurableComponent = controllerFacade.getTemporaryComponent(type, bundle);
             return new ConfigurableComponentAuthorizable(configurableComponent);
         } catch (final Exception e) {
             throw new AccessDeniedException("Unable to create component to verify if it references any Controller Services.");
@@ -500,6 +505,20 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             } else {
                 return new DataTransferAuthorizable(getAccessPolicy(resourceType, resource));
             }
+        } else if (ResourceType.RestrictedComponents.equals(resourceType)) {
+            final String slashRequiredPermission = StringUtils.substringAfter(resource, resourceType.getValue());
+
+            if (slashRequiredPermission.startsWith("/")) {
+                final RequiredPermission requiredPermission = RequiredPermission.valueOfPermissionIdentifier(slashRequiredPermission.substring(1));
+
+                if (requiredPermission == null) {
+                    throw new ResourceNotFoundException("Unrecognized resource: " + resource);
+                }
+
+                return getRestrictedComponents(requiredPermission);
+            } else {
+                return getRestrictedComponents();
+            }
         } else {
             return getAccessPolicy(resourceType, resource);
         }
@@ -629,9 +648,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             case Tenant:
                 authorizable = getTenant();
                 break;
-            case RestrictedComponents:
-                authorizable = getRestrictedComponents();
-                break;
         }
 
         if (authorizable == null) {
@@ -724,7 +740,12 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public Authorizable getRestrictedComponents() {
-        return RESTRICTED_COMPONENTS_AUTHORIZABLE;
+        return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable();
+    }
+
+    @Override
+    public Authorizable getRestrictedComponents(final RequiredPermission requiredPermission) {
+        return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(requiredPermission);
     }
 
     @Override
@@ -751,6 +772,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public boolean isRestricted() {
             return configurableComponent.getClass().isAnnotationPresent(Restricted.class);
+        }
+
+        @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(configurableComponent.getClass());
         }
 
         @Override
@@ -795,6 +821,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(processorNode.getComponentClass());
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
             return processorNode.getProperty(propertyDescriptor);
         }
@@ -836,6 +867,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(controllerServiceNode.getComponentClass());
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
             return controllerServiceNode.getProperty(propertyDescriptor);
         }
@@ -874,6 +910,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public boolean isRestricted() {
             return reportingTaskNode.isRestricted();
+        }
+
+        @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(reportingTaskNode.getComponentClass());
         }
 
         @Override

@@ -18,6 +18,7 @@ package org.apache.nifi.script;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -43,7 +44,7 @@ public class ScriptingComponentUtils {
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
             .addValidator(new StandardValidators.FileExistsValidator(true))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     /** A property descriptor for specifying the body of a script */
@@ -52,7 +53,7 @@ public class ScriptingComponentUtils {
             .required(false)
             .description("Body of script to execute. Only one of Script File or Script Body may be used")
             .addValidator(Validator.VALID)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     /** A property descriptor for specifying the location of additional modules to be used by the script */
@@ -60,7 +61,7 @@ public class ScriptingComponentUtils {
             .name("Module Directory")
             .description("Comma-separated list of paths to files and/or directories which contain modules required by the script.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 }

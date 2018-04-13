@@ -463,7 +463,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(node.getProcessor().getClass(), node.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()));
+                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()), () -> false);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -851,7 +851,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getProcessor().getClass(), processor.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()));
+                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()), () -> false);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);
@@ -1220,6 +1220,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             } else if (state == ScheduledState.RUNNING) {
                 return CompletableFuture.completedFuture(null);
             }
+            processor.reloadAdditionalResourcesIfNecessary();
 
             return scheduler.startProcessor(processor, failIfStopping);
         } finally {
@@ -1307,6 +1308,27 @@ public final class StandardProcessGroup implements ProcessGroup {
             readLock.unlock();
         }
     }
+
+    @Override
+    public void terminateProcessor(final ProcessorNode processor) {
+        readLock.lock();
+        try {
+            if (!processors.containsKey(processor.getIdentifier())) {
+                throw new IllegalStateException("No processor with ID " + processor.getIdentifier() + " belongs to this Process Group");
+            }
+
+            final ScheduledState state = processor.getScheduledState();
+            if (state != ScheduledState.STOPPED) {
+                throw new IllegalStateException("Cannot terminate processor with ID " + processor.getIdentifier() + " because it is not stopped");
+            }
+
+            scheduler.terminateProcessor(processor);
+        } finally {
+            readLock.unlock();
+        }
+
+    }
+
 
     @Override
     public void stopInputPort(final Port port) {
@@ -4072,8 +4094,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setAnnotationData(proposed.getAnnotationData());
         processor.setBulletinLevel(LogLevel.valueOf(proposed.getBulletinLevel()));
         processor.setComments(proposed.getComments());
-        processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
-        processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
         processor.setName(proposed.getName());
         processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
@@ -4082,6 +4102,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
         processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
         processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
+        processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
+        processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
         processor.setStyle(proposed.getStyle());
         processor.setYieldPeriod(proposed.getYieldDuration());
         processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));

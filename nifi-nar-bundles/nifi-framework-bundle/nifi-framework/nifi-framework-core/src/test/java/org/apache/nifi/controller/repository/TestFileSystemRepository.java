@@ -148,14 +148,20 @@ public class TestFileSystemRepository {
         String message = "The value of nifi.content.repository.archive.cleanup.frequency property "
                 + "is set to '1 millis' which is below the allowed minimum of 1 second (1000 milliseconds). "
                 + "Minimum value of 1 sec will be used as scheduling interval for archive cleanup task.";
-        for (ILoggingEvent event : testAppender.list) {
-            String actualMessage = event.getFormattedMessage();
-            if (actualMessage.equals(message)) {
-                assertEquals(event.getLevel(), Level.WARN);
-                messageFound = true;
-                break;
+
+        // Must synchronize on testAppender, because the call to append() is synchronized and this synchronize
+        // keyword guards testAppender.list. Since we are accessing testAppender.list, we must do so in a thread-safe manner.
+        synchronized (testAppender) {
+            for (ILoggingEvent event : testAppender.list) {
+                String actualMessage = event.getFormattedMessage();
+                if (actualMessage.equals(message)) {
+                    assertEquals(event.getLevel(), Level.WARN);
+                    messageFound = true;
+                    break;
+                }
             }
         }
+
         assertTrue(messageFound);
     }
 

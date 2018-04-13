@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -67,21 +68,21 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .name("Hostname")
         .description("The fully-qualified hostname or IP address of the host to fetch the data from")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
     static final PropertyDescriptor UNDEFAULTED_PORT = new PropertyDescriptor.Builder()
         .name("Port")
         .description("The port to connect to on the remote host to fetch the data from")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
         .name("Username")
         .description("Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
     public static final PropertyDescriptor REMOTE_FILENAME = new PropertyDescriptor.Builder()
@@ -89,13 +90,13 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .description("The fully qualified filename on the remote system")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
         .name("Completion Strategy")
         .description("Specifies what to do with the original file on the server once it has been pulled into NiFi. If the Completion Strategy fails, a warning will be "
             + "logged but the data will still be transferred.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(COMPLETION_NONE, COMPLETION_MOVE, COMPLETION_DELETE)
         .defaultValue(COMPLETION_NONE.getValue())
         .required(true)
@@ -105,7 +106,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .description("The directory on the remote server to the move the original file to once it has been ingested into NiFi. "
             + "This property is ignored unless the Completion Strategy is set to \"Move File\". The specified directory must already exist on"
             + "the remote system, or the rename will fail.")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();

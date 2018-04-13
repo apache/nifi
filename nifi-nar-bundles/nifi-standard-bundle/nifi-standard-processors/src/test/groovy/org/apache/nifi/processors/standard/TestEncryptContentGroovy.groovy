@@ -41,14 +41,14 @@ import java.nio.file.Paths
 import java.security.Security
 
 @RunWith(JUnit4.class)
-public class TestEncryptContentGroovy {
+class TestEncryptContentGroovy {
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptContentGroovy.class)
 
     private static final String WEAK_CRYPTO_ALLOWED = EncryptContent.WEAK_CRYPTO_ALLOWED_NAME
     private static final String WEAK_CRYPTO_NOT_ALLOWED = EncryptContent.WEAK_CRYPTO_NOT_ALLOWED_NAME
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -57,18 +57,18 @@ public class TestEncryptContentGroovy {
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
     }
 
     @Test
-    public void testShouldValidateMaxKeySizeForAlgorithmsOnUnlimitedStrengthJVM() throws IOException {
+    void testShouldValidateMaxKeySizeForAlgorithmsOnUnlimitedStrengthJVM() throws IOException {
         // Arrange
         Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                PasswordBasedEncryptor.supportsUnlimitedStrength());
+                PasswordBasedEncryptor.supportsUnlimitedStrength())
 
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -103,10 +103,10 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testShouldValidateMaxKeySizeForAlgorithmsOnLimitedStrengthJVM() throws IOException {
+    void testShouldValidateMaxKeySizeForAlgorithmsOnLimitedStrengthJVM() throws IOException {
         // Arrange
         Assume.assumeTrue("Test is being skipped because this JVM supports unlimited strength crypto.",
-                !PasswordBasedEncryptor.supportsUnlimitedStrength());
+                !PasswordBasedEncryptor.supportsUnlimitedStrength())
 
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -147,7 +147,7 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testShouldValidateKeyFormatAndSizeForAlgorithms() throws IOException {
+    void testShouldValidateKeyFormatAndSizeForAlgorithms() throws IOException {
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -181,7 +181,7 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testShouldValidateKDFWhenKeyedCipherSelected() {
+    void testShouldValidateKDFWhenKeyedCipherSelected() {
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -223,7 +223,8 @@ public class TestEncryptContentGroovy {
                 Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
             }
 
-            final def VALID_KDFS = [KeyDerivationFunction.NONE, KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2]
+            final
+            def VALID_KDFS = [KeyDerivationFunction.NONE, KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2]
             VALID_KDFS.each { KeyDerivationFunction validKDF ->
                 logger.info("Trying KDF ${validKDF.name()}")
 
@@ -242,7 +243,7 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testShouldValidateKDFWhenPBECipherSelected() {
+    void testShouldValidateKDFWhenPBECipherSelected() {
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -263,7 +264,8 @@ public class TestEncryptContentGroovy {
             logger.info("Trying encryption method ${encryptionMethod.name()}")
             runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
 
-            final def INVALID_KDFS = [KeyDerivationFunction.NONE, KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2]
+            final
+            def INVALID_KDFS = [KeyDerivationFunction.NONE, KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2]
             INVALID_KDFS.each { KeyDerivationFunction invalidKDF ->
                 logger.info("Trying KDF ${invalidKDF.name()}")
 
@@ -305,7 +307,7 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testRoundTrip() throws IOException {
+    void testRoundTrip() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
         final String RAW_KEY_HEX = "ab" * 16
         testRunner.setProperty(EncryptContent.RAW_KEY_HEX, RAW_KEY_HEX)
@@ -341,7 +343,7 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testShouldCheckMaximumLengthOfPasswordOnLimitedStrengthCryptoJVM() throws IOException {
+    void testShouldCheckMaximumLengthOfPasswordOnLimitedStrengthCryptoJVM() throws IOException {
         // Arrange
         Assume.assumeTrue("Only run on systems with limited strength crypto", !PasswordBasedEncryptor.supportsUnlimitedStrength())
 
@@ -359,7 +361,8 @@ public class TestEncryptContentGroovy {
             def invalidPasswordLength = CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) + 1
             String tooLongPassword = "x" * invalidPasswordLength
             if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
-                return false   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
+                return false
+                // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
             }
 
             testRunner.setProperty(EncryptContent.PASSWORD, tooLongPassword)
@@ -387,7 +390,7 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testShouldCheckLengthOfPasswordWhenNotAllowed() throws IOException {
+    void testShouldCheckLengthOfPasswordWhenNotAllowed() throws IOException {
         // Arrange
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
         testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
@@ -407,7 +410,8 @@ public class TestEncryptContentGroovy {
             def shortPasswordLength = [PasswordBasedEncryptor.getMinimumSafePasswordLength() - 1, CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) - 1].min()
             String shortPassword = "x" * shortPasswordLength
             if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
-                return false   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
+                return false
+                // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
             }
 
             testRunner.setProperty(EncryptContent.PASSWORD, shortPassword)
@@ -436,7 +440,7 @@ public class TestEncryptContentGroovy {
     }
 
     @Test
-    public void testShouldNotCheckLengthOfPasswordWhenAllowed() throws IOException {
+    void testShouldNotCheckLengthOfPasswordWhenAllowed() throws IOException {
         // Arrange
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
         testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
@@ -456,7 +460,8 @@ public class TestEncryptContentGroovy {
             def shortPasswordLength = [PasswordBasedEncryptor.getMinimumSafePasswordLength() - 1, CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) - 1].min()
             String shortPassword = "x" * shortPasswordLength
             if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
-                return false   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
+                return false
+                // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
             }
 
             testRunner.setProperty(EncryptContent.PASSWORD, shortPassword)
@@ -475,5 +480,40 @@ public class TestEncryptContentGroovy {
             // Assert
             Assert.assertEquals(results.toString(), 0, results.size())
         }
+    }
+
+    @Test
+    void testPGPPasswordShouldSupportExpressionLanguage() throws IOException {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
+        testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE)
+        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name())
+        testRunner.setProperty(EncryptContent.PRIVATE_KEYRING, "src/test/resources/TestEncryptContent/secring.gpg")
+
+        Collection<ValidationResult> results
+        MockProcessContext pc
+
+        // Verify this is the correct password
+        final String passphraseWithoutEL = "thisIsABadPassword"
+        testRunner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, passphraseWithoutEL)
+
+        testRunner.clearTransferState()
+        testRunner.enqueue(new byte[0])
+        pc = (MockProcessContext) testRunner.getProcessContext()
+
+        results = pc.validate()
+        Assert.assertEquals(results.toString(), 0, results.size())
+
+        final String passphraseWithEL = "\${literal('thisIsABadPassword')}"
+        testRunner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, passphraseWithEL)
+
+        testRunner.clearTransferState()
+        testRunner.enqueue(new byte[0])
+
+        // Act
+        results = pc.validate()
+
+        // Assert
+        Assert.assertEquals(results.toString(), 0, results.size())
     }
 }

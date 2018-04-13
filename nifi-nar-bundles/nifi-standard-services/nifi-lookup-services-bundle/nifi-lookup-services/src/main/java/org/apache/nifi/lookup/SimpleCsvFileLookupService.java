@@ -44,6 +44,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -66,13 +67,13 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
             .description("A CSV file.")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
         .name("CSV Format")
         .description("Specifies which \"format\" the CSV data is in, or specifies if custom formatting should be used.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(Arrays.asList(CSVFormat.Predefined.values()).stream().map(e -> e.toString()).collect(Collectors.toSet()))
         .defaultValue(CSVFormat.Predefined.Default.toString())
         .required(true)
@@ -85,7 +86,7 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
             .description("Lookup key column.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LOOKUP_VALUE_COLUMN =
@@ -95,7 +96,7 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
             .description("Lookup value column.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor IGNORE_DUPLICATES =
@@ -180,10 +181,10 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, FileNotFoundException {
-        this.csvFile = context.getProperty(CSV_FILE).getValue();
+        this.csvFile = context.getProperty(CSV_FILE).evaluateAttributeExpressions().getValue();
         this.csvFormat = CSVFormat.Predefined.valueOf(context.getProperty(CSV_FORMAT).getValue()).getFormat();
-        this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).getValue();
-        this.lookupValueColumn = context.getProperty(LOOKUP_VALUE_COLUMN).getValue();
+        this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
+        this.lookupValueColumn = context.getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions().getValue();
         this.ignoreDuplicates = context.getProperty(IGNORE_DUPLICATES).asBoolean();
         this.watcher = new SynchronousFileWatcher(Paths.get(csvFile), new LastModifiedMonitor(), 30000L);
         try {

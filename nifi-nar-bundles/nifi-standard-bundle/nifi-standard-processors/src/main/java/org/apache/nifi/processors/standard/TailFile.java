@@ -16,6 +16,40 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.stream.io.NullOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
@@ -47,41 +81,10 @@ import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.NullOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-
 // note: it is important that this Processor is not marked as @SupportsBatching because the session commits must complete before persisting state locally; otherwise, data loss may occur
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"tail", "file", "log", "text", "source", "restricted"})
+@Tags({"tail", "file", "log", "text", "source"})
 @CapabilityDescription("\"Tails\" a file, or a list of files, ingesting data from the file as it is written to the file. The file is expected to be textual. Data is ingested only when a "
         + "new line is encountered (carriage return or new-line character or combination). If the file to tail is periodically \"rolled over\", as is generally the case "
         + "with log files, an optional Rolling Filename Pattern can be used to retrieve data from files that have rolled over, even if the rollover occurred while NiFi "
@@ -91,7 +94,13 @@ import org.apache.nifi.stream.io.StreamUtils;
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "Stores state about where in the Tailed File it left off so that on restart it does not have to duplicate data. "
         + "State is stored either local or clustered depend on the <File Location> property.")
 @WritesAttribute(attribute = "tailfile.original.path", description = "Path of the original file the flow file comes from.")
-@Restricted("Provides operator the ability to read from any file that NiFi has access to.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to.")
+        }
+)
 public class TailFile extends AbstractProcessor {
 
     static final String MAP_PREFIX = "file.";
@@ -126,7 +135,7 @@ public class TailFile extends AbstractProcessor {
             .name("tail-base-directory")
             .displayName("Base directory")
             .description("Base directory used to look for files to tail. This property is required when using Multifile mode.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .required(false)
             .build();
@@ -136,7 +145,7 @@ public class TailFile extends AbstractProcessor {
             .displayName("Tailing mode")
             .description("Mode to use: single file will tail only one file, multiple file will look for a list of file. In Multiple mode"
                     + " the Base directory is required.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(MODE_SINGLEFILE, MODE_MULTIFILE)
             .defaultValue(MODE_SINGLEFILE.getValue())
@@ -148,7 +157,7 @@ public class TailFile extends AbstractProcessor {
             .description("Path of the file to tail in case of single file mode. If using multifile mode, regular expression to find files "
                     + "to tail in the base directory. In case recursivity is set to true, the regular expression will be used to match the "
                     + "path starting from the base directory (see additional details for examples).")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .required(true)
             .build();
@@ -161,7 +170,7 @@ public class TailFile extends AbstractProcessor {
                     + "(without extension), and will assume that the files that have rolled over live in the same directory as the file being tailed. "
                     + "The same glob pattern will be used for all files.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
 
@@ -282,11 +291,7 @@ public class TailFile extends AbstractProcessor {
         this.requireStateLookup = true;
     }
 
-    @OnScheduled
-    public void recoverState(final ProcessContext context) throws IOException {
-        // set isMultiChanging
-        isMultiChanging.set(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue()));
-
+    private List<String> lookup(final ProcessContext context) {
         // set last lookup to now
         lastLookup.set(new Date().getTime());
 
@@ -298,13 +303,21 @@ public class TailFile extends AbstractProcessor {
 
         if(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
             filesToTail.addAll(getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
-                    context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
-                    context.getProperty(RECURSIVE).asBoolean(),
-                    maxAge));
+                context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(RECURSIVE).asBoolean(),
+                maxAge));
         } else {
             filesToTail.add(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
         }
+        return filesToTail;
+    }
 
+    @OnScheduled
+    public void recoverState(final ProcessContext context) throws IOException {
+        // set isMultiChanging
+        isMultiChanging.set(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue()));
+
+        List<String> filesToTail = lookup(context);
 
         final Scope scope = getStateScope(context);
         final StateMap stateMap = context.getStateManager().getState(scope);
@@ -569,7 +582,10 @@ public class TailFile extends AbstractProcessor {
             long timeSinceLastLookup = new Date().getTime() - lastLookup.get();
             if(timeSinceLastLookup > context.getProperty(LOOKUP_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS)) {
                 try {
-                    recoverState(context);
+                    final List<String> filesToTail = lookup(context);
+                    final Scope scope = getStateScope(context);
+                    final StateMap stateMap = context.getStateManager().getState(scope);
+                    initStates(filesToTail, stateMap.toMap(), false);
                 } catch (IOException e) {
                     getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
                     context.yield();

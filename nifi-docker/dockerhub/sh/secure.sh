@@ -52,6 +52,13 @@ prop_replace 'nifi.web.https.port'  "${NIFI_WEB_HTTPS_PORT:-8443}"
 prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
 prop_replace 'nifi.remote.input.secure' 'true'
 
+# Check if the user has specified a nifi.web.proxy.host setting and handle appropriately
+if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
+    echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode.  The NiFi UI may be inaccessible if using port mapping.'
+else
+    prop_replace 'nifi.web.proxy.host' "${NIFI_WEB_PROXY_HOST}"
+fi
+
 # Establish initial user and an associated admin identity
 sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|'  ${NIFI_HOME}/conf/authorizers.xml
 sed -i -e 's|<property name="Initial Admin Identity"></property>|<property name="Initial Admin Identity">'"${INITIAL_ADMIN_IDENTITY}"'</property>|'  ${NIFI_HOME}/conf/authorizers.xml

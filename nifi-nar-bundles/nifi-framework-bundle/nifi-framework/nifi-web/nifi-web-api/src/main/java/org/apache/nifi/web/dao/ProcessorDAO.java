@@ -72,6 +72,20 @@ public interface ProcessorDAO {
     void verifyUpdate(ProcessorDTO processorDTO);
 
     /**
+     * Verifies that the specified processor can be terminated at this time
+     *
+     * @param processorId the id of the processor
+     */
+    void verifyTerminate(String processorId);
+
+    /**
+     * Terminates the processor with the given ID
+     *
+     * @param processorId the id of the processor to terminate
+     */
+    void terminate(String processorId);
+
+    /**
      * Updates the configuration for the processor using the specified processorDTO.
      *
      * @param processorDTO processor

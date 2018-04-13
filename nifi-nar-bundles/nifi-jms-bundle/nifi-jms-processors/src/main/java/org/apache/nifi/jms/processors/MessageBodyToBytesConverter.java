@@ -72,22 +72,14 @@ abstract class MessageBodyToBytesConverter {
         }
     }
 
-    /**
-     *
-     */
+
     private static class BytesMessageInputStream extends InputStream {
         private BytesMessage message;
 
-        /**
-         *
-         */
         public BytesMessageInputStream(BytesMessage message) {
             this.message = message;
         }
 
-        /**
-         *
-         */
         @Override
         public int read() throws IOException {
             try {
@@ -97,24 +89,19 @@ abstract class MessageBodyToBytesConverter {
             }
         }
 
-        /**
-         *
-         */
         @Override
         public int read(byte[] buffer, int offset, int length) throws IOException {
             try {
-                if (offset == 0)
+                if (offset == 0) {
                     return this.message.readBytes(buffer, length);
-                else
+                } else {
                     return super.read(buffer, offset, length);
+                }
             } catch (JMSException e) {
                 throw new IOException(e.toString());
             }
         }
 
-        /**
-         *
-         */
         @Override
         public int read(byte[] buffer) throws IOException {
             try {
@@ -125,22 +112,14 @@ abstract class MessageBodyToBytesConverter {
         }
     }
 
-    /**
-     *
-     */
+
     static class MessageConversionException extends RuntimeException {
         private static final long serialVersionUID = -1464448549601643887L;
 
-        /**
-         *
-         */
         public MessageConversionException(String msg) {
             super(msg);
         }
 
-        /**
-         *
-         */
         public MessageConversionException(String msg, Throwable cause) {
             super(msg, cause);
         }

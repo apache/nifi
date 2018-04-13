@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.nifi.attribute.expression.language.compile.CompiledExpression;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AllAttributesEvaluator;
@@ -37,29 +36,25 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 public class StandardPreparedQuery implements PreparedQuery {
 
-    private final List<String> queryStrings;
-    private final Map<String, CompiledExpression> expressions;
+    private final List<Expression> expressions;
     private volatile VariableImpact variableImpact;
 
-    public StandardPreparedQuery(final List<String> queryStrings, final Map<String, CompiledExpression> expressions) {
-        this.queryStrings = queryStrings;
+    public StandardPreparedQuery(final List<Expression> expressions) {
         this.expressions = expressions;
     }
 
     @Override
     public String evaluateExpressions(final Map<String, String> valMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) throws ProcessException {
         final StringBuilder sb = new StringBuilder();
-        for (final String val : queryStrings) {
-            final CompiledExpression expression = expressions.get(val);
-            if (expression == null) {
-                sb.append(val);
-            } else {
-                final String evaluated = Query.evaluateExpression(expression.getTree(), val, valMap, decorator, stateVariables);
-                if (evaluated != null) {
-                    sb.append(evaluated);
-                }
+
+        for (final Expression expression : expressions) {
+            final String evaluated = expression.evaluate(valMap, decorator, stateVariables);
+
+            if (evaluated != null) {
+                sb.append(evaluated);
             }
         }
+
         return sb.toString();
     }
 
@@ -83,8 +78,13 @@ public class StandardPreparedQuery implements PreparedQuery {
 
         final Set<String> variables = new HashSet<>();
 
-        for (final CompiledExpression expression : expressions.values()) {
-            for (final Evaluator<?> evaluator : expression.getAllEvaluators()) {
+        for (final Expression expression : expressions) {
+            if (!(expression instanceof CompiledExpression)) {
+                continue;
+            }
+
+            final CompiledExpression compiled = (CompiledExpression) expression;
+            for (final Evaluator<?> evaluator : compiled.getAllEvaluators()) {
                 if (evaluator instanceof AttributeEvaluator) {
                     final AttributeEvaluator attributeEval = (AttributeEvaluator) evaluator;
                     final Evaluator<String> nameEval = attributeEval.getNameEvaluator();

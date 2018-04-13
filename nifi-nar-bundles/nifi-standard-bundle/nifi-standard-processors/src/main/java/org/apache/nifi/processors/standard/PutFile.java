@@ -21,11 +21,14 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -59,11 +62,17 @@ import java.util.regex.Pattern;
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"put", "local", "copy", "archive", "files", "filesystem", "restricted"})
+@Tags({"put", "local", "copy", "archive", "files", "filesystem"})
 @CapabilityDescription("Writes the contents of a FlowFile to the local file system")
 @SeeAlso({FetchFile.class, GetFile.class})
 @ReadsAttribute(attribute = "filename", description = "The filename to use when writing the FlowFile to disk.")
-@Restricted("Provides operator the ability to write to any file that NiFi has access to.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+                        explanation = "Provides operator the ability to write to any file that NiFi has access to.")
+        }
+)
 public class PutFile extends AbstractProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";
@@ -78,7 +87,7 @@ public class PutFile extends AbstractProcessor {
             .description("The directory to which files should be written. You may use expression language such as /aa/bb/${path}")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MAX_DESTINATION_FILES = new PropertyDescriptor.Builder()
             .name("Maximum File Count")
@@ -99,7 +108,7 @@ public class PutFile extends AbstractProcessor {
                     + "You may also use expression language such as ${file.lastModifiedTime}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CHANGE_PERMISSIONS = new PropertyDescriptor.Builder()
             .name("Permissions")
@@ -108,7 +117,7 @@ public class PutFile extends AbstractProcessor {
                     + "${file.permissions}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CHANGE_OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
@@ -116,7 +125,7 @@ public class PutFile extends AbstractProcessor {
                     + "${file.owner}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CHANGE_GROUP = new PropertyDescriptor.Builder()
             .name("Group")
@@ -124,7 +133,7 @@ public class PutFile extends AbstractProcessor {
                     + "as ${file.group}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CREATE_DIRS = new PropertyDescriptor.Builder()
             .name("Create Missing Directories")

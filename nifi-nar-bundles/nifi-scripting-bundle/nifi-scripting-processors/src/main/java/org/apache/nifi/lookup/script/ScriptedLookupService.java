@@ -17,26 +17,29 @@
 package org.apache.nifi.lookup.script;
 
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
+import org.apache.nifi.script.AbstractScriptedControllerService;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
-import org.apache.nifi.script.AbstractScriptedControllerService;
 
 import javax.script.Invocable;
 import javax.script.ScriptException;
@@ -54,9 +57,15 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupRecord, e.g.)
  */
-@Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "restricted"})
+@Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from an incoming flow file.")
-@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+        }
+)
 public class ScriptedLookupService extends AbstractScriptedControllerService implements LookupService<Object> {
 
     protected final AtomicReference<LookupService<Object>> lookupService = new AtomicReference<>();
@@ -146,7 +155,7 @@ public class ScriptedLookupService extends AbstractScriptedControllerService imp
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .dynamic(true)
                 .build();
     }

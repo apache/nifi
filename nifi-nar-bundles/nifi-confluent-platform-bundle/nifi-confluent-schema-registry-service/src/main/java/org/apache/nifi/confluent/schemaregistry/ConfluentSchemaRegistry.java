@@ -17,19 +17,6 @@
 
 package org.apache.nifi.confluent.schemaregistry;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -42,13 +29,29 @@ import org.apache.nifi.confluent.schemaregistry.client.SchemaRegistryClient;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 
@@ -66,7 +69,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .name("url")
         .displayName("Schema Registry URLs")
         .description("A comma-separated list of URLs of the Schema Registry to interact with")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("http://localhost:8081")
         .required(true)
         .addValidator(new MultipleURLValidator())
@@ -105,7 +108,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .displayName("Communications Timeout")
         .description("Specifies how long to wait to receive data from the Schema Registry before considering the communications a failure")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("30 secs")
         .required(true)
         .build();
@@ -176,28 +179,33 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         return baseUrls;
     }
 
-    @Override
-    public String retrieveSchemaText(final String schemaName) throws IOException, SchemaNotFoundException {
-        final RecordSchema schema = retrieveSchema(schemaName);
-        return schema.getSchemaText().get();
+    private RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        final Optional<String> schemaName = schemaIdentifier.getName();
+        if (!schemaName.isPresent()) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");
+        }
+
+        final RecordSchema schema = client.getSchema(schemaName.get());
+        return schema;
     }
 
-    @Override
-    public String retrieveSchemaText(final long schemaId, final int version) throws IOException, SchemaNotFoundException {
-        final RecordSchema schema = retrieveSchema(schemaId, version);
-        return schema.getSchemaText().get();
-    }
+    private RecordSchema retrieveSchemaById(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        final OptionalLong schemaId = schemaIdentifier.getIdentifier();
+        if (!schemaId.isPresent()) {
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Id is not present");
+        }
 
-    @Override
-    public RecordSchema retrieveSchema(final String schemaName) throws IOException, SchemaNotFoundException {
-        final RecordSchema schema = client.getSchema(schemaName);
+        final RecordSchema schema = client.getSchema((int) schemaId.getAsLong());
         return schema;
     }
 
     @Override
-    public RecordSchema retrieveSchema(final long schemaId, final int version) throws IOException, SchemaNotFoundException {
-        final RecordSchema schema = client.getSchema((int) schemaId);
-        return schema;
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        if (schemaIdentifier.getName().isPresent()) {
+            return retrieveSchemaByName(schemaIdentifier);
+        } else {
+            return retrieveSchemaById(schemaIdentifier);
+        }
     }
 
     @Override

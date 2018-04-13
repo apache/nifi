@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -28,7 +29,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -66,12 +69,18 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"command", "process", "source", "external", "invoke", "script", "restricted"})
+@Tags({"command", "process", "source", "external", "invoke", "script"})
 @CapabilityDescription("Runs an operating system command specified by the user and writes the output of that command to a FlowFile. If the command is expected "
         + "to be long-running, the Processor can output the partial data on a specified interval. When this option is used, the output is expected to be in textual "
         + "format, as it typically does not make sense to split binary data on arbitrary time-based intervals.")
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
-@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+        }
+)
 @WritesAttributes({
     @WritesAttribute(attribute = "command", description = "Executed command"),
     @WritesAttribute(attribute = "command.arguments", description = "Arguments of the command")
@@ -85,7 +94,7 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command")
     .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
     .required(true)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
@@ -93,14 +102,14 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command Arguments")
     .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
     .required(false)
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
     public static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
     .name("Working Directory")
     .description("The directory to use as the current working directory when executing the command")
-    .expressionLanguageSupported(true)
+    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
     .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
     .required(false)
     .build();
@@ -111,7 +120,7 @@ public class ExecuteProcess extends AbstractProcessor {
             + "that the output will be captured for this amount of time and a FlowFile will then be sent out with the results "
             + "and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -122,7 +131,7 @@ public class ExecuteProcess extends AbstractProcessor {
             .required(false)
             .allowableValues("true", "false")
             .defaultValue("false")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 

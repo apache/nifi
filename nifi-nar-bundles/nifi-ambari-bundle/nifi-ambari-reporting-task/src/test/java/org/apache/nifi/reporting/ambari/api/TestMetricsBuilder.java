@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.reporting.ambari.api;
 
+import org.apache.nifi.reporting.util.metrics.api.MetricFields;
+import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
 import org.junit.Assert;
 import org.junit.Test;
 

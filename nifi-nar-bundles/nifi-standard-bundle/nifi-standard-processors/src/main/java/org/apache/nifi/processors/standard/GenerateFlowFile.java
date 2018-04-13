@@ -41,6 +41,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -56,7 +57,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("This processor creates FlowFiles with random data or custom content. GenerateFlowFile is useful" +
         "for load testing, configuration, and simulation.")
-@DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value", supportsExpressionLanguage = true,
+@DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +
         " If Expression Language is used, evaluation will be performed only once per batch of generated FlowFiles.")
 public class GenerateFlowFile extends AbstractProcessor {
@@ -102,7 +104,7 @@ public class GenerateFlowFile extends AbstractProcessor {
                     + "FlowFiles and the File Size will be ignored. Finally, if Expression Language is used, evaluation will be performed only once "
                     + "per batch of generated FlowFiles")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -151,7 +153,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamic(true)
             .build();
     }

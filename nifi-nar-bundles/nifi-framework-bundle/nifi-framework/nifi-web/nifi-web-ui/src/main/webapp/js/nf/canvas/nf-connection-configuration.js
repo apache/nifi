@@ -56,6 +56,9 @@
     var nfBirdseye;
     var nfGraph;
 
+    var defaultBackPressureObjectThreshold;
+    var defaultBackPressureDataSizeThreshold;
+
     var CONNECTION_OFFSET_Y_INCREMENT = 75;
     var CONNECTION_OFFSET_X_INCREMENT = 200;
 
@@ -1175,9 +1178,12 @@
          * @param nfBirdseyeRef   The nfBirdseye module.
          * @param nfGraphRef   The nfGraph module.
          */
-        init: function (nfBirdseyeRef, nfGraphRef) {
+        init: function (nfBirdseyeRef, nfGraphRef, defaultBackPressureObjectThresholdRef, defaultBackPressureDataSizeThresholdRef) {
             nfBirdseye = nfBirdseyeRef;
             nfGraph = nfGraphRef;
+
+            defaultBackPressureObjectThreshold = defaultBackPressureObjectThresholdRef;
+            defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThresholdRef;
 
             // initially hide the relationship names container
             $('#relationship-names-container').hide();
@@ -1275,8 +1281,8 @@
             $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
                 // set the default values
                 $('#flow-file-expiration').val('0 sec');
-                $('#back-pressure-object-threshold').val('10000');
-                $('#back-pressure-data-size-threshold').val('1 GB');
+                $('#back-pressure-object-threshold').val(defaultBackPressureObjectThreshold);
+                $('#back-pressure-data-size-threshold').val(defaultBackPressureDataSizeThreshold);
 
                 // select the first tab
                 $('#connection-configuration-tabs').find('li:first').click();

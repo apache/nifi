@@ -17,6 +17,8 @@
 package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -95,10 +97,21 @@ public class TestMockProcessSession {
         final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
         FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
         ff1 = session.penalize(ff1);
-        assertEquals(true, ff1.isPenalized());
+        assertTrue(ff1.isPenalized());
         ff1 = session.putAttribute(ff1, "hello", "world");
         // adding attribute to flow file should not override the original penalized status
-        assertEquals(true, ff1.isPenalized());
+        assertTrue(ff1.isPenalized());
+    }
+
+    @Test
+    public void testUnpenalizeFlowFile() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        ff1 = session.penalize(ff1);
+        assertTrue(ff1.isPenalized());
+        ff1 = session.unpenalize(ff1);
+        assertFalse(ff1.isPenalized());
     }
 
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {

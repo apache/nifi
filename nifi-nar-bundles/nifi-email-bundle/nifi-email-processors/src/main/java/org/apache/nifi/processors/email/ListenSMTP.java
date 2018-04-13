@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -85,7 +86,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
                     + "NOTE that on Unix derivative operating  systems this port must "
                     + "be higher than 1024 unless NiFi is running as with root user permissions.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -95,7 +96,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The maximum number of simultaneous SMTP connections.")
             .required(true)
             .defaultValue("1")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -105,7 +106,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The maximum time to wait for an action of SMTP client.")
             .defaultValue("60 seconds")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -115,7 +116,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The maximum number of bytes the server will accept.")
             .required(true)
             .defaultValue("20 MB")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Integer.MAX_VALUE))
             .build();
 
@@ -141,7 +142,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .displayName("SMTP hostname")
             .description("The hostname to be embedded into the banner displayed when an "
                     + "SMTP client connects to the processor TCP port .")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

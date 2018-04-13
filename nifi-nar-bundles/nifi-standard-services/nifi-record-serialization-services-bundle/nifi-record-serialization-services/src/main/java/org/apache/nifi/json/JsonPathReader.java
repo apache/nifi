@@ -35,6 +35,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeUtils;
@@ -56,7 +57,7 @@ import com.jayway.jsonpath.JsonPath;
     value="A JSONPath Expression that will be evaluated against each JSON record. The result of the JSONPath will be the value of the "
         + "field whose name is the same as the property name.",
     description="User-defined properties identifiy how to extract specific fields from a JSON object in order to create a Record",
-    supportsExpressionLanguage=false)
+    expressionLanguageScope=ExpressionLanguageScope.NONE)
 public class JsonPathReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private volatile String dateFormat;

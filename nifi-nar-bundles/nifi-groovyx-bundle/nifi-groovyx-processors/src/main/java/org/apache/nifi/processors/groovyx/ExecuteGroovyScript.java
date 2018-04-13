@@ -16,30 +16,25 @@
  */
 package org.apache.nifi.processors.groovyx;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.nifi.annotation.behavior.Restricted;
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -47,20 +42,25 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.groovyx.flow.GroovyProcessSessionWrap;
+import org.apache.nifi.processors.groovyx.sql.OSql;
+import org.apache.nifi.processors.groovyx.util.Files;
+import org.apache.nifi.processors.groovyx.util.Validators;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
-import org.apache.nifi.processors.groovyx.sql.OSql;
-import org.apache.nifi.processors.groovyx.util.Files;
-import org.apache.nifi.processors.groovyx.util.Validators;
-import org.apache.nifi.processors.groovyx.flow.GroovyProcessSessionWrap;
-
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
-
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.ValidationContext;
+import java.io.File;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -69,11 +69,17 @@ import org.apache.nifi.components.ValidationContext;
         "Experimental Extended Groovy script processor. The script is responsible for "
         + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back.")
-@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+        }
+)
 @SeeAlso(classNames={"org.apache.nifi.processors.script.ExecuteScript"})
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.")
 public class ExecuteGroovyScript extends AbstractProcessor {
@@ -89,7 +95,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
             .addValidator(Validators.createFileExistsAndReadableValidator())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder()
@@ -98,7 +104,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .required(false)
             .description("Body of script to execute. Only one of Script File or Script Body may be used")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
@@ -111,14 +117,19 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     +" If `rollback` selected and unhandled exception occurred then all flowFiles received from incoming queues will be penalized and returned."
                     +" If the processor has no incoming connections then this parameter has no effect."
                 )
-            .required(true).expressionLanguageSupported(false).allowableValues(VALID_FAIL_STRATEGY).defaultValue(VALID_FAIL_STRATEGY[0]).build();
+            .required(true).expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(VALID_FAIL_STRATEGY)
+            .defaultValue(VALID_FAIL_STRATEGY[0])
+            .build();
 
     public static final PropertyDescriptor ADD_CLASSPATH = new PropertyDescriptor.Builder()
             .name("groovyx-additional-classpath")
             .displayName("Additional classpath")
             .required(false)
             .description("Classpath list separated by semicolon. You can use masks like `*`, `*.jar` in file name.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).expressionLanguageSupported(true).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that were successfully processed").build();
 
@@ -486,7 +497,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .dynamic(true)
                 .build();
     }

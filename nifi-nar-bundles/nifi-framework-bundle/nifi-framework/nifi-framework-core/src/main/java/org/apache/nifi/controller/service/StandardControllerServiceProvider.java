@@ -54,6 +54,7 @@ import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
@@ -72,6 +73,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,12 +148,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             logger.info("Created Controller Service of type {} with identifier {}", type, id);
 
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
-            originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id), nifiProperties));
+            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
+
+            originalService.initialize(new StandardControllerServiceInitializationContext(id, terminationAwareLogger, this, getStateManager(id), nifiProperties));
 
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
 
-            final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(originalService, bundleCoordinate, serviceLogger);
-            final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, serviceLogger);
+            final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(originalService, bundleCoordinate, terminationAwareLogger);
+            final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, terminationAwareLogger);
 
             final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
@@ -341,6 +345,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public CompletableFuture<Void> enableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanEnable();
+        serviceNode.reloadAdditionalResourcesIfNecessary();
         return processScheduler.enableControllerService(serviceNode);
     }
 

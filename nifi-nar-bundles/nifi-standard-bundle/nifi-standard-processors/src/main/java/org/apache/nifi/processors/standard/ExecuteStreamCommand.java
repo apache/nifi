@@ -16,38 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.ArgumentUtils;
-import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -65,6 +33,41 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.ArgumentUtils;
+import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 
 /**
  * <p>
@@ -130,7 +133,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"command execution", "command", "stream", "execute", "restricted"})
+@Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({
@@ -138,7 +141,13 @@ import java.util.concurrent.atomic.AtomicReference;
     @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
     @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
     @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
-@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+        }
+)
 public class ExecuteStreamCommand extends AbstractProcessor {
 
     public static final Relationship ORIGINAL_RELATIONSHIP = new Relationship.Builder()
@@ -163,7 +172,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder()
             .name("Command Path")
             .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .required(true)
             .build();
@@ -171,7 +180,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor EXECUTION_ARGUMENTS = new PropertyDescriptor.Builder()
             .name("Command Arguments")
             .description("The arguments to supply to the executable delimited by the ';' character.")
-            .expressionLanguageSupported(true).addValidator(new Validator() {
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(new Validator() {
 
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
@@ -192,7 +202,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
             .name("Working Directory")
             .description("The directory to use as the current working directory when executing the command")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, true))
             .required(false)
             .build();
@@ -458,7 +468,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
                     // Because the outputstream has a cap that the copy doesn't know about, adjust
                     // the actual size
-                    if (longSize > (long) attributeSize) { // Explicit cast for readability
+                    if (longSize > attributeSize) { // Explicit cast for readability
                         size = attributeSize;
                     } else{
                         size = (int) longSize; // Note: safe cast, longSize is limited by attributeSize

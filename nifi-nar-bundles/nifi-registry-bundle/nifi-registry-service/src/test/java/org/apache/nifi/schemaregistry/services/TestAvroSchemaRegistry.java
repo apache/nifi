@@ -31,6 +31,8 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,8 +41,7 @@ public class TestAvroSchemaRegistry {
     @Test
     public void validateSchemaRegistrationFromrDynamicProperties() throws Exception {
         String schemaName = "fooSchema";
-        ConfigurationContext configContext = mock(ConfigurationContext.class);
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+
         PropertyDescriptor fooSchema = new PropertyDescriptor.Builder()
             .name(schemaName)
             .dynamic(true)
@@ -54,20 +55,20 @@ public class TestAvroSchemaRegistry {
             .name("barSchema")
             .dynamic(false)
             .build();
-        properties.put(fooSchema, fooSchemaText);
-        properties.put(barSchema, "");
-        when(configContext.getProperties()).thenReturn(properties);
+
         AvroSchemaRegistry delegate = new AvroSchemaRegistry();
-        delegate.enable(configContext);
-        String locatedSchemaText = delegate.retrieveSchemaText(schemaName);
-        assertEquals(fooSchemaText, locatedSchemaText);
+        delegate.onPropertyModified(fooSchema, null, fooSchemaText);
+        delegate.onPropertyModified(barSchema, null, "");
+
+        SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name(schemaName).build();
+        RecordSchema locatedSchema = delegate.retrieveSchema(schemaIdentifier);
+        assertEquals(fooSchemaText, locatedSchema.getSchemaText().get());
         try {
-            delegate.retrieveSchemaText("barSchema");
+            delegate.retrieveSchema(SchemaIdentifier.builder().name("barSchema").build());
             Assert.fail("Expected a SchemaNotFoundException to be thrown but it was not");
         } catch (final SchemaNotFoundException expected) {
         }
 
-        delegate.close();
     }
 
     @Test
@@ -109,7 +110,5 @@ public class TestAvroSchemaRegistry {
         when(propertyValue.asBoolean()).thenReturn(false);
         results = delegate.customValidate(validationContext);
         results.forEach(result -> assertTrue(result.isValid()));
-
-        delegate.close();
     }
 }

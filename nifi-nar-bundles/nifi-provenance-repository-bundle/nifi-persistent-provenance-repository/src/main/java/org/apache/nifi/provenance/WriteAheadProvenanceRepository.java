@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -221,7 +222,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     private void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
@@ -252,7 +253,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        return eventIndex.submitQuery(query, createEventAuthorizer(user), user.getIdentity());
+        return eventIndex.submitQuery(query, createEventAuthorizer(user), user == null ? null : user.getIdentity());
     }
 
     @Override
@@ -318,6 +319,21 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             return capacity;
         } else {
             throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
+    }
+
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Map<String, File> map = config.getStorageDirectories();
+        final File container = map.get(containerName);
+        if (container == null) {
+            return null;
+        }
+
+        try {
+            return Files.getFileStore(container.toPath()).name();
+        } catch (IOException e) {
+            return null;
         }
     }
 

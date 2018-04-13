@@ -1547,6 +1547,7 @@ public abstract class TestInvokeHttpCommon {
 
                 response.setContentType("text/plain");
                 response.setContentLength(target.length());
+                response.setHeader("Cache-Control", "public,max-age=1");
 
                 try (PrintWriter writer = response.getWriter()) {
                     writer.print(target);

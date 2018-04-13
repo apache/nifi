@@ -17,6 +17,11 @@
 
 package org.apache.nifi.schema.access;
 
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.stream.io.StreamUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -24,10 +29,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.schemaregistry.services.SchemaRegistry;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.stream.io.StreamUtils;
 
 public class ConfluentSchemaRegistryStrategy implements SchemaAccessStrategy {
     private final Set<SchemaField> schemaFields;
@@ -64,7 +65,13 @@ public class ConfluentSchemaRegistryStrategy implements SchemaAccessStrategy {
         }
 
         final int schemaId = bb.getInt();
-        return schemaRegistry.retrieveSchema(schemaId, 1);
+
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
+                .id(Long.valueOf(schemaId))
+                .version(1)
+                .build();
+
+        return schemaRegistry.retrieveSchema(schemaIdentifier);
     }
 
     @Override

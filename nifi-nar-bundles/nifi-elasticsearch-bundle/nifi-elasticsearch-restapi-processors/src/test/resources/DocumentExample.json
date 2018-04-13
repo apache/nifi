@@ -1,0 +1,21 @@
+{
+  "created_at": "Thu Jan 21 16:02:46 +0000 2016",
+  "text": "This is a test document from a mock social media service",
+  "contributors": null,
+  "id": 28039652140,
+  "shares": null,
+  "geographic_location": null,
+  "userinfo": {
+    "name": "Not A. Person",
+    "location": "Orlando, FL",
+    "created_at": "Fri Oct 24 23:22:09 +0000 2008",
+    "follow_count": 1,
+    "url": "http://not.a.real.site",
+    "id": 16958875,
+    "lang": "en",
+    "time_zone": "Mountain Time (US & Canada)",
+    "description": "I'm a test person.",
+    "following_count": 71,
+    "screen_name": "Nobody"
+  }
+}

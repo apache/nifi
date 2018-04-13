@@ -54,6 +54,7 @@ import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.slf4j.Logger;
@@ -81,8 +82,18 @@ import java.util.concurrent.atomic.AtomicReference;
 @DynamicProperty(name="The name of an HBase configuration property.", value="The value of the given HBase configuration property.",
         description="These properties will be set on the HBase configuration after loading any provided configuration files.")
 public class HBase_1_1_2_ClientService extends AbstractControllerService implements HBaseClientService {
+    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     private static final Logger logger = LoggerFactory.getLogger(HBase_1_1_2_ClientService.class);
+
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
+
 
     static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
     static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";
@@ -111,6 +122,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONF_FILES);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
         props.add(ZOOKEEPER_QUORUM);
@@ -153,6 +165,20 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         boolean znodeParentProvided = validationContext.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet();
         boolean retriesProvided = validationContext.getProperty(HBASE_CLIENT_RETRIES).isSet();
 
+        final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+        final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        final String resolvedPrincipal;
+        final String resolvedKeytab;
+        if (credentialsService == null) {
+            resolvedPrincipal = explicitPrincipal;
+            resolvedKeytab = explicitKeytab;
+        } else {
+            resolvedPrincipal = credentialsService.getPrincipal();
+            resolvedKeytab = credentialsService.getKeytab();
+        }
+
         final List<ValidationResult> problems = new ArrayList<>();
 
         if (!confFileProvided && (!zkQuorumProvided || !zkPortProvided || !znodeParentProvided || !retriesProvided)) {
@@ -177,11 +203,26 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             }
 
             final Configuration hbaseConfig = resources.getConfiguration();
-            final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-            final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
 
-            problems.addAll(KerberosProperties.validatePrincipalAndKeytab(
-                    this.getClass().getSimpleName(), hbaseConfig, principal, keytab, getLogger()));
+            problems.addAll(KerberosProperties.validatePrincipalAndKeytab(getClass().getSimpleName(), hbaseConfig, resolvedPrincipal, resolvedKeytab, getLogger()));
+        }
+
+        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
+                .build());
+        }
+
+        final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
+        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
+                    + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
+                .build());
         }
 
         return problems;
@@ -245,8 +286,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
 
         if (SecurityUtil.isSecurityEnabled(hbaseConfig)) {
-            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+
+            // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
+            // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
+            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+            if (credentialsService != null) {
+                principal = credentialsService.getPrincipal();
+                keyTab = credentialsService.getKeytab();
+            }
 
             getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[] {principal, keyTab});
             ugi = SecurityUtil.loginKerberos(hbaseConfig, principal, keyTab);
@@ -428,6 +477,91 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 handler.handle(rowKey, resultCells);
             }
         }
+    }
+
+    @Override
+    public void scan(final String tableName, final String startRow, final String endRow, String filterExpression,
+            final Long timerangeMin, final Long timerangeMax, final Integer limitRows, final Boolean isReversed,
+            final Collection<Column> columns, final ResultHandler handler) throws IOException {
+
+        try (final Table table = connection.getTable(TableName.valueOf(tableName));
+                final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
+                        timerangeMax, limitRows, isReversed, columns)) {
+
+            int cnt = 0;
+            final int lim = limitRows != null ? limitRows : 0;
+            for (final Result result : scanner) {
+
+                if (lim > 0 && ++cnt > lim){
+                    break;
+                }
+
+                final byte[] rowKey = result.getRow();
+                final Cell[] cells = result.rawCells();
+
+                if (cells == null) {
+                    continue;
+                }
+
+                // convert HBase cells to NiFi cells
+                final ResultCell[] resultCells = new ResultCell[cells.length];
+                for (int i = 0; i < cells.length; i++) {
+                    final Cell cell = cells[i];
+                    final ResultCell resultCell = getResultCell(cell);
+                    resultCells[i] = resultCell;
+                }
+
+                // delegate to the handler
+                handler.handle(rowKey, resultCells);
+            }
+        }
+
+    }
+
+    //
+    protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
+            final Integer limitRows, final Boolean isReversed, final Collection<Column> columns)  throws IOException {
+        final Scan scan = new Scan();
+        if (!StringUtils.isBlank(startRow)){
+            scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
+        }
+        if (!StringUtils.isBlank(endRow)){
+            scan.setStopRow(   endRow.getBytes(StandardCharsets.UTF_8));
+        }
+
+
+        Filter filter = null;
+        if (columns != null) {
+            for (Column col : columns) {
+                if (col.getQualifier() == null) {
+                    scan.addFamily(col.getFamily());
+                } else {
+                    scan.addColumn(col.getFamily(), col.getQualifier());
+                }
+            }
+        }
+        if (!StringUtils.isBlank(filterExpression)) {
+            ParseFilter parseFilter = new ParseFilter();
+            filter = parseFilter.parseFilterString(filterExpression);
+        }
+        if (filter != null){
+            scan.setFilter(filter);
+        }
+
+        if (timerangeMin != null && timerangeMax != null){
+            scan.setTimeRange(timerangeMin, timerangeMax);
+        }
+
+        // ->>> reserved for HBase v 2 or later
+        //if (limitRows != null && limitRows > 0){
+        //    scan.setLimit(limitRows)
+        //}
+
+        if (isReversed != null){
+            scan.setReversed(isReversed);
+        }
+
+        return table.getScanner(scan);
     }
 
     // protected and extracted into separate method for testing

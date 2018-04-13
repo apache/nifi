@@ -30,6 +30,7 @@
         <div id="global-policy-controls" class="hidden policy-controls">
             <div id="policy-type-list"></div>
             <div id="controller-policy-target" class="hidden"></div>
+            <div id="restricted-component-required-permissions" class="hidden"></div>
             <div class="clear"></div>
         </div>
         <div id="component-policy-controls" class="hidden policy-controls">
@@ -90,6 +91,7 @@
         </div>
         <div id="policy-loading-container" class="loading-container"></div>
         <div id="admin-policy-message" class="hidden">Only listing component specific administrators. Inherited administrators not shown.</div>
+        <div id="restriction-message" class="hidden">Only listing restriction specific users. Users with permission "regardless of restrictions" not shown but are also allowed.</div>
         <div class="clear"></div>
     </div>
 </div>

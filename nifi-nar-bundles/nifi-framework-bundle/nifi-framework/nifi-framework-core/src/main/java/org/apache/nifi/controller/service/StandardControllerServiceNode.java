@@ -54,6 +54,7 @@ import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.groups.ProcessGroup;
@@ -63,6 +64,7 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +113,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
-    public ComponentLog getLogger() {
+    public TerminationAwareLogger getLogger() {
         return controllerServiceHolder.get().getComponentLog();
     }
 
@@ -148,6 +150,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public boolean isRestricted() {
         return getControllerServiceImplementation().getClass().isAnnotationPresent(Restricted.class);
+    }
+
+    @Override
+    public Class<?> getComponentClass() {
+        return getControllerServiceImplementation().getClass();
     }
 
     @Override
@@ -190,7 +197,8 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             if (isActive()) {
                 throw new IllegalStateException("Cannot reload Controller Service while service is active");
             }
-
+            String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+            setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
             getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
         }
     }

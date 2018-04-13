@@ -311,27 +311,80 @@ Processor 3</pre>
             </tr>
 
             <tr>
-                <td>NiFiRemotePort</td>
-                <td>
-                    Remote Input Port<br/>
-                    Remote Output Port
+                <td rowspan="4">NiFiRemotePort</td>
+                <td rowspan="2">
+                    Remote Input Port
                 </td>
-                <td>
-                    SEND<br/>
-                    RECEIVE<br/>
+                <td rowspan="2">
+                    SEND
                 </td>
-                <td>
+                <td rowspan="2">
                     <ul>
                         <li>http://nifi1.example.com:8080/nifi-api/data-transfer/input-ports/35dbc0ab-015e-1000-144c-a8d71255027d/transactions/89335043-f105-4de7-a0ef-46f2ef0c7c51/flow-files</li>
                         <li>nifi://nifi1.example.com:8081/cb729f05-b2ee-4488-909d-c6696cc34588</li>
                     </ul>
                 </td>
                 <td>
-                    nifi_input_port<br/>
+                    nifi_input_port
+                </td>
+                <td>rootGroupPortGUID@clusterName
+                    (e.g. 35dbc0ab-015e-1000-144c-a8d71255027d@cl1)</td>
+                <td rowspan="4"><strong>NOTE:</strong>Only HTTP S2S protocol is supported. RAW support may be added in the future as it needs NiFi code modification. See <a href="https://issues.apache.org/jira/browse/NIFI-4654">NIFI-4654</a> for detail.</td>
+            </tr>
+            <tr>
+                <td>
+                    With 'Simple Path' strategy intermediate 'nifi_queue' and 'nifi_flow_path' are created as well (marked with + in the following example)
+                    <pre>
+upstream (nifi_flow_path)
+  -> + queue (nifi_queue)
+  -> + Remote Input Port
+     (nifi_flowPath)
+  -> remote target port
+     (nifi_input_port)
+                    </pre>
+                </td>
+                <td>remoteInputPortGUID@clusterName<br/>(e.g. f31a6b53-3077-4c59-144c-a8d71255027d@cl1)
+                    <p>NOTE: The remoteInputPortGUID is the client side component ID and different from the remote target port GUID. Multiple Remote Input Ports can send to the same target remote input port.</p></td>
+            </tr>
+            <tr>
+                <td rowspan="2">
+                    Remote Output Port
+                </td>
+                <td rowspan="2">
+                    RECEIVE
+                </td>
+                <td rowspan="2">
+                    <ul>
+                        <li>http://nifi1.example.com:8080/nifi-api/data-transfer/output-ports/45dbc0ab-015e-1000-144c-a8d71255027d/transactions/99335043-f105-4de7-a0ef-46f2ef0c7c51/flow-files</li>
+                        <li>nifi://nifi1.example.com:8081/db729f05-b2ee-4488-909d-c6696cc34588</li>
+                    </ul>
+                </td>
+                <td>
                     nifi_output_port
                 </td>
-                <td>remotePortGUID@clusterName<br/>(e.g. 35dbc0ab-015e-1000-144c-a8d71255027d@cl1)</td>
-                <td><strong>NOTE:</strong>Only HTTP S2S protocol is supported. RAW support may be added in the future as it needs NiFi code modification. See <a href="https://issues.apache.org/jira/browse/NIFI-4654">NIFI-4654</a> for detail.</td>
+                <td>rootGroupPortGUID@clusterName
+                    (e.g. 45dbc0ab-015e-1000-144c-a8d71255027d@cl1)</td>
+            </tr>
+            <tr>
+                <td>
+                    With 'Simple Path' strategy intermediate 'nifi_flow_path' and 'nifi_queue' are created as well (marked with + in the following example)
+                    <pre>
+remote target port
+(nifi_output_port)
+  -> + Remote Output Port
+     (nifi_flow_path)
+  -> + queue (nifi_queue)
+  -> downstream
+     (nifi_flow_path)
+                    </pre>
+                </td>
+                <td>
+                    <ul>
+                        <li>For 'nifi_flow_path': remoteOutputPortGUID@clusterName<br/>(e.g. 7375f8f6-4604-468d-144c-a8d71255027d@cl1)
+                            <p>NOTE: The remoteOutputPortGUID is the client side component ID and different from the remote target port GUID. Multiple Remote Output Ports can pull from the same target remote output port.</p></li>
+                        <li>For 'nifi_queue': downstreamPathGUID@clusterName<br/>(e.g. bb530e58-ee14-3cac-144c-a8d71255027d@cl1)</li>
+                    </ul>
+                </td>
             </tr>
             <tr>
                 <td>NiFiRootGroupPort</td>
@@ -343,9 +396,17 @@ Processor 3</pre>
                     RECEIVE<br/>
                     SEND<br/>
                 </td>
-                <td>(Same as Remote Input/Output Port)</td>
-                <td>(Same as above)</td>
-                <td>(Same as above)</td>
+                <td>
+                    <ul>
+                        <li>http://nifi1.example.com:8080/nifi-api/data-transfer/input-ports/35dbc0ab-015e-1000-144c-a8d71255027d/transactions/89335043-f105-4de7-a0ef-46f2ef0c7c51/flow-files</li>
+                        <li>nifi://nifi1.example.com:8081/cb729f05-b2ee-4488-909d-c6696cc34588</li>
+                    </ul>
+                </td>
+                <td>
+                    nifi_input_port<br/>
+                    nifi_output_port
+                </td>
+                <td>rootGroupPortGUID@clusterName<br/>(e.g. 35dbc0ab-015e-1000-144c-a8d71255027d@cl1)</td>
                 <td></td>
             </tr>
             <tr>
@@ -372,7 +433,7 @@ Processor 3</pre>
                 </td>
                 <td>kafka_topic</td>
                 <td>topicName@clusterName<br/>(e.g. testTopic@cl1)</td>
-                <td><strong>NOTE:</strong>With Atlas 0.8.2, the same topic name in different clusters can not be created using the pre-built 'kafka_topic'. See <a href="https://issues.apache.org/jira/browse/ATLAS-2286">ATLAS-2286</a>.</td>
+                <td><strong>NOTE:</strong>With Atlas earlier than 0.8.2, the same topic name in different clusters can not be created using the pre-built 'kafka_topic'. See <a href="https://issues.apache.org/jira/browse/ATLAS-2286">ATLAS-2286</a>.</td>
             </tr>
             <tr>
                 <td>PutHiveStreaming</td>
@@ -392,7 +453,7 @@ Processor 3</pre>
                 </td>
                 <td>
                     SEND<br/>
-                    RECEIVE<br/>
+                    RECEIVE, FETCH<br/>
                 </td>
                 <td>jdbc:hive2://hive.example.com:10000/default</td>
                 <td>hive_table</td>
@@ -422,6 +483,7 @@ Processor 3</pre>
                 <td>hdfs://nn.example.com:8020/user/nifi/5262553828219</td>
                 <td>hdfs_path</td>
                 <td>/path/fileName@clusterName<br/>(e.g. /app/warehouse/hive/db/default@cl1)</td>
+                <td></td>
             </tr>
             <tr>
                 <td>HBaseTable</td>
@@ -431,6 +493,7 @@ Processor 3</pre>
                     PutHBaseCell<br/>
                     PutHBaseJSON<br/>
                     PutHBaseRecord<br/>
+                    ScanHBase<br/>
                 </td>
                 <td>
                     FETCH<br/>
@@ -438,10 +501,12 @@ Processor 3</pre>
                     SEND<br/>
                     SEND<br/>
                     SEND<br/>
+                    RECEIVE<br/>
                 </td>
                 <td>hbase://hmaster.example.com:16000/tableA/rowX</td>
                 <td>hbase_table</td>
                 <td>tableName@clusterName<br/>(e.g. myTable@cl1)</td>
+                <td></td>
             </tr>
             <tr>
                 <td>FilePath</td>
@@ -458,6 +523,7 @@ Processor 3</pre>
                 <td>file:///tmp/a.txt</td>
                 <td>fs_path</td>
                 <td>/path/fileName@hostname<br/>(e.g. /tmp/dir/filename.txt@host.example.com)</td>
+                <td></td>
             </tr>
 
             <tr id="unknown-datasets">
@@ -473,6 +539,7 @@ Processor 3</pre>
                 <td></td>
                 <td>nifi_data</td>
                 <td>processorGuid@clusterName<br/>db8bb12c-5cd3-3011-c971-579f460ebedf@cl1</td>
+                <td></td>
             </tr>
         </table>
 

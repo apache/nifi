@@ -57,6 +57,14 @@ public interface FlowFileRepository extends Closeable {
     long getUsableStorageSpace() throws IOException;
 
     /**
+     * Returns the name of the FileStore that the repository is stored on, or <code>null</code>
+     * if not applicable or unable to determine the file store name
+     *
+     * @return the name of the FileStore
+     */
+    String getFileStoreName();
+
+    /**
      * Updates the repository with the given RepositoryRecords.
      *
      * @param records the records to update the repository with

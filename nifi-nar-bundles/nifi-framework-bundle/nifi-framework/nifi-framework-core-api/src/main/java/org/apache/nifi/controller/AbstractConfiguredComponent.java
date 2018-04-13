@@ -71,6 +71,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
+    private volatile String additionalResourcesFingerprint;
 
     public AbstractConfiguredComponent(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
@@ -178,6 +179,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
                 // if at least one property with dynamicallyModifiesClasspath(true) was set, then reload the component with the new urls
                 if (classpathChanged) {
+                    logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
+
                     final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
                     try {
                         reload(additionalUrls);
@@ -295,6 +298,34 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         getProperties().entrySet().stream()
                 .filter(e -> e.getKey() != null && e.getValue() != null)
                 .forEach(e -> setProperty(e.getKey().getName(), e.getValue()));
+    }
+
+    /**
+     * Generates fingerprint for the additional urls and compares it with the previous
+     * fingerprint value. If the fingerprint values don't match, the function calls the
+     * component's reload() to load the newly found resources.
+     */
+    @Override
+    public synchronized void reloadAdditionalResourcesIfNecessary() {
+        // Components that don't have any PropertyDescriptors marked `dynamicallyModifiesClasspath`
+        // won't have the fingerprint i.e. will be null, in such cases do nothing
+        if (additionalResourcesFingerprint == null) {
+            return;
+        }
+
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(this.getProperties().keySet());
+        final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
+
+        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
+            setAdditionalResourcesFingerprint(newFingerprint);
+            try {
+                logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
+                reload(additionalUrls);
+            } catch (Exception e) {
+                logger.error("Error reloading component with id " + id + ": " + e.getMessage(), e);
+            }
+        }
     }
 
     @Override
@@ -568,4 +599,9 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
         }
     }
+
+    protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
+        this.additionalResourcesFingerprint = additionalResourcesFingerprint;
+    }
+
 }

@@ -38,6 +38,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -62,6 +67,12 @@ public class TestCSVRecordReader {
     private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
         return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
             RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII");
+    }
+
+    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format,
+                                         final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+        return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                dateFormat, timeFormat, timestampFormat, "ASCII");
     }
 
     @Test
@@ -107,6 +118,196 @@ public class TestCSVRecordReader {
     }
 
     @Test
+    public void testDateNoCoersionExpectedFormat() throws IOException, MalformedRecordException {
+        final String text = "date\n11/30/1983";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            final java.sql.Date date = (Date) record.getValue("date");
+            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
+            calendar.setTimeInMillis(date.getTime());
+
+            assertEquals(1983, calendar.get(Calendar.YEAR));
+            assertEquals(10, calendar.get(Calendar.MONTH));
+            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+        }
+    }
+
+    @Test
+    public void testDateNoCoersionUnexpectedFormat() throws IOException, MalformedRecordException {
+        final String text = "date\n11/30/1983";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     "MM-dd-yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            // When the values are not in the expected format, a String is returned unmodified
+            assertEquals("11/30/1983", (String)record.getValue("date"));
+        }
+    }
+
+    @Test
+    public void testDateNullFormat() throws IOException, MalformedRecordException {
+        final String text = "date\n1983-01-01";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     null, RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertEquals("1983-01-01", (String)record.getValue("date"));
+        }
+    }
+
+    @Test
+    public void testDateEmptyFormat() throws IOException, MalformedRecordException {
+        final String text = "date\n1983-01-01";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     "", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertEquals("1983-01-01", (String)record.getValue("date"));
+        }
+    }
+
+    @Test
+    public void testTimeNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
+        final String timeFormat = "HH!mm!ss";
+        DateFormat dateFmt = new SimpleDateFormat(timeFormat);
+        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
+        final String timeVal = "19!02!03";
+        final String text = "time\n" + timeVal;
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), timeFormat, RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            final java.sql.Time time = (Time) record.getValue("time");
+
+            assertEquals(new Time(dateFmt.parse(timeVal).getTime()), time);
+        }
+    }
+
+    @Test
+    public void testTimeNoCoersionUnexpectedFormat() throws IOException, MalformedRecordException {
+        final String text = "time\n01:02:03";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), "HH-MM-SS", RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertEquals("01:02:03", (String)record.getValue("time"));
+        }
+    }
+
+    @Test
+    public void testTimeNullFormat() throws IOException, MalformedRecordException {
+        final String text = "time\n01:02:03";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), null, RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertEquals("01:02:03", (String)record.getValue("time"));
+        }
+    }
+
+    @Test
+    public void testTimeEmptyFormat() throws IOException, MalformedRecordException {
+        final String text = "time\n01:02:03";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("time", RecordFieldType.TIME.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), "", RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertEquals("01:02:03", (String)record.getValue("time"));
+        }
+    }
+
+    @Test
+    public void testTimestampNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
+        final String timeFormat = "HH!mm!ss";
+        DateFormat dateFmt = new SimpleDateFormat(timeFormat);
+        dateFmt.setTimeZone(TimeZone.getTimeZone("gmt"));
+        final String timeVal = "19!02!03";
+        final String text = "timestamp\n" + timeVal;
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), timeFormat,"UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            final java.sql.Timestamp time = (Timestamp) record.getValue("timestamp");
+
+            assertEquals(new Timestamp(dateFmt.parse(timeVal).getTime()), time);
+        }
+    }
+
+    @Test
+    public void testTimestampNoCoersionUnexpectedFormat() throws IOException, MalformedRecordException {
+        final String text = "timestamp\n01:02:03";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), "HH-MM-SS", "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertEquals("01:02:03", (String)record.getValue("timestamp"));
+        }
+    }
+
+
+    @Test
     public void testSimpleParse() throws IOException, MalformedRecordException {
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
@@ -118,6 +319,29 @@ public class TestCSVRecordReader {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            Assert.assertArrayEquals(expectedValues, record);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testExcelFormat() throws IOException, MalformedRecordException {
+        final List<RecordField> fields = new ArrayList<RecordField>();
+        fields.add(new RecordField("fieldA", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("fieldB", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String headerLine = "fieldA,fieldB";
+        final String inputRecord = "valueA,valueB";
+        final String csvData = headerLine + "\n" + inputRecord;
+        final byte[] inputData = csvData.getBytes();
+
+        try (final InputStream bais = new ByteArrayInputStream(inputData);
+            final CSVRecordReader reader = createReader(bais, schema, CSVFormat.EXCEL)) {
+
+            final Object[] record = reader.nextRecord().getValues();
+            final Object[] expectedValues = new Object[] {"valueA", "valueB"};
             Assert.assertArrayEquals(expectedValues, record);
 
             assertNull(reader.nextRecord());

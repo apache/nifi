@@ -21,15 +21,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.function.Supplier;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -37,37 +35,22 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 
-public class CSVRecordReader implements RecordReader {
+public class CSVRecordReader extends AbstractCSVRecordReader {
     private final CSVParser csvParser;
-    private final RecordSchema schema;
-
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     private List<RecordField> recordFields;
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-        final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
-
-        this.schema = schema;
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
+                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
 
@@ -77,6 +60,8 @@ public class CSVRecordReader implements RecordReader {
 
             if (ignoreHeader) {
                 withHeader = withHeader.withHeader(schema.getFieldNames().toArray(new String[0]));
+            } else {
+                withHeader = withHeader.withFirstRecordAsHeader();
             }
         } else {
             withHeader = csvFormat.withHeader(schema.getFieldNames().toArray(new String[0]));
@@ -93,7 +78,7 @@ public class CSVRecordReader implements RecordReader {
         final int numFieldNames = recordFields.size();
 
         for (final CSVRecord csvRecord : csvParser) {
-            final Map<String, Object> values = new HashMap<>(recordFields.size() * 2);
+            final Map<String, Object> values = new LinkedHashMap<>(recordFields.size() * 2);
             for (int i = 0; i < csvRecord.size(); i++) {
                 final String rawValue = csvRecord.get(i);
 
@@ -156,59 +141,6 @@ public class CSVRecordReader implements RecordReader {
 
         this.recordFields = fields;
         return fields;
-    }
-
-
-    @Override
-    public RecordSchema getSchema() {
-        return schema;
-    }
-
-    protected Object convert(final String value, final DataType dataType, final String fieldName) {
-        if (dataType == null || value == null) {
-            return value;
-        }
-
-        final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-
-        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
-    }
-
-    private Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
-        if (dataType == null || value == null) {
-            return value;
-        }
-
-        final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-
-        switch (dataType.getFieldType()) {
-            case STRING:
-                return value;
-            case BOOLEAN:
-            case INT:
-            case LONG:
-            case FLOAT:
-            case DOUBLE:
-            case BYTE:
-            case CHAR:
-            case SHORT:
-            case TIME:
-            case TIMESTAMP:
-            case DATE:
-                if (DataTypeUtils.isCompatibleDataType(trimmed, dataType)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
-                } else {
-                    return value;
-                }
-        }
-
-        return value;
     }
 
     @Override

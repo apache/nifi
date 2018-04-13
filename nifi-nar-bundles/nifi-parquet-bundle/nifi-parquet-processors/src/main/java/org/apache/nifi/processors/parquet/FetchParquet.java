@@ -21,12 +21,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.AbstractFetchHDFSRecord;
@@ -39,7 +41,7 @@ import java.io.IOException;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"parquet", "hadoop", "HDFS", "get", "ingest", "fetch", "source", "restricted", "record"})
+@Tags({"parquet", "hadoop", "HDFS", "get", "ingest", "fetch", "source", "record"})
 @CapabilityDescription("Reads from a given Parquet file and writes records to the content of the flow file using " +
         "the selected record writer. The original Parquet file will remain unchanged, and the content of the flow file " +
         "will be replaced with records of the selected type. This processor can be used with ListHDFS or ListFile to obtain " +
@@ -50,7 +52,11 @@ import java.io.IOException;
         @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file")
 })
 @SeeAlso({PutParquet.class})
-@Restricted("Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class FetchParquet extends AbstractFetchHDFSRecord {
 
     @Override

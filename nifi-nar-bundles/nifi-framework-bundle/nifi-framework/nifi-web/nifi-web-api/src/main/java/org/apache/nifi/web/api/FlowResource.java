@@ -1373,7 +1373,7 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows")
-    @ApiOperation(value = "Gets the flows from the specified registry and bucket for the current user", response = BucketsEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the flows from the specified registry and bucket for the current user", response = VersionedFlowsEntity.class, authorizations = {
             @Authorization(value = "Read - /flow")
     })
     @ApiResponses(value = {
@@ -1409,7 +1409,9 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
-    @ApiOperation(value = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user", response = BucketsEntity.class, authorizations = {
+    @ApiOperation(value = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user",
+                  response = VersionedFlowSnapshotMetadataSetEntity.class,
+                  authorizations = {
             @Authorization(value = "Read - /flow")
     })
     @ApiResponses(value = {

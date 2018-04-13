@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -120,7 +119,7 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
         });
 
         String docId = flowFile.getAttribute(CoreAttributes.UUID.key());
-        if (!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())) {
+        if (context.getProperty(DOC_ID).isSet()) {
             docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(flowFile).getValue();
         }
 

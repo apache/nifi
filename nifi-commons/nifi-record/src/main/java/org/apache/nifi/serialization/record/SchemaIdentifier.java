@@ -38,14 +38,32 @@ public interface SchemaIdentifier {
      */
     OptionalInt getVersion();
 
+    /**
+     * @return the name of the branch where the schema is located, if one has been defined
+     */
+    Optional<String> getBranch();
 
-    public static SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null);
 
-    public static SchemaIdentifier ofName(final String name) {
-        return new StandardSchemaIdentifier(name, null, null);
+    SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null, null);
+
+    static Builder builder() {
+        return new StandardSchemaIdentifier.Builder();
     }
 
-    public static SchemaIdentifier of(final String name, final long identifier, final int version) {
-        return new StandardSchemaIdentifier(name, identifier, version);
+    /**
+     * Implementations should provide a builder to create instances of the SchemaIdentifier.
+     */
+    interface Builder {
+
+        Builder name(String name);
+
+        Builder id(Long id);
+
+        Builder version(Integer version);
+
+        Builder branch(String branch);
+
+        SchemaIdentifier build();
+
     }
 }

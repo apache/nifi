@@ -21,14 +21,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.io.input.BOMInputStream;
@@ -36,12 +34,10 @@ import org.apache.commons.lang3.CharUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -50,16 +46,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 
-public class JacksonCSVRecordReader implements RecordReader {
-    private final RecordSchema schema;
-
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
-
-    private final ComponentLog logger;
-    private final boolean hasHeader;
-    private final boolean ignoreHeader;
+public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     private final MappingIterator<String[]> recordStream;
     private List<String> rawFieldNames = null;
 
@@ -67,18 +54,7 @@ public class JacksonCSVRecordReader implements RecordReader {
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
-
-        this.schema = schema;
-        this.logger = logger;
-        this.hasHeader = hasHeader;
-        this.ignoreHeader = ignoreHeader;
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in));
 
@@ -103,7 +79,7 @@ public class JacksonCSVRecordReader implements RecordReader {
         CsvSchema csvSchema = csvSchemaBuilder.build();
 
         // Add remaining config options to the mapper
-        List<CsvParser.Feature> features = new ArrayList<>(3);
+        List<CsvParser.Feature> features = new ArrayList<>();
         features.add(CsvParser.Feature.INSERT_NULLS_FOR_MISSING_COLUMNS);
         if (csvFormat.getIgnoreEmptyLines()) {
             features.add(CsvParser.Feature.SKIP_EMPTY_LINES);
@@ -114,7 +90,7 @@ public class JacksonCSVRecordReader implements RecordReader {
 
         ObjectReader objReader = mapper.readerFor(String[].class)
                 .with(csvSchema)
-                .withFeatures(features.toArray(new CsvParser.Feature[3]));
+                .withFeatures(features.toArray(new CsvParser.Feature[features.size()]));
 
         recordStream = objReader.readValues(reader);
     }
@@ -193,58 +169,6 @@ public class JacksonCSVRecordReader implements RecordReader {
         }
 
         return null;
-    }
-
-    @Override
-    public RecordSchema getSchema() {
-        return schema;
-    }
-
-    protected Object convert(final String value, final DataType dataType, final String fieldName) {
-        if (dataType == null || value == null) {
-            return value;
-        }
-
-        final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-
-        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
-    }
-
-    private Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
-        if (dataType == null || value == null) {
-            return value;
-        }
-
-        final String trimmed = value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-
-        switch (dataType.getFieldType()) {
-            case STRING:
-                return value;
-            case BOOLEAN:
-            case INT:
-            case LONG:
-            case FLOAT:
-            case DOUBLE:
-            case BYTE:
-            case CHAR:
-            case SHORT:
-            case TIME:
-            case TIMESTAMP:
-            case DATE:
-                if (DataTypeUtils.isCompatibleDataType(trimmed, dataType)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
-                } else {
-                    return value;
-                }
-        }
-
-        return value;
     }
 
     @Override

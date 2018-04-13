@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
@@ -72,7 +73,7 @@ public interface HBaseClientService extends ControllerService {
             .name("Phoenix Client JAR Location")
             .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -149,6 +150,23 @@ public interface HBaseClientService extends ControllerService {
      * @throws IOException thrown when there are communication errors with HBase
      */
     void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException;
+
+    /**
+     * Scans the given table for the given range of row keys or time rage and passes the result to a handler.<br/>
+     *
+     * @param tableName the name of an HBase table to scan
+     * @param startRow the row identifier to start scanning at
+     * @param endRow the row identifier to end scanning at
+     * @param filterExpression  optional filter expression, if not specified no filtering is performed
+     * @param timerangeMin the minimum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param timerangeMax the maximum timestamp of cells to return, passed to the HBase scanner timeRange
+     * @param limitRows the maximum number of rows to be returned by scanner
+     * @param isReversed whether this scan is a reversed one.
+     * @param columns optional columns to return, if not specified all columns are returned
+     * @param handler a handler to process rows of the result
+     */
+    void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin, Long timerangeMax, Integer limitRows,
+            Boolean isReversed, Collection<Column> columns, ResultHandler handler) throws IOException;
 
     /**
      * Converts the given boolean to it's byte representation.

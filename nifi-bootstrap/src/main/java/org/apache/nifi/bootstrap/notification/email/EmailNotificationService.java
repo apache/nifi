@@ -42,6 +42,7 @@ import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -58,20 +59,20 @@ public class EmailNotificationService extends AbstractNotificationService {
         .description("The Port used for SMTP communications")
         .required(true)
         .defaultValue("25")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .build();
     public static final PropertyDescriptor SMTP_USERNAME = new PropertyDescriptor.Builder()
         .name("SMTP Username")
         .description("Username for the SMTP account")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();
     public static final PropertyDescriptor SMTP_PASSWORD = new PropertyDescriptor.Builder()
         .name("SMTP Password")
         .description("Password for the SMTP account")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .sensitive(true)
@@ -80,7 +81,7 @@ public class EmailNotificationService extends AbstractNotificationService {
         .name("SMTP Auth")
         .description("Flag indicating whether authentication should be used")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("true")
         .build();
@@ -88,7 +89,7 @@ public class EmailNotificationService extends AbstractNotificationService {
         .name("SMTP TLS")
         .description("Flag indicating whether TLS should be enabled")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("false")
         .build();
@@ -96,7 +97,7 @@ public class EmailNotificationService extends AbstractNotificationService {
         .name("SMTP Socket Factory")
         .description("Socket Factory to use for SMTP Connection")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .defaultValue("javax.net.ssl.SSLSocketFactory")
         .build();
@@ -104,7 +105,7 @@ public class EmailNotificationService extends AbstractNotificationService {
         .name("SMTP X-Mailer Header")
         .description("X-Mailer used in the header of the outgoing email")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .defaultValue("NiFi")
         .build();
@@ -112,7 +113,7 @@ public class EmailNotificationService extends AbstractNotificationService {
         .name("Content Type")
         .description("Mime Type used to interpret the contents of the email, such as text/plain or text/html")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .defaultValue("text/plain")
         .build();
@@ -120,28 +121,28 @@ public class EmailNotificationService extends AbstractNotificationService {
         .name("From")
         .description("Specifies the Email address to use as the sender")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
         .name("To")
         .description("The recipients to include in the To-Line of the email")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
         .name("CC")
         .description("The recipients to include in the CC-Line of the email")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
         .name("BCC")
         .description("The recipients to include in the BCC-Line of the email")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 

@@ -431,6 +431,16 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Path path = containers.get(containerName);
+        try {
+            return Files.getFileStore(path).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
     public void cleanup() {
         for (final Map.Entry<String, Path> entry : containers.entrySet()) {
             final String containerName = entry.getKey();

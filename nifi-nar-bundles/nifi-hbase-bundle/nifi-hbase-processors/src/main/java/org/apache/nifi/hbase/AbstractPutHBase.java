@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -52,14 +53,14 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .name("Table Name")
             .description("The name of the HBase Table to put data into")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor ROW_ID = new PropertyDescriptor.Builder()
             .name("Row Identifier")
             .description("Specifies the Row ID to use when inserting data into HBase")
             .required(false) // not all sub-classes will require this
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -80,7 +81,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
                     " to the correct byte[] representation. The Binary option should be used if you are using Binary row" +
                     " keys in HBase")
             .required(false) // not all sub-classes will require this
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue(ROW_ID_ENCODING_STRING.getValue())
             .allowableValues(ROW_ID_ENCODING_STRING,ROW_ID_ENCODING_BINARY)
             .build();
@@ -88,21 +89,21 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .name("Column Family")
             .description("The Column Family to use when inserting data into HBase")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor COLUMN_QUALIFIER = new PropertyDescriptor.Builder()
             .name("Column Qualifier")
             .description("The Column Qualifier to use when inserting data into HBase")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor TIMESTAMP = new PropertyDescriptor.Builder()
             .name("timestamp")
             .displayName("Timestamp")
             .description("The timestamp for the cells being created in HBase. This field can be left blank and HBase will use the current time.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .build();
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()

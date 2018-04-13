@@ -106,7 +106,7 @@
      * @param item controller service type
      */
     var isSelectable = function (item) {
-        return nfCommon.isBlank(item.usageRestriction) || nfCommon.canAccessRestrictedComponents();
+        return item.restricted === false || nfCommon.canAccessComponentRestrictions(item.explicitRestrictions);
     };
 
     /**
@@ -462,9 +462,28 @@
                 var item = controllerServiceTypesData.getItemById(rowId);
 
                 // show the tooltip
-                if (nfCommon.isDefinedAndNotNull(item.usageRestriction)) {
+                if (item.restricted === true) {
+                    var restrictionTip = $('<div></div>');
+
+                    if (nfCommon.isBlank(item.usageRestriction)) {
+                        restrictionTip.append($('<p style="margin-bottom: 3px;"></p>').text('Requires the following permissions:'));
+                    } else {
+                        restrictionTip.append($('<p style="margin-bottom: 3px;"></p>').text(item.usageRestriction + ' Requires the following permissions:'));
+                    }
+
+                    var restrictions = [];
+                    if (nfCommon.isDefinedAndNotNull(item.explicitRestrictions)) {
+                        $.each(item.explicitRestrictions, function (_, explicitRestriction) {
+                            var requiredPermission = explicitRestriction.requiredPermission;
+                            restrictions.push("'" + requiredPermission.label + "' - " + nfCommon.escapeHtml(explicitRestriction.explanation));
+                        });
+                    } else {
+                        restrictions.push('Access to restricted components regardless of restrictions.');
+                    }
+                    restrictionTip.append(nfCommon.formatUnorderedList(restrictions));
+
                     usageRestriction.qtip($.extend({}, nfCommon.config.tooltipConfig, {
-                        content: item.usageRestriction,
+                        content: restrictionTip,
                         position: {
                             container: $('#summary'),
                             at: 'bottom right',
@@ -508,6 +527,8 @@
             }
         });
 
+        var generalRestriction = nfCommon.getPolicyTypeListing('restricted-components');
+
         // load the available controller services
         $.ajax({
             type: 'GET',
@@ -517,12 +538,54 @@
             var id = 0;
             var tags = [];
             var groups = d3.set();
+            var restrictedUsage = d3.map();
+            var requiredPermissions = d3.map();
 
             // begin the update
             controllerServiceTypesData.beginUpdate();
 
             // go through each controller service type
             $.each(response.controllerServiceTypes, function (i, documentedType) {
+                if (documentedType.restricted === true) {
+                    if (nfCommon.isDefinedAndNotNull(documentedType.explicitRestrictions)) {
+                        $.each(documentedType.explicitRestrictions, function (_, explicitRestriction) {
+                            var requiredPermission = explicitRestriction.requiredPermission;
+
+                            // update required permissions
+                            if (!requiredPermissions.has(requiredPermission.id)) {
+                                requiredPermissions.set(requiredPermission.id, requiredPermission.label);
+                            }
+
+                            // update component restrictions
+                            if (!restrictedUsage.has(requiredPermission.id)) {
+                                restrictedUsage.set(requiredPermission.id, []);
+                            }
+
+                            restrictedUsage.get(requiredPermission.id).push({
+                                type: nfCommon.formatType(documentedType),
+                                bundle: nfCommon.formatBundle(documentedType.bundle),
+                                explanation: explicitRestriction.explanation
+                            })
+                        });
+                    } else {
+                        // update required permissions
+                        if (!requiredPermissions.has(generalRestriction.value)) {
+                            requiredPermissions.set(generalRestriction.value, generalRestriction.text);
+                        }
+
+                        // update component restrictions
+                        if (!restrictedUsage.has(generalRestriction.value)) {
+                            restrictedUsage.set(generalRestriction.value, []);
+                        }
+
+                        restrictedUsage.get(generalRestriction.value).push({
+                            type: nfCommon.formatType(documentedType),
+                            bundle: nfCommon.formatBundle(documentedType.bundle),
+                            explanation: documentedType.usageRestriction
+                        });
+                    }
+                }
+
                 // record the group
                 groups.add(documentedType.bundle.group);
 
@@ -534,7 +597,9 @@
                     bundle: documentedType.bundle,
                     controllerServiceApis: documentedType.controllerServiceApis,
                     description: nfCommon.escapeHtml(documentedType.description),
+                    restricted:  documentedType.restricted,
                     usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
+                    explicitRestrictions: documentedType.explicitRestrictions,
                     tags: documentedType.tags.join(', ')
                 });
 
@@ -550,6 +615,9 @@
             // resort
             controllerServiceTypesData.reSort();
             controllerServiceTypesGrid.invalidate();
+
+            // set the component restrictions and the corresponding required permissions
+            nfCanvasUtils.addComponentRestrictions(restrictedUsage, requiredPermissions);
 
             // set the total number of processors
             $('#total-controller-service-types, #displayed-controller-service-types').text(response.controllerServiceTypes.length);

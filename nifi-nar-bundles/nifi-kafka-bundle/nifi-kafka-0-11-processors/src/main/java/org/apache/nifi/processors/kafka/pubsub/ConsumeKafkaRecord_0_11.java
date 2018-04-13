@@ -45,6 +45,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -89,7 +90,7 @@ public class ConsumeKafkaRecord_0_11 extends AbstractProcessor {
             .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
@@ -106,7 +107,7 @@ public class ConsumeKafkaRecord_0_11 extends AbstractProcessor {
         .displayName("Record Reader")
         .description("The Record Reader to use for incoming FlowFiles")
         .identifiesControllerService(RecordReaderFactory.class)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .build();
 
@@ -115,7 +116,7 @@ public class ConsumeKafkaRecord_0_11 extends AbstractProcessor {
         .displayName("Record Writer")
         .description("The Record Writer to use in order to serialize the data before sending to Kafka")
         .identifiesControllerService(RecordSetWriterFactory.class)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .build();
 
@@ -125,7 +126,7 @@ public class ConsumeKafkaRecord_0_11 extends AbstractProcessor {
             .description("A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
@@ -167,7 +168,7 @@ public class ConsumeKafkaRecord_0_11 extends AbstractProcessor {
             + "read_uncomitted. This means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions. If "
             + "this value is true, NiFi will not receive any messages for which the producer's transaction was canceled, but this can result in some latency since the consumer must wait "
             + "for the producer to finish its entire transaction instead of pulling as the messages become available.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
@@ -191,7 +192,7 @@ public class ConsumeKafkaRecord_0_11 extends AbstractProcessor {
             + "\".*\" if messages are expected to have header values that are unique per message, such as an identifier or timestamp, because it will prevent NiFi from bundling "
             + "the messages together efficiently.")
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .build();
 
@@ -220,7 +221,8 @@ public class ConsumeKafkaRecord_0_11 extends AbstractProcessor {
         descriptors.add(RECORD_WRITER);
         descriptors.add(HONOR_TRANSACTIONS);
         descriptors.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
-        descriptors.add(KafkaProcessorUtils.KERBEROS_PRINCIPLE);
+        descriptors.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
         descriptors.add(KafkaProcessorUtils.USER_PRINCIPAL);
         descriptors.add(KafkaProcessorUtils.USER_KEYTAB);
         descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
