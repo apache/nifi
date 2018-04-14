@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -262,7 +261,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
     @Override
     public byte[] toBytesBinary(String s) {
-       return Bytes.toBytesBinary(s);
+       return convertToBytesBinary(s);
     }
 
     private boolean testFailure = false;
@@ -289,5 +288,37 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
     public void setLinesBeforeException(int linesBeforeException) {
         this.linesBeforeException = linesBeforeException;
+    }
+
+    private byte[] convertToBytesBinary(String in) {
+        byte[] b = new byte[in.length()];
+        int size = 0;
+
+        for(int i = 0; i < in.length(); ++i) {
+            char ch = in.charAt(i);
+            if (ch == '\\' && in.length() > i + 1 && in.charAt(i + 1) == 'x') {
+                char hd1 = in.charAt(i + 2);
+                char hd2 = in.charAt(i + 3);
+                if (isHexDigit(hd1) && isHexDigit(hd2)) {
+                    byte d = (byte)((toBinaryFromHex((byte)hd1) << 4) + toBinaryFromHex((byte)hd2));
+                    b[size++] = d;
+                    i += 3;
+                }
+            } else {
+                b[size++] = (byte)ch;
+            }
+        }
+
+        byte[] b2 = new byte[size];
+        System.arraycopy(b, 0, b2, 0, size);
+        return b2;
+    }
+
+    private static boolean isHexDigit(char c) {
+        return c >= 'A' && c <= 'F' || c >= '0' && c <= '9';
+    }
+
+    private static byte toBinaryFromHex(byte ch) {
+        return ch >= 65 && ch <= 70 ? (byte)(10 + (byte)(ch - 65)) : (byte)(ch - 48);
     }
 }
