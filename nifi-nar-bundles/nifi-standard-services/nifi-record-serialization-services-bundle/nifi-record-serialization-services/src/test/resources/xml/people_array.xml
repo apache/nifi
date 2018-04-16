@@ -24,6 +24,7 @@
             <CHILD>child1</CHILD>
             <CHILD>child2</CHILD>
             <CHILD>child3</CHILD>
+            <CHILD></CHILD>
         </CHILDREN>
     </PERSON>
     <PERSON ID="P4">

@@ -19,7 +19,6 @@ package org.apache.nifi.xml;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -61,7 +60,9 @@ public class TestXMLReader {
     }
 
     @Test
-    public void testNoValidation() throws FileNotFoundException {
+    public void testNoCheckForRecord() throws FileNotFoundException {
+        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY);
+
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
@@ -78,46 +79,10 @@ public class TestXMLReader {
     }
 
     @Test
-    public void testRootValidation() throws FileNotFoundException {
-        runner.setProperty(reader, XMLReader.VALIDATE_ROOT_TAG, "${" + ROOT_TAG_NAME + "}");
-        runner.enableControllerService(reader);
+    public void testCheckForRecord() throws FileNotFoundException {
+        runner.setProperty(reader, XMLReader.CHECK_RECORD_TAG, "${" + RECORD_TAG_NAME + "}");
+        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY);
 
-        InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
-        runner.enqueue(is, new HashMap<String,String>() {{
-            put(ROOT_TAG_NAME, "PEOPLE");
-        }});
-        runner.run();
-
-        List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
-        List<String> records = Arrays.asList((new String(runner.getContentAsByteArray(flowFile.get(0)))).split("\n"));
-
-        assertEquals(3, records.size());
-        assertEquals("MapRecord[{COUNTRY=USA, ID=1, NAME=Cleve Butler, AGE=42}]", records.get(0));
-        assertEquals("MapRecord[{COUNTRY=UK, ID=2, NAME=Ainslie Fletcher, AGE=33}]", records.get(1));
-        assertEquals("MapRecord[{COUNTRY=UK, ID=3, NAME=Ainslie Fletcher, AGE=33}]", records.get(2));
-    }
-
-    @Test
-    public void testInvalidRoot() throws FileNotFoundException {
-        runner.setProperty(reader, XMLReader.VALIDATE_ROOT_TAG, "${" + ROOT_TAG_NAME + "}");
-        runner.enableControllerService(reader);
-
-        InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
-        runner.enqueue(is, new HashMap<String,String>() {{
-            put(ROOT_TAG_NAME, "WRONG_ROOT");
-        }});
-        try {
-            runner.run();
-        } catch (Exception e){
-            assertEquals("Name of root tag \"PEOPLE\" does not match root tag validation \"WRONG_ROOT\".", e.getMessage());
-            assert(e instanceof MalformedRecordException);
-        }
-    }
-
-    @Test
-    public void testRecordValidation() throws FileNotFoundException {
-        runner.setProperty(reader, XMLReader.VALIDATE_ROOT_TAG, "${" + ROOT_TAG_NAME + "}");
-        runner.setProperty(reader, XMLReader.VALIDATE_RECORD_TAG, "${" + RECORD_TAG_NAME + "}");
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
@@ -138,6 +103,8 @@ public class TestXMLReader {
     @Test
     public void testAttributePrefix() throws FileNotFoundException {
         runner.setProperty(reader, XMLReader.ATTRIBUTE_PREFIX, "${" + ATTRIBUTE_PREFIX + "}");
+        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY);
+
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");

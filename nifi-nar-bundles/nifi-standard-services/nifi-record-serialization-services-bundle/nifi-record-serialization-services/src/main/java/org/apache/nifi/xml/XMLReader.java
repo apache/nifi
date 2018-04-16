@@ -20,8 +20,10 @@ package org.apache.nifi.xml;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -43,34 +45,36 @@ import java.util.Map;
         "XML data, embedded in an enclosing root tag.")
 public class XMLReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    public static final PropertyDescriptor VALIDATE_ROOT_TAG = new PropertyDescriptor.Builder()
-            .name("validate_root_tag")
-            .displayName("Validate Root Tag")
-            .description("If this property is set, the name of root tags (e. g. <root><record>...</record></root>) of incoming FlowFiles will be evaluated against this value. " +
-                    "In the case of a mismatch, an exception is thrown. The treatment of such FlowFiles depends on the implementation " +
-                    "of respective Processors.")
+    public static final AllowableValue RECORD_SINGLE = new AllowableValue("record_single", "Single Record");
+    public static final AllowableValue RECORD_ARRAY = new AllowableValue("record_array", "Array of Records");
+
+    public static final PropertyDescriptor RECORD_FORMAT = new PropertyDescriptor.Builder()
+            .name("record_format")
+            .displayName("Record Format")
+            .description("This property defines whether the reader expects a single record an array of records")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .allowableValues(RECORD_SINGLE, RECORD_ARRAY)
+            .defaultValue(RECORD_SINGLE.getValue())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
-    public static final PropertyDescriptor VALIDATE_RECORD_TAG = new PropertyDescriptor.Builder()
-            .name("validate_record_tag")
-            .displayName("Validate Record Tag")
-            .description("If this property is set, the name of record tags (e. g. <root><record>...</record></root>) of incoming FlowFiles will be evaluated against this value. " +
-                    "In the case of a mismatch, the respective record will be skipped. If this property is not set, each level 2 starting tag will be treated " +
-                    "as the beginning of a record.")
+    public static final PropertyDescriptor CHECK_RECORD_TAG = new PropertyDescriptor.Builder()
+            .name("check_record_tag")
+            .displayName("Check Record Tag")
+            .description("If this property is set, the name of record tags of incoming FlowFiles will be evaluated against this value. " +
+                    "In the case of a mismatch, the respective record will be skipped. If this property is not set, all records will be processed.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
     public static final PropertyDescriptor ATTRIBUTE_PREFIX = new PropertyDescriptor.Builder()
             .name("attribute_prefix")
             .displayName("Attribute Prefix")
-            .description("If this property is set, the name of attributes will be appended by a prefix when they are added to a record.")
+            .description("If this property is set, the name of attributes will be prepended with a prefix when they are added to a record.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
@@ -82,7 +86,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
                     "If tags with content shall be parsed together with attributes (e. g. <field attribute=\"123\">content</field>), " +
                     "they have to be defined as records. For additional information, see the section of processor usage.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
@@ -100,8 +104,8 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(VALIDATE_ROOT_TAG);
-        properties.add(VALIDATE_RECORD_TAG);
+        properties.add(RECORD_FORMAT);
+        properties.add(CHECK_RECORD_TAG);
         properties.add(ATTRIBUTE_PREFIX);
         properties.add(CONTENT_FIELD_NAME);
         properties.add(DateTimeUtils.DATE_FORMAT);
@@ -116,11 +120,8 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
 
         final RecordSchema schema = getSchema(variables, in, null);
 
-        final String rootName = context.getProperty(VALIDATE_ROOT_TAG).isSet()
-                ? context.getProperty(VALIDATE_ROOT_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
-
-        final String recordName = context.getProperty(VALIDATE_RECORD_TAG).isSet()
-                ? context.getProperty(VALIDATE_RECORD_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
+        final String recordName = context.getProperty(CHECK_RECORD_TAG).isSet()
+                ? context.getProperty(CHECK_RECORD_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
         final String attributePrefix = context.getProperty(ATTRIBUTE_PREFIX).isSet()
                 ? context.getProperty(ATTRIBUTE_PREFIX).evaluateAttributeExpressions(variables).getValue().trim() : null;
@@ -128,6 +129,9 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final String contentFieldName = context.getProperty(CONTENT_FIELD_NAME).isSet()
                 ? context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
-        return new XMLRecordReader(in, schema, rootName, recordName, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
+        final boolean isArray = context.getProperty(RECORD_FORMAT).evaluateAttributeExpressions(variables).getValue()
+                .equals(RECORD_ARRAY.getValue());
+
+        return new XMLRecordReader(in, schema, isArray, recordName, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
     }
 }

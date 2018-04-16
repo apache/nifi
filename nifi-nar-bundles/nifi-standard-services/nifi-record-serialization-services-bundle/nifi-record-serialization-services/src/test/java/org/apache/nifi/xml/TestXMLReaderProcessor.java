@@ -46,7 +46,6 @@ public class TestXMLReaderProcessor extends AbstractProcessor {
 
     public static final Relationship SUCCESS = new Relationship.Builder().name("success").description("success").build();
 
-
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();

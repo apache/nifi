@@ -24,11 +24,26 @@
     <p>
         The XMLReader Controller Service reads XML content and creates Record objects. The Controller Service
         must be configured with a schema that describes the structure of the XML data. Fields in the XML data
-        that are not defined in the schema will be skipped.
+        that are not defined in the schema will be skipped. Depending on how the property "Record Format" is set,
+        the reader either expects a single record or an array of records for each FlowFile.
     </p>
     <p>
-        Records are expected in the second level of the XML data, embedded within an enclosing root tag:
+        Example: Single record
     </p>
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;field1&gt;content&lt;/field1&gt;
+                  &lt;field2&gt;content&lt;/field2&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        An array of records has to be enclosed by a root tag.
+        Example: Array of records
+    </p>
+
     <code>
             <pre>
                 &lt;root&gt;
@@ -44,11 +59,7 @@
             </pre>
     </code>
 
-    <p>
-        For the following examples, it is assumed that the exemplary records are enclosed by a root tag.
-    </p>
-
-    <h2>Example 1: Simple Fields</h2>
+    <h2>Example: Simple Fields</h2>
 
     <p>
         The simplest kind of data within XML data are tags / fields only containing content (no attributes, no embedded tags).
@@ -57,9 +68,11 @@
 
     <code>
             <pre>
-                &lt;record&gt;
-                  &lt;simple_field&gt;content&lt;/simple_field&gt;
-                &lt;/record&gt;
+                &lt;root&gt;
+                  &lt;record&gt;
+                    &lt;simple_field&gt;content&lt;/simple_field&gt;
+                  &lt;/record&gt;
+                &lt;/root&gt;
             </pre>
     </code>
 
@@ -81,7 +94,7 @@
             </pre>
     </code>
 
-    <h2>Example 2: Arrays with Simple Fields</h2>
+    <h2>Example: Arrays with Simple Fields</h2>
 
     <p>
         Arrays are considered as repetitive tags / fields in XML data. For the following XML data, "array_field" is considered
@@ -126,7 +139,7 @@
         as an array. In this case, the reader would put it into the record object as an array with one element.
     </p>
 
-    <h2>Example 3: Tags with Attributes</h2>
+    <h2>Example: Tags with Attributes</h2>
 
     <p>
         XML fields frequently not only contain content, but also attributes. The following record contains a field with
@@ -221,11 +234,12 @@
         the property "Field Name for Content" is set.
     </p>
 
-    <h2>Example 4: Tags within tags</h2>
+    <h2>Example: Tags within tags</h2>
 
     <p>
         XML data is frequently nested. In this case, tags enclose other tags:
     </p>
+
     <code>
             <pre>
                 &lt;record&gt;
@@ -271,7 +285,7 @@
         for tags containing attributes and content.
     </p>
 
-    <h2>Example 5: Array of records</h2>
+    <h2>Example: Array of records</h2>
 
     <p>
         For further explanation of the logic of this reader, an example of an array of records shall be demonstrated.
@@ -324,7 +338,7 @@
             </pre>
     </code>
 
-    <h2>Example 6: Array in record</h2>
+    <h2>Example: Array in record</h2>
 
     <p>
         In XML data, arrays are frequently enclosed by tags:
@@ -374,5 +388,46 @@
                 }
             </pre>
     </code>
+
+
+    <h2>Example: Maps</h2>
+
+    <p>
+        A map is a field embedding fields with different names:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                  &lt;map_field&gt;
+                    &lt;field1&gt;content&lt;/field1&gt;
+                    &lt;field2&gt;content&lt;/field2&gt;
+                    ...
+                  &lt;/map_field&gt;
+                  &lt;simple_field&gt;content&lt;/simple_field&gt;
+                &lt;/record&gt;
+            </pre>
+    </code>
+
+    <p>
+        This data can be processed using the following schema:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "namespace": "nifi",
+                  "name": "test",
+                  "type": "record",
+                  "fields": [
+                    { "name": "map_field", "type":
+                      { "type": "map", "items": string }
+                    },
+                    { "name": "simple_field", "type": "string" }
+                  ]
+                }
+            </pre>
+    </code>
+
     </body>
 </html>

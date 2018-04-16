@@ -27,8 +27,10 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.util.StringUtils;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -57,7 +59,6 @@ public class XMLRecordReader implements RecordReader {
     private final String attributePrefix;
     private final String contentFieldName;
 
-    // thread safety required?
     private StartElement currentRecordStartTag;
 
     private final XMLEventReader xmlEventReader;
@@ -66,7 +67,7 @@ public class XMLRecordReader implements RecordReader {
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
-    public XMLRecordReader(InputStream in, RecordSchema schema, String rootName, String recordName, String attributePrefix, String contentFieldName,
+    public XMLRecordReader(InputStream in, RecordSchema schema, boolean isArray, String recordName, String attributePrefix, String contentFieldName,
                            final String dateFormat, final String timeFormat, final String timestampFormat, final ComponentLog logger) throws MalformedRecordException {
         this.schema = schema;
         this.recordName = recordName;
@@ -85,36 +86,25 @@ public class XMLRecordReader implements RecordReader {
         try {
             final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 
-            // Avoid namespace replacements
-            xmlInputFactory.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false);
-
             xmlEventReader = xmlInputFactory.createXMLEventReader(in);
-            final StartElement rootTag = getNextStartTag();
 
-            // root tag validation
-            if (rootName != null && !rootName.equals(rootTag.getName().toString())) {
-                final StringBuffer message = new StringBuffer();
-                message.append("Name of root tag \"")
-                        .append(rootTag.getName().toString())
-                        .append("\" does not match root tag validation \"")
-                        .append(rootName)
-                        .append("\".");
-                throw new MalformedRecordException(message.toString());
+            if (isArray) {
+                skipNextStartTag();
             }
+
             setNextRecordStartTag();
         } catch (XMLStreamException e) {
             throw new MalformedRecordException("Could not parse XML", e);
         }
     }
 
-    private StartElement getNextStartTag() throws XMLStreamException {
+    private void skipNextStartTag() throws XMLStreamException {
         while (xmlEventReader.hasNext()) {
             final XMLEvent xmlEvent = xmlEventReader.nextEvent();
             if (xmlEvent.isStartElement()) {
-                return xmlEvent.asStartElement();
+                return;
             }
         }
-        return null;
     }
 
     private void setNextRecordStartTag() throws XMLStreamException {
@@ -123,12 +113,12 @@ public class XMLRecordReader implements RecordReader {
             if (xmlEvent.isStartElement()) {
                 final StartElement startElement = xmlEvent.asStartElement();
                 if (recordName != null) {
-                    if (startElement.getName().toString().equals(recordName)) {
+                    if (startElement.getName().getLocalPart().equals(recordName)) {
                         currentRecordStartTag = startElement;
                         return;
                     } else {
                         logger.debug("Mismatch between expected record tag name {} and actual tag name in XML {}. " +
-                                "Record will be skipped", new Object[] {recordName, startElement.getName().toString()});
+                                "Record will be skipped", new Object[] {recordName, startElement.getName().getLocalPart()});
                         skipElement();
                     }
                 } else {
@@ -158,7 +148,8 @@ public class XMLRecordReader implements RecordReader {
         }
     }
 
-    private Object parseFieldForType(StartElement startElement, String fieldName, DataType dataType, Map<String, Object> recordValues) throws XMLStreamException, MalformedRecordException {
+    private Object parseFieldForType(StartElement startElement, String fieldName, DataType dataType, Map<String, Object> recordValues,
+                                     boolean dropUnknown) throws XMLStreamException, MalformedRecordException {
         switch (dataType.getFieldType()) {
             case BOOLEAN:
             case BYTE:
@@ -172,27 +163,36 @@ public class XMLRecordReader implements RecordReader {
             case DATE:
             case TIME:
             case TIMESTAMP: {
-                XMLEvent xmlEvent = xmlEventReader.nextEvent();
-                if (xmlEvent.isCharacters()) {
-                    final Characters characters = xmlEvent.asCharacters();
-                    if (!characters.isWhiteSpace()) {
-                        xmlEventReader.nextEvent();
-                        return DataTypeUtils.convertType(characters.toString(), dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
-                    } else {
-                        xmlEvent = xmlEventReader.nextEvent();
+
+                StringBuilder content = new StringBuilder();
+
+                while (xmlEventReader.hasNext()) {
+                    XMLEvent xmlEvent = xmlEventReader.nextEvent();
+                    if (xmlEvent.isCharacters()) {
+                        final Characters characters = xmlEvent.asCharacters();
+                        if (!characters.isWhiteSpace()) {
+                            content.append(characters.getData());
+                        }
+                    } else if (xmlEvent.isEndElement()) {
+                        final String contentToReturn = content.toString();
+
+                        if (!StringUtils.isBlank(contentToReturn)) {
+                            return DataTypeUtils.convertType(content.toString(), dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                        } else {
+                            return null;
+                        }
+
+                    } else if (xmlEvent.isStartElement()) {
+                        this.skipElement();
                     }
                 }
-                if (xmlEvent.isEndElement()) {
-                    return null;
-                } else if (xmlEvent.isStartElement()) {
-                    final String message = "Error parsing XML. Either the XML is invalid or there is a mismatch between schema type definitions and XML structure.";
-                    throw new MalformedRecordException(message);
-                }
+                break;
             }
+
             case ARRAY: {
                 final DataType arrayDataType = ((ArrayDataType) dataType).getElementType();
 
-                final Object newValue = parseFieldForType(startElement, fieldName, arrayDataType, recordValues);
+                final Object newValue = parseFieldForType(startElement, fieldName, arrayDataType, recordValues, dropUnknown);
                 final Object oldValues = recordValues.get(fieldName);
 
                 if (newValue != null) {
@@ -200,15 +200,20 @@ public class XMLRecordReader implements RecordReader {
                         if (oldValues instanceof List) {
                             ((List) oldValues).add(newValue);
                         } else {
-                            return new ArrayList<Object>(){{ add(oldValues); add(newValue); }};
+                            List<Object> arrayValues = new ArrayList<>();
+                            arrayValues.add(oldValues);
+                            arrayValues.add(newValue);
+                            return arrayValues;
                         }
                     } else {
-                        return new ArrayList<Object>(){{ add(newValue); }};
+                        List<Object> arrayValues = new ArrayList<>();
+                        arrayValues.add(newValue);
+                        return arrayValues;
                     }
-                } else {
-                    return null;
                 }
+                return oldValues;
             }
+
             case RECORD: {
                 final RecordSchema childSchema;
                 if (dataType instanceof RecordDataType) {
@@ -216,59 +221,110 @@ public class XMLRecordReader implements RecordReader {
                 } else {
                     return null;
                 }
-                return parseRecord(startElement, childSchema, true, true);
+
+                return parseRecord(startElement, childSchema, true, dropUnknown);
             }
+
             case MAP: {
-                logger.warn("Type map is not supported by this record reader. Field will be skipped.");
-                skipElement();
-                return null;
+                final DataType mapDataType = ((MapDataType) dataType).getValueType();
+                final Map<String,Object> embeddedMap = new HashMap<>();
+
+                while (xmlEventReader.hasNext()) {
+                    XMLEvent xmlEvent = xmlEventReader.nextEvent();
+
+                    if (xmlEvent.isStartElement()) {
+                        final StartElement subStartElement = xmlEvent.asStartElement();
+                        final String subFieldName = subStartElement.getName().getLocalPart();
+
+                        final Object mapValue = parseFieldForType(subStartElement, subFieldName, mapDataType, embeddedMap, dropUnknown);
+                        embeddedMap.put(subFieldName, mapValue);
+
+                    } else if (xmlEvent.isEndElement()) {
+                        break;
+                    }
+                }
+
+                if (embeddedMap.size() > 0) {
+                    return embeddedMap;
+                } else {
+                    return null;
+                }
             }
             case CHOICE: {
-                return parseUnknownField(startElement);
+                // field choice will parse the entire tree of a field
+                return parseUnknownField(startElement, false, null);
             }
         }
         return null;
     }
 
-    private Object parseUnknownField(StartElement startElement) throws XMLStreamException {
+    private Object parseUnknownField(StartElement startElement, boolean dropUnknown, RecordSchema schema) throws XMLStreamException {
         // parse attributes
         final Map<String, Object> recordValues = new HashMap<>();
         final Iterator iterator = startElement.getAttributes();
         while (iterator.hasNext()) {
             final Attribute attribute = (Attribute) iterator.next();
             final String attributeName = attribute.getName().toString();
-            recordValues.put(attributePrefix == null ? attributeName : attributePrefix + attributeName, attribute.getValue());
+
+            if (dropUnknown) {
+                if (schema != null) {
+                    final Optional<RecordField> field = schema.getField(attributeName);
+                    if (field.isPresent()){
+                        recordValues.put(attributePrefix == null ? attributeName : attributePrefix + attributeName, attribute.getValue());
+                    }
+                }
+            } else {
+                recordValues.put(attributePrefix == null ? attributeName : attributePrefix + attributeName, attribute.getValue());
+            }
         }
-        boolean hasAttributes = recordValues.size() > 0;
 
         // parse fields
+        StringBuilder content = new StringBuilder();
+
         while (xmlEventReader.hasNext()) {
             final XMLEvent xmlEvent = xmlEventReader.nextEvent();
             if (xmlEvent.isCharacters()) {
                 final Characters characters = xmlEvent.asCharacters();
                 if (!characters.isWhiteSpace()) {
-                    xmlEventReader.nextEvent();
-                    if (hasAttributes) {
-                        if (contentFieldName != null) {
-                            recordValues.put(contentFieldName, characters.toString());
-                        } else {
-                            logger.debug("Found content for field that has to be parsed as record but property \"Field Name for Content\" is not set. " +
-                                    "The content will not be added to the record.");
-                        }
-                        return new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordValues);
-                    } else {
-                        return characters.toString();
-                    }
+                    content.append(characters.getData());
                 }
             } else if (xmlEvent.isStartElement()){
                 final StartElement subStartElement = xmlEvent.asStartElement();
-                final String subFieldName = subStartElement.getName().toString();
-                final Object value = parseUnknownField(subStartElement);
+                final String subFieldName = subStartElement.getName().getLocalPart();
 
-                if (value != null) {
-                    putUnknownTypeInMap(recordValues, subFieldName, value);
+                if (dropUnknown) {
+                    if (schema != null) {
+                        final Optional<RecordField> field = schema.getField(subFieldName);
+                        if (field.isPresent()){
+
+                            // subElements of subStartElement can only be known if there is a corresponding field in the schema defined as record
+                            final DataType dataType = field.get().getDataType();
+                            RecordSchema childSchema = null;
+
+                            if (dataType instanceof RecordDataType) {
+                                childSchema = ((RecordDataType) dataType).getChildSchema();
+                            } else if (dataType instanceof ArrayDataType) {
+                                DataType typeOfArray = ((ArrayDataType) dataType).getElementType();
+                                if (typeOfArray instanceof RecordDataType) {
+                                    childSchema = ((RecordDataType) typeOfArray).getChildSchema();
+                                }
+                            }
+
+                            final Object value = parseUnknownField(subStartElement, true, childSchema);
+                            if (value != null) {
+                                putUnknownTypeInMap(recordValues, subFieldName, value);
+                            }
+                        } else {
+                            skipElement();
+                        }
+                    } else {
+                        skipElement();
+                    }
                 } else {
-                    return null;
+                    final Object value = parseUnknownField(subStartElement, dropUnknown, schema);
+                    if (value != null) {
+                        putUnknownTypeInMap(recordValues, subFieldName, value);
+                    }
                 }
             } else if (xmlEvent.isEndElement()) {
                 break;
@@ -281,10 +337,28 @@ public class XMLRecordReader implements RecordReader {
             }
         }
 
-        if (recordValues.size() > 0) {
-            return new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordValues);
+        final boolean hasContent = content.length() > 0;
+        final boolean hasFields = recordValues.size() > 0;
+
+        if (hasContent) {
+            if (!hasFields) {
+                return content.toString();
+            } else {
+                if (contentFieldName != null) {
+                    recordValues.put(contentFieldName, content.toString());
+                } else {
+                    logger.debug("Found content for field that has to be parsed as record but property \"Field Name for Content\" is not set. " +
+                            "The content will not be added to the record.");
+                }
+
+                return new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordValues);
+            }
         } else {
-            return null;
+            if (hasFields) {
+                return new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordValues);
+            } else {
+                return null;
+            }
         }
     }
 
@@ -307,7 +381,7 @@ public class XMLRecordReader implements RecordReader {
                     if (coerceTypes) {
                         final Object value;
                         final DataType dataType = field.get().getDataType();
-                        if ((value = parseAttributeForType(attribute, attributeName, dataType)) != null) {
+                        if ((value = parseStringForType(attribute.getValue(), attributeName, dataType)) != null) {
                             recordValues.put(targetFieldName, value);
                         }
 
@@ -323,7 +397,7 @@ public class XMLRecordReader implements RecordReader {
                     final Object value;
                     final Optional<RecordField> field = schema.getField(attributeName);
                     if (field.isPresent()){
-                        if ((value = parseAttributeForType(attribute, attributeName, field.get().getDataType())) != null) {
+                        if ((value = parseStringForType(attribute.getValue(), attributeName, field.get().getDataType())) != null) {
                             recordValues.put(targetFieldName, value);
                         }
                     } else {
@@ -338,26 +412,41 @@ public class XMLRecordReader implements RecordReader {
         }
 
         // parse fields
+        StringBuilder content = new StringBuilder();
         while(xmlEventReader.hasNext()){
             final XMLEvent xmlEvent = xmlEventReader.nextEvent();
 
             if (xmlEvent.isStartElement()) {
                 final StartElement subStartElement = xmlEvent.asStartElement();
-                final String fieldName = subStartElement.getName().toString();
+                final String fieldName = subStartElement.getName().getLocalPart();
+
                 final Optional<RecordField> field = schema.getField(fieldName);
 
                 if (dropUnknown) {
                     if (field.isPresent()) {
                         // dropUnknown == true && coerceTypes == true
                         if (coerceTypes) {
-                            final Object value = parseFieldForType(subStartElement, fieldName, field.get().getDataType(), recordValues);
+                            final Object value = parseFieldForType(subStartElement, fieldName, field.get().getDataType(), recordValues, true);
                             if (value != null) {
                                 recordValues.put(fieldName, value);
                             }
 
                         // dropUnknown == true && coerceTypes == false
+                        // subElements of subStartElement can only be known if there is a corresponding field in the schema defined as record
                         } else {
-                            final Object value = parseUnknownField(subStartElement);
+                            final DataType dataType = field.get().getDataType();
+                            RecordSchema childSchema = null;
+
+                            if (dataType instanceof RecordDataType) {
+                                childSchema = ((RecordDataType) dataType).getChildSchema();
+                            } else if (dataType instanceof ArrayDataType) {
+                                DataType typeOfArray = ((ArrayDataType) dataType).getElementType();
+                                if (typeOfArray instanceof RecordDataType) {
+                                    childSchema = ((RecordDataType) typeOfArray).getChildSchema();
+                                }
+                            }
+
+                            final Object value = parseUnknownField(subStartElement, true, childSchema);
                             if (value != null) {
                                 putUnknownTypeInMap(recordValues, fieldName, value);
                             }
@@ -370,19 +459,20 @@ public class XMLRecordReader implements RecordReader {
                     // dropUnknown == false && coerceTypes == true
                     if (coerceTypes) {
                         if (field.isPresent()) {
-                            final Object value = parseFieldForType(subStartElement, fieldName, field.get().getDataType(), recordValues);
+                            final Object value = parseFieldForType(subStartElement, fieldName, field.get().getDataType(), recordValues, false);
                             if (value != null) {
                                 recordValues.put(fieldName, value);
                             }
                         } else {
-                            final Object value = parseUnknownField(subStartElement);
+                            final Object value = parseUnknownField(subStartElement, false, null);
                             if (value != null) {
                                 putUnknownTypeInMap(recordValues, fieldName, value);
                             }
                         }
 
+                    // dropUnknown == false && coerceTypes == false
                     } else {
-                        final Object value = parseUnknownField(subStartElement);
+                        final Object value = parseUnknownField(subStartElement, false, null);
                         if (value != null) {
                             putUnknownTypeInMap(recordValues, fieldName, value);
                         }
@@ -393,19 +483,24 @@ public class XMLRecordReader implements RecordReader {
             } else if (xmlEvent.isCharacters()) {
                 final Characters characters = xmlEvent.asCharacters();
                 if (!characters.isWhiteSpace()) {
-                    if (contentFieldName != null) {
-                        final Optional<RecordField> field = schema.getField(contentFieldName);
-                        if (field.isPresent()) {
-                            Object value = parseCharacterForType(characters, contentFieldName, field.get().getDataType());
-                            recordValues.put(contentFieldName, value);
-                        }
-                    } else {
-                        logger.debug("Found content for field that is defined as record but property \"Field Name for Content\" is not set. " +
-                                "The content will not be added to record.");
-                    }
+                    content.append(characters.getData());
                 }
             }
         }
+
+        if (content.length() > 0) {
+            if (contentFieldName != null) {
+                final Optional<RecordField> field = schema.getField(contentFieldName);
+                if (field.isPresent()) {
+                    Object value = parseStringForType(content.toString(), contentFieldName, field.get().getDataType());
+                    recordValues.put(contentFieldName, value);
+                }
+            } else {
+                logger.debug("Found content for field that is defined as record but property \"Field Name for Content\" is not set. " +
+                        "The content will not be added to record.");
+            }
+        }
+
         for (final Map.Entry<String,Object> entry : recordValues.entrySet()) {
             if (entry.getValue() instanceof List) {
                 recordValues.put(entry.getKey(), ((List) entry.getValue()).toArray());
@@ -426,14 +521,18 @@ public class XMLRecordReader implements RecordReader {
             if (oldValues instanceof List) {
                 ((List) oldValues).add(fieldValue);
             } else {
-                values.put(fieldName, new ArrayList<Object>(){{ add(oldValues); add(fieldValue); }});
+                List<Object> valuesToPut = new ArrayList<>();
+                valuesToPut.add(oldValues);
+                valuesToPut.add(fieldValue);
+
+                values.put(fieldName, valuesToPut);
             }
         } else {
             values.put(fieldName, fieldValue);
         }
     }
 
-    private Object parseAttributeForType(Attribute attribute, String fieldName, DataType dataType) {
+    private Object parseStringForType(String data, String fieldName, DataType dataType) {
         switch (dataType.getFieldType()) {
             case BOOLEAN:
             case BYTE:
@@ -447,27 +546,7 @@ public class XMLRecordReader implements RecordReader {
             case DATE:
             case TIME:
             case TIMESTAMP: {
-                return DataTypeUtils.convertType(attribute.getValue(), dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
-            }
-        }
-        return null;
-    }
-
-    private Object parseCharacterForType(Characters character, String fieldName, DataType dataType) {
-        switch (dataType.getFieldType()) {
-            case BOOLEAN:
-            case BYTE:
-            case CHAR:
-            case DOUBLE:
-            case FLOAT:
-            case INT:
-            case LONG:
-            case SHORT:
-            case STRING:
-            case DATE:
-            case TIME:
-            case TIMESTAMP: {
-                return DataTypeUtils.convertType(character.toString(), dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                return DataTypeUtils.convertType(data, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
             }
         }
         return null;
