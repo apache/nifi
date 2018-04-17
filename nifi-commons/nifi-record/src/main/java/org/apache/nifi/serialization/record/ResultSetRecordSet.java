@@ -350,6 +350,8 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.TIME;
             case Types.TIMESTAMP:
             case Types.TIMESTAMP_WITH_TIMEZONE:
+            case -101: // Oracle's TIMESTAMP WITH TIME ZONE
+            case -102: // Oracle's TIMESTAMP WITH LOCAL TIME ZONE
                 return RecordFieldType.TIMESTAMP;
         }
 
