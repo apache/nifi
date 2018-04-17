@@ -45,6 +45,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.StopWatch;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.request.QueryRequest;
 import org.apache.solr.client.solrj.response.FacetField;
@@ -69,6 +70,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
@@ -112,6 +114,7 @@ public class QuerySolr extends SolrProcessor {
     public static final AllowableValue RETURN_ALL_RESULTS = new AllowableValue("return_all_results", "Entire results");
 
     public static final String MIME_TYPE_JSON = "application/json";
+    public static final String MIME_TYPE_XML = "application/xml";
     public static final String ATTRIBUTE_SOLR_CONNECT = "solr.connect";
     public static final String ATTRIBUTE_SOLR_COLLECTION = "solr.collection";
     public static final String ATTRIBUTE_SOLR_QUERY = "solr.query";
@@ -123,6 +126,8 @@ public class QuerySolr extends SolrProcessor {
     public static final String ATTRIBUTE_QUERY_TIME = "solr.query.time";
     public static final String EXCEPTION = "querysolr.exeption";
     public static final String EXCEPTION_MESSAGE = "querysolr.exeption.message";
+
+    public static final Integer UPPER_LIMIT_START_PARAM = 10000;
 
     public static final PropertyDescriptor RETURN_TYPE = new PropertyDescriptor
             .Builder().name("return_type")
@@ -317,6 +322,15 @@ public class QuerySolr extends SolrProcessor {
         }
 
         final SolrQuery solrQuery = new SolrQuery();
+        final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
+        final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFileResponse).getValue();
+
+        final StringBuilder transitUri = new StringBuilder("solr://");
+        transitUri.append(getSolrLocation());
+        if (isSolrCloud) {
+            transitUri.append(":").append(collection);
+        }
+        final StopWatch timer = new StopWatch(false);
 
         try {
             solrQuery.setQuery(context.getProperty(SOLR_PARAM_QUERY).evaluateAttributeExpressions(flowFileResponse).getValue());
@@ -361,8 +375,8 @@ public class QuerySolr extends SolrProcessor {
 
             final Map<String,String> attributes = new HashMap<>();
             attributes.put(ATTRIBUTE_SOLR_CONNECT, getSolrLocation());
-            if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-                attributes.put(ATTRIBUTE_SOLR_COLLECTION, context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFileResponse).getValue());
+            if (isSolrCloud) {
+                attributes.put(ATTRIBUTE_SOLR_COLLECTION, collection);
             }
             attributes.put(ATTRIBUTE_SOLR_QUERY, solrQuery.toString());
             if (flowFileOriginal != null) {
@@ -376,18 +390,31 @@ public class QuerySolr extends SolrProcessor {
             boolean continuePaging = true;
 
             while (continuePaging){
+
+                timer.start();
+
+                Map<String,String> responseAttributes = new HashMap<>();
+                responseAttributes.put(ATTRIBUTE_SOLR_START, solrQuery.getStart().toString());
+                responseAttributes.put(ATTRIBUTE_SOLR_ROWS, solrQuery.getRows().toString());
+
+                if (solrQuery.getStart() > UPPER_LIMIT_START_PARAM) {
+                    logger.warn("The start parameter of Solr query {} exceeded the upper limit of {}. The query will not be processed " +
+                            "to avoid performance or memory issues on the part of Solr.", new Object[]{solrQuery.toString(), UPPER_LIMIT_START_PARAM});
+                    flowFileResponse = session.putAllAttributes(flowFileResponse, responseAttributes);
+                    timer.stop();
+                    break;
+                }
+
                 final QueryRequest req = new QueryRequest(solrQuery);
                 if (isBasicAuthEnabled()) {
                     req.setBasicAuthCredentials(getUsername(), getPassword());
                 }
 
                 final QueryResponse response = req.process(getSolrClient());
+                timer.stop();
 
                 final Long totalNumberOfResults = response.getResults().getNumFound();
 
-                Map<String,String> responseAttributes = new HashMap<>();
-                responseAttributes.put(ATTRIBUTE_SOLR_START, solrQuery.getStart().toString());
-                responseAttributes.put(ATTRIBUTE_SOLR_ROWS, solrQuery.getRows().toString());
                 responseAttributes.put(ATTRIBUTE_SOLR_NUMBER_RESULTS, totalNumberOfResults.toString());
                 responseAttributes.put(ATTRIBUTE_CURSOR_MARK, response.getNextCursorMark());
                 responseAttributes.put(ATTRIBUTE_SOLR_STATUS, String.valueOf(response.getStatus()));
@@ -398,7 +425,7 @@ public class QuerySolr extends SolrProcessor {
 
                     if (context.getProperty(RETURN_TYPE).getValue().equals(MODE_XML.getValue())){
                         flowFileResponse = session.write(flowFileResponse, SolrUtils.getOutputStreamCallbackToTransformSolrResponseToXml(response));
-                        flowFileResponse = session.putAttribute(flowFileResponse, CoreAttributes.MIME_TYPE.key(), "application/xml");
+                        flowFileResponse = session.putAttribute(flowFileResponse, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_XML);
                     } else {
                         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).evaluateAttributeExpressions(flowFileResponse)
                                 .asControllerService(RecordSetWriterFactory.class);
@@ -429,6 +456,7 @@ public class QuerySolr extends SolrProcessor {
                                 }
                             });
                             flowFileFacets = session.putAttribute(flowFileFacets, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_JSON);
+                            session.getProvenanceReporter().receive(flowFileFacets, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
                             session.transfer(flowFileFacets, FACETS);
                         }
 
@@ -443,6 +471,7 @@ public class QuerySolr extends SolrProcessor {
                                 }
                             });
                             flowFileStats = session.putAttribute(flowFileStats, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_JSON);
+                            session.getProvenanceReporter().receive(flowFileStats, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
                             session.transfer(flowFileStats, STATS);
                         }
                         processFacetsAndStats = false;
@@ -453,6 +482,7 @@ public class QuerySolr extends SolrProcessor {
                     final Integer totalDocumentsReturned = solrQuery.getStart() + solrQuery.getRows();
                     if (totalDocumentsReturned < totalNumberOfResults) {
                         solrQuery.setStart(totalDocumentsReturned);
+                        session.getProvenanceReporter().receive(flowFileResponse, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
                         session.transfer(flowFileResponse, RESULTS);
                         flowFileResponse = session.create(flowFileResponse);
                     } else {
@@ -475,6 +505,7 @@ public class QuerySolr extends SolrProcessor {
         }
 
         if (!flowFileResponse.isPenalized()) {
+            session.getProvenanceReporter().receive(flowFileResponse, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
             session.transfer(flowFileResponse, RESULTS);
         }
 

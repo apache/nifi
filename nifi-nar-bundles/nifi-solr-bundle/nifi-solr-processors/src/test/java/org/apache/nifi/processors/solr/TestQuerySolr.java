@@ -21,6 +21,7 @@ package org.apache.nifi.processors.solr;
 
 import com.google.gson.stream.JsonReader;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -53,6 +54,7 @@ import static org.junit.Assert.assertThat;
 
 public class TestQuerySolr {
     static final String DEFAULT_SOLR_CORE = "testCollection";
+    static final String SOLR_CONNECT = "http://localhost:8443/solr";
 
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
     static {
@@ -100,7 +102,18 @@ public class TestQuerySolr {
 
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_CONNECT);
+        runner.setProperty(SolrUtils.COLLECTION, DEFAULT_SOLR_CORE);
+
+        return runner;
+    }
+
+    private TestRunner createRunnerWithSolrCloudClient(SolrClient solrClient) {
+        final TestableProcessor proc = new TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_CONNECT);
         runner.setProperty(SolrUtils.COLLECTION, DEFAULT_SOLR_CORE);
 
         return runner;
@@ -111,7 +124,7 @@ public class TestQuerySolr {
 
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_CONNECT);
         runner.setProperty(SolrUtils.COLLECTION, DEFAULT_SOLR_CORE);
 
         return runner;
@@ -616,6 +629,150 @@ public class TestQuerySolr {
         solrClient.close();
 
         assertEquals(controlScore, 45);
+    }
+
+    @Test
+    public void testExceedStartParam() throws IOException {
+        SolrClient solrClient = createSolrClient();
+        TestRunner runner = createRunnerWithSolrClient(solrClient);
+
+        runner.setProperty(QuerySolr.SOLR_PARAM_START, "10001");
+
+        runner.setNonLoopConnection(false);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QuerySolr.RESULTS, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0);
+
+        assertEquals("10001", flowFile.getAttribute(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals(0, runner.getContentAsByteArray(flowFile).length);
+
+        solrClient.close();
+    }
+
+    @Test
+    public void testAttributesFailure() throws IOException {
+        SolrClient solrClient = createSolrClient();
+        TestRunner runner = createRunnerWithSolrCloudClient(solrClient);
+
+        runner.setProperty("facet", "true");
+        runner.setProperty("stats", "true");
+        runner.setProperty(QuerySolr.SOLR_PARAM_REQUEST_HANDLER, "/nonexistentrequesthandler");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(QuerySolr.FAILURE, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QuerySolr.FAILURE).get(0);
+
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_CONNECT);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
+        flowFile.assertAttributeExists(QuerySolr.EXCEPTION);
+        flowFile.assertAttributeExists(QuerySolr.EXCEPTION_MESSAGE);
+    }
+
+    @Test
+    public void testAttributes() throws IOException {
+        SolrClient solrClient = createSolrClient();
+        TestRunner runner = createRunnerWithSolrCloudClient(solrClient);
+
+        runner.setProperty("facet", "true");
+        runner.setProperty("stats", "true");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(QuerySolr.RESULTS, 1);
+        runner.assertTransferCount(QuerySolr.FACETS, 1);
+        runner.assertTransferCount(QuerySolr.STATS, 1);
+        runner.assertTransferCount(QuerySolr.ORIGINAL, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0);
+        Map<String, String> attributes = flowFile.getAttributes();
+
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_CONNECT);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_CURSOR_MARK);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_STATUS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_START);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_ROWS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_QUERY_TIME);
+        flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
+
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+
+        assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
+        assertEquals(QuerySolr.MIME_TYPE_XML, attributes.get(CoreAttributes.MIME_TYPE.key()));
+
+        flowFile = runner.getFlowFilesForRelationship(QuerySolr.FACETS).get(0);
+        attributes = flowFile.getAttributes();
+
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_CONNECT);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_CURSOR_MARK);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_STATUS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_START);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_ROWS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_QUERY_TIME);
+        flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
+
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+
+        assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
+        assertEquals(QuerySolr.MIME_TYPE_JSON, attributes.get(CoreAttributes.MIME_TYPE.key()));
+
+        flowFile = runner.getFlowFilesForRelationship(QuerySolr.STATS).get(0);
+        attributes = flowFile.getAttributes();
+
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_CONNECT);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_CURSOR_MARK);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_STATUS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_START);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_ROWS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_QUERY_TIME);
+        flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
+
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+
+        assertEquals("q=*:*&qt=/select&start=0&rows=10&stats=true&facet=true", attributes.get(QuerySolr.ATTRIBUTE_SOLR_QUERY));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_STATUS));
+        assertEquals("0", attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_ROWS));
+        assertEquals("10", attributes.get(QuerySolr.ATTRIBUTE_SOLR_NUMBER_RESULTS));
+        assertEquals(QuerySolr.MIME_TYPE_JSON, attributes.get(CoreAttributes.MIME_TYPE.key()));
+
+        flowFile = runner.getFlowFilesForRelationship(QuerySolr.ORIGINAL).get(0);
+        attributes = flowFile.getAttributes();
+
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_CONNECT);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_COLLECTION);
+        flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_QUERY);
+
+        assertEquals(SOLR_CONNECT, attributes.get(QuerySolr.ATTRIBUTE_SOLR_CONNECT));
+        assertEquals(DEFAULT_SOLR_CORE, attributes.get(QuerySolr.ATTRIBUTE_SOLR_COLLECTION));
+
+        solrClient.close();
     }
 
     // Override createSolrClient and return the passed in SolrClient
