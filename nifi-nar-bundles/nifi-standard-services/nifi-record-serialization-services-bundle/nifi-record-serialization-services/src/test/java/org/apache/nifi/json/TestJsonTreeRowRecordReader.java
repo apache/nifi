@@ -162,6 +162,123 @@ public class TestJsonTreeRowRecordReader {
     }
 
     @Test
+    public void testReadOneLinePerJSON() throws IOException, MalformedRecordException {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-oneline.json"));
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final List<String> fieldNames = schema.getFieldNames();
+            final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
+            assertEquals(expectedFieldNames, fieldNames);
+
+            final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
+                    RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+            assertEquals(expectedTypes, dataTypes);
+
+            final Object[] firstRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+
+            final Object[] secondRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testReadMultilineJSON() throws IOException, MalformedRecordException {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-multiline.json"));
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final List<String> fieldNames = schema.getFieldNames();
+            final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
+            assertEquals(expectedFieldNames, fieldNames);
+
+            final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
+                    RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+            assertEquals(expectedTypes, dataTypes);
+
+            final Object[] firstRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+
+            final Object[] secondRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testReadMultilineArrays() throws IOException, MalformedRecordException {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-multiarray.json"));
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final List<String> fieldNames = schema.getFieldNames();
+            final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
+            assertEquals(expectedFieldNames, fieldNames);
+
+            final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
+                    RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+            assertEquals(expectedTypes, dataTypes);
+
+            final Object[] firstRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+
+            final Object[] secondRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+
+            final Object[] thirdRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {3, "Maria Doe", 4750.89, "123 My Street", "My City", "ME", "11111", "USA"}, thirdRecordValues);
+
+            final Object[] fourthRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {4, "Xi Doe", 4820.09, "321 Your Street", "Your City", "NV", "33333", "USA"}, fourthRecordValues);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testReadMixedJSON() throws IOException, MalformedRecordException {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-mixed.json"));
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+
+            final List<String> fieldNames = schema.getFieldNames();
+            final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
+            assertEquals(expectedFieldNames, fieldNames);
+
+            final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
+            final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
+                    RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING});
+            assertEquals(expectedTypes, dataTypes);
+
+            final Object[] firstRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {1, "John Doe", 4750.89, "123 My Street", "My City", "MS", "11111", "USA"}, firstRecordValues);
+
+            final Object[] secondRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {2, "Jane Doe", 4820.09, "321 Your Street", "Your City", "NY", "33333", "USA"}, secondRecordValues);
+
+            final Object[] thirdRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {3, "Maria Doe", 4750.89, "123 My Street", "My City", "ME", "11111", "USA"}, thirdRecordValues);
+
+            final Object[] fourthRecordValues = reader.nextRecord().getValues();
+            Assert.assertArrayEquals(new Object[] {4, "Xi Doe", 4820.09, "321 Your Street", "Your City", "NV", "33333", "USA"}, fourthRecordValues);
+
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
     public void testReadRawRecordIncludesFieldsNotInSchema() throws IOException, MalformedRecordException {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));

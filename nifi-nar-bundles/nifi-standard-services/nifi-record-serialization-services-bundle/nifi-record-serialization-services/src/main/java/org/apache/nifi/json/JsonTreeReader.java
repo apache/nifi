@@ -39,11 +39,11 @@ import org.apache.nifi.serialization.SchemaRegistryService;
 
 @Tags({"json", "tree", "record", "reader", "parser"})
 @CapabilityDescription("Parses JSON into individual Record objects. The Record that is produced will contain all top-level "
-    + "elements of the corresponding JSON Object. "
-    + "The root JSON element can be either a single element or an array of JSON elements, and each "
-    + "element in that array will be treated as a separate record. "
-    + "If the schema that is configured contains a field that is not present in the JSON, a null value will be used. If the JSON contains "
-    + "a field that is not present in the schema, that field will be skipped. "
+        + "elements of the corresponding JSON Objects. The reader does not require the flow file content to be well-formed JSON; rather "
+        + "the content can be any combination of consecutive arrays or objects optionally delimited by whitespace. For example, the reader "
+        + "supports the 'one-JSON-per-line' format. If an array is encountered, each element in that array will be treated as a separate record. "
+        + "If the schema that is configured contains a field that is not present in the JSON, a null value will be used. If the JSON contains "
+        + "a field that is not present in the schema, that field will be skipped. "
     + "See the Usage of the Controller Service for more information and examples.")
 @SeeAlso(JsonPathReader.class)
 public class JsonTreeReader extends SchemaRegistryService implements RecordReaderFactory {
