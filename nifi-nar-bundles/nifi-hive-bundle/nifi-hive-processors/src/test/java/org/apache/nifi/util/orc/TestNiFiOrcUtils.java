@@ -20,7 +20,9 @@ package org.apache.nifi.util.orc;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.UnionObject;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -265,6 +267,23 @@ public class TestNiFiOrcUtils {
         assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable "
                 + "(myInt INT, myMap MAP<STRING, DOUBLE>, myEnum STRING, myLongOrFloat UNIONTYPE<BIGINT, FLOAT>, myIntList ARRAY<INT>)"
                 + " STORED AS ORC", ddl);
+    }
+
+    @Test
+    public void test_convertToORCObject() {
+        Schema schema = SchemaBuilder.enumeration("myEnum").symbols("x","y","z");
+        List<Object> objects = Arrays.asList(new Utf8("Hello"), new GenericData.EnumSymbol(schema, "x"));
+        objects.forEach((avroObject) -> {
+            Object o = NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,string>"), avroObject);
+            assertTrue(o instanceof UnionObject);
+            UnionObject uo = (UnionObject) o;
+            assertTrue(uo.getObject() instanceof Text);
+        });
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_convertToORCObjectBadUnion() {
+        NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,long>"), "Hello");
     }
 
 
