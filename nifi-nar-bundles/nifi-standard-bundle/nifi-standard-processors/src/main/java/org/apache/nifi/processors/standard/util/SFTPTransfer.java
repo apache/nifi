@@ -633,7 +633,7 @@ public class SFTPTransfer implements FileTransfer {
         } catch (final SftpException e) {
             switch (e.id) {
                 case ChannelSftp.SSH_FX_NO_SUCH_FILE:
-                    throw new FileNotFoundException();
+                    throw new FileNotFoundException("No such file or directory");
                 case ChannelSftp.SSH_FX_PERMISSION_DENIED:
                     throw new PermissionDeniedException("Could not rename remote file " + source + " to " + target + " due to insufficient permissions");
                 default:
