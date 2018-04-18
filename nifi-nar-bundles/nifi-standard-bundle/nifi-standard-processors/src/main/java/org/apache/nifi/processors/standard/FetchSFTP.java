@@ -49,6 +49,14 @@ public class FetchSFTP extends FetchFileTransfer {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
+        final PropertyDescriptor disableDirectoryListing = new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(SFTPTransfer.DISABLE_DIRECTORY_LISTING)
+                .description(String.format("Control how '%s' is created when '%s' is '%s' and '%s' is enabled. %s",
+                        MOVE_DESTINATION_DIR.getDisplayName(),
+                        COMPLETION_STRATEGY.getDisplayName(),
+                        COMPLETION_MOVE.getDisplayName(),
+                        MOVE_CREATE_DIRECTORY.getDisplayName(),
+                        SFTPTransfer.DISABLE_DIRECTORY_LISTING.getDescription())).build();
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(HOSTNAME);
@@ -60,6 +68,8 @@ public class FetchSFTP extends FetchFileTransfer {
         properties.add(REMOTE_FILENAME);
         properties.add(COMPLETION_STRATEGY);
         properties.add(MOVE_DESTINATION_DIR);
+        properties.add(MOVE_CREATE_DIRECTORY);
+        properties.add(disableDirectoryListing);
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
         properties.add(SFTPTransfer.DATA_TIMEOUT);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);

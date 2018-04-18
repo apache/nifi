@@ -37,6 +37,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,11 +102,19 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .defaultValue(COMPLETION_NONE.getValue())
         .required(true)
         .build();
+    static final PropertyDescriptor MOVE_CREATE_DIRECTORY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(FileTransfer.CREATE_DIRECTORY).description(String.format("Used when '%s' is '%s'. %s",
+                    COMPLETION_STRATEGY.getDisplayName(),
+                    COMPLETION_MOVE.getDisplayName(),
+                    FileTransfer.CREATE_DIRECTORY.getDescription()))
+            .required(false)
+            .build();
     static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
         .name("Move Destination Directory")
-        .description("The directory on the remote server to the move the original file to once it has been ingested into NiFi. "
-            + "This property is ignored unless the Completion Strategy is set to \"Move File\". The specified directory must already exist on"
-            + "the remote system, or the rename will fail.")
+        .description(String.format("The directory on the remote server to move the original file to once it has been ingested into NiFi. "
+            + "This property is ignored unless the %s is set to '%s'. The specified directory must already exist on "
+            + "the remote system if '%s' is disabled, or the rename will fail.",
+                COMPLETION_STRATEGY.getDisplayName(), COMPLETION_MOVE.getDisplayName(), MOVE_CREATE_DIRECTORY.getDisplayName()))
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
@@ -189,6 +198,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         properties.add(REMOTE_FILENAME);
         properties.add(COMPLETION_STRATEGY);
         properties.add(MOVE_DESTINATION_DIR);
+        properties.add(MOVE_CREATE_DIRECTORY);
         return properties;
     }
 
@@ -308,15 +318,19 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                             new Object[]{flowFile, host, port, filename, ioe}, ioe);
                 }
             } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
-                String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
-                if (!targetDir.endsWith("/")) {
-                    targetDir = targetDir + "/";
-                }
+                final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
                 final String simpleFilename = StringUtils.substringAfterLast(filename, "/");
-                final String target = targetDir + simpleFilename;
 
                 try {
-                    transfer.rename(flowFile, filename, target);
+                    final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
+                    final File targetFile = new File(absoluteTargetDirPath, simpleFilename);
+                    if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
+                        // Create the target directory if necessary.
+                        transfer.ensureDirectoryExists(flowFile, targetFile.getParentFile());
+                    }
+
+                    transfer.rename(flowFile, filename, targetFile.getAbsolutePath());
+
                 } catch (final IOException ioe) {
                     getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
                             new Object[]{flowFile, host, port, filename, ioe}, ioe);

@@ -106,7 +106,7 @@ public class SFTPTransfer implements FileTransfer {
         .description("If set to 'true', directory listing is not performed prior to create missing directories." +
                 " By default, this processor executes a directory listing command" +
                 " to see target directory existence before creating missing directories." +
-                " However, there are situations that you might need to disable the directory listing such as followings." +
+                " However, there are situations that you might need to disable the directory listing such as the following." +
                 " Directory listing might fail with some permission setups (e.g. chmod 100) on a directory." +
                 " Also, if any other SFTP client created the directory after this processor performed a listing" +
                 " and before a directory creation request by this processor is finished," +
@@ -353,48 +353,52 @@ public class SFTPTransfer implements FileTransfer {
         final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
 
         // if we disable the directory listing, we just want to blindly perform the mkdir command,
-        // eating any exceptions thrown (like if the directory already exists).
+        // eating failure exceptions thrown (like if the directory already exists).
         if (disableDirectoryListing) {
             try {
+                // Blindly create the dir.
                 channel.mkdir(remoteDirectory);
+                // The remote directory did not exist, and was created successfully.
+                return;
             } catch (SftpException e) {
-                if (e.id != ChannelSftp.SSH_FX_FAILURE) {
+                if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                    // No Such File. This happens when parent directory was not found.
+                    logger.debug(String.format("Could not create %s due to 'No such file'. Will try to create the parent dir.", remoteDirectory));
+                } else if (e.id == ChannelSftp.SSH_FX_FAILURE) {
+                    // Swallow '4: Failure' including the remote directory already exists.
+                    logger.debug("Could not blindly create remote directory due to " + e.getMessage(), e);
+                    return;
+                } else {
                     throw new IOException("Could not blindly create remote directory due to " + e.getMessage(), e);
                 }
             }
-            return;
-        }
-        // end if disableDirectoryListing
-
-        boolean exists;
-        try {
-            channel.stat(remoteDirectory);
-            exists = true;
-        } catch (final SftpException e) {
-            if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
-                // No Such File
-                exists = false;
-            } else {
-                throw new IOException("Failed to determine if remote directory exists at " + remoteDirectory + " due to " + e, e);
-            }
-        }
-
-        if (!exists) {
-            // first ensure parent directories exist before creating this one
-            if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
-                ensureDirectoryExists(flowFile, directoryName.getParentFile());
-            }
-            logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
+        } else {
             try {
-                channel.mkdir(remoteDirectory);
-                logger.debug("Created {}", new Object[] {remoteDirectory});
+                // Check dir existence.
+                channel.stat(remoteDirectory);
+                // The remote directory already exists.
+                return;
             } catch (final SftpException e) {
-                throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + e, e);
+                if (e.id != ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                    throw new IOException("Failed to determine if remote directory exists at " + remoteDirectory + " due to " + e, e);
+                }
             }
+        }
+
+        // first ensure parent directories exist before creating this one
+        if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
+            ensureDirectoryExists(flowFile, directoryName.getParentFile());
+        }
+        logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
+        try {
+            channel.mkdir(remoteDirectory);
+            logger.debug("Created {}", new Object[] {remoteDirectory});
+        } catch (final SftpException e) {
+            throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + e, e);
         }
     }
 
-    private ChannelSftp getChannel(final FlowFile flowFile) throws IOException {
+    protected ChannelSftp getChannel(final FlowFile flowFile) throws IOException {
         if (sftp != null) {
             String sessionhost = session.getHost();
             String desthost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -633,7 +637,7 @@ public class SFTPTransfer implements FileTransfer {
         } catch (final SftpException e) {
             switch (e.id) {
                 case ChannelSftp.SSH_FX_NO_SUCH_FILE:
-                    throw new FileNotFoundException();
+                    throw new FileNotFoundException("No such file or directory");
                 case ChannelSftp.SSH_FX_PERMISSION_DENIED:
                     throw new PermissionDeniedException("Could not rename remote file " + source + " to " + target + " due to insufficient permissions");
                 default:
