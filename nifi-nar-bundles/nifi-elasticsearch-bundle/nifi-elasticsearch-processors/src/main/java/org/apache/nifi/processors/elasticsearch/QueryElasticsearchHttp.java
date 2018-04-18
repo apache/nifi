@@ -342,7 +342,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         final ComponentLog logger = getLogger();
 
         int fromIndex = 0;
-        int numResults;
+        int numResults = 0;
 
         try {
             logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index, docType,
@@ -366,7 +366,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
                 numResults = this.getPage(getResponse, queryUrl, context, session, flowFile,
-                        logger, startNanos, targetIsContent);
+                        logger, startNanos, targetIsContent, numResults);
                 fromIndex += pageSize;
                 getResponse.close();
             }
@@ -403,7 +403,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private int getPage(final Response getResponse, final URL url, final ProcessContext context,
             final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
-            final long startNanos, boolean targetIsContent)
+            final long startNanos, boolean targetIsContent, int priorResultCount)
             throws IOException {
         List<FlowFile> page = new ArrayList<>();
         final int statusCode = getResponse.code();
@@ -414,7 +414,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             JsonNode responseJson = parseJsonResponse(new ByteArrayInputStream(bodyBytes));
             JsonNode hits = responseJson.get("hits").get("hits");
 
-            if ( (hits.size() == 0 && queryInfoRouteStrategy == QueryInfoRouteStrategy.NOHIT)
+            // if there are no hits, and there have never been any hits in this run ( priorResultCount ) and
+            // we are in NOHIT or ALWAYS, send the query info
+            if ( (hits.size() == 0 && priorResultCount == 0 && queryInfoRouteStrategy == QueryInfoRouteStrategy.NOHIT)
                     || queryInfoRouteStrategy == QueryInfoRouteStrategy.ALWAYS) {
                 FlowFile queryInfo = flowFile == null ? session.create() : session.create(flowFile);
                 session.putAttribute(queryInfo, "es.query.url", url.toExternalForm());

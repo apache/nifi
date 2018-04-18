@@ -142,7 +142,7 @@ public class TestQueryElasticsearchHttpNoHits {
                 runner.assertValid();
 
                 runner.setIncomingConnection(false);
-                runAndVerify(3,1,0,true);
+                runAndVerify(3,0,0,true);
         }
 
         @Test
