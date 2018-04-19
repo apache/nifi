@@ -28,7 +28,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -276,11 +275,16 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
         }
     }
 
-    protected Set<TableName> findTableNames(final String query) throws ParseException {
-        if (StringUtils.isEmpty(query) || query.trim().split("\\s+", 2)[0].equalsIgnoreCase("set")) {
+    protected Set<TableName> findTableNames(final String query) {
+        final ASTNode node;
+        try {
+            node = new ParseDriver().parse(normalize(query));
+        } catch (ParseException e) {
+            // If failed to parse the query, just log a message, but continue.
+            getLogger().debug("Failed to parse query: {} due to {}", new Object[]{query, e}, e);
             return Collections.emptySet();
         }
-        final ASTNode node = new ParseDriver().parse(normalize(query));
+
         final HashSet<TableName> tableNames = new HashSet<>();
         findTableNames(node, tableNames);
         return tableNames;
