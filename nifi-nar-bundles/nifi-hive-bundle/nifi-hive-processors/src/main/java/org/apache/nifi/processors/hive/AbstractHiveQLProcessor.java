@@ -28,6 +28,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +41,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -275,6 +277,9 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
     }
 
     protected Set<TableName> findTableNames(final String query) throws ParseException {
+        if (StringUtils.isEmpty(query) || query.trim().split("\\s+", 2)[0].equalsIgnoreCase("set")) {
+            return Collections.emptySet();
+        }
         final ASTNode node = new ParseDriver().parse(normalize(query));
         final HashSet<TableName> tableNames = new HashSet<>();
         findTableNames(node, tableNames);

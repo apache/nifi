@@ -237,5 +237,33 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         assertTrue(tableNames.contains(new TableName(null, "EMPLOYEES", false)));
     }
 
+    @Test
+    public void parseSetProperty() throws Exception {
+        String query = " set 'hive.exec.dynamic.partition.mode'=nonstrict";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(0, tableNames.size());
+    }
 
+    @Test
+    public void parseSetRole() throws Exception {
+        String query = "set role all";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(0, tableNames.size());
+    }
+
+    @Test
+    public void parseShowRoles() throws Exception {
+        String query = "show roles";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(0, tableNames.size());
+    }
+
+    @Test
+    public void parseEmptyQuery() throws Exception {
+        assertEquals(0, findTableNames(null).size());
+        assertEquals(0, findTableNames("").size());
+    }
 }
