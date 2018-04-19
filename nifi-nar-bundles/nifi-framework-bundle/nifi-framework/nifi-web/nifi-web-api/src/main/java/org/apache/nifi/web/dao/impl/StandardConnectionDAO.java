@@ -567,6 +567,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
         // configure the connection
         configureConnection(connection, connectionDTO);
+        group.onComponentModified();
 
         // update the relationships if necessary
         if (!newProcessorRelationships.isEmpty()) {
