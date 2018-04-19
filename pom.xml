@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>17</version>
+        <version>19</version>
         <relativePath />
     </parent>
 
