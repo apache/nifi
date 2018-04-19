@@ -602,11 +602,13 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
+                    <consoleOutput>true</consoleOutput>
                     <excludes>
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
                         <exclude>.github/PULL_REQUEST_TEMPLATE.md</exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
+                        <exclude>.travis-output-filters</exclude> <!-- grep patterns to exclude from travis output -->
                     </excludes>
                 </configuration>
             </plugin>
