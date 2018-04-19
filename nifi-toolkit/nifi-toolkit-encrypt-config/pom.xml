@@ -167,10 +167,12 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
+                    <consoleOutput>true</consoleOutput>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/scrypt.py</exclude>
-                        <exclude>src/test/resources/secure_hash.key</exclude>
-                        <exclude>src/test/resources/secure_hash_128.key</exclude>
+                        <!-- use wildcard for below files as tests generate additional files during the build -->
+                        <exclude>**/secure_hash.key</exclude>
+                        <exclude>**/secure_hash_128.key</exclude>
                     </excludes>
                 </configuration>
             </plugin>

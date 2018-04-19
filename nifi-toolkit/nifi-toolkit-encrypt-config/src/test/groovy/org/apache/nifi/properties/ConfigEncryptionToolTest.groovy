@@ -5287,7 +5287,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 assert returnedJson.N == expectedJson.N
                 assert returnedJson.r == expectedJson.r
                 assert returnedJson.p == expectedJson.p
-                assert returnedJson.salt =~ /[\w\/]{22}/
+                assert returnedJson.salt =~ /[\w\/+=]{22}/
 
                 // Clean up
                 tmpDir.deleteOnExit()
