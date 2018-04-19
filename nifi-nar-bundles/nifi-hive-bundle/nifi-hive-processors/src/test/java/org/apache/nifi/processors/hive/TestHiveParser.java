@@ -18,7 +18,11 @@ package org.apache.nifi.processors.hive;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockProcessorInitializationContext;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Set;
@@ -29,13 +33,20 @@ import static org.junit.Assert.assertTrue;
 
 public class TestHiveParser extends AbstractHiveQLProcessor {
 
+    @Before
+    public void initialize() {
+        final MockProcessContext processContext = new MockProcessContext(this);
+        final ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext(this, processContext);
+        initialize(initializationContext);
+    }
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
 
     }
 
     @Test
-    public void parseSelect() throws Exception {
+    public void parseSelect() {
         String query = "select a.empid, to_something(b.saraly) from " +
                 "company.emp a inner join default.salary b where a.empid = b.empid";
         final Set<TableName> tableNames = findTableNames(query);
@@ -46,7 +57,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
     }
 
     @Test
-    public void parseSelectPrepared() throws Exception {
+    public void parseSelectPrepared() {
         String query = "select empid from company.emp a where a.firstName = ?";
         final Set<TableName> tableNames = findTableNames(query);
         System.out.printf("tableNames=%s\n", tableNames);
@@ -56,7 +67,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
 
 
     @Test
-    public void parseLongSelect() throws Exception {
+    public void parseLongSelect() {
         String query = "select\n" +
                 "\n" +
                 "    i_item_id,\n" +
@@ -164,7 +175,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
     }
 
     @Test
-    public void parseSelectInsert() throws Exception {
+    public void parseSelectInsert() {
         String query = "insert into databaseA.tableA select key, max(value) from databaseA.tableA where category = 'x'";
 
         // The same database.tableName can appear two times for input and output.
@@ -183,7 +194,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
     }
 
     @Test
-    public void parseInsert() throws Exception {
+    public void parseInsert() {
         String query = "insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id";
 
         final Set<TableName> tableNames = findTableNames(query);
@@ -203,7 +214,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
     }
 
     @Test
-    public void parseUpdate() throws Exception {
+    public void parseUpdate() {
         String query = "update table_a set y = 'updated' where x > 100";
 
         final Set<TableName> tableNames = findTableNames(query);
@@ -213,7 +224,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
     }
 
     @Test
-    public void parseDelete() throws Exception {
+    public void parseDelete() {
         String query = "delete from table_a where x > 100";
 
         final Set<TableName> tableNames = findTableNames(query);
@@ -223,7 +234,7 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
     }
 
     @Test
-    public void parseDDL() throws Exception {
+    public void parseDDL() {
         String query = "CREATE TABLE IF NOT EXISTS EMPLOYEES(\n" +
                 "EmployeeID INT,FirstName STRING, Title STRING,\n" +
                 "State STRING, Laptop STRING)\n" +
@@ -237,5 +248,45 @@ public class TestHiveParser extends AbstractHiveQLProcessor {
         assertTrue(tableNames.contains(new TableName(null, "EMPLOYEES", false)));
     }
 
+    @Test
+    public void parseSetProperty() {
+        String query = " set 'hive.exec.dynamic.partition.mode'=nonstrict";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(0, tableNames.size());
+    }
+
+    @Test
+    public void parseSetRole() {
+        String query = "set role all";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(0, tableNames.size());
+    }
+
+    @Test
+    public void parseShowRoles() {
+        String query = "show roles";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(0, tableNames.size());
+    }
+
+    @Test
+    public void parseMsck() {
+        String query = "msck repair table table_a";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(1, tableNames.size());
+        assertTrue(tableNames.contains(new TableName(null, "table_a", false)));
+    }
+
+    @Test
+    public void parseAddJar() {
+        String query = "ADD JAR hdfs:///tmp/my_jar.jar";
+        final Set<TableName> tableNames = findTableNames(query);
+        System.out.printf("tableNames=%s\n", tableNames);
+        assertEquals(0, tableNames.size());
+    }
 
 }

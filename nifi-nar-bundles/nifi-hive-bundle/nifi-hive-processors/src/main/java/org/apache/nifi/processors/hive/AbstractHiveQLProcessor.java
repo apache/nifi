@@ -40,6 +40,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -274,8 +275,16 @@ public abstract class AbstractHiveQLProcessor extends AbstractSessionFactoryProc
         }
     }
 
-    protected Set<TableName> findTableNames(final String query) throws ParseException {
-        final ASTNode node = new ParseDriver().parse(normalize(query));
+    protected Set<TableName> findTableNames(final String query) {
+        final ASTNode node;
+        try {
+            node = new ParseDriver().parse(normalize(query));
+        } catch (ParseException e) {
+            // If failed to parse the query, just log a message, but continue.
+            getLogger().debug("Failed to parse query: {} due to {}", new Object[]{query, e}, e);
+            return Collections.emptySet();
+        }
+
         final HashSet<TableName> tableNames = new HashSet<>();
         findTableNames(node, tableNames);
         return tableNames;
