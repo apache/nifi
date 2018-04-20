@@ -375,6 +375,15 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         @Override
         public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
             logger.info("{} Connection State changed to {}", this, newState.name());
+
+            if (newState == ConnectionState.SUSPENDED || newState == ConnectionState.LOST) {
+                if (leader == true) {
+                    logger.info("Because Connection State was changed to {}, will relinquish leadership for role '{}'", newState, roleName);
+                }
+
+                leader = false;
+            }
+
             super.stateChanged(client, newState);
         }
 
@@ -418,7 +427,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             // so we will block as long as we are not interrupted or closed. Then, we will set leader to false.
             try {
                 int failureCount = 0;
-                while (!isStopped()) {
+                while (!isStopped() && leader) {
                     try {
                         Thread.sleep(5000L);
                     } catch (final InterruptedException ie) {
