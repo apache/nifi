@@ -59,11 +59,11 @@ public class PutAzureQueueStorageIT {
 
         runner.setVariable("account.name", AzureTestUtil.getAccountName());
         runner.setVariable("account.key", AzureTestUtil.getAccountKey());
-        runner.setVariable("cloudQueue.name", AzureTestUtil.TEST_STORAGE_QUEUE);
+        runner.setVariable("queue.name", AzureTestUtil.TEST_STORAGE_QUEUE);
 
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "${account.name}");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "${account.key}");
-        runner.setProperty(PutAzureQueueStorage.QUEUE, "${cloudQueue.name}");
+        runner.setProperty(PutAzureQueueStorage.QUEUE, "${queue.name}");
 
         runner.enqueue("Dummy message");
         runner.run(1);
@@ -81,7 +81,7 @@ public class PutAzureQueueStorageIT {
         runner.setProperty(PutAzureQueueStorage.TTL, "2 secs");
 
         runner.enqueue("Dummy message");
-        runner.run(1);
+        runner.run();
 
         runner.assertAllFlowFilesTransferred(PutAzureQueueStorage.REL_SUCCESS, 1);
         Assert.assertEquals(1, AzureTestUtil.getQueueCount());

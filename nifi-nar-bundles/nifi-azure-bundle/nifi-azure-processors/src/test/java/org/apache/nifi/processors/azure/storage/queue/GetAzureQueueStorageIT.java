@@ -75,11 +75,11 @@ public class GetAzureQueueStorageIT {
 
         runner.setVariable("account.name", AzureTestUtil.getAccountName());
         runner.setVariable("account.key", AzureTestUtil.getAccountKey());
-        runner.setVariable("cloudQueue.name", AzureTestUtil.TEST_STORAGE_QUEUE);
+        runner.setVariable("queue.name", AzureTestUtil.TEST_STORAGE_QUEUE);
 
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "${account.name}");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "${account.key}");
-        runner.setProperty(GetAzureQueueStorage.QUEUE, "${cloudQueue.name}");
+        runner.setProperty(GetAzureQueueStorage.QUEUE, "${queue.name}");
         runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "10");
         runner.setProperty(GetAzureQueueStorage.AUTO_DELETE, "true");
         runner.setProperty(GetAzureQueueStorage.VISIBILITY_TIMEOUT, "1 secs");

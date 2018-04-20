@@ -19,16 +19,12 @@ package org.apache.nifi.processors.azure.storage.queue;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.queue.CloudQueue;
 import com.microsoft.azure.storage.queue.CloudQueueClient;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -38,22 +34,19 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
 
     public static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
-            .name("storage-cloudQueue-name")
+            .name("storage-queue-name")
             .displayName("Queue Name")
             .description("Name of the Azure Storage Queue")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -72,59 +65,46 @@ public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
 
     private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
-    protected CloudQueue cloudQueue;
-
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
 
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> problems = new ArrayList<>(AzureStorageUtils.validateCredentialProperties(validationContext));
+    protected final CloudQueueClient createCloudQueueClient(final ProcessContext context, final FlowFile flowFile) {
+        final String storageAccountName;
+        final String storageAccountKey;
+        final String sasToken;
+        final String connectionString;
 
-        final String queueName = validationContext.getProperty(QUEUE).evaluateAttributeExpressions().getValue();
-        if(!StringUtils.isAllLowerCase(queueName)) {
-            problems.add(new ValidationResult.Builder()
-                                             .subject(QUEUE.getDisplayName())
-                                             .valid(false)
-                                             .explanation("the name of the Azure Storage Queue should be in lowercase")
-                                             .build());
+        if (flowFile == null) {
+            storageAccountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
+            storageAccountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
+            sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+        } else {
+            storageAccountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            storageAccountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions(flowFile).getValue();
+            sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions(flowFile).getValue();
         }
 
-        return problems;
-    }
-
-    @OnScheduled
-    public final void createCloudQueueClient(final ProcessContext context) {
-        final String storageAccountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-        final String storageAccountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-        final String sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions().getValue();
-        final String storageConnectionString;
-
+        CloudQueueClient cloudQueueClient;
         try {
-            CloudQueueClient cloudQueueClient;
             if (StringUtils.isNoneBlank(sasToken)) {
-                storageConnectionString = String.format(FORMAT_QUEUE_BASE_URI, storageAccountName);
+                connectionString = String.format(FORMAT_QUEUE_BASE_URI, storageAccountName);
                 StorageCredentials storageCredentials = new StorageCredentialsSharedAccessSignature(sasToken);
-                cloudQueueClient = new CloudQueueClient(new URI(storageConnectionString), storageCredentials);
+                cloudQueueClient = new CloudQueueClient(new URI(connectionString), storageCredentials);
             } else {
-                storageConnectionString = String.format(FORMAT_QUEUE_CONNECTION_STRING, storageAccountName, storageAccountKey);
-                CloudStorageAccount storageAccount = CloudStorageAccount.parse(storageConnectionString);
+                connectionString = String.format(FORMAT_QUEUE_CONNECTION_STRING, storageAccountName, storageAccountKey);
+                CloudStorageAccount storageAccount = CloudStorageAccount.parse(connectionString);
                 cloudQueueClient = storageAccount.createCloudQueueClient();
             }
-
-            String queueName = context.getProperty(QUEUE).evaluateAttributeExpressions().getValue();
-            cloudQueue = cloudQueueClient.getQueueReference(queueName);
-
-        } catch (URISyntaxException e) {
+        } catch (IllegalArgumentException | URISyntaxException e) {
             getLogger().error("Invalid connection string URI for '{}'", new Object[]{context.getName()}, e);
+            throw new IllegalArgumentException(e);
         } catch (InvalidKeyException e) {
             getLogger().error("Invalid connection credentials for '{}'", new Object[]{context.getName()}, e);
-        } catch (StorageException e) {
-            getLogger().error("Failed to establish the connection to Azure Queue Storage for '{}'", new Object[]{context.getName()}, e);
+            throw new IllegalArgumentException(e);
         }
-
+        return cloudQueueClient;
     }
 
 }

@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.azure.storage.queue;
 
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.queue.CloudQueue;
+import com.microsoft.azure.storage.queue.CloudQueueClient;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -36,6 +38,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -50,7 +53,8 @@ import java.util.concurrent.TimeUnit;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"azure", "queue", "microsoft", "storage", "dequeue", "cloud"})
 @CapabilityDescription("Retrieves the messages from an Azure Queue Storage. The retrieved messages will be deleted from the queue by default. If the requirement is " +
-        "to consume messages without deleting them, set 'Auto Delete Messages' to 'false'.")
+        "to consume messages without deleting them, set 'Auto Delete Messages' to 'false'. Note: There might be chances of receiving duplicates in situations like " +
+        "when a message is received but was unable to be deleted from the queue due to some unexpected situations.")
 @WritesAttributes({
         @WritesAttribute(attribute = "azure.queue.uri", description = "The absolute URI of the configured Azure Queue Storage"),
         @WritesAttribute(attribute = "azure.queue.insertionTime", description = "The time when the message was inserted into the queue storage"),
@@ -75,7 +79,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
             .displayName("Batch Size")
             .description("The number of messages to be retrieved from the queue.")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.createLongValidator(1, 32, true))
             .defaultValue("32")
             .build();
 
@@ -108,12 +112,18 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
         final int visibilityTimeoutInSecs = context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final boolean autoDelete = context.getProperty(AUTO_DELETE).asBoolean();
+        final String queue = context.getProperty(QUEUE).evaluateAttributeExpressions().getValue().toLowerCase();
 
         final Iterable<CloudQueueMessage> retrievedMessagesIterable;
 
+        CloudQueueClient cloudQueueClient;
+        CloudQueue cloudQueue;
+
         try {
+            cloudQueueClient = createCloudQueueClient(context, null);
+            cloudQueue = cloudQueueClient.getQueueReference(queue);
             retrievedMessagesIterable = cloudQueue.retrieveMessages(batchSize, visibilityTimeoutInSecs, null, null);
-        } catch (final StorageException e) {
+        } catch (URISyntaxException | StorageException e) {
             getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}", new Object[] {e});
             context.yield();
             return;
@@ -164,19 +174,6 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
     @Override
     public Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
-
-        final int batchSize = validationContext.getProperty(BATCH_SIZE).asInteger();
-
-        //Azure Queue Storage supports only a max of 32 messages to be retrieved in a single invocation
-        if (batchSize > 32) {
-            problems.add(new ValidationResult.Builder()
-                                             .valid(false)
-                                             .subject(BATCH_SIZE.getDisplayName())
-                                             .explanation("only up to 32 messages can be retrieved at a time")
-                                             .build()
-            );
-        }
-
         final int visibilityTimeout = validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
 
         if (visibilityTimeout <= 0) {

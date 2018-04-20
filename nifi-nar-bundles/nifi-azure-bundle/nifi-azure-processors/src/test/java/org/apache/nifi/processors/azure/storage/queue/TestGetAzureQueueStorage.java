@@ -34,7 +34,7 @@ public class TestGetAzureQueueStorage {
     private final TestRunner runner = TestRunners.newTestRunner(GetAzureQueueStorage.class);
 
     @Test
-    public void testValidBatchSizeAndVisibilityTimeout() {
+    public void testValidVisibilityTimeout() {
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "dummy-storage");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "dummy-key");
         runner.setProperty(GetAzureQueueStorage.QUEUE, "dummyqueue");
@@ -51,11 +51,11 @@ public class TestGetAzureQueueStorage {
     }
 
     @Test
-    public void testInvalidBatchSizeAndVisibilityTimeout() {
+    public void testInvalidVisibilityTimeout() {
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "dummy-storage");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "dummy-key");
         runner.setProperty(GetAzureQueueStorage.QUEUE, "dummyqueue");
-        runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "50");
+        runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "10");
         runner.setProperty(GetAzureQueueStorage.VISIBILITY_TIMEOUT, "0 secs");
 
         ProcessContext processContext = runner.getProcessContext();
@@ -64,10 +64,8 @@ public class TestGetAzureQueueStorage {
             results = ((MockProcessContext) processContext).validate();
         }
 
-        Assert.assertEquals(2, results.size());
-
+        Assert.assertEquals(1, results.size());
         Iterator<ValidationResult> iterator = results.iterator();
-        Assert.assertTrue(iterator.next().getExplanation().contains("up to 32 messages can be retrieved at a time"));
         Assert.assertTrue(iterator.next().getExplanation().contains("should be greater than 0 secs"));
     }
 

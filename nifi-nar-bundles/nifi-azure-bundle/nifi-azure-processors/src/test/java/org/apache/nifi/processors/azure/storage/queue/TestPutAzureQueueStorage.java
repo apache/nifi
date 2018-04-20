@@ -60,24 +60,6 @@ public class TestPutAzureQueueStorage {
     }
 
     @Test
-    public void testInvalidQueueName() {
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "dummy-storage");
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "dummy-key");
-        runner.setProperty(GetAzureQueueStorage.QUEUE, "DummyQueue");
-
-        ProcessContext processContext = runner.getProcessContext();
-        Collection<ValidationResult> results = new HashSet<>();
-        if (processContext instanceof MockProcessContext) {
-            results = ((MockProcessContext) processContext).validate();
-        }
-
-        Assert.assertEquals(1, results.size());
-
-        Iterator<ValidationResult> iterator = results.iterator();
-        Assert.assertTrue(iterator.next().toString().contains("name of the Azure Storage Queue should be in lowercase"));
-    }
-
-    @Test
     public void testAllValidProperties() {
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "dummy-storage");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "dummy-key");
