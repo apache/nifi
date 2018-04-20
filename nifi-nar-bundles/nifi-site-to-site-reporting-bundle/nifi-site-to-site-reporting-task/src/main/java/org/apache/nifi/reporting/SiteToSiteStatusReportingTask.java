@@ -339,6 +339,10 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                     componentType, componentName);
 
             addField(builder, "componentId", status.getId());
+            addField(builder, "sourceId", status.getSourceId());
+            addField(builder, "sourceName", status.getSourceName());
+            addField(builder, "destinationId", status.getDestinationId());
+            addField(builder, "destinationName", status.getDestinationName());
             addField(builder, "maxQueuedBytes", status.getMaxQueuedBytes());
             addField(builder, "maxQueuedCount", status.getMaxQueuedCount());
             addField(builder, "queuedBytes", status.getQueuedBytes());
