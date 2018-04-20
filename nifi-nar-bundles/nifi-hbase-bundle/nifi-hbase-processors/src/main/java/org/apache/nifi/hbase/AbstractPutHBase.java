@@ -73,7 +73,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
                     "is left blank, it will be assumed that no visibility is to be set unless visibility-related attributes are set. NOTE: " +
                     "this configuration will have no effect on your data if you have not enabled visibility labels in the HBase cluster.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(Validator.VALID)
             .build();
 

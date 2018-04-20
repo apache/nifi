@@ -113,7 +113,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
                     "because HBase does not report it as a failure.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     @Override
