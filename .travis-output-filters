@@ -1,6 +1,7 @@
 Downloading from 
 Copying 
 Progress 
+Resolving deltas:
 [WARNING] *****************************************************************
 [WARNING] * Your build is requesting parallel execution, but project      *
 [WARNING] * contains the following plugin(s) that have goals not marked   *

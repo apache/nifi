@@ -167,7 +167,6 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <consoleOutput>true</consoleOutput>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/scrypt.py</exclude>
                         <!-- use wildcard for below files as tests generate additional files during the build -->
