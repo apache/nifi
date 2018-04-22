@@ -125,7 +125,6 @@
                         <exclude>src/test/resources/xml/people.xml</exclude>
                         <exclude>src/test/resources/xml/people2.xml</exclude>
                         <exclude>src/test/resources/xml/people3.xml</exclude>
-                        <exclude>src/test/resources/xml/people4.xml</exclude>
                         <exclude>src/test/resources/xml/people_array.xml</exclude>
                         <exclude>src/test/resources/xml/people_array_simple.xml</exclude>
                         <exclude>src/test/resources/xml/people_cdata.xml</exclude>
@@ -142,6 +141,7 @@
                         <exclude>src/test/resources/xml/people_with_header_and_comments.xml</exclude>
                         <exclude>src/test/resources/xml/person.xml</exclude>
                         <exclude>src/test/resources/xml/testschema</exclude>
+                        <exclude>src/test/resources/xml/testschema2</exclude>
                     </excludes>
                 </configuration>
             </plugin>

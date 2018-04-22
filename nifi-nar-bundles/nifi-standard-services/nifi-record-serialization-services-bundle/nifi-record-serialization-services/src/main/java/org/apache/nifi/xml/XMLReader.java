@@ -45,26 +45,22 @@ import java.util.Map;
         "XML data, embedded in an enclosing root tag.")
 public class XMLReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    public static final AllowableValue RECORD_SINGLE = new AllowableValue("record_single", "Single Record");
-    public static final AllowableValue RECORD_ARRAY = new AllowableValue("record_array", "Array of Records");
+    public static final AllowableValue RECORD_SINGLE = new AllowableValue("false");
+    public static final AllowableValue RECORD_ARRAY = new AllowableValue("true");
+    public static final AllowableValue RECORD_EVALUATE = new AllowableValue("${xml.stream.is.array}","Use attribute xml.stream.is.array");
 
     public static final PropertyDescriptor RECORD_FORMAT = new PropertyDescriptor.Builder()
             .name("record_format")
-            .displayName("Record Format")
-            .description("This property defines whether the reader expects a single record an array of records")
+            .displayName("Expect Records as Array")
+            .description("This property defines whether the reader expects a single record an array of records. If the property is " +
+                    "set to \"true\", the reader expects an array of records and the outer element of the XML will be treated as a " +
+                    "wrapper for the records. If the property is set to \"false\", the reader expects a single record for each FlowFile " +
+                    "(without wrapper-element). If the property is set to \"Use attribute xml.stream.is.array\", the attribute " +
+                    "\"xml.stream.is.array\" will be evaluated for each FlowFile whether to treat its content as array " +
+                    "of records (in the case of \"true\") or as single record (in the case of \"false\".")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(RECORD_SINGLE, RECORD_ARRAY)
+            .allowableValues(RECORD_SINGLE, RECORD_ARRAY, RECORD_EVALUATE)
             .defaultValue(RECORD_SINGLE.getValue())
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
-            .build();
-
-    public static final PropertyDescriptor CHECK_RECORD_TAG = new PropertyDescriptor.Builder()
-            .name("check_record_tag")
-            .displayName("Check Record Tag")
-            .description("If this property is set, the name of record tags of incoming FlowFiles will be evaluated against this value. " +
-                    "In the case of a mismatch, the respective record will be skipped. If this property is not set, all records will be processed.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
@@ -105,7 +101,6 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(RECORD_FORMAT);
-        properties.add(CHECK_RECORD_TAG);
         properties.add(ATTRIBUTE_PREFIX);
         properties.add(CONTENT_FIELD_NAME);
         properties.add(DateTimeUtils.DATE_FORMAT);
@@ -115,13 +110,11 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException, MalformedRecordException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger)
+            throws IOException, SchemaNotFoundException, MalformedRecordException {
         final ConfigurationContext context = getConfigurationContext();
 
         final RecordSchema schema = getSchema(variables, in, null);
-
-        final String recordName = context.getProperty(CHECK_RECORD_TAG).isSet()
-                ? context.getProperty(CHECK_RECORD_TAG).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
         final String attributePrefix = context.getProperty(ATTRIBUTE_PREFIX).isSet()
                 ? context.getProperty(ATTRIBUTE_PREFIX).evaluateAttributeExpressions(variables).getValue().trim() : null;
@@ -129,9 +122,8 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final String contentFieldName = context.getProperty(CONTENT_FIELD_NAME).isSet()
                 ? context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
-        final boolean isArray = context.getProperty(RECORD_FORMAT).evaluateAttributeExpressions(variables).getValue()
-                .equals(RECORD_ARRAY.getValue());
+        final boolean isArray = Boolean.parseBoolean(context.getProperty(RECORD_FORMAT).evaluateAttributeExpressions(variables).getValue());
 
-        return new XMLRecordReader(in, schema, isArray, recordName, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
+        return new XMLRecordReader(in, schema, isArray, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
     }
 }

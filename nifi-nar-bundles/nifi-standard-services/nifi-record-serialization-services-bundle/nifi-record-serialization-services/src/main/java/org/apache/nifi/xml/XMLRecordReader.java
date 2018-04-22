@@ -55,7 +55,6 @@ public class XMLRecordReader implements RecordReader {
 
     private final ComponentLog logger;
     private final RecordSchema schema;
-    private final String recordName;
     private final String attributePrefix;
     private final String contentFieldName;
 
@@ -67,10 +66,9 @@ public class XMLRecordReader implements RecordReader {
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
-    public XMLRecordReader(InputStream in, RecordSchema schema, boolean isArray, String recordName, String attributePrefix, String contentFieldName,
+    public XMLRecordReader(InputStream in, RecordSchema schema, boolean isArray, String attributePrefix, String contentFieldName,
                            final String dateFormat, final String timeFormat, final String timestampFormat, final ComponentLog logger) throws MalformedRecordException {
         this.schema = schema;
-        this.recordName = recordName;
         this.attributePrefix = attributePrefix;
         this.contentFieldName = contentFieldName;
         this.logger = logger;
@@ -112,19 +110,8 @@ public class XMLRecordReader implements RecordReader {
             final XMLEvent xmlEvent = xmlEventReader.nextEvent();
             if (xmlEvent.isStartElement()) {
                 final StartElement startElement = xmlEvent.asStartElement();
-                if (recordName != null) {
-                    if (startElement.getName().getLocalPart().equals(recordName)) {
-                        currentRecordStartTag = startElement;
-                        return;
-                    } else {
-                        logger.debug("Mismatch between expected record tag name {} and actual tag name in XML {}. " +
-                                "Record will be skipped", new Object[] {recordName, startElement.getName().getLocalPart()});
-                        skipElement();
-                    }
-                } else {
-                    currentRecordStartTag = startElement;
-                    return;
-                }
+                currentRecordStartTag = startElement;
+                return;
             }
         }
         currentRecordStartTag = null;
