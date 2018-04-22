@@ -24,8 +24,8 @@
     <p>
         The XMLReader Controller Service reads XML content and creates Record objects. The Controller Service
         must be configured with a schema that describes the structure of the XML data. Fields in the XML data
-        that are not defined in the schema will be skipped. Depending on how the property "Record Format" is set,
-        the reader either expects a single record or an array of records for each FlowFile.
+        that are not defined in the schema will be skipped. Depending on whether the property "Expect Records as Array"
+        is set to "false" or "true", the reader either expects a single record or an array of records for each FlowFile.
     </p>
     <p>
         Example: Single record
