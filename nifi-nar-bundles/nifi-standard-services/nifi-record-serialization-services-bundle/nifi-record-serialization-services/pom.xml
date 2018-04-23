@@ -87,9 +87,26 @@
             <version>1.8.1</version>
         </dependency>
         <dependency>
+            <groupId>net.java.dev.stax-utils</groupId>
+            <artifactId>stax-utils</artifactId>
+            <version>20070216</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.bea.xml</groupId>
+                    <artifactId>jsr173-ri</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <version>1.7.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.xmlunit</groupId>
+            <artifactId>xmlunit-matchers</artifactId>
+            <version>2.2.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -148,6 +165,7 @@
                         <exclude>src/test/resources/xml/person.xml</exclude>
                         <exclude>src/test/resources/xml/testschema</exclude>
                         <exclude>src/test/resources/xml/testschema2</exclude>
+                        <exclude>src/test/resources/xml/testschema3</exclude>
                     </excludes>
                 </configuration>
             </plugin>

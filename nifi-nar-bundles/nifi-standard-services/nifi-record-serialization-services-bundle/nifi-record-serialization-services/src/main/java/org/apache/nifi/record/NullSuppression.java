@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.json;
+package org.apache.nifi.record;
 
 public enum NullSuppression {
     ALWAYS_SUPPRESS,
