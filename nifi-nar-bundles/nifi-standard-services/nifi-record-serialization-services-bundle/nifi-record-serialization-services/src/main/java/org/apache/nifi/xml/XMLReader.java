@@ -45,24 +45,26 @@ import java.util.Map;
         "XML data, embedded in an enclosing root tag.")
 public class XMLReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    public static final AllowableValue RECORD_SINGLE = new AllowableValue("false");
-    public static final AllowableValue RECORD_ARRAY = new AllowableValue("true");
-    public static final AllowableValue RECORD_EVALUATE = new AllowableValue("${xml.stream.is.array}","Use attribute xml.stream.is.array");
+    public static final AllowableValue RECORD_SINGLE = new AllowableValue("false", "false",
+        "Each FlowFile will consist of a single record without any sort of \"wrapper\".");
+    public static final AllowableValue RECORD_ARRAY = new AllowableValue("true", "true",
+        "Each FlowFile will consist of zero or more records. The outer-most XML element is expected to be a \"wrapper\" and will be ignored.");
+    public static final AllowableValue RECORD_EVALUATE = new AllowableValue("${xml.stream.is.array}", "Use attribute 'xml.stream.is.array'",
+        "Whether to treat a FlowFile as a single Record or an array of multiple Records is determined by the value of the 'xml.stream.is.array' attribute. "
+            + "If the value of the attribute is 'true' (case-insensitive), then the XML Reader will treat the FlowFile as a series of Records with the outer element being ignored. "
+            + "If the value of the attribute is 'false' (case-insensitive), then the FlowFile is treated as a single Record and no wrapper element is assumed. "
+            + "If the attribute is missing or its value is anything other than 'true' or 'false', then an Exception will be thrown and no records will be parsed.");
 
     public static final PropertyDescriptor RECORD_FORMAT = new PropertyDescriptor.Builder()
             .name("record_format")
             .displayName("Expect Records as Array")
-            .description("This property defines whether the reader expects a single record an array of records. If the property is " +
-                    "set to \"true\", the reader expects an array of records and the outer element of the XML will be treated as a " +
-                    "wrapper for the records. If the property is set to \"false\", the reader expects a single record for each FlowFile " +
-                    "(without wrapper-element). If the property is set to \"Use attribute xml.stream.is.array\", the attribute " +
-                    "\"xml.stream.is.array\" will be evaluated for each FlowFile whether to treat its content as array " +
-                    "of records (in the case of \"true\") or as single record (in the case of \"false\".")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("This property defines whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\". Because XML does not "
+                + "provide for a way to read a series of XML documents from a stream directly, it is common to combine many XML documents by concatenating them and then wrapping the entire "
+                + "XML blob  with a \"wrapper element\". This property dictates whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\" "
+                + "that will be ignored.")
             .allowableValues(RECORD_SINGLE, RECORD_ARRAY, RECORD_EVALUATE)
             .defaultValue(RECORD_SINGLE.getValue())
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
+            .required(true)
             .build();
 
     public static final PropertyDescriptor ATTRIBUTE_PREFIX = new PropertyDescriptor.Builder()
@@ -122,7 +124,16 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final String contentFieldName = context.getProperty(CONTENT_FIELD_NAME).isSet()
                 ? context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue().trim() : null;
 
-        final boolean isArray = Boolean.parseBoolean(context.getProperty(RECORD_FORMAT).evaluateAttributeExpressions(variables).getValue());
+        final boolean isArray;
+        final String recordFormat = context.getProperty(RECORD_FORMAT).evaluateAttributeExpressions(variables).getValue().trim();
+        if ("true".equalsIgnoreCase(recordFormat)) {
+            isArray = true;
+        } else if ("false".equalsIgnoreCase(recordFormat)) {
+            isArray = false;
+        } else {
+            throw new IOException("Cannot parse XML Records because the '" + RECORD_FORMAT.getDisplayName() + "' property evaluates to '"
+                + recordFormat + "', which is neither 'true' nor 'false'");
+        }
 
         return new XMLRecordReader(in, schema, isArray, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
     }
