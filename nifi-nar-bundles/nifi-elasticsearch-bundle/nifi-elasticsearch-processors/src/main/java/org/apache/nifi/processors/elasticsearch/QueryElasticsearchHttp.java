@@ -267,30 +267,28 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        final Set<Relationship> routeQueryInfoRels = new HashSet<>();
+        routeQueryInfoRels.add(REL_SUCCESS);
+        routeQueryInfoRels.add(REL_FAILURE);
+        routeQueryInfoRels.add(REL_RETRY);
+
+        final Set<Relationship> successRels = new HashSet<>();
+        successRels.add(REL_SUCCESS);
+        successRels.add(REL_FAILURE);
+        successRels.add(REL_RETRY);
+
         if (ROUTING_QUERY_INFO_STRATEGY.equals(descriptor)) {
             if (ALWAYS.getValue().equalsIgnoreCase(newValue)) {
-                final Set<Relationship> routeQueryInfoRels = new HashSet<>();
-                routeQueryInfoRels.add(REL_SUCCESS);
-                routeQueryInfoRels.add(REL_FAILURE);
-                routeQueryInfoRels.add(REL_RETRY);
                 routeQueryInfoRels.add(REL_QUERY_INFO);
                 this.relationships = routeQueryInfoRels;
 
                 this.queryInfoRouteStrategy = QueryInfoRouteStrategy.ALWAYS;
             } else if (NO_HITS.getValue().equalsIgnoreCase(newValue)) {
-                final Set<Relationship> routeQueryInfoRels = new HashSet<>();
-                routeQueryInfoRels.add(REL_SUCCESS);
-                routeQueryInfoRels.add(REL_FAILURE);
-                routeQueryInfoRels.add(REL_RETRY);
                 routeQueryInfoRels.add(REL_QUERY_INFO);
                 this.relationships = routeQueryInfoRels;
 
                 this.queryInfoRouteStrategy = QueryInfoRouteStrategy.NOHIT;
             } else {
-                final Set<Relationship> successRels = new HashSet<>();
-                successRels.add(REL_SUCCESS);
-                successRels.add(REL_FAILURE);
-                successRels.add(REL_RETRY);
                 this.relationships = successRels;
 
                 this.queryInfoRouteStrategy = QueryInfoRouteStrategy.NEVER;
