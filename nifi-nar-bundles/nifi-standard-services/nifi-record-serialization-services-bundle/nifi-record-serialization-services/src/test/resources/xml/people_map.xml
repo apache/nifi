@@ -1,0 +1,18 @@
+<PEOPLE>
+    <PERSON>
+        <ID>P1</ID>
+        <MAP>
+            <NAME>Cleve Butler</NAME>
+            <AGE>42</AGE>
+            <COUNTRY>USA</COUNTRY>
+        </MAP>
+    </PERSON>
+    <PERSON>
+        <ID>P2</ID>
+        <MAP>
+            <NAME>Ainslie Fletcher</NAME>
+            <AGE>33</AGE>
+            <COUNTRY>UK</COUNTRY>
+        </MAP>
+    </PERSON>
+</PEOPLE>
