@@ -62,6 +62,7 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
 import org.apache.nifi.controller.api.livy.LivySessionService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
@@ -79,7 +80,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("The hostname (or IP address) of the Livy server.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LIVY_PORT = new PropertyDescriptor.Builder()
@@ -88,7 +89,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("The port number for the Livy server.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("8998")
             .build();
 
@@ -99,7 +100,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .required(true)
             .defaultValue("2")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SESSION_TYPE = new PropertyDescriptor.Builder()
@@ -119,7 +120,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .required(true)
             .defaultValue("2 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor JARS = new PropertyDescriptor.Builder()
@@ -128,7 +129,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("JARs to be used in the Spark session.")
             .required(false)
             .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor FILES = new PropertyDescriptor.Builder()
@@ -137,6 +138,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("Files to be used in the Spark session.")
             .required(false)
             .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .build();
 
@@ -192,13 +194,11 @@ public class LivySessionController extends AbstractControllerService implements 
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
-        ComponentLog log = getLogger();
-
         final String livyHost = context.getProperty(LIVY_HOST).evaluateAttributeExpressions().getValue();
         final String livyPort = context.getProperty(LIVY_PORT).evaluateAttributeExpressions().getValue();
         final String sessionPoolSize = context.getProperty(SESSION_POOL_SIZE).evaluateAttributeExpressions().getValue();
         final String sessionKind = context.getProperty(SESSION_TYPE).getValue();
-        final long sessionManagerStatusInterval = context.getProperty(SESSION_MGR_STATUS_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long sessionManagerStatusInterval = context.getProperty(SESSION_MGR_STATUS_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final String jars = context.getProperty(JARS).evaluateAttributeExpressions().getValue();
         final String files = context.getProperty(FILES).evaluateAttributeExpressions().getValue();
         sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -439,7 +439,6 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     private JSONObject readJSONObjectFromUrlPOST(String urlString, Map<String, String> headers, String payload) throws IOException, JSONException {
-        URL url = new URL(urlString);
         HttpURLConnection connection = getConnection(urlString);
 
         connection.setRequestMethod(POST);

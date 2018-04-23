@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-elasticsearch-bundle</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-elasticsearch-client-service</artifactId>
@@ -30,30 +30,30 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-service-api</artifactId>
             <scope>provided</scope>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
             <scope>provided</scope>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
             <scope>provided</scope>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -95,7 +95,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -111,13 +111,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-client-service-api</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

@@ -26,6 +26,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -47,7 +48,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Tags({ "dbcp", "jdbc", "database", "connection", "pooling", "store" })
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
-@DynamicProperty(name = "JDBC property name", value = "JDBC property value", supportsExpressionLanguage = true,
+@DynamicProperty(name = "JDBC property name", value = "JDBC property value", expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Specifies a property name and value to be set on the JDBC connection(s). "
                 + "If Expression Language is used, evaluation will be performed upon the controller service being enabled. "
                 + "Note that no flow file input (attributes, e.g.) is available for use in Expression Language constructs for these properties.")
@@ -60,7 +61,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .defaultValue(null)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
@@ -69,7 +70,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .defaultValue(null)
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
@@ -79,7 +80,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .defaultValue(null)
         .required(false)
         .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
@@ -87,7 +88,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .description("Database user name")
         .defaultValue(null)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
@@ -97,7 +98,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .required(false)
         .sensitive(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -128,7 +129,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             + "Note!! Using validation might have some performance penalty.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     private static final List<PropertyDescriptor> properties;
@@ -161,7 +162,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                 .required(false)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .dynamic(true)
                 .build();
     }

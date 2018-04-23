@@ -20,14 +20,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.Query.Range;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -36,10 +38,12 @@ import org.apache.nifi.registry.VariableRegistry;
 public class MockPropertyValue implements PropertyValue {
     private final String rawValue;
     private final Boolean expectExpressions;
-    private final ControllerServiceLookup serviceLookup;
+    private final ExpressionLanguageScope expressionLanguageScope;
+    private final MockControllerServiceLookup serviceLookup;
     private final PropertyDescriptor propertyDescriptor;
     private final PropertyValue stdPropValue;
     private final VariableRegistry variableRegistry;
+
     private boolean expressionsEvaluated = false;
 
     public MockPropertyValue(final String rawValue) {
@@ -59,12 +63,12 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     private MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor, final boolean alreadyEvaluated,
-                              final VariableRegistry variableRegistry) {
+            final VariableRegistry variableRegistry) {
         this.stdPropValue = new StandardPropertyValue(rawValue, serviceLookup, variableRegistry);
-
         this.rawValue = rawValue;
-        this.serviceLookup = serviceLookup;
+        this.serviceLookup = (MockControllerServiceLookup) serviceLookup;
         this.expectExpressions = propertyDescriptor == null ? null : propertyDescriptor.isExpressionLanguageSupported();
+        this.expressionLanguageScope = propertyDescriptor == null ? null : propertyDescriptor.getExpressionLanguageScope();
         this.propertyDescriptor = propertyDescriptor;
         this.expressionsEvaluated = alreadyEvaluated;
         this.variableRegistry = variableRegistry;
@@ -77,6 +81,55 @@ public class MockPropertyValue implements PropertyValue {
                     + " without first evaluating Expressions, even though the PropertyDescriptor indicates "
                     + "that the Expression Language is Supported. If you realize that this is the case and do not want "
                     + "this error to occur, it can be disabled by calling TestRunner.setValidateExpressionUsage(false)");
+        }
+    }
+
+    private void validateExpressionScope(boolean attributesAvailable) {
+        // language scope is not null, we have attributes available but scope is not equal to FF attributes
+        // it means that we're not evaluating against flow file attributes even though attributes are available
+        if(expressionLanguageScope != null
+                && (attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
+                    + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                    + " proper scope should be set in the property descriptor using"
+                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
+        }
+
+        // if the service lookup is an instance of the validation context, we're in the validate() method
+        // at this point we don't have any flow file available and we should not care about the scope
+        // even though it is defined as FLOWFILE_ATTRIBUTES
+        if(expressionLanguageScope != null
+                && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
+                && this.serviceLookup instanceof MockValidationContext) {
+            return;
+        }
+
+        // we check if the input requirement is INPUT_FORBIDDEN
+        // in that case, we don't care if attributes are not available even though scope is FLOWFILE_ATTRIBUTES
+        // it likely means that the property has been defined in a common/abstract class used by multiple processors with
+        // different input requirements.
+        if(expressionLanguageScope != null
+                && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
+                && (this.serviceLookup.getInputRequirement() == null
+                    || this.serviceLookup.getInputRequirement().value().equals(InputRequirement.Requirement.INPUT_FORBIDDEN))) {
+            return;
+        }
+
+        // if we have a processor where input requirement is INPUT_ALLOWED, we need to check if there is an
+        // incoming connection or not. If not, we don't care if attributes are not available even though scope is FLOWFILE_ATTRIBUTES
+        if(expressionLanguageScope != null
+                && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)
+                && !((MockProcessContext) this.serviceLookup).hasIncomingConnection()) {
+            return;
+        }
+
+        // we're trying to evaluate against flow files attributes but we don't have any attributes available.
+        if(expressionLanguageScope != null
+                && (!attributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope))) {
+            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
+                    + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                    + " proper scope should be set in the property descriptor using"
+                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
         }
     }
 
@@ -184,6 +237,8 @@ public class MockPropertyValue implements PropertyValue {
         if (rawValue == null) {
             return this;
         }
+
+        validateExpressionScope(flowFile != null || additionalAttributes != null);
 
         final PropertyValue newValue = stdPropValue.evaluateAttributeExpressions(flowFile, additionalAttributes, decorator, stateValues);
         return new MockPropertyValue(newValue.getValue(), serviceLookup, propertyDescriptor, true, variableRegistry);

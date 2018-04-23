@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -84,7 +85,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     + "It is an optional property. If kept empty the messages will be sent to a default AMQP exchange.")
             .required(true)
             .defaultValue("")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(Validator.VALID)
             .build();
     public static final PropertyDescriptor ROUTING_KEY = new PropertyDescriptor.Builder()
@@ -94,7 +95,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     + "corresponds to a destination queue name, otherwise a binding from the Exchange to a Queue via Routing Key must be set "
                     + "(usually by the AMQP administrator)")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

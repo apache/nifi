@@ -23,7 +23,9 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
@@ -175,6 +177,44 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
                     .resolveTemplate("flow-id", flowId);
 
             return getRequestBuilder(target).get(VersionedFlowSnapshotMetadataSetEntity.class);
+        });
+    }
+
+    @Override
+    public ControllerServicesEntity getControllerServices(final String groupId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(groupId)) {
+            throw new IllegalArgumentException("Group Id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving controller services", () -> {
+            final WebTarget target = flowTarget
+                    .path("process-groups/{id}/controller-services")
+                    .resolveTemplate("id", groupId);
+
+            return getRequestBuilder(target).get(ControllerServicesEntity.class);
+        });
+    }
+
+    @Override
+    public ActivateControllerServicesEntity activateControllerServices(final ActivateControllerServicesEntity activateControllerServicesEntity)
+            throws NiFiClientException, IOException {
+
+        if (activateControllerServicesEntity == null) {
+            throw new IllegalArgumentException("Entity cannot be null");
+        }
+
+        if (StringUtils.isBlank(activateControllerServicesEntity.getId())) {
+            throw new IllegalArgumentException("Entity must contain a process group id");
+        }
+
+        return executeAction("Error enabling or disabling controlling services", () -> {
+            final WebTarget target = flowTarget
+                    .path("process-groups/{id}/controller-services")
+                    .resolveTemplate("id", activateControllerServicesEntity.getId());
+
+            return getRequestBuilder(target).put(
+                    Entity.entity(activateControllerServicesEntity, MediaType.APPLICATION_JSON_TYPE),
+                    ActivateControllerServicesEntity.class);
         });
     }
 }

@@ -68,7 +68,6 @@ public class TestUpdateRecord {
     public void testLiteralReplacementValue() {
         runner.setProperty("/name", "Jane Doe");
         runner.enqueue("");
-        runner.setValidateExpressionUsage(false);
 
         readerService.addRecord("John Doe", 35);
         runner.run();
@@ -193,7 +192,6 @@ public class TestUpdateRecord {
     public void testUpdateInArray() throws InitializationException, IOException {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setValidateExpressionUsage(false);
 
         final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-address.avsc")));
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-address.avsc")));
@@ -224,7 +222,6 @@ public class TestUpdateRecord {
     public void testUpdateInNullArray() throws InitializationException, IOException {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setValidateExpressionUsage(false);
 
         final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-address.avsc")));
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-address.avsc")));
@@ -467,7 +464,6 @@ public class TestUpdateRecord {
     public void testUpdateSimpleArray() throws InitializationException, IOException {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setValidateExpressionUsage(false);
 
         final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));
@@ -558,7 +554,6 @@ public class TestUpdateRecord {
     public void testUpdateComplexArrays() throws InitializationException, IOException {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setValidateExpressionUsage(false);
 
         final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc")));

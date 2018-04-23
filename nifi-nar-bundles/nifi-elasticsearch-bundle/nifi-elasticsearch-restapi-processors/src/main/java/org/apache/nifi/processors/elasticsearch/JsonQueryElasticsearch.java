@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.SearchResponse;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -83,7 +84,7 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             .displayName("Index")
             .description("The name of the index to read from")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -92,7 +93,7 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             .displayName("Type")
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -108,14 +109,14 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
                     "\t}\n" +
                     "}")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("el-query-attribute")
             .displayName("Query Attribute")
             .description("If set, the executed query will be set on each result flowfile in the specified attribute.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(Validator.VALID)
             .required(false)
             .build();
@@ -138,7 +139,7 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             .allowableValues(SPLIT_UP_HITS_NO, SPLIT_UP_YES)
             .defaultValue(SPLIT_UP_HITS_NO.getValue())
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor SPLIT_UP_AGGREGATIONS = new PropertyDescriptor.Builder()
             .name("el-rest-split-up-aggregations")
@@ -147,7 +148,7 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             .allowableValues(SPLIT_UP_HITS_NO, SPLIT_UP_YES)
             .defaultValue(SPLIT_UP_HITS_NO.getValue())
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()

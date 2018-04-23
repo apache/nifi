@@ -17,7 +17,6 @@
 
 package org.apache.nifi.web.util;
 
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -51,7 +50,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
     private DtoFactory dtoFactory;
 
     @Override
-    public Set<AffectedComponentEntity> scheduleComponents(final URI exampleUri, final NiFiUser user, final String groupId, final Set<AffectedComponentEntity> components,
+    public Set<AffectedComponentEntity> scheduleComponents(final URI exampleUri, final String groupId, final Set<AffectedComponentEntity> components,
         final ScheduledState desiredState, final Pause pause) throws LifecycleManagementException {
 
         final Map<String, Revision> processorRevisions = components.stream()
@@ -61,19 +60,19 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             .collect(Collectors.toMap(AffectedComponentEntity::getId, Function.identity()));
 
         if (desiredState == ScheduledState.RUNNING) {
-            startComponents(groupId, processorRevisions, affectedComponentMap, user, pause);
+            startComponents(groupId, processorRevisions, affectedComponentMap, pause);
         } else {
-            stopComponents(groupId, processorRevisions, affectedComponentMap, user, pause);
+            stopComponents(groupId, processorRevisions, affectedComponentMap, pause);
         }
 
         final Set<AffectedComponentEntity> updatedEntities = components.stream()
-            .map(component -> AffectedComponentUtils.updateEntity(component, serviceFacade, dtoFactory, user))
+            .map(component -> AffectedComponentUtils.updateEntity(component, serviceFacade, dtoFactory))
             .collect(Collectors.toSet());
         return updatedEntities;
     }
 
     @Override
-    public Set<AffectedComponentEntity> activateControllerServices(final URI exampleUri, final NiFiUser user, final String groupId, final Set<AffectedComponentEntity> services,
+    public Set<AffectedComponentEntity> activateControllerServices(final URI exampleUri, final String groupId, final Set<AffectedComponentEntity> services,
         final ControllerServiceState desiredState, final Pause pause) throws LifecycleManagementException {
 
         final Map<String, Revision> serviceRevisions = services.stream()
@@ -83,20 +82,19 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             .collect(Collectors.toMap(AffectedComponentEntity::getId, Function.identity()));
 
         if (desiredState == ControllerServiceState.ENABLED) {
-            enableControllerServices(groupId, serviceRevisions, affectedServiceMap, user, pause);
+            enableControllerServices(groupId, serviceRevisions, affectedServiceMap, pause);
         } else {
-            disableControllerServices(groupId, serviceRevisions, affectedServiceMap, user, pause);
+            disableControllerServices(groupId, serviceRevisions, affectedServiceMap, pause);
         }
 
         return services.stream()
-            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId(), user))
+            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId()))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
     }
 
 
-    private void startComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents,
-        final NiFiUser user, final Pause pause) {
+    private void startComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause) {
 
         if (componentRevisions.isEmpty()) {
             return;
@@ -105,15 +103,14 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         logger.debug("Starting components with ID's {} from Process Group {}", componentRevisions.keySet(), processGroupId);
 
         serviceFacade.verifyScheduleComponents(processGroupId, ScheduledState.RUNNING, componentRevisions.keySet());
-        serviceFacade.scheduleComponents(user, processGroupId, ScheduledState.RUNNING, componentRevisions);
+        serviceFacade.scheduleComponents(processGroupId, ScheduledState.RUNNING, componentRevisions);
 
         // wait for all of the Processors to reach the desired state. We don't have to wait for other components because
         // Local and Remote Ports as well as funnels start immediately.
         waitForProcessorState(processGroupId, affectedComponents, ScheduledState.RUNNING, pause);
     }
 
-    private void stopComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents,
-        final NiFiUser user, final Pause pause) {
+    private void stopComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause) {
 
         if (componentRevisions.isEmpty()) {
             return;
@@ -122,7 +119,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         logger.debug("Stopping components with ID's {} from Process Group {}", componentRevisions.keySet(), processGroupId);
 
         serviceFacade.verifyScheduleComponents(processGroupId, ScheduledState.STOPPED, componentRevisions.keySet());
-        serviceFacade.scheduleComponents(user, processGroupId, ScheduledState.STOPPED, componentRevisions);
+        serviceFacade.scheduleComponents(processGroupId, ScheduledState.STOPPED, componentRevisions);
 
         // wait for all of the Processors to reach the desired state. We don't have to wait for other components because
         // Local and Remote Ports as well as funnels stop immediately.
@@ -205,8 +202,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
     }
 
 
-    private void enableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices,
-        final NiFiUser user, final Pause pause) {
+    private void enableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices, final Pause pause) {
 
         if (serviceRevisions.isEmpty()) {
             return;
@@ -215,12 +211,11 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         logger.debug("Enabling Controller Services with ID's {} from Process Group {}", serviceRevisions.keySet(), processGroupId);
 
         serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.ENABLED, affectedServices.keySet());
-        serviceFacade.activateControllerServices(user, processGroupId, ControllerServiceState.ENABLED, serviceRevisions);
-        waitForControllerServiceState(processGroupId, affectedServices, ControllerServiceState.ENABLED, pause, user);
+        serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.ENABLED, serviceRevisions);
+        waitForControllerServiceState(processGroupId, affectedServices, ControllerServiceState.ENABLED, pause);
     }
 
-    private void disableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices,
-        final NiFiUser user, final Pause pause) {
+    private void disableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices, final Pause pause) {
 
         if (serviceRevisions.isEmpty()) {
             return;
@@ -229,8 +224,8 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         logger.debug("Disabling Controller Services with ID's {} from Process Group {}", serviceRevisions.keySet(), processGroupId);
 
         serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.DISABLED, affectedServices.keySet());
-        serviceFacade.activateControllerServices(user, processGroupId, ControllerServiceState.DISABLED, serviceRevisions);
-        waitForControllerServiceState(processGroupId, affectedServices, ControllerServiceState.DISABLED, pause, user);
+        serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.DISABLED, serviceRevisions);
+        waitForControllerServiceState(processGroupId, affectedServices, ControllerServiceState.DISABLED, pause);
     }
 
     static List<List<ControllerServiceNode>> determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap) {
@@ -280,17 +275,15 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
      * @param affectedServices all Controller Services whose state should be equal to the given desired state
      * @param desiredState the desired state for all services with the ID's given
      * @param pause the Pause that can be used to wait between polling
-     * @param user the user that is retrieving the controller services
      * @return <code>true</code> if successful, <code>false</code> if unable to wait for services to reach the desired state
      */
-    private boolean waitForControllerServiceState(final String groupId, final Map<String, AffectedComponentEntity> affectedServices, final ControllerServiceState desiredState, final Pause pause,
-        final NiFiUser user) {
+    private boolean waitForControllerServiceState(final String groupId, final Map<String, AffectedComponentEntity> affectedServices, final ControllerServiceState desiredState, final Pause pause) {
 
         logger.debug("Waiting for {} Controller Services to transition their states to {}", affectedServices.size(), desiredState);
 
         boolean continuePolling = true;
         while (continuePolling) {
-            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true, user);
+            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true);
 
             // update the affected controller services
             updateAffectedControllerServices(serviceEntities, affectedServices);

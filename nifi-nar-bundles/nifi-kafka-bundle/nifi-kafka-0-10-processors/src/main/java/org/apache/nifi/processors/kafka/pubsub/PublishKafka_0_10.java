@@ -45,6 +45,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -100,7 +101,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .description("The name of the Kafka Topic to publish to.")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
@@ -108,7 +109,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .displayName("Delivery Guarantee")
         .description("Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds to Kafka's 'acks' property.")
         .required(true)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
         .defaultValue(DELIVERY_BEST_EFFORT.getValue())
         .build();
@@ -120,7 +121,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
             + "entire 'send' call. Corresponds to Kafka's 'max.block.ms' property")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("5 sec")
         .build();
 
@@ -130,7 +131,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .description("After sending a message to Kafka, this indicates the amount of time that we are willing to wait for a response from Kafka. "
             + "If Kafka does not acknowledge the message within this time period, the FlowFile will be routed to 'failure'.")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .defaultValue("5 secs")
         .build();
@@ -154,7 +155,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
             + "data loss on Kafka. During a topic compaction on Kafka, messages will be deduplicated based on this key.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
@@ -171,7 +172,7 @@ public class PublishKafka_0_10 extends AbstractProcessor {
         .displayName("Message Demarcator")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .description("Specifies the string (interpreted as UTF-8) to use for demarcating multiple messages within "
             + "a single FlowFile. If not specified, the entire content of the FlowFile will be used as a single message. If specified, the "
             + "contents of the FlowFile will be split on this delimiter and each section sent as a separate Kafka message. "

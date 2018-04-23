@@ -103,6 +103,7 @@ import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -263,7 +264,9 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval) {
+    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
+                                                           final Long defaultBackPressureObjectThreshold,
+                                                           final String defaultBackPressureDataSizeThreshold) {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
@@ -276,6 +279,9 @@ public final class DtoFactory {
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
         dto.setCurrentTime(now);
+
+        dto.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        dto.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
 
         return dto;
     }
@@ -1502,39 +1508,43 @@ public final class DtoFactory {
             processGroupId = null;
         }
 
-        if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
-            final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-                @Override
-                public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-                    return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-                }
-            });
-            sortedProperties.putAll(component.getProperties());
+        // ensure descriptors is non null
+        if (propertyDescriptors == null) {
+            propertyDescriptors = new ArrayList<>();
+        }
 
-            final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
-            for (final PropertyDescriptor descriptor : propertyDescriptors) {
-                orderedProperties.put(descriptor, null);
+        // process properties unconditionally since dynamic properties are available here and not in getPropertyDescriptors
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
+            @Override
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
+                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
-            orderedProperties.putAll(sortedProperties);
+        });
+        sortedProperties.putAll(component.getProperties());
 
-            // build the descriptor and property dtos
-            dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-            dto.setProperties(new LinkedHashMap<String, String>());
-            for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            orderedProperties.put(descriptor, null);
+        }
+        orderedProperties.putAll(sortedProperties);
 
-                // store the property descriptor
-                dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
+        // build the descriptor and property dtos
+        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
+        dto.setProperties(new LinkedHashMap<String, String>());
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
 
-                // determine the property value - don't include sensitive properties
-                String propertyValue = entry.getValue();
-                if (propertyValue != null && descriptor.isSensitive()) {
-                    propertyValue = SENSITIVE_VALUE_MASK;
-                }
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
 
-                // set the property value
-                dto.getProperties().put(descriptor.getName(), propertyValue);
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
             }
+
+            // set the property value
+            dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -2799,7 +2809,7 @@ public final class DtoFactory {
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
-        dto.setSupportsBatching(node.isHighThroughputSupported());
+        dto.setSupportsBatching(node.isSessionBatchingSupported());
         dto.setConfig(createProcessorConfigDto(node));
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
@@ -3243,6 +3253,7 @@ public final class DtoFactory {
      * Creates a ControllerServiceDiagnosticsDTO from the given Controller Service with some additional supporting information
      *
      * @param serviceNode the controller service to create diagnostics for
+     * @param serviceEntityFactory a function to convert a controller service id to a controller service entity
      * @param serviceProvider the controller service provider
      * @return ControllerServiceDiagnosticsDTO for the given Controller Service
      */
@@ -3471,6 +3482,7 @@ public final class DtoFactory {
             dto.setStackTrace(threadInfo.getStackTrace());
             dto.setThreadActiveMillis(threadInfo.getActiveMillis());
             dto.setThreadName(threadInfo.getThreadName());
+            dto.setTaskTerminated(threadInfo.isTerminated());
             threadDumps.add(dto);
         }
 
@@ -3580,6 +3592,12 @@ public final class DtoFactory {
         dto.setDescription(propertyDescriptor.getDescription());
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
+
+        // to support legacy/deprecated method .expressionLanguageSupported(true)
+        String description = propertyDescriptor.isExpressionLanguageSupported()
+                && propertyDescriptor.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)
+                ? "true (undefined scope)" : propertyDescriptor.getExpressionLanguageScope().getDescription();
+        dto.setExpressionLanguageScope(description);
 
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {

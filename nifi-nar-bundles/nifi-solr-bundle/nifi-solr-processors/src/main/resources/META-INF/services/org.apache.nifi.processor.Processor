@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.solr.PutSolrContentStream
 org.apache.nifi.processors.solr.GetSolr
+org.apache.nifi.processors.solr.QuerySolr

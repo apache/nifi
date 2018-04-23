@@ -41,6 +41,7 @@ import static java.sql.Types.ROWID;
 import static java.sql.Types.SMALLINT;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
+import static java.sql.Types.TIMESTAMP_WITH_TIMEZONE;
 import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
@@ -97,6 +98,7 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import javax.xml.bind.DatatypeConverter;
@@ -154,7 +156,7 @@ public class JdbcCommon {
                     + " 'Default Decimal Precision' is used when writing those undefined precision numbers.")
             .defaultValue(String.valueOf(DEFAULT_PRECISION_VALUE))
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
@@ -170,7 +172,7 @@ public class JdbcCommon {
                     + " e.g. 1.53 becomes 2 with scale 0, and 1.5 with scale 1.")
             .defaultValue(String.valueOf(DEFAULT_SCALE_VALUE))
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
@@ -355,7 +357,28 @@ public class JdbcCommon {
                         continue;
                     }
 
-                    final Object value = rs.getObject(i);
+                    Object value;
+
+                    // If a Timestamp type, try getTimestamp() rather than getObject()
+                    if (javaSqlType == TIMESTAMP
+                            || javaSqlType == TIMESTAMP_WITH_TIMEZONE
+                            // The following are Oracle-specific codes for TIMESTAMP WITH TIME ZONE and TIMESTAMP WITH LOCAL TIME ZONE. This would be better
+                            // located in the DatabaseAdapter interfaces, but some processors (like ExecuteSQL) use this method but don't specify a DatabaseAdapter.
+                            || javaSqlType == -101
+                            || javaSqlType == -102) {
+                        try {
+                            value = rs.getTimestamp(i);
+                            // Some drivers (like Derby) return null for getTimestamp() but return a Timestamp object in getObject()
+                            if (value == null) {
+                                value = rs.getObject(i);
+                            }
+                        } catch (Exception e) {
+                            // The cause of the exception is not known, but we'll fall back to call getObject() and handle any "real" exception there
+                            value = rs.getObject(i);
+                        }
+                    } else {
+                        value = rs.getObject(i);
+                    }
 
                     if (value == null) {
                         rec.put(i - 1, null);
@@ -602,6 +625,9 @@ public class JdbcCommon {
                     break;
 
                 case TIMESTAMP:
+                case TIMESTAMP_WITH_TIMEZONE:
+                case -101: // Oracle's TIMESTAMP WITH TIME ZONE
+                case -102: // Oracle's TIMESTAMP WITH LOCAL TIME ZONE
                     addNullableField(builder, columnName,
                             u -> options.useLogicalTypes
                                     ? u.type(LogicalTypes.timestampMillis().addToSchema(SchemaBuilder.builder().longType()))

@@ -76,6 +76,10 @@ public class BinManager {
         this.fileCountAttribute.set(fileCountAttribute);
     }
 
+    public String getFileCountAttribute() {
+        return fileCountAttribute.get();
+    }
+
     public void setMinimumEntries(final int minimumEntries) {
         this.minEntries.set(minimumEntries);
     }

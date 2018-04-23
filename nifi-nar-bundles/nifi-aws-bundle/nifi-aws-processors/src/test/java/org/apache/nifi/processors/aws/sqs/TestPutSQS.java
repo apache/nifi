@@ -16,25 +16,24 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.AmazonSQSException;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
-import com.amazonaws.services.sqs.model.SendMessageBatchResult;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
+import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.AmazonSQSException;
+import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
+import com.amazonaws.services.sqs.model.SendMessageBatchResult;
 
 
 public class TestPutSQS {
@@ -48,6 +47,7 @@ public class TestPutSQS {
     public void setUp() {
         mockSQSClient = Mockito.mock(AmazonSQSClient.class);
         mockPutSQS = new PutSQS() {
+            @Override
             protected AmazonSQSClient getClient() {
                 actualSQSClient = client;
                 return mockSQSClient;
@@ -58,7 +58,6 @@ public class TestPutSQS {
 
     @Test
     public void testSimplePut() throws IOException {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
@@ -83,7 +82,6 @@ public class TestPutSQS {
 
     @Test
     public void testPutException() throws IOException {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
 
         final Map<String, String> attrs = new HashMap<>();

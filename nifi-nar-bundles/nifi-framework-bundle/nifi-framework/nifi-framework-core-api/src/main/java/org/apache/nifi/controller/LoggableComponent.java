@@ -18,7 +18,6 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.logging.ComponentLog;
 
 /**
  * Holder to pass around a ConfigurableComponent with its coordinate and logger.
@@ -31,9 +30,9 @@ public class LoggableComponent<T extends ConfigurableComponent> {
 
     private final BundleCoordinate bundleCoordinate;
 
-    private final ComponentLog logger;
+    private final TerminationAwareLogger logger;
 
-    public LoggableComponent(final T component, final BundleCoordinate bundleCoordinate, final ComponentLog logger) {
+    public LoggableComponent(final T component, final BundleCoordinate bundleCoordinate, final TerminationAwareLogger logger) {
         this.component = component;
         this.bundleCoordinate = bundleCoordinate;
         this.logger = logger;
@@ -47,7 +46,7 @@ public class LoggableComponent<T extends ConfigurableComponent> {
         return bundleCoordinate;
     }
 
-    public ComponentLog getLogger() {
+    public TerminationAwareLogger getLogger() {
         return logger;
     }
 

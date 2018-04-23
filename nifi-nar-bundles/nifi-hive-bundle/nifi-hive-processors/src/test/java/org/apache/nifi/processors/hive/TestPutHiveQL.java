@@ -773,7 +773,8 @@ public class TestPutHiveQL {
             try {
                 if (++successful > allowedBeforeFailure) {
                     final Connection conn = Mockito.mock(Connection.class);
-                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException"));
+                    // Throw a retryable error
+                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException", "42000", 20000));
                     return conn;
                 } else {
                     return service.getConnection();

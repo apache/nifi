@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
@@ -58,7 +59,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     static final PropertyDescriptor PRETTY_PRINT_JSON = new PropertyDescriptor.Builder()
         .name("Pretty Print JSON")
         .description("Specifies whether or not the JSON should be pretty printed")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)

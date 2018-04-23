@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -63,8 +64,9 @@ import org.apache.nifi.stream.io.StreamUtils;
         + "of the property is the name of the relationship and the value is a Regular Expression to match against the FlowFile "
         + "content. User-Defined properties do support the Attribute Expression Language, but the results are interpreted as "
         + "literal values, not Regular Expressions")
-@DynamicProperty(name = "Relationship Name", value = "A Regular Expression", supportsExpressionLanguage = true, description = "Routes FlowFiles whose "
-        + "content matches the regular expression defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
+@DynamicProperty(name = "Relationship Name", value = "A Regular Expression", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                 description = "Routes FlowFiles whose content matches the regular expression defined by Dynamic Property's value to the "
+                         + "Relationship defined by the Dynamic Property's key")
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's Regular Expression")
 public class RouteOnContent extends AbstractProcessor {
 
@@ -139,7 +141,7 @@ public class RouteOnContent extends AbstractProcessor {
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
                 .dynamic(true)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
     }
 

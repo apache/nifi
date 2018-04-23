@@ -30,11 +30,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -74,7 +76,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         ObjectMapper mapper = new ObjectMapper();
         List<Map> values = mapper.readValue(query, List.class);
-        for (Map val : values) {
+        for (Map<?, ?> val : values) {
             result.add(new BasicDBObject(val));
         }
 
@@ -102,7 +104,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("mongo-agg-query")
             .displayName("Query")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .description("The aggregation query to be executed.")
             .required(true)
             .addValidator(AGG_VALIDATOR)
@@ -137,7 +139,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         return propertyDescriptors;
     }
 
-    static String buildBatch(List batch) {
+    static String buildBatch(List<Document> batch) {
         ObjectMapper mapper = new ObjectMapper();
         String retVal;
         try {
@@ -165,27 +167,27 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
         Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
 
-        Map attrs = new HashMap();
+        Map<String, String> attrs = new HashMap<String, String>();
         if (queryAttr != null && queryAttr.trim().length() > 0) {
             attrs.put(queryAttr, query);
         }
 
-        MongoCollection collection = getCollection(context);
-        MongoCursor iter = null;
+        MongoCollection<Document> collection = getCollection(context);
+        MongoCursor<Document> iter = null;
 
         try {
             List<Bson> aggQuery = buildAggregationQuery(query);
-            AggregateIterable it = collection.aggregate(aggQuery);
+            AggregateIterable<Document> it = collection.aggregate(aggQuery);
             it.batchSize(batchSize != null ? batchSize : 1);
 
             iter = it.iterator();
-            List batch = new ArrayList();
+            List<Document> batch = new ArrayList<Document>();
 
             while (iter.hasNext()) {
                 batch.add(iter.next());
                 if (batch.size() == resultsPerFlowfile) {
                     writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
-                    batch = new ArrayList();
+                    batch = new ArrayList<Document>();
                 }
             }
 

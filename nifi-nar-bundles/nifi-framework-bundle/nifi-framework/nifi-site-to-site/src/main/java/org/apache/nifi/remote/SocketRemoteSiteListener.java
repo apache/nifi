@@ -64,6 +64,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     private final NodeInformant nodeInformant;
     private final AtomicReference<ProcessGroup> rootGroup = new AtomicReference<>();
     private final NiFiProperties nifiProperties;
+    private final PeerDescriptionModifier peerDescriptionModifier;
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -78,6 +79,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         this.sslContext = sslContext;
         this.nifiProperties = nifiProperties;
         this.nodeInformant = nodeInformant;
+        peerDescriptionModifier = new PeerDescriptionModifier(nifiProperties);
     }
 
     @Override
@@ -218,6 +220,9 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 protocol = RemoteResourceFactory.receiveServerProtocolNegotiation(dis, dos);
                                 protocol.setRootProcessGroup(rootGroup.get());
                                 protocol.setNodeInformant(nodeInformant);
+                                if (protocol instanceof PeerDescriptionModifiable) {
+                                    ((PeerDescriptionModifiable)protocol).setPeerDescriptionModifier(peerDescriptionModifier);
+                                }
 
                                 final PeerDescription description = new PeerDescription(clientHostName, clientPort, sslContext != null);
                                 peer = new Peer(description, commsSession, peerUri, "nifi://localhost:" + getPort());

@@ -17,13 +17,11 @@
 package org.apache.nifi.attribute.expression.language;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.antlr.runtime.tree.Tree;
-import org.apache.nifi.attribute.expression.language.compile.CompiledExpression;
 import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -256,32 +254,30 @@ public class Query {
         final ExpressionCompiler compiler = new ExpressionCompiler();
 
         try {
-            final List<String> substrings = new ArrayList<>();
-            final Map<String, CompiledExpression> compiledExpressions = new HashMap<>();
+            final List<Expression> expressions = new ArrayList<>();
 
             int lastIndex = 0;
             for (final Range range : ranges) {
                 if (range.getStart() > lastIndex) {
-                    substrings.add(query.substring(lastIndex, range.getStart()).replace("$$", "$"));
+                    final String substring = query.substring(lastIndex, range.getStart()).replace("$$", "$");
+                    expressions.add(new StringLiteralExpression(substring));
                     lastIndex = range.getEnd() + 1;
                 }
 
                 final String treeText = query.substring(range.getStart(), range.getEnd() + 1).replace("$$", "$");
-                substrings.add(treeText);
-
                 final CompiledExpression compiledExpression = compiler.compile(treeText);
+                expressions.add(compiledExpression);
 
-                compiledExpressions.put(treeText, compiledExpression);
                 lastIndex = range.getEnd() + 1;
             }
 
             final Range lastRange = ranges.get(ranges.size() - 1);
             if (lastRange.getEnd() + 1 < query.length()) {
                 final String treeText = query.substring(lastRange.getEnd() + 1).replace("$$", "$");
-                substrings.add(treeText);
+                expressions.add(new StringLiteralExpression(treeText));
             }
 
-            return new StandardPreparedQuery(substrings, compiledExpressions);
+            return new StandardPreparedQuery(expressions);
         } catch (final AttributeExpressionLanguageParsingException e) {
             return new InvalidPreparedQuery(query, e.getMessage());
         }

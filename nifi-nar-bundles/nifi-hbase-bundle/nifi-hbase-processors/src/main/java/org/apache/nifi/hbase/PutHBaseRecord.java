@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -61,7 +62,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .name("Row Identifier Field Name")
             .description("Specifies the name of a record field whose value should be used as the row id for the given record.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -71,7 +72,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .description("Specifies the name of a record field whose value should be used as the timestamp for the cells in HBase. " +
                     "The value of this field must be a number, string, or date that can be converted to a long. " +
                     "If this field is left blank, HBase will use the current time.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -96,7 +97,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
     protected static final PropertyDescriptor COMPLEX_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("Complex Field Strategy")
             .description("Indicates how to handle complex fields, i.e. fields that do not have a single text value.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(COMPLEX_FIELD_FAIL, COMPLEX_FIELD_WARN, COMPLEX_FIELD_IGNORE, COMPLEX_FIELD_TEXT)
             .defaultValue(COMPLEX_FIELD_TEXT.getValue())

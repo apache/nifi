@@ -28,6 +28,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -90,7 +91,7 @@ public class FlattenJson extends AbstractProcessor {
 
                 return new ValidationResult.Builder().subject(subject).input(input).valid(valid).explanation(message).build();
             })
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final AllowableValue FLATTEN_MODE_NORMAL = new AllowableValue("normal", "normal",
@@ -109,7 +110,7 @@ public class FlattenJson extends AbstractProcessor {
             .defaultValue(FLATTEN_MODE_KEEP_ARRAYS.getValue())
             .required(true)
             .allowableValues(FLATTEN_MODE_NORMAL, FLATTEN_MODE_KEEP_ARRAYS, FLATTEN_MODE_DOT_NOTATION)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     private List<PropertyDescriptor> properties;

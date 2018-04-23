@@ -109,7 +109,6 @@ public class TestDeleteHBaseRow {
 
     @Test
     public void testDeleteWithELSeparator() {
-        runner.setValidateExpressionUsage(true);
         Map<String, String> attrs = new HashMap<>();
         attrs.put("test.separator", "____");
         testSeparatedDeletes("${test.separator}", "____", attrs);
@@ -129,7 +128,6 @@ public class TestDeleteHBaseRow {
         runner.setProperty(DeleteHBaseRow.ROW_ID, "${part_0}-${part_1}-${part_2}-${part_3}-${part_4}");
         runner.setProperty(DeleteHBaseRow.ROW_ID_LOCATION, DeleteHBaseRow.ROW_ID_ATTR);
         runner.setProperty(DeleteHBaseRow.BATCH_SIZE, "200");
-        runner.setValidateExpressionUsage(true);
         runner.run(1, true);
     }
 
