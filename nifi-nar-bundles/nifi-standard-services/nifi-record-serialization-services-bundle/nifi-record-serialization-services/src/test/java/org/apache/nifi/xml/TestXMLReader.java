@@ -17,12 +17,7 @@
 
 package org.apache.nifi.xml;
 
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import static junit.framework.TestCase.assertEquals;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -30,10 +25,15 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 
-import static junit.framework.TestCase.assertEquals;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
 
 public class TestXMLReader {
 
@@ -66,9 +66,7 @@ public class TestXMLReader {
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        runner.enqueue(is, new HashMap<String,String>() {{
-            put(EVALUATE_IS_ARRAY, "true");
-        }});
+        runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
         runner.run();
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
@@ -86,9 +84,7 @@ public class TestXMLReader {
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        runner.enqueue(is, new HashMap<String,String>() {{
-            put(EVALUATE_IS_ARRAY, "true");
-        }});
+        runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
         runner.run();
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
@@ -106,13 +102,11 @@ public class TestXMLReader {
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/person.xml");
-        runner.enqueue(is, new HashMap<String,String>() {{
-            put(EVALUATE_IS_ARRAY, "true");
-        }});
+        runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
         runner.run();
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
-        List<String> records = Arrays.asList((new String(runner.getContentAsByteArray(flowFile.get(0)))).split("\n"));
+        List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
 
         assertEquals(1, records.size());
     }
@@ -127,13 +121,11 @@ public class TestXMLReader {
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        runner.enqueue(is, new HashMap<String,String>() {{
-            put(ATTRIBUTE_PREFIX, "ATTR_");
-        }});
+        runner.enqueue(is, Collections.singletonMap(ATTRIBUTE_PREFIX, "ATTR_"));
         runner.run();
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
-        List<String> records = Arrays.asList((new String(runner.getContentAsByteArray(flowFile.get(0)))).split("\n"));
+        List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
 
         assertEquals(4, records.size());
         assertEquals("MapRecord[{COUNTRY=USA, ATTR_ID=P1, NAME=Cleve Butler, AGE=42}]", records.get(0));
@@ -152,13 +144,11 @@ public class TestXMLReader {
         runner.enableControllerService(reader);
 
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        runner.enqueue(is, new HashMap<String,String>() {{
-            put(CONTENT_NAME, "CONTENT");
-        }});
+        runner.enqueue(is, Collections.singletonMap(CONTENT_NAME, "CONTENT"));
         runner.run();
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
-        List<String> records = Arrays.asList((new String(runner.getContentAsByteArray(flowFile.get(0)))).split("\n"));
+        List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
 
         assertEquals(5, records.size());
         assertEquals("MapRecord[{ID=P1, NAME=MapRecord[{CONTENT=Cleve Butler, ATTR=attr content, INNER=inner content}], AGE=42}]", records.get(0));
