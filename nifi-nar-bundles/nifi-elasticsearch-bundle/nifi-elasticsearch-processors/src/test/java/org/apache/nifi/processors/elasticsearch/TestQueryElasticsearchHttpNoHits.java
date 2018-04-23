@@ -72,7 +72,7 @@ public class TestQueryElasticsearchHttpNoHits {
                 runner.assertValid();
                 runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
                 runner.assertValid();
-                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, "noHits");
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.NOHIT.name());
                 runner.assertValid();
 
                 runner.setIncomingConnection(false);
@@ -94,7 +94,7 @@ public class TestQueryElasticsearchHttpNoHits {
                 runner.assertValid();
                 runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
                 runner.assertValid();
-                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, "never");
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.NEVER.name());
                 runner.assertValid();
 
                 runner.setIncomingConnection(false);
@@ -116,7 +116,7 @@ public class TestQueryElasticsearchHttpNoHits {
                 runner.assertValid();
                 runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
                 runner.assertValid();
-                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, "always");
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.ALWAYS.name());
                 runner.assertValid();
 
                 runner.setIncomingConnection(false);
@@ -138,7 +138,7 @@ public class TestQueryElasticsearchHttpNoHits {
                 runner.assertValid();
                 runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
                 runner.assertValid();
-                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, "noHits");
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.NOHIT.name());
                 runner.assertValid();
 
                 runner.setIncomingConnection(false);
@@ -160,7 +160,7 @@ public class TestQueryElasticsearchHttpNoHits {
                 runner.assertValid();
                 runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
                 runner.assertValid();
-                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, "never");
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.NEVER.name());
                 runner.assertValid();
 
                 runner.setIncomingConnection(false);
@@ -182,7 +182,7 @@ public class TestQueryElasticsearchHttpNoHits {
                 runner.assertValid();
                 runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
                 runner.assertValid();
-                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, "always");
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.ALWAYS.name());
                 runner.assertValid();
 
                 runner.setIncomingConnection(false);

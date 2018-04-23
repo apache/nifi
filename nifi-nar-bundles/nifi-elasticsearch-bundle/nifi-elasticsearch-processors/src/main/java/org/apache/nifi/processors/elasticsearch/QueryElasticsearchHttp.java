@@ -99,9 +99,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final String TARGET_FLOW_FILE_ATTRIBUTES = "Flow file attributes";
     private static final String ATTRIBUTE_PREFIX = "es.result.";
 
-    static final AllowableValue ALWAYS = new AllowableValue("always", "Always", "Always route Query Info");
-    static final AllowableValue NEVER = new AllowableValue("never", "Never", "Never route Query Info");
-    static final AllowableValue NO_HITS = new AllowableValue("noHits", "No Hits", "Route Query Info if the Query returns no hits");
+    static final AllowableValue ALWAYS = new AllowableValue(QueryInfoRouteStrategy.ALWAYS.name(), "Always", "Always route Query Info");
+    static final AllowableValue NEVER = new AllowableValue(QueryInfoRouteStrategy.NEVER.name(), "Never", "Never route Query Info");
+    static final AllowableValue NO_HITS = new AllowableValue(QueryInfoRouteStrategy.NOHIT.name(), "No Hits", "Route Query Info if the Query returns no hits");
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description(
