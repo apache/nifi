@@ -158,9 +158,6 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         final HttpUrl url = buildUrl(request, uri);
         requestBuilder = requestBuilder.url(url);
 
-        // Require that we received JSON
-        requestBuilder = requestBuilder.addHeader("Accept", "application/json");
-
         // build the request body
         final String method = request.getMethod().toUpperCase();
         switch (method) {

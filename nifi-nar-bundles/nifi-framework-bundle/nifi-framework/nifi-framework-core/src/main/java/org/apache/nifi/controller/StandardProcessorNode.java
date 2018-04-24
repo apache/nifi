@@ -145,6 +145,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private ExecutionNode executionNode;
     private final long onScheduleTimeoutMillis;
     private final Map<Thread, ActiveTask> activeThreads = new HashMap<>(48);
+    private final int hashCode;
+    private volatile boolean hasActiveThreads = false;
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
@@ -191,6 +193,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
         executionNode = ExecutionNode.ALL;
+        this.hashCode = new HashCodeBuilder(7, 67).append(identifier).toHashCode();
+
         try {
             if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
                 DefaultSchedule dsc = processorDetails.getProcClass().getAnnotation(DefaultSchedule.class);
@@ -990,7 +994,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isRunning() {
-        return getScheduledState().equals(ScheduledState.RUNNING) || processScheduler.getActiveThreadCount(this) > 0;
+        return getScheduledState().equals(ScheduledState.RUNNING) || hasActiveThreads;
     }
 
     @Override
@@ -1103,7 +1107,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(7, 67).append(identifier).toHashCode();
+        return hashCode;
     }
 
     @Override
@@ -1248,9 +1252,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     private void verifyNoActiveThreads() throws IllegalStateException {
-        final int threadCount = processScheduler.getActiveThreadCount(this);
-        if (threadCount > 0) {
-            throw new IllegalStateException(this.getIdentifier() + " has " + threadCount + " threads still active");
+        if (hasActiveThreads) {
+            final int threadCount = getActiveThreadCount();
+            if (threadCount > 0) {
+                throw new IllegalStateException(this.getIdentifier() + " has " + threadCount + " threads still active");
+            }
         }
     }
 
@@ -1327,6 +1333,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         if (starting) { // will ensure that the Processor represented by this node can only be started once
+            hasActiveThreads = true;
             initiateStart(taskScheduler, administrativeYieldMillis, processContext, schedulingAgentCallback);
         } else {
             final String procName = processorRef.get().toString();
@@ -1456,6 +1463,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         try {
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+                            hasActiveThreads = false;
                         } finally {
                             deactivateThread();
                         }
@@ -1475,6 +1483,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     try {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+                        hasActiveThreads = false;
                     } finally {
                         deactivateThread();
                     }
@@ -1585,6 +1594,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             }
 
                             scheduleState.decrementActiveThreadCount(null);
+                            hasActiveThreads = false;
                             scheduledState.set(ScheduledState.STOPPED);
                             future.complete(null);
 

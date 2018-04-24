@@ -400,7 +400,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return a {@link Collection} of all FlowFileProcessors that are contained
      * within this.
      */
-    Set<ProcessorNode> getProcessors();
+    Collection<ProcessorNode> getProcessors();
 
     /**
      * Returns the FlowFileProcessor with the given ID.

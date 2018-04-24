@@ -283,7 +283,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
             if (supported == null || supported.isEmpty()) {
                 return Collections.unmodifiableMap(properties);
@@ -375,7 +375,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             final ValidationState validationState = getValidationState();
 
             final Collection<ValidationResult> results = new ArrayList<>();
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getIdentifier())) {
                 final Collection<ValidationResult> validationResults = computeValidationErrors();
                 results.addAll(validationResults);
 
