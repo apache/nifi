@@ -18,6 +18,7 @@
 package org.apache.nifi.mongodb;
 
 import org.apache.nifi.lookup.LookupFailureException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -51,6 +52,7 @@ public class MongoDBLookupServiceIT {
         runner = TestRunners.newTestRunner(TestLookupServiceProcessor.class);
         service = new MongoDBLookupService();
         runner.addControllerService("Client Service", service);
+        runner.setProperty(TestLookupServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.setProperty(service, MongoDBLookupService.DATABASE_NAME, DB_NAME);
         runner.setProperty(service, MongoDBLookupService.COLLECTION_NAME, COL_NAME);
         runner.setProperty(service, MongoDBLookupService.URI, "mongodb://localhost:27017");
@@ -94,6 +96,32 @@ public class MongoDBLookupServiceIT {
         }
 
         Assert.assertTrue(!result.isPresent());
+    }
+
+    @Test
+    public void testWithSchemaRegistry() throws Exception {
+        SchemaRegistry registry = new TestSchemaRegistry();
+        runner.addControllerService("registry", registry);
+        runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "");
+        runner.setProperty(service, MongoDBLookupService.SCHEMA_REGISTRY, "registry");
+        runner.setProperty(service, MongoDBLookupService.RECORD_SCHEMA_NAME, "user");
+        runner.enableControllerService(registry);
+        runner.enableControllerService(service);
+        runner.assertValid();
+
+        service.insert(new Document()
+            .append("username", "john.smith")
+            .append("password", "testing1234")
+        );
+
+        Map<String, Object> criteria = new HashMap<>();
+        criteria.put("username", "john.smith");
+        Optional result = service.lookup(criteria);
+        Assert.assertNotNull(result.get());
+        MapRecord record = (MapRecord)result.get();
+
+        Assert.assertEquals("john.smith", record.getAsString("username"));
+        Assert.assertEquals("testing1234", record.getAsString("password"));
     }
 
     @Test

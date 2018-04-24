@@ -17,29 +17,34 @@
 
 package org.apache.nifi.mongodb;
 
-import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.StringUtils;
 import org.bson.Document;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -59,26 +64,34 @@ import java.util.Set;
 public class MongoDBLookupService extends MongoDBControllerService implements LookupService<Object> {
 
     public static final PropertyDescriptor LOOKUP_VALUE_FIELD = new PropertyDescriptor.Builder()
-            .name("mongo-lookup-value-field")
-            .displayName("Lookup Value Field")
-            .description("The field whose value will be returned when the lookup key(s) match a record. If not specified then the entire " +
-                    "MongoDB result document minus the _id field will be returned as a record.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
-    public static final PropertyDescriptor RECORD_SCHEMA = new PropertyDescriptor.Builder()
-        .name("mongo-lookup-record-schema")
-        .displayName("Record Schema")
+        .name("mongo-lookup-value-field")
+        .displayName("Lookup Value Field")
+        .description("The field whose value will be returned when the lookup key(s) match a record. If not specified then the entire " +
+                "MongoDB result document minus the _id field will be returned as a record.")
+        .addValidator(Validator.VALID)
+        .required(false)
+        .build();
+    public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
+        .name("mongo-lookup-schema-registry")
+        .displayName("Schema Registry")
         .description("If specified, this avro schema will be used for all objects loaded from MongoDB using this service. If left blank, " +
                 "the service will attempt to determine the schema from the results.")
         .required(false)
+        .identifiesControllerService(SchemaRegistry.class)
+        .build();
+    public static final PropertyDescriptor RECORD_SCHEMA_NAME = new PropertyDescriptor.Builder()
+        .name("mongo-lookup-record-schema-name")
+        .displayName("Record Schema Name")
+        .description("If specified, the value will be used to lookup a schema in the configured schema registry.")
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
     public static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
-            .name("mongo-lookup-projection")
-            .displayName("Projection")
-            .description("Specifies a projection for limiting which fields will be returned.")
-            .required(false)
-            .build();
+        .name("mongo-lookup-projection")
+        .displayName("Projection")
+        .description("Specifies a projection for limiting which fields will be returned.")
+        .required(false)
+        .build();
 
     private String lookupValueField;
 
@@ -88,8 +101,29 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
         lookupDescriptors = new ArrayList<>();
         lookupDescriptors.addAll(descriptors);
         lookupDescriptors.add(LOOKUP_VALUE_FIELD);
-        lookupDescriptors.add(RECORD_SCHEMA);
+        lookupDescriptors.add(SCHEMA_REGISTRY);
+        lookupDescriptors.add(RECORD_SCHEMA_NAME);
         lookupDescriptors.add(PROJECTION);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        List<ValidationResult> problems = new ArrayList<>();
+
+        PropertyValue registry = validationContext.getProperty(SCHEMA_REGISTRY);
+        PropertyValue schemaName = validationContext.getProperty(RECORD_SCHEMA_NAME);
+
+        if (registry.isSet() && !schemaName.isSet()) {
+            problems.add(new ValidationResult.Builder()
+                .explanation("If the registry is set, the schema name parameter must be set too.")
+                .build());
+        } else if (!registry.isSet() && schemaName.isSet()) {
+            problems.add(new ValidationResult.Builder()
+                .explanation("If the schema name is set, the schema registry parameter must be set too.")
+                .build());
+        }
+
+        return problems;
     }
 
     @Override
@@ -156,11 +190,20 @@ public class MongoDBLookupService extends MongoDBControllerService implements Lo
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
         this.lookupValueField = context.getProperty(LOOKUP_VALUE_FIELD).getValue();
-        String configuredSchema = context.getProperty(RECORD_SCHEMA).isSet()
-            ? context.getProperty(RECORD_SCHEMA).getValue()
-            : null;
-        if (!StringUtils.isBlank(configuredSchema)) {
-            schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(configuredSchema));
+
+        SchemaRegistry registry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
+        final String name = context.getProperty(RECORD_SCHEMA_NAME).getValue();
+
+        if (registry != null) {
+            try {
+                SchemaIdentifier identifier = SchemaIdentifier.builder()
+                        .name(name)
+                        .build();
+                schema = registry.retrieveSchema(identifier);
+            } catch (SchemaNotFoundException e) {
+                getLogger().error(String.format("Could not find schema named %s", name), e);
+                throw new InitializationException(e);
+            }
         }
 
         String configuredProjection = context.getProperty(PROJECTION).isSet()
