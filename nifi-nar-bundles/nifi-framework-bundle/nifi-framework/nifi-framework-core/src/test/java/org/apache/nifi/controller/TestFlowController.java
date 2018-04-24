@@ -76,6 +76,7 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,7 +107,7 @@ public class TestFlowController {
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
-    private volatile String propsFile = TestFlowController.class.getResource("/flowcontrollertest.nifi.properties").getFile();
+    private volatile String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
 
     @Before
     public void setup() {
@@ -209,7 +210,7 @@ public class TestFlowController {
         assertEquals(rootGroupCs.getProperties(), controllerCs.getProperties());
 
         // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        final Collection<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
         assertNotNull(processorNodes);
         assertEquals(1, processorNodes.size());
 
@@ -262,7 +263,7 @@ public class TestFlowController {
         assertNotNull(rootGroupCs);
 
         // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        final Collection<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
         assertNotNull(processorNodes);
         assertEquals(1, processorNodes.size());
 
@@ -594,7 +595,7 @@ public class TestFlowController {
         final String originalName = processorNode.getName();
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = (InstanceClassLoader) ExtensionManager.getInstanceClassLoader(id);
+        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -605,7 +606,7 @@ public class TestFlowController {
         controller.reload(processorNode, DummySettingsProcessor.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = (InstanceClassLoader) ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -653,10 +654,9 @@ public class TestFlowController {
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
         final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
-        final String originalName = controllerServiceNode.getName();
 
         // the instance class loader shouldn't have any of the resources yet
-        URLClassLoader instanceClassLoader = (URLClassLoader) ExtensionManager.getInstanceClassLoader(id);
+        URLClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -667,7 +667,7 @@ public class TestFlowController {
         controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = (URLClassLoader) ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -718,7 +718,7 @@ public class TestFlowController {
         final ReportingTaskNode node = controller.createReportingTask(DummyReportingTask.class.getName(), id, coordinate, true);
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = (InstanceClassLoader) ExtensionManager.getInstanceClassLoader(id);
+        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
@@ -728,7 +728,7 @@ public class TestFlowController {
         controller.reload(node, DummyScheduledReportingTask.class.getName(), coordinate, additionalUrls);
 
         // the instance class loader shouldn't have any of the resources yet
-        instanceClassLoader = (InstanceClassLoader) ExtensionManager.getInstanceClassLoader(id);
+        instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));

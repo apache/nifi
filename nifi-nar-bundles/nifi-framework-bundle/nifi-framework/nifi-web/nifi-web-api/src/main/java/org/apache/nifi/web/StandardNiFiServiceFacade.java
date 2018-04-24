@@ -3531,38 +3531,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ProcessGroupFlowEntity getProcessGroupFlow(final String groupId) {
-        // get all identifiers for every child component
-        final Set<String> identifiers = new HashSet<>();
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-        processGroup.getProcessors().stream()
-            .map(proc -> proc.getIdentifier())
-            .forEach(id -> identifiers.add(id));
-        processGroup.getConnections().stream()
-            .map(conn -> conn.getIdentifier())
-            .forEach(id -> identifiers.add(id));
-        processGroup.getInputPorts().stream()
-            .map(port -> port.getIdentifier())
-            .forEach(id -> identifiers.add(id));
-        processGroup.getOutputPorts().stream()
-            .map(port -> port.getIdentifier())
-            .forEach(id -> identifiers.add(id));
-        processGroup.getProcessGroups().stream()
-            .map(group -> group.getIdentifier())
-            .forEach(id -> identifiers.add(id));
-        processGroup.getRemoteProcessGroups().stream()
-            .map(remoteGroup -> remoteGroup.getIdentifier())
-            .forEach(id -> identifiers.add(id));
-        processGroup.getRemoteProcessGroups().stream()
-            .flatMap(remoteGroup -> remoteGroup.getInputPorts().stream())
-            .map(remoteInputPort -> remoteInputPort.getIdentifier())
-            .forEach(id -> identifiers.add(id));
-        processGroup.getRemoteProcessGroups().stream()
-            .flatMap(remoteGroup -> remoteGroup.getOutputPorts().stream())
-            .map(remoteOutputPort -> remoteOutputPort.getIdentifier())
-            .forEach(id -> identifiers.add(id));
 
-        // read lock on every component being accessed in the dto conversion
-        final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
+        // Get the Process Group Status but we only need a status depth of one because for any child process group,
+        // we ignore the status of each individual components. I.e., if Process Group A has child Group B, and child Group B
+        // has a Processor, we don't care about the individual stats of that Processor because the ProcessGroupFlowEntity
+        // doesn't include that anyway. So we can avoid including the information in the status that is returned.
+        final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId, 1);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
         return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager, this::getProcessGroupBulletins), permissions);
     }

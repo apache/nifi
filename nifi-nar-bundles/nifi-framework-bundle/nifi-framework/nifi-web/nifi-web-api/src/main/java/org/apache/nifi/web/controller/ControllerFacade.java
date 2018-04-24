@@ -600,10 +600,22 @@ public class ControllerFacade implements Authorizable {
      * Gets the status for the specified process group.
      *
      * @param groupId group id
+     * @param the number of levels deep that we want to go before deciding to stop including component statuses
      * @return the status for the specified process group
      */
     public ProcessGroupStatus getProcessGroupStatus(final String groupId) {
-        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser());
+        return getProcessGroupStatus(groupId, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Gets the status for the specified process group.
+     *
+     * @param groupId group id
+     * @param the number of levels deep that we want to go before deciding to stop including component statuses
+     * @return the status for the specified process group
+     */
+    public ProcessGroupStatus getProcessGroupStatus(final String groupId, final int recursiveStatusDepth) {
+        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), recursiveStatusDepth);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }
@@ -628,7 +640,7 @@ public class ControllerFacade implements Authorizable {
 
         // calculate the process group status
         final String groupId = processor.getProcessGroup().getIdentifier();
-        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser());
+        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }
@@ -658,7 +670,7 @@ public class ControllerFacade implements Authorizable {
 
         // calculate the process group status
         final String groupId = connection.getProcessGroup().getIdentifier();
-        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser());
+        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }
@@ -687,7 +699,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         final String groupId = port.getProcessGroup().getIdentifier();
-        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser());
+        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }
@@ -716,7 +728,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         final String groupId = port.getProcessGroup().getIdentifier();
-        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser());
+        final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
         if (processGroupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }
@@ -745,7 +757,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         final String groupId = remoteProcessGroup.getProcessGroup().getIdentifier();
-        final ProcessGroupStatus groupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser());
+        final ProcessGroupStatus groupStatus = flowController.getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
         if (groupStatus == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
         }

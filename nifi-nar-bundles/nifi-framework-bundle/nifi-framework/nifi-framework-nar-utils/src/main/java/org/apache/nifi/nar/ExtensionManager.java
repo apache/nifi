@@ -76,7 +76,7 @@ public class ExtensionManager {
     private static final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
 
     private static final Map<String, Class<?>> requiresInstanceClassLoading = new HashMap<>();
-    private static final Map<String, ClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
+    private static final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
 
     static {
         definitionMap.put(Processor.class, new HashSet<>());
@@ -318,7 +318,7 @@ public class ExtensionManager {
      * @param additionalUrls additional URLs to add to the instance class loader
      * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
      */
-    public static ClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls) {
+    public static InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls) {
         if (StringUtils.isEmpty(classType)) {
             throw new IllegalArgumentException("Class-Type is required");
         }
@@ -335,7 +335,7 @@ public class ExtensionManager {
         // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
         // InstanceClassLoader that has the NAR ClassLoader as a parent
 
-        ClassLoader instanceClassLoader;
+        InstanceClassLoader instanceClassLoader;
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
         final String key = getClassBundleKey(classType, bundle.getBundleDetails().getCoordinate());
 
@@ -375,24 +375,15 @@ public class ExtensionManager {
             }
 
             instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, instanceUrls, additionalUrls, ancestorClassLoader);
-
-            if (logger.isTraceEnabled()) {
-                for (URL url : ((InstanceClassLoader) instanceClassLoader).getURLs()) {
-                    logger.trace("URL resource {} for {}...", new Object[] {url.toExternalForm(), instanceIdentifier});
-                }
-            }
-        } else if (additionalUrls != null && !additionalUrls.isEmpty()) {
-            final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
-            final Set<URL> instanceUrls = new LinkedHashSet<>();
-            for (final URL url : narBundleClassLoader.getURLs()) {
-                instanceUrls.add(url);
-            }
-
-            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, instanceUrls, additionalUrls, bundleClassLoader);
         } else {
-            instanceClassLoader = bundleClassLoader;
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, bundleClassLoader);
         }
 
+        if (logger.isTraceEnabled()) {
+            for (URL url : instanceClassLoader.getURLs()) {
+                logger.trace("URL resource {} for {}...", new Object[] {url.toExternalForm(), instanceIdentifier});
+            }
+        }
 
         instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
         return instanceClassLoader;
@@ -428,7 +419,7 @@ public class ExtensionManager {
      * @param instanceIdentifier the identifier of a component
      * @return the instance class loader for the component
      */
-    public static ClassLoader getInstanceClassLoader(final String instanceIdentifier) {
+    public static InstanceClassLoader getInstanceClassLoader(final String instanceIdentifier) {
         return instanceClassloaderLookup.get(instanceIdentifier);
     }
 
@@ -437,12 +428,12 @@ public class ExtensionManager {
      *
      * @param instanceIdentifier the of a component
      */
-    public static ClassLoader removeInstanceClassLoader(final String instanceIdentifier) {
+    public static InstanceClassLoader removeInstanceClassLoader(final String instanceIdentifier) {
         if (instanceIdentifier == null) {
             return null;
         }
 
-        final ClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
+        final InstanceClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
         closeURLClassLoader(instanceIdentifier, classLoader);
         return classLoader;
     }

@@ -2762,6 +2762,18 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
+     * Returns the status for components in the specified group. This request is
+     * made by the specified user so the results will be filtered accordingly.
+     *
+     * @param groupId group id
+     * @param user user making request
+     * @return the component status
+     */
+    public ProcessGroupStatus getGroupStatus(final String groupId, final NiFiUser user, final int recursiveStatusDepth) {
+        return getGroupStatus(groupId, getProcessorStats(), user, recursiveStatusDepth);
+    }
+
+    /**
      * Returns the status for the components in the specified group with the
      * specified report. This request is not in the context of a user so the
      * results will be unfiltered.
@@ -2774,7 +2786,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final ProcessGroup group = getGroup(groupId);
 
         // this was invoked with no user context so the results will be unfiltered... necessary for aggregating status history
-        return getGroupStatus(group, statusReport, authorizable -> true);
+        return getGroupStatus(group, statusReport, authorizable -> true, Integer.MAX_VALUE, 1);
     }
 
     /**
@@ -2791,7 +2803,26 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final ProcessGroup group = getGroup(groupId);
 
         // on demand status request for a specific user... require authorization per component and filter results as appropriate
-        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(authorizer, RequestAction.READ, user));
+        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(authorizer, RequestAction.READ, user), Integer.MAX_VALUE, 1);
+    }
+
+
+    /**
+     * Returns the status for the components in the specified group with the
+     * specified report. This request is made by the specified user so the
+     * results will be filtered accordingly.
+     *
+     * @param groupId group id
+     * @param statusReport report
+     * @param user user making request
+     * @param recursiveStatusDepth the number of levels deep we should recurse and still include the the processors' statuses, the groups' statuses, etc. in the returned ProcessGroupStatus
+     * @return the component status
+     */
+    public ProcessGroupStatus getGroupStatus(final String groupId, final RepositoryStatusReport statusReport, final NiFiUser user, final int recursiveStatusDepth) {
+        final ProcessGroup group = getGroup(groupId);
+
+        // on demand status request for a specific user... require authorization per component and filter results as appropriate
+        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(authorizer, RequestAction.READ, user), recursiveStatusDepth, 1);
     }
 
     /**
@@ -2802,9 +2833,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @param group group id
      * @param statusReport report
      * @param isAuthorized is authorized check
+     * @param recursiveStatusDepth the number of levels deep we should recurse and still include the the processors' statuses, the groups' statuses, etc. in the returned ProcessGroupStatus
+     * @param currentDepth the current number of levels deep that we have recursed
      * @return the component status
      */
-    public ProcessGroupStatus getGroupStatus(final ProcessGroup group, final RepositoryStatusReport statusReport, final Predicate<Authorizable> isAuthorized) {
+    private ProcessGroupStatus getGroupStatus(final ProcessGroup group, final RepositoryStatusReport statusReport, final Predicate<Authorizable> isAuthorized,
+            final int recursiveStatusDepth, final int currentDepth) {
         if (group == null) {
             return null;
         }
@@ -2829,12 +2863,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         int flowFilesTransferred = 0;
         long bytesTransferred = 0;
 
+        final boolean populateChildStatuses = currentDepth <= recursiveStatusDepth;
+
         // set status for processors
         final Collection<ProcessorStatus> processorStatusCollection = new ArrayList<>();
         status.setProcessorStatus(processorStatusCollection);
         for (final ProcessorNode procNode : group.getProcessors()) {
             final ProcessorStatus procStat = getProcessorStatus(statusReport, procNode, isAuthorized);
-            processorStatusCollection.add(procStat);
+            if (populateChildStatuses) {
+                processorStatusCollection.add(procStat);
+            }
             activeGroupThreads += procStat.getActiveThreadCount();
             terminatedGroupThreads += procStat.getTerminatedThreadCount();
             bytesRead += procStat.getBytesRead();
@@ -2850,8 +2888,18 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final Collection<ProcessGroupStatus> localChildGroupStatusCollection = new ArrayList<>();
         status.setProcessGroupStatus(localChildGroupStatusCollection);
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            final ProcessGroupStatus childGroupStatus = getGroupStatus(childGroup, statusReport, isAuthorized);
-            localChildGroupStatusCollection.add(childGroupStatus);
+            final ProcessGroupStatus childGroupStatus;
+            if (populateChildStatuses) {
+                childGroupStatus = getGroupStatus(childGroup, statusReport, isAuthorized, recursiveStatusDepth, currentDepth + 1);
+                localChildGroupStatusCollection.add(childGroupStatus);
+            } else {
+                // In this case, we don't want to include any of the recursive components' individual statuses. As a result, we can
+                // avoid performing any sort of authorizations. Because we only care about the numbers that come back, we can just indicate
+                // that the user is not authorized. This allows us to avoid the expense of both performing the authorization and calculating
+                // things that we would otherwise need to calculate if the user were in fact authorized.
+                childGroupStatus = getGroupStatus(childGroup, statusReport, authorizable -> false, recursiveStatusDepth, currentDepth + 1);
+            }
+
             activeGroupThreads += childGroupStatus.getActiveThreadCount();
             terminatedGroupThreads += childGroupStatus.getTerminatedThreadCount();
             bytesRead += childGroupStatus.getBytesRead();
@@ -2874,7 +2922,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
             final RemoteProcessGroupStatus remoteStatus = createRemoteGroupStatus(remoteGroup, statusReport, isAuthorized);
             if (remoteStatus != null) {
-                remoteProcessGroupStatusCollection.add(remoteStatus);
+                if (populateChildStatuses) {
+                    remoteProcessGroupStatusCollection.add(remoteStatus);
+                }
 
                 flowFilesReceived += remoteStatus.getReceivedCount();
                 bytesReceived += remoteStatus.getReceivedContentSize();
@@ -2935,7 +2985,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 connStatus.setQueuedBytes(connectionQueuedBytes);
                 connStatus.setQueuedCount(connectionQueuedCount);
             }
-            connectionStatusCollection.add(connStatus);
+
+            if (populateChildStatuses) {
+                connectionStatusCollection.add(connStatus);
+            }
+
             queuedCount += connectionQueuedCount;
             queuedContentSize += connectionQueuedBytes;
 
@@ -3008,7 +3062,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 bytesReceived += entry.getBytesReceived();
             }
 
-            inputPortStatusCollection.add(portStatus);
+            if (populateChildStatuses) {
+                inputPortStatusCollection.add(portStatus);
+            }
+
             activeGroupThreads += portStatus.getActiveThreadCount();
         }
 
@@ -3069,7 +3126,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 bytesSent += entry.getBytesSent();
             }
 
-            outputPortStatusCollection.add(portStatus);
+            if (populateChildStatuses) {
+                outputPortStatusCollection.add(portStatus);
+            }
+
             activeGroupThreads += portStatus.getActiveThreadCount();
         }
 
