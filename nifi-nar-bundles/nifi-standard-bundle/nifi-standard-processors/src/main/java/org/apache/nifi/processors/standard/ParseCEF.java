@@ -200,8 +200,8 @@ public class ParseCEF extends AbstractProcessor {
     public void OnScheduled(final ProcessContext context) {
 
         // Configure jackson mapper before spawning onTriggers
-        final SimpleModule module = new SimpleModule();
-                                        //.addSerializer(MacAddress.class, new MacAddressToStringSerializer());
+        final SimpleModule module = new SimpleModule()
+                .addSerializer(MacAddress.class, new MacAddressToStringSerializer());
         this.mapper.registerModule(module);
         this.mapper.setDateFormat(this.simpleDateFormat);
 
