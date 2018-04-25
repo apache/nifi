@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
@@ -63,18 +64,6 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .required(false) // not all sub-classes will require this
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    protected static final PropertyDescriptor DEFAULT_VISIBILITY_STRING = new PropertyDescriptor.Builder()
-            .name("hbase-default-vis-string")
-            .displayName("Default Visibility String")
-            .description("When using visibility labels, any value set in this field will be applied to all cells that are written unless " +
-                    "an attribute with the convention \"visibility.COLUMN_FAMILY.COLUMN_QUALIFIER\" is present on the flowfile. If this field " +
-                    "is left blank, it will be assumed that no visibility is to be set unless visibility-related attributes are set. NOTE: " +
-                    "this configuration will have no effect on your data if you have not enabled visibility labels in the HBase cluster.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(Validator.VALID)
             .build();
 
     static final String STRING_ENCODING_VALUE = "String";
@@ -142,6 +131,52 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        if (propertyDescriptorName.startsWith("visibility.")) {
+            String[] parts = propertyDescriptorName.split("\\.");
+            String displayName;
+            String description;
+
+            if (parts.length == 2) {
+                displayName = String.format("Column Family %s Default Visibility", parts[1]);
+                description = String.format("Default visibility setting for %s", parts[1]);
+            } else if (parts.length == 3) {
+                displayName = String.format("Column Qualifier %s.%s Default Visibility", parts[1], parts[2]);
+                description = String.format("Default visibility setting for %s.%s", parts[1], parts[2]);
+            } else {
+                return null;
+            }
+
+            return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .displayName(displayName)
+                .description(description)
+                .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+                .dynamic(true)
+                .build();
+        }
+
+        return null;
+    }
+
+    protected String pickVisibilityString(String columnFamily, String columnQualifier, FlowFile flowFile, ProcessContext context) {
+        final String lookupKey = String.format("visibility.%s.%s", columnFamily, columnQualifier);
+        final String fromAttribute = flowFile.getAttribute(lookupKey);
+        if (fromAttribute != null) {
+            return fromAttribute;
+        } else {
+            PropertyValue descriptor = context.getProperty(lookupKey);
+            if (descriptor == null) {
+                descriptor = context.getProperty(String.format("visibility.%s", columnFamily));
+            }
+
+            String retVal = descriptor != null ? descriptor.getValue() : null;
+
+            return retVal;
+        }
     }
 
     protected String pickVisibilityString(String defaultVisibilityString, String columnFamily, String columnQualifier, FlowFile flowFile) {

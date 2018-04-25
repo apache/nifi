@@ -116,7 +116,6 @@ public class PutHBaseJSON extends AbstractPutHBase {
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
-        properties.add(DEFAULT_VISIBILITY_STRING);
         properties.add(TIMESTAMP);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
@@ -167,8 +166,6 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final String complexFieldStrategy = context.getProperty(COMPLEX_FIELD_STRATEGY).getValue();
         final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
         final String rowIdEncodingStrategy = context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue();
-
-        final String visibilityString = context.getProperty(DEFAULT_VISIBILITY_STRING).evaluateAttributeExpressions(flowFile).getValue().trim();
 
         final Long timestamp;
         if (!StringUtils.isBlank(timestampValue)) {
@@ -255,7 +252,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
                     final byte[] colQualBytes = fieldName.getBytes(StandardCharsets.UTF_8);
                     final byte[] colValBytes = fieldValueHolder.get();
 
-                    final String visibilityStringToUse = pickVisibilityString(visibilityString, columnFamily, fieldName, flowFile);
+                    final String visibilityStringToUse = pickVisibilityString(columnFamily, fieldName, flowFile, context);
                     PutColumn column = StringUtils.isEmpty(visibilityStringToUse)
                             ? new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp)
                             : new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp, visibilityStringToUse);

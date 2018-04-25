@@ -83,6 +83,17 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    protected static final PropertyDescriptor DEFAULT_VISIBILITY_STRING = new PropertyDescriptor.Builder()
+            .name("hbase-default-vis-string")
+            .displayName("Default Visibility String")
+            .description("When using visibility labels, any value set in this field will be applied to all cells that are written unless " +
+                    "an attribute with the convention \"visibility.COLUMN_FAMILY.COLUMN_QUALIFIER\" is present on the flowfile. If this field " +
+                    "is left blank, it will be assumed that no visibility is to be set unless visibility-related attributes are set. NOTE: " +
+                    "this configuration will have no effect on your data if you have not enabled visibility labels in the HBase cluster.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(Validator.VALID)
+            .build();
 
     protected static final String FAIL_VALUE = "Fail";
     protected static final String WARN_VALUE = "Warn";

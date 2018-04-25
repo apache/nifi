@@ -56,7 +56,6 @@ public class PutHBaseCell extends AbstractPutHBase {
         properties.add(TABLE_NAME);
         properties.add(ROW_ID);
         properties.add(ROW_ID_ENCODING_STRATEGY);
-        properties.add(DEFAULT_VISIBILITY_STRING);
         properties.add(COLUMN_FAMILY);
         properties.add(COLUMN_QUALIFIER);
         properties.add(TIMESTAMP);
@@ -79,9 +78,8 @@ public class PutHBaseCell extends AbstractPutHBase {
         final String columnFamily = context.getProperty(COLUMN_FAMILY).evaluateAttributeExpressions(flowFile).getValue();
         final String columnQualifier = context.getProperty(COLUMN_QUALIFIER).evaluateAttributeExpressions(flowFile).getValue();
         final String timestampValue = context.getProperty(TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
-        final String visibilityString = context.getProperty(DEFAULT_VISIBILITY_STRING).evaluateAttributeExpressions(flowFile).getValue().trim();
 
-        final String visibilityStringToUse = pickVisibilityString(visibilityString, columnFamily, columnQualifier, flowFile);
+        final String visibilityStringToUse = pickVisibilityString(columnFamily, columnQualifier, flowFile, context);
 
         final Long timestamp;
         if (!StringUtils.isBlank(timestampValue)) {
