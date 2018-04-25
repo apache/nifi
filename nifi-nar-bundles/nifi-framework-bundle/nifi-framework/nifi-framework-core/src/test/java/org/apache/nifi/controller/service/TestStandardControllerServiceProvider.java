@@ -17,15 +17,13 @@
  */
 package org.apache.nifi.controller.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -53,6 +51,9 @@ import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
@@ -63,6 +64,10 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestStandardControllerServiceProvider {
 
@@ -357,19 +362,58 @@ public class TestStandardControllerServiceProvider {
         assertTrue(ordered.get(1) == serviceNode3);
     }
 
-    private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
+    private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider, final NiFiProperties nifiProp) {
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
         final LoggableComponent<Processor> dummyProcessor = new LoggableComponent<>(new DummyProcessor(), systemBundle.getBundleDetails().getCoordinate(), null);
         final ProcessorNode procNode = new StandardProcessorNode(dummyProcessor, UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider, niFiProperties,
                 new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent);
 
-        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, Mockito.mock(FlowController.class),
+        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, nifiProp, null, Mockito.mock(FlowController.class),
             new MutableVariableRegistry(variableRegistry));
         group.addProcessor(procNode);
         procNode.setProcessGroup(group);
-
         return procNode;
+    }
+
+    private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
+        return createProcessor(scheduler,serviceProvider,null);
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUpdateProcessorWithSensitivePropertiesWork(){
+        final ProcessGroup procGroup = new MockProcessGroup(controller);
+        final FlowController controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final StandardProcessScheduler scheduler = createScheduler();
+        final StandardControllerServiceProvider provider =
+                new StandardControllerServiceProvider(controller, null, null, stateManagerProvider, variableRegistry, niFiProperties);
+        final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1",
+                systemBundle.getBundleDetails().getCoordinate(), null, false);
+        final ProcessorNode procNode = createProcessor(scheduler, provider);
+        final ProcessorNode procNodeToUpdate = createProcessor(scheduler, provider);
+
+        VersionedProcessor v  = new VersionedProcessor();
+
+        org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle("org.apache.nifi","core", "1.0.0");
+        v.setBundle(bundle);
+
+
+        final VersionedFlowSnapshot versionedFlowSnapshot = new VersionedFlowSnapshot();
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+        Set<VersionedProcessor> versionedProcessors = new HashSet<>();
+        versionedProcessors.add(v);
+        versionedProcessGroup.setProcessors(versionedProcessors);
+
+        versionedProcessGroup.setConnections(Collections.emptySet());
+        versionedFlowSnapshot.setFlowContents(versionedProcessGroup);
+
+        procNode.getProcessGroup().updateFlow(versionedFlowSnapshot, "org.apache.nifi.someComponent",
+                true,
+                true,
+                true);
     }
 
     @Test
@@ -386,6 +430,7 @@ public class TestStandardControllerServiceProvider {
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);
         serviceNode.addReference(procNode);
+
 
         // procNode.setScheduledState(ScheduledState.STOPPED);
         provider.unscheduleReferencingComponents(serviceNode);

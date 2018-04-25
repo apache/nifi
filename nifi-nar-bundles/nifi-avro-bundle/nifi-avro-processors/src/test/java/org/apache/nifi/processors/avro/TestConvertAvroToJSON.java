@@ -76,6 +76,8 @@ public class TestConvertAvroToJSON {
         out.assertContentEquals("{\"name\": \"Alyssa\", \"favorite_number\": 256, \"favorite_color\": null}");
     }
 
+
+
     @Test
     public void testSingleAvroMessage_wrapSingleMessage() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
