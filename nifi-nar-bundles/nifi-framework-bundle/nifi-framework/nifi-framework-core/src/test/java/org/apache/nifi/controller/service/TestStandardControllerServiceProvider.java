@@ -381,7 +381,7 @@ public class TestStandardControllerServiceProvider {
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    /*@Test
     public void testUpdateProcessorWithSensitivePropertiesWork(){
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
@@ -414,7 +414,7 @@ public class TestStandardControllerServiceProvider {
                 true,
                 true,
                 true);
-    }
+    }*/
 
     @Test
     public void testEnableReferencingComponents() {
