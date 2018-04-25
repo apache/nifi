@@ -2221,7 +2221,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     /**
      * Ideally all of the combination tests would be a single test with iterative argument lists, but due to the System.exit(), it can only be captured once per test.
      */
-    @Ignore  // TODO re-enable once this is passing on all platforms
+    @Ignore
+    // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedPasswordToPassword() {
         // Arrange
@@ -2236,7 +2237,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore  // TODO re-enable once this is passing on all platforms
+    @Ignore
+    // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedPasswordToKey() {
         // Arrange
@@ -2251,7 +2253,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore  // TODO re-enable once this is passing on all platforms
+    @Ignore
+    // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedKeyToPassword() {
         // Arrange
@@ -2266,7 +2269,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore  // TODO re-enable once this is passing on all platforms
+    @Ignore
+    // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedKeyToKey() {
         // Arrange
@@ -2281,7 +2285,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore  // TODO re-enable once this is passing on all platforms
+    @Ignore
+    // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldFailToMigrateFromIncorrectHashedPasswordToPassword() {
         // Arrange
@@ -5205,7 +5210,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         }
     }
 
-    @Ignore  // TODO re-enable once this is passing on all platforms
+    @Ignore
+    // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldReturnCurrentHashParams() {
         // Arrange
@@ -5345,6 +5351,415 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
             // Assert
             assert msg == "When '--currentHashParams' is specified, only '-h'/'--help' and '-v'/'--verbose' are allowed"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
+    }
+
+    @Test
+    void testShouldTranslateCliWithPlaintextInput() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-c"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldTranslateCliWithPlaintextInputWithoutBootstrapConf() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-c"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldTranslateCliWithEncryptedInput() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        File masterKeyFile = new File("src/test/resources/bootstrap_with_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_protected_aes.properties")
+
+        NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-c"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testTranslateCliWithEncryptedInputShouldNotIntersperseVerboseOutput() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        File masterKeyFile = new File("src/test/resources/bootstrap_with_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_protected_aes.properties")
+
+        NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-c", "-v"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldTranslateCli() {
+        // Arrange
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        String originalNiFiPropertiesPath = "src/test/resources/nifi_with_sensitive_properties_unprotected.properties"
+
+        NiFiProperties plainProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(originalNiFiPropertiesPath)
+        logger.info("Loaded NiFiProperties from ${originalNiFiPropertiesPath}")
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.translatingCli = true
+        tool.niFiProperties = plainProperties
+
+        // Act
+        String cliOutput = tool.translateNiFiPropertiesToCLI()
+        logger.info("Translated to CLI format: \n${cliOutput}")
+
+        // Assert
+        def parsedCli = cliOutput.split("\n").collectEntries { String line ->
+            def components = line.split("=", 2)
+            [(components[0]): components[1]]
+        }
+
+        assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+        assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+    }
+
+    @Test
+    void testShouldFailOnCliTranslateIfConflictingFlagsPresent() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        def validOpts = [
+                "-n nifi.properties",
+                "--niFiProperties nifi.properties",
+                "--verbose -n nifi.properties -b bootstrap.conf",
+        ]
+
+        // These values won't cause an error in #commandLineHasActionFlags() but will throw an error later in #parse()
+        // Don't test with -h/--help because it will cause a System.exit()
+        def incompleteOpts = [
+                "",
+                "-v",
+                "--verbose",
+//                "-h",
+//                "--help",
+                "-b bootstrap.conf",
+                "--bootstrapConf bootstrap.conf",
+        ]
+
+        def invalidOpts = [
+                "--migrate",
+                "-o output",
+                "-x \$s0\$"
+        ]
+
+        // Act
+        validOpts.each { String valid ->
+            tool = new ConfigEncryptionTool()
+            def args = (valid + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            tool.parse(args as String[])
+        }
+
+        incompleteOpts.each { String incomplete ->
+            tool = new ConfigEncryptionTool()
+            def args = (incomplete + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
+
+        invalidOpts.each { String invalid ->
+            tool = new ConfigEncryptionTool()
+            def args = (invalid + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '-c'/'--translateCli' is specified, only '-h', '-v', and '-n'/'-b' with the relevant files are allowed"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
+    }
+
+    @Test
+    void testTranslateCliShouldFailIfMissingNecessaryFlags() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Bootstrap alone is insufficient; nifi.properties alone is ok if it is in plaintext
+        def invalidOpts = [
+                "-b bootstrap.conf",
+        ]
+
+        // Act
+        invalidOpts.each { String invalid ->
+            def args = (invalid + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
             assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
         }
     }
