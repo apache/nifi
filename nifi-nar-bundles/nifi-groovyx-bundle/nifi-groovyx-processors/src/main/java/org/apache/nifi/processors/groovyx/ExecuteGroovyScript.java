@@ -336,7 +336,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     private void onInitSQL(HashMap SQL) throws SQLException {
         for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
             DBCPService s = (DBCPService) e.getValue();
-            OSql sql = new OSql(s.getConnection());
+            OSql sql = new OSql(s.getConnection(Collections.emptyMap()));
             //try to set autocommit to false
             try {
                 if (sql.getConnection().getAutoCommit()) {

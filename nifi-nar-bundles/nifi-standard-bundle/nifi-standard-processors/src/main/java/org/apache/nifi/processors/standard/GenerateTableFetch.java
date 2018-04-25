@@ -277,7 +277,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             final String selectQuery = dbAdapter.getSelectStatement(tableName, columnsClause, whereClause, null, null, null);
             long rowCount = 0;
 
-            try (final Connection con = dbcpService.getConnection();
+            try (final Connection con = dbcpService.getConnection(finalFileToProcess == null ? Collections.emptyMap() : finalFileToProcess.getAttributes());
                  final Statement st = con.createStatement()) {
 
                 final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
