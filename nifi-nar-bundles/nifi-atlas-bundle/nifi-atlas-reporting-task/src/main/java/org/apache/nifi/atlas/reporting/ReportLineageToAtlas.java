@@ -76,12 +76,14 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -272,6 +274,17 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .defaultValue("kafka")
             .build();
 
+    static final PropertyDescriptor OLD_KAFKA_KERBEROS_SERVICE_NAME = new PropertyDescriptor.Builder()
+            .name("kafka-kerberos-service-name-kafka")
+            .displayName("DEPRECATED: Kafka Kerberos Service Name")
+            .description("The property name of 'Kafka Kerberos Service Name' has been renamed" +
+                    " from 'kafka-kerberos-service-name-kafka' to 'kafka-kerberos-service-name' by NIFI-4980." +
+                    " This user defined property holds the old 'Kafka Kerberos Service Name' value for migration, and it's being used until it gets deleted." +
+                    " Please update 'Kafka Kerberos Service Name' setting accordingly." +
+                    " Copying the old value to the new property then deleting this user defined property would be sufficient.")
+            .addValidator(Validator.VALID)
+            .build();
+
     static final AllowableValue LINEAGE_STRATEGY_SIMPLE_PATH = new AllowableValue("SimplePath", "Simple Path",
             "Map NiFi provenance events and target Atlas DataSets to statically created 'nifi_flow_path' Atlas Processes." +
                     " See also 'Additional Details'.");
@@ -344,6 +357,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             if(propertyDescriptor != null) {
                 return propertyDescriptor;
             }
+        }
+        if (OLD_KAFKA_KERBEROS_SERVICE_NAME.getName().equals(propertyDescriptorName)) {
+            return OLD_KAFKA_KERBEROS_SERVICE_NAME;
         }
         return null;
     }
@@ -778,7 +794,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             keytab = credentialsService.getKeytab();
         }
 
-        String serviceName = context.getProperty(KAFKA_KERBEROS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
+        final String serviceName = getKafkaKerberosServiceName(context, getLogger());
         if(StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
             mapToPopulate.put("atlas.jaas.KafkaClient.loginModuleControlFlag", "required");
             mapToPopulate.put("atlas.jaas.KafkaClient.loginModuleName", "com.sun.security.auth.module.Krb5LoginModule");
@@ -792,6 +808,19 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             mapToPopulate.put("atlas.jaas.ticketBased-KafkaClient.option.useTicketCache", "true");
             mapToPopulate.put(ATLAS_KAFKA_PREFIX + "sasl.kerberos.service.name", serviceName);
         }
+    }
+
+    static String getKafkaKerberosServiceName(PropertyContext context, ComponentLog logger) {
+        // Migration code for NIFI-4980 that corrected property name typo.
+        final boolean isOldPropertySet = context.getProperty(OLD_KAFKA_KERBEROS_SERVICE_NAME).isSet();
+        final PropertyValue kafkaKerberosServiceNameProperty = isOldPropertySet
+                ? context.getProperty(OLD_KAFKA_KERBEROS_SERVICE_NAME) : context.getProperty(KAFKA_KERBEROS_SERVICE_NAME);
+        if (isOldPropertySet) {
+            logger.warn("Using old 'Kakfa Kerberos Service Name' property, migration is needed." +
+                    " Please update ReportLineageToAtlas configuration to disable this warning message," +
+                    " by confirming 'Kafka Kerberos Service Name' value and deleting the deprecated user defined property having the old value.");
+        }
+        return kafkaKerberosServiceNameProperty.evaluateAttributeExpressions().getValue();
     }
 
 }
