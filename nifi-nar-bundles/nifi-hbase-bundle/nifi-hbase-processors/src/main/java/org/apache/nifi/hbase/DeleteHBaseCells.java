@@ -19,6 +19,8 @@ package org.apache.nifi.hbase;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -36,13 +38,20 @@ import java.util.Scanner;
         @WritesAttribute(attribute = "error.line", description = "The line number of the error."),
         @WritesAttribute(attribute = "error.msg", description = "The message explaining the error.")
 })
+@Tags({"hbase", "delete", "cell", "cells", "visibility"})
+@CapabilityDescription("This processor allows the user to delete individual HBase cells by specifying one or more lines " +
+        "in the flowfile content that are a sequence composed of row ID, column family, column qualifier and associated visibility labels " +
+        "if visibility labels are enabled and in use. A user-defined separator is used to separate each of these pieces of data on each " +
+        "line, with :::: being the default separator.")
 public class DeleteHBaseCells extends AbstractDeleteHBase {
     static final PropertyDescriptor SEPARATOR = new PropertyDescriptor.Builder()
             .name("delete-hbase-cell-separator")
             .displayName("Separator")
             .description("Each line of the flowfile content is separated into components for building a delete using this" +
                     "separator. It should be something other than a single colon or a comma because these are values that " +
-                    "are associated with columns and visibility labels respectively.")
+                    "are associated with columns and visibility labels respectively. To delete a row with ID xyz, column family abc, " +
+                    "column qualifier def and visibility label PII&PHI, one would specify xyz::::abc::::def::::PII&PHI given the default " +
+                    "value")
             .required(true)
             .defaultValue("::::")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
