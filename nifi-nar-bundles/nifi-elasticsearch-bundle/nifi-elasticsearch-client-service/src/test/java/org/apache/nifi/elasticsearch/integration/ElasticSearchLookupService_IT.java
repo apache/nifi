@@ -22,6 +22,7 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
 import org.apache.nifi.elasticsearch.ElasticSearchLookupService;
 import org.apache.nifi.lookup.LookupFailureException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
@@ -41,14 +42,6 @@ public class ElasticSearchLookupService_IT {
     private ElasticSearchLookupService lookupService;
 
     static final Map<String, Object> QUERY;
-
-    static final String SCHEMA = "{\n" +
-            "\t\"type\": \"record\",\n" +
-            "\t\"name\": \"LookupValue\",\n" +
-            "\t\"fields\": [\n" +
-            "\t\t{ \"name\": \"msg\", \"type\": \"string\" }\n" +
-            "\t]\n" +
-            "}";
 
     static {
         QUERY = new HashMap<String, Object>(){{
@@ -91,24 +84,6 @@ public class ElasticSearchLookupService_IT {
     @Test
     public void testValidity() {
         runner.assertValid();
-    }
-
-    @Test
-    public void testSchemaValidation() {
-        setDefaultSchema();
-        runner.assertValid();
-        runner.disableControllerService(lookupService);
-        runner.setProperty(lookupService, ElasticSearchLookupService.SCHEMA, "{ \"key\": \"value\" }");
-
-        Throwable exception = null;
-        try {
-            runner.enableControllerService(lookupService);
-        } catch (Throwable ex) {
-            exception = ex;
-        } finally {
-            Assert.assertNotNull(exception);
-        }
-        runner.assertNotValid();
     }
 
     @Test
@@ -199,11 +174,15 @@ public class ElasticSearchLookupService_IT {
         }
     }
 
-    private void setDefaultSchema() {
+    private void setDefaultSchema() throws Exception {
         runner.disableControllerService(lookupService);
-        runner.setProperty(lookupService, ElasticSearchLookupService.SCHEMA, SCHEMA);
+        SchemaRegistry registry = new TestSchemaRegistry();
+        runner.addControllerService("registry", registry);
+        runner.setProperty(lookupService, ElasticSearchLookupService.SCHEMA_REGISTRY, "registry");
+        runner.enableControllerService(registry);
         runner.enableControllerService(lookupService);
     }
+
 
     @Test
     public void testLookupById() throws Exception {

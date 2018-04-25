@@ -18,27 +18,32 @@
 package org.apache.nifi.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.avro.Schema;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -72,22 +77,21 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
-        .name("el-lookup-schema")
-        .displayName("Schema")
-        .description("The record schema to be applied to results returned from ElasticSearch.")
+    public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
+        .name("el-lookup-schema-registry")
+        .displayName("Schema Registry")
+        .description("If specified, this avro schema will be used for all objects loaded from MongoDB using this service. If left blank, " +
+                "the service will attempt to determine the schema from the results.")
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator((subject, input, context) -> {
-            ValidationResult result;
-            try {
-                new Schema.Parser().parse(input);
-                result = new ValidationResult.Builder().input(input).valid(true).build();
-            } catch(Exception ex) {
-                result = new ValidationResult.Builder().input(input).valid(false).explanation(ex.getMessage()).build();
-            }
-            return result;
-        })
+        .identifiesControllerService(SchemaRegistry.class)
+        .build();
+
+    public static final PropertyDescriptor RECORD_SCHEMA_NAME = new PropertyDescriptor.Builder()
+        .name("el-lookup-record-schema-name")
+        .displayName("Record Schema Name")
+        .description("If specified, the value will be used to lookup a schema in the configured schema registry.")
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
 
     static final List<PropertyDescriptor> lookupDescriptors;
@@ -97,7 +101,8 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
         _desc.add(CLIENT_SERVICE);
         _desc.add(INDEX);
         _desc.add(TYPE);
-        _desc.add(SCHEMA);
+        _desc.add(SCHEMA_REGISTRY);
+        _desc.add(RECORD_SCHEMA_NAME);
 
         lookupDescriptors = Collections.unmodifiableList(_desc);
     }
@@ -109,16 +114,46 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
     private ObjectMapper mapper;
     private RecordSchema recordSchema;
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        List<ValidationResult> problems = new ArrayList<>();
+
+        PropertyValue registry = validationContext.getProperty(SCHEMA_REGISTRY);
+        PropertyValue schemaName = validationContext.getProperty(RECORD_SCHEMA_NAME);
+
+        if (registry.isSet() && !schemaName.isSet()) {
+            problems.add(new ValidationResult.Builder()
+                    .explanation("If the registry is set, the schema name parameter must be set too.")
+                    .build());
+        } else if (!registry.isSet() && schemaName.isSet()) {
+            problems.add(new ValidationResult.Builder()
+                    .explanation("If the schema name is set, the schema registry parameter must be set too.")
+                    .build());
+        }
+
+        return problems;
+    }
+
+
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) throws InitializationException {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
         index = context.getProperty(INDEX).getValue();
         type  = context.getProperty(TYPE).getValue();
         mapper = new ObjectMapper();
 
-        if (context.getProperty(SCHEMA).isSet()) {
-            Schema schema = new Schema.Parser().parse(context.getProperty(SCHEMA).getValue());
-            recordSchema = AvroTypeUtil.createSchema(schema);
+        SchemaRegistry registry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
+        final String name = context.getProperty(RECORD_SCHEMA_NAME).getValue();
+        if (registry != null) {
+            try {
+                SchemaIdentifier identifier = SchemaIdentifier.builder()
+                    .name(name)
+                    .build();
+                recordSchema = registry.retrieveSchema(identifier);
+            } catch (Exception ex) {
+                getLogger().error(String.format("Could not find schema named %s", name), ex);
+                throw new InitializationException(ex);
+            }
         }
     }
 
