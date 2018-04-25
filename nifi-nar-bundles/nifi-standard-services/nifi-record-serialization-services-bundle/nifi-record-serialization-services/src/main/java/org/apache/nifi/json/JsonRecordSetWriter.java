@@ -101,7 +101,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         // Don't allow Pretty Print if One Line Per Object is selected
         if (context.getProperty(PRETTY_PRINT_JSON).asBoolean() && context.getProperty(OUTPUT_GROUPING).getValue().equals(OUTPUT_ONELINE.getValue())) {
             problems.add(new ValidationResult.Builder().input("Pretty Print").valid(false)
-                    .explanation("Pretty Print JSON must be false when One Line Per Object is selected").build());
+                    .explanation("Pretty Print JSON must be false when 'Output Grouping' is set to 'One Line Per Object'").build());
         }
         return problems;
     }

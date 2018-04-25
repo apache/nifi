@@ -38,10 +38,10 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SchemaRegistryService;
 
 @Tags({"json", "tree", "record", "reader", "parser"})
-@CapabilityDescription("Parses JSON into individual Record objects. The Record that is produced will contain all top-level "
-        + "elements of the corresponding JSON Objects. The reader does not require the flow file content to be well-formed JSON; rather "
-        + "the content can be any combination of consecutive arrays or objects optionally delimited by whitespace. For example, the reader "
-        + "supports the 'one-JSON-per-line' format. If an array is encountered, each element in that array will be treated as a separate record. "
+@CapabilityDescription("Parses JSON into individual Record objects. While the reader expects each record "
+        + "to be well-formed JSON, the content of a FlowFile may consist of many records, each as a well-formed "
+        + "JSON array or JSON object with optional whitespace between them, such as the common 'JSON-per-line' format. "
+        + "If an array is encountered, each element in that array will be treated as a separate record. "
         + "If the schema that is configured contains a field that is not present in the JSON, a null value will be used. If the JSON contains "
         + "a field that is not present in the schema, that field will be skipped. "
     + "See the Usage of the Controller Service for more information and examples.")

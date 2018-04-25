@@ -193,7 +193,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     return jsonParser.readValueAsTree();
                 case END_ARRAY:
                 case START_ARRAY:
-                    return getNextJsonNode();
+                    continue;
 
                 default:
                     throw new MalformedRecordException("Expected to get a JSON Object but got a token of type " + token.name());
