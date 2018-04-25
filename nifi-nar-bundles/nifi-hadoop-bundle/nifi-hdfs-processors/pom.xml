@@ -22,7 +22,7 @@
     <artifactId>nifi-hdfs-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <hadoop.version>2.7.3</hadoop.version>
+        <hadoop.version>3.0.0</hadoop.version>
     </properties>
     <dependencies>
         <dependency>
@@ -53,6 +53,12 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs-client</artifactId>
             <version>${hadoop.version}</version>
             <scope>provided</scope>
         </dependency>
