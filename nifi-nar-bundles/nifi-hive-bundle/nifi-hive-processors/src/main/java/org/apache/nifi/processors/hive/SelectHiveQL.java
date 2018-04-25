@@ -308,7 +308,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final boolean escape = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
-        try (final Connection con = dbcpService.getConnection();
+        try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
              final Statement st = (flowbased ? con.prepareStatement(selectQuery) : con.createStatement())
         ) {
 

@@ -225,7 +225,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             throw new ProcessException(ioe);
         }
 
-        try (final Connection con = dbcpService.getConnection()) {
+        try (final Connection con = dbcpService.getConnection(Collections.emptyMap())) {
 
             DatabaseMetaData dbMetaData = con.getMetaData();
             ResultSet rs = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
