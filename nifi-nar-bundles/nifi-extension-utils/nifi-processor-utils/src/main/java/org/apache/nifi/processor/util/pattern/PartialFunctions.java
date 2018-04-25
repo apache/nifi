@@ -32,7 +32,7 @@ public class PartialFunctions {
 
     @FunctionalInterface
     public interface InitConnection<FC, C> {
-        C apply(ProcessContext context, ProcessSession session, FC functionContext) throws ProcessException;
+        C apply(ProcessContext context, ProcessSession session, FC functionContext, FlowFile flowFile) throws ProcessException;
     }
 
     @FunctionalInterface

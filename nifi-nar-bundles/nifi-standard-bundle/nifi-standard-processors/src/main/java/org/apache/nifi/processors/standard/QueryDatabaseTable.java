@@ -286,7 +286,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final StopWatch stopWatch = new StopWatch(true);
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
-        try (final Connection con = dbcpService.getConnection();
+        try (final Connection con = dbcpService.getConnection(Collections.emptyMap());
              final Statement st = con.createStatement()) {
 
             if (fetchSize != null && fetchSize > 0) {
