@@ -65,6 +65,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.test.processors.ModifiesClasspathNoAnnotationProcessor;
 import org.apache.nifi.test.processors.ModifiesClasspathProcessor;
@@ -148,8 +149,11 @@ public class TestStandardProcessorNode {
         final MockReloadComponent reloadComponent = new MockReloadComponent();
 
         final PropertyDescriptor classpathProp = new PropertyDescriptor.Builder().name("Classpath Resources")
-                .dynamicallyModifiesClasspath(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-        final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp));
+                .dynamicallyModifiesClasspath(true)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .build();
+        final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Collections.singletonList(
+                classpathProp));
         final StandardProcessorNode procNode = createProcessorNode(processor, reloadComponent);
 
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){

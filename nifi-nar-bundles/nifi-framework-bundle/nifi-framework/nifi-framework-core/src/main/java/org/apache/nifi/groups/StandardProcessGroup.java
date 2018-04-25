@@ -4118,20 +4118,20 @@ public final class StandardProcessGroup implements ProcessGroup {
 
 
     private Map<String, String> populatePropertiesMap(final Map<PropertyDescriptor, String> currentProperties, final Map<String, String> proposedProperties,
-        final Map<String, VersionedPropertyDescriptor> proposedDescriptors, final ProcessGroup group) {
+            final Map<String, VersionedPropertyDescriptor> proposedDescriptors, final ProcessGroup group) {
 
-        // since VersionedPropertyDescriptor currently doesn't know if it is sensitive or not,
-        // keep track of which property descriptors are sensitive from the current properties
-        final Set<String> sensitiveProperties = new HashSet<>();
-
+        final Map<String, String> sensitiveProperties = new HashMap<>();
         final Map<String, String> fullPropertyMap = new HashMap<>();
-        for (final PropertyDescriptor property : currentProperties.keySet()) {
-            if (property.isSensitive()) {
-                sensitiveProperties.add(property.getName());
-            } else {
-                fullPropertyMap.put(property.getName(), null);
+
+        currentProperties.entrySet().forEach(entry-> {
+            final String propName = entry.getKey().getName();
+            final String value = entry.getValue();
+            if(entry.getKey().isSensitive()){
+                sensitiveProperties.put(propName,value);
+            }else{
+                fullPropertyMap.put(propName, null);
             }
-        }
+        });
 
         if (proposedProperties != null) {
             for (final Map.Entry<String, String> entry : proposedProperties.entrySet()) {
@@ -4139,27 +4139,28 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final VersionedPropertyDescriptor descriptor = proposedDescriptors.get(propertyName);
 
                 // skip any sensitive properties so we can retain whatever is currently set
-                if (sensitiveProperties.contains(propertyName)) {
+                if (sensitiveProperties.containsKey(propertyName)) {
                     continue;
                 }
 
-                String value;
-                if (descriptor != null && descriptor.getIdentifiesControllerService()) {
-                    // Property identifies a Controller Service. So the value that we want to assign is not the value given.
-                    // The value given is instead the Versioned Component ID of the Controller Service. We want to resolve this
-                    // to the instance ID of the Controller Service.
-                    final String serviceVersionedComponentId = entry.getValue();
-                    String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                    value = instanceId == null ? serviceVersionedComponentId : instanceId;
-                } else {
-                    value = entry.getValue();
-                }
-
+                String value = getValueForProperty(entry.getValue(),descriptor, group);
                 fullPropertyMap.put(propertyName, value);
             }
         }
-
+        fullPropertyMap.putAll(sensitiveProperties);
         return fullPropertyMap;
+    }
+
+    private  String getValueForProperty(String possibleValue, VersionedPropertyDescriptor descriptor, ProcessGroup group){
+        String value = possibleValue;
+        if (descriptor != null && descriptor.getIdentifiesControllerService()) {
+            // Property identifies a Controller Service. So the value that we want to assign is not the value given.
+            // The value given is instead the Versioned Component ID of the Controller Service. We want to resolve this
+            // to the instance ID of the Controller Service.
+            String instanceId = getServiceInstanceId(possibleValue, group);
+            value = instanceId == null ? possibleValue : instanceId;
+        }
+        return value;
     }
 
     private String getServiceInstanceId(final String serviceVersionedComponentId, final ProcessGroup group) {
