@@ -28,14 +28,26 @@ import java.util.Map;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
 
 public class TestReplaceTextWithMapping {
 
+    public TestRunner getRunner() {
+        TestRunner runner = TestRunners.newTestRunner(ReplaceTextWithMapping.class);
+
+        /**
+         * we have to disable validation of expression language because the processor will
+         * need to evaluate the REGEX field with AND without flow files. If not disabled,
+         * the test will throw an error about the evaluation scope
+         */
+        runner.setValidateExpressionUsage(false);
+
+        return runner;
+    }
+
     @Test
     public void testSimple() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
 
@@ -54,7 +66,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testExpressionLanguageInText() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
 
@@ -72,7 +84,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testExpressionLanguageInText2() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
         runner.setProperty(ReplaceTextWithMapping.REGEX, "\\|(.*?)\\|");
@@ -92,7 +104,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testExpressionLanguageInText3() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
         runner.setProperty(ReplaceTextWithMapping.REGEX, ".*\\|(.*?)\\|.*");
@@ -112,7 +124,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testWithMatchingGroupAndContext() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath());
@@ -132,7 +144,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testBackReference() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "(\\S+)");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-backreference-mapping.txt").toFile().getAbsolutePath());
@@ -152,7 +164,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testRoutesToFailureIfTooLarge() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "[123]");
         runner.setProperty(ReplaceTextWithMapping.MAX_BUFFER_SIZE, "1 b");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath());
@@ -168,7 +180,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscaped() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-excessive-backreference-mapping.txt").toFile().getAbsolutePath());
@@ -188,7 +200,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedSimple() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE,
                 Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-excessive-backreference-mapping-simple.txt").toFile().getAbsolutePath());
 
@@ -207,7 +219,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testBackReferenceWithInvalidReferenceIsEscaped() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "(\\S+)");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-invalid-backreference-mapping.txt").toFile().getAbsolutePath());
@@ -227,7 +239,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testEscapingDollarSign() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-escaped-dollar-mapping.txt").toFile().getAbsolutePath());
@@ -247,7 +259,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testEscapingDollarSignSimple() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-escaped-dollar-mapping.txt").toFile().getAbsolutePath());
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
@@ -265,7 +277,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testReplaceWithEmptyString() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-blank-mapping.txt").toFile().getAbsolutePath());
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
@@ -283,7 +295,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testReplaceWithSpaceInString() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-space-mapping.txt").toFile().getAbsolutePath());
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
@@ -301,7 +313,7 @@ public class TestReplaceTextWithMapping {
 
     @Test
     public void testWithNoMatch() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-no-match-mapping.txt").toFile().getAbsolutePath());
@@ -319,7 +331,7 @@ public class TestReplaceTextWithMapping {
 
     @Test(expected = java.lang.AssertionError.class)
     public void testMatchingGroupForLookupKeyTooLarge() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
+        final TestRunner runner = getRunner();
         runner.setProperty(ReplaceTextWithMapping.REGEX, "-(.*?)-");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "2");
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-mapping.txt").toFile().getAbsolutePath());

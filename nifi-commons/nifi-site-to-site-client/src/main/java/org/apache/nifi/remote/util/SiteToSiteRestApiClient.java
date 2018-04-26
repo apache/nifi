@@ -773,8 +773,8 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             private final ByteBuffer buffer = ByteBuffer.allocate(DATA_PACKET_CHANNEL_READ_BUFFER_SIZE);
 
-            private int totalRead = 0;
-            private int totalProduced = 0;
+            private long totalRead = 0;
+            private long totalProduced = 0;
 
             private boolean requestHasBeenReset = false;
 

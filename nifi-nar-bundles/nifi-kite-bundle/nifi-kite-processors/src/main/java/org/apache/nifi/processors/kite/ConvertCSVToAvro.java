@@ -39,6 +39,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -102,7 +103,7 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .name("Record schema")
         .description("Outgoing Avro schema for each record created from a CSV row")
         .addValidator(SCHEMA_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
 
@@ -111,7 +112,7 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .name("CSV charset")
         .description("Character set for CSV files")
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(DEFAULTS.charset)
         .build();
 
@@ -120,7 +121,7 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .name("CSV delimiter")
         .description("Delimiter character for CSV records")
         .addValidator(CHAR_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(DEFAULTS.delimiter)
         .build();
 
@@ -129,7 +130,7 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .name("CSV quote character")
         .description("Quote character for CSV values")
         .addValidator(CHAR_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(DEFAULTS.quote)
         .build();
 
@@ -138,7 +139,7 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .name("CSV escape character")
         .description("Escape character for CSV values")
         .addValidator(CHAR_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(DEFAULTS.escape)
         .build();
 
@@ -147,7 +148,7 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .name("Use CSV header line")
         .description("Whether to use the first line as a header")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(String.valueOf(DEFAULTS.useHeader))
         .build();
 
@@ -156,7 +157,7 @@ public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
         .name("Lines to skip")
         .description("Number of lines to skip before reading header or data")
         .addValidator(createLongValidator(0L, Integer.MAX_VALUE, true))
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(String.valueOf(DEFAULTS.linesToSkip))
         .build();
 

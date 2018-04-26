@@ -43,6 +43,7 @@ public class ProcessorStatus implements Cloneable {
     private int flowFilesRemoved;
     private long averageLineageDuration;
     private int activeThreadCount;
+    private int terminatedThreadCount;
     private int flowFilesReceived;
     private long bytesReceived;
     private int flowFilesSent;
@@ -193,6 +194,14 @@ public class ProcessorStatus implements Cloneable {
         this.activeThreadCount = activeThreadCount;
     }
 
+    public int getTerminatedThreadCount() {
+        return terminatedThreadCount;
+    }
+
+    public void setTerminatedThreadCount(int terminatedThreadCount) {
+        this.terminatedThreadCount = terminatedThreadCount;
+    }
+
     public int getFlowFilesReceived() {
         return flowFilesReceived;
     }
@@ -237,6 +246,7 @@ public class ProcessorStatus implements Cloneable {
     public ProcessorStatus clone() {
         final ProcessorStatus clonedObj = new ProcessorStatus();
         clonedObj.activeThreadCount = activeThreadCount;
+        clonedObj.terminatedThreadCount = terminatedThreadCount;
         clonedObj.bytesRead = bytesRead;
         clonedObj.bytesWritten = bytesWritten;
         clonedObj.flowFilesReceived = flowFilesReceived;
@@ -294,6 +304,8 @@ public class ProcessorStatus implements Cloneable {
         builder.append(processingNanos);
         builder.append(", activeThreadCount=");
         builder.append(activeThreadCount);
+        builder.append(", terminatedThreadCount=");
+        builder.append(terminatedThreadCount);
         builder.append(", counters=");
         builder.append(counters);
         builder.append("]");

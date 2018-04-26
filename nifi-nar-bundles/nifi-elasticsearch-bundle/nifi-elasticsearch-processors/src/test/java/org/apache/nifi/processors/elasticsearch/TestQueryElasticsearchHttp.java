@@ -62,6 +62,24 @@ public class TestQueryElasticsearchHttp {
     @Test
     public void testQueryElasticsearchOnTrigger_withInput() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.QUERY,
+                "source:Twitter AND identifier:\"${identifier}\"");
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
+        runner.assertValid();
+
+        runAndVerifySuccess(true);
+    }
+
+    @Test
+    public void testQueryElasticsearchOnTrigger_withInput_withQueryInAttrs() throws IOException {
+        runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
         runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
@@ -81,7 +99,6 @@ public class TestQueryElasticsearchHttp {
     @Test
     public void testQueryElasticsearchOnTrigger_withInput_EL() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
@@ -104,7 +121,6 @@ public class TestQueryElasticsearchHttp {
     @Test
     public void testQueryElasticsearchOnTrigger_withInput_attributeTarget() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
@@ -130,7 +146,6 @@ public class TestQueryElasticsearchHttp {
     @Test
     public void testQueryElasticsearchOnTrigger_withNoInput() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
@@ -165,6 +180,7 @@ public class TestQueryElasticsearchHttp {
         out.assertAttributeEquals("filename", "abc-97b-ASVsZu_"
                 + "vShwtGCJpGOObmuSqUJRUC3L_-SEND-S3");
         }
+        out.assertAttributeExists("es.query.url");
     }
 
     // By default, 3 files should go to Success
@@ -175,7 +191,6 @@ public class TestQueryElasticsearchHttp {
     @Test
     public void testQueryElasticsearchOnTriggerWithFields() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
@@ -195,7 +210,6 @@ public class TestQueryElasticsearchHttp {
     @Test
     public void testQueryElasticsearchOnTriggerWithLimit() throws IOException {
         runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
@@ -221,7 +235,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
@@ -247,7 +260,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
@@ -273,7 +285,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
@@ -299,7 +310,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
@@ -326,7 +336,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.setIncomingConnection(false);
@@ -348,7 +357,6 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(QueryElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         // Allow time for the controller service to fully initialize
@@ -367,7 +375,6 @@ public class TestQueryElasticsearchHttp {
         QueryElasticsearchHttpTestProcessor p = new QueryElasticsearchHttpTestProcessor();
         p.setExpectedParam("myparam=myvalue");
         runner = TestRunners.newTestRunner(p);
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
@@ -480,6 +487,7 @@ public class TestQueryElasticsearchHttp {
             });
         }
 
+        @Override
         protected OkHttpClient getClient() {
             return client;
         }

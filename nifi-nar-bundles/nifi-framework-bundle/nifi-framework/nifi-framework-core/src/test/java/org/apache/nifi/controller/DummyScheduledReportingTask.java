@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
@@ -37,7 +38,7 @@ public class DummyScheduledReportingTask extends AbstractReportingTask {
         .name("Test with default value")
         .description("Test with default value")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("nifi")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -46,7 +47,7 @@ public class DummyScheduledReportingTask extends AbstractReportingTask {
         .name("Test without default value")
         .description("Test without default value")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 

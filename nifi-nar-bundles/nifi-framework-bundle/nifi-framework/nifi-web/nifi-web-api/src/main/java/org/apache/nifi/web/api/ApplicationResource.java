@@ -137,6 +137,11 @@ public abstract class ApplicationResource {
      * @return resource uri
      */
     protected String generateResourceUri(final String... path) {
+        URI uri = buildResourceUri(path);
+        return uri.toString();
+    }
+
+    private URI buildResourceUri(final String... path) {
         final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
         uriBuilder.segment(path);
         URI uri = uriBuilder.build();
@@ -179,7 +184,7 @@ public abstract class ApplicationResource {
         } catch (final URISyntaxException use) {
             throw new UriBuilderException(use);
         }
-        return uri.toString();
+        return uri;
     }
 
     /**
@@ -1226,9 +1231,9 @@ public abstract class ApplicationResource {
         public Response locationResponse(UriInfo uriInfo, String portType, String portId, String transactionId, Object entity,
                                          Integer protocolVersion, final HttpRemoteSiteListener transactionManager) {
 
-            String path = "/data-transfer/" + portType + "/" + portId + "/transactions/" + transactionId;
-            URI location = uriInfo.getBaseUriBuilder().path(path).build();
-            return noCache(setCommonHeaders(Response.created(location), protocolVersion, transactionManager)
+            final URI transactionUri = buildResourceUri("data-transfer", portType, portId, "transactions", transactionId);
+
+            return noCache(setCommonHeaders(Response.created(transactionUri), protocolVersion, transactionManager)
                     .header(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE))
                     .entity(entity).build();
         }

@@ -32,6 +32,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -67,7 +68,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .displayName("CSV Parser")
             .description("Specifies which parser to use to read CSV records. NOTE: Different parsers may support different subsets of functionality "
                     + "and may also exhibit different levels of performance.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(APACHE_COMMONS_CSV, JACKSON_CSV)
             .defaultValue(APACHE_COMMONS_CSV.getValue())
             .required(true)

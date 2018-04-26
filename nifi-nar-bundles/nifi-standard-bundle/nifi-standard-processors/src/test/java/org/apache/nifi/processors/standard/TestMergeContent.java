@@ -564,11 +564,20 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
-        runner.setProperty(MergeContent.HEADER, "src/test/resources/TestMergeContent/head");
-        runner.setProperty(MergeContent.DEMARCATOR, "src/test/resources/TestMergeContent/demarcate");
-        runner.setProperty(MergeContent.FOOTER, "src/test/resources/TestMergeContent/foot");
+        runner.setProperty(MergeContent.HEADER, "${header}");
+        runner.setProperty(MergeContent.DEMARCATOR, "${demarcator}");
+        runner.setProperty(MergeContent.FOOTER, "${footer}");
 
-        createFlowFiles(runner);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+        attributes.put("header", "src/test/resources/TestMergeContent/head");
+        attributes.put("demarcator", "src/test/resources/TestMergeContent/demarcate");
+        attributes.put("footer", "src/test/resources/TestMergeContent/foot");
+
+        runner.enqueue("Hello".getBytes("UTF-8"), attributes);
+        runner.enqueue(", ".getBytes("UTF-8"), attributes);
+        runner.enqueue("World!".getBytes("UTF-8"), attributes);
         runner.run();
 
         runner.assertQueueEmpty();

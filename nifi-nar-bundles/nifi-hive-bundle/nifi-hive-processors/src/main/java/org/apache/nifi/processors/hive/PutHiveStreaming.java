@@ -42,6 +42,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
@@ -166,7 +167,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("The URI location for the Hive Metastore. Note that this is not the location of the Hive Server. The default port for the "
                     + "Hive metastore is 9043.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
             .build();
@@ -188,7 +189,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Database Name")
             .description("The name of the database in which to put the data.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -197,7 +198,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Table Name")
             .description("The name of the database table in which to put the data.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -207,7 +208,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .description("A comma-delimited list of column names on which the table has been partitioned. The order of values in this list must "
                     + "correspond exactly to the order of partition columns specified during the table creation.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("[^,]+(,[^,]+)*"))) // comma-separated list with non-empty entries
             .build();
 
@@ -241,7 +242,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .defaultValue("60")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor TXNS_PER_BATCH = new PropertyDescriptor.Builder()
@@ -249,7 +250,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Transactions per Batch")
             .description("A hint to Hive Streaming indicating how many transactions the processor task will need. This value must be greater than 1.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(GREATER_THAN_ONE_VALIDATOR)
             .defaultValue("100")
             .build();
@@ -259,7 +260,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .displayName("Records per Transaction")
             .description("Number of records to process before committing the transaction. This value must be greater than 1.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(GREATER_THAN_ONE_VALIDATOR)
             .defaultValue("10000")
             .build();
@@ -272,7 +273,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ROLLBACK_ON_FAILURE = RollbackOnFailure.createRollbackOnFailureProperty(

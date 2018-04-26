@@ -24,6 +24,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 public class CSVUtils {
@@ -41,7 +42,7 @@ public class CSVUtils {
     public static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
         .name("CSV Format")
         .description("Specifies which \"format\" the CSV data is in, or specifies if custom formatting should be used.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(CUSTOM, RFC_4180, EXCEL, TDF, MYSQL, INFORMIX_UNLOAD, INFORMIX_UNLOAD_CSV)
         .defaultValue(CUSTOM.getValue())
         .required(true)
@@ -50,7 +51,7 @@ public class CSVUtils {
         .name("Value Separator")
         .description("The character that is used to separate values/fields in a CSV Record")
         .addValidator(CSVValidators.UNESCAPED_SINGLE_CHAR_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue(",")
         .required(true)
         .build();
@@ -58,7 +59,7 @@ public class CSVUtils {
         .name("Quote Character")
         .description("The character that is used to quote values so that escape characters do not have to be used")
         .addValidator(new CSVValidators.SingleCharacterValidator())
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("\"")
         .required(true)
         .build();
@@ -70,7 +71,7 @@ public class CSVUtils {
             + "present and won't be processed as a Record. Otherwise, if 'true', then the first line of CSV data will not be processed as a record and if 'false',"
             + "then the first line will be interpreted as a record.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -82,7 +83,7 @@ public class CSVUtils {
             + "the Reader will interpret the fields. If this property is true, then the field names mapped to each column are driven only by the configured schema and "
             + "any fields not in the schema will be ignored. If this property is false, then the field names found in the CSV Header will be used as the names of the "
             + "fields.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(false)
@@ -91,14 +92,14 @@ public class CSVUtils {
         .name("Comment Marker")
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .build();
     public static final PropertyDescriptor ESCAPE_CHAR = new PropertyDescriptor.Builder()
         .name("Escape Character")
         .description("The character that is used to escape characters that would otherwise have a specific meaning to the CSV Parser.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("\\")
         .required(true)
         .build();
@@ -106,13 +107,13 @@ public class CSVUtils {
         .name("Null String")
         .description("Specifies a String that, if present as a value in the CSV, should be considered a null field instead of using the literal value.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
         .build();
     public static final PropertyDescriptor TRIM_FIELDS = new PropertyDescriptor.Builder()
         .name("Trim Fields")
         .description("Whether or not white space should be removed from the beginning and end of fields")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
@@ -121,7 +122,7 @@ public class CSVUtils {
         .name("csvutils-character-set")
         .displayName("Character Set")
         .description("The Character Encoding that is used to encode/decode the CSV file")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
         .defaultValue("UTF-8")
         .required(true)
@@ -138,7 +139,7 @@ public class CSVUtils {
     public static final PropertyDescriptor QUOTE_MODE = new PropertyDescriptor.Builder()
         .name("Quote Mode")
         .description("Specifies how fields should be quoted when they are written")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(QUOTE_ALL, QUOTE_MINIMAL, QUOTE_NON_NUMERIC, QUOTE_NONE)
         .defaultValue(QUOTE_MINIMAL.getValue())
         .required(true)
@@ -146,7 +147,7 @@ public class CSVUtils {
     public static final PropertyDescriptor TRAILING_DELIMITER = new PropertyDescriptor.Builder()
         .name("Include Trailing Delimiter")
         .description("If true, a trailing delimiter will be added to each CSV Record that is written. If false, the trailing delimiter will be omitted.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -155,7 +156,7 @@ public class CSVUtils {
         .name("Record Separator")
         .description("Specifies the characters to use in order to separate CSV Records")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("\\n")
         .required(true)
         .build();

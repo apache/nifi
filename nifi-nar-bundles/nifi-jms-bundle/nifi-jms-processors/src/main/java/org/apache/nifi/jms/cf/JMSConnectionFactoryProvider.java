@@ -39,6 +39,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -88,7 +89,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     + "class (i.e., org.apache.activemq.ActiveMQConnectionFactory)")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor CLIENT_LIB_DIR_PATH = new PropertyDescriptor.Builder()
             .name(CF_LIB)
@@ -98,7 +99,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     + "ConnectionFactory implementation.")
             .addValidator(new ClientLibValidator())
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     // ConnectionFactory specific properties
@@ -109,7 +110,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     + "'tcp://myhost:61616' for ActiveMQ or 'myhost:1414' for IBM MQ")
             .addValidator(new NonEmptyBrokerURIValidator())
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -133,7 +134,9 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
         return new PropertyDescriptor.Builder()
                 .description("Specifies the value for '" + propertyDescriptorName
                         + "' property to be set on the provided ConnectionFactory implementation.")
-                .name(propertyDescriptorName).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).dynamic(true)
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .dynamic(true)
                 .build();
     }
 

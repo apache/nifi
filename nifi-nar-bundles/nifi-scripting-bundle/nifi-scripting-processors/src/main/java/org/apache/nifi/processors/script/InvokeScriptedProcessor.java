@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -67,7 +68,8 @@ import java.util.concurrent.atomic.AtomicReference;
         + "the class. Processor methods such as onTrigger() will be delegated to the scripted Processor instance. Also any "
         + "Relationships or PropertyDescriptors defined by the scripted processor will be added to the configuration dialog.  "
         + "Experimental: Impact of sustained usage not yet verified.")
-@DynamicProperty(name = "A script engine property to update", value = "The value to set it to", supportsExpressionLanguage = true,
+@DynamicProperty(name = "A script engine property to update", value = "The value to set it to",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
         description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
@@ -185,7 +187,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }

@@ -34,6 +34,8 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -131,7 +133,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_DISABLED;
+import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_ENABLED;
 
 /**
  * RESTful endpoint for managing a Flow.
@@ -563,27 +570,61 @@ public class FlowResource extends ApplicationResource {
         if (requestScheduleComponentsEntity.getState() == null) {
             throw new IllegalArgumentException("The scheduled state must be specified.");
         } else {
-            try {
-                state = ScheduledState.valueOf(requestScheduleComponentsEntity.getState());
-            } catch (final IllegalArgumentException iae) {
-                throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+            if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                state = ScheduledState.STOPPED;
+            } else {
+                try {
+                    state = ScheduledState.valueOf(requestScheduleComponentsEntity.getState());
+                } catch (final IllegalArgumentException iae) {
+                    throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                            StringUtils.join(Stream.of(ScheduledState.RUNNING, ScheduledState.STOPPED, STATE_ENABLED, ScheduledState.DISABLED), ", ")));
+                }
             }
         }
 
         // ensure its a supported scheduled state
-        if (ScheduledState.DISABLED.equals(state) || ScheduledState.STARTING.equals(state) || ScheduledState.STOPPING.equals(state)) {
-            throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+        if (ScheduledState.STARTING.equals(state) || ScheduledState.STOPPING.equals(state)) {
+            throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                    StringUtils.join(Stream.of(ScheduledState.RUNNING, ScheduledState.STOPPED, STATE_ENABLED, ScheduledState.DISABLED), ", ")));
         }
 
         // if the components are not specified, gather all components and their current revision
         if (requestScheduleComponentsEntity.getComponents() == null) {
+            final Supplier<Predicate<ProcessorNode>> getProcessorFilter = () -> {
+                if (ScheduledState.RUNNING.equals(state)) {
+                    return ProcessGroup.START_PROCESSORS_FILTER;
+                } else if (ScheduledState.STOPPED.equals(state)) {
+                    if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                        return ProcessGroup.ENABLE_PROCESSORS_FILTER;
+                    } else {
+                        return ProcessGroup.STOP_PROCESSORS_FILTER;
+                    }
+                } else {
+                    return ProcessGroup.DISABLE_PROCESSORS_FILTER;
+                }
+            };
+
+            final Supplier<Predicate<Port>> getPortFilter = () -> {
+                if (ScheduledState.RUNNING.equals(state)) {
+                    return ProcessGroup.START_PORTS_FILTER;
+                } else if (ScheduledState.STOPPED.equals(state)) {
+                    if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                        return ProcessGroup.ENABLE_PORTS_FILTER;
+                    } else {
+                        return ProcessGroup.STOP_PORTS_FILTER;
+                    }
+                } else {
+                    return ProcessGroup.DISABLE_PORTS_FILTER;
+                }
+            };
+
             // get the current revisions for the components being updated
             final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
                 final Set<String> componentIds = new HashSet<>();
 
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PROCESSORS : ProcessGroup.UNSCHEDULABLE_PROCESSORS)
+                        .filter(getProcessorFilter.get())
                         .filter(processor -> processor.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(processor -> {
                             componentIds.add(processor.getIdentifier());
@@ -591,7 +632,7 @@ public class FlowResource extends ApplicationResource {
 
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(getPortFilter.get())
                         .filter(inputPort -> inputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(inputPort -> {
                             componentIds.add(inputPort.getIdentifier());
@@ -599,7 +640,7 @@ public class FlowResource extends ApplicationResource {
 
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                        .filter(getPortFilter.get())
                         .filter(outputPort -> outputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(outputPort -> {
                             componentIds.add(outputPort.getIdentifier());
@@ -646,14 +687,26 @@ public class FlowResource extends ApplicationResource {
                 },
                 () -> serviceFacade.verifyScheduleComponents(id, state, requestComponentRevisions.keySet()),
                 (revisions, scheduleComponentsEntity) -> {
-                    final ScheduledState scheduledState = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+
+                    final ScheduledState scheduledState;
+                    if (STATE_ENABLED.equals(scheduleComponentsEntity.getState())) {
+                        scheduledState = ScheduledState.STOPPED;
+                    } else {
+                        scheduledState = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+                    }
 
                     final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
                     final Map<String, Revision> componentRevisions =
                             componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
 
                     // update the process group
-                final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
+                    final ScheduleComponentsEntity entity;
+                    if (STATE_ENABLED.equals(scheduleComponentsEntity.getState()) || STATE_DISABLED.equals(scheduleComponentsEntity.getState())) {
+                        entity = serviceFacade.enableComponents(id, scheduledState, componentRevisions);
+                    } else {
+                        entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
+                    }
+
                     return generateOkResponse(entity).build();
                 }
         );

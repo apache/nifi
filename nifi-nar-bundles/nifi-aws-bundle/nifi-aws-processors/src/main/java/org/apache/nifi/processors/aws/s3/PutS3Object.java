@@ -50,6 +50,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -104,7 +105,7 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object",
         value = "The value of a User-Defined Metadata field to add to the S3 Object",
         description = "Allows user-defined metadata to be added to the S3 object as key/value pairs",
-        supportsExpressionLanguage = true)
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
@@ -129,7 +130,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
         .name("Expiration Time Rule")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -143,7 +144,7 @@ public class PutS3Object extends AbstractS3Processor {
                 "no content type is provided and cannot be determined by the filename, the default content type " +
                 "\"application/octet-stream\" will be used.")
         .required(false)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -237,7 +238,7 @@ public class PutS3Object extends AbstractS3Processor {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dynamic(true)
             .build();
     }
@@ -408,7 +409,7 @@ public class PutS3Object extends AbstractS3Processor {
         /*
          * If necessary, run age off for existing uploads in AWS S3 and local state
          */
-        ageoffS3Uploads(context, s3, now);
+        ageoffS3Uploads(context, s3, now, bucket);
 
         /*
          * Then
@@ -717,16 +718,15 @@ public class PutS3Object extends AbstractS3Processor {
     private final AtomicLong lastS3AgeOff = new AtomicLong(0L);
     private final DateFormat logFormat = new SimpleDateFormat();
 
-    protected void ageoffS3Uploads(final ProcessContext context, final AmazonS3Client s3, final long now) {
-        MultipartUploadListing oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now);
+    protected void ageoffS3Uploads(final ProcessContext context, final AmazonS3Client s3, final long now, String bucket) {
+        MultipartUploadListing oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now, bucket);
         for (MultipartUpload upload : oldUploads.getMultipartUploads()) {
             abortS3MultipartUpload(s3, oldUploads.getBucketName(), upload);
         }
     }
 
-    protected MultipartUploadListing getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final AmazonS3Client s3, final long now) {
+    protected MultipartUploadListing getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final AmazonS3Client s3, final long now, String bucket) {
         final long ageoff_interval = context.getProperty(MULTIPART_S3_AGEOFF_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
-        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final Long maxAge = context.getProperty(MULTIPART_S3_MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long ageCutoff = now - maxAge;
 

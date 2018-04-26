@@ -306,9 +306,14 @@
 
         // define a custom formatter for the run status column
         var runStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            var activeThreadCount = '';
-            if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
-                activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
+            var threadCounts = '';
+            var threadTip = '';
+            if (dataContext.terminatedThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + ' / ' + dataContext.terminatedThreadCount + ')';
+                threadTip = 'Threads: (Active / Terminated)';
+            } else if (dataContext.activeThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + ')';
+                threadTip = 'Active Threads';
             }
             var classes;
             switch (value.toLowerCase()) {
@@ -330,8 +335,20 @@
                 default:
                     classes = '';
             }
-            var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nfCommon.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
+
+
+            var markup =
+                '<div layout="row">' +
+                    '<div class="' + classes + '"></div>' +
+                    '<div class="status-text" style="margin-top: 4px;">' +
+                        nfCommon.escapeHtml(value) +
+                    '</div>' +
+                    '<div style="float: left; margin-left: 4px;" title="' + threadTip + '">' +
+                        nfCommon.escapeHtml(threadCounts) +
+                    '</div>' +
+                '</div>';
+
+            return markup;
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -2694,6 +2711,7 @@
                         node: nodeSnapshot.address + ':' + nodeSnapshot.apiPort,
                         runStatus: snapshot.runStatus,
                         activeThreadCount: snapshot.activeThreadCount,
+                        terminatedThreadCount: snapshot.terminatedThreadCount,
                         input: snapshot.input,
                         read: snapshot.read,
                         written: snapshot.written,

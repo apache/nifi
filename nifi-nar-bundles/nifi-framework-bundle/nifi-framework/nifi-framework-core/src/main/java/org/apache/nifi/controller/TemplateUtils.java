@@ -209,6 +209,7 @@ public class TemplateUtils {
         descriptor.setRequired(null);
         descriptor.setSensitive(null);
         descriptor.setSupportsEl(null);
+        descriptor.setExpressionLanguageScope(null);
         descriptor.setIdentifiesControllerServiceBundle(null);
     }
 

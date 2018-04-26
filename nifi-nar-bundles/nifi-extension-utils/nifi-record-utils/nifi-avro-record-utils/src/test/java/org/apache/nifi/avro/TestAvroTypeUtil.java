@@ -25,6 +25,8 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -325,7 +327,7 @@ public class TestAvroTypeUtil {
         try (DataFileStream<GenericRecord> r = new DataFileStream<>(getClass().getResourceAsStream("data.avro"),
                 new GenericDatumReader<>())) {
             GenericRecord n = r.next();
-            AvroTypeUtil.convertAvroRecordToMap(n, recordASchema);
+            AvroTypeUtil.convertAvroRecordToMap(n, recordASchema, StandardCharsets.UTF_8);
         }
     }
 
@@ -372,7 +374,7 @@ public class TestAvroTypeUtil {
         expects.forEach((rawValue, expect) -> {
             final Object convertedValue;
             try {
-                convertedValue = AvroTypeUtil.convertToAvroObject(rawValue, fieldSchema);
+                convertedValue = AvroTypeUtil.convertToAvroObject(rawValue, fieldSchema, StandardCharsets.UTF_8);
             } catch (Exception e) {
                 if (expect.equals(e.getClass().getCanonicalName())) {
                     // Expected behavior.
@@ -394,4 +396,25 @@ public class TestAvroTypeUtil {
 
     }
 
+    @Test
+    public void testStringToBytesConversion() {
+        Object o = AvroTypeUtil.convertToAvroObject("Hello", Schema.create(Type.BYTES), StandardCharsets.UTF_16);
+        assertTrue(o instanceof ByteBuffer);
+        assertEquals("Hello", new String(((ByteBuffer) o).array(), StandardCharsets.UTF_16));
+    }
+
+    @Test
+    public void testStringToNullableBytesConversion() {
+        Object o = AvroTypeUtil.convertToAvroObject("Hello", Schema.createUnion(Schema.create(Type.NULL), Schema.create(Type.BYTES)), StandardCharsets.UTF_16);
+        assertTrue(o instanceof ByteBuffer);
+        assertEquals("Hello", new String(((ByteBuffer) o).array(), StandardCharsets.UTF_16));
+    }
+
+    @Test
+    public void testBytesToStringConversion() {
+        final Charset charset = Charset.forName("UTF_32LE");
+        Object o = AvroTypeUtil.convertToAvroObject("Hello".getBytes(charset), Schema.create(Type.STRING), charset);
+        assertTrue(o instanceof String);
+        assertEquals("Hello", o);
+    }
 }

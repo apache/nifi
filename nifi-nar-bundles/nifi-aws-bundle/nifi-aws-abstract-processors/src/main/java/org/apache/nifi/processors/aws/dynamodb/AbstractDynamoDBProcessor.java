@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -82,7 +83,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
             .name("Table Name")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The DynamoDB table name")
             .build();
@@ -90,7 +91,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor HASH_KEY_VALUE = new PropertyDescriptor.Builder()
             .name("Hash Key Value")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The hash key value of the item")
             .defaultValue("${dynamodb.item.hash.key.value}")
@@ -100,7 +101,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             .name("Range Key Value")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${dynamodb.item.range.key.value}")
             .build();
 
@@ -123,7 +124,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor HASH_KEY_NAME = new PropertyDescriptor.Builder()
             .name("Hash Key Name")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The hash key name of the item")
             .build();
@@ -131,7 +132,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor RANGE_KEY_NAME = new PropertyDescriptor.Builder()
             .name("Range Key Name")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The range key name of the item")
             .build();
@@ -139,7 +140,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor JSON_DOCUMENT = new PropertyDescriptor.Builder()
             .name("Json Document attribute")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .description("The Json document to be retrieved from the dynamodb item")
             .build();
@@ -147,7 +148,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch items for each request (between 1 and 50)")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createLongValidator(1, 50, true))
             .defaultValue("1")
             .description("The items to be retrieved in one batch")
@@ -158,7 +159,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             .description("Character set of data in the document")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(Charset.defaultCharset().name())
             .build();
 

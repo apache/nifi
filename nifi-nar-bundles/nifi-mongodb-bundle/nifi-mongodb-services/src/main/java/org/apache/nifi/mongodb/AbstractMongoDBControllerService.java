@@ -30,6 +30,7 @@ import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -54,7 +55,7 @@ public class AbstractMongoDBControllerService extends AbstractControllerService 
             .displayName("Mongo URI")
             .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(Validation.DOCUMENT_VALIDATOR)
             .build();
     protected static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
@@ -62,7 +63,7 @@ public class AbstractMongoDBControllerService extends AbstractControllerService 
             .displayName("Mongo Database Name")
             .description("The name of the database to use")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
@@ -70,7 +71,7 @@ public class AbstractMongoDBControllerService extends AbstractControllerService 
             .displayName("Mongo Collection Name")
             .description("The name of the collection to use")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

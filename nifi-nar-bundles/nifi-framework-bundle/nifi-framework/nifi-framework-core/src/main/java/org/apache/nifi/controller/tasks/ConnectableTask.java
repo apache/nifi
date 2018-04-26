@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -51,7 +52,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Continually runs a processor as long as the processor has work to do. {@link #call()} will return <code>true</code> if the processor should be yielded, <code>false</code> otherwise.
+ * Continually runs a <code>{@link Connectable}</code> component as long as the component has work to do.
+ * {@link #invoke()} ()} will return <code>{@link InvocationResult}</code> telling if the component should be yielded.
  */
 public class ConnectableTask {
 
@@ -64,7 +66,6 @@ public class ConnectableTask {
     private final ProcessContext processContext;
     private final FlowController flowController;
     private final int numRelationships;
-    private final boolean hasNonLoopConnection;
 
 
     public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
@@ -76,7 +77,6 @@ public class ConnectableTask {
         this.scheduleState = scheduleState;
         this.numRelationships = connectable.getRelationships().size();
         this.flowController = flowController;
-        this.hasNonLoopConnection = Connectables.hasNonLoopConnection(connectable);
 
         final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
         if (connectable instanceof ProcessorNode) {
@@ -103,8 +103,40 @@ public class ConnectableTask {
         return connectable.getYieldExpiration() > System.currentTimeMillis();
     }
 
+    /**
+     * Make sure processor has work to do. This means that it meets one of these criteria:
+     * <ol>
+     * <li>It is a Funnel and has incoming FlowFiles from other components, and and at least one outgoing connection.</li>
+     * <li>It is a 'source' component, meaning:<ul>
+     *   <li>It is annotated with @TriggerWhenEmpty</li>
+     *   <li>It has no incoming connections</li>
+     *   <li>All incoming connections are self-loops</li>
+     * </ul></li>
+     * <li>It has data in incoming connections to process</li>
+     * </ol>
+     * @return true if there is work to do, otherwise false
+     */
     private boolean isWorkToDo() {
-        return connectable.isTriggerWhenEmpty() || !connectable.hasIncomingConnection() || !hasNonLoopConnection || Connectables.flowFilesQueued(connectable);
+        boolean hasNonLoopConnection = Connectables.hasNonLoopConnection(connectable);
+
+        if (connectable.getConnectableType() == ConnectableType.FUNNEL) {
+            // Handle Funnel as a special case because it will never be a 'source' component,
+            // and also its outgoing connections can not be terminated.
+            // Incoming FlowFiles from other components, and at least one outgoing connection are required.
+            return connectable.hasIncomingConnection()
+                    && hasNonLoopConnection
+                    && !connectable.getConnections().isEmpty()
+                    && Connectables.flowFilesQueued(connectable);
+        }
+
+        final boolean isSourceComponent = connectable.isTriggerWhenEmpty()
+                // No input connections
+                || !connectable.hasIncomingConnection()
+                // Every incoming connection loops back to itself, no inputs from other components
+                || !hasNonLoopConnection;
+
+        // If it is not a 'source' component, it requires a FlowFile to process.
+        return isSourceComponent || Connectables.flowFilesQueued(connectable);
     }
 
     private boolean isBackPressureEngaged() {
@@ -129,11 +161,7 @@ public class ConnectableTask {
             return InvocationResult.DO_NOT_YIELD;
         }
 
-        // Make sure processor has work to do. This means that it meets one of these criteria:
-        // * It is annotated with @TriggerWhenEmpty
-        // * It has data in an incoming Connection
-        // * It has no incoming connections
-        // * All incoming connections are self-loops
+        // Make sure processor has work to do.
         if (!isWorkToDo()) {
             return InvocationResult.yield("No work to do");
         }

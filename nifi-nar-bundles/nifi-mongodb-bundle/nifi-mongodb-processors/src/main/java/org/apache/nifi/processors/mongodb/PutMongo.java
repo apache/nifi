@@ -155,6 +155,10 @@ public class PutMongo extends AbstractMongoProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         List<ValidationResult> problems = new ArrayList<>();
 
+        if (validationContext.getProperty(MODE).getValue().equals(MODE_INSERT)) {
+            return problems;
+        }
+
         final boolean queryKey = validationContext.getProperty(UPDATE_QUERY_KEY).isSet();
         final boolean query    = validationContext.getProperty(UPDATE_QUERY).isSet();
 

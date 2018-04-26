@@ -20,6 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
@@ -47,7 +48,7 @@ public class RegexClusterResolver implements ClusterResolver {
                     .Builder().name(propertyDescriptorName)
                     .description(PATTERN_PROPERTY_PREFIX_DESC)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .dynamic(true)
                     .sensitive(false)
                     .build();

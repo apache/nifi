@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hadoop-libraries-bundle</artifactId>
-        <version>1.6.0</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-hadoop-libraries-nar</artifactId>
     <packaging>nar</packaging>
@@ -21,13 +21,13 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <curator.version>2.11.0</curator.version>
-        <hadoop.version>2.7.3</hadoop.version>        
+        <hadoop.version>3.0.0</hadoop.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.6.0</version>
+            <version>1.7.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>

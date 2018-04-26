@@ -205,4 +205,12 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         }
     }
 
+    protected boolean isVerbose(final Properties properties) {
+        return properties.containsKey(CommandOption.VERBOSE.getLongName());
+    }
+
+    protected boolean isInteractive() {
+        return getContext().isInteractive();
+    }
+
 }

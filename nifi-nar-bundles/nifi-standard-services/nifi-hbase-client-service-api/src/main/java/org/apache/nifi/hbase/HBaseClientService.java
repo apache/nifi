@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
@@ -72,7 +73,7 @@ public interface HBaseClientService extends ControllerService {
             .name("Phoenix Client JAR Location")
             .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();
 

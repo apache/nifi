@@ -31,6 +31,7 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -45,7 +46,6 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -75,9 +75,6 @@ import java.util.concurrent.TimeUnit;
 )
 public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-    static final String LAST_EVENT_ID_KEY = "last_event_id";
-
     static final AllowableValue BEGINNING_OF_STREAM = new AllowableValue("beginning-of-stream", "Beginning of Stream",
         "Start reading provenance Events from the beginning of the stream (the oldest event first)");
     static final AllowableValue END_OF_STREAM = new AllowableValue("end-of-stream", "End of Stream",
@@ -88,7 +85,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         .displayName("Platform")
         .description("The value to use for the platform field in each provenance event.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("nifi")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -306,7 +303,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     }
 
 
-    static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
+    private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
                                 final String componentName, final String processGroupId, final String processGroupName, final String hostname, final URL nifiUrl, final String applicationName,
                                 final String platform, final String nodeIdentifier) {
         addField(builder, "eventId", UUID.randomUUID().toString());
@@ -370,32 +367,12 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         builder.add(key, mapBuilder);
     }
 
-    private static void addField(final JsonObjectBuilder builder, final String key, final Long value) {
-        if (value != null) {
-            builder.add(key, value.longValue());
-        }
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values) {
+    private void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values) {
         if (values == null) {
             return;
         }
 
         builder.add(key, createJsonArray(factory, values));
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final String value) {
-        addField(builder, key, value, false);
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final String value, final boolean allowNullValues) {
-        if (value == null) {
-            if (allowNullValues) {
-                builder.add(key, JsonValue.NULL);
-            }
-        } else {
-            builder.add(key, value);
-        }
     }
 
     private static JsonArrayBuilder createJsonArray(JsonBuilderFactory factory, final Collection<String> values) {

@@ -35,7 +35,7 @@ import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.registry.VariableRegistry;
 
 
-public class MockValidationContext implements ValidationContext, ControllerServiceLookup {
+public class MockValidationContext extends MockControllerServiceLookup implements ValidationContext, ControllerServiceLookup {
 
     private final MockProcessContext context;
     private final Map<String, Boolean> expressionLanguageSupported;

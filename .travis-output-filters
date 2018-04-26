@@ -1,0 +1,15 @@
+Downloading from 
+Copying 
+Progress 
+Resolving deltas:
+[WARNING] *****************************************************************
+[WARNING] * Your build is requesting parallel execution, but project      *
+[WARNING] * contains the following plugin(s) that have goals not marked   *
+[WARNING] * as @threadSafe to support parallel building.                  *
+[WARNING] * While this /may/ work fine, please look for plugin updates    *
+[WARNING] * and/or request plugins be made thread-safe.                   *
+[WARNING] * If reporting an issue, report it against the plugin in        *
+[WARNING] * question, not against maven-core                              *
+[WARNING] The following plugins are not marked @threadSafe in 
+[WARNING] org.apache.rat:apache-rat-plugin 
+[WARNING] Enable debug to see more precisely which goals are not marked @threadSafe.

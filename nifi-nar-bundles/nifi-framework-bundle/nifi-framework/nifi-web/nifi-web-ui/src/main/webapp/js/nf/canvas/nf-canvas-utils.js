@@ -772,20 +772,44 @@
          * @return
          */
         activeThreadCount: function (selection, d, setOffset) {
+            var activeThreads = d.status.aggregateSnapshot.activeThreadCount;
+            var terminatedThreads = d.status.aggregateSnapshot.terminatedThreadCount;
+
             // if there is active threads show the count, otherwise hide
-            if (d.status.aggregateSnapshot.activeThreadCount > 0) {
+            if (activeThreads > 0 || terminatedThreads > 0) {
+                var generateThreadsTip = function () {
+                    var tip = activeThreads + ' active threads';
+                    if (terminatedThreads > 0) {
+                        tip += ' (' + terminatedThreads + ' terminated)';
+                    }
+
+                    return tip;
+                };
+
                 // update the active thread count
                 var activeThreadCount = selection.select('text.active-thread-count')
                     .text(function () {
-                        return d.status.aggregateSnapshot.activeThreadCount;
+                        if (terminatedThreads > 0) {
+                            return activeThreads + ' (' + terminatedThreads + ')';
+                        } else {
+                            return activeThreads;
+                        }
                     })
                     .style('display', 'block')
                     .each(function () {
+                        var activeThreadCountText = d3.select(this);
+
                         var bBox = this.getBBox();
-                        d3.select(this).attr('x', function () {
+                        activeThreadCountText.attr('x', function () {
                             return d.dimensions.width - bBox.width - 15;
                         });
+
+                        // reset the active thread count tooltip
+                        activeThreadCountText.selectAll('title').remove();
                     });
+
+                // append the tooltip
+                activeThreadCount.append('title').text(generateThreadsTip);
 
                 // update the background width
                 selection.select('text.active-thread-count-icon')
@@ -799,9 +823,26 @@
 
                         return d.dimensions.width - bBox.width - 20;
                     })
-                    .style('display', 'block');
+                    .style('fill', function () {
+                        if (terminatedThreads > 0) {
+                            return '#ba554a';
+                        } else {
+                            return '#728e9b';
+                        }
+                    })
+                    .style('display', 'block')
+                    .each(function () {
+                        var activeThreadCountIcon = d3.select(this);
+
+                        // reset the active thread count tooltip
+                        activeThreadCountIcon.selectAll('title').remove();
+                    }).append('title').text(generateThreadsTip);
             } else {
-                selection.selectAll('text.active-thread-count, text.active-thread-count-icon').style('display', 'none');
+                selection.selectAll('text.active-thread-count, text.active-thread-count-icon')
+                    .style('display', 'none')
+                    .each(function () {
+                        d3.select(this).selectAll('title').remove();
+                    });
             }
         },
 
@@ -1141,10 +1182,19 @@
                 var selected = d3.select(this);
                 var selectedData = selected.datum();
 
+                // enable always allowed for PGs since they will invoke the /flow endpoint for enabling all applicable components (based on permissions)
+                if (nfCanvasUtils.isProcessGroup(selected)) {
+                    return true;
+                }
+
+                // not a PG, verify permissions to modify
+                if (nfCanvasUtils.canModify(selected) === false) {
+                    return false;
+                }
+
                 // ensure its a processor, input port, or output port and supports modification and is disabled (can enable)
                 return ((nfCanvasUtils.isProcessor(selected) || nfCanvasUtils.isInputPort(selected) || nfCanvasUtils.isOutputPort(selected)) &&
-                nfCanvasUtils.supportsModification(selected) &&
-                selectedData.status.aggregateSnapshot.runStatus === 'Disabled');
+                    nfCanvasUtils.supportsModification(selected) && selectedData.status.aggregateSnapshot.runStatus === 'Disabled');
             });
         },
 
@@ -1155,11 +1205,7 @@
          */
         canEnable: function (selection) {
             if (selection.empty()) {
-                return false;
-            }
-
-            if (nfCanvasUtils.canModify(selection) === false) {
-                return false;
+                return true;
             }
 
             return nfCanvasUtils.filterEnable(selection).size() === selection.size();
@@ -1175,11 +1221,20 @@
                 var selected = d3.select(this);
                 var selectedData = selected.datum();
 
+                // disable always allowed for PGs since they will invoke the /flow endpoint for disabling all applicable components (based on permissions)
+                if (nfCanvasUtils.isProcessGroup(selected)) {
+                    return true;
+                }
+
+                // not a PG, verify permissions to modify
+                if (nfCanvasUtils.canModify(selected) === false) {
+                    return false;
+                }
+
                 // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
                 return ((nfCanvasUtils.isProcessor(selected) || nfCanvasUtils.isInputPort(selected) || nfCanvasUtils.isOutputPort(selected)) &&
-                nfCanvasUtils.supportsModification(selected) &&
-                (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' ||
-                selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
+                    nfCanvasUtils.supportsModification(selected) &&
+                    (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' || selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
             });
         },
 
@@ -1190,11 +1245,7 @@
          */
         canDisable: function (selection) {
             if (selection.empty()) {
-                return false;
-            }
-
-            if (nfCanvasUtils.canModify(selection) === false) {
-                return false;
+                return true;
             }
 
             return nfCanvasUtils.filterDisable(selection).size() === selection.size();

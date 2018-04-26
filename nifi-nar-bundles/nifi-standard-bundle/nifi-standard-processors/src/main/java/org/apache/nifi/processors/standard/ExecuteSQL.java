@@ -21,6 +21,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,6 +43,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -90,12 +92,15 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGIC
 })
 @WritesAttributes({
     @WritesAttribute(attribute="executesql.row.count", description = "Contains the number of rows returned in the select query"),
-    @WritesAttribute(attribute="executesql.query.duration", description = "Duration of the query in milliseconds")
+    @WritesAttribute(attribute="executesql.query.duration", description = "Duration of the query in milliseconds"),
+    @WritesAttribute(attribute="executesql.resultset.index", description = "Assuming multiple result sets are returned, "
+       + "the zero based index of this result set.")
 })
 public class ExecuteSQL extends AbstractProcessor {
 
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
     public static final String RESULT_QUERY_DURATION = "executesql.query.duration";
+    public static final String RESULTSET_INDEX = "executesql.resultset.index";
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -124,7 +129,7 @@ public class ExecuteSQL extends AbstractProcessor {
                     + "Language is not evaluated for flow file contents.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
@@ -196,8 +201,8 @@ public class ExecuteSQL extends AbstractProcessor {
         final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
-        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
-        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
+        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final StopWatch stopWatch = new StopWatch(true);
         final String selectQuery;
         if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
@@ -219,53 +224,60 @@ public class ExecuteSQL extends AbstractProcessor {
                 JdbcCommon.setParameters(st, fileToProcess.getAttributes());
             }
             logger.debug("Executing query {}", new Object[]{selectQuery});
-            boolean results = st.execute();
+            boolean hasResults = st.execute();
+            boolean hasUpdateCount = st.getUpdateCount() != -1;
 
+            while(hasResults || hasUpdateCount) {
+                //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
+                if (hasResults) {
+                    FlowFile resultSetFF;
+                    if (fileToProcess == null) {
+                        resultSetFF = session.create();
+                    } else {
+                        resultSetFF = session.create(fileToProcess);
+                        resultSetFF = session.putAllAttributes(resultSetFF, fileToProcess.getAttributes());
+                    }
 
-            while(results){
-                FlowFile resultSetFF;
-                if(fileToProcess == null){
-                    resultSetFF = session.create();
-                } else {
-                    resultSetFF = session.create(fileToProcess);
-                    resultSetFF = session.putAllAttributes(resultSetFF, fileToProcess.getAttributes());
+                    final AtomicLong nrOfRows = new AtomicLong(0L);
+                    resultSetFF = session.write(resultSetFF, out -> {
+                        try {
+
+                            final ResultSet resultSet = st.getResultSet();
+                            final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
+                                    .convertNames(convertNamesForAvro)
+                                    .useLogicalTypes(useAvroLogicalTypes)
+                                    .defaultPrecision(defaultPrecision)
+                                    .defaultScale(defaultScale)
+                                    .build();
+                            nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, options, null));
+                        } catch (final SQLException e) {
+                            throw new ProcessException(e);
+                        }
+                    });
+
+                    long duration = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+
+                    // set attribute how many rows were selected
+                    resultSetFF = session.putAttribute(resultSetFF, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+                    resultSetFF = session.putAttribute(resultSetFF, RESULT_QUERY_DURATION, String.valueOf(duration));
+                    resultSetFF = session.putAttribute(resultSetFF, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
+                    resultSetFF = session.putAttribute(resultSetFF, RESULTSET_INDEX, String.valueOf(resultCount));
+
+                    logger.info("{} contains {} Avro records; transferring to 'success'",
+                            new Object[]{resultSetFF, nrOfRows.get()});
+                    session.getProvenanceReporter().modifyContent(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", duration);
+                    session.transfer(resultSetFF, REL_SUCCESS);
+
+                    resultCount++;
                 }
 
-                final AtomicLong nrOfRows = new AtomicLong(0L);
-                resultSetFF = session.write(resultSetFF, out -> {
-                    try {
-
-                        final ResultSet resultSet = st.getResultSet();
-                        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
-                                .convertNames(convertNamesForAvro)
-                                .useLogicalTypes(useAvroLogicalTypes)
-                                .defaultPrecision(defaultPrecision)
-                                .defaultScale(defaultScale)
-                                .build();
-                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, options, null));
-                    } catch (final SQLException e) {
-                        throw new ProcessException(e);
-                    }
-                });
-
-                long duration = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
-
-                // set attribute how many rows were selected
-                resultSetFF = session.putAttribute(resultSetFF, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
-                resultSetFF = session.putAttribute(resultSetFF, RESULT_QUERY_DURATION, String.valueOf(duration));
-                resultSetFF = session.putAttribute(resultSetFF, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
-
-                logger.info("{} contains {} Avro records; transferring to 'success'",
-                        new Object[]{resultSetFF, nrOfRows.get()});
-                session.getProvenanceReporter().modifyContent(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", duration);
-                session.transfer(resultSetFF, REL_SUCCESS);
-
-                resultCount++;
                 // are there anymore result sets?
                 try{
-                    results = st.getMoreResults();
+                    hasResults = st.getMoreResults(Statement.CLOSE_CURRENT_RESULT);
+                    hasUpdateCount = st.getUpdateCount() != -1;
                 } catch(SQLException ex){
-                    results = false;
+                    hasResults = false;
+                    hasUpdateCount = false;
                 }
             }
 
@@ -277,8 +289,20 @@ public class ExecuteSQL extends AbstractProcessor {
                 } else {
                     fileToProcess = session.write(fileToProcess, JdbcCommon::createEmptyAvroStream);
 
+                    fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, "0");
+                    fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
                     session.transfer(fileToProcess, REL_SUCCESS);
                 }
+            } else if(resultCount == 0){
+                //If we had no inbound FlowFile, no exceptions, and the SQL generated no result sets (Insert/Update/Delete statements only)
+                // Then generate an empty Output FlowFile
+                FlowFile resultSetFF = session.create();
+
+                resultSetFF = session.write(resultSetFF, out -> JdbcCommon.createEmptyAvroStream(out));
+
+                resultSetFF = session.putAttribute(resultSetFF, RESULT_ROW_COUNT, "0");
+                resultSetFF = session.putAttribute(resultSetFF, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
+                session.transfer(resultSetFF, REL_SUCCESS);
             }
         } catch (final ProcessException | SQLException e) {
             //If we had at least one result then it's OK to drop the original file, but if we had no results then

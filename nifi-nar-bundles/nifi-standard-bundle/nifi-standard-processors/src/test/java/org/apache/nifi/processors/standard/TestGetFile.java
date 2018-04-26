@@ -89,6 +89,7 @@ public class TestGetFile {
             runner.run();
             fail();
         } catch (AssertionError e) {
+            Throwable ex = e.getCause();
             assertTrue(e.getCause().getMessage()
                     .endsWith("does not have sufficient permissions (i.e., not writable and readable)"));
         }

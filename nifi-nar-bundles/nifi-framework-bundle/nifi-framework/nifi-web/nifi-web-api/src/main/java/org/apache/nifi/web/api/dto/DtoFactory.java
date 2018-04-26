@@ -103,6 +103,7 @@ import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -263,7 +264,9 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval) {
+    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
+                                                           final Long defaultBackPressureObjectThreshold,
+                                                           final String defaultBackPressureDataSizeThreshold) {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
@@ -276,6 +279,9 @@ public final class DtoFactory {
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
         dto.setCurrentTime(now);
+
+        dto.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        dto.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
 
         return dto;
     }
@@ -996,7 +1002,10 @@ public final class DtoFactory {
         snapshot.setBytesSent(processGroupStatus.getBytesSent());
         snapshot.setFlowFilesReceived(processGroupStatus.getFlowFilesReceived());
         snapshot.setBytesReceived(processGroupStatus.getBytesReceived());
+
         snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(processGroupStatus.getTerminatedThreadCount());
+
         StatusMerger.updatePrettyPrintedFields(snapshot);
         return processGroupStatusDto;
     }
@@ -1161,6 +1170,7 @@ public final class DtoFactory {
         snapshot.setExecutionNode(procStatus.getExecutionNode().toString());
 
         snapshot.setActiveThreadCount(procStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(procStatus.getTerminatedThreadCount());
         snapshot.setType(procStatus.getType());
 
         StatusMerger.updatePrettyPrintedFields(snapshot);
@@ -2482,14 +2492,10 @@ public final class DtoFactory {
     }
 
     public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager) {
-        return createAffectedComponentEntities(affectedComponents, revisionManager, NiFiUserUtils.getNiFiUser());
-    }
-
-    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager, final NiFiUser user) {
         return affectedComponents.stream()
                 .map(component -> {
                     final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);
-                    final PermissionsDTO permissions = createPermissionsDto(component, user);
+                    final PermissionsDTO permissions = createPermissionsDto(component);
                     final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(component.getIdentifier()));
                     return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
                 })
@@ -2497,10 +2503,6 @@ public final class DtoFactory {
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
-        return createVariableRegistryDto(processGroup, revisionManager, NiFiUserUtils.getNiFiUser());
-    }
-
-    public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager, final NiFiUser user) {
         final ComponentVariableRegistry variableRegistry = processGroup.getVariableRegistry();
 
         final List<String> variableNames = variableRegistry.getVariableMap().keySet().stream()
@@ -2515,7 +2517,7 @@ public final class DtoFactory {
             variableDto.setValue(variableRegistry.getVariableValue(variableName));
             variableDto.setProcessGroupId(processGroup.getIdentifier());
 
-            final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager, user);
+            final Set<AffectedComponentEntity> affectedComponentEntities = createAffectedComponentEntities(processGroup.getComponentsAffectedByVariable(variableName), revisionManager);
 
             boolean canWrite = true;
             for (final AffectedComponentEntity affectedComponent : affectedComponentEntities) {
@@ -3594,6 +3596,12 @@ public final class DtoFactory {
         dto.setDescription(propertyDescriptor.getDescription());
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
+
+        // to support legacy/deprecated method .expressionLanguageSupported(true)
+        String description = propertyDescriptor.isExpressionLanguageSupported()
+                && propertyDescriptor.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)
+                ? "true (undefined scope)" : propertyDescriptor.getExpressionLanguageScope().getDescription();
+        dto.setExpressionLanguageScope(description);
 
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {
