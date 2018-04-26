@@ -90,7 +90,7 @@ import org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Gro
             + "3 for the group, and 3 for other users. For example rw-rw-r--"),
     @WritesAttribute(attribute="hdfs.status", description="The status contains comma separated list of file/dir paths, which couldn't be listed/accessed. "
             + "Status won't be set if no errors occured."),
-    @WritesAttribute(attribute="hdfs.full.tree", description="The full tree of HDFS directory in JSON format.")
+    @WritesAttribute(attribute="hdfs.full.tree", description="When destination is 'attribute', will be populated with full tree of HDFS directory in JSON format.")
 })
 @SeeAlso({ListHDFS.class, GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class GetHDFSFileInfo extends AbstractHadoopProcessor {
@@ -136,7 +136,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     public static final PropertyDescriptor FILE_EXCLUDE_FILTER = new PropertyDescriptor.Builder()
             .displayName("Exclude Files")
             .name("gethdfsfileinfo-file-exclude-filter")
-            .description("Regex. Files whose names match the given regular expression will not be picked up. If not provided, any filter would be apply (performance considerations).")
+            .description("Regex. Files whose names match the given regular expression will not be picked up. If not provided, any filter won't be apply (performance considerations).")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
