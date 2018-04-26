@@ -1753,7 +1753,7 @@ will handle your Processor:
 
     - `PrimaryNodeOnly`: Apache NiFi, when clustered, offers two modes of execution for Processors: "Primary Node" and
         "All Nodes". Although running in all the nodes offers better parallelism, some Processors are known to cause unintended
-        behaviors when run in multiple nodes. For instance, some Processors lists or reads files from remote filesystems. If such
+        behaviors when run in multiple nodes. For instance, some Processors list or read files from remote filesystems. If such
         Processors are scheduled to run on "All Nodes", it will cause unnecessary duplication and even errors. Such Processors
         should use this annotation. Applying this annotation will restrict the Processor to run only on the "Primary Node".
 

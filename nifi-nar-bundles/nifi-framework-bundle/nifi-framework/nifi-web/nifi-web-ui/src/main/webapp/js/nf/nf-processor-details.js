@@ -218,7 +218,7 @@
                     var executionNodeRestricted = details.executionNodeRestricted
 
                     // only show the execution-node when applicable
-                    if (nfClusterSummary.isClustered() && executionNodeRestricted !== true) {
+                    if (nfClusterSummary.isClustered()) {
                         if (executionNode === 'ALL') {
                             executionNode = "All nodes";
                         } else if (executionNode === 'PRIMARY') {
@@ -226,9 +226,17 @@
                         }
                         nfCommon.populateField('read-only-execution-node', executionNode);
 
-                        $('#read-only-execution-node-options').show();
+                        if (executionNodeRestricted !== true || executionNode == 'ALL') {
+                            $('#read-only-execution-node-options').show();
+                        } else {
+                            $('#read-only-execution-node-options').hide();
+                        }
                     } else {
-                        $('#read-only-execution-node-options').hide();
+                        if (executionNode === 'PRIMARY') {
+                            $('#read-only-execution-node-options').show();
+                        } else {
+                            $('#read-only-execution-node-options').hide();
+                        }
                     }
 
                     // load the relationship list

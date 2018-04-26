@@ -128,7 +128,8 @@
         return [{
             text: 'All nodes',
             value: 'ALL',
-            description: 'Processor will be scheduled to run on all nodes'
+            description: 'Processor will be scheduled to run on all nodes',
+            disabled: processor.executionNodeRestricted === true
         }, {
             text: 'Primary node',
             value: 'PRIMARY',
@@ -742,11 +743,19 @@
                         }
                     });
 
-                    // show the execution node option if we're clustered and execution node is not restricted to run only in primary node
-                    if (nfClusterSummary.isClustered() && executionNodeRestricted !== true) {
-                        $('#execution-node-options').show();
+                    // Show the 'execution-node' only when application
+                    if (nfClusterSummary.isClustered()) {
+                        if (executionNodeRestricted !== true || executionNode == 'ALL') {
+                            $('#execution-node-options').show();
+                        } else {
+                            $('#execution-node-options').hide();
+                        }
                     } else {
-                        $('#execution-node-options').hide();
+                        if (executionNode === 'PRIMARY') {
+                            $('#execution-node-options').show();
+                        } else {
+                            $('#execution-node-options').hide();
+                        }
                     }
 
                     // initialize the concurrentTasks
