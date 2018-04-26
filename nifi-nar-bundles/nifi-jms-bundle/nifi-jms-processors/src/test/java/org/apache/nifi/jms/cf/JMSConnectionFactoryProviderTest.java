@@ -20,6 +20,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,13 +59,41 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.setVariable("broker.uri", "tcp://0.0.0.0:616161");
         runner.setVariable("client.lib", clientLib);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "${broker.uri}");
 
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "${broker.uri}");
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "${client.lib}");
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
                 "org.apache.nifi.jms.testcflib.TestConnectionFactory");
         runner.assertValid(cfProvider);
+    }
 
+    @Test
+    public void testClientLibResourcesLoaded() throws InitializationException, URISyntaxException {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+        runner.setValidateExpressionUsage(true);
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+
+        String clientLib = this.getClass().getResource("/dummy-lib.jar").toURI().toString() + "," +
+                           this.getClass().getResource("/dummy-lib-2.jar").toURI().toString() + "," +
+                           this.getClass().getResource("/dummy.conf").toURI().toString() + ",";
+
+        runner.addControllerService("cfProvider", cfProvider);
+
+        runner.setVariable("broker.uri", "tcp://0.0.0.0:616161");
+        runner.setVariable("client.lib", clientLib);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "${broker.uri}");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "${client.lib}");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "org.apache.nifi.jms.testcflib.TestConnectionFactory");
+
+        runner.assertValid(cfProvider);
+
+        ClassLoader loader = runner.getClass().getClassLoader();
+        Assert.assertTrue(loader.getResource("dummy.conf") != null);
+        Assert.assertTrue(loader.getResource("dummy-lib.jar") != null);
+        Assert.assertTrue(loader.getResource("dummy-lib-2.jar") != null);
     }
 
     @Test(expected = IllegalStateException.class)

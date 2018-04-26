@@ -43,6 +43,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,11 +161,13 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                             + context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be connected to '"
                             + context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue() + "'");
                 }
+
                 // will load user provided libraries/resources on the classpath
-                Utils.addResourcesToClasspath(context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue());
+                final String clientLibPath = context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue();
+                ClassLoader customClassLoader = ClassLoaderUtils.getCustomClassLoader(clientLibPath, this.getClass().getClassLoader(), null);
+                Thread.currentThread().setContextClassLoader(customClassLoader);
 
                 this.createConnectionFactoryInstance(context);
-
                 this.setConnectionFactoryProperties(context);
             }
             this.configured = true;
