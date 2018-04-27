@@ -96,9 +96,10 @@ public class DeleteHBaseCells extends AbstractDeleteHBase {
 
         final String separator = context.getProperty(SEPARATOR).evaluateAttributeExpressions(input).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(input).getValue();
+        List<String> rowKeys = new ArrayList<>();
+        int lineNum = 1;
         try (InputStream is = session.read(input)) {
             Scanner scanner = new Scanner(is);
-            int lineNum = 1;
             List<DeleteRequest> deletes = new ArrayList<>();
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine().trim();
@@ -120,6 +121,9 @@ public class DeleteHBaseCells extends AbstractDeleteHBase {
 
                 DeleteRequest request = new DeleteRequest(rowId.getBytes(), family.getBytes(), column.getBytes(), visibility);
                 deletes.add(request);
+                if (!rowKeys.contains(rowId)) {
+                    rowKeys.add(rowId);
+                }
 
                 if (getLogger().isDebugEnabled()) {
                     logCell(rowId, family, column, visibility);
@@ -129,10 +133,13 @@ public class DeleteHBaseCells extends AbstractDeleteHBase {
             }
             is.close();
             clientService.deleteCells(tableName, deletes);
+            for (int index = 0; index < rowKeys.size(); index++) { //Could be many row keys in one flowfile.
+                session.getProvenanceReporter().invokeRemoteProcess(input, clientService.toTransitUri(tableName, rowKeys.get(index)));
+            }
 
             session.transfer(input, REL_SUCCESS);
         } catch (Exception ex) {
-            input = writeErrorAttributes(-1, ex.getMessage(), input, session);
+            input = writeErrorAttributes(lineNum, ex.getMessage(), input, session);
             session.transfer(input, REL_FAILURE);
         }
     }

@@ -305,8 +305,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 keyTab = credentialsService.getKeytab();
             }
 
-            this.principal = principal; //Set so it is usable from getLabelsForCurrentUser
-
             getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[] {principal, keyTab});
             ugi = SecurityUtil.loginKerberos(hbaseConfig, principal, keyTab);
             getLogger().info("Successfully logged in as principal {} with keytab {}", new Object[] {principal, keyTab});
@@ -401,7 +399,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
         try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
             // Create one Put per row....
-            final Map<String, Put> rowPuts = new HashMap<>();
             final Map<String, List<PutColumn>> sorted = new HashMap<>();
             final List<Put> newPuts = new ArrayList<>();
 
@@ -420,7 +417,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 newPuts.addAll(buildPuts(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
             }
 
-            table.put(new ArrayList<>(newPuts)); /*rowPuts.values()));*/
+            table.put(newPuts);
         }
     }
 

@@ -140,7 +140,7 @@ public interface HBaseClientService extends ControllerService {
     void delete(String tableName, List<byte[]> rowIds) throws IOException;
 
     /**
-     * Deletes a list of cells from HBase. This is intended to be used with granual delete operations.
+     * Deletes a list of cells from HBase. This is intended to be used with granular delete operations.
      *
      * @param tableName the name of an HBase table.
      * @param deletes a list of DeleteRequest objects.
@@ -149,7 +149,7 @@ public interface HBaseClientService extends ControllerService {
     void deleteCells(String tableName, List<DeleteRequest> deletes) throws IOException;
 
     /**
-     * Deletes a list of rows in HBase. All cells are deleted.
+     * Deletes a list of rows in HBase. All cells that match the visibility label are deleted.
      *
      * @param tableName the name of an HBase table
      * @param rowIds a list of rowIds to send in a batch delete

@@ -17,20 +17,14 @@
 package org.apache.nifi.hbase;
 
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -40,9 +34,26 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Base class for processors that put data to HBase.
  */
+@DynamicProperties({
+    @DynamicProperty(name = "visibility.<COLUMN FAMILY>", description = "Visibility label for everything under that column family " +
+        "when a specific label for a particular column qualifier is not available.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        value = "visibility label for <COLUMN FAMILY>"
+    ),
+    @DynamicProperty(name = "visibility.<COLUMN FAMILY>.<COLUMN QUALIFIER>", description = "Visibility label for the specified column qualifier " +
+        "qualified by a configured column family.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        value = "visibility label for <COLUMN FAMILY>:<COLUMN QUALIFIER>."
+    )
+})
 public abstract class AbstractPutHBase extends AbstractProcessor {
 
     protected static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
@@ -155,6 +166,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
                 .displayName(displayName)
                 .description(description)
                 .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
         }
@@ -163,27 +175,23 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     }
 
     protected String pickVisibilityString(String columnFamily, String columnQualifier, FlowFile flowFile, ProcessContext context) {
-        final String lookupKey = String.format("visibility.%s.%s", columnFamily, columnQualifier);
+        if (StringUtils.isBlank(columnFamily)) {
+            return null;
+        }
+        final String lookupKey = String.format("visibility.%s%s%s", columnFamily, StringUtils.isBlank(columnQualifier) ? "." : "", columnQualifier);
         final String fromAttribute = flowFile.getAttribute(lookupKey);
         if (fromAttribute != null) {
             return fromAttribute;
         } else {
             PropertyValue descriptor = context.getProperty(lookupKey);
-            if (descriptor == null) {
+            if (descriptor == null || !descriptor.isSet()) {
                 descriptor = context.getProperty(String.format("visibility.%s", columnFamily));
             }
 
-            String retVal = descriptor != null ? descriptor.getValue() : null;
+            String retVal = descriptor != null ? descriptor.evaluateAttributeExpressions(flowFile).getValue() : null;
 
             return retVal;
         }
-    }
-
-    protected String pickVisibilityString(String defaultVisibilityString, String columnFamily, String columnQualifier, FlowFile flowFile) {
-        final String visibilityAttribute = String.format("visibility.%s.%s", columnFamily, columnQualifier);
-        final String visibilityAttrValue = flowFile.getAttribute(visibilityAttribute);
-
-        return visibilityAttrValue != null ? visibilityAttrValue : defaultVisibilityString;
     }
 
     @Override
