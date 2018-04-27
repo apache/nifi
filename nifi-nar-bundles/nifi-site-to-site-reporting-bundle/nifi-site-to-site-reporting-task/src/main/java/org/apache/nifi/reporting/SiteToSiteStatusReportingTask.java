@@ -17,12 +17,10 @@
 
 package org.apache.nifi.reporting;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -107,7 +105,6 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         properties.add(PLATFORM);
         properties.add(COMPONENT_TYPE_FILTER_REGEX);
         properties.add(COMPONENT_NAME_FILTER_REGEX);
-        properties.add(RECORD_WRITER);
         return properties;
     }
 
@@ -178,14 +175,9 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 for(JsonValue jsonValue : jsonBatch) {
                     jsonBatchArrayBuilder.add(jsonValue);
                 }
+
                 final JsonArray jsonBatchArray = jsonBatchArrayBuilder.build();
-
-                if(context.getProperty(RECORD_WRITER).isSet()) {
-                    transaction.send(getData(context, new ByteArrayInputStream(jsonBatchArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
-                } else {
-                    transaction.send(jsonBatchArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
-                }
-
+                sendData(context, transaction, attributes, jsonBatchArray);
                 transaction.confirm();
                 transaction.complete();
 

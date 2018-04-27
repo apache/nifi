@@ -40,10 +40,8 @@ import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -90,7 +88,6 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PLATFORM);
-        properties.add(RECORD_WRITER);
         properties.remove(BATCH_SIZE);
         return properties;
     }
@@ -164,12 +161,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             attributes.put("reporting.task.type", this.getClass().getSimpleName());
             attributes.put("mime.type", "application/json");
 
-            if(context.getProperty(RECORD_WRITER).isSet()) {
-                transaction.send(getData(context, new ByteArrayInputStream(jsonArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
-            } else {
-                transaction.send(jsonArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
-            }
-
+            sendData(context, transaction, attributes, jsonArray);
             transaction.confirm();
             transaction.complete();
 

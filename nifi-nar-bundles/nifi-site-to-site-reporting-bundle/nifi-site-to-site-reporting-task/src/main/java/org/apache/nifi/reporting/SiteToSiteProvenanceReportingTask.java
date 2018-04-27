@@ -48,12 +48,10 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -234,7 +232,6 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         properties.add(FILTER_COMPONENT_ID);
         properties.add(FILTER_COMPONENT_ID_EXCLUDE);
         properties.add(START_POSITION);
-        properties.add(RECORD_WRITER);
         return properties;
     }
 
@@ -297,12 +294,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 attributes.put("reporting.task.type", this.getClass().getSimpleName());
                 attributes.put("mime.type", "application/json");
 
-                if(context.getProperty(RECORD_WRITER).isSet()) {
-                    transaction.send(getData(context, new ByteArrayInputStream(jsonArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
-                } else {
-                    transaction.send(jsonArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
-                }
-
+                sendData(context, transaction, attributes, jsonArray);
                 transaction.confirm();
                 transaction.complete();
 
