@@ -16,26 +16,24 @@
 -->
 <head>
     <meta charset="utf-8" />
-    <title>PutHBaseCell</title>
+    <title>DeleteHBaseCells</title>
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
 
 <body>
 <!-- Processor Documentation ================================================== -->
-<h2>Visibility Labels</h2>
+<h2>Overview</h2>
 <p>
-    This processor provides the ability to attach visibility labels to HBase Puts that it generates, if visibility labels
-    are enabled on the HBase cluster. There are two ways to enable this:
+    This processor provides the ability to do deletes against one or more HBase cells, without having to delete the entire row. It should
+    be used as the primary delete method when visibility labels are in use and the cells have different visibility labels. Each line in
+    the flowfile body is a fully qualified cell (row id, column family, column qualifier and visibility labels if applicable). The separator
+    that separates each piece of the fully qualified cell is configurable, but <strong>::::</strong> is the default value.
 </p>
-<ul>
-    <li>Attributes on the flowfile.</li>
-    <li>Dynamic properties added to the processor.</li>
-</ul>
-<p>When the dynamic properties are defined on the processor, they will be the default value, but can be overridden by
-attributes set on the flowfile. The naming convention for both (property name and attribute name) is:</p>
-<ul>
-    <li>visibility.COLUMN_FAMILY - every column qualifier under the column family will get this.</li>
-    <li>visibility.COLUMN_FAMILY.COLUMN_VISIBILITY - the qualified column qualifier will be assigned this value.</li>
-</ul>
+<h2>Example FlowFile</h2>
+<pre>
+row1::::user::::name
+row1::::user::::address::::PII
+row1::::user::::billing_code_1::::PII&&amp;BILLING
+</pre>
 </body>
 </html>
