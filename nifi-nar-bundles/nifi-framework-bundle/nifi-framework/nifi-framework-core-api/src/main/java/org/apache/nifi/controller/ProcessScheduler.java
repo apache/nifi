@@ -83,6 +83,14 @@ public interface ProcessScheduler {
      */
     void terminateProcessor(ProcessorNode procNode);
 
+    /*
+     * Notifies the schedule that the given processor is being removed so the scheduler may clean up any resources
+     * related to the given processor.
+     *
+     * @param procNode the processor node being removed
+     */
+    void onProcessorRemoved(ProcessorNode procNode);
+
     /**
      * Starts scheduling the given Port to run. If the Port is already scheduled
      * to run, does nothing.

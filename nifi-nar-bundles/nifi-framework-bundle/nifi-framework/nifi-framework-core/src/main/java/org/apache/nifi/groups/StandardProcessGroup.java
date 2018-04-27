@@ -914,8 +914,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             processors.remove(id);
             onComponentModified();
 
+            scheduler.onProcessorRemoved(processor);
             flowController.onProcessorRemoved(processor);
-            LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
 
             final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
             scheduler.submitFrameworkTask(new Runnable() {
@@ -936,6 +936,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             if (removed) {
                 try {
+                    LogRepositoryFactory.removeRepository(processor.getIdentifier());
                     ExtensionManager.removeInstanceClassLoader(id);
                 } catch (Throwable t) {
                 }
@@ -4462,11 +4463,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .forEach(proc -> proposedProcessors.remove(proc.getVersionedComponentId().get()));
 
             for (final VersionedProcessor processorToAdd : proposedProcessors.values()) {
-                final BundleCoordinate coordinate = toCoordinate(processorToAdd.getBundle());
-                try {
-                    flowController.createProcessor(processorToAdd.getType(), UUID.randomUUID().toString(), coordinate, false);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Unable to create Processor of type " + processorToAdd.getType(), e);
+                final String processorToAddClass = processorToAdd.getType();
+                final BundleCoordinate processorToAddCoordinate = toCoordinate(processorToAdd.getBundle());
+
+                final boolean bundleExists = ExtensionManager.getBundles(processorToAddClass).stream()
+                        .anyMatch(b -> processorToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+
+                if (!bundleExists) {
+                    throw new IllegalArgumentException("Unknown bundle " + processorToAddCoordinate.toString() + " for processor type " + processorToAddClass);
                 }
             }
 
@@ -4479,11 +4483,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .forEach(service -> proposedServices.remove(service.getVersionedComponentId().get()));
 
             for (final VersionedControllerService serviceToAdd : proposedServices.values()) {
-                final BundleCoordinate coordinate = toCoordinate(serviceToAdd.getBundle());
-                try {
-                    flowController.createControllerService(serviceToAdd.getType(), UUID.randomUUID().toString(), coordinate, Collections.emptySet(), false);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Unable to create Controller Service of type " + serviceToAdd.getType(), e);
+                final String serviceToAddClass = serviceToAdd.getType();
+                final BundleCoordinate serviceToAddCoordinate = toCoordinate(serviceToAdd.getBundle());
+
+                final boolean bundleExists = ExtensionManager.getBundles(serviceToAddClass).stream()
+                        .anyMatch(b -> serviceToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+
+                if (!bundleExists) {
+                    throw new IllegalArgumentException("Unknown bundle " + serviceToAddCoordinate.toString() + " for service type " + serviceToAddClass);
                 }
             }
 
