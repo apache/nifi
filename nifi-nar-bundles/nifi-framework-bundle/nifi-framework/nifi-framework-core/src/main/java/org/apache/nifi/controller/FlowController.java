@@ -1129,6 +1129,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         boolean creationSuccessful;
         LoggableComponent<Processor> processor;
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         try {
             processor = instantiateProcessor(type, id, coordinate, additionalUrls);
             creationSuccessful = true;
@@ -1154,7 +1158,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 componentType, type, nifiProperties, componentVarRegistry, this, true);
         }
 
-        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         if (registerLogObserver) {
             logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
         }
@@ -3371,6 +3374,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         LoggableComponent<ReportingTask> task = null;
         boolean creationSuccessful = true;
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         try {
             task = instantiateReportingTask(type, id, bundleCoordinate, additionalUrls);
         } catch (final Exception e) {
@@ -3418,7 +3425,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             reportingTasks.put(id, taskNode);
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
             logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
                     new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
         }
@@ -3551,6 +3557,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         reportingTasks.remove(reportingTaskNode.getIdentifier());
+        LogRepositoryFactory.removeRepository(reportingTaskNode.getIdentifier());
         ExtensionManager.removeInstanceClassLoader(reportingTaskNode.getIdentifier());
     }
 
@@ -3565,10 +3572,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded) {
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         final ControllerServiceNode serviceNode = controllerServiceProvider.createControllerService(type, id, bundleCoordinate, additionalUrls, firstTimeAdded);
 
         // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
                 new ControllerServiceLogObserver(getBulletinRepository(), serviceNode));
 

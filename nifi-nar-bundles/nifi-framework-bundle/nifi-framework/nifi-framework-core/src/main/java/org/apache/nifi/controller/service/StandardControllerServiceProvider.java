@@ -62,6 +62,7 @@ import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
@@ -703,6 +704,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         group.removeControllerService(serviceNode);
+        LogRepositoryFactory.removeRepository(serviceNode.getIdentifier());
         ExtensionManager.removeInstanceClassLoader(serviceNode.getIdentifier());
         serviceCache.remove(serviceNode.getIdentifier());
     }

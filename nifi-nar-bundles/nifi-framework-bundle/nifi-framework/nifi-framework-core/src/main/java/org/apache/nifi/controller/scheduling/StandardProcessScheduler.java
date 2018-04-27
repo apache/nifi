@@ -378,6 +378,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
+    public void onProcessorRemoved(final ProcessorNode procNode) {
+        this.lifecycleStates.remove(procNode);
+    }
+
+    @Override
     public void yield(final ProcessorNode procNode) {
         // This exists in the ProcessScheduler so that the scheduler can take
         // advantage of the fact that
