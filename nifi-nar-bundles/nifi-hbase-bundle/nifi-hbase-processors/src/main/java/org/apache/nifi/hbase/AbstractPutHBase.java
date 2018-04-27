@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -172,26 +171,6 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
         }
 
         return null;
-    }
-
-    protected String pickVisibilityString(String columnFamily, String columnQualifier, FlowFile flowFile, ProcessContext context) {
-        if (StringUtils.isBlank(columnFamily)) {
-            return null;
-        }
-        final String lookupKey = String.format("visibility.%s%s%s", columnFamily, StringUtils.isBlank(columnQualifier) ? "." : "", columnQualifier);
-        final String fromAttribute = flowFile.getAttribute(lookupKey);
-        if (fromAttribute != null) {
-            return fromAttribute;
-        } else {
-            PropertyValue descriptor = context.getProperty(lookupKey);
-            if (descriptor == null || !descriptor.isSet()) {
-                descriptor = context.getProperty(String.format("visibility.%s", columnFamily));
-            }
-
-            String retVal = descriptor != null ? descriptor.evaluateAttributeExpressions(flowFile).getValue() : null;
-
-            return retVal;
-        }
     }
 
     @Override

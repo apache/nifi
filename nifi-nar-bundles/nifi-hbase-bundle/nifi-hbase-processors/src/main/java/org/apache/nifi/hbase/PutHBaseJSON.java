@@ -50,6 +50,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.apache.nifi.hbase.util.VisibilityUtil.pickVisibilityString;
+
 @EventDriven
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
