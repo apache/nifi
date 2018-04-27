@@ -113,7 +113,6 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
         properties.add(HOSTNAME);
         properties.add(APPLICATION_ID);
         properties.add(FORMAT);
-        properties.add(RECORD_WRITER);
         properties.remove(BATCH_SIZE);
         return properties;
     }

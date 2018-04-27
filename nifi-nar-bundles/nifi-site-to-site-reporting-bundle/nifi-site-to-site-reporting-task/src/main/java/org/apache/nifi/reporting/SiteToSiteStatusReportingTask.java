@@ -18,9 +18,9 @@
 package org.apache.nifi.reporting;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,8 +41,10 @@ import javax.json.JsonBuilderFactory;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
@@ -91,6 +93,11 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
     private volatile Pattern componentTypeFilter;
     private volatile Pattern componentNameFilter;
+
+    public SiteToSiteStatusReportingTask() throws IOException {
+        final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-status.avsc");
+        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -168,10 +175,9 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 for(JsonValue jsonValue : jsonBatch) {
                     jsonBatchArrayBuilder.add(jsonValue);
                 }
-                final JsonArray jsonBatchArray = jsonBatchArrayBuilder.build();
 
-                final byte[] data = jsonBatchArray.toString().getBytes(StandardCharsets.UTF_8);
-                transaction.send(data, attributes);
+                final JsonArray jsonBatchArray = jsonBatchArrayBuilder.build();
+                sendData(context, transaction, attributes, jsonBatchArray);
                 transaction.confirm();
                 transaction.complete();
 
