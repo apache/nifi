@@ -17,11 +17,13 @@
 
 package org.apache.nifi.reporting;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -37,7 +39,10 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -76,10 +81,16 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
 
     private volatile long lastSentBulletinId = -1L;
 
+    public SiteToSiteBulletinReportingTask() throws IOException {
+        final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-bulletins.avsc");
+        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PLATFORM);
+        properties.add(RECORD_WRITER);
         properties.remove(BATCH_SIZE);
         return properties;
     }
@@ -153,8 +164,12 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             attributes.put("reporting.task.type", this.getClass().getSimpleName());
             attributes.put("mime.type", "application/json");
 
-            final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);
-            transaction.send(data, attributes);
+            if(context.getProperty(RECORD_WRITER).isSet()) {
+                transaction.send(getData(context, new ByteArrayInputStream(jsonArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
+            } else {
+                transaction.send(jsonArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
+            }
+
             transaction.confirm();
             transaction.complete();
 

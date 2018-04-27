@@ -387,8 +387,14 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             if (firstObjectConsumed && !array) {
                 return null;
             }
+
+            JsonNode nextNode = getNextJsonNode();
+            if(nextNode == null) {
+                return null;
+            }
+
             try {
-                return convertJsonNodeToRecord(getNextJsonNode(), getSchema(), null, coerceTypes, dropUnknownFields);
+                return convertJsonNodeToRecord(nextNode, getSchema(), null, coerceTypes, dropUnknownFields);
             } catch (final MalformedRecordException mre) {
                 throw mre;
             } catch (final IOException ioe) {

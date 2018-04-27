@@ -120,6 +120,9 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/main/resources/schema-metrics.avsc</exclude>
+                        <exclude>src/main/resources/schema-bulletins.avsc</exclude>
+                        <exclude>src/main/resources/schema-provenance.avsc</exclude>
+                        <exclude>src/main/resources/schema-status.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

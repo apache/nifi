@@ -17,7 +17,9 @@
 
 package org.apache.nifi.reporting;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -41,8 +43,10 @@ import javax.json.JsonBuilderFactory;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
@@ -92,12 +96,18 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
     private volatile Pattern componentTypeFilter;
     private volatile Pattern componentNameFilter;
 
+    public SiteToSiteStatusReportingTask() throws IOException {
+        final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-status.avsc");
+        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(PLATFORM);
         properties.add(COMPONENT_TYPE_FILTER_REGEX);
         properties.add(COMPONENT_NAME_FILTER_REGEX);
+        properties.add(RECORD_WRITER);
         return properties;
     }
 
@@ -170,8 +180,12 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 }
                 final JsonArray jsonBatchArray = jsonBatchArrayBuilder.build();
 
-                final byte[] data = jsonBatchArray.toString().getBytes(StandardCharsets.UTF_8);
-                transaction.send(data, attributes);
+                if(context.getProperty(RECORD_WRITER).isSet()) {
+                    transaction.send(getData(context, new ByteArrayInputStream(jsonBatchArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
+                } else {
+                    transaction.send(jsonBatchArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
+                }
+
                 transaction.confirm();
                 transaction.complete();
 

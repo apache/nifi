@@ -17,6 +17,7 @@
 
 package org.apache.nifi.reporting;
 
+import org.apache.avro.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -25,6 +26,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
@@ -46,7 +48,9 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -160,6 +164,11 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
     private volatile ProvenanceEventConsumer consumer;
 
+    public SiteToSiteProvenanceReportingTask() throws IOException {
+        final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-provenance.avsc");
+        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+    }
+
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) throws IOException {
         consumer = new ProvenanceEventConsumer();
@@ -225,6 +234,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         properties.add(FILTER_COMPONENT_ID);
         properties.add(FILTER_COMPONENT_ID_EXCLUDE);
         properties.add(START_POSITION);
+        properties.add(RECORD_WRITER);
         return properties;
     }
 
@@ -287,8 +297,12 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 attributes.put("reporting.task.type", this.getClass().getSimpleName());
                 attributes.put("mime.type", "application/json");
 
-                final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);
-                transaction.send(data, attributes);
+                if(context.getProperty(RECORD_WRITER).isSet()) {
+                    transaction.send(getData(context, new ByteArrayInputStream(jsonArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
+                } else {
+                    transaction.send(jsonArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
+                }
+
                 transaction.confirm();
                 transaction.complete();
 
