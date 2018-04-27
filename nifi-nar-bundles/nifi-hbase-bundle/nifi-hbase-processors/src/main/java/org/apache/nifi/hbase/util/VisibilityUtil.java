@@ -27,8 +27,14 @@ public class VisibilityUtil {
         if (StringUtils.isBlank(columnFamily)) {
             return null;
         }
-        final String lookupKey = String.format("visibility.%s%s%s", columnFamily, !StringUtils.isBlank(columnQualifier) ? "." : "", columnQualifier);
-        final String fromAttribute = flowFile.getAttribute(lookupKey);
+        String lookupKey = String.format("visibility.%s%s%s", columnFamily, !StringUtils.isBlank(columnQualifier) ? "." : "", columnQualifier);
+        String fromAttribute = flowFile.getAttribute(lookupKey);
+
+        if (fromAttribute == null && !StringUtils.isBlank(columnQualifier)) {
+            String lookupKeyFam = String.format("visibility.%s", columnFamily);
+            fromAttribute = flowFile.getAttribute(lookupKeyFam);
+        }
+
         if (fromAttribute != null) {
             return fromAttribute;
         } else {

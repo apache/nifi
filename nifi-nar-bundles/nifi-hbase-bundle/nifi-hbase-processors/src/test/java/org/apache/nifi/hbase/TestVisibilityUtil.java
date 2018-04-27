@@ -73,7 +73,7 @@ public class TestVisibilityUtil {
         String label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
 
         Assert.assertNotNull(label);
-        Assert.assertEquals("U&PII", label);
+        Assert.assertEquals("U&PII&PHI", label);
     }
 
     @Test
@@ -83,6 +83,20 @@ public class TestVisibilityUtil {
         MockFlowFile ff = new MockFlowFile(System.currentTimeMillis());
         ff.putAttributes(new HashMap<String, String>(){{
             put("visibility..test", "U&PII&PHI");
+        }});
+        ProcessContext context = runner.getProcessContext();
+
+        String label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
+
+        Assert.assertNotNull(label);
+        Assert.assertEquals("U&PII", label);
+    }
+
+    @Test
+    public void testColumnFamilyAttributeOnly() {
+        MockFlowFile ff = new MockFlowFile(System.currentTimeMillis());
+        ff.putAttributes(new HashMap<String, String>(){{
+            put("visibility.test", "U&PII");
         }});
         ProcessContext context = runner.getProcessContext();
 
@@ -103,5 +117,12 @@ public class TestVisibilityUtil {
 
         Assert.assertNotNull(label);
         Assert.assertEquals("U&PII", label);
+
+        runner.setProperty("visibility.test.test", "U&PII&PHI");
+        label = VisibilityUtil.pickVisibilityString("test", "test", ff, context);
+
+        Assert.assertNotNull(label);
+        Assert.assertEquals("U&PII&PHI", label);
+
     }
 }
