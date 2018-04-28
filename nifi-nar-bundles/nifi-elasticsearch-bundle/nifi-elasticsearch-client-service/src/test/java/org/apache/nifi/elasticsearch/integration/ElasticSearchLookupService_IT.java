@@ -22,6 +22,7 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
 import org.apache.nifi.elasticsearch.ElasticSearchLookupService;
 import org.apache.nifi.lookup.LookupFailureException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -82,7 +83,8 @@ public class ElasticSearchLookupService_IT {
     }
 
     @Test
-    public void testValidity() {
+    public void testValidity() throws Exception {
+        setDefaultSchema();
         runner.assertValid();
     }
 
@@ -178,7 +180,7 @@ public class ElasticSearchLookupService_IT {
         runner.disableControllerService(lookupService);
         SchemaRegistry registry = new TestSchemaRegistry();
         runner.addControllerService("registry", registry);
-        runner.setProperty(lookupService, ElasticSearchLookupService.SCHEMA_REGISTRY, "registry");
+        runner.setProperty(lookupService, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
         runner.enableControllerService(registry);
         runner.enableControllerService(lookupService);
     }
@@ -190,6 +192,7 @@ public class ElasticSearchLookupService_IT {
         final String _id = "10";
         Map<String, Object> coordinates = new HashMap<String, Object>(){{
             put("_id", _id);
+
         }};
 
         Optional<Record> response = lookupService.lookup(coordinates);

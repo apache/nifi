@@ -20,38 +20,34 @@ package org.apache.nifi.elasticsearch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schemaregistry.services.SchemaRegistry;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.SchemaRegistryService;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class ElasticSearchLookupService extends AbstractControllerService implements LookupService {
+public class ElasticSearchLookupService extends SchemaRegistryService implements LookupService {
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("el-rest-client-service")
         .displayName("Client Service")
@@ -77,14 +73,6 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
-        .name("el-lookup-schema-registry")
-        .displayName("Schema Registry")
-        .description("If specified, this avro schema will be used for all objects loaded from MongoDB using this service. If left blank, " +
-                "the service will attempt to determine the schema from the results.")
-        .required(false)
-        .identifiesControllerService(SchemaRegistry.class)
-        .build();
 
     public static final PropertyDescriptor RECORD_SCHEMA_NAME = new PropertyDescriptor.Builder()
         .name("el-lookup-record-schema-name")
@@ -94,46 +82,11 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
         .addValidator(Validator.VALID)
         .build();
 
-    static final List<PropertyDescriptor> lookupDescriptors;
-
-    static {
-        List<PropertyDescriptor> _desc = new ArrayList<>();
-        _desc.add(CLIENT_SERVICE);
-        _desc.add(INDEX);
-        _desc.add(TYPE);
-        _desc.add(SCHEMA_REGISTRY);
-        _desc.add(RECORD_SCHEMA_NAME);
-
-        lookupDescriptors = Collections.unmodifiableList(_desc);
-    }
-
     private ElasticSearchClientService clientService;
 
     private String index;
     private String type;
     private ObjectMapper mapper;
-    private RecordSchema recordSchema;
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        List<ValidationResult> problems = new ArrayList<>();
-
-        PropertyValue registry = validationContext.getProperty(SCHEMA_REGISTRY);
-        PropertyValue schemaName = validationContext.getProperty(RECORD_SCHEMA_NAME);
-
-        if (registry.isSet() && !schemaName.isSet()) {
-            problems.add(new ValidationResult.Builder()
-                    .explanation("If the registry is set, the schema name parameter must be set too.")
-                    .build());
-        } else if (!registry.isSet() && schemaName.isSet()) {
-            problems.add(new ValidationResult.Builder()
-                    .explanation("If the schema name is set, the schema registry parameter must be set too.")
-                    .build());
-        }
-
-        return problems;
-    }
-
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
@@ -141,25 +94,18 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
         index = context.getProperty(INDEX).getValue();
         type  = context.getProperty(TYPE).getValue();
         mapper = new ObjectMapper();
-
-        SchemaRegistry registry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
-        final String name = context.getProperty(RECORD_SCHEMA_NAME).getValue();
-        if (registry != null) {
-            try {
-                SchemaIdentifier identifier = SchemaIdentifier.builder()
-                    .name(name)
-                    .build();
-                recordSchema = registry.retrieveSchema(identifier);
-            } catch (Exception ex) {
-                getLogger().error(String.format("Could not find schema named %s", name), ex);
-                throw new InitializationException(ex);
-            }
-        }
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return lookupDescriptors;
+        List<PropertyDescriptor> _desc = new ArrayList<>();
+        _desc.addAll(super.getSupportedPropertyDescriptors());
+        _desc.add(CLIENT_SERVICE);
+        _desc.add(INDEX);
+        _desc.add(TYPE);
+        _desc.add(RECORD_SCHEMA_NAME);
+
+        return Collections.unmodifiableList(_desc);
     }
 
     @Override
@@ -168,16 +114,33 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
 
         try {
             Record record;
+            RecordSchema schema = getSchemaFromCoordinates(coordinates);
             if (coordinates.containsKey("_id")) {
-                record = getById((String)coordinates.get("_id"));
+                record = getById((String)coordinates.get("_id"), schema);
             } else {
-                record = getByQuery((String)coordinates.get("query"));
+                record = getByQuery((String)coordinates.get("query"), schema);
             }
 
             return record == null ? Optional.empty() : Optional.of(record);
         } catch (IOException ex) {
             getLogger().error("Error during lookup.", ex);
             throw new LookupFailureException(ex);
+        }
+    }
+
+    private RecordSchema getSchemaFromCoordinates(Map<String, Object> coordinates) {
+        Map<String, String> variables = coordinates.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> e.getKey(),
+                e -> e.getValue().toString()
+            ));
+        try {
+            return getSchema(variables, null);
+        } catch (SchemaNotFoundException | IOException e) {
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Could not load schema, will create one from the results.", e);
+            }
+            return null;
         }
     }
 
@@ -200,7 +163,7 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
         }
     }
 
-    private Record getById(final String _id) throws IOException, LookupFailureException {
+    private Record getById(final String _id, RecordSchema recordSchema) throws IOException, LookupFailureException {
         Map<String, Object> query = new HashMap<String, Object>(){{
             put("query", new HashMap<String, Object>() {{
                 put("match", new HashMap<String, String>(){{
@@ -227,7 +190,7 @@ public class ElasticSearchLookupService extends AbstractControllerService implem
         return new MapRecord(toUse, source);
     }
 
-    private Record getByQuery(final String query) throws LookupFailureException {
+    private Record getByQuery(final String query, RecordSchema recordSchema) throws LookupFailureException {
         Map<String, Object> parsed;
         try {
             parsed = mapper.readValue(query, Map.class);
