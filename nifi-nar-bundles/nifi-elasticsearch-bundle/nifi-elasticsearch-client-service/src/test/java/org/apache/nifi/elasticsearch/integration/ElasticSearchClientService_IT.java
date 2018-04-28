@@ -132,13 +132,7 @@ public class ElasticSearchClientService_IT {
 
     @Test
     public void testDeleteByQuery() throws Exception {
-        String query = "{\n" +
-            "\t\"query\": {\n" +
-            "\t\t\"match\": {\n" +
-            "\t\t\t\"msg\": \"five\"\n" +
-            "\t\t}\n" +
-            "\t}\n" +
-            "}";
+        String query = "{\"query\":{\"match\":{\"msg\":\"five\"}}}";
         DeleteOperationResponse response = service.deleteByQuery(query, INDEX, TYPE);
         Assert.assertNotNull(response);
         Assert.assertTrue(response.getTook() > 0);

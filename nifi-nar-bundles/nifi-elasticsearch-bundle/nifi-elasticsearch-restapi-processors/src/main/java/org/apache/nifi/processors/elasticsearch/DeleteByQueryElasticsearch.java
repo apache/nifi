@@ -47,8 +47,8 @@ import java.util.Set;
         "or from the Query parameter.")
 @Tags({ "elastic", "elasticsearch", "delete", "query"})
 @WritesAttributes({
-    @WritesAttribute(attribute = "elasticsearch.delete.took"),
-    @WritesAttribute(attribute = "elasticsearch.delete.error")
+    @WritesAttribute(attribute = "elasticsearch.delete.took", description = "The amount of time that it took to complete the delete operation in ms."),
+    @WritesAttribute(attribute = "elasticsearch.delete.error", description = "The error message provided by ElasticSearch if there is an error running the delete.")
 })
 public class DeleteByQueryElasticsearch extends AbstractProcessor implements ElasticSearchRestProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
