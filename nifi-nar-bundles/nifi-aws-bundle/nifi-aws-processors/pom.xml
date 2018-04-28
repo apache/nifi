@@ -20,8 +20,10 @@
         <artifactId>nifi-aws-bundle</artifactId>
         <version>1.7.0-SNAPSHOT</version>
     </parent>
+
     <artifactId>nifi-aws-processors</artifactId>
     <packaging>jar</packaging>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -43,31 +45,23 @@
             <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.11.68</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-cloudwatchmetrics</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sts</artifactId>
+        </dependency>
         <!-- Test Dependencies for testing interaction with AWS -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -75,9 +69,8 @@
             <version>2.6.6</version>
             <scope>test</scope>
         </dependency>
-
-
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
