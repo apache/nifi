@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.processors.influxdb;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.nio.charset.Charset;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -36,6 +28,14 @@ import org.influxdb.dto.QueryResult;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestExecutetInfluxDBQuery {
     private TestRunner runner;
@@ -50,7 +50,7 @@ public class TestExecutetInfluxDBQuery {
             }
 
             @Override
-            protected QueryResult executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit) {
+            protected List<QueryResult> executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit, int chunkSize) {
                 return null;
             }
 
@@ -83,7 +83,7 @@ public class TestExecutetInfluxDBQuery {
             }
 
             @Override
-            protected QueryResult executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit) {
+            protected List<QueryResult> executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit, int chunkSize) {
                 throw new RuntimeException("runtime exception");
             }
 
@@ -115,7 +115,7 @@ public class TestExecutetInfluxDBQuery {
             }
 
             @Override
-            protected QueryResult executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit) {
+            protected List<QueryResult> executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit, int chunkSize) {
                 throw new RuntimeException("runtime exception", new SocketTimeoutException("timeout"));
             }
 

@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.influxdb;
+
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -32,9 +33,11 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import com.google.gson.Gson;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,6 +51,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -63,6 +68,8 @@ import java.util.stream.Collectors;
 public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
 
     public static final String INFLUX_DB_EXECUTED_QUERY = "influxdb.executed.query";
+
+    private static final int DEFAULT_INFLUX_RESPONSE_CHUNK_SIZE = 0;
 
     public static final PropertyDescriptor INFLUX_DB_QUERY_RESULT_TIMEUNIT = new PropertyDescriptor.Builder()
             .name("influxdb-query-result-time-unit")
@@ -84,6 +91,20 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final Integer MAX_CHUNK_SIZE = 10000;
+
+    public static final PropertyDescriptor INFLUX_DB_QUERY_CHUNK_SIZE = new PropertyDescriptor.Builder()
+            .name("influxdb-query-chunk-size")
+            .displayName("Results chunk size")
+            .description("Chunking can be used to return results in a stream of smaller batches "
+                + "(each has a partial results up to a chunk size) rather than as a single response. "
+                + "Chunking queries can return an unlimited number of rows. Note: Chunking is enable when result chunk size is greater than 0")
+            .defaultValue(String.valueOf(DEFAULT_INFLUX_RESPONSE_CHUNK_SIZE))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.createLongValidator(0, MAX_CHUNK_SIZE, true))
+            .required(true)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -111,6 +132,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
         tempDescriptors.add(INFLUX_DB_CONNECTION_TIMEOUT);
         tempDescriptors.add(INFLUX_DB_QUERY_RESULT_TIMEUNIT);
         tempDescriptors.add(INFLUX_DB_QUERY);
+        tempDescriptors.add(INFLUX_DB_QUERY_CHUNK_SIZE);
         tempDescriptors.add(USERNAME);
         tempDescriptors.add(PASSWORD);
         tempDescriptors.add(CHARSET);
@@ -189,9 +211,10 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
 
         try {
             long startTimeMillis = System.currentTimeMillis();
-            QueryResult result = executeQuery(context, database, query, queryResultTimeunit);
+            int chunkSize = context.getProperty(INFLUX_DB_QUERY_CHUNK_SIZE).evaluateAttributeExpressions(outgoingFlowFile).asInteger();
+            List<QueryResult> result = executeQuery(context, database, query, queryResultTimeunit, chunkSize);
 
-            String json = gson.toJson(result);
+            String json = result.size() == 1 ? gson.toJson(result.get(0)) : gson.toJson(result);
 
             if ( getLogger().isDebugEnabled() ) {
                 getLogger().debug("Query result {} ", new Object[] {result});
@@ -203,13 +226,13 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
 
             final long endTimeMillis = System.currentTimeMillis();
 
-            if ( ! result.hasError() ) {
+            if ( ! hasErrors(result) ) {
                 outgoingFlowFile = session.putAttribute(outgoingFlowFile, INFLUX_DB_EXECUTED_QUERY, String.valueOf(query));
                 session.getProvenanceReporter().send(outgoingFlowFile, makeProvenanceUrl(context, database),
                         (endTimeMillis - startTimeMillis));
                 session.transfer(outgoingFlowFile, REL_SUCCESS);
             } else {
-                outgoingFlowFile = populateErrorAttributes(session, outgoingFlowFile, query, result.getError());
+                outgoingFlowFile = populateErrorAttributes(session, outgoingFlowFile, query, queryErrors(result));
                 session.transfer(outgoingFlowFile, REL_FAILURE);
             }
 
@@ -242,8 +265,31 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
             .append(database).toString();
     }
 
-    protected QueryResult executeQuery(final ProcessContext context, String database, String query, TimeUnit timeunit) {
-        return getInfluxDB(context).query(new Query(query, database),timeunit);
+    protected List<QueryResult> executeQuery(final ProcessContext context, String database, String query, TimeUnit timeunit,
+                                             int chunkSize) throws InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        InfluxDB influx = getInfluxDB(context);
+        Query influxQuery = new Query(query, database);
+
+        if (chunkSize > 0) {
+            List<QueryResult> results = new LinkedList<>();
+            influx.query(influxQuery, chunkSize, result -> {
+                if (isQueryDone(result.getError())) {
+                    latch.countDown();
+                } else {
+                    results.add(result);
+                }
+            });
+            latch.await();
+
+            return results;
+        } else {
+            return Collections.singletonList(influx.query(influxQuery, timeunit));
+        }
+    }
+
+    private boolean isQueryDone(String error) {
+        return error != null && error.equals("DONE");
     }
 
     protected FlowFile populateErrorAttributes(final ProcessSession session, FlowFile flowFile, String query,
@@ -253,6 +299,22 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
         attributes.put(INFLUX_DB_EXECUTED_QUERY, String.valueOf(query));
         flowFile = session.putAllAttributes(flowFile, attributes);
         return flowFile;
+    }
+
+    private Boolean hasErrors(List<QueryResult> results) {
+        for (QueryResult result: results) {
+            if (result.hasError()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String queryErrors(List<QueryResult> results) {
+        return results.stream()
+                .filter(QueryResult::hasError)
+                .map(QueryResult::getError)
+                .collect(Collectors.joining("\n"));
     }
 
     @OnStopped

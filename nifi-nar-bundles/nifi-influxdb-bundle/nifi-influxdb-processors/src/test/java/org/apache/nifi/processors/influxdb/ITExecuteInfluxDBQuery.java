@@ -16,16 +16,10 @@
  */
 package org.apache.nifi.processors.influxdb;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Assert;
-
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -33,10 +27,19 @@ import org.apache.nifi.util.TestRunners;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Series;
+
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.gson.Gson;
+
+
 
 /**
  * Integration test for executing InfluxDB queries. Please ensure that the InfluxDB is running
@@ -274,12 +277,12 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
     }
 
     @Test
-    public void testQueryResultHasError() {
+    public void testQueryResultHasError() throws Throwable {
         ExecuteInfluxDBQuery mockExecuteInfluxDBQuery = new ExecuteInfluxDBQuery() {
             @Override
-            protected QueryResult executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit) {
-                QueryResult result = super.executeQuery(context, database, query, timeunit);
-                result.setError("Test Error");
+            protected List<QueryResult> executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit, int chunkSize) throws InterruptedException{
+                List<QueryResult> result = super.executeQuery(context, database, query, timeunit, chunkSize);
+                result.get(0).setError("Test Error");
                 return result;
             }
 
@@ -325,5 +328,38 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         runner.setVariable("influxDBUrl", "http://localhost:8086");
         runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "${influxDBUrl}");
         testValidTwoPoints();
+    }
+
+    @Test
+    public void testChunkedQuery() {
+        String message =
+                "chunkedQueryTest,country=GB value=1 1524938495000000000" + System.lineSeparator() +
+                "chunkedQueryTest,country=PL value=2 1524938505000000000" + System.lineSeparator() +
+                "chunkedQueryTest,country=US value=3 1524938505800000000";
+
+        influxDB.write(dbName, DEFAULT_RETENTION_POLICY, InfluxDB.ConsistencyLevel.ONE, message);
+
+        String query = "select * from chunkedQueryTest";
+        byte [] bytes = query.getBytes();
+        runner.enqueue(bytes);
+        runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_QUERY_CHUNK_SIZE, "2");
+        runner.run(1,true,true);
+
+        runner.assertAllFlowFilesTransferred(ExecuteInfluxDBQuery.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_SUCCESS);
+        assertEquals("Value should be equal", 1, flowFiles.size());
+        assertNull("Value should be null", flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE));
+
+        List<QueryResult> queryResult = gson.fromJson(new StringReader(new String(flowFiles.get(0).toByteArray())), QueryResultListType);
+
+        assertNotNull("QueryResult array should not be null", queryResult);
+        assertEquals("QueryResult array size should be equal 2", 2, queryResult.size());
+
+        assertEquals("First chunk should have 2 elements",2, chunkSize(queryResult.get(0)));
+        assertEquals("Second chunk should have 1 elements",1, chunkSize(queryResult.get(1)));
+    }
+
+    private int chunkSize(QueryResult queryResult) {
+        return queryResult.getResults().get(0).getSeries().get(0).getValues().size();
     }
 }
