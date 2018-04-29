@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
-import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.Storage;
@@ -71,7 +69,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
     @Override
     protected StorageOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
-        final String projectId = context.getProperty(PROJECT_ID).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
         final Integer retryCount = context.getProperty(RETRY_COUNT).asInteger();
 
         final String proxyHost = context.getProperty(PROXY_HOST).getValue();
@@ -79,20 +77,18 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
                 .setCredentials(credentials)
-                .setProjectId(projectId)
                 .setRetrySettings(RetrySettings.newBuilder()
                         .setMaxAttempts(retryCount)
                         .build());
 
+        if (!projectId.isEmpty()) {
+            storageOptionsBuilder.setProjectId(projectId);
+        }
+
         if (!StringUtils.isBlank(proxyHost) && proxyPort > 0) {
-            storageOptionsBuilder.setTransportOptions(HttpTransportOptions.newBuilder().setHttpTransportFactory(new HttpTransportFactory() {
-                @Override
-                public HttpTransport create() {
-                    return new NetHttpTransport.Builder()
-                            .setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)))
-                            .build();
-                }
-            }).build());
+            storageOptionsBuilder.setTransportOptions(HttpTransportOptions.newBuilder().setHttpTransportFactory(() -> new NetHttpTransport.Builder()
+                    .setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)))
+                    .build()).build());
         }
         return  storageOptionsBuilder.build();
     }
