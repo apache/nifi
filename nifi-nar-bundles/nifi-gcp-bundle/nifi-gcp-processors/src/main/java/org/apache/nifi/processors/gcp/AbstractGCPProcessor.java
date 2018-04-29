@@ -43,7 +43,8 @@ public abstract class AbstractGCPProcessor<
             .Builder().name("gcp-project-id")
             .displayName("Project ID")
             .description("Google Cloud Project ID")
-            .required(true)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

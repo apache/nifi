@@ -150,8 +150,8 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .displayName("Bucket")
             .description(BUCKET_DESC)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder()
@@ -159,7 +159,8 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .displayName("Prefix")
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor USE_GENERATIONS = new PropertyDescriptor.Builder()
@@ -242,9 +243,9 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         final long startNanos = System.nanoTime();
 
-        final String bucket = context.getProperty(BUCKET).getValue();
+        final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
 
-        final String prefix = context.getProperty(PREFIX).getValue();
+        final String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
 
         final boolean useGenerations = context.getProperty(USE_GENERATIONS).asBoolean();
 
