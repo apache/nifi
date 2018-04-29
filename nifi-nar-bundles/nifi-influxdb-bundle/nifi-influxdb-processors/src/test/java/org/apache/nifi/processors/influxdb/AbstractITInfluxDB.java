@@ -15,12 +15,17 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.influxdb;
+
+import com.google.gson.reflect.TypeToken;
 import org.apache.nifi.util.TestRunner;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.junit.After;
+
+import java.lang.reflect.Type;
+import java.util.List;
 
 /**
  * Base integration test class for InfluxDB processors
@@ -33,6 +38,8 @@ public class AbstractITInfluxDB {
     protected String user = "admin";
     protected String password = "admin";
     protected static final String DEFAULT_RETENTION_POLICY = "autogen";
+
+    protected Type QueryResultListType = new TypeToken<List<QueryResult>>(){}.getType();
 
     protected void initInfluxDB() throws InterruptedException, Exception {
         influxDB = InfluxDBFactory.connect(dbUrl,user,password);
@@ -51,6 +58,8 @@ public class AbstractITInfluxDB {
             QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
             checkError(result);
             result = influxDB.query(new Query("DROP measurement testm", dbName));
+            checkError(result);
+            result = influxDB.query(new Query("DROP measurement chunkedQueryTest", dbName));
             checkError(result);
             result = influxDB.query(new Query("DROP database " + dbName, dbName));
             Thread.sleep(1000);
