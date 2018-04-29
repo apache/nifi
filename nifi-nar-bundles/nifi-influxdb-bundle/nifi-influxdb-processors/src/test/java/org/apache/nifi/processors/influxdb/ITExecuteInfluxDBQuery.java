@@ -15,17 +15,18 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.influxdb;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
-import com.google.gson.Gson;
+import org.junit.Assert;
+
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Series;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 import java.io.StringReader;
 import java.util.HashMap;
@@ -33,7 +34,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.gson.Gson;
 
 
 
