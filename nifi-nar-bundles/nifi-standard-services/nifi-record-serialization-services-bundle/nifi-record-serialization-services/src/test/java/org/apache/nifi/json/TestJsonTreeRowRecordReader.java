@@ -18,6 +18,7 @@
 package org.apache.nifi.json;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -36,6 +37,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.avro.Schema;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -133,6 +136,62 @@ public class TestJsonTreeRowRecordReader {
             final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
             System.out.println("Took " + millis + " millis to read " + recordCount + " records");
         }
+    }
+
+    @Test
+    public void testChoiceOfRecordTypes() throws IOException, MalformedRecordException {
+        final Schema avroSchema = new Schema.Parser().parse(new File("src/test/resources/json/record-choice.avsc"));
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
+
+        try (final InputStream in = new FileInputStream(new File("src/test/resources/json/elements-for-record-choice.json"));
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), recordSchema, dateFormat, timeFormat, timestampFormat)) {
+
+            // evaluate first record
+            final Record firstRecord = reader.nextRecord();
+            assertNotNull(firstRecord);
+            final RecordSchema firstOuterSchema = firstRecord.getSchema();
+            assertEquals(Arrays.asList("id", "child"), firstOuterSchema.getFieldNames());
+            assertEquals("1234", firstRecord.getValue("id"));
+
+            // record should have a schema that indicates that the 'child' is a CHOICE of 2 different record types
+            assertTrue(firstOuterSchema.getDataType("child").get().getFieldType() == RecordFieldType.CHOICE);
+            final List<DataType> firstSubTypes = ((ChoiceDataType) firstOuterSchema.getDataType("child").get()).getPossibleSubTypes();
+            assertEquals(2, firstSubTypes.size());
+            assertEquals(2L, firstSubTypes.stream().filter(type -> type.getFieldType() == RecordFieldType.RECORD).count());
+
+            // child record should have a schema with "id" as the only field
+            final Object childObject = firstRecord.getValue("child");
+            assertTrue(childObject instanceof Record);
+            final Record firstChildRecord = (Record) childObject;
+            final RecordSchema firstChildSchema = firstChildRecord.getSchema();
+
+            assertEquals(Arrays.asList("id"), firstChildSchema.getFieldNames());
+
+            // evaluate second record
+            final Record secondRecord = reader.nextRecord();
+            assertNotNull(secondRecord);
+
+            final RecordSchema secondOuterSchema = secondRecord.getSchema();
+            assertEquals(Arrays.asList("id", "child"), secondOuterSchema.getFieldNames());
+            assertEquals("1234", secondRecord.getValue("id"));
+
+            // record should have a schema that indicates that the 'child' is a CHOICE of 2 different record types
+            assertTrue(secondOuterSchema.getDataType("child").get().getFieldType() == RecordFieldType.CHOICE);
+            final List<DataType> secondSubTypes = ((ChoiceDataType) secondOuterSchema.getDataType("child").get()).getPossibleSubTypes();
+            assertEquals(2, secondSubTypes.size());
+            assertEquals(2L, secondSubTypes.stream().filter(type -> type.getFieldType() == RecordFieldType.RECORD).count());
+
+            // child record should have a schema with "name" as the only field
+            final Object secondChildObject = secondRecord.getValue("child");
+            assertTrue(secondChildObject instanceof Record);
+            final Record secondChildRecord = (Record) secondChildObject;
+            final RecordSchema secondChildSchema = secondChildRecord.getSchema();
+
+            assertEquals(Arrays.asList("name"), secondChildSchema.getFieldNames());
+
+            assertNull(reader.nextRecord());
+        }
+
     }
 
     @Test
