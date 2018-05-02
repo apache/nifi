@@ -2065,6 +2065,21 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceRepositor
         }
     }
 
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Map<String, File> map = configuration.getStorageDirectories();
+        final File container = map.get(containerName);
+        if (container == null) {
+            return null;
+        }
+
+        try {
+            return Files.getFileStore(container.toPath()).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     /* TODO: The following are items to be removed when a new ProvenanceEventRepository interface can be defined and incorporated and deal with querying/indexing that does not apply */
     public static final class MethodNotSupportedException extends RuntimeException {
         public MethodNotSupportedException() {

@@ -138,6 +138,11 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
   }
 
   @Override
+  public String getContainerFileStoreName(String s) {
+    return null;
+  }
+
+  @Override
   public long getContainerUsableSpace(String s) throws IOException {
     return 0;
   }
