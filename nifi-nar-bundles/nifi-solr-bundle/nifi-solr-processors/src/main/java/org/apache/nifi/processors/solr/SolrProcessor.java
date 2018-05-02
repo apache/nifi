@@ -23,27 +23,33 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.krb.KeytabAction;
+import org.apache.nifi.security.krb.KeytabUser;
+import org.apache.nifi.security.krb.StandardKeytabUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.Krb5HttpClientConfigurer;
 
-import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_STANDARD;
-import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
-import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
+import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_STANDARD;
+import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
 
 /**
  * A base class for processors that interact with Apache Solr.
@@ -57,6 +63,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
     private volatile String basicPassword;
     private volatile boolean basicAuthEnabled = false;
 
+    private volatile KeytabUser keytabUser;
+
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
         this.solrLocation =  context.getProperty(SOLR_LOCATION).evaluateAttributeExpressions().getValue();
@@ -65,7 +73,17 @@ public abstract class SolrProcessor extends AbstractProcessor {
         if (!StringUtils.isBlank(basicUsername) && !StringUtils.isBlank(basicPassword)) {
             basicAuthEnabled = true;
         }
+
         this.solrClient = createSolrClient(context, solrLocation);
+
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (kerberosCredentialsService != null) {
+            this.keytabUser = createKeytabUser(kerberosCredentialsService);
+        }
+    }
+
+    protected KeytabUser createKeytabUser(final KerberosCredentialsService kerberosCredentialsService) {
+        return new StandardKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
     }
 
     @OnStopped
@@ -77,7 +95,41 @@ public abstract class SolrProcessor extends AbstractProcessor {
                 getLogger().debug("Error closing SolrClient", e);
             }
         }
+
+        if (keytabUser != null) {
+            try {
+                keytabUser.logout();
+                keytabUser = null;
+            } catch (LoginException e) {
+                getLogger().debug("Error logging out keytab user", e);
+            }
+        }
     }
+
+    @Override
+    public final void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final KeytabUser keytabUser = getKerberosKeytabUser();
+        if (keytabUser == null) {
+            doOnTrigger(context, session);
+        } else {
+            // wrap doOnTrigger in a privileged action
+            final PrivilegedAction action = () -> {
+                doOnTrigger(context, session);
+                return null;
+            };
+
+            // execute the privileged action as the given keytab user
+            final KeytabAction keytabAction = new KeytabAction(keytabUser, action, context, getLogger());
+            keytabAction.execute();
+        }
+    }
+
+    /**
+     * This should be implemented just like the normal onTrigger method. When a KerberosCredentialsService is configured,
+     * this method will be wrapped in a PrivilegedAction and executed with the credentials of the service, otherwise this
+     * will be executed like a a normal call to onTrigger.
+     */
+    protected abstract void doOnTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
     /**
      * Create a SolrClient based on the type of Solr specified.
@@ -116,6 +168,10 @@ public abstract class SolrProcessor extends AbstractProcessor {
         return basicAuthEnabled;
     }
 
+    protected final KeytabUser getKerberosKeytabUser() {
+        return keytabUser;
+    }
+
     @Override
     final protected Collection<ValidationResult> customValidate(ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>();
@@ -128,29 +184,6 @@ public abstract class SolrProcessor extends AbstractProcessor {
                         .input(collection).valid(false)
                         .explanation("A collection must specified for Solr Type of Cloud")
                         .build());
-            }
-        }
-
-        // If a JAAS Client App Name is provided then the system property for the JAAS config file must be set,
-        // and that config file must contain an entry for the name provided by the processor
-        final String jaasAppName = context.getProperty(JAAS_CLIENT_APP_NAME).getValue();
-        if (!StringUtils.isEmpty(jaasAppName)) {
-            final String loginConf = System.getProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP);
-            if (StringUtils.isEmpty(loginConf)) {
-                problems.add(new ValidationResult.Builder()
-                        .subject(JAAS_CLIENT_APP_NAME.getDisplayName())
-                        .valid(false)
-                        .explanation("the system property " + Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP + " must be set when providing a JAAS Client App Name")
-                        .build());
-            } else {
-                final Configuration config = javax.security.auth.login.Configuration.getConfiguration();
-                if (config.getAppConfigurationEntry(jaasAppName) == null) {
-                    problems.add(new ValidationResult.Builder()
-                            .subject(JAAS_CLIENT_APP_NAME.getDisplayName())
-                            .valid(false)
-                            .explanation("'" + jaasAppName + "' does not exist in " + loginConf)
-                            .build());
-                }
             }
         }
 
@@ -180,7 +213,10 @@ public abstract class SolrProcessor extends AbstractProcessor {
         final String username = context.getProperty(BASIC_USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(BASIC_PASSWORD).evaluateAttributeExpressions().getValue();
 
-        if (!StringUtils.isBlank(username) && StringUtils.isBlank(password)) {
+        final boolean basicUsernameProvided = !StringUtils.isBlank(username);
+        final boolean basicPasswordProvided = !StringUtils.isBlank(password);
+
+        if (basicUsernameProvided && !basicPasswordProvided) {
             problems.add(new ValidationResult.Builder()
                     .subject(BASIC_PASSWORD.getDisplayName())
                     .valid(false)
@@ -188,11 +224,21 @@ public abstract class SolrProcessor extends AbstractProcessor {
                     .build());
         }
 
-        if (!StringUtils.isBlank(password) && StringUtils.isBlank(username)) {
+        if (basicPasswordProvided && !basicUsernameProvided) {
             problems.add(new ValidationResult.Builder()
                     .subject(BASIC_USERNAME.getDisplayName())
                     .valid(false)
                     .explanation("a username must be provided for the given password")
+                    .build());
+        }
+
+        // Validate that only kerberos or basic auth can be set, but not both
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (kerberosCredentialsService != null && basicUsernameProvided && basicPasswordProvided) {
+            problems.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("basic auth and kerberos cannot be configured at the same time")
                     .build());
         }
 

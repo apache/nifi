@@ -63,7 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
@@ -163,7 +163,7 @@ public class PutSolrRecord extends SolrProcessor {
         descriptors.add(RECORD_READER);
         descriptors.add(FIELDS_TO_INDEX);
         descriptors.add(COMMIT_WITHIN);
-        descriptors.add(JAAS_CLIENT_APP_NAME);
+        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -205,7 +205,7 @@ public class PutSolrRecord extends SolrProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void doOnTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;
