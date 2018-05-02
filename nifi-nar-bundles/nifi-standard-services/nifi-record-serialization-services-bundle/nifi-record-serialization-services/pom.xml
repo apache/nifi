@@ -115,6 +115,10 @@
                         <exclude>src/test/resources/json/bank-account-array-different-schemas.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array-optional-balance.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-mixed.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-multiarray.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-multiline.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-oneline.json</exclude>
                         <exclude>src/test/resources/json/json-with-unicode.json</exclude>
                         <exclude>src/test/resources/json/primitive-type-array.json</exclude>
                         <exclude>src/test/resources/json/single-bank-account.json</exclude>
