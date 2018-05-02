@@ -35,7 +35,9 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
@@ -134,7 +136,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                 final ArrayDataType arrayDataType = (ArrayDataType) dataType;
                 elementDataType = arrayDataType.getElementType();
             } else {
-                elementDataType = null;
+                elementDataType = dataType;
             }
 
             for (final JsonNode node : arrayNode) {
@@ -146,12 +148,34 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
 
         if (fieldNode.isObject()) {
-            RecordSchema childSchema;
+            RecordSchema childSchema = null;
             if (dataType != null && RecordFieldType.RECORD == dataType.getFieldType()) {
                 final RecordDataType recordDataType = (RecordDataType) dataType;
                 childSchema = recordDataType.getChildSchema();
-            } else {
-                childSchema = null;
+            } else if (dataType != null && RecordFieldType.CHOICE == dataType.getFieldType()) {
+                final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+
+                for (final DataType possibleDataType : choiceDataType.getPossibleSubTypes()) {
+                    if (possibleDataType.getFieldType() != RecordFieldType.RECORD) {
+                        continue;
+                    }
+
+                    final RecordSchema possibleSchema = ((RecordDataType) possibleDataType).getChildSchema();
+
+                    final Map<String, Object> childValues = new HashMap<>();
+                    final Iterator<String> fieldNames = fieldNode.getFieldNames();
+                    while (fieldNames.hasNext()) {
+                        final String childFieldName = fieldNames.next();
+
+                        final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), possibleSchema.getDataType(childFieldName).orElse(null));
+                        childValues.put(childFieldName, childValue);
+                    }
+
+                    final Record possibleRecord = new MapRecord(possibleSchema, childValues);
+                    if (DataTypeUtils.isCompatibleDataType(possibleRecord, possibleDataType)) {
+                        return possibleRecord;
+                    }
+                }
             }
 
             if (childSchema == null) {
@@ -162,7 +186,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             final Map<String, Object> childValues = new HashMap<>();
             while (fieldNames.hasNext()) {
                 final String childFieldName = fieldNames.next();
-                final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), dataType);
+
+                final DataType childDataType = childSchema.getDataType(childFieldName).orElse(null);
+                final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), childDataType);
                 childValues.put(childFieldName, childValue);
             }
 
