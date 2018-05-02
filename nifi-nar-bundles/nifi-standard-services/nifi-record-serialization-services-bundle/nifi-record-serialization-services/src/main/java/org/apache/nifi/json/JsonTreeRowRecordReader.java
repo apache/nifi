@@ -222,7 +222,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                 }
             }
             case CHOICE: {
-                return DataTypeUtils.convertType(getRawNodeValue(fieldNode), desiredType, fieldName);
+                return DataTypeUtils.convertType(getRawNodeValue(fieldNode, desiredType), desiredType, fieldName);
             }
         }
 

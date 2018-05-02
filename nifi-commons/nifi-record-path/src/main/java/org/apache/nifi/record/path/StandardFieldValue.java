@@ -78,7 +78,7 @@ public class StandardFieldValue implements FieldValue {
             return Arrays.toString((Object[]) value);
         }
 
-        return value.toString();
+        return String.valueOf(value);
     }
 
     protected static FieldValue validateParentRecord(final FieldValue parent) {
