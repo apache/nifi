@@ -31,6 +31,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
+import org.apache.nifi.hbase.util.VisibilityUtil;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -442,6 +443,11 @@ public class PutHBaseRecord extends AbstractPutHBase {
 
                     String visString = (visField != null && visSettings != null && visSettings.containsKey(name))
                             ? (String)visSettings.get(name) : defaultVisibility;
+
+                    //TODO: factor this into future enhancements to how complex records are handled.
+                    if (StringUtils.isBlank(visString)) {
+                        visString = VisibilityUtil.pickVisibilityString(columnFamily, name, flowFile, context);
+                    }
 
                     PutColumn column = !StringUtils.isEmpty(visString)
                             ? new PutColumn(fam, clientService.toBytes(name), fieldValueBytes, timestamp, visString)

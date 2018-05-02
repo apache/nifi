@@ -97,5 +97,17 @@
         </tr>
     </tbody>
 </table>
+<p>In addition to the branch for visibility labels, the same methods used for PutHBaseCell and PutHBaseJSON can be used.
+They are:</p>
+<ul>
+    <li>Attributes on the flowfile.</li>
+    <li>Dynamic properties added to the processor.</li>
+</ul>
+<p>When the dynamic properties are defined on the processor, they will be the default value, but can be overridden by
+    attributes set on the flowfile. The naming convention for both (property name and attribute name) is:</p>
+<ul>
+    <li>visibility.COLUMN_FAMILY - every column qualifier under the column family will get this.</li>
+    <li>visibility.COLUMN_FAMILY.COLUMN_VISIBILITY - the qualified column qualifier will be assigned this value.</li>
+</ul>
 </body>
 </html>
