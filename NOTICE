@@ -50,3 +50,12 @@ This includes derived works from Apache Calcite available under Apache Software 
   Copyright 2012-2017 The Apache Software Foundation
   The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
   and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan
+
+This includes derived works from Apache Solr available under Apache Software License V2. Portions of the code found in
+  https://github.com/apache/lucene-solr/blob/branch_6x/solr/solrj/src/java/org/apache/solr/client/solrj/impl/Krb5HttpClientConfigurer.java
+  Copyright 2006-2018 The Apache Software Foundation
+  The code can be found nifi-nar-bundles/nifi-solr-bundle/nifi-solr-processors/src/main/java/org/apache/nifi/processors/solr/kerberos/KerberosHttpClientConfigurer.java
+
+This includes derived works from Apache Hadoop available under Apache Software License V2. Portions of the code found in
+  https://github.com/apache/hadoop/blob/release-2.7.3-RC2/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/security/UserGroupInformation.java
+  The code can be found nifi-commons/nifi-security-utils/src/main/java/org/apache/nifi/security/krb/KeytabUser.java

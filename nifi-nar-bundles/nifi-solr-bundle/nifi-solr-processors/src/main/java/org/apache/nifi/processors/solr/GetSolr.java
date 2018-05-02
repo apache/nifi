@@ -73,9 +73,9 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.CursorMarkParams;
 
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
 import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
@@ -181,7 +181,7 @@ public class GetSolr extends SolrProcessor {
         descriptors.add(DATE_FILTER);
         descriptors.add(RETURN_FIELDS);
         descriptors.add(BATCH_SIZE);
-        descriptors.add(JAAS_CLIENT_APP_NAME);
+        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -286,7 +286,7 @@ public class GetSolr extends SolrProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void doOnTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         final ComponentLog logger = getLogger();
         final AtomicBoolean continuePaging = new AtomicBoolean(true);

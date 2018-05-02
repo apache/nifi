@@ -72,9 +72,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
 import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
@@ -259,7 +259,7 @@ public class QuerySolr extends SolrProcessor {
         descriptors.add(SOLR_PARAM_START);
         descriptors.add(SOLR_PARAM_ROWS);
         descriptors.add(AMOUNT_DOCUMENTS_TO_RETURN);
-        descriptors.add(JAAS_CLIENT_APP_NAME);
+        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -306,7 +306,7 @@ public class QuerySolr extends SolrProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void doOnTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
 
         FlowFile flowFileOriginal = session.get();

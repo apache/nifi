@@ -37,18 +37,15 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.impl.Krb5HttpClientConfigurer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
-import org.apache.solr.common.StringUtils;
 import org.apache.solr.common.util.NamedList;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -611,39 +608,6 @@ public class TestPutSolrRecord {
         runner.setVariable("solr.password", "solrRocksPassword");
         runner.assertValid();
     }
-
-    @Test
-    public void testJAASClientAppNameValidation() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(PutSolrRecord.class);
-        MockRecordParser recordParser = new MockRecordParser();
-        recordParser.addRecord(1, "Abhinav","R",8,"Chemistry","term1", 98);
-        runner.addControllerService("parser", recordParser);
-        runner.enableControllerService(recordParser);
-        runner.setProperty(PutSolrRecord.RECORD_READER, "parser");
-        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.assertValid();
-
-        // clear the jaas config system property if it was set
-        final String jaasConfig = System.getProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP);
-        if (!StringUtils.isEmpty(jaasConfig)) {
-            System.clearProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP);
-        }
-
-        // should be invalid if we have a client name but not config file
-        runner.setProperty(SolrUtils.JAAS_CLIENT_APP_NAME, "Client");
-        runner.assertNotValid();
-
-        // should be invalid if we have a client name that is not in the config file
-        final File jaasConfigFile = new File("src/test/resources/jaas-client.conf");
-        System.setProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP, jaasConfigFile.getAbsolutePath());
-        runner.assertNotValid();
-
-        // should be valid now that the name matches up with the config file
-        runner.setProperty(SolrUtils.JAAS_CLIENT_APP_NAME, "SolrJClient");
-        runner.assertValid();
-    }
-
 
     /**
      * Creates a base TestRunner with Solr Type of standard.

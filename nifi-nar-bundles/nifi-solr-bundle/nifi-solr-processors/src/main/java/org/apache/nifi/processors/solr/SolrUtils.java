@@ -29,6 +29,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -48,13 +49,14 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.client.solrj.impl.Krb5HttpClientConfigurer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -76,6 +78,8 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 public class SolrUtils {
+
+    static final Logger LOGGER = LoggerFactory.getLogger(SolrUtils.class);
 
     public static final AllowableValue SOLR_TYPE_CLOUD = new AllowableValue(
             "Cloud", "Cloud", "A SolrCloud instance.");
@@ -137,13 +141,12 @@ public class SolrUtils {
             .sensitive(true)
             .build();
 
-    public static final PropertyDescriptor JAAS_CLIENT_APP_NAME = new PropertyDescriptor
-            .Builder().name("JAAS Client App Name")
-            .description("The name of the JAAS configuration entry to use when performing Kerberos authentication to Solr. If this property is " +
-                    "not provided, Kerberos authentication will not be attempted. The value must match an entry in the file specified by the " +
-                    "system property java.security.auth.login.config.")
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-credentials-service")
+            .displayName("Kerberos Credentials Service")
+            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosCredentialsService.class)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -209,7 +212,7 @@ public class SolrUtils {
         final Integer maxConnections = context.getProperty(SOLR_MAX_CONNECTIONS).asInteger();
         final Integer maxConnectionsPerHost = context.getProperty(SOLR_MAX_CONNECTIONS_PER_HOST).asInteger();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final String jaasClientAppName = context.getProperty(JAAS_CLIENT_APP_NAME).getValue();
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
         final ModifiableSolrParams params = new ModifiableSolrParams();
         params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
@@ -217,10 +220,9 @@ public class SolrUtils {
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
 
-        // has to happen before the client is created below so that correct configurer would be set if neeeded
-        if (!StringUtils.isEmpty(jaasClientAppName)) {
-            System.setProperty("solr.kerberos.jaas.appname", jaasClientAppName);
-            HttpClientUtil.setConfigurer(new Krb5HttpClientConfigurer());
+        // has to happen before the client is created below so that correct configurer would be set if needed
+        if (kerberosCredentialsService != null) {
+            HttpClientUtil.setConfigurer(new KerberosHttpClientConfigurer());
         }
 
         final HttpClient httpClient = HttpClientUtil.createClient(params);
