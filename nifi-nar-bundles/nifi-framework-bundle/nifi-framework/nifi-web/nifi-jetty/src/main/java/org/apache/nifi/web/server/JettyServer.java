@@ -601,99 +601,137 @@ public class JettyServer implements NiFiServer {
         httpConfiguration.setRequestHeaderSize(headerSize);
         httpConfiguration.setResponseHeaderSize(headerSize);
 
-        if (props.getPort() != null) {
-            final Integer port = props.getPort();
-            if (port < 0 || (int) Math.pow(2, 16) <= port) {
-                throw new ServerConfigurationException("Invalid HTTP port: " + port);
-            }
-
-            logger.info("Configuring Jetty for HTTP on port: " + port);
-
-            final List<Connector> serverConnectors = Lists.newArrayList();
-
-            final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
-            if (httpNetworkInterfaces.isEmpty() || httpNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
-                // create the connector
-                final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-                // set host and port
-                if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTP_HOST))) {
-                    http.setHost(props.getProperty(NiFiProperties.WEB_HTTP_HOST));
-                }
-                http.setPort(port);
-                serverConnectors.add(http);
-            } else {
-                // add connectors for all IPs from http network interfaces
-                serverConnectors.addAll(Lists.newArrayList(httpNetworkInterfaces.values().stream().map(ifaceName -> {
-                    NetworkInterface iface = null;
-                    try {
-                        iface = NetworkInterface.getByName(ifaceName);
-                    } catch (SocketException e) {
-                        logger.error("Unable to get network interface by name {}", ifaceName, e);
-                    }
-                    if (iface == null) {
-                        logger.warn("Unable to find network interface named {}", ifaceName);
-                    }
-                    return iface;
-                }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
-                        .map(inetAddress -> {
-                            // create the connector
-                            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-                            // set host and port
-                            http.setHost(inetAddress.getHostAddress());
-                            http.setPort(port);
-                            return http;
-                        }).collect(Collectors.toList())));
-            }
-            // add all connectors
-            serverConnectors.forEach(server::addConnector);
+        // Check if both HTTP and HTTPS connectors are configured and fail if both are configured
+        if (bothHttpAndHttpsConnectorsConfigured()) {
+            logger.error("NiFi only supports one mode of HTTP or HTTPS operation, not both simultaneously. Check the nifi.properties file and ensure that either the HTTP hostname and port or the HTTPS hostname and port are empty");
+            startUpFailure(new IllegalStateException("Only one of the HTTP and HTTPS connectors can be configured at one time"));
         }
 
         if (props.getSslPort() != null) {
-            final Integer port = props.getSslPort();
-            if (port < 0 || (int) Math.pow(2, 16) <= port) {
-                throw new ServerConfigurationException("Invalid HTTPs port: " + port);
-            }
-
-            logger.info("Configuring Jetty for HTTPs on port: " + port);
-
-            final List<Connector> serverConnectors = Lists.newArrayList();
-
-            final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
-            if (httpsNetworkInterfaces.isEmpty() || httpsNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
-                final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
-
-                // set host and port
-                if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTPS_HOST))) {
-                    https.setHost(props.getProperty(NiFiProperties.WEB_HTTPS_HOST));
-                }
-                https.setPort(port);
-                serverConnectors.add(https);
-            } else {
-                // add connectors for all IPs from https network interfaces
-                serverConnectors.addAll(Lists.newArrayList(httpsNetworkInterfaces.values().stream().map(ifaceName -> {
-                    NetworkInterface iface = null;
-                    try {
-                        iface = NetworkInterface.getByName(ifaceName);
-                    } catch (SocketException e) {
-                        logger.error("Unable to get network interface by name {}", ifaceName, e);
-                    }
-                    if (iface == null) {
-                        logger.warn("Unable to find network interface named {}", ifaceName);
-                    }
-                    return iface;
-                }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
-                        .map(inetAddress -> {
-                            final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
-
-                            // set host and port
-                            https.setHost(inetAddress.getHostAddress());
-                            https.setPort(port);
-                            return https;
-                        }).collect(Collectors.toList())));
-            }
-            // add all connectors
-            serverConnectors.forEach(server::addConnector);
+            configureHttpsConnector(server, httpConfiguration);
+        } else if (props.getPort() != null) {
+            configureHttpConnector(server, httpConfiguration);
+        } else {
+            logger.error("Neither the HTTP nor HTTPS connector was configured in nifi.properties");
+            startUpFailure(new IllegalStateException("Must configure HTTP or HTTPS connector"));
         }
+    }
+
+    // TODO: Extract common functionality to single method and provide lambda for configure connector
+    private void configureHttpsConnector(Server server, HttpConfiguration httpConfiguration) {
+        final Integer port = props.getSslPort();
+        if (port < 0 || (int) Math.pow(2, 16) <= port) {
+            throw new ServerConfigurationException("Invalid HTTPs port: " + port);
+        }
+
+        logger.info("Configuring Jetty for HTTPs on port: " + port);
+
+        final List<Connector> serverConnectors = Lists.newArrayList();
+
+        final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
+        if (httpsNetworkInterfaces.isEmpty() || httpsNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
+            final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
+
+            // set host and port
+            if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTPS_HOST))) {
+                https.setHost(props.getProperty(NiFiProperties.WEB_HTTPS_HOST));
+            }
+            https.setPort(port);
+            serverConnectors.add(https);
+        } else {
+            // add connectors for all IPs from https network interfaces
+            serverConnectors.addAll(Lists.newArrayList(httpsNetworkInterfaces.values().stream().map(ifaceName -> {
+                NetworkInterface iface = null;
+                try {
+                    iface = NetworkInterface.getByName(ifaceName);
+                } catch (SocketException e) {
+                    logger.error("Unable to get network interface by name {}", ifaceName, e);
+                }
+                if (iface == null) {
+                    logger.warn("Unable to find network interface named {}", ifaceName);
+                }
+                return iface;
+            }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
+                    .map(inetAddress -> {
+                        final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
+
+                        // set host and port
+                        https.setHost(inetAddress.getHostAddress());
+                        https.setPort(port);
+                        return https;
+                    }).collect(Collectors.toList())));
+        }
+        // add all connectors
+        serverConnectors.forEach(server::addConnector);
+    }
+
+    private void configureHttpConnector(Server server, HttpConfiguration httpConfiguration) {
+        final Integer port = props.getPort();
+        if (port < 0 || (int) Math.pow(2, 16) <= port) {
+            throw new ServerConfigurationException("Invalid HTTP port: " + port);
+        }
+
+        logger.info("Configuring Jetty for HTTP on port: " + port);
+
+        final List<Connector> serverConnectors = Lists.newArrayList();
+
+        final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
+        if (httpNetworkInterfaces.isEmpty() || httpNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
+            // create the connector
+            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+            // set host and port
+            if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTP_HOST))) {
+                http.setHost(props.getProperty(NiFiProperties.WEB_HTTP_HOST));
+            }
+            http.setPort(port);
+            serverConnectors.add(http);
+        } else {
+            // add connectors for all IPs from http network interfaces
+            serverConnectors.addAll(Lists.newArrayList(httpNetworkInterfaces.values().stream().map(ifaceName -> {
+                NetworkInterface iface = null;
+                try {
+                    iface = NetworkInterface.getByName(ifaceName);
+                } catch (SocketException e) {
+                    logger.error("Unable to get network interface by name {}", ifaceName, e);
+                }
+                if (iface == null) {
+                    logger.warn("Unable to find network interface named {}", ifaceName);
+                }
+                return iface;
+            }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
+                    .map(inetAddress -> {
+                        // create the connector
+                        final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+                        // set host and port
+                        http.setHost(inetAddress.getHostAddress());
+                        http.setPort(port);
+                        return http;
+                    }).collect(Collectors.toList())));
+        }
+        // add all connectors
+        serverConnectors.forEach(server::addConnector);
+    }
+
+    /**
+     * Returns true if there are configured properties for both HTTP and HTTPS connectors (specifically port because the hostname can be left blank in the HTTP connector). Prints a warning log message with the relevant properties.
+     *
+     * @return true if both ports are present
+     */
+    private boolean bothHttpAndHttpsConnectorsConfigured() {
+        Integer httpPort = props.getPort();
+        String httpHostname = props.getProperty(NiFiProperties.WEB_HTTP_HOST);
+
+        Integer httpsPort = props.getSslPort();
+        String httpsHostname = props.getProperty(NiFiProperties.WEB_HTTPS_HOST);
+
+        if (httpPort != null && httpsPort != null) {
+            logger.warn("Both the HTTP and HTTPS connectors are configured in nifi.properties. Only one of these connectors should be configured. See the NiFi Admin Guide for more details");
+            logger.warn("HTTP connector:   http://" + httpHostname + ":" + httpPort);
+            logger.warn("HTTPS connector: https://" + httpsHostname + ":" + httpsPort);
+            return true;
+        }
+
+        return false;
     }
 
     private ServerConnector createUnconfiguredSslServerConnector(Server server, HttpConfiguration httpConfiguration) {
