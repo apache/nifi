@@ -148,7 +148,7 @@ should run on. If it is desired that the HTTPS interface be accessible from all 
 admins to configure the application to run only on specific network interfaces, `nifi.web.http.network.interface*` or `nifi.web.https.network.interface*`
 properties can be specified.
 
-NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
+NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset. NiFi only supports running on HTTP *or* HTTPS, not both simultaneously.
 
 Similar to `nifi.security.needClientAuth`, the web server can be configured to require certificate based client authentication for users accessing
 the User Interface. In order to do this it must be configured to not support username/password authentication using  <<ldap_login_identity_provider>> or <<kerberos_login_identity_provider>>. Either of these options
@@ -1967,8 +1967,8 @@ they must be set the same on every instance in the cluster.
 
 For each Node, the minimum properties to configure are as follows:
 
-* Under the _Web Properties_ section, set either the http or https port that you want the Node to run on.
-  Also, consider whether you need to set the http or https host property.
+* Under the _Web Properties_ section, set either the HTTP or HTTPS port that you want the Node to run on.
+  Also, consider whether you need to set the HTTP or HTTPS host property. All nodes in the cluster should use the same protocol setting.
 * Under the _State Management section_, set the `nifi.state.management.provider.cluster` property
   to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been
   configured in the _state-management.xml_ file. See <<state_providers>> for more information.
@@ -2164,7 +2164,7 @@ In order to secure the communications, we need to ensure that both the client an
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
 If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
-link:https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html^]. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
+https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[Red Hat Customer Portal: Configuring a Kerberos 5 Server]. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
 
 Note, the following procedures for kerberizing an Embedded ZooKeeper server in your NiFi Node and kerberizing a ZooKeeper NiFi client will require that
 Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
@@ -2652,7 +2652,7 @@ documentation of the proxy for guidance for your deployment environment and use 
 
 ** By default, if NiFi is running securely it will only accept HTTP requests with a Host header matching the host[:port] that it is bound to. If NiFi is to accept requests directed to a different
 host[:port] the expected values need to be configured. This may be required when running behind a proxy or in a containerized environment. This is configured in a comma
-separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. localhost:18443, proxyhost:443). IPv6 addressed are accepted. Please refer to
+separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. localhost:18443, proxyhost:443). IPv6 addresses are accepted. Please refer to
 RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
 
 ** NiFi will only accept HTTP requests with a X-ProxyContextPath or X-Forwarded-Context header if the value is whitelisted in the `nifi.web.proxy.context.path` property in
