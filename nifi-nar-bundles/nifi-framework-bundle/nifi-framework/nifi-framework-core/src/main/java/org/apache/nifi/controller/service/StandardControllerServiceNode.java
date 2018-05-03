@@ -48,7 +48,6 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
@@ -319,18 +318,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
 
-        // If service is invalid, perform validation again to verify. We do this in case the service
-        // is invalid due to a dependency on another service, such that the other service was disabled
-        // when validation was performed - but may now be enabled.
-        // TODO: Instead, we should just look at validation results and filter out any that are due to service dependencies, if those services are now enabled.
-        // TODO: Noticed a bug on nifi cluster. Had JsonPathReader. Indicated was valid. Clicked Enable.
-        //       It failed, indicating that there were no Json Paths defined (even though there were). Node was then kicked out of cluster.
-        //       Then opened configuration to verify. Clicked Apply. Now shows as invalid on 2 out of the 3 nodes...
-        //       After I refresh, shows valid. Click to configure / Apply again, says invalid due to no Json Paths defined.
-        if (getValidationStatus() == ValidationStatus.INVALID) {
-            performValidation();
-        }
-
         switch (getValidationStatus()) {
             case INVALID:
                 throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
@@ -446,7 +433,15 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         boolean shouldEnable;
                         synchronized (active) {
-                            shouldEnable = active.get() && stateTransition.enable();
+                            // The validation state of every component that references this one is invalid because each of them
+                            // references a disabled controller service. Now that this service has been enabled, we need to perform
+                            // validation again. This must be done before completing the future but after the service's state has transitioned
+                            // to ENABLED. It must be done after transitioning to ENABLED so that if a referencing service actually uses this service
+                            // in its validation, it will no longer fail validation due to this service being disabled. It must be done before
+                            // the Future is completed because once the Future is completed, the framework may be awaiting completion in order to
+                            // enable the referencing services - so we need to perform validation on them before attempting to enable them.
+                            // So, to accomplish this, we pass it in to the StateTransition#enable method.
+                            shouldEnable = active.get() && stateTransition.enable(StandardControllerServiceNode.this::validateReferencingComponents);
                         }
 
                         if (!shouldEnable) {
@@ -485,6 +480,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return future;
     }
 
+    private void validateReferencingComponents() {
+        for (final ComponentNode reference : getReferences().getReferencingComponents()) {
+            try {
+                reference.performValidation();
+            } catch (final Exception e) {
+                LOG.warn("Failed to perform validation on {}", reference, e);
+            }
+        }
+    }
+
     /**
      * Will atomically disable this service by invoking its @OnDisabled operation.
      * It uses CAS operation on {@link #stateRef} to transition this service
@@ -521,6 +526,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         invokeDisable(configContext);
                     } finally {
                         stateTransition.disable();
+
+                        // Now all components that reference this service will be invalid. Trigger validation to occur so that
+                        // this is reflected in any response that may go back to a user/client.
+                        for (final ComponentNode component : getReferences().getReferencingComponents()) {
+                            component.performValidation();
+                        }
                     }
                 }
             });
