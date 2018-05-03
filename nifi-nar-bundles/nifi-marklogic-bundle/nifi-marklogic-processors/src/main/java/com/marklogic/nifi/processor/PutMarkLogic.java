@@ -71,12 +71,14 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
     private Map<String, FlowFileInfo> URIFlowFileMap = new HashMap<>();
     public static final PropertyDescriptor COLLECTIONS = new PropertyDescriptor.Builder()
         .name("Collections")
+        .displayName("Collections")
         .description("Comma-delimited sequence of collections to add to each document")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder()
         .name("Format")
+        .displayName("Format")
         .description("Format for each document; if not specified, MarkLogic will determine the format" +
             " based on the URI")
         .allowableValues(Format.JSON.name(), Format.XML.name(), Format.TEXT.name(), Format.BINARY.name(), Format.UNKNOWN.name())
@@ -85,18 +87,21 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor JOB_ID = new PropertyDescriptor.Builder()
         .name("Job ID")
+        .displayName("Job ID")
         .description("ID for the WriteBatcher job")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
         .name("Job Name")
+        .displayName("Job Name")
         .description("Name for the WriteBatcher job")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor MIMETYPE = new PropertyDescriptor.Builder()
         .name("MIME type")
+        .displayName("MIME type")
         .description("MIME type for each document; if not specified, MarkLogic will determine the " +
             "MIME type based on the URI")
         .addValidator(NO_VALIDATION_VALIDATOR)
@@ -104,6 +109,7 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor PERMISSIONS = new PropertyDescriptor.Builder()
         .name("Permissions")
+        .displayName("Permissions")
         .defaultValue("rest-reader,read,rest-writer,update")
         .description("Comma-delimited sequence of permissions - role1, capability1, role2, " +
             "capability2 - to add to each document")
@@ -112,12 +118,14 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor TEMPORAL_COLLECTION = new PropertyDescriptor.Builder()
         .name("Temporal collection")
+        .displayName("Temporal collection")
         .description("The temporal collection to use for a temporal document insert")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor TRANSFORM = new PropertyDescriptor.Builder()
         .name("Server transform")
+        .displayName("Server transform")
         .description("(Optional) The name of REST server transform to apply to every document as it's" +
             " written")
         .addValidator(NO_VALIDATION_VALIDATOR)
@@ -125,6 +133,7 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor URI_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
         .name("URI attribute name")
+        .displayName("URI attribute name")
         .defaultValue("uuid")
         .required(true)
         .description("The name of the FlowFile attribute whose value will be used as the URI")
@@ -133,12 +142,14 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor URI_PREFIX = new PropertyDescriptor.Builder()
         .name("URI prefix")
+        .displayName("URI prefix")
         .description("(Optional) The prefix to prepend to each URI")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor URI_SUFFIX = new PropertyDescriptor.Builder()
         .name("URI suffix")
+        .displayName("URI suffix")
         .description("(Optional) The suffix to append to each URI")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();

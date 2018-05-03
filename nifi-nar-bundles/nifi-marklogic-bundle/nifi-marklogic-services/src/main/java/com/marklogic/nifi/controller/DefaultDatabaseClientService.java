@@ -53,6 +53,7 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
 
     public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
         .name("Host")
+        .displayName("Host")
         .required(true)
         .defaultValue("localhost")
         .description("The host with the REST server for which a DatabaseClient instance needs to be created")
@@ -61,6 +62,7 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
         .name("Port")
+        .displayName("Port")
         .required(true)
         .defaultValue("8000")
         .description("The port on which the REST server is hosted")
@@ -69,6 +71,7 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
 
     public static final PropertyDescriptor SECURITY_CONTEXT_TYPE = new PropertyDescriptor.Builder()
         .name("Security Context Type")
+        .displayName("Security Context Type")
         .required(true)
         .allowableValues(SecurityContextType.values())
         .description("The type of the Security Context that needs to be used for authentication")
@@ -80,12 +83,14 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
         .name("Username")
+        .displayName("Username")
         .description("The user with read, write, or admin privileges - Required for Basic and Digest authentication")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
         .name("Password")
+        .displayName("Password")
         .description("The password for the user - Required for Basic and Digest authentication")
         .sensitive(true)
         .addValidator(NO_VALIDATION_VALIDATOR)
@@ -93,12 +98,14 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
 
     public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
         .name("Database")
+        .displayName("Database")
         .description("The database to access. By default, the configured database for the REST server would be accessed")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor CERT_FILE = new PropertyDescriptor.Builder()
         .name("Certificate file")
+        .displayName("Certificate file")
         .description("Certificate file which contains the client's certificate chain - Required for " +
             "Certificate authentication")
         .addValidator(NO_VALIDATION_VALIDATOR)
@@ -106,6 +113,7 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
 
     public static final PropertyDescriptor CERT_PASSWORD = new PropertyDescriptor.Builder()
         .name("Certificate password")
+        .displayName("Certificate password")
         .description("Export Password of the Certificate file - Optional for Certificate " +
             "authentication")
         .addValidator(NO_VALIDATION_VALIDATOR)
@@ -113,6 +121,7 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
 
     public static final PropertyDescriptor EXTERNAL_NAME = new PropertyDescriptor.Builder()
         .name("External name")
+        .displayName("External name")
         .description("External name of the Kerberos Client - Required for Kerberos authentication")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();

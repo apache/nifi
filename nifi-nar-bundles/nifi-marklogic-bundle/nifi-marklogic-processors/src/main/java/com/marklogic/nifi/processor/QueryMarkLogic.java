@@ -45,6 +45,7 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor CONSISTENT_SNAPSHOT = new PropertyDescriptor.Builder()
         .name("Consistent snapshot")
+        .displayName("Consistent snapshot")
         .defaultValue("true")
         .description("Boolean used to indicate that the matching documents were retrieved from a " +
             "consistent snapshot")
@@ -53,18 +54,21 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
 
     public static final PropertyDescriptor COLLECTIONS = new PropertyDescriptor.Builder()
         .name("Collections")
+        .displayName("Collections")
         .description("Comma-separated list of collections to query from a MarkLogic server")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor URIS_QUERY = new PropertyDescriptor.Builder()
         .name("URIs query")
+        .displayName("URIs query")
         .description("CTS URI Query for retrieving documents from a MarkLogic server")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor URI_PATTERN = new PropertyDescriptor.Builder()
         .name("URI pattern")
+        .displayName("URI pattern")
         .description("URI pattern for retrieving documents from a MarkLogic server")
         .addValidator(NO_VALIDATION_VALIDATOR)
         .build();

@@ -52,6 +52,7 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
 
     public static final PropertyDescriptor DATABASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("DatabaseClient Service")
+        .displayName("DatabaseClient Service")
         .required(true)
         .description("The DatabaseClient Controller Service that provides the MarkLogic connection")
         .identifiesControllerService(DatabaseClientService.class)
@@ -59,6 +60,7 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Batch size")
+        .displayName("Batch size")
         .required(true)
         .defaultValue("100")
         .description("The number of documents per batch - sets the batch size on the Batcher")
@@ -67,6 +69,7 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
 
     public static final PropertyDescriptor THREAD_COUNT = new PropertyDescriptor.Builder()
         .name("Thread count")
+        .displayName("Thread count")
         .required(true)
         .defaultValue("16")
         .description("The number of threads - sets the thread count on the Batcher")
