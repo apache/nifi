@@ -16,39 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -71,6 +38,40 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
@@ -118,6 +119,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     private String legacyAuthorizedUsersFile;
     private Set<String> initialUserIdentities;
     private List<IdentityMapping> identityMappings;
+    private List<IdentityMapping> groupMappings;
 
     private final AtomicReference<UserGroupHolder> userGroupHolder = new AtomicReference<>();
 
@@ -172,8 +174,9 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
                 }
             }
 
-            // extract the identity mappings from nifi.properties if any are provided
+            // extract the identity and group mappings from nifi.properties if any are provided
             identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
+            groupMappings = Collections.unmodifiableList(IdentityMappingUtil.getGroupMappings(properties));
 
             // get the value of the legacy authorized users file
             final PropertyValue legacyAuthorizedUsersProp = configurationContext.getProperty(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE);
@@ -697,8 +700,9 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             org.apache.nifi.authorization.file.tenants.generated.User user = getOrCreateUser(tenants, legacyUserDn);
 
             // if there was a group name find or create the group and add the user to it
-            org.apache.nifi.authorization.file.tenants.generated.Group group = getOrCreateGroup(tenants, legacyUser.getGroup());
-            if (group != null) {
+            if (StringUtils.isNotBlank(legacyUser.getGroup())) {
+                final String legacyGroupName = IdentityMappingUtil.mapIdentity(legacyUser.getGroup(), groupMappings);
+                org.apache.nifi.authorization.file.tenants.generated.Group group = getOrCreateGroup(tenants, legacyGroupName);
                 org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
                 groupUser.setIdentifier(user.getIdentifier());
                 group.getUser().add(groupUser);
