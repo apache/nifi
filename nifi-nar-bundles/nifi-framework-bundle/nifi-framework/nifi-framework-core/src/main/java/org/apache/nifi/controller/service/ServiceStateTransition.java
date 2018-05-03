@@ -37,12 +37,22 @@ public class ServiceStateTransition {
         return true;
     }
 
-    public synchronized boolean enable() {
+    public synchronized boolean enable(final Runnable beforeFutureCompletion) {
         if (state != ControllerServiceState.ENABLING) {
             return false;
         }
 
         state = ControllerServiceState.ENABLED;
+
+        try {
+            if (beforeFutureCompletion != null) {
+                beforeFutureCompletion.run();
+            }
+        } catch (final Exception e) {
+            enabledFutures.stream().forEach(future -> future.complete(null));
+            throw e;
+        }
+
         enabledFutures.stream().forEach(future -> future.complete(null));
         return true;
     }
