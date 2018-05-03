@@ -133,8 +133,7 @@
         }, {
             text: 'Primary node',
             value: 'PRIMARY',
-            description: 'Processor will be scheduled to run only on the primary node',
-            disabled: !nfClusterSummary.isClustered() && processor.config['executionNode'] === 'PRIMARY'
+            description: 'Processor will be scheduled to run only on the primary node'
         }];
     };
 
@@ -733,7 +732,6 @@
                     });
 
                     var executionNode = processor.config['executionNode'];
-                    var executionNodeRestricted = processor.executionNodeRestricted
 
                     // initialize the execution node combo
                     $('#execution-node-combo').combo({
@@ -743,20 +741,7 @@
                         }
                     });
 
-                    // Show the 'execution-node' only when application
-                    if (nfClusterSummary.isClustered()) {
-                        if (executionNodeRestricted !== true || executionNode == 'ALL') {
-                            $('#execution-node-options').show();
-                        } else {
-                            $('#execution-node-options').hide();
-                        }
-                    } else {
-                        if (executionNode === 'PRIMARY') {
-                            $('#execution-node-options').show();
-                        } else {
-                            $('#execution-node-options').hide();
-                        }
-                    }
+                    $('#execution-node-options').show();
 
                     // initialize the concurrentTasks
                     var defaultConcurrentTasks = processor.config['defaultConcurrentTasks'];

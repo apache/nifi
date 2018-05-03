@@ -215,29 +215,16 @@
                     }
 
                     var executionNode = details.config['executionNode'];
-                    var executionNodeRestricted = details.executionNodeRestricted
 
-                    // only show the execution-node when applicable
-                    if (nfClusterSummary.isClustered()) {
-                        if (executionNode === 'ALL') {
-                            executionNode = "All nodes";
-                        } else if (executionNode === 'PRIMARY') {
-                            executionNode = "Primary node only";
-                        }
-                        nfCommon.populateField('read-only-execution-node', executionNode);
-
-                        if (executionNodeRestricted !== true || executionNode == 'ALL') {
-                            $('#read-only-execution-node-options').show();
-                        } else {
-                            $('#read-only-execution-node-options').hide();
-                        }
-                    } else {
-                        if (executionNode === 'PRIMARY') {
-                            $('#read-only-execution-node-options').show();
-                        } else {
-                            $('#read-only-execution-node-options').hide();
-                        }
+                    if (executionNode === 'ALL') {
+                        executionNode = "All nodes";
+                    } else if (executionNode === 'PRIMARY') {
+                        executionNode = "Primary node only";
                     }
+
+                    nfCommon.populateField('read-only-execution-node', executionNode);
+
+                    $('#read-only-execution-node-options').show();
 
                     // load the relationship list
                     if (!nfCommon.isEmpty(details.relationships)) {

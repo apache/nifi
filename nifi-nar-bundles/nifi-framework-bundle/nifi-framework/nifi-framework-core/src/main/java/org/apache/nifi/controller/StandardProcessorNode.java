@@ -530,7 +530,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public synchronized void setExecutionNode(final ExecutionNode executionNode) {
-        this.executionNode = executionNode;
+        if (this.isExecutionNodeRestricted()) {
+            this.executionNode = ExecutionNode.PRIMARY;
+        } else {
+            this.executionNode = executionNode;
+        }
     }
 
     @Override
