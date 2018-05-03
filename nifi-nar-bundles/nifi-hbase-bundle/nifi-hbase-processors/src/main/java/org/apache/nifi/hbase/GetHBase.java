@@ -54,7 +54,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -146,14 +145,6 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(NONE, CURRENT_TIME)
             .defaultValue(NONE.getValue())
-            .build();
-    static final PropertyDescriptor AUTHORIZATIONS = new PropertyDescriptor.Builder()
-            .name("hbase-fetch-row-authorizations")
-            .displayName("Authorizations")
-            .description("The list of authorizations to pass to the scanner. This will be ignored if cell visibility labels are not in use.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(Validator.VALID)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()

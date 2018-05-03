@@ -202,6 +202,15 @@ public class MockPropertyValue implements PropertyValue {
 
     @Override
     public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile) throws ProcessException {
+        /*
+         * The reason for this null check is that somewhere in the test API, it automatically assumes that a null FlowFile
+         * should be treated as though it were evaluated with the VARIABLE_REGISTRY scope instead of the flowfile scope. When NiFi
+         * is running, it doesn't care when it's evaluating EL against a null flowfile. However, the testing framework currently
+         * raises an error which makes it not mimick real world behavior.
+         */
+        if (flowFile == null) {
+            return evaluateAttributeExpressions();
+        }
         return evaluateAttributeExpressions(flowFile, null, null);
     }
 
