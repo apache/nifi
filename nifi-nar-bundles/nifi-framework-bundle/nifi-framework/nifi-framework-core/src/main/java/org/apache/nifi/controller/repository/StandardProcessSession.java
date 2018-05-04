@@ -2677,7 +2677,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (outStream == null) {
                 claimCache.flush(oldClaim);
 
-                try (final InputStream oldClaimIn = context.getContentRepository().read(oldClaim)) {
+                try (final InputStream oldClaimIn = read(source)) {
                     newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
                     claimLog.debug("Creating ContentClaim {} for 'append' for {}", newClaim, source);
 
