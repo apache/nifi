@@ -128,7 +128,6 @@ public class AbstractMarkLogicIT {
         assertTrue(runner.isControllerServiceEnabled(service));
         runner.assertValid(service);
         runner.setProperty(AbstractMarkLogicProcessor.DATABASE_CLIENT_SERVICE, databaseClientServiceIdentifier);
-        runner.assertValid();
         return runner;
     }
 

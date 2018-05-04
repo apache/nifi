@@ -65,8 +65,10 @@ public class QueryMarkLogicIT extends AbstractMarkLogicIT {
 
     protected TestRunner getNewTestRunner(Class processor) throws InitializationException {
         TestRunner runner = super.getNewTestRunner(processor);
+        runner.assertNotValid();
         runner.setProperty(QueryMarkLogic.COLLECTIONS, collection);
         runner.setProperty(QueryMarkLogic.CONSISTENT_SNAPSHOT, "true");
+        runner.assertValid();
         return runner;
     }
 

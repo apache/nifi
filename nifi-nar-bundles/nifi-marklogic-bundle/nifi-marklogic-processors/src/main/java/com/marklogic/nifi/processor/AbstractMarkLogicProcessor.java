@@ -18,11 +18,7 @@ package com.marklogic.nifi.processor;
 
 import com.marklogic.client.DatabaseClient;
 import com.marklogic.nifi.controller.DatabaseClientService;
-import com.marklogic.nifi.controller.DatabaseClientService;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -41,14 +37,6 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
 
     protected List<PropertyDescriptor> properties;
     protected Set<Relationship> relationships;
-
-    // NiFi requires a validator for every property, even those that don't need any validation
-    protected static Validator NO_VALIDATION_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            return new ValidationResult.Builder().valid(true).build();
-        }
-    };
 
     public static final PropertyDescriptor DATABASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("DatabaseClient Service")
@@ -70,8 +58,7 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
     public static final PropertyDescriptor THREAD_COUNT = new PropertyDescriptor.Builder()
         .name("Thread count")
         .displayName("Thread count")
-        .required(true)
-        .defaultValue("16")
+        .required(false)
         .description("The number of threads - sets the thread count on the Batcher")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();

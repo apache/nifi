@@ -25,8 +25,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -43,13 +41,6 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
     private static List<PropertyDescriptor> properties;
 
     private DatabaseClient databaseClient;
-
-    protected static Validator NO_VALIDATION_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            return new ValidationResult.Builder().valid(true).build();
-        }
-    };
 
     public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
         .name("Host")
@@ -85,7 +76,7 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         .name("Username")
         .displayName("Username")
         .description("The user with read, write, or admin privileges - Required for Basic and Digest authentication")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -93,14 +84,14 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         .displayName("Password")
         .description("The password for the user - Required for Basic and Digest authentication")
         .sensitive(true)
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
         .name("Database")
         .displayName("Database")
         .description("The database to access. By default, the configured database for the REST server would be accessed")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor CERT_FILE = new PropertyDescriptor.Builder()
@@ -108,7 +99,7 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         .displayName("Certificate file")
         .description("Certificate file which contains the client's certificate chain - Required for " +
             "Certificate authentication")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor CERT_PASSWORD = new PropertyDescriptor.Builder()
@@ -116,14 +107,14 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         .displayName("Certificate password")
         .description("Export Password of the Certificate file - Optional for Certificate " +
             "authentication")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor EXTERNAL_NAME = new PropertyDescriptor.Builder()
         .name("External name")
         .displayName("External name")
         .description("External name of the Kerberos Client - Required for Kerberos authentication")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
         .build();
 
     static {

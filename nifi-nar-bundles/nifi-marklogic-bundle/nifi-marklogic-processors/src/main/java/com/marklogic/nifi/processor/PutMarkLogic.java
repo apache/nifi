@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -54,7 +55,7 @@ import java.util.Set;
  * The TriggerWhenEmpty annotation is used so that this processor has a chance to flush the WriteBatcher when no
  * flowfiles are ready to be received.
  */
-@Tags({"MarkLogic"})
+@Tags({"MarkLogic", "Put", "Write", "Insert"})
 @CapabilityDescription("Write batches of FlowFiles as documents to a MarkLogic server using the " +
     "MarkLogic Data Movement SDK (DMSDK)")
 @TriggerWhenEmpty
@@ -68,12 +69,13 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
             this.session = session;
         }
     }
-    private Map<String, FlowFileInfo> URIFlowFileMap = new HashMap<>();
+    private Map<String, FlowFileInfo> uriFlowFileMap = new HashMap<>();
     public static final PropertyDescriptor COLLECTIONS = new PropertyDescriptor.Builder()
         .name("Collections")
         .displayName("Collections")
         .description("Comma-delimited sequence of collections to add to each document")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder()
@@ -82,21 +84,24 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         .description("Format for each document; if not specified, MarkLogic will determine the format" +
             " based on the URI")
         .allowableValues(Format.JSON.name(), Format.XML.name(), Format.TEXT.name(), Format.BINARY.name(), Format.UNKNOWN.name())
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor JOB_ID = new PropertyDescriptor.Builder()
         .name("Job ID")
         .displayName("Job ID")
         .description("ID for the WriteBatcher job")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
         .name("Job Name")
         .displayName("Job Name")
         .description("Name for the WriteBatcher job")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor MIMETYPE = new PropertyDescriptor.Builder()
@@ -104,7 +109,8 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         .displayName("MIME type")
         .description("MIME type for each document; if not specified, MarkLogic will determine the " +
             "MIME type based on the URI")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor PERMISSIONS = new PropertyDescriptor.Builder()
@@ -113,22 +119,25 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         .defaultValue("rest-reader,read,rest-writer,update")
         .description("Comma-delimited sequence of permissions - role1, capability1, role2, " +
             "capability2 - to add to each document")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor TEMPORAL_COLLECTION = new PropertyDescriptor.Builder()
         .name("Temporal collection")
         .displayName("Temporal collection")
         .description("The temporal collection to use for a temporal document insert")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor TRANSFORM = new PropertyDescriptor.Builder()
         .name("Server transform")
         .displayName("Server transform")
-        .description("(Optional) The name of REST server transform to apply to every document as it's" +
+        .description("The name of REST server transform to apply to every document as it's" +
             " written")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .addValidator(Validator.VALID)
+        .required(false)
         .build();
 
     public static final PropertyDescriptor URI_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
@@ -143,27 +152,29 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
     public static final PropertyDescriptor URI_PREFIX = new PropertyDescriptor.Builder()
         .name("URI prefix")
         .displayName("URI prefix")
-        .description("(Optional) The prefix to prepend to each URI")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .description("The prefix to prepend to each URI")
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
 
     public static final PropertyDescriptor URI_SUFFIX = new PropertyDescriptor.Builder()
         .name("URI suffix")
         .displayName("URI suffix")
-        .description("(Optional) The suffix to append to each URI")
-        .addValidator(NO_VALIDATION_VALIDATOR)
+        .description("The suffix to append to each URI")
+        .required(false)
+        .addValidator(Validator.VALID)
         .build();
 
     protected static final Relationship SUCCESS = new Relationship.Builder()
         .name("SUCCESS")
         .description("All FlowFiles that are successfully written to MarkLogic are routed to the " +
-            "success relationship for future processing")
+            "success relationship for future processing.")
         .build();
 
     protected static final Relationship FAILURE = new Relationship.Builder()
         .name("FAILURE")
         .description("All FlowFiles that failed to be written to MarkLogic are routed to the " +
-            "failure relationship for future processing")
+            "failure relationship for future processing.")
         .build();
 
     private DataMovementManager dataMovementManager;
@@ -203,12 +214,15 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
             .withJobId(context.getProperty(JOB_ID).getValue())
             .withJobName(context.getProperty(JOB_NAME).getValue())
             .withBatchSize(context.getProperty(BATCH_SIZE).asInteger())
-            .withThreadCount(context.getProperty(THREAD_COUNT).asInteger())
             .withTemporalCollection(context.getProperty(TEMPORAL_COLLECTION).getValue());
 
         final String transform = context.getProperty(TRANSFORM).getValue();
         if (transform != null) {
             writeBatcher.withTransform(new ServerTransform(transform));
+        }
+        Integer threadCount = context.getProperty(THREAD_COUNT).asInteger();
+        if(threadCount != null) {
+            writeBatcher.withThreadCount(threadCount);
         }
         this.writeBatcher.onBatchSuccess(writeBatch -> {
             for(WriteEvent writeEvent : writeBatch.getItems()) {
@@ -225,7 +239,7 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
     private void routeDocumentToRelationship(WriteEvent writeEvent, Relationship relationship) {
         DocumentMetadataHandle metadata = (DocumentMetadataHandle) writeEvent.getMetadata();
         String flowFileUUID = metadata.getMetadataValues().get("flowFileUUID");
-        FlowFileInfo flowFile = URIFlowFileMap.get(flowFileUUID);
+        FlowFileInfo flowFile = uriFlowFileMap.get(flowFileUUID);
         if(flowFile != null) {
             flowFile.session.getProvenanceReporter().send(flowFile.flowFile, writeEvent.getTargetUri());
             flowFile.session.transfer(flowFile.flowFile, relationship);
@@ -234,7 +248,7 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
                 getLogger().debug("Routing " + writeEvent.getTargetUri() + " to " + relationship.getName());
             }
         }
-        URIFlowFileMap.remove(flowFileUUID);
+        uriFlowFileMap.remove(flowFileUUID);
     }
 
     @Override
@@ -245,7 +259,7 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
         } catch (final Throwable t) {
             getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
             session.rollback(true);
-            throw t;
+            throw new ProcessException(t);
         }
     }
     /**
@@ -338,7 +352,7 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
             handle.withMimetype(mimetype);
         }
 
-        URIFlowFileMap.put(flowFileUUID, new FlowFileInfo(flowFile, session));
+        uriFlowFileMap.put(flowFileUUID, new FlowFileInfo(flowFile, session));
         return new WriteEventImpl()
             .withTargetUri(uri)
             .withMetadata(metadata)
