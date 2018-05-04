@@ -209,7 +209,7 @@ public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
 
         try {
             long startTimeMillis = System.currentTimeMillis();
-            int chunkSize = Integer.valueOf(context.getProperty(INFLUX_DB_QUERY_CHUNK_SIZE).evaluateAttributeExpressions(outgoingFlowFile).getValue());
+            int chunkSize = context.getProperty(INFLUX_DB_QUERY_CHUNK_SIZE).evaluateAttributeExpressions(outgoingFlowFile).asInteger();
             List<QueryResult> result = executeQuery(context, database, query, queryResultTimeunit, chunkSize);
 
             String json = result.size() == 1 ? gson.toJson(result.get(0)) : gson.toJson(result);
