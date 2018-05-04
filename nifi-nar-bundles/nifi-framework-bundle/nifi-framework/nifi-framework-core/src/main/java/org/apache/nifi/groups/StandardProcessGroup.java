@@ -660,6 +660,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             processGroups.put(Objects.requireNonNull(group).getIdentifier(), group);
             flowController.onProcessGroupAdded(group);
+
+            group.findAllControllerServices().stream().forEach(this::updateControllerServiceReferences);
+            group.findAllProcessors().stream().forEach(this::updateControllerServiceReferences);
+
             onComponentModified();
         } finally {
             writeLock.unlock();
@@ -829,10 +833,47 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.getVariableRegistry().setParent(getVariableRegistry());
             processors.put(processorId, processor);
             flowController.onProcessorAdded(processor);
+            updateControllerServiceReferences(processor);
             onComponentModified();
         } finally {
             writeLock.unlock();
         }
+    }
+
+    /**
+     * Looks for any property that is configured on the given component that references a Controller Service.
+     * If any exists, and that Controller Service is not accessible from this Process Group, then the given
+     * component will be removed from the service's referencing components.
+     *
+     * @param component the component whose invalid references should be removed
+     */
+    private void updateControllerServiceReferences(final ConfiguredComponent component) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
+            final String serviceId = entry.getValue();
+            if (serviceId == null) {
+                continue;
+            }
+
+            final PropertyDescriptor propertyDescriptor = entry.getKey();
+            final Class<? extends ControllerService> serviceClass = propertyDescriptor.getControllerServiceDefinition();
+
+            if (serviceClass != null) {
+                final boolean validReference = isValidServiceReference(serviceId, serviceClass);
+                final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
+                if (serviceNode != null) {
+                    if (validReference) {
+                        serviceNode.addReference(component);
+                    } else {
+                        serviceNode.removeReference(component);
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isValidServiceReference(final String serviceId, final Class<? extends ControllerService> serviceClass) {
+        final Set<String> validServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceClass, getIdentifier());
+        return validServiceIds.contains(serviceId);
     }
 
     @Override
@@ -2046,6 +2087,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             service.getVariableRegistry().setParent(getVariableRegistry());
             this.controllerServices.put(service.getIdentifier(), service);
             LOG.info("{} added to {}", service, this);
+            updateControllerServiceReferences(service);
             onComponentModified();
         } finally {
             writeLock.unlock();
@@ -2773,8 +2815,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            for (final String id : snippet.getProcessors().keySet()) {
-                final ProcessorNode processorNode = getProcessor(id);
+            final Set<ProcessorNode> processors = findAllProcessors(snippet);
+            for (final ProcessorNode processorNode : processors) {
                 for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
                     final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
 
@@ -2790,7 +2832,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                             // ensure the configured service is an allowed service if it's still a valid service
                             if (currentControllerServiceIds.contains(serviceId) && !proposedControllerServiceIds.contains(serviceId)) {
-                                throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
+                                throw new IllegalStateException("Cannot perform Move Operation because Processor with ID " + processorNode.getIdentifier()
+                                    + " references a service that is not available in the destination Process Group");
                             }
                         }
                     }
@@ -2799,6 +2842,20 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+    }
+
+    private Set<ProcessorNode> findAllProcessors(final Snippet snippet) {
+        final Set<ProcessorNode> processors = new HashSet<>();
+
+        snippet.getProcessors().keySet().stream()
+            .map(this::getProcessor)
+            .forEach(processors::add);
+
+        for (final String groupId : snippet.getProcessGroups().keySet()) {
+            processors.addAll(getProcessGroup(groupId).findAllProcessors());
+        }
+
+        return processors;
     }
 
     @Override
