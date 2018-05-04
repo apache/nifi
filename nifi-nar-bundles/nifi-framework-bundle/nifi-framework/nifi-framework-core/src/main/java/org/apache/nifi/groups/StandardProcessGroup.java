@@ -829,10 +829,47 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.getVariableRegistry().setParent(getVariableRegistry());
             processors.put(processorId, processor);
             flowController.onProcessorAdded(processor);
+            updateControllerServiceReferences(processor);
             onComponentModified();
         } finally {
             writeLock.unlock();
         }
+    }
+
+    /**
+     * Looks for any property that is configured on the given component that references a Controller Service.
+     * If any exists, and that Controller Service is not accessible from this Process Group, then the given
+     * component will be removed from the service's referencing components.
+     *
+     * @param component the component whose invalid references should be removed
+     */
+    private void updateControllerServiceReferences(final ConfiguredComponent component) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
+            final String serviceId = entry.getValue();
+            if (serviceId == null) {
+                continue;
+            }
+
+            final PropertyDescriptor propertyDescriptor = entry.getKey();
+            final Class<? extends ControllerService> serviceClass = propertyDescriptor.getControllerServiceDefinition();
+
+            if (serviceClass != null) {
+                final boolean validReference = isValidServiceReference(serviceId, serviceClass);
+                final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
+                if (serviceNode != null) {
+                    if (validReference) {
+                        serviceNode.addReference(component);
+                    } else {
+                        serviceNode.removeReference(component);
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isValidServiceReference(final String serviceId, final Class<? extends ControllerService> serviceClass) {
+        final Set<String> validServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceClass, getIdentifier());
+        return validServiceIds.contains(serviceId);
     }
 
     @Override
@@ -2046,6 +2083,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             service.getVariableRegistry().setParent(getVariableRegistry());
             this.controllerServices.put(service.getIdentifier(), service);
             LOG.info("{} added to {}", service, this);
+            updateControllerServiceReferences(service);
             onComponentModified();
         } finally {
             writeLock.unlock();
