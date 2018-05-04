@@ -63,11 +63,11 @@ public class DataTypeUtils {
     private static final String Infinity = "(Infinity)";
     private static final String NotANumber = "(NaN)";
 
-    private static final String Base10Digits  = "\\d+";
-    private static final String Base10Decimal  = "\\." + Base10Digits;
-    private static final String OptionalBase10Decimal  = Base10Decimal + "?";
+    private static final String Base10Digits = "\\d+";
+    private static final String Base10Decimal = "\\." + Base10Digits;
+    private static final String OptionalBase10Decimal = "(\\.\\d*)?";
 
-    private static final String Base10Exponent      = "[eE]" + OptionalSign + Base10Digits;
+    private static final String Base10Exponent = "[eE]" + OptionalSign + Base10Digits;
     private static final String OptionalBase10Exponent = "(" + Base10Exponent + ")?";
 
     private static final String  doubleRegex =
@@ -75,7 +75,7 @@ public class DataTypeUtils {
         "(" +
             Infinity + "|" +
             NotANumber + "|"+
-            "(" + Base10Digits + Base10Decimal + ")" + "|" +
+            "(" + Base10Digits + OptionalBase10Decimal + ")" + "|" +
             "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
             "(" + Base10Decimal + OptionalBase10Exponent + ")" +
         ")";
@@ -408,6 +408,7 @@ public class DataTypeUtils {
      * @param dataType The type of the provided object
      * @return An object representing a native Java conversion of the given input object
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static Object convertRecordFieldtoObject(final Object value, final DataType dataType) {
 
         if (value == null) {

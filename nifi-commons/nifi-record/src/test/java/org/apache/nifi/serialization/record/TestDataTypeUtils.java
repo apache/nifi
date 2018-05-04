@@ -92,6 +92,7 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testConvertRecordFieldToObject() {
         assertNull(DataTypeUtils.convertRecordFieldtoObject(null, null));
         assertNull(DataTypeUtils.convertRecordFieldtoObject(null, RecordFieldType.MAP.getDataType()));
@@ -194,5 +195,33 @@ public class TestDataTypeUtils {
         assertNotNull(b);
         assertTrue(b instanceof Byte[]);
         assertEquals("Conversion from byte[] to String failed at char 0", (Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0]);
+    }
+
+    @Test
+    public void testFloatingPointCompatibility() {
+        final String[] prefixes = new String[] {"", "-", "+"};
+        final String[] exponents = new String[] {"e0", "e1", "e-1", "E0", "E1", "E-1"};
+        final String[] decimals = new String[] {"", ".0", ".1", "."};
+
+        for (final String prefix : prefixes) {
+            for (final String decimal : decimals) {
+                for (final String exp : exponents) {
+                    String toTest = prefix + "100" + decimal + exp;
+                    assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
+                    assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+
+                    Double.parseDouble(toTest); // ensure we can actually parse it
+                    Float.parseFloat(toTest);
+
+                    if (decimal.length() > 1) {
+                        toTest = prefix + decimal + exp;
+                        assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
+                        assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+                        Double.parseDouble(toTest); // ensure we can actually parse it
+                        Float.parseFloat(toTest);
+                    }
+                }
+            }
+        }
     }
 }
