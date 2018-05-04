@@ -373,7 +373,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final Map<NodeConnectionState, List<NodeIdentifier>> connectionStates = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, NodeConnectionStatus> entry : nodeStatuses.entrySet()) {
             final NodeConnectionState state = entry.getValue().getState();
-            final List<NodeIdentifier> nodeIds = connectionStates.computeIfAbsent(state, s -> new ArrayList<NodeIdentifier>());
+            final List<NodeIdentifier> nodeIds = connectionStates.computeIfAbsent(state, s -> new ArrayList<>());
             nodeIds.add(entry.getKey());
         }
 
@@ -998,9 +998,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             // disconnect problematic nodes
             if (!problematicNodeResponses.isEmpty() && problematicNodeResponses.size() < nodeResponses.size()) {
                 final Set<NodeIdentifier> failedNodeIds = problematicNodeResponses.stream().map(response -> response.getNodeId()).collect(Collectors.toSet());
-                logger.warn(String.format("The following nodes failed to process URI %s '%s'.  Requesting each node disconnect from cluster.", uriPath, failedNodeIds));
+                logger.warn(String.format("The following nodes failed to process URI %s '%s'.  Requesting each node reconnect to cluster.", uriPath, failedNodeIds));
                 for (final NodeIdentifier nodeId : failedNodeIds) {
-                    requestNodeDisconnect(nodeId, DisconnectionCode.FAILED_TO_SERVICE_REQUEST, "Failed to process request " + method + " " + uriPath);
+                    // Update the node to 'CONNECTING' status and request that the node connect
+                    final NodeConnectionStatus reconnectionStatus = new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING);
+                    updateNodeStatus(reconnectionStatus);
+                    requestNodeConnect(nodeId, null);
                 }
             }
         }
