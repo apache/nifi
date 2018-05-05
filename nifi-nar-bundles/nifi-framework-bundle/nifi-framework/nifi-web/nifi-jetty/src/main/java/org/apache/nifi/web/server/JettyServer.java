@@ -618,77 +618,73 @@ public class JettyServer implements NiFiServer {
         }
     }
 
-    // TODO: Extract common functionality to single method and provide lambda for configure connector
+    /**
+     * Configures an HTTPS connector and adds it to the server.
+     *
+     * @param server the Jetty server instance
+     * @param httpConfiguration the configuration object for the HTTPS protocol settings
+     */
     private void configureHttpsConnector(Server server, HttpConfiguration httpConfiguration) {
+        String hostname = props.getProperty(NiFiProperties.WEB_HTTP_HOST);
         final Integer port = props.getSslPort();
-        if (port < 0 || (int) Math.pow(2, 16) <= port) {
-            throw new ServerConfigurationException("Invalid HTTPs port: " + port);
-        }
+        String connectorLabel = "HTTPS";
+        final Map<String, String> httpNetworkInterfaces = props.getHttpsNetworkInterfaces();
+        ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> scc = (s, c) -> createUnconfiguredSslServerConnector(s, c, port);
 
-        logger.info("Configuring Jetty for HTTPs on port: " + port);
-
-        final List<Connector> serverConnectors = Lists.newArrayList();
-
-        final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
-        if (httpsNetworkInterfaces.isEmpty() || httpsNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
-            final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
-
-            // set host and port
-            if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTPS_HOST))) {
-                https.setHost(props.getProperty(NiFiProperties.WEB_HTTPS_HOST));
-            }
-            https.setPort(port);
-            serverConnectors.add(https);
-        } else {
-            // add connectors for all IPs from https network interfaces
-            serverConnectors.addAll(Lists.newArrayList(httpsNetworkInterfaces.values().stream().map(ifaceName -> {
-                NetworkInterface iface = null;
-                try {
-                    iface = NetworkInterface.getByName(ifaceName);
-                } catch (SocketException e) {
-                    logger.error("Unable to get network interface by name {}", ifaceName, e);
-                }
-                if (iface == null) {
-                    logger.warn("Unable to find network interface named {}", ifaceName);
-                }
-                return iface;
-            }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
-                    .map(inetAddress -> {
-                        final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
-
-                        // set host and port
-                        https.setHost(inetAddress.getHostAddress());
-                        https.setPort(port);
-                        return https;
-                    }).collect(Collectors.toList())));
-        }
-        // add all connectors
-        serverConnectors.forEach(server::addConnector);
+        configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpNetworkInterfaces, scc);
     }
 
+    /**
+     * Configures an HTTP connector and adds it to the server.
+     *
+     * @param server the Jetty server instance
+     * @param httpConfiguration the configuration object for the HTTP protocol settings
+     */
     private void configureHttpConnector(Server server, HttpConfiguration httpConfiguration) {
+        String hostname = props.getProperty(NiFiProperties.WEB_HTTP_HOST);
         final Integer port = props.getPort();
+        String connectorLabel = "HTTP";
+        final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
+        ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> scc = (s, c) -> new ServerConnector(s, new HttpConnectionFactory(c));
+
+        configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpNetworkInterfaces, scc);
+    }
+
+    /**
+     * Configures an HTTP(S) connector for the server given the provided parameters. The functionality between HTTP and HTTPS connectors is largely similar.
+     * Here the common behavior has been extracted into a shared method and the respective calling methods obtain the right values and a lambda function for the differing behavior.
+     *
+     * @param server the Jetty server instance
+     * @param configuration the HTTP/HTTPS configuration instance
+     * @param hostname the hostname from the nifi.properties file
+     * @param port the port to expose
+     * @param connectorLabel used for log output (e.g. "HTTP" or "HTTPS")
+     * @param networkInterfaces the map of network interfaces from nifi.properties
+     * @param serverConnectorCreator a function which accepts a {@code Server} and {@code HttpConnection} instance and returns a {@code ServerConnector}
+     */
+    private void configureGenericConnector(Server server, HttpConfiguration configuration, String hostname, Integer port, String connectorLabel, Map<String, String> networkInterfaces,
+                                           ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> serverConnectorCreator) {
         if (port < 0 || (int) Math.pow(2, 16) <= port) {
-            throw new ServerConfigurationException("Invalid HTTP port: " + port);
+            throw new ServerConfigurationException("Invalid " + connectorLabel + " port: " + port);
         }
 
-        logger.info("Configuring Jetty for HTTP on port: " + port);
+        logger.info("Configuring Jetty for " + connectorLabel + " on port: " + port);
 
         final List<Connector> serverConnectors = Lists.newArrayList();
 
-        final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
-        if (httpNetworkInterfaces.isEmpty() || httpNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
-            // create the connector
-            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-            // set host and port
-            if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTP_HOST))) {
-                http.setHost(props.getProperty(NiFiProperties.WEB_HTTP_HOST));
+        // If the interfaces collection is empty or each element is empty
+        if (networkInterfaces.isEmpty() || networkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
+            final ServerConnector serverConnector = serverConnectorCreator.create(server, configuration);
+
+            // Set host and port
+            if (StringUtils.isNotBlank(hostname)) {
+                serverConnector.setHost(hostname);
             }
-            http.setPort(port);
-            serverConnectors.add(http);
+            serverConnector.setPort(port);
+            serverConnectors.add(serverConnector);
         } else {
-            // add connectors for all IPs from http network interfaces
-            serverConnectors.addAll(Lists.newArrayList(httpNetworkInterfaces.values().stream().map(ifaceName -> {
+            // Add connectors for all IPs from network interfaces
+            serverConnectors.addAll(Lists.newArrayList(networkInterfaces.values().stream().map(ifaceName -> {
                 NetworkInterface iface = null;
                 try {
                     iface = NetworkInterface.getByName(ifaceName);
@@ -701,15 +697,15 @@ public class JettyServer implements NiFiServer {
                 return iface;
             }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
                     .map(inetAddress -> {
-                        // create the connector
-                        final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-                        // set host and port
-                        http.setHost(inetAddress.getHostAddress());
-                        http.setPort(port);
-                        return http;
+                        final ServerConnector serverConnector = serverConnectorCreator.create(server, configuration);
+
+                        // Set host and port
+                        serverConnector.setHost(inetAddress.getHostAddress());
+                        serverConnector.setPort(port);
+                        return serverConnector;
                     }).collect(Collectors.toList())));
         }
-        // add all connectors
+        // Add all connectors
         serverConnectors.forEach(server::addConnector);
     }
 
@@ -738,11 +734,11 @@ public class JettyServer implements NiFiServer {
         return false;
     }
 
-    private ServerConnector createUnconfiguredSslServerConnector(Server server, HttpConfiguration httpConfiguration) {
+    private ServerConnector createUnconfiguredSslServerConnector(Server server, HttpConfiguration httpConfiguration, int port) {
         // add some secure config
         final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
         httpsConfiguration.setSecureScheme("https");
-        httpsConfiguration.setSecurePort(props.getSslPort());
+        httpsConfiguration.setSecurePort(port);
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
         // build the connector
@@ -1031,4 +1027,9 @@ public class JettyServer implements NiFiServer {
         public void destroy() {
         }
     };
+}
+
+@FunctionalInterface
+interface ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> {
+    ServerConnector create(Server server, HttpConfiguration httpConfiguration);
 }

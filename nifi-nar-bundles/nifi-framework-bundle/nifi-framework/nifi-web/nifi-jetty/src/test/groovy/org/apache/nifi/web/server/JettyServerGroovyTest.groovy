@@ -59,6 +59,8 @@ class JettyServerGroovyTest extends GroovyTestCase {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
+
+        TestAppender.reset()
     }
 
     @AfterClass
