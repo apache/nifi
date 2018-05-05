@@ -18,12 +18,12 @@ package org.apache.nifi.processors.gcp.storage;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.RetryParams;
+import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.cloud.storage.spi.StorageRpc;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
@@ -44,7 +44,7 @@ import java.util.Set;
  *
  * Every GCS processor operation requires a bucket, whether it's reading or writing from said bucket.
  */
-public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage, StorageRpc, StorageOptions> {
+public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage, StorageOptions> {
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder().name("success")
                     .description("FlowFiles are routed to this relationship after a successful Google Cloud Storage operation.")
@@ -80,25 +80,19 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
                 .setCredentials(credentials)
                 .setProjectId(projectId)
-                .setRetryParams(RetryParams.newBuilder()
-                        .setRetryMaxAttempts(retryCount)
-                        .setRetryMinAttempts(retryCount)
+                .setRetrySettings(RetrySettings.newBuilder()
+                        .setMaxAttempts(retryCount)
                         .build());
 
         if (!StringUtils.isBlank(proxyHost) && proxyPort > 0) {
-            storageOptionsBuilder.setHttpTransportFactory(new HttpTransportFactory() {
+            storageOptionsBuilder.setTransportOptions(HttpTransportOptions.newBuilder().setHttpTransportFactory(new HttpTransportFactory() {
                 @Override
                 public HttpTransport create() {
-                    final HttpTransport transport = new NetHttpTransport.Builder()
-                            .setProxy(
-                                    new Proxy(
-                                            Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)
-                                    )
-                            )
+                    return new NetHttpTransport.Builder()
+                            .setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)))
                             .build();
-                    return transport;
                 }
-            });
+            }).build());
         }
         return  storageOptionsBuilder.build();
     }
