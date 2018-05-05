@@ -24,6 +24,7 @@ import com.google.cloud.storage.Storage;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -103,6 +104,7 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
 /**
  * List objects in a google cloud storage bucket by object name pattern.
  */
+@PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
