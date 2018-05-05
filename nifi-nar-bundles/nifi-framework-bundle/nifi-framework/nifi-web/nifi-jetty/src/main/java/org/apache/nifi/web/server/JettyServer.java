@@ -602,8 +602,9 @@ public class JettyServer implements NiFiServer {
         httpConfiguration.setResponseHeaderSize(headerSize);
 
         // Check if both HTTP and HTTPS connectors are configured and fail if both are configured
-        if (bothHttpAndHttpsConnectorsConfigured()) {
-            logger.error("NiFi only supports one mode of HTTP or HTTPS operation, not both simultaneously. Check the nifi.properties file and ensure that either the HTTP hostname and port or the HTTPS hostname and port are empty");
+        if (bothHttpAndHttpsConnectorsConfigured(props)) {
+            logger.error("NiFi only supports one mode of HTTP or HTTPS operation, not both simultaneously. " +
+                    "Check the nifi.properties file and ensure that either the HTTP hostname and port or the HTTPS hostname and port are empty");
             startUpFailure(new IllegalStateException("Only one of the HTTP and HTTPS connectors can be configured at one time"));
         }
 
@@ -713,11 +714,14 @@ public class JettyServer implements NiFiServer {
     }
 
     /**
-     * Returns true if there are configured properties for both HTTP and HTTPS connectors (specifically port because the hostname can be left blank in the HTTP connector). Prints a warning log message with the relevant properties.
+     * Returns true if there are configured properties for both HTTP and HTTPS connectors (specifically port because the hostname can be left blank in the HTTP connector).
+     * Prints a warning log message with the relevant properties.
+     *
+     * @param props the NiFiProperties
      *
      * @return true if both ports are present
      */
-    private boolean bothHttpAndHttpsConnectorsConfigured() {
+    static boolean bothHttpAndHttpsConnectorsConfigured(NiFiProperties props) {
         Integer httpPort = props.getPort();
         String httpHostname = props.getProperty(NiFiProperties.WEB_HTTP_HOST);
 
