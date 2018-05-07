@@ -132,6 +132,7 @@ public class TemplateUtils {
             processGroupDTO.setStaleCount(null);
             processGroupDTO.setLocallyModifiedAndStaleCount(null);
             processGroupDTO.setSyncFailureCount(null);
+            processGroupDTO.setVersionControlInformation(null);
 
             scrubSnippet(processGroupDTO.getContents());
         }
