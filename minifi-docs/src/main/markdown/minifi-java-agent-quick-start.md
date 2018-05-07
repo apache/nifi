@@ -85,18 +85,10 @@ For Windows users, navigate to the folder where MiNiFi was installed. Navigate t
 
 This launches MiNiFi and leaves it running in the foreground. To shut down NiFi, select the window that was launched and hold the Ctrl key while pressing C.
 
-#Working with dataflows
+# Working with dataflows
 When you are working with a MiNiFi dataflow, you should design it, add any additional configuration your environment or use case requires, and then deploy your dataflow. MiNiFi is not designed to accommodate substantial mid-dataflow configuration.
 
-##Setting up Your Dataflow
-Before you begin, you should be aware that the following NiFi components are not supported in MiNiFi dataflows:
-* Controller services
-* Funnels
-* Multiple source relationships for a single connection
-* Process groups
-
-Additionally, each processor requires a distinct name.
-
+## Setting up Your Dataflow
 You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, and any NiFi instance to set up the dataflow you want MiNiFi to run:
 
 1. Launch NiFi
