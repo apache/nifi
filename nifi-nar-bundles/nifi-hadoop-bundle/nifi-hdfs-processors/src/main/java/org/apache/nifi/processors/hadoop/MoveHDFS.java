@@ -235,7 +235,6 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         FlowFile flowFile = session.get();
 
         if (flowFile == null && context.hasIncomingConnection()) {
-            context.yield();
             return;
         }
 
