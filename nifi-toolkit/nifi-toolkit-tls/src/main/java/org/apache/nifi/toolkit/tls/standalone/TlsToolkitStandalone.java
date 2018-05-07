@@ -236,6 +236,6 @@ public class TlsToolkitStandalone {
     }
 
     protected static String getClientDnFile(String clientDn) {
-        return clientDn.replace(',', '_').replace(' ', '_');
+        return clientDn.replace(',', '_').replace(' ', '_').replaceAll("[^\\w&&[^\\.]&&[^=]]", "_");
     }
 }

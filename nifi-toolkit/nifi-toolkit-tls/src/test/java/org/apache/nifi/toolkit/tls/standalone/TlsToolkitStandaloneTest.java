@@ -26,6 +26,7 @@ import org.apache.nifi.toolkit.tls.SystemExitCapturer;
 import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
 import org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityTest;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
 import org.apache.nifi.util.NiFiProperties;
@@ -220,6 +221,15 @@ public class TlsToolkitStandaloneTest {
         checkClientCert(clientDn, x509Certificate);
 
         runAndAssertExitCode(ExitCode.ERROR_GENERATING_CONFIG, "-o", tempDir.getAbsolutePath(), "-C", clientDn);
+    }
+
+    @Test
+    public void testClientDnSlashes() throws Exception {
+        String clientDn = "OU=NiFi/Hortonworks,CN=testuser";
+        String escapedClientDn = TlsToolkitStandalone.getClientDnFile(CertificateUtils.reorderDn(clientDn));
+        String tlsManagerEscaped = TlsClientManager.escapeAliasFilename(clientDn);
+        System.out.println("escapedClientDn = " + escapedClientDn);
+        System.out.println("ClientManager escaped = " + tlsManagerEscaped);
     }
 
     private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
