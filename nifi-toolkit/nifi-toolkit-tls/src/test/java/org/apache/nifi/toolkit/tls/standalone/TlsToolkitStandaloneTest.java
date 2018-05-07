@@ -224,12 +224,19 @@ public class TlsToolkitStandaloneTest {
     }
 
     @Test
-    public void testClientDnSlashes() throws Exception {
+    public void testClientDnFilenameSlashes() throws Exception {
         String clientDn = "OU=NiFi/Hortonworks,CN=testuser";
         String escapedClientDn = TlsToolkitStandalone.getClientDnFile(CertificateUtils.reorderDn(clientDn));
-        String tlsManagerEscaped = TlsClientManager.escapeAliasFilename(clientDn);
-        System.out.println("escapedClientDn = " + escapedClientDn);
-        System.out.println("ClientManager escaped = " + tlsManagerEscaped);
+
+        assertEquals("CN=testuser_OU=NiFi_Hortonworks", escapedClientDn);
+    }
+
+    @Test
+    public void testClientDnFilenameSpecialChars() throws Exception {
+        String clientDn = "OU=NiFi#!Hortonworks,CN=testuser";
+        String escapedClientDn = TlsToolkitStandalone.getClientDnFile(CertificateUtils.reorderDn(clientDn));
+
+        assertEquals("CN=testuser_OU=NiFi__Hortonworks", escapedClientDn);
     }
 
     private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
