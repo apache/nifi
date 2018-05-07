@@ -232,11 +232,13 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = null;
+        FlowFile flowFile = session.get();
 
-        if (context.hasIncomingConnection()) {
-            flowFile = session.get();
+        if (flowFile == null && context.hasIncomingConnection()) {
+            context.yield();
+            return;
         }
+
         flowFile = (flowFile != null) ? flowFile : session.create();
 
         final FileSystem hdfs = getFileSystem();
