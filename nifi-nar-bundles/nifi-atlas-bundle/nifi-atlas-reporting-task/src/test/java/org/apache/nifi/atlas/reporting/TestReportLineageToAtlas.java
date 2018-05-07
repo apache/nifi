@@ -17,6 +17,8 @@
 package org.apache.nifi.atlas.reporting;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.junit.Test;
@@ -31,6 +33,9 @@ import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_NIFI_UR
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_PASSWORD;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.KAFKA_KERBEROS_SERVICE_NAME;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.OLD_KAFKA_KERBEROS_SERVICE_NAME;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestReportLineageToAtlas {
@@ -86,4 +91,31 @@ public class TestReportLineageToAtlas {
                 r -> assertTrue("Atlas URLs is invalid", !r.isValid()));
     }
 
+    @Test
+    public void testKafkaKerberosServiceName() {
+        final ReportLineageToAtlas reportingTask = new ReportLineageToAtlas();
+        final MockProcessContext processContext = new MockProcessContext(reportingTask);
+        final ComponentLog logger = new MockComponentLog(reportingTask.getIdentifier(), reportingTask);
+
+        processContext.setProperty(ATLAS_URLS, "http://atlas.example.com:21000");
+        processContext.setProperty(ATLAS_NIFI_URL, "http://nifi.example.com:8080/nifi");
+        processContext.setProperty(ATLAS_USER, "admin");
+        processContext.setProperty(ATLAS_PASSWORD, "admin");
+
+        // Default is 'kafka'
+        String serviceName = reportingTask.getKafkaKerberosServiceName(processContext, logger);
+        assertEquals("kafka", serviceName);
+
+        // New one can use EL.
+        processContext.setProperty(KAFKA_KERBEROS_SERVICE_NAME, "${literal('new')}");
+        assertTrue(processContext.isValid());
+        serviceName = reportingTask.getKafkaKerberosServiceName(processContext, logger);
+        assertEquals("new", serviceName);
+
+        // If there is an old property, use the ole one
+        processContext.setProperty(OLD_KAFKA_KERBEROS_SERVICE_NAME, "${literal('old')}");
+        serviceName = reportingTask.getKafkaKerberosServiceName(processContext, logger);
+        assertTrue(processContext.isValid());
+        assertEquals("old", serviceName);
+    }
 }
