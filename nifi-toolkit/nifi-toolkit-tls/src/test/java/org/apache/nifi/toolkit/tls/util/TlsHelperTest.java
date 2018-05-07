@@ -389,4 +389,63 @@ public class TlsHelperTest {
 
         return sans;
     }
+
+    @Test
+    public void testEscapeAliasFilenameWithForwardSlashes() {
+        String result = TlsHelper.escapeFilename("my/silly/filename.pem");
+        assertEquals("my_silly_filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameWithBackSlashes() {
+        String result = TlsHelper.escapeFilename("my\\silly\\filename.pem");
+        assertEquals("my_silly_filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameWithDollarSign() {
+        String result = TlsHelper.escapeFilename("my$illyfilename.pem");
+        assertEquals("my_illyfilename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameTwoSymbolsInARow() {
+        String result = TlsHelper.escapeFilename("my!?sillyfilename.pem");
+        assertEquals("my_sillyfilename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameKeepHyphens() {
+        String result = TlsHelper.escapeFilename("my-silly-filename.pem");
+        assertEquals("my-silly-filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameDoubleSpaces() {
+        String result = TlsHelper.escapeFilename("my  silly  filename.pem");
+        assertEquals("my_silly_filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameSymbols() {
+        String result = TlsHelper.escapeFilename("./\\!@#$%^&*()_-+=.pem");
+        assertEquals(".__-_=.pem", result);
+    }
+
+    @Test
+    public void testClientDnFilenameSlashes() throws Exception {
+        String clientDn = "OU=NiFi/Organisation,CN=testuser";
+        String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
+
+        assertEquals("CN=testuser_OU=NiFi_Organisation", escapedClientDn);
+    }
+
+    @Test
+    public void testClientDnFilenameSpecialChars() throws Exception {
+        String clientDn = "OU=NiFi#!Organisation,CN=testuser";
+        String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
+
+        assertEquals("CN=testuser_OU=NiFi_Organisation", escapedClientDn);
+    }
+
 }

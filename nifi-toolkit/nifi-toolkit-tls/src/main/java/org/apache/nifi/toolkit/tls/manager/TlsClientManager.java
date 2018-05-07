@@ -96,7 +96,7 @@ public class TlsClientManager extends BaseTlsManager {
                     KeyStore.Entry trustStoreEntry = trustStore.getEntry(alias, null);
                     if (trustStoreEntry instanceof KeyStore.TrustedCertificateEntry) {
                         Certificate trustedCertificate = ((KeyStore.TrustedCertificateEntry) trustStoreEntry).getTrustedCertificate();
-                        try (OutputStream outputStream = outputStreamFactory.create(new File(certificateAuthorityDirectory, escapeAliasFilename(alias) + ".pem"));
+                        try (OutputStream outputStream = outputStreamFactory.create(new File(certificateAuthorityDirectory,  TlsHelper.escapeFilename(alias) + ".pem"));
                              OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
                              PemWriter pemWriter = new PemWriter(outputStreamWriter)) {
                             pemWriter.writeObject(new JcaMiscPEMGenerator(trustedCertificate));
@@ -114,7 +114,5 @@ public class TlsClientManager extends BaseTlsManager {
     }
 
 
-    protected static String escapeAliasFilename(String alias) {
-        return alias.replaceAll("[^\\w&&[^\\.]]", "_");
-    }
+
 }
