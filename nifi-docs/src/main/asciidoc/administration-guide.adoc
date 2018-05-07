@@ -3406,13 +3406,27 @@ The following examples demonstrate normalizing DNs from certificates and princip
 ----
 nifi.security.identity.mapping.pattern.dn=^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$
 nifi.security.identity.mapping.value.dn=$1@$2
+nifi.security.identity.mapping.transform.dn=NONE
 nifi.security.identity.mapping.pattern.kerb=^(.*?)/instance@(.*?)$
 nifi.security.identity.mapping.value.kerb=$1@$2
+nifi.security.identity.mapping.transform.kerb=NONE
 ----
 
 The last segment of each property is an identifier used to associate the pattern with the replacement value.  When a user makes a request to NiFi, their identity is checked to see if it matches each of those patterns in lexicographical order.  For the first one that matches, the replacement specified in the `nifi.security.identity.mapping.value.xxxx` property is used. So a login with `CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US` matches the DN mapping pattern above and the DN mapping value `$1@$2` is applied.  The user is normalized to `localhost@Apache NiFi`.
 
-NOTE: These mappings are also applied to the "Initial Admin Identity" and "Cluster Node Identity" properties in the authorizers.xml file (See <<authorizers-setup>>).
+In addition to mapping a transform may be applied. The supported versions are NONE (no transform applied), LOWER (identity lowercased), and UPPER (identity uppercased). If not specified, the default value is NONE.
+
+NOTE: These mappings are also applied to the "Initial Admin Identity", "Cluster Node Identity", and any legacy users in the authorizers.xml file as well as users imported from LDAP (See <<authorizers-setup>>).
+
+Group names can also be mapped. The following example will accept the existing group name but will lowercase it. This may be helpful when used in conjunction with an external authorizer.
+
+----
+nifi.security.group.mapping.pattern.anygroup=^(.*)$
+nifi.security.group.mapping.value.anygroup=$1
+nifi.security.group.mapping.transform.anygroup=LOWER
+----
+
+NOTE: These mappings are applied to any legacy groups referenced in the authorizers.xml as well as groups imported from LDAP.
 
 === Cluster Common Properties
 
