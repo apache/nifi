@@ -114,8 +114,7 @@ public class TlsClientManager extends BaseTlsManager {
     }
 
 
-    public static String escapeAliasFilename(String alias) {
-        String escapedAlias = alias.replaceAll("[^\\w&&[^\\.]]", "_");
-        return escapedAlias;
+    protected static String escapeAliasFilename(String alias) {
+        return alias.replaceAll("[^\\w&&[^\\.]]", "_");
     }
 }

@@ -15,15 +15,6 @@ import static org.junit.Assert.*;
 
 public class TlsClientManagerTest {
 
-    TlsClientManager mgr;
-
-    @Before
-    public void setupTlsClientManager() throws GeneralSecurityException, IOException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, ClassNotFoundException {
-//        TlsClientConfig config = new TlsClientConfig(new TlsConfig());
-//        config.setTrustStore("Test");
-//        mgr = new TlsClientManager(config);
-    }
-
     @Test
     public void testEscapeAliasFilenameWithForwardSlashes() throws InvocationTargetException, IllegalAccessException {
         String result = TlsClientManager.escapeAliasFilename("my/silly/filename.pem");

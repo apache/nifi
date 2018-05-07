@@ -26,7 +26,6 @@ import org.apache.nifi.toolkit.tls.SystemExitCapturer;
 import org.apache.nifi.toolkit.tls.commandLine.BaseTlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
 import org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityTest;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
 import org.apache.nifi.util.NiFiProperties;
