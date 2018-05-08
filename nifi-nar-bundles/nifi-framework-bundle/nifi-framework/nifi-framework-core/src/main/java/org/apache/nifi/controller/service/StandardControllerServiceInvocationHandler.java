@@ -77,7 +77,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
         if (disabled && !validDisabledMethods.contains(method)) {
             throw new ControllerServiceDisabledException("Cannot invoke method " + method + " on Controller Service with identifier "
-                + serviceNodeHolder.get().getIdentifier() + " because the Controller Service is disabled");
+                + serviceNodeHolder.get().getIdentifier() + " because the Controller Service's State is currently " + state);
         }
 
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {

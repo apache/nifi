@@ -483,6 +483,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private void validateReferencingComponents() {
         for (final ComponentNode reference : getReferences().getReferencingComponents()) {
             try {
+                LOG.debug("Performing validation of {} because it references {}", reference, this);
                 reference.performValidation();
             } catch (final Exception e) {
                 LOG.warn("Failed to perform validation on {}", reference, e);
