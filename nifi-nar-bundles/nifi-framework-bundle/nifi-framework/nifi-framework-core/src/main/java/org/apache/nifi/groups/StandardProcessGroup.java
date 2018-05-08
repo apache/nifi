@@ -853,7 +853,7 @@ public final class StandardProcessGroup implements ProcessGroup {
      *
      * @param component the component whose invalid references should be removed
      */
-    private void updateControllerServiceReferences(final ConfiguredComponent component) {
+    private void updateControllerServiceReferences(final ComponentNode component) {
         for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
             final String serviceId = entry.getValue();
             if (serviceId == null) {
