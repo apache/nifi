@@ -306,8 +306,8 @@
             <artifactId>bval-jsr</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.calcite</groupId>
