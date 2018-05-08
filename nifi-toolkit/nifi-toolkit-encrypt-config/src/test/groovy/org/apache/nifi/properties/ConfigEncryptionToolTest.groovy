@@ -2221,7 +2221,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     /**
      * Ideally all of the combination tests would be a single test with iterative argument lists, but due to the System.exit(), it can only be captured once per test.
      */
-    @Ignore
+//    @Ignore
     // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedPasswordToPassword() {
@@ -2237,7 +2237,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore
+//    @Ignore
     // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedPasswordToKey() {
@@ -2253,7 +2253,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore
+//    @Ignore
     // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedKeyToPassword() {
@@ -2269,7 +2269,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore
+//    @Ignore
     // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldMigrateFromHashedKeyToKey() {
@@ -2285,7 +2285,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assertions in common method above
     }
 
-    @Ignore
+//    @Ignore
     // TODO re-enable once this is passing on all platforms
     @Test
     void testShouldFailToMigrateFromIncorrectHashedPasswordToPassword() {
@@ -5519,13 +5519,17 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        File masterKeyFile = new File("src/test/resources/bootstrap_with_master_key.conf")
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key.conf" :
+                "src/test/resources/bootstrap_with_master_key_128.conf"
+        File masterKeyFile = new File(bootstrapPath)
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
         Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
 
-        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_protected_aes.properties")
+        String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/nifi_with_sensitive_properties_protected_aes.properties" :
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_128.properties"
+        File inputPropertiesFile = new File(inputPropertiesPath)
 
         NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(inputPropertiesFile)
         logger.info("Loaded ${inputProperties.size()} properties from input file")
@@ -5589,13 +5593,17 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tmpDir.mkdirs()
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
-        File masterKeyFile = new File("src/test/resources/bootstrap_with_master_key.conf")
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key.conf" :
+                "src/test/resources/bootstrap_with_master_key_128.conf"
+        File masterKeyFile = new File(bootstrapPath)
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
         Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
 
-        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_protected_aes.properties")
+        String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/nifi_with_sensitive_properties_protected_aes.properties" :
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_128.properties"
+        File inputPropertiesFile = new File(inputPropertiesPath)
 
         NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(inputPropertiesFile)
         logger.info("Loaded ${inputProperties.size()} properties from input file")
