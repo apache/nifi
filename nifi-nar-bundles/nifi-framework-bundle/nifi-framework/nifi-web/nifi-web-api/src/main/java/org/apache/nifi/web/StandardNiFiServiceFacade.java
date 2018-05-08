@@ -1738,6 +1738,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (flow.getProcessors() != null) {
             for (final ProcessorDTO processorDTO : flow.getProcessors()) {
                 final ProcessorNode processorNode = processorDAO.getProcessor(processorDTO.getId());
+                processorDTO.setValidationStatus(processorNode.getValidationStatus().name());
+
                 final Collection<ValidationResult> validationErrors = processorNode.getValidationErrors();
                 if (validationErrors != null && !validationErrors.isEmpty()) {
                     final List<String> errors = new ArrayList<>();

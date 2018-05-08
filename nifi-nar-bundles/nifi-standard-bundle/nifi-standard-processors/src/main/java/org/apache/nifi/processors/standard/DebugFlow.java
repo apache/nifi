@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -213,11 +215,19 @@ public class DebugFlow extends AbstractProcessor {
         .defaultValue("0 sec")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
+    static final PropertyDescriptor CUSTOM_VALIDATE_SLEEP_TIME = new PropertyDescriptor.Builder()
+        .name("CustomValidate Pause Time")
+        .displayName("CustomValidate Pause Time")
+        .description("Specifies how long the processor should sleep in the customValidate() method")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("0 sec")
+        .required(true)
+        .build();
     static final PropertyDescriptor IGNORE_INTERRUPTS = new PropertyDescriptor.Builder()
         .name("Ignore Interrupts When Paused")
         .description("If the Processor's thread(s) are sleeping (due to one of the \"Pause Time\" properties above), and the thread is interrupted, "
             + "this indicates whether the Processor should ignore the interrupt and continue sleeping or if it should allow itself to be interrupted.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -289,6 +299,7 @@ public class DebugFlow extends AbstractProcessor {
                 propList.add(ON_STOPPED_SLEEP_TIME);
                 propList.add(ON_STOPPED_FAIL);
                 propList.add(ON_TRIGGER_SLEEP_TIME);
+                propList.add(CUSTOM_VALIDATE_SLEEP_TIME);
                 propList.add(IGNORE_INTERRUPTS);
 
                 propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
@@ -332,6 +343,23 @@ public class DebugFlow extends AbstractProcessor {
             context.getProperty(IGNORE_INTERRUPTS).asBoolean());
 
         fail(context.getProperty(ON_STOPPED_FAIL).asBoolean(), OnStopped.class);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        try {
+            sleep(validationContext.getProperty(CUSTOM_VALIDATE_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS),
+                validationContext.getProperty(IGNORE_INTERRUPTS).asBoolean());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+
+            return Collections.singleton(new ValidationResult.Builder()
+                .valid(false)
+                .subject("Validation")
+                .explanation("Processor Interrupted while performing validation").build());
+        }
+
+        return super.customValidate(validationContext);
     }
 
     private void sleep(final long millis, final boolean ignoreInterrupts) throws InterruptedException {

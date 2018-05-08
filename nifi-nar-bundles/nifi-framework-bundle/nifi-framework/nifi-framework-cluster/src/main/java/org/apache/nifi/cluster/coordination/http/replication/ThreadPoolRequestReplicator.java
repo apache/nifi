@@ -107,8 +107,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param maxConcurrentRequests maximum number of concurrent requests
      * @param client a client for making requests
      * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
-     * @param connectionTimeout the connection timeout specified in milliseconds
-     * @param readTimeout the read timeout specified in milliseconds
      * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      * @param nifiProperties properties

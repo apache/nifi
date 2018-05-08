@@ -77,7 +77,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
     private volatile String additionalResourcesFingerprint;
-    private AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.INVALID, Collections.emptyList()));
+    private AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ValidationTrigger validationTrigger;
 
     public AbstractComponentNode(final String id,
@@ -577,7 +577,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
         synchronized (validationState) {
             while (getValidationStatus() == ValidationStatus.VALIDATING) {
                 try {
-                    validationState.wait(Math.max(0, maxTime - System.currentTimeMillis()));
+                    final long waitMillis = Math.max(0, maxTime - System.currentTimeMillis());
+                    if (waitMillis <= 0) {
+                        break;
+                    }
+
+                    validationState.wait(waitMillis);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return getValidationStatus();

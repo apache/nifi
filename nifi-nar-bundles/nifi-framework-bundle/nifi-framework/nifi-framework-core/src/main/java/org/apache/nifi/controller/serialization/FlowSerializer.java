@@ -43,7 +43,7 @@ public interface FlowSerializer<T> {
     /**
      * Serializes the flow configuration to the given Output Stream
      *
-     * @param flowConfiguration
+     * @param flowConfiguration the flow configuration to serialize
      * @param os the output stream to serialize to
      * @throws FlowSerializationException if serialization failed
      */
