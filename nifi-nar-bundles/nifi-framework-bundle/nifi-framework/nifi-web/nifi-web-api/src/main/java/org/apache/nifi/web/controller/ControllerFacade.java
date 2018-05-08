@@ -600,7 +600,6 @@ public class ControllerFacade implements Authorizable {
      * Gets the status for the specified process group.
      *
      * @param groupId group id
-     * @param the number of levels deep that we want to go before deciding to stop including component statuses
      * @return the status for the specified process group
      */
     public ProcessGroupStatus getProcessGroupStatus(final String groupId) {
@@ -611,7 +610,7 @@ public class ControllerFacade implements Authorizable {
      * Gets the status for the specified process group.
      *
      * @param groupId group id
-     * @param the number of levels deep that we want to go before deciding to stop including component statuses
+     * @param recursiveStatusDepth the number of levels deep that we want to go before deciding to stop including component statuses
      * @return the status for the specified process group
      */
     public ProcessGroupStatus getProcessGroupStatus(final String groupId, final int recursiveStatusDepth) {

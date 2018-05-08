@@ -22,7 +22,6 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
