@@ -60,7 +60,7 @@ public class TestExtractGrok {
 
     @Test
     public void testExtractGrokWithUnMatchedContent() throws IOException {
-        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{ADDRESS}");
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{URI}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_TEXT_INPUT);
         testRunner.run();
