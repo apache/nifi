@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+<meta charset="utf-8" />
+<title>Deeplearning4JPredictor</title>
+<link rel="stylesheet" href="../../../../../css/component-usage.css"
+	type="text/css" />
+</head>
+
+<body>
+	<!-- Processor Documentation ================================================== -->
+	<h2>Usage Information</h2>
+
+	<p>
+		DeepLearning4JPredictor processor produces predictions by applying the
+		provided <a href="http://github.com/deeplearning4j" target="_blank">deeplearning4j</a>
+		model to the FlowFile contents.
+	</p>
+
+	<p>The processor can perform:
+	<ul>
+		<li>classification, or</li>
+		<li>regression</li>
+	</ul>
+	based on the model used.
+
+	<p>The processors has the following properties:
+	<ul>
+		<li>a deeplearning4j classification or regression model (required)</li>
+		<li>record dimensions (required)</li>
+		<li>field separator (default comma)</li>
+		<li>record separator (default new line character)</li>
+		<li>character set for FlowFile message body (default UTF8)</li>
+	</ul>
+	<p>It then applies the model to the FlowFile contents to produce
+		the prediction result.</p>
+	<p>The FlowFile content can contain a single row for a single input
+		record or multiple rows (separated by record separator) for multiple
+		inputs.</p>
+    <p>Both the input and the output for the classification/regression are flattened double array. The input dimensions are specified in the property 'Record Dimensions'
+    and the output dimensions are set the deeplearning4j.output.shape attribute.</p>
+	<p>Each record has fields separated by field separator and a record
+		dimension that indicates how to transform the single row record into a
+		multi-dimensional feature array.</p>
+	<p>The output is flattened and returned as JSON in the body of the FlowFlow. The shape of the
+	array is returned as an attribute deeplearning4j.output.shape
+	</p>
+
+	<p>Following are examples classification and regression inputs and
+		respective outputs</p>
+	<ul>
+		<ul class="">
+			<li>Classification - Single Record Prediction with 4 classes</li>
+			<ol>
+
+				<li>Input :
+					<ul>
+						<li>Record dimension : 1,4 (i.e., 1x4 array)</li>
+<code>
+<pre>1,4</pre>
+</code>
+						<li>FlowFile content, i.e., input (comma separated): 
+<code>
+<pre>2.0,0.5,0.4,0.2</pre>
+</code>
+						</li>
+				</li>
+		</ul>
+		<li>Output:
+			<ul>
+<code>
+<pre>
+[[0.8661,0.0226,0.0455,0.0658]]
+</pre>
+</code>
+			</ul>
+		</li>
+		<li>Shape:
+			<ul>
+<code>
+<pre>
+[4]
+</pre>
+</code>
+			</ul>
+		</li>
+		<p>This classification probabilities of the first record are
+		<table>
+    		<head>
+    		    <th>Input</th>
+    			<th>Class</th>
+    			<th>Probabilities</th>
+    		</head>
+    		<body>
+    		    <tr>
+    		    <td>2.0,0.5,0.4,0.2
+    		    </td>
+    				<td></td>
+    				<td></td>
+    		    </tr>
+    			<tr>
+    				<td></td>
+    				<td>1</td>
+    				<td>0.8661</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>2</td>
+    				<td>0.0226</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>3</td>
+    				<td>0.0455</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>4</td>
+    				<td>0.0658</td>
+    			</tr>
+    		</body>
+    	</table>
+
+		</ol>
+		<li>Classification - Multiple Input Record (2) Prediction with 4
+			classes</li>
+		<ol>
+			<li>Input :
+				<ul>
+					<li>Record dimension : 1,4 (i.e., 1x4 array)</li>
+<code>
+<pre>
+1,4
+</pre>
+</code>					
+					<li>FlowFile content, i.e., input (new line separated records and comma
+						separated fields): 
+<code>
+<pre>
+2.0,0.5,0.4,0.2
+3.0,.2,.1,.2
+</pre>
+</code>
+					</li>
+				</ul>
+			</li>
+			<li>Output - first dimension corresponds to the input record and
+				second contains probabilities of each of the 4 classes for the
+				respective record 
+<code>
+<pre>
+[[0.8661,0.0226,0.0455,0.0658],[0.9935,0.0011,0.0024,0.0030]]
+</pre>
+</code>
+		<li>Shape:
+			<ul>
+<code>
+<pre>
+[4]
+</pre>
+</code>
+			</ul>
+		</li>
+				<p>This classification probabilities of the two input records are
+		<table>
+    		<head>
+    		    <th>Input</th>
+    			<th>Class</th>
+    			<th>Probabilities</th>
+    		</head>
+    		<body>
+    		    <tr>
+    		    <td>2.0,0.5,0.4,0.2
+    		    </td>
+    				<td></td>
+    				<td></td>
+    		    </tr>
+    			<tr>
+    				<td></td>
+    				<td>1</td>
+    				<td>0.8661</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>2</td>
+    				<td>0.0226</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>3</td>
+    				<td>0.0455</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>4</td>
+    				<td>0.0658</td>
+    			</tr>
+    		    <tr>
+    		    <td>3.0,.2,.1,.2
+    		    </td>
+    				<td></td>
+    				<td></td>
+    		    </tr>
+    			<tr>
+    				<td></td>
+    				<td>1</td>
+    				<td>0.9935</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>2</td>
+    				<td>0.0011</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>3</td>
+    				<td>0.0024</td>
+    			</tr>
+    			<tr>
+    				<td></td>
+    				<td>4</td>
+    				<td>0.0030</td>
+    			</tr>
+    		</body>
+    	</table>
+			</li>
+		</ol>
+		<li>Regression - Single Record Regression Prediction</li>
+		<ol>
+			<li>Input :
+				<ul>
+					<li>Record dimension : 1,1 (i.e., 1x1 array)</li>
+<code>
+<pre>
+1,1
+</pre>
+</code>
+					<li>FlowFile content, i.e., input:
+<code>
+<pre>
+2.0
+</pre>
+</code>
+					</li>
+				</ul>
+			</li>
+			<li>Output: 
+<code>
+<pre>
+[[0.8661]]
+</pre>
+</code>
+		<li>Shape:
+			<ul>
+<code>
+<pre>
+[1]
+</pre>
+</code>
+			</ul>
+		</li>
+		<table>
+    		<head>
+    		    <th>Input</th>
+    			<th>Regression Output</th>
+    		</head>
+    		<body>
+    		    <tr>
+    		    <td>2.0
+    		    </td>
+    				<td>0.8661</td>
+    		    </tr>
+     		</body>
+    	</table>
+				<p>The regression output for the first and only input record (2.0) is
+					0.8661</p>
+			</li>
+		</ol>
+		<li>Regression - Multiple Input Records (2) Regression Prediction
+		</li>
+		<ol>
+			<li>Input :
+				<ul>
+					<li>Record dimension : 1,1 (i.e., 1x1 array)</li>
+<code>
+<pre>
+1,1
+</pre>
+</code>
+					<li>FlowFile content, i.e., input (new line separated records): 
+<code>
+<pre>
+2.0<br>3.0
+</pre>
+</code>
+					</li>
+			</li>
+	</ul>
+	<li>Output - first dimension is the number of input records and
+		second contains regression of each of the respective record. 
+<code>
+<pre>
+[[0.8661],[0.9935]]
+</pre>
+</code>
+		<li>Shape:
+			<ul>
+<code>
+<pre>
+[1]
+</pre>
+</code>
+			</ul>
+		</li>
+		<table>
+    		<head>
+    		    <th>Input</th>
+    			<th>Regression Output</th>
+    		</head>
+    		<body>
+    		    <tr>
+    		    <td>2.0
+    		    </td>
+    				<td>0.8661</td>
+    		    </tr>
+    		    <tr>
+    		    <td>3.0
+    		    </td>
+    				<td>0.9935</td>
+    		    </tr>
+     		</body>
+    	</table>
+		<p>This regression output for first record (2.0)is 0.8661 and the
+			second record (3.0) is 0.9935</p>
+	</li>
+	</ol>
+	</ul>
+</body>
+</html>
