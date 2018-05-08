@@ -313,7 +313,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (includeDescendants) {
             return group.findAllProcessors().stream().collect(Collectors.toSet());
         } else {
-            return group.getProcessors();
+            return new HashSet<>(group.getProcessors());
         }
     }
 

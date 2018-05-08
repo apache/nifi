@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -240,8 +241,10 @@ public class ControllerSearchService {
                 matches.add("Run status: Disabled");
             }
         } else {
-            if (StringUtils.containsIgnoreCase("invalid", searchStr) && !procNode.isValid()) {
+            if (StringUtils.containsIgnoreCase("invalid", searchStr) && procNode.getValidationStatus() == ValidationStatus.INVALID) {
                 matches.add("Run status: Invalid");
+            } else if (StringUtils.containsIgnoreCase("validating", searchStr) && procNode.getValidationStatus() == ValidationStatus.VALIDATING) {
+                matches.add("Run status: Validating");
             } else if (ScheduledState.RUNNING.equals(procNode.getScheduledState()) && StringUtils.containsIgnoreCase("running", searchStr)) {
                 matches.add("Run status: Running");
             } else if (ScheduledState.STOPPED.equals(procNode.getScheduledState()) && StringUtils.containsIgnoreCase("stopped", searchStr)) {

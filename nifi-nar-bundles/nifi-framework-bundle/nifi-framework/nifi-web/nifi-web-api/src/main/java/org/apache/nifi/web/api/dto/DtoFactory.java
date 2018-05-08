@@ -64,6 +64,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -71,7 +72,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ActiveThreadInfo;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
@@ -1380,6 +1381,9 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
+        final ValidationStatus validationStatus = reportingTaskNode.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
+
         // add the validation errors
         final Collection<ValidationResult> validationErrors = reportingTaskNode.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1458,6 +1462,8 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
+        dto.setValidationStatus(controllerServiceNode.getValidationStatus(1, TimeUnit.MILLISECONDS).name());
+
         // add the validation errors
         final Collection<ValidationResult> validationErrors = controllerServiceNode.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1472,7 +1478,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ConfiguredComponent component) {
+    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ComponentNode component) {
         final ControllerServiceReferencingComponentDTO dto = new ControllerServiceReferencingComponentDTO();
         dto.setId(component.getIdentifier());
         dto.setName(component.getName());
@@ -1913,7 +1919,7 @@ public final class DtoFactory {
     }
 
 
-    public AffectedComponentDTO createAffectedComponentDto(final ConfiguredComponent component) {
+    public AffectedComponentDTO createAffectedComponentDto(final ComponentNode component) {
         final AffectedComponentDTO dto = new AffectedComponentDTO();
         dto.setId(component.getIdentifier());
         dto.setName(component.getName());
@@ -2491,7 +2497,7 @@ public final class DtoFactory {
         return deprecationNotice == null ? null : deprecationNotice.reason();
     }
 
-    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager) {
+    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ComponentNode> affectedComponents, final RevisionManager revisionManager) {
         return affectedComponents.stream()
                 .map(component -> {
                     final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);
@@ -2815,6 +2821,9 @@ public final class DtoFactory {
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
         dto.setSupportsBatching(node.isSessionBatchingSupported());
         dto.setConfig(createProcessorConfigDto(node));
+
+        final ValidationStatus validationStatus = node.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -3682,6 +3691,7 @@ public final class DtoFactory {
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setPersistsState(original.getPersistsState());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setValidationStatus(original.getValidationStatus());
         copy.setVersionedComponentId(original.getVersionedComponentId());
         return copy;
     }
@@ -3760,6 +3770,7 @@ public final class DtoFactory {
         copy.setExtensionMissing(original.getExtensionMissing());
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setValidationStatus(original.getValidationStatus());
         copy.setVersionedComponentId(original.getVersionedComponentId());
 
         return copy;

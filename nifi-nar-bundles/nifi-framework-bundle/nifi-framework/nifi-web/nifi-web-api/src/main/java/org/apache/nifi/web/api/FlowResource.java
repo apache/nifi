@@ -36,6 +36,7 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -745,12 +746,12 @@ public class FlowResource extends ApplicationResource {
                 + "not equal the process group id of the requested resource (%s).", requestEntity.getId(), id));
         }
 
-        final ControllerServiceState state;
+        final ControllerServiceState desiredState;
         if (requestEntity.getState() == null) {
             throw new IllegalArgumentException("The controller service state must be specified.");
         } else {
             try {
-                state = ControllerServiceState.valueOf(requestEntity.getState());
+                desiredState = ControllerServiceState.valueOf(requestEntity.getState());
             } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format("The controller service state must be one of [%s].",
                     StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
@@ -758,7 +759,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // ensure its a supported scheduled state
-        if (ControllerServiceState.DISABLING.equals(state) || ControllerServiceState.ENABLING.equals(state)) {
+        if (ControllerServiceState.DISABLING.equals(desiredState) || ControllerServiceState.ENABLING.equals(desiredState)) {
             throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
                 StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
         }
@@ -770,10 +771,10 @@ public class FlowResource extends ApplicationResource {
                 final Set<String> componentIds = new HashSet<>();
 
                 final Predicate<ControllerServiceNode> filter;
-                if (ControllerServiceState.ENABLED.equals(state)) {
-                    filter = service -> !service.isActive() && service.isValid();
+                if (ControllerServiceState.ENABLED.equals(desiredState)) {
+                    filter = service -> !service.isActive() && service.getValidationStatus() == ValidationStatus.VALID;
                 } else {
-                    filter = service -> service.isActive();
+                    filter = ControllerServiceNode::isActive;
                 }
 
                 group.findAllControllerServices().stream()
@@ -819,7 +820,7 @@ public class FlowResource extends ApplicationResource {
                         authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
-                () -> serviceFacade.verifyActivateControllerServices(id, state, requestComponentRevisions.keySet()),
+            () -> serviceFacade.verifyActivateControllerServices(id, desiredState, requestComponentRevisions.keySet()),
                 (revisions, scheduleComponentsEntity) -> {
                 final ControllerServiceState serviceState = ControllerServiceState.valueOf(scheduleComponentsEntity.getState());
 

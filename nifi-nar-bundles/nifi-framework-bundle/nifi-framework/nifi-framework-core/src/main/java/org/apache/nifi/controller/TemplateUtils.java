@@ -182,6 +182,7 @@ public class TemplateUtils {
             processorDTO.setExtensionMissing(null);
             processorDTO.setMultipleVersionsAvailable(null);
             processorDTO.setValidationErrors(null);
+            processorDTO.setValidationStatus(null);
             processorDTO.setInputRequirement(null);
             processorDTO.setDescription(null);
             processorDTO.setInputRequirement(null);
@@ -236,6 +237,7 @@ public class TemplateUtils {
 
             serviceDTO.setCustomUiUrl(null);
             serviceDTO.setValidationErrors(null);
+            serviceDTO.setValidationStatus(null);
         }
     }
 

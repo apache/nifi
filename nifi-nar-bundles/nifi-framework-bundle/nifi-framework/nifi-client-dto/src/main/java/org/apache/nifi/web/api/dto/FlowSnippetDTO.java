@@ -196,7 +196,7 @@ public class FlowSnippetDTO {
         TreeSet<T> components = new TreeSet<>(new Comparator<ComponentDTO>() {
             @Override
             public int compare(ComponentDTO c1, ComponentDTO c2) {
-                return UUID.fromString(c1.getId()).compareTo(UUID.fromString(c2.getId()));
+                return c1.getId().compareTo(c2.getId());
             }
         });
         components.addAll(dtos);
