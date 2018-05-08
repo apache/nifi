@@ -29,10 +29,9 @@
                 'nf.UniversalCapture',
                 'nf.CustomUi',
                 'nf.CanvasUtils',
-                'nf.ReportingTask',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -46,7 +45,6 @@
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
                 require('nf.CanvasUtils'),
-                require('nf.ReportingTask'),
                 require('nf.Processor')));
     } else {
         nf.ControllerService = factory(root.$,
@@ -59,13 +57,12 @@
             root.nf.UniversalCapture,
             root.nf.CustomUi,
             root.nf.CanvasUtils,
-            root.nf.ReportingTask,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
     'use strict';
 
-    var nfControllerServices;
+    var nfControllerServices, nfReportingTask;
 
     var config = {
         edit: 'edit',
@@ -1634,8 +1631,9 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef) {
             nfControllerServices = nfControllerServicesRef;
+            nfReportingTask = nfReportingTaskRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
