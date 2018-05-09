@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <google.cloud.sdk.version>0.46.0-alpha</google.cloud.sdk.version>
+        <google.cloud.sdk.version>0.47.0-alpha</google.cloud.sdk.version>
     </properties>
 
     <dependencyManagement>
