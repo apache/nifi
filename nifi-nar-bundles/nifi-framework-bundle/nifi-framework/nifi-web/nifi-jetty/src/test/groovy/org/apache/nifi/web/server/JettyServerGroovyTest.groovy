@@ -22,6 +22,10 @@ import org.apache.nifi.bundle.Bundle
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.eclipse.jetty.server.Connector
+import org.eclipse.jetty.server.HttpConfiguration
+import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.ServerConnector
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
@@ -194,6 +198,30 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Assert
 
         // Assertions defined above
+    }
+
+    @Test
+    void testShouldConfigureHTTPSConnector() {
+        // Arrange
+       NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+//               (NiFiProperties.WEB_HTTP_PORT): null,
+//               (NiFiProperties.WEB_HTTP_HOST): null,
+               (NiFiProperties.WEB_HTTPS_PORT): "8443",
+               (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
+       ]))
+        
+        Server internalServer = new Server()
+        JettyServer jetty = new JettyServer(internalServer, httpsProps)
+
+        // Act
+       jetty.configureHttpsConnector(internalServer, new HttpConfiguration())
+       List<Connector> connectors = Arrays.asList(internalServer.connectors)
+
+        // Assert
+        assert connectors.size() == 1
+        ServerConnector connector = connectors.first() as ServerConnector
+        assert connector.host == "secure.host.com"
+        assert connector.port == 8443
     }
 }
 

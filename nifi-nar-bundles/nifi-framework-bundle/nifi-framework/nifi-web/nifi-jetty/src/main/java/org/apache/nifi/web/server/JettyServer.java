@@ -173,6 +173,14 @@ public class JettyServer implements NiFiServer {
         server.setHandler(allHandlers);
     }
 
+    /**
+     * Instantiates this object but does not perform any configuration. Used for unit testing.
+     */
+     JettyServer(Server server, NiFiProperties properties) {
+        this.server = server;
+        this.props = properties;
+    }
+
     private Handler loadWars(final Set<Bundle> bundles) {
 
         // load WARs
@@ -621,23 +629,23 @@ public class JettyServer implements NiFiServer {
     /**
      * Configures an HTTPS connector and adds it to the server.
      *
-     * @param server the Jetty server instance
+     * @param server            the Jetty server instance
      * @param httpConfiguration the configuration object for the HTTPS protocol settings
      */
     private void configureHttpsConnector(Server server, HttpConfiguration httpConfiguration) {
-        String hostname = props.getProperty(NiFiProperties.WEB_HTTP_HOST);
+        String hostname = props.getProperty(NiFiProperties.WEB_HTTPS_HOST);
         final Integer port = props.getSslPort();
         String connectorLabel = "HTTPS";
-        final Map<String, String> httpNetworkInterfaces = props.getHttpsNetworkInterfaces();
+        final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
         ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> scc = (s, c) -> createUnconfiguredSslServerConnector(s, c, port);
 
-        configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpNetworkInterfaces, scc);
+        configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpsNetworkInterfaces, scc);
     }
 
     /**
      * Configures an HTTP connector and adds it to the server.
      *
-     * @param server the Jetty server instance
+     * @param server            the Jetty server instance
      * @param httpConfiguration the configuration object for the HTTP protocol settings
      */
     private void configureHttpConnector(Server server, HttpConfiguration httpConfiguration) {
@@ -654,12 +662,12 @@ public class JettyServer implements NiFiServer {
      * Configures an HTTP(S) connector for the server given the provided parameters. The functionality between HTTP and HTTPS connectors is largely similar.
      * Here the common behavior has been extracted into a shared method and the respective calling methods obtain the right values and a lambda function for the differing behavior.
      *
-     * @param server the Jetty server instance
-     * @param configuration the HTTP/HTTPS configuration instance
-     * @param hostname the hostname from the nifi.properties file
-     * @param port the port to expose
-     * @param connectorLabel used for log output (e.g. "HTTP" or "HTTPS")
-     * @param networkInterfaces the map of network interfaces from nifi.properties
+     * @param server                 the Jetty server instance
+     * @param configuration          the HTTP/HTTPS configuration instance
+     * @param hostname               the hostname from the nifi.properties file
+     * @param port                   the port to expose
+     * @param connectorLabel         used for log output (e.g. "HTTP" or "HTTPS")
+     * @param networkInterfaces      the map of network interfaces from nifi.properties
      * @param serverConnectorCreator a function which accepts a {@code Server} and {@code HttpConnection} instance and returns a {@code ServerConnector}
      */
     private void configureGenericConnector(Server server, HttpConfiguration configuration, String hostname, Integer port, String connectorLabel, Map<String, String> networkInterfaces,
@@ -714,7 +722,6 @@ public class JettyServer implements NiFiServer {
      * Prints a warning log message with the relevant properties.
      *
      * @param props the NiFiProperties
-     *
      * @return true if both ports are present
      */
     static boolean bothHttpAndHttpsConnectorsConfigured(NiFiProperties props) {
