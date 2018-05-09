@@ -126,6 +126,8 @@
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
                         <exclude>src/test/resources/json/output/dataTypes.json</exclude>
+                        <exclude>src/test/resources/json/elements-for-record-choice.json</exclude>
+                        <exclude>src/test/resources/json/record-choice.avsc</exclude>
                         <exclude>src/test/resources/xml/people.xml</exclude>
                         <exclude>src/test/resources/xml/people2.xml</exclude>
                         <exclude>src/test/resources/xml/people3.xml</exclude>

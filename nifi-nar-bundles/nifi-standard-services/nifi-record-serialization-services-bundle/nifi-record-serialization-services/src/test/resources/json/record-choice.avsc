@@ -1,0 +1,15 @@
+{
+  "name": "top", "namespace": "nifi",
+  "type": "record",
+  "fields": [
+    { "name": "id", "type": "string" },
+    { "name": "child", "type": [{
+         "name": "first", "type": "record",
+         "fields": [{ "name": "name", "type": "string" }]
+       }, {
+         "name": "second", "type": "record",
+         "fields": [{ "name": "id", "type": "string" }]
+       }]
+     }
+  ]
+}
