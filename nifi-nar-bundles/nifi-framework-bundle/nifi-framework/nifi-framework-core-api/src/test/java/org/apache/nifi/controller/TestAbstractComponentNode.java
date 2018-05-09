@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -55,7 +56,7 @@ public class TestAbstractComponentNode {
         }
 
         @Override
-        protected Collection<ValidationResult> computeValidationErrors() {
+        protected Collection<ValidationResult> computeValidationErrors(ValidationContext context) {
             try {
                 Thread.sleep(5000L);
             } catch (final InterruptedException ie) {

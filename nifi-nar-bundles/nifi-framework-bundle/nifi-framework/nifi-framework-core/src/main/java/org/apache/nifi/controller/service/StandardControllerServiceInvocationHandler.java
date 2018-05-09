@@ -76,7 +76,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         final ControllerServiceState state = node.getState();
         final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
         if (disabled && !validDisabledMethods.contains(method)) {
-            throw new ControllerServiceDisabledException("Cannot invoke method " + method + " on Controller Service with identifier "
+            throw new ControllerServiceDisabledException(node.getIdentifier(), "Cannot invoke method " + method + " on Controller Service with identifier "
                 + serviceNodeHolder.get().getIdentifier() + " because the Controller Service's State is currently " + state);
         }
 

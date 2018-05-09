@@ -48,6 +48,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
@@ -75,7 +76,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     private final AtomicReference<ControllerServiceDetails> controllerServiceHolder = new AtomicReference<>(null);
     private final ControllerServiceProvider serviceProvider;
-    private final ServiceStateTransition stateTransition = new ServiceStateTransition();
+    private final ServiceStateTransition stateTransition;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -107,7 +108,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
-
+        stateTransition = new ServiceStateTransition(this);
     }
 
     @Override
@@ -255,7 +256,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             if (descriptor.getControllerServiceDefinition() != null && entry.getValue() != null) {
                 ControllerServiceNode requiredNode = serviceProvider.getControllerServiceNode(entry.getValue());
                 requiredServices.add(requiredNode);
-                requiredServices.addAll(requiredNode.getRequiredControllerServices());
             }
         }
         return new ArrayList<>(requiredServices);
@@ -318,9 +318,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
 
-        switch (getValidationStatus()) {
+        final ValidationState validationState = getValidationState();
+        switch (validationState.getStatus()) {
             case INVALID:
-                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
+                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + validationState.getValidationErrors());
             case VALIDATING:
                 throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because its validation has not yet completed");
         }
@@ -433,15 +434,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         boolean shouldEnable;
                         synchronized (active) {
-                            // The validation state of every component that references this one is invalid because each of them
-                            // references a disabled controller service. Now that this service has been enabled, we need to perform
-                            // validation again. This must be done before completing the future but after the service's state has transitioned
-                            // to ENABLED. It must be done after transitioning to ENABLED so that if a referencing service actually uses this service
-                            // in its validation, it will no longer fail validation due to this service being disabled. It must be done before
-                            // the Future is completed because once the Future is completed, the framework may be awaiting completion in order to
-                            // enable the referencing services - so we need to perform validation on them before attempting to enable them.
-                            // So, to accomplish this, we pass it in to the StateTransition#enable method.
-                            shouldEnable = active.get() && stateTransition.enable(StandardControllerServiceNode.this::validateReferencingComponents);
+                            shouldEnable = active.get() && stateTransition.enable();
                         }
 
                         if (!shouldEnable) {
@@ -480,16 +473,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return future;
     }
 
-    private void validateReferencingComponents() {
-        for (final ComponentNode reference : getReferences().getReferencingComponents()) {
-            try {
-                LOG.debug("Performing validation of {} because it references {}", reference, this);
-                reference.performValidation();
-            } catch (final Exception e) {
-                LOG.warn("Failed to perform validation on {}", reference, e);
-            }
-        }
-    }
 
     /**
      * Will atomically disable this service by invoking its @OnDisabled operation.

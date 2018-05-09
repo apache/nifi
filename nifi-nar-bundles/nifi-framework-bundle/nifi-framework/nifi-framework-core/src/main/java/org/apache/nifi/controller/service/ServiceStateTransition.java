@@ -21,11 +21,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.nifi.controller.ComponentNode;
+
 public class ServiceStateTransition {
     private ControllerServiceState state = ControllerServiceState.DISABLED;
     private final List<CompletableFuture<?>> enabledFutures = new ArrayList<>();
     private final List<CompletableFuture<?>> disabledFutures = new ArrayList<>();
 
+    private final ControllerServiceNode serviceNode;
+
+    public ServiceStateTransition(final ControllerServiceNode serviceNode) {
+        this.serviceNode = serviceNode;
+    }
 
     public synchronized boolean transitionToEnabling(final ControllerServiceState expectedState, final CompletableFuture<?> enabledFuture) {
         if (expectedState != state) {
@@ -37,24 +44,27 @@ public class ServiceStateTransition {
         return true;
     }
 
-    public synchronized boolean enable(final Runnable beforeFutureCompletion) {
+    public synchronized boolean enable() {
         if (state != ControllerServiceState.ENABLING) {
             return false;
         }
 
         state = ControllerServiceState.ENABLED;
 
-        try {
-            if (beforeFutureCompletion != null) {
-                beforeFutureCompletion.run();
-            }
-        } catch (final Exception e) {
-            enabledFutures.stream().forEach(future -> future.complete(null));
-            throw e;
-        }
+        validateReferences(serviceNode);
 
         enabledFutures.stream().forEach(future -> future.complete(null));
         return true;
+    }
+
+    private void validateReferences(final ControllerServiceNode service) {
+        for (final ComponentNode component : service.getReferences().getReferencingComponents()) {
+            component.performValidation();
+
+            if (component instanceof ControllerServiceNode) {
+                validateReferences((ControllerServiceNode) component);
+            }
+        }
     }
 
     public synchronized boolean transitionToDisabling(final ControllerServiceState expectedState, final CompletableFuture<?> disabledFuture) {

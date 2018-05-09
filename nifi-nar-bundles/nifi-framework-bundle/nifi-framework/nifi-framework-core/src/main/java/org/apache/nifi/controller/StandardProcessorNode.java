@@ -64,6 +64,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -1033,10 +1034,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    protected Collection<ValidationResult> computeValidationErrors() {
+    protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         try {
-            final Collection<ValidationResult> validationResults = super.computeValidationErrors();
+            final Collection<ValidationResult> validationResults = super.computeValidationErrors(validationContext);
 
             validationResults.stream()
                 .filter(result -> !result.isValid())

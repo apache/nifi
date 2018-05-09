@@ -18,8 +18,14 @@
 package org.apache.nifi.controller.service;
 
 public class ControllerServiceDisabledException extends IllegalStateException {
+    private final String serviceId;
 
-    public ControllerServiceDisabledException(final String message) {
+    public ControllerServiceDisabledException(final String serviceId, final String message) {
         super(message);
+        this.serviceId = serviceId;
+    }
+
+    public String getControllerServiceId() {
+        return serviceId;
     }
 }

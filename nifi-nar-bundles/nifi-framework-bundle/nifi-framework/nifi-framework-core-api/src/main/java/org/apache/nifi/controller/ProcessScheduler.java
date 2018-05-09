@@ -83,14 +83,6 @@ public interface ProcessScheduler {
      */
     void terminateProcessor(ProcessorNode procNode);
 
-    /*
-     * Notifies the schedule that the given processor is being removed so the scheduler may clean up any resources
-     * related to the given processor.
-     *
-     * @param procNode the processor node being removed
-     */
-    void onProcessorRemoved(ProcessorNode procNode);
-
     /**
      * Notifies the scheduler that the given Processor has been removed from the flow
      *

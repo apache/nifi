@@ -22,12 +22,16 @@ import org.apache.nifi.components.ValidationResult;
 public class DisabledServiceValidationResult extends ValidationResult {
     private String serviceId;
 
-    public DisabledServiceValidationResult(final String propertyName, final String serviceId) {
+    public DisabledServiceValidationResult(final String subject, final String serviceId) {
+        this(subject, serviceId, "Controller Service with ID " + serviceId + " is disabled");
+    }
+
+    public DisabledServiceValidationResult(final String subject, final String serviceId, final String explanation) {
         super(new ValidationResult.Builder()
             .input(serviceId)
-            .subject(propertyName)
+            .subject(subject)
             .valid(false)
-            .explanation("Controller Service with ID " + serviceId + " is disabled"));
+            .explanation(explanation));
 
         this.serviceId = serviceId;
     }

@@ -374,35 +374,34 @@ public abstract class AbstractComponentNode implements ComponentNode {
         do {
             final ValidationState validationState = getValidationState();
 
+            final ValidationContext validationContext = getValidationContext();
             final Collection<ValidationResult> results = new ArrayList<>();
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getIdentifier())) {
-                final Collection<ValidationResult> validationResults = computeValidationErrors();
+                final Collection<ValidationResult> validationResults = computeValidationErrors(validationContext);
                 results.addAll(validationResults);
 
                 // validate selected controller services implement the API required by the processor
-                results.addAll(validateReferencedControllerServices());
+                final Collection<ValidationResult> referencedServiceValidationResults = validateReferencedControllerServices(validationContext);
+                results.addAll(referencedServiceValidationResults);
             }
 
-            final ValidationState updatedState = new ValidationState(results.isEmpty() ? ValidationStatus.VALID : ValidationStatus.INVALID, results);
+            final ValidationStatus status = results.isEmpty() ? ValidationStatus.VALID : ValidationStatus.INVALID;
+            final ValidationState updatedState = new ValidationState(status, results);
             replaced = replaceValidationState(validationState, updatedState);
         } while (!replaced);
     }
 
-    protected Collection<ValidationResult> computeValidationErrors() {
+    protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
         Throwable failureCause = null;
         try {
-            final ValidationContext validationContext = getValidationContext();
             final Collection<ValidationResult> results = getComponent().validate(validationContext);
             logger.debug("Computed validation errors with Validation Context {}; results = {}", validationContext, results);
 
             return results;
         } catch (final ControllerServiceDisabledException e) {
             getLogger().debug("Failed to perform validation due to " + e, e);
-            return Collections.singleton(new ValidationResult.Builder()
-                .subject("Component")
-                .valid(false)
-                .explanation("performing validation depends on referencing a Controller Service that is currently disabled")
-                .build());
+            return Collections.singleton(
+                new DisabledServiceValidationResult("Component", e.getControllerServiceId(), "performing validation depends on referencing a Controller Service that is currently disabled"));
         } catch (final Exception e) {
             // We don't want to log this as an error because we will return a ValidationResult that is
             // invalid. However, we do want to make the stack trace available if needed, so we log it at
@@ -421,13 +420,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
             .build());
     }
 
-    protected final Collection<ValidationResult> validateReferencedControllerServices() {
+    protected final Collection<ValidationResult> validateReferencedControllerServices(final ValidationContext validationContext) {
         final List<PropertyDescriptor> supportedDescriptors = getComponent().getPropertyDescriptors();
         if (supportedDescriptors == null) {
             return Collections.emptyList();
         }
 
-        final ValidationContext context = getValidationContext();
         final Collection<ValidationResult> validationResults = new ArrayList<>();
         for (final PropertyDescriptor descriptor : supportedDescriptors) {
             if (descriptor.getControllerServiceDefinition() == null) {
@@ -435,7 +433,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 continue;
             }
 
-            final String controllerServiceId = context.getProperty(descriptor).getValue();
+            final String controllerServiceId = validationContext.getProperty(descriptor).getValue();
             if (controllerServiceId == null) {
                 continue;
             }

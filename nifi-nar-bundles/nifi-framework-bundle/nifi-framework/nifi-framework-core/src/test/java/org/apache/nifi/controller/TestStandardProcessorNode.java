@@ -161,7 +161,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.computeValidationErrors().isEmpty());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -200,7 +200,7 @@ public class TestStandardProcessorNode {
             }
 
             // Should pass validation
-            assertTrue(procNode.computeValidationErrors().isEmpty());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
 
             // Simulate setting updating the other property which should not change the classpath
             final Map<String, String> otherProperties = new HashMap<>();
@@ -213,7 +213,7 @@ public class TestStandardProcessorNode {
             }
 
             // Should STILL pass validation
-            assertTrue(procNode.computeValidationErrors().isEmpty());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
 
             // Lets update the classpath property and make sure the resources get updated
             final Map<String, String> newClasspathProperties = new HashMap<>();
@@ -228,7 +228,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should STILL pass validation
-            assertTrue(procNode.computeValidationErrors().isEmpty());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -273,7 +273,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.computeValidationErrors().isEmpty());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -315,7 +315,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.computeValidationErrors().isEmpty());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -342,7 +342,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathNoAnnotationProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.computeValidationErrors().isEmpty());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
