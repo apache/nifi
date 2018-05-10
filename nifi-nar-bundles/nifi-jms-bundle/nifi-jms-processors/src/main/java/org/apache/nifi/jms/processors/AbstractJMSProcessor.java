@@ -78,7 +78,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .build();
     static final PropertyDescriptor DESTINATION_TYPE = new PropertyDescriptor.Builder()
             .name("Destination Type")
-            .description("The type of the JMS Destination. Could be one of 'QUEUE' or 'TOPIC'. Usually provided by the administrator. Defaults to 'TOPIC")
+            .description("The type of the JMS Destination. Could be one of 'QUEUE' or 'TOPIC'. Usually provided by the administrator. Defaults to 'QUEUE'")
             .required(true)
             .allowableValues(QUEUE, TOPIC)
             .defaultValue(QUEUE)
