@@ -138,6 +138,16 @@ minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 ```
 Currently the script only accepts one high level option at a time. Also any names of connections, remote process groups, or processors that contain " " (a space), ":", ";" or "," cause parsing errors when querying.
 
+**Note:** The examples in this documentation are provided for *nix based environments.  Windows support is also provided by by the `flowstatus-minifi.bat` file.  To perform one of the listed interactions, `minifi.sh flowStatus` would simply be replaced by `flowstatus-minifi.bat`.  For example, the sample query above in *nix environments,
+
+```
+minifi.sh flowStatus processor:TailFile:health,stats,bulletins`
+```
+would translate to Windows environments as,
+```    
+flowstatus-minifi.bat processor:TailFile:health,stats,bulletins
+```
+
 ## Periodic Status Reporters
 
 You can set up Periodic Status Reporters to periodically report the status of your dataflow. The query executes at configurable intervals and the results are reported using the configured implementation. Configure the Reporters in the bootstrap.conf file, using the "nifi.minifi.status.reporter.components" key followed by the full path name of the desired Reporter implementation to run. Use a comma separated list  to define more than one Reporter implementation. For example:
@@ -202,7 +212,7 @@ This section outlines each option to query the MiNiFi instance for the FlowStatu
 
 ### Processors
 
-To query the processors use the "processor" flag followed by the processor ID or name, to get (or "all") followed by one of the processor options. The processor options are below.
+To query the processors use the "processor" flag followed by the processor ID or name, to get (or "all") followed by one of the processor options. The processor options are below.  **Note:** In Windows environments, all `minifi.sh flowStatus` invocations should be replaced with `flowstatus-minifi.bat`.  See [FlowStatus Script Query](#flowstatus-script-query) for an illustration.
 
 Option | Description
 ------ | -----------
@@ -282,7 +292,7 @@ To query the status of the MiNiFi instance use the "instance" flag followed by o
 
 Option | Description
 ------ | -----------
-health | The provenance reporting state, active threads, whether or not it has bulletins and any validation errors.
+health | The instance reporting state, active threads, whether or not it has bulletins and any validation errors.
 bulletins | A list of all the current bulletins (if there are any).
 stats | The current stats of the instance. This including but not limited to bytes read/written and FlowFiles sent/transferred.
 
