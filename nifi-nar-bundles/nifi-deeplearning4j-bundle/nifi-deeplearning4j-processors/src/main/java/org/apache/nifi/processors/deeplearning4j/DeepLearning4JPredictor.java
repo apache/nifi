@@ -34,7 +34,6 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import com.google.gson.Gson;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -166,9 +165,7 @@ public class DeepLearning4JPredictor extends AbstractDeepLearning4JProcessor {
                         new Object[] {inputRecords, dimensions, results, Arrays.toString(results.shape()), partitionedResults, jsonResult, shape, jsonShape});
            }
 
-           try (ByteArrayInputStream bais = new ByteArrayInputStream(jsonResult.getBytes(charset))) {
-               flowFile = session.importFrom(bais, flowFile);
-           }
+           flowFile = session.write(flowFile, out -> out.write(jsonResult.getBytes(charset)));
 
            session.putAttribute(flowFile, DEEPLEARNING4J_OUTPUT_SHAPE, jsonShape);
 
