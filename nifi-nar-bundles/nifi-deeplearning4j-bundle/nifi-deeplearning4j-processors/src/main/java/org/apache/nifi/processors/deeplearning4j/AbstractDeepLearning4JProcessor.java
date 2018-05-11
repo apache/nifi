@@ -43,7 +43,7 @@ public abstract class AbstractDeepLearning4JProcessor extends AbstractProcessor 
     public static final PropertyDescriptor FIELD_SEPARATOR = new PropertyDescriptor.Builder()
             .name("deeplearning4j-field-separator")
             .displayName("Field Separator")
-            .description("Specifies the field separator in the records. (default is comma)")
+            .description("Specifies the field separator in the records.")
             .required(true)
             .defaultValue(",")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -53,9 +53,9 @@ public abstract class AbstractDeepLearning4JProcessor extends AbstractProcessor 
     public static final PropertyDescriptor RECORD_SEPARATOR = new PropertyDescriptor.Builder()
             .name("deeplearning4j-record-separator")
             .displayName("Record Separator")
-            .description("Specifies the records separator in the message body. (defaults to new line)")
+            .description("Specifies the records separator in the message body.")
             .required(true)
-            .defaultValue(System.lineSeparator())
+            .defaultValue("\n")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -71,8 +71,8 @@ public abstract class AbstractDeepLearning4JProcessor extends AbstractProcessor 
 
     public static final PropertyDescriptor RECORD_DIMENSIONS = new PropertyDescriptor.Builder()
             .name("deeplearning4j-record-dimension")
-            .displayName("Record dimensions separated by field separator")
-            .description("Dimension of array in each a record (eg: 2,4 - a 2x4 array)")
+            .displayName("Record Dimensions")
+            .description("Dimension of array in each a record (eg: 2,4 - a 2x4 array).")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -87,12 +87,12 @@ public abstract class AbstractDeepLearning4JProcessor extends AbstractProcessor 
     protected synchronized MultiLayerNetwork getModel(ProcessContext context) throws IOException {
         if ( model == null ) {
             String modelFile = context.getProperty(MODEL_FILE).evaluateAttributeExpressions().getValue();
-            if ( getLogger().isDebugEnabled()) {
-                getLogger().debug("Loading model from {}", new Object[] {modelFile});
-            }
+            getLogger().debug("Loading model from {}", new Object[] {modelFile});
+
             long start = System.currentTimeMillis();
             model = ModelSerializer.restoreMultiLayerNetwork(modelFile,false);
             long end = System.currentTimeMillis();
+
             getLogger().info("Time to load model " + (end-start) +  " ms");
         }
         return model;

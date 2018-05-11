@@ -29,13 +29,14 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import com.google.gson.Gson;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,7 +69,7 @@ public class DeepLearning4JPredictor extends AbstractDeepLearning4JProcessor {
     static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Failed DeepLearning4j results are routed to this relationship").build();
 
-    protected Gson gson = new Gson();
+    protected final Gson gson = new Gson();
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
@@ -175,23 +176,23 @@ public class DeepLearning4JPredictor extends AbstractDeepLearning4JProcessor {
 
            session.transfer(flowFile, REL_SUCCESS);
 
-           session.getProvenanceReporter().send(flowFile, makeProvenanceUrl(context),
+           session.getProvenanceReporter().modifyContent(flowFile, makeProvenanceUrl(context),
                     (endTimeMillis - startTimeMillis));
         } catch (Exception exception) {
-            flowFile = populateErrorAttributes(session, flowFile, exception.getMessage());
-                getLogger().error("Failed to process data due to {} for input {}",
-                        new Object[]{exception.getLocalizedMessage(), input}, exception);
-                session.transfer(flowFile, REL_FAILURE);
-            context.yield();
+            flowFile = session.putAttribute(flowFile, DEEPLEARNING4J_ERROR_MESSAGE, String.valueOf(exception.getMessage()));
+            getLogger().error("Failed to process data due to {} for input {}",
+                    new Object[]{exception.getLocalizedMessage(), input}, exception);
+            session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     protected String getFlowFileContents(final ProcessSession session, Charset charset, FlowFile incomingFlowFile)
             throws IOException {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            session.exportTo(incomingFlowFile, baos);
-            return new String(baos.toByteArray(), charset);
+        final byte[] buffer = new byte[(int) incomingFlowFile.getSize()];
+        try (final InputStream in = session.read(incomingFlowFile)) {
+            StreamUtils.fillBuffer(in, buffer);
         }
+        return new String(buffer, charset);
     }
 
     protected int [] getInputDimensions(final ProcessContext context, Charset charset, FlowFile flowFile, String separator)
