@@ -24,6 +24,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -45,9 +46,15 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor XML_WRITER = new PropertyDescriptor.Builder()
             .name("xml_writer")
-            .description("xml_writer")
             .identifiesControllerService(XMLRecordSetWriter.class)
             .required(true)
+            .build();
+
+    static final PropertyDescriptor MULTIPLE_RECORDS = new PropertyDescriptor.Builder()
+            .name("multiple_records")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder().name("success").description("success").build();
@@ -62,7 +69,8 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
                 final RecordSchema schema = writerFactory.getSchema(null, null);
 
-                RecordSet recordSet = getRecordSet();
+                boolean multipleRecords = Boolean.parseBoolean(context.getProperty(MULTIPLE_RECORDS).getValue());
+                RecordSet recordSet = getRecordSet(multipleRecords);
 
                 final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out);
 
@@ -72,7 +80,7 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
 
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new ProcessException(e.getMessage());
             }
 
         });
@@ -81,7 +89,7 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return new ArrayList<PropertyDescriptor>() {{ add(XML_WRITER); }};
+        return new ArrayList<PropertyDescriptor>() {{ add(XML_WRITER); add(MULTIPLE_RECORDS); }};
     }
 
     @Override
@@ -89,7 +97,7 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
         return new HashSet<Relationship>() {{ add(SUCCESS); }};
     }
 
-    protected static RecordSet getRecordSet() {
+    protected static RecordSet getRecordSet(boolean multipleRecords) {
         Object[] arrayVals = {1, null, 3};
 
         Map<String,Object> recordFields = new HashMap<>();
@@ -101,7 +109,10 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
         List<Record> records = new ArrayList<>();
         records.add(new MapRecord(emptySchema, recordFields));
-        records.add(new MapRecord(emptySchema, recordFields));
+
+        if (multipleRecords) {
+            records.add(new MapRecord(emptySchema, recordFields));
+        }
 
         return new ListRecordSet(emptySchema, records);
     }

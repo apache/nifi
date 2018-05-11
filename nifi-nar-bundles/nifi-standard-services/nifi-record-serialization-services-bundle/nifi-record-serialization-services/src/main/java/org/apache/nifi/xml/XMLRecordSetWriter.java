@@ -17,7 +17,7 @@
 
 package org.apache.nifi.xml;
 
-import org.apache.nifi.NullSuppression;
+import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -82,21 +82,21 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     public static final PropertyDescriptor ROOT_TAG_NAME = new PropertyDescriptor.Builder()
             .name("root_tag_name")
             .displayName("Name of Root Tag")
-            .description("Specifies the name of the XML root tag wrapping the record set")
+            .description("Specifies the name of the XML root tag wrapping the record set. This property has to be defined if " +
+                    "the writer is supposed to write multiple records in a single FlowFile.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .defaultValue("root")
-            .required(true)
+            .required(false)
             .build();
 
     public static final PropertyDescriptor RECORD_TAG_NAME = new PropertyDescriptor.Builder()
             .name("record_tag_name")
             .displayName("Name of Record Tag")
-            .description("Specifies the name of the XML record tag wrapping the record fields")
+            .description("Specifies the name of the XML record tag wrapping the record fields. If this is not set, the writer " +
+                    "will use the record name in the schema.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .defaultValue("record")
-            .required(true)
+            .required(false)
             .build();
 
     public static final PropertyDescriptor ARRAY_WRAPPING = new PropertyDescriptor.Builder()
@@ -117,6 +117,15 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .required(false)
             .build();
 
+    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("Character Set")
+            .description("The Character set to use when writing the data to the FlowFile")
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue("UTF-8")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .build();
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
@@ -126,6 +135,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         properties.add(RECORD_TAG_NAME);
         properties.add(ARRAY_WRAPPING);
         properties.add(ARRAY_TAG_NAME);
+        properties.add(CHARACTER_SET);
         return properties;
     }
 
@@ -169,8 +179,10 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
         final boolean prettyPrint = getConfigurationContext().getProperty(PRETTY_PRINT_XML).getValue().equals("true");
 
-        final String rootTagName = getConfigurationContext().getProperty(ROOT_TAG_NAME).getValue();
-        final String recordTagName = getConfigurationContext().getProperty(RECORD_TAG_NAME).getValue();
+        final String rootTagName = getConfigurationContext().getProperty(ROOT_TAG_NAME).isSet()
+                ? getConfigurationContext().getProperty(ROOT_TAG_NAME).getValue() : null;
+        final String recordTagName = getConfigurationContext().getProperty(RECORD_TAG_NAME).isSet()
+                ? getConfigurationContext().getProperty(RECORD_TAG_NAME).getValue() : null;
 
         final String arrayWrapping = getConfigurationContext().getProperty(ARRAY_WRAPPING).getValue();
         final ArrayWrapping arrayWrappingEnum;
@@ -189,8 +201,10 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             arrayTagName = null;
         }
 
+        final String charSet = getConfigurationContext().getProperty(CHARACTER_SET).getValue();
+
         return new WriteXMLResult(logger, schema, getSchemaAccessWriter(schema),
-                out, prettyPrint, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName,
+                out, prettyPrint, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName, charSet,
                 getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null));
     }
 }

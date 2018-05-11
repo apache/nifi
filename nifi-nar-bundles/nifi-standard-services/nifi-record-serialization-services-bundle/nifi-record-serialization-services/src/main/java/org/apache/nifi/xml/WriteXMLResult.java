@@ -18,7 +18,7 @@
 package org.apache.nifi.xml;
 
 import javanet.staxutils.IndentingXMLStreamWriter;
-import org.apache.nifi.NullSuppression;
+import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
@@ -42,24 +42,31 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import static org.apache.nifi.xml.XMLRecordSetWriter.RECORD_TAG_NAME;
+import static org.apache.nifi.xml.XMLRecordSetWriter.ROOT_TAG_NAME;
 
 
 public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
 
-    final ComponentLog logger;
-    final RecordSchema recordSchema;
-    final SchemaAccessWriter schemaAccess;
-    final XMLStreamWriter writer;
-    final NullSuppression nullSuppression;
-    final ArrayWrapping arrayWrapping;
-    final String arrayTagName;
-    final String recordTagName;
-    final String rootTagName;
+    private final ComponentLog logger;
+    private final RecordSchema recordSchema;
+    private final SchemaAccessWriter schemaAccess;
+    private final XMLStreamWriter writer;
+    private final NullSuppression nullSuppression;
+    private final ArrayWrapping arrayWrapping;
+    private final String arrayTagName;
+    private final String recordTagName;
+    private final String rootTagName;
+    private final String charSet;
+    private final boolean allowWritingMultipleRecords;
+    private boolean hasWrittenRecord;
 
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
@@ -67,7 +74,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
     public WriteXMLResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
                           final NullSuppression nullSuppression, final ArrayWrapping arrayWrapping, final String arrayTagName, final String rootTagName, final String recordTagName,
-                          final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+                          final String charSet, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         super(out);
 
@@ -80,7 +87,27 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         this.arrayTagName = arrayTagName;
 
         this.rootTagName = rootTagName;
-        this.recordTagName = recordTagName;
+
+        if (recordTagName != null) {
+            this.recordTagName = recordTagName;
+        } else {
+            Optional<String> recordTagNameOptional = recordSchema.getIdentifier().getName();
+            if (recordTagNameOptional.isPresent()) {
+                this.recordTagName = recordTagNameOptional.get();
+            } else {
+                StringBuilder message = new StringBuilder();
+                message.append("The property \'")
+                        .append(RECORD_TAG_NAME.getDisplayName())
+                        .append("\' has not been set and the writer does not find a record name in the schema.");
+                throw new IOException(message.toString());
+            }
+        }
+
+        this.allowWritingMultipleRecords = !(this.rootTagName == null);
+
+        this.charSet = charSet;
+
+        hasWrittenRecord = false;
 
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
@@ -94,9 +121,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             XMLOutputFactory factory = XMLOutputFactory.newInstance();
 
             if (prettyPrint) {
-                writer = new IndentingXMLStreamWriter(factory.createXMLStreamWriter(out));
+                writer = new IndentingXMLStreamWriter(factory.createXMLStreamWriter(out, charSet));
             } else {
-                writer = factory.createXMLStreamWriter(out);
+                writer = factory.createXMLStreamWriter(out, charSet);
             }
 
         } catch (XMLStreamException e) {
@@ -113,7 +140,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         try {
             writer.writeStartDocument();
 
-            writer.writeStartElement(rootTagName);
+            if (allowWritingMultipleRecords) {
+                writer.writeStartElement(rootTagName);
+            }
 
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage());
@@ -124,7 +153,10 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
     protected Map<String, String> onFinishRecordSet() throws IOException {
 
         try {
-            writer.writeEndElement();
+            if (allowWritingMultipleRecords) {
+                writer.writeEndElement();
+            }
+
             writer.writeEndDocument();
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage());
@@ -156,6 +188,18 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         }
     }
 
+    private void checkWritingMultipleRecords() throws IOException {
+        if (!allowWritingMultipleRecords && hasWrittenRecord) {
+            StringBuilder message = new StringBuilder();
+            message.append("The writer attempts to write multiple record although property \'")
+                    .append(ROOT_TAG_NAME.getDisplayName())
+                    .append("\' has not been set. If the XMLRecordSetWriter is supposed to write multiple records into one ")
+                    .append("FlowFile, this property is required to be configured.");
+            throw new IOException(message.toString()
+            );
+        }
+    }
+
     @Override
     protected Map<String, String> writeRecord(Record record) throws IOException {
 
@@ -163,14 +207,17 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             schemaAccess.writeHeader(recordSchema, getOutputStream());
         }
 
-        List<String> tagsToOpen = new ArrayList<>();
+        checkWritingMultipleRecords();
+
+        Deque<String> tagsToOpen = new ArrayDeque<>();
 
         try {
-            tagsToOpen.add(recordTagName);
+            tagsToOpen.addLast(recordTagName);
 
             boolean closingTagRequired = iterateThroughRecordUsingSchema(tagsToOpen, record, recordSchema);
             if (closingTagRequired) {
                 writer.writeEndElement();
+                hasWrittenRecord = true;
             }
 
         } catch (XMLStreamException e) {
@@ -179,7 +226,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return schemaAccess.getAttributes(recordSchema);
     }
 
-    private boolean iterateThroughRecordUsingSchema(List<String> tagsToOpen, Record record, RecordSchema schema) throws XMLStreamException {
+    private boolean iterateThroughRecordUsingSchema(Deque<String> tagsToOpen, Record record, RecordSchema schema) throws XMLStreamException {
 
         boolean loopHasWritten = false;
         for (RecordField field : schema.getFields()) {
@@ -209,7 +256,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return loopHasWritten;
     }
 
-    private boolean writeFieldForType(List<String> tagsToOpen, Object coercedValue, DataType dataType, String fieldName) throws XMLStreamException {
+    private boolean writeFieldForType(Deque<String> tagsToOpen, Object coercedValue, DataType dataType, String fieldName) throws XMLStreamException {
         switch (dataType.getFieldType()) {
             case BOOLEAN:
             case BYTE:
@@ -250,7 +297,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 final Record record = (Record) coercedValue;
                 final RecordDataType recordDataType = (RecordDataType) dataType;
                 final RecordSchema childSchema = recordDataType.getChildSchema();
-                tagsToOpen.add(fieldName);
+                tagsToOpen.addLast(fieldName);
 
                 boolean hasWritten = iterateThroughRecordUsingSchema(tagsToOpen, record, childSchema);
 
@@ -264,7 +311,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                         writer.writeEndElement();
                         return true;
                     } else {
-                        tagsToOpen.remove(tagsToOpen.size() - 1);
+                        tagsToOpen.removeLast();
                         return false;
                     }
                 }
@@ -294,7 +341,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 }
 
                 if (wrapperName!= null) {
-                    tagsToOpen.add(wrapperName);
+                    tagsToOpen.addLast(wrapperName);
                 }
 
                 boolean loopHasWritten = false;
@@ -329,7 +376,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                             writer.writeEndElement();
                             return true;
                         } else {
-                            tagsToOpen.remove(tagsToOpen.size() - 1);
+                            tagsToOpen.removeLast();
                             return false;
                         }
                     }
@@ -342,7 +389,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 final DataType valueDataType = mapDataType.getValueType();
                 final Map<String,?> map = (Map<String,?>) coercedValue;
 
-                tagsToOpen.add(fieldName);
+                tagsToOpen.addLast(fieldName);
                 boolean loopHasWritten = false;
 
                 for (Map.Entry<String,?> entry : map.entrySet()) {
@@ -377,7 +424,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                         writer.writeEndElement();
                         return true;
                     } else {
-                        tagsToOpen.remove(tagsToOpen.size() - 1);
+                        tagsToOpen.removeLast();
                         return false;
                     }
                 }
@@ -389,12 +436,12 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         }
     }
 
-    private void writeAllTags(List<String> tagsToOpen, String fieldName) throws XMLStreamException {
-        tagsToOpen.add(fieldName);
+    private void writeAllTags(Deque<String> tagsToOpen, String fieldName) throws XMLStreamException {
+        tagsToOpen.addLast(fieldName);
         writeAllTags(tagsToOpen);
     }
 
-    private void writeAllTags(List<String> tagsToOpen) throws XMLStreamException {
+    private void writeAllTags(Deque<String> tagsToOpen) throws XMLStreamException {
         for (String tagName : tagsToOpen) {
             writer.writeStartElement(tagName);
         }
@@ -403,18 +450,22 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
     @Override
     public WriteResult writeRawRecord(Record record) throws IOException {
+
         if (!isActiveRecordSet()) {
             schemaAccess.writeHeader(recordSchema, getOutputStream());
         }
 
-        List<String> tagsToOpen = new ArrayList<>();
+        checkWritingMultipleRecords();
+
+        Deque<String> tagsToOpen = new ArrayDeque<>();
 
         try {
-            tagsToOpen.add(recordTagName);
+            tagsToOpen.addLast(recordTagName);
 
             boolean closingTagRequired = iterateThroughRecordWithoutSchema(tagsToOpen, record);
             if (closingTagRequired) {
                 writer.writeEndElement();
+                hasWrittenRecord = true;
             }
 
         } catch (XMLStreamException e) {
@@ -425,7 +476,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return WriteResult.of(incrementRecordCount(), attributes);
     }
 
-    private boolean iterateThroughRecordWithoutSchema(List<String> tagsToOpen, Record record) throws XMLStreamException {
+    private boolean iterateThroughRecordWithoutSchema(Deque<String> tagsToOpen, Record record) throws XMLStreamException {
 
         boolean loopHasWritten = false;
 
@@ -450,11 +501,11 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return loopHasWritten;
     }
 
-    private boolean writeUnknownField(List<String> tagsToOpen, Object value, String fieldName) throws XMLStreamException {
+    private boolean writeUnknownField(Deque<String> tagsToOpen, Object value, String fieldName) throws XMLStreamException {
 
         if (value instanceof Record) {
             Record valueAsRecord = (Record) value;
-            tagsToOpen.add(fieldName);
+            tagsToOpen.addLast(fieldName);
 
             boolean hasWritten = iterateThroughRecordWithoutSchema(tagsToOpen, valueAsRecord);
 
@@ -467,7 +518,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                     writer.writeEndElement();
                     return true;
                 } else {
-                    tagsToOpen.remove(tagsToOpen.size() - 1);
+                    tagsToOpen.removeLast();
                     return false;
                 }
             }
@@ -490,7 +541,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             }
 
             if (wrapperName!= null) {
-                tagsToOpen.add(wrapperName);
+                tagsToOpen.addLast(wrapperName);
             }
 
             boolean loopHasWritten = false;
@@ -522,7 +573,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                         writer.writeEndElement();
                         return true;
                     } else {
-                        tagsToOpen.remove(tagsToOpen.size() - 1);
+                        tagsToOpen.removeLast();
                         return false;
                     }
                 }
@@ -534,7 +585,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         if (value instanceof Map) {
             Map<String, ?> valueAsMap = (Map<String, ?>) value;
 
-            tagsToOpen.add(fieldName);
+            tagsToOpen.addLast(fieldName);
             boolean loopHasWritten = false;
 
             for (Map.Entry<String,?> entry : valueAsMap.entrySet()) {
@@ -567,7 +618,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                     writer.writeEndElement();
                     return true;
                 } else {
-                    tagsToOpen.remove(tagsToOpen.size() - 1);
+                    tagsToOpen.removeLast();
                     return false;
                 }
             }

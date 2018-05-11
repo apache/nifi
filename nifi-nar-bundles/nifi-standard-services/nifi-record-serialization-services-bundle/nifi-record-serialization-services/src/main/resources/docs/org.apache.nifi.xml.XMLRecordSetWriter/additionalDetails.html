@@ -23,9 +23,10 @@
     <body>
     <p>
         The XMLRecordSetWriter Controller Service writes record objects to XML. The Controller Service must be configured
-        with a schema that describes the structure of the record objects. The records are transformed to XML nodes
-        that are wrapped by a root node. The name of the root node can be configured via property. As Avro does not
-        support defining attributes for records, this writer currently does not support writing XML attributes.
+        with a schema that describes the structure of the record objects. Multiple records are wrapped by a root node.
+        The name of the root node can be configured via property. If no root node is configured, the writer expects
+        only one record for each FlowFile (that will not be wrapped). As Avro does not support defining attributes for
+        records, this writer currently does not support writing XML attributes.
     </p>
 
     <h2>

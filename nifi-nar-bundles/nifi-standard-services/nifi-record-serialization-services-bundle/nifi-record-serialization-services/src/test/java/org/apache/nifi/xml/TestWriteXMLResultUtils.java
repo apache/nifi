@@ -45,7 +45,7 @@ public class TestWriteXMLResultUtils {
     protected static final String FIELD_CITY = "CITY";
     protected static final String FIELD_CHILDREN = "CHILDREN";
 
-    protected static  Map<String,Object> RECORD_FIELDS_PERSON_1 = new HashMap<>();
+    protected static Map<String,Object> RECORD_FIELDS_PERSON_1 = new HashMap<>();
     protected static Map<String,Object> RECORD_FIELDS_PERSON_2 = new HashMap<>();
     protected static Map<String,Object> RECORD_FIELDS_ADDRESS_1 = new HashMap<>();
     protected static Map<String,Object> RECORD_FIELDS_ADDRESS_2 = new HashMap<>();
@@ -74,8 +74,6 @@ public class TestWriteXMLResultUtils {
 
     protected static final SchemaIdentifier SCHEMA_IDENTIFIER_PERSON = SchemaIdentifier.builder().name("PERSON").id(0L).version(0).build();
     protected static final SchemaIdentifier SCHEMA_IDENTIFIER_RECORD = SchemaIdentifier.builder().name("RECORD").id(0L).version(0).build();
-    // protected static final SchemaIdentifier SCHEMA_IDENTIFIER_ADDRESS = SchemaIdentifier.builder().name("ADDRESS").id(0L).version(0).build();
-
 
     protected static final String DATE_FORMAT = RecordFieldType.DATE.getDefaultFormat();
     protected static final String TIME_FORMAT = RecordFieldType.TIME.getDefaultFormat();
@@ -92,8 +90,27 @@ public class TestWriteXMLResultUtils {
     Simple records
      */
 
+    protected static RecordSet getSingleRecord() {
+        RecordSchema schema = getSimpleSchema();
+
+        List<Record> records = new ArrayList<>();
+        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_1));
+
+        return new ListRecordSet(schema, records);
+    }
+
     protected static RecordSet getSimpleRecords() {
         RecordSchema schema = getSimpleSchema();
+
+        List<Record> records = new ArrayList<>();
+        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_1));
+        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_2));
+
+        return new ListRecordSet(schema, records);
+    }
+
+    protected static RecordSet getSimpleRecordsWithoutIdentifierInSchema() {
+        RecordSchema schema = getSimpleSchemaWithoutIdentifier();
 
         List<Record> records = new ArrayList<>();
         records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_1));
@@ -138,6 +155,10 @@ public class TestWriteXMLResultUtils {
 
     protected static RecordSchema getSimpleSchema() {
         return new SimpleRecordSchema(getSimpleRecordFields(), SCHEMA_IDENTIFIER_PERSON);
+    }
+
+    protected static RecordSchema getSimpleSchemaWithoutIdentifier() {
+        return new SimpleRecordSchema(getSimpleRecordFields());
     }
 
     protected static RecordSchema getEmptySchema() {
@@ -466,7 +487,4 @@ public class TestWriteXMLResultUtils {
 
         return new ListRecordSet(outerSchema, records);
     }
-
-
-
 }

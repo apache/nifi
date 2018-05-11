@@ -58,16 +58,38 @@ public class TestXMLRecordSetWriter {
         XMLRecordSetWriter writer = new XMLRecordSetWriter();
         TestRunner runner = setup(writer);
 
+        runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
+
         runner.enableControllerService(writer);
         runner.enqueue("");
         runner.run();
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "<root><record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
-                "<name1>val1</name1><name2></name2></record>" +
-                "<record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
-                "<name1>val1</name1><name2></name2></record></root>";
+        String expected = "<root><array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+                "<name1>val1</name1><name2></name2></array_record>" +
+                "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+                "<name1>val1</name1><name2></name2></array_record></root>";
+        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).get(0)));
+        assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    }
+
+    @Test
+    public void testDefaultSingleRecord() throws IOException, InitializationException {
+        XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        TestRunner runner = setup(writer);
+
+        runner.setProperty(TestXMLRecordSetWriterProcessor.MULTIPLE_RECORDS, "false");
+
+        runner.enableControllerService(writer);
+        runner.enqueue("");
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
+
+        String expected = "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+                "<name1>val1</name1><name2></name2></array_record>";
+
         String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).get(0)));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
@@ -99,6 +121,9 @@ public class TestXMLRecordSetWriter {
         XMLRecordSetWriter writer = new XMLRecordSetWriter();
         TestRunner runner = setup(writer);
 
+        runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
+        runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "record");
+
         runner.setProperty(writer, XMLRecordSetWriter.SUPPRESS_NULLS, XMLRecordSetWriter.ALWAYS_SUPPRESS);
 
         runner.enableControllerService(writer);
@@ -119,6 +144,9 @@ public class TestXMLRecordSetWriter {
     public void testArrayWrapping() throws IOException, InitializationException {
         XMLRecordSetWriter writer = new XMLRecordSetWriter();
         TestRunner runner = setup(writer);
+
+        runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
+        runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "record");
 
         runner.setProperty(writer, XMLRecordSetWriter.ARRAY_WRAPPING, XMLRecordSetWriter.USE_PROPERTY_AS_WRAPPER);
         runner.setProperty(writer, XMLRecordSetWriter.ARRAY_TAG_NAME, "wrap");
@@ -141,6 +169,9 @@ public class TestXMLRecordSetWriter {
     public void testValidation() throws IOException, InitializationException {
         XMLRecordSetWriter writer = new XMLRecordSetWriter();
         TestRunner runner = setup(writer);
+
+        runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
+        runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "record");
 
         runner.setProperty(writer, XMLRecordSetWriter.ARRAY_WRAPPING, XMLRecordSetWriter.USE_PROPERTY_AS_WRAPPER);
 
