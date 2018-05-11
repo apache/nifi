@@ -64,6 +64,7 @@ import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -233,8 +234,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return poll.getFlowFiles();
     };
 
-    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc) -> {
-        final Connection connection = c.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class).getConnection();
+    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ff) -> {
+        final Connection connection = c.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class)
+                .getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
