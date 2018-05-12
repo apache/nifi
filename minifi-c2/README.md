@@ -34,7 +34,7 @@ After building, extract minifi-c2/minifi-c2-assembly/target/minifi-c2-VERSION-bi
 
 [./conf/authorizations.yaml](./minifi-c2-assembly/src/main/resources/conf/authorizations.yaml) is used to determine whether to allow access based on a requester's authorities.
 
-When using the CacheConfigurationProvider, the server will by default look for files in the ./files/ directory to satisfy requests.  It will resolve the correct file using the query parameters and content type provided to it and then serve up either the requested version if specified in the query parameters or the latest if unspecified.
+When using the `CacheConfigurationProvider`, by default, the server will look for files in the `./files/` directory to satisfy requests.  It will resolve the correct file using the query parameters and content type provided to it and then serve up either the requested version if specified in the query parameters or the latest if unspecified. Alternatively, if the `S3ConfigurationCache` is used, the server will look for files in a given Amazon S3 bucket. The S3 bucket name, prefix, region, and credentials are specified in `minifi-c2-context.xml`. If S3 credentials are not provided, the server will attempt to retrieve credentials via an IAM role. The role must allow for S3 read access to the given bucket and prefix.
 
 The pattern can be configured in [./conf/minifi-c2-context.xml](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) and the default value (${class}/config) will replace ${class} with the class query parameter and then look for CLASS/config.CONTENT_TYPE.vVERSION in the directory structure.
 
@@ -45,8 +45,8 @@ The version resolution is cached in memory to accommodate many devices polling p
 MiNiFi Java agents can be configured to poll the C2 server by [configuring the PullHttpChangeIngestor in their bootstrap.conf.](../minifi-integration-tests/src/test/resources/c2/hierarchical/minifi-edge1/bootstrap.conf#L37)
 
 ### Configuration Providers:
-There are three ConfigurationProvider implementations provided out of the box.
-1. The [CacheConfigurationProvider](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) looks at directory on the filesystem.
+There are three `ConfigurationProvider` implementations provided out of the box.
+1. The [CacheConfigurationProvider](./minifi-c2-assembly/src/main/resources/conf/minifi-c2-context.xml) looks at a directory on the filesystem or in an Amazon S3 bucket. Which backend storage is used can be selected in `minifi-c2-context.xml` via the constructors to `CacheConfigurationProvider`.
 2. The [DelegatingConfigurationProvider](./minifi-c2-integration-tests/src/test/resources/c2-unsecure-delegating/conf/minifi-c2-context.xml) delegates to another C2 server to allow for hierarchical C2 structures to help with scaling and/or bridging networks.
 3. The [NiFiRestConfigurationProvider](./minifi-c2-integration-tests/src/test/resources/c2-unsecure-rest/conf/minifi-c2-context.xml) pulls templates from a NiFi instance over its REST API. (Note: sensitive values are NOT included in templates so this is unsuitable for flows with sensitive configuration currently)
 

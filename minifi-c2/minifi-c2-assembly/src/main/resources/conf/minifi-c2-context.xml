@@ -45,6 +45,28 @@
                             </constructor-arg>
                         </bean>
                     </constructor-arg>
+                    <!--<constructor-arg>
+                        <bean class="org.apache.nifi.minifi.c2.cache.s3.S3ConfigurationCache">
+                            <constructor-arg>
+                                <value>bucket</value>
+                            </constructor-arg>
+                            <constructor-arg>
+                                <value>prefix/</value>
+                            </constructor-arg>
+                            <constructor-arg>
+                            <value>\${class}</value>
+                        </constructor-arg>
+                        <constructor-arg>
+                            <value>access-key</value>
+                        </constructor-arg>
+                        <constructor-arg>
+                            <value>secret-key</value>
+                        </constructor-arg>
+                        <constructor-arg>
+                            <value>us-east-1</value>
+                        </constructor-arg>
+                        </bean>
+                    </constructor-arg>-->
                 </bean>
                 <!--<bean class="org.apache.nifi.minifi.c2.provider.nifi.rest.NiFiRestConfigurationProvider">
                     <constructor-arg>
@@ -64,35 +86,6 @@
                         <value>\${class}.v\${version}</value>
                     </constructor-arg>
                 </bean>-->
-                <!--<bean class="org.apache.nifi.minifi.c2.provider.cache.CacheConfigurationProvider">
-                    <constructor-arg>
-                        <list>
-                            <value>text/yml</value>
-                        </list>
-                    </constructor-arg>
-                    <constructor-arg>
-                        <bean class="org.apache.nifi.minifi.c2.cache.s3.S3ConfigurationCache">
-                            <constructor-arg>
-                                <value>bucket</value>
-                            </constructor-arg>
-                            <constructor-arg>
-                                <value>prefix/</value>
-                            </constructor-arg>
-                            <constructor-arg>
-                        		<value>\${class}</value>
-                    		</constructor-arg>
-                    		<constructor-arg>
-                        		<value>access-key</value>
-                    		</constructor-arg>
-                    		<constructor-arg>
-                        		<value>secret-key</value>
-                    		</constructor-arg>
-                    		<constructor-arg>
-                        		<value>aws-region</value>
-                    		</constructor-arg>
-                        </bean>
-                    </constructor-arg>
-                </bean> -->
             </list>
         </constructor-arg>
         <constructor-arg>
