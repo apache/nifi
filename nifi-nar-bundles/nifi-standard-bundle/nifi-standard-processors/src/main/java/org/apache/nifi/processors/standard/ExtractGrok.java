@@ -192,26 +192,40 @@ public class ExtractGrok extends AbstractProcessor {
         Collection<ValidationResult> problems = new ArrayList<>();
 
         // validate the grok expression against configuration
+        // if there is a GROK_PATTERN_FILE set we must be sure to register that so that it's
+        // patterns will be available to compile()
+        // we also have to make sure the default grok patterns are loaded
         boolean namedCaptures = false;
         if (validationContext.getProperty(NAMED_CAPTURES_ONLY).isSet()) {
             namedCaptures = validationContext.getProperty(NAMED_CAPTURES_ONLY).asBoolean();
         }
+
         GrokCompiler grokCompiler = GrokCompiler.newInstance();
         String subject = GROK_EXPRESSION.getName();
         String input = validationContext.getProperty(GROK_EXPRESSION).getValue();
-        if (validationContext.getProperty(GROK_PATTERN_FILE).isSet()) {
-            try (final InputStream in = new FileInputStream(new File(validationContext.getProperty(GROK_PATTERN_FILE).getValue()));
+
+        try {
+
+            try (final InputStream in = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
                  final Reader reader = new InputStreamReader(in)) {
-                grokCompiler.register(reader);
-                grok = grokCompiler.compile(input, namedCaptures);
-            } catch (IOException | GrokException | java.util.regex.PatternSyntaxException e) {
-                problems.add(new ValidationResult.Builder()
-                        .subject(subject)
-                        .input(input)
-                        .valid(false)
-                        .explanation("Not a valid Grok Expression - " + e.getMessage())
-                        .build());
+                grokCompiler.register(in);
             }
+
+            if (validationContext.getProperty(GROK_PATTERN_FILE).isSet()) {
+                try (final InputStream in = new FileInputStream(new File(validationContext.getProperty(GROK_PATTERN_FILE).getValue()));
+                     final Reader reader = new InputStreamReader(in)) {
+                    grokCompiler.register(reader);
+                }
+            }
+            grok = grokCompiler.compile(input, namedCaptures);
+        } catch (final Exception e) {
+            problems.add(new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(input)
+                    .valid(false)
+                    .explanation("Not a valid Grok Expression - " + e.getMessage())
+                    .build());
+            return problems;
         }
 
         problems.add(new ValidationResult.Builder().subject(subject).input(input).valid(true).build());

@@ -40,6 +40,13 @@ public class TestExtractGrok {
     }
 
     @Test
+    public void testExtractGrokWithMissingPattern() throws Exception {
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{FOOLOG}");
+        testRunner.enqueue(GROK_LOG_INPUT);
+        testRunner.assertNotValid();
+    }
+
+    @Test
     public void testExtractGrokWithMatchedContent() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");

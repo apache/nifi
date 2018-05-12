@@ -44,6 +44,11 @@ public class GrokExpressionValidator implements Validator {
     @Override
     public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
         try {
+            try (final InputStream in = getClass().getResourceAsStream(GrokReader.DEFAULT_PATTERN_NAME);
+                 final Reader reader = new InputStreamReader(in)) {
+                grokCompiler.register(in);
+            }
+
             if (patternFileName != null) {
                 try (final InputStream in = new FileInputStream(new File(patternFileName));
                      final Reader reader = new InputStreamReader(in)) {

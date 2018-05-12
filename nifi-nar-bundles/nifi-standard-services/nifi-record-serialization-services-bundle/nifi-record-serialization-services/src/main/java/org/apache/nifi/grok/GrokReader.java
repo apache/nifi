@@ -74,7 +74,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     private volatile RecordSchema recordSchema;
     private volatile RecordSchema recordSchemaFromGrok;
 
-    private static final String DEFAULT_PATTERN_NAME = "/default-grok-patterns.txt";
+    static final String DEFAULT_PATTERN_NAME = "/default-grok-patterns.txt";
 
     static final AllowableValue APPEND_TO_PREVIOUS_MESSAGE = new AllowableValue("append-to-previous-message", "Append to Previous Message",
         "The line of text that does not match the Grok Expression will be appended to the last field of the prior message.");
