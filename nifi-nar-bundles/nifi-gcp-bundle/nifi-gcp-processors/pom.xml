@@ -72,6 +72,10 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-pubsub</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.tdunning</groupId>
             <artifactId>json</artifactId>
             <version>1.8</version>
