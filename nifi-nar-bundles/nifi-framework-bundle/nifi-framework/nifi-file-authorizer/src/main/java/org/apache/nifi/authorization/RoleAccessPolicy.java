@@ -64,6 +64,7 @@ public final class RoleAccessPolicy {
         provenancePolicies.add(new RoleAccessPolicy(ResourceType.Provenance.getValue(), READ_ACTION));
         if (rootGroupId != null) {
             provenancePolicies.add(new RoleAccessPolicy(ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
+            provenancePolicies.add(new RoleAccessPolicy(ResourceType.ProvenanceData.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
         }
         roleAccessPolicies.put(Role.ROLE_PROVENANCE, Collections.unmodifiableSet(provenancePolicies));
 

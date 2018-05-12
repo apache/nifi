@@ -845,6 +845,7 @@ public class ControllerFacade implements Authorizable {
         final Resource rootResource = root.getResource();
         resources.add(rootResource);
         resources.add(ResourceFactory.getDataResource(rootResource));
+        resources.add(ResourceFactory.getProvenanceDataResource(rootResource));
         resources.add(ResourceFactory.getPolicyResource(rootResource));
 
         // add each processor
@@ -852,6 +853,7 @@ public class ControllerFacade implements Authorizable {
             final Resource processorResource = processor.getResource();
             resources.add(processorResource);
             resources.add(ResourceFactory.getDataResource(processorResource));
+            resources.add(ResourceFactory.getProvenanceDataResource(processorResource));
             resources.add(ResourceFactory.getPolicyResource(processorResource));
         }
 
@@ -867,6 +869,7 @@ public class ControllerFacade implements Authorizable {
             final Resource processGroupResource = processGroup.getResource();
             resources.add(processGroupResource);
             resources.add(ResourceFactory.getDataResource(processGroupResource));
+            resources.add(ResourceFactory.getProvenanceDataResource(processGroupResource));
             resources.add(ResourceFactory.getPolicyResource(processGroupResource));
         }
 
@@ -875,6 +878,7 @@ public class ControllerFacade implements Authorizable {
             final Resource remoteProcessGroupResource = remoteProcessGroup.getResource();
             resources.add(remoteProcessGroupResource);
             resources.add(ResourceFactory.getDataResource(remoteProcessGroupResource));
+            resources.add(ResourceFactory.getProvenanceDataResource(remoteProcessGroupResource));
             resources.add(ResourceFactory.getPolicyResource(remoteProcessGroupResource));
         }
 
@@ -1270,7 +1274,7 @@ public class ControllerFacade implements Authorizable {
             }
 
             // authorize the replay
-            authorizeReplay(originalEvent);
+            authorizeData(originalEvent);
 
             // replay the flow file
             final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user);
@@ -1318,7 +1322,7 @@ public class ControllerFacade implements Authorizable {
      *
      * @param event event
      */
-    private void authorizeReplay(final ProvenanceEventRecord event) {
+    private void authorizeData(final ProvenanceEventRecord event) {
         // if the connection id isn't specified, then the replay wouldn't be available anyways and we have nothing to authorize against so deny it`
         if (event.getSourceQueueIdentifier() == null) {
             throw new AccessDeniedException("The connection id in the provenance event is unknown.");
@@ -1346,20 +1350,10 @@ public class ControllerFacade implements Authorizable {
      */
     public ProvenanceEventDTO getProvenanceEvent(final Long eventId) {
         try {
-            final ProvenanceEventRecord event = flowController.getProvenanceRepository().getEvent(eventId);
+            final ProvenanceEventRecord event = flowController.getProvenanceRepository().getEvent(eventId, NiFiUserUtils.getNiFiUser());
             if (event == null) {
                 throw new ResourceNotFoundException("Unable to find the specified event.");
             }
-
-            // get the flowfile attributes and authorize the event
-            final Map<String, String> attributes = event.getAttributes();
-            final Authorizable dataAuthorizable;
-            if (event.isRemotePortType()) {
-                dataAuthorizable = flowController.createRemoteDataAuthorizable(event.getComponentId());
-            } else {
-                dataAuthorizable = flowController.createLocalDataAuthorizable(event.getComponentId());
-            }
-            dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser(), attributes);
 
             // convert the event
             return createProvenanceEventDto(event, false);
@@ -1389,104 +1383,110 @@ public class ControllerFacade implements Authorizable {
         // sets the component details if it can find the component still in the flow
         setComponentDetails(dto);
 
-        // only include all details if not summarizing
-        if (!summarize) {
-            // convert the attributes
-            final Comparator<AttributeDTO> attributeComparator = new Comparator<AttributeDTO>() {
-                @Override
-                public int compare(AttributeDTO a1, AttributeDTO a2) {
-                    return Collator.getInstance(Locale.US).compare(a1.getName(), a2.getName());
+        try {
+            authorizeData(event);
+
+            // only include all details if not summarizing
+            if (!summarize) {
+                // convert the attributes
+                final Comparator<AttributeDTO> attributeComparator = new Comparator<AttributeDTO>() {
+                    @Override
+                    public int compare(AttributeDTO a1, AttributeDTO a2) {
+                        return Collator.getInstance(Locale.US).compare(a1.getName(), a2.getName());
+                    }
+                };
+
+                final SortedSet<AttributeDTO> attributes = new TreeSet<>(attributeComparator);
+
+                final Map<String, String> updatedAttrs = event.getUpdatedAttributes();
+                final Map<String, String> previousAttrs = event.getPreviousAttributes();
+
+                // add previous attributes that haven't been modified.
+                for (final Map.Entry<String, String> entry : previousAttrs.entrySet()) {
+                    // don't add any attributes that have been updated; we will do that next
+                    if (updatedAttrs.containsKey(entry.getKey())) {
+                        continue;
+                    }
+
+                    final AttributeDTO attribute = new AttributeDTO();
+                    attribute.setName(entry.getKey());
+                    attribute.setValue(entry.getValue());
+                    attribute.setPreviousValue(entry.getValue());
+                    attributes.add(attribute);
                 }
-            };
 
-            final SortedSet<AttributeDTO> attributes = new TreeSet<>(attributeComparator);
-
-            final Map<String, String> updatedAttrs = event.getUpdatedAttributes();
-            final Map<String, String> previousAttrs = event.getPreviousAttributes();
-
-            // add previous attributes that haven't been modified.
-            for (final Map.Entry<String, String> entry : previousAttrs.entrySet()) {
-                // don't add any attributes that have been updated; we will do that next
-                if (updatedAttrs.containsKey(entry.getKey())) {
-                    continue;
+                // Add all of the update attributes
+                for (final Map.Entry<String, String> entry : updatedAttrs.entrySet()) {
+                    final AttributeDTO attribute = new AttributeDTO();
+                    attribute.setName(entry.getKey());
+                    attribute.setValue(entry.getValue());
+                    attribute.setPreviousValue(previousAttrs.get(entry.getKey()));
+                    attributes.add(attribute);
                 }
 
-                final AttributeDTO attribute = new AttributeDTO();
-                attribute.setName(entry.getKey());
-                attribute.setValue(entry.getValue());
-                attribute.setPreviousValue(entry.getValue());
-                attributes.add(attribute);
+                // additional event details
+                dto.setAlternateIdentifierUri(event.getAlternateIdentifierUri());
+                dto.setAttributes(attributes);
+                dto.setTransitUri(event.getTransitUri());
+                dto.setSourceSystemFlowFileId(event.getSourceSystemFlowFileIdentifier());
+                dto.setRelationship(event.getRelationship());
+                dto.setDetails(event.getDetails());
+
+                final ContentAvailability contentAvailability = flowController.getContentAvailability(event);
+
+                // content
+                dto.setContentEqual(contentAvailability.isContentSame());
+                dto.setInputContentAvailable(contentAvailability.isInputAvailable());
+                dto.setInputContentClaimSection(event.getPreviousContentClaimSection());
+                dto.setInputContentClaimContainer(event.getPreviousContentClaimContainer());
+                dto.setInputContentClaimIdentifier(event.getPreviousContentClaimIdentifier());
+                dto.setInputContentClaimOffset(event.getPreviousContentClaimOffset());
+                dto.setInputContentClaimFileSizeBytes(event.getPreviousFileSize());
+                dto.setOutputContentAvailable(contentAvailability.isOutputAvailable());
+                dto.setOutputContentClaimSection(event.getContentClaimSection());
+                dto.setOutputContentClaimContainer(event.getContentClaimContainer());
+                dto.setOutputContentClaimIdentifier(event.getContentClaimIdentifier());
+                dto.setOutputContentClaimOffset(event.getContentClaimOffset());
+                dto.setOutputContentClaimFileSize(FormatUtils.formatDataSize(event.getFileSize()));
+                dto.setOutputContentClaimFileSizeBytes(event.getFileSize());
+
+                // format the previous file sizes if possible
+                if (event.getPreviousFileSize() != null) {
+                    dto.setInputContentClaimFileSize(FormatUtils.formatDataSize(event.getPreviousFileSize()));
+                }
+
+                // determine if authorized for event replay
+                final AuthorizationResult replayAuthorized = checkAuthorizationForReplay(event);
+
+                // replay
+                dto.setReplayAvailable(contentAvailability.isReplayable() && Result.Approved.equals(replayAuthorized.getResult()));
+                dto.setReplayExplanation(contentAvailability.isReplayable()
+                        && !Result.Approved.equals(replayAuthorized.getResult()) ? replayAuthorized.getExplanation() : contentAvailability.getReasonNotReplayable());
+                dto.setSourceConnectionIdentifier(event.getSourceQueueIdentifier());
+
+                // event duration
+                if (event.getEventDuration() >= 0) {
+                    dto.setEventDuration(event.getEventDuration());
+                }
+
+                // parent uuids
+                final List<String> parentUuids = new ArrayList<>(event.getParentUuids());
+                Collections.sort(parentUuids, Collator.getInstance(Locale.US));
+                dto.setParentUuids(parentUuids);
+
+                // child uuids
+                final List<String> childUuids = new ArrayList<>(event.getChildUuids());
+                Collections.sort(childUuids, Collator.getInstance(Locale.US));
+                dto.setChildUuids(childUuids);
             }
+        } catch (AccessDeniedException ade) {
+            logger.debug("User '{}' not authorized to view flowfile content from provenance event {}", new Object[] { NiFiUserUtils.getNiFiUser(), event.getEventId() });
+        }
 
-            // Add all of the update attributes
-            for (final Map.Entry<String, String> entry : updatedAttrs.entrySet()) {
-                final AttributeDTO attribute = new AttributeDTO();
-                attribute.setName(entry.getKey());
-                attribute.setValue(entry.getValue());
-                attribute.setPreviousValue(previousAttrs.get(entry.getKey()));
-                attributes.add(attribute);
-            }
-
-            // additional event details
-            dto.setAlternateIdentifierUri(event.getAlternateIdentifierUri());
-            dto.setAttributes(attributes);
-            dto.setTransitUri(event.getTransitUri());
-            dto.setSourceSystemFlowFileId(event.getSourceSystemFlowFileIdentifier());
-            dto.setRelationship(event.getRelationship());
-            dto.setDetails(event.getDetails());
-
-            final ContentAvailability contentAvailability = flowController.getContentAvailability(event);
-
-            // content
-            dto.setContentEqual(contentAvailability.isContentSame());
-            dto.setInputContentAvailable(contentAvailability.isInputAvailable());
-            dto.setInputContentClaimSection(event.getPreviousContentClaimSection());
-            dto.setInputContentClaimContainer(event.getPreviousContentClaimContainer());
-            dto.setInputContentClaimIdentifier(event.getPreviousContentClaimIdentifier());
-            dto.setInputContentClaimOffset(event.getPreviousContentClaimOffset());
-            dto.setInputContentClaimFileSizeBytes(event.getPreviousFileSize());
-            dto.setOutputContentAvailable(contentAvailability.isOutputAvailable());
-            dto.setOutputContentClaimSection(event.getContentClaimSection());
-            dto.setOutputContentClaimContainer(event.getContentClaimContainer());
-            dto.setOutputContentClaimIdentifier(event.getContentClaimIdentifier());
-            dto.setOutputContentClaimOffset(event.getContentClaimOffset());
-            dto.setOutputContentClaimFileSize(FormatUtils.formatDataSize(event.getFileSize()));
-            dto.setOutputContentClaimFileSizeBytes(event.getFileSize());
-
-            // format the previous file sizes if possible
-            if (event.getPreviousFileSize() != null) {
-                dto.setInputContentClaimFileSize(FormatUtils.formatDataSize(event.getPreviousFileSize()));
-            }
-
-            // determine if authorized for event replay
-            final AuthorizationResult replayAuthorized = checkAuthorizationForReplay(event);
-
-            // replay
-            dto.setReplayAvailable(contentAvailability.isReplayable() && Result.Approved.equals(replayAuthorized.getResult()));
-            dto.setReplayExplanation(contentAvailability.isReplayable()
-                    && !Result.Approved.equals(replayAuthorized.getResult()) ? replayAuthorized.getExplanation() : contentAvailability.getReasonNotReplayable());
-            dto.setSourceConnectionIdentifier(event.getSourceQueueIdentifier());
-
-            // event duration
-            if (event.getEventDuration() >= 0) {
-                dto.setEventDuration(event.getEventDuration());
-            }
-
-            // lineage duration
-            if (event.getLineageStartDate() > 0) {
-                final long lineageDuration = event.getEventTime() - event.getLineageStartDate();
-                dto.setLineageDuration(lineageDuration);
-            }
-
-            // parent uuids
-            final List<String> parentUuids = new ArrayList<>(event.getParentUuids());
-            Collections.sort(parentUuids, Collator.getInstance(Locale.US));
-            dto.setParentUuids(parentUuids);
-
-            // child uuids
-            final List<String> childUuids = new ArrayList<>(event.getChildUuids());
-            Collections.sort(childUuids, Collator.getInstance(Locale.US));
-            dto.setChildUuids(childUuids);
+        // lineage duration
+        if (event.getLineageStartDate() > 0) {
+            final long lineageDuration = event.getEventTime() - event.getLineageStartDate();
+            dto.setLineageDuration(lineageDuration);
         }
 
         return dto;
