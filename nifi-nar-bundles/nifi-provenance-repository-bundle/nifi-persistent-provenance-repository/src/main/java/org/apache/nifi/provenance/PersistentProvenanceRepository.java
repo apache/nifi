@@ -385,11 +385,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
         final Authorizable eventAuthorizable;
         try {
-            if (event.isRemotePortType()) {
-                eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-            } else {
-                eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-            }
+            eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
         } catch (final ResourceNotFoundException rnfe) {
             return false;
         }
@@ -403,13 +399,8 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             return;
         }
 
-        final Authorizable eventAuthorizable;
-        if (event.isRemotePortType()) {
-            eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
-        } else {
-            eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
-        }
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 
     public List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events, final NiFiUser user) {

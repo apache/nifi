@@ -732,7 +732,7 @@ public final class SnippetUtils {
 
     /**
      * Clones all the component specified policies for the specified original component. This will include the component resource, data resource
-     * for the component, data transfer resource for the component, and policy resource for the component.
+     * for the component, view provenance for the component, data transfer resource for the component, and policy resource for the component.
      *
      * @param originalComponentResource original component resource
      * @param clonedComponentResource cloned component resource
@@ -746,6 +746,7 @@ public final class SnippetUtils {
         final Map<Resource, Resource> resources = new HashMap<>();
         resources.put(originalComponentResource, clonedComponentResource);
         resources.put(ResourceFactory.getDataResource(originalComponentResource), ResourceFactory.getDataResource(clonedComponentResource));
+        resources.put(ResourceFactory.getProvenanceDataResource(originalComponentResource), ResourceFactory.getProvenanceDataResource(clonedComponentResource));
         resources.put(ResourceFactory.getDataTransferResource(originalComponentResource), ResourceFactory.getDataTransferResource(clonedComponentResource));
         resources.put(ResourceFactory.getPolicyResource(originalComponentResource), ResourceFactory.getPolicyResource(clonedComponentResource));
 
@@ -829,7 +830,7 @@ public final class SnippetUtils {
 
     /**
      * Attempts to roll back all policies for the specified component. This includes the component resource, data resource
-     * for the component, data transfer resource for the component, and policy resource for the component.
+     * for the component, view provenance resource for the component, data transfer resource for the component, and policy resource for the component.
      *
      * @param componentResource component resource
      */
@@ -841,6 +842,7 @@ public final class SnippetUtils {
         final List<Resource> resources = new ArrayList<>();
         resources.add(componentResource);
         resources.add(ResourceFactory.getDataResource(componentResource));
+        resources.add(ResourceFactory.getProvenanceDataResource(componentResource));
         resources.add(ResourceFactory.getDataTransferResource(componentResource));
         resources.add(ResourceFactory.getPolicyResource(componentResource));
 

@@ -29,6 +29,7 @@ public enum ResourceType {
     Processor("/processors"),
     ProcessGroup("/process-groups"),
     Provenance("/provenance"),
+    ProvenanceData("/provenance-data"),
     Data("/data"),
     Proxy("/proxy"),
     RemoteProcessGroup("/remote-process-groups"),

@@ -1395,6 +1395,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final List<Resource> resources = new ArrayList<>();
             resources.add(componentResource);
             resources.add(ResourceFactory.getDataResource(componentResource));
+            resources.add(ResourceFactory.getProvenanceDataResource(componentResource));
             resources.add(ResourceFactory.getDataTransferResource(componentResource));
             resources.add(ResourceFactory.getPolicyResource(componentResource));
 
