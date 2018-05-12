@@ -77,9 +77,9 @@
             <version>2.6</version>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
-            <version>0.1.5</version>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
+            <version>0.1.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
