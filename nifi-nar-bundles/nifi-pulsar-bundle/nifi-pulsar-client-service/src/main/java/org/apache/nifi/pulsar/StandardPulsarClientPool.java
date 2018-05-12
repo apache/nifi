@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.pulsar.pool.PulsarConsumerFactory;
 import org.apache.nifi.pulsar.pool.PulsarProducerFactory;
@@ -41,7 +42,7 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException.UnsupportedAuthenticationException;
 import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 
-@Tags({ "Pulsar"})
+@Tags({ "Pulsar", "Pool", "Client", "Pub/Sub"})
 @CapabilityDescription("Standard ControllerService implementation of PulsarClientService.")
 public class StandardPulsarClientPool extends AbstractControllerService implements PulsarClientPool {
 
@@ -51,6 +52,7 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .description("URL for the Pulsar cluster, e.g localhost:6650")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor CONCURRENT_LOOKUP_REQUESTS = new PropertyDescriptor.Builder()
@@ -60,6 +62,7 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
                     + "of it requires to produce/subscribe on thousands of topics")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("5000")
             .build();
 
@@ -70,6 +73,7 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
                     "Increasing this parameter may improve throughput when using many producers over a high latency connection")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("1")
             .build();
 
@@ -78,6 +82,7 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .description("The number of threads to be used for handling connections to brokers (default: 1 thread)")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("1")
             .build();
 
@@ -86,6 +91,7 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .description("The number of threads to be used for message listeners (default: 1 thread)")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("1")
             .build();
 
@@ -96,6 +102,7 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
                 "chance to connect a different broker (default: 50)")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("50")
             .build();
 
@@ -105,6 +112,7 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
                 "interval, after which the operation will be maked as failed (default: 30 seconds)")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("30")
             .build();
 

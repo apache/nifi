@@ -40,7 +40,4 @@ public final class RecordBasedConst {
             .required(true)
             .build();
 
-    private RecordBasedConst() {
-        /* no-op */
-    }
 }

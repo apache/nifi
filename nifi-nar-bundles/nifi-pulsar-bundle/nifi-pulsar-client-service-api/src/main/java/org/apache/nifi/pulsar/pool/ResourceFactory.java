@@ -23,8 +23,6 @@ import java.util.Properties;
  * of this interface will be responsible for the creation of @PoolableResource objects
  * based on the Properties passed in.
  *
- * @author david
- *
  * @param <R> The type of @PoolableResource this factory will create
  *
  */

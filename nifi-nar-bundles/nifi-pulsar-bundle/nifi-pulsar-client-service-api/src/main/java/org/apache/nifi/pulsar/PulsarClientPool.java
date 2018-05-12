@@ -22,7 +22,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.pulsar.pool.ResourcePool;
 
 
-@Tags({"Pulsar"})
+@Tags({"Pulsar", "client", "pool"})
 @CapabilityDescription("Provides the ability to create Pulsar Producer / Consumer instances on demand, based on the configuration."
                      + "properties defined")
 /**
@@ -34,8 +34,6 @@ import org.apache.nifi.pulsar.pool.ResourcePool;
  * to database connections, and the cost to create these objects is
  * relatively high. The PulsarClientPool keeps these objects in pools
  * for re-use.
- *
- * @author david
  *
  */
 public interface PulsarClientPool extends ControllerService {

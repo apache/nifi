@@ -21,8 +21,6 @@ package org.apache.nifi.pulsar.pool;
  * defines methods for closing the object, effectively marking it no longer
  * usable.
  *
- * @author david
- *
  */
 public interface PoolableResource {
 

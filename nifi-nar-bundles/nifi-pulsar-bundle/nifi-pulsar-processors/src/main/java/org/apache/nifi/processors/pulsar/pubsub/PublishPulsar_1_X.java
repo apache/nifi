@@ -110,6 +110,7 @@ public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
         final byte[] messageContent = baos.toByteArray();
         // Nothing to do, so skip this Flow file.
         if (messageContent == null || messageContent.length < 1) {
+            session.putAttribute(flowFile, "msg.count", "0");
             session.transfer(flowFile, REL_SUCCESS);
             return;
         }

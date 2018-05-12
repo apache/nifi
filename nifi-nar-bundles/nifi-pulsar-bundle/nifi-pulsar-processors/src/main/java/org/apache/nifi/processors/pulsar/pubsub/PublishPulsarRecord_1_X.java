@@ -263,8 +263,8 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
            monitor.getLatch().await();
 
            if (monitor.getSuccessCounter().intValue() > 0) {
-               session.putAttribute(flowFile, MSG_COUNT, monitor.getSuccessCounter().get() + "");
-               session.putAttribute(flowFile, TOPIC_NAME, topic);
+               flowFile = session.putAttribute(flowFile, MSG_COUNT, monitor.getSuccessCounter().get() + "");
+               flowFile = session.putAttribute(flowFile, TOPIC_NAME, topic);
                session.adjustCounter("Messages Sent", monitor.getSuccessCounter().get(), true);
                session.getProvenanceReporter().send(flowFile, "Sent " + monitor.getSuccessCounter().get() + " records to " + topic );
                session.transfer(flowFile, REL_SUCCESS);
@@ -283,7 +283,7 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
               }
 
               failureFlowFile = session.write(failureFlowFile, out -> out.write(sb.toString().trim().getBytes()));
-              session.putAttribute(failureFlowFile, MSG_COUNT, monitor.getFailureCounter().get() + "");
+              session.putAttribute(failureFlowFile, MSG_COUNT, String.valueOf(monitor.getFailureCounter().get()));
               session.transfer(failureFlowFile, REL_FAILURE);
            }
 
