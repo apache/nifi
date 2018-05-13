@@ -99,6 +99,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     + "ConnectionFactory implementation.")
             .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
             .required(true)
+            .dynamicallyModifiesClasspath(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
