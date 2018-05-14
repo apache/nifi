@@ -62,6 +62,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
@@ -367,7 +368,8 @@ public class AvroTypeUtil {
             throw new IllegalArgumentException("Avro Schema cannot be null");
         }
 
-        return createSchema(avroSchema, avroSchema.toString(), SchemaIdentifier.EMPTY);
+        SchemaIdentifier identifier = new StandardSchemaIdentifier.Builder().name(avroSchema.getName()).build();
+        return createSchema(avroSchema, avroSchema.toString(), identifier);
     }
 
     /**
