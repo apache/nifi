@@ -72,6 +72,7 @@ public class ValidateXml extends AbstractProcessor {
             .name("Schema File")
             .description("The path to the Schema file that is to be used for validation")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
