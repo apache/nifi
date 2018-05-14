@@ -353,7 +353,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final File errorOut;
         try {
             errorOut = File.createTempFile("out", null);
-            errorOut.deleteOnExit();
             builder.redirectError(errorOut);
         } catch (IOException e) {
             logger.error("Could not create temporary file for error logging", e);
@@ -431,6 +430,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             // could not close Process related streams
             logger.warn("Problem terminating Process {}", new Object[]{process}, ex);
         } finally {
+            errorOut.delete();
             process.destroy(); // last ditch effort to clean up that process.
         }
     }
