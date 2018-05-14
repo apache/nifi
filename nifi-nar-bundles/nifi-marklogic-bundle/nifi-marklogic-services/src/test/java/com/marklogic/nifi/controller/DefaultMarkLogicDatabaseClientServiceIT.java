@@ -22,7 +22,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultDatabaseClientServiceIT {
+public class DefaultMarkLogicDatabaseClientServiceIT {
     protected String hostName = "localhost";
     protected String port = "8000";
     protected String database = "Documents";
@@ -37,13 +37,13 @@ public class DefaultDatabaseClientServiceIT {
     @Test
     public void testService() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DefaultDatabaseClientService service = new DefaultDatabaseClientService();
+        final DefaultMarkLogicDatabaseClientService service = new DefaultMarkLogicDatabaseClientService();
         runner.addControllerService("test-good", service);
-        runner.setProperty(service, DefaultDatabaseClientService.HOST, hostName);
-        runner.setProperty(service, DefaultDatabaseClientService.PORT, port);runner.setProperty(service, DefaultDatabaseClientService.DATABASE, database);
-        runner.setProperty(service, DefaultDatabaseClientService.USERNAME, username);
-        runner.setProperty(service, DefaultDatabaseClientService.PASSWORD, password);
-        runner.setProperty(service, DefaultDatabaseClientService.SECURITY_CONTEXT_TYPE, authentication);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.HOST, hostName);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.PORT, port);runner.setProperty(service, DefaultMarkLogicDatabaseClientService.DATABASE, database);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.USERNAME, username);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.PASSWORD, password);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.SECURITY_CONTEXT_TYPE, authentication);
         runner.enableControllerService(service);
         runner.assertValid(service);
     }

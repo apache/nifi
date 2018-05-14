@@ -24,19 +24,30 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.ssl.SSLContextService;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 @Tags({"MarkLogic"})
 @CapabilityDescription("Provides a MarkLogic DatabaseClient instance for use by other processors")
-public class DefaultDatabaseClientService extends AbstractControllerService implements DatabaseClientService {
+public class DefaultMarkLogicDatabaseClientService extends AbstractControllerService implements MarkLogicDatabaseClientService {
 
     private static List<PropertyDescriptor> properties;
 
@@ -66,8 +77,9 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         .required(true)
         .allowableValues(SecurityContextType.values())
         .description("The type of the Security Context that needs to be used for authentication")
-        .allowableValues(SecurityContextType.BASIC.name(), SecurityContextType.DIGEST.name(),
-            SecurityContextType.KERBEROS.name(), SecurityContextType.CERTIFICATE.name())
+        .allowableValues(SecurityContextType.BASIC.name(), SecurityContextType.DIGEST.name(), SecurityContextType.CERTIFICATE.name())
+ //     TODO: Add support for Kerberos authentication after testing
+ //     , SecurityContextType.KERBEROS.name())
         .defaultValue(SecurityContextType.DIGEST.name())
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -94,28 +106,30 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         .addValidator(Validator.VALID)
         .build();
 
-    public static final PropertyDescriptor CERT_FILE = new PropertyDescriptor.Builder()
-        .name("Certificate file")
-        .displayName("Certificate file")
-        .description("Certificate file which contains the client's certificate chain - Required for " +
-            "Certificate authentication")
-        .addValidator(Validator.VALID)
-        .build();
-
-    public static final PropertyDescriptor CERT_PASSWORD = new PropertyDescriptor.Builder()
-        .name("Certificate password")
-        .displayName("Certificate password")
-        .description("Export Password of the Certificate file - Optional for Certificate " +
-            "authentication")
-        .addValidator(Validator.VALID)
-        .build();
-
+/*
     public static final PropertyDescriptor EXTERNAL_NAME = new PropertyDescriptor.Builder()
         .name("External name")
         .displayName("External name")
         .description("External name of the Kerberos Client - Required for Kerberos authentication")
         .addValidator(Validator.VALID)
         .build();
+*/
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service used to provide KeyStore and TrustManager information for secure connections")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+            .name("Client Authentication")
+            .displayName("Client Authentication")
+            .description("Client authentication policy when connecting via a secure connection. This property is only used when an SSL Context "
+                    + "has been defined and enabled")
+            .required(false)
+            .allowableValues(SSLContextService.ClientAuth.values())
+            .build();
 
     static {
         List<PropertyDescriptor> list = new ArrayList<>();
@@ -125,15 +139,12 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         list.add(USERNAME);
         list.add(PASSWORD);
         list.add(DATABASE);
-        list.add(CERT_FILE);
-        list.add(CERT_PASSWORD);
-        list.add(EXTERNAL_NAME);
+        // list.add(EXTERNAL_NAME);
+        list.add(SSL_CONTEXT_SERVICE);
+        list.add(CLIENT_AUTH);
         properties = Collections.unmodifiableList(list);
     }
 
-    /**
-     * TODO Support setting the SSLContext and SSLHostnameVerifier and TrustManager
-     */
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
         DatabaseClientConfig config = new DatabaseClientConfig();
@@ -145,10 +156,35 @@ public class DefaultDatabaseClientService extends AbstractControllerService impl
         config.setUsername(context.getProperty(USERNAME).getValue());
         config.setPassword(context.getProperty(PASSWORD).getValue());
         config.setDatabase(context.getProperty(DATABASE).getValue());
-        config.setCertFile(context.getProperty(CERT_FILE).getValue());
-        config.setCertPassword(context.getProperty(CERT_PASSWORD).getValue());
-        config.setExternalName(context.getProperty(EXTERNAL_NAME).getValue());
-
+        // config.setExternalName(context.getProperty(EXTERNAL_NAME).getValue());
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        if(sslService != null) {
+            final SSLContextService.ClientAuth clientAuth;
+            try {
+                clientAuth =
+                        context.getProperty(CLIENT_AUTH).getValue() == null ? SSLContextService.ClientAuth.REQUIRED :
+                                SSLContextService.ClientAuth.valueOf(context.getProperty(CLIENT_AUTH).getValue());
+            } catch (IllegalArgumentException exception) {
+                throw new ProviderCreationException("Client Authentication should be one of the following values : "
+                        + Arrays.toString(SSLContextService.ClientAuth.values()));
+            }
+            try {
+                final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                if (sslService.isTrustStoreConfigured()) {
+                    final KeyStore trustStore = KeyStoreUtils.getTrustStore(sslService.getTrustStoreType());
+                    try (final InputStream is = new FileInputStream(sslService.getTrustStoreFile())) {
+                        trustStore.load(is, sslService.getTrustStorePassword().toCharArray());
+                    }
+                    trustManagerFactory.init(trustStore);
+                    config.setTrustManager((X509TrustManager) trustManagerFactory.getTrustManagers()[0]);
+                }
+                final SSLContext sslContext = sslService.createSSLContext(clientAuth);
+                config.setSslContext(sslContext);
+            } catch (Exception e) {
+                getLogger().error("Failed to create SSLContext due to {}", new Object[]{e} );
+                throw new ProcessException(e);
+            }
+        }
         getLogger().info("Creating DatabaseClient");
         databaseClient = new DefaultConfiguredDatabaseClientFactory().newDatabaseClient(config);
     }

@@ -17,7 +17,7 @@
 package com.marklogic.nifi.processor;
 
 import com.marklogic.client.DatabaseClient;
-import com.marklogic.nifi.controller.DatabaseClientService;
+import com.marklogic.nifi.controller.MarkLogicDatabaseClientService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -43,7 +43,7 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
         .displayName("DatabaseClient Service")
         .required(true)
         .description("The DatabaseClient Controller Service that provides the MarkLogic connection")
-        .identifiesControllerService(DatabaseClientService.class)
+        .identifiesControllerService(MarkLogicDatabaseClientService.class)
         .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -74,7 +74,7 @@ public abstract class AbstractMarkLogicProcessor extends AbstractSessionFactoryP
 
     protected DatabaseClient getDatabaseClient(ProcessContext context) {
         return context.getProperty(DATABASE_CLIENT_SERVICE)
-            .asControllerService(DatabaseClientService.class)
+            .asControllerService(MarkLogicDatabaseClientService.class)
             .getDatabaseClient();
     }
 

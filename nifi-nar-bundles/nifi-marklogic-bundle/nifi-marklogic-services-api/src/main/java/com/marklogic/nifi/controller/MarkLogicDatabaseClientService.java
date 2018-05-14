@@ -19,7 +19,7 @@ package com.marklogic.nifi.controller;
 import com.marklogic.client.DatabaseClient;
 import org.apache.nifi.controller.ControllerService;
 
-public interface DatabaseClientService extends ControllerService {
+public interface MarkLogicDatabaseClientService extends ControllerService {
 
     DatabaseClient getDatabaseClient();
 

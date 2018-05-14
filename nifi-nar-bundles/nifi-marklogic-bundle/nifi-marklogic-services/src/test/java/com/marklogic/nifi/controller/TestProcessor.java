@@ -37,7 +37,7 @@ public class TestProcessor extends AbstractProcessor {
         descriptors.add(new PropertyDescriptor.Builder()
             .name("test processor")
             .description("test processor")
-            .identifiesControllerService(DatabaseClientService.class)
+            .identifiesControllerService(MarkLogicDatabaseClientService.class)
             .required(true)
             .build());
         return descriptors;

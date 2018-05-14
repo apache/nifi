@@ -25,6 +25,8 @@ import com.marklogic.client.impl.GenericDocumentImpl;
 import com.marklogic.client.io.BytesHandle;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -49,6 +51,7 @@ import java.util.Set;
 
 @Tags({"MarkLogic", "Get", "Query", "Read"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 @CapabilityDescription("Creates FlowFiles from batches of documents, matching the given criteria," +
     " retrieved from a MarkLogic server using the MarkLogic Data Movement SDK (DMSDK)")
 public class QueryMarkLogic extends AbstractMarkLogicProcessor {

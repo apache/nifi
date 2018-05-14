@@ -24,6 +24,8 @@ import com.marklogic.client.document.ServerTransform;
 import com.marklogic.client.io.BytesHandle;
 import com.marklogic.client.io.DocumentMetadataHandle;
 import com.marklogic.client.io.Format;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -58,6 +60,7 @@ import java.util.Set;
 @Tags({"MarkLogic", "Put", "Write", "Insert"})
 @CapabilityDescription("Write batches of FlowFiles as documents to a MarkLogic server using the " +
     "MarkLogic Data Movement SDK (DMSDK)")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 @TriggerWhenEmpty
 public class PutMarkLogic extends AbstractMarkLogicProcessor {
 
@@ -177,11 +180,11 @@ public class PutMarkLogic extends AbstractMarkLogicProcessor {
             "failure relationship for future processing.")
         .build();
 
-    private DataMovementManager dataMovementManager;
-    private WriteBatcher writeBatcher;
+    private volatile DataMovementManager dataMovementManager;
+    private volatile WriteBatcher writeBatcher;
     // If no FlowFile exists when this processor is triggered, this variable determines whether or not a call is made to
     // flush the WriteBatcher
-    private boolean shouldFlushIfEmpty = true;
+    private volatile boolean shouldFlushIfEmpty = true;
 
     @Override
     public void init(ProcessorInitializationContext context) {

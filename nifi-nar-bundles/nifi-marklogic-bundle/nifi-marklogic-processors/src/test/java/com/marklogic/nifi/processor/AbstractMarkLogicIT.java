@@ -23,8 +23,8 @@ import com.marklogic.client.datamovement.DeleteListener;
 import com.marklogic.client.datamovement.QueryBatcher;
 import com.marklogic.client.query.StructuredQueryBuilder;
 import com.marklogic.client.query.StructuredQueryDefinition;
-import com.marklogic.nifi.controller.DatabaseClientService;
-import com.marklogic.nifi.controller.DefaultDatabaseClientService;
+import com.marklogic.nifi.controller.MarkLogicDatabaseClientService;
+import com.marklogic.nifi.controller.DefaultMarkLogicDatabaseClientService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -44,7 +44,7 @@ public class AbstractMarkLogicIT {
     protected String username = "admin";
     protected String password = "admin";
     protected String authentication= "DIGEST";
-    protected DatabaseClientService service;
+    protected MarkLogicDatabaseClientService service;
     protected String batchSize = "3";
     protected String threadCount = "3";
     protected String databaseClientServiceIdentifier = "databaseClientService";
@@ -108,13 +108,14 @@ public class AbstractMarkLogicIT {
     }
 
     protected void addDatabaseClientService(TestRunner runner) throws InitializationException {
-        service = new DefaultDatabaseClientService();
+        service = new DefaultMarkLogicDatabaseClientService();
         runner.addControllerService(databaseClientServiceIdentifier, service);
-        runner.setProperty(service, DefaultDatabaseClientService.HOST, hostName);
-        runner.setProperty(service, DefaultDatabaseClientService.PORT, port);runner.setProperty(service, DefaultDatabaseClientService.DATABASE, database);
-        runner.setProperty(service, DefaultDatabaseClientService.USERNAME, username);
-        runner.setProperty(service, DefaultDatabaseClientService.PASSWORD, password);
-        runner.setProperty(service, DefaultDatabaseClientService.SECURITY_CONTEXT_TYPE, authentication);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.HOST, hostName);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.PORT, port);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.DATABASE, database);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.USERNAME, username);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.PASSWORD, password);
+        runner.setProperty(service, DefaultMarkLogicDatabaseClientService.SECURITY_CONTEXT_TYPE, authentication);
         runner.enableControllerService(service);
     }
 
