@@ -169,7 +169,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.15</version>
+                <version>1.16.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -270,7 +270,7 @@
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.16</version>
+                <version>1.17</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
@@ -359,9 +359,9 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>io.thekraken</groupId>
-                <artifactId>grok</artifactId>
-                <version>0.1.5</version>
+                <groupId>io.krakens</groupId>
+                <artifactId>java-grok</artifactId>
+                <version>0.1.9</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.google.code</groupId>

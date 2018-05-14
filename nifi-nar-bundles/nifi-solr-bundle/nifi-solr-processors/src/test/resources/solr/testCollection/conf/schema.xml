@@ -16,6 +16,12 @@
     <field name="marks" type="int" indexed="true" stored="true" />
     <field name="test" type="string" indexed="true" stored="true" />
     <field name="subject" type="string" indexed="true" stored="true" />
+    <field name="exam_marks" type="int" indexed="true" stored="true"/>
+    <field name="exam_test" type="string" indexed="true" stored="true"/>
+    <field name="exam_subject" type="string" indexed="true" stored="true"/>
+    <field name="exams_marks" type="int" indexed="true" stored="true" multiValued="true"/>
+    <field name="exams_test" type="string" indexed="true" stored="true" multiValued="true"/>
+    <field name="exams_subject" type="string" indexed="true" stored="true" multiValued="true"/>
 
     <field name="created" type="date" indexed="true" stored="true" />
 

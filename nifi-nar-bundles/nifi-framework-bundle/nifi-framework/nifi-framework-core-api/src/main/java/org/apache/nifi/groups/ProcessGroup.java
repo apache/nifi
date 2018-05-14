@@ -57,24 +57,44 @@ import org.apache.nifi.remote.RemoteGroupPort;
 public interface ProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
 
     /**
-     * Predicate for filtering schedulable Processors.
+     * Predicate for starting eligible Processors.
      */
-    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.isValid();
+    Predicate<ProcessorNode> START_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.isValid();
 
     /**
-     * Predicate for filtering unschedulable Processors.
+     * Predicate for stopping eligible Processors.
      */
-    Predicate<ProcessorNode> UNSCHEDULABLE_PROCESSORS = node -> node.isRunning();
+    Predicate<ProcessorNode> STOP_PROCESSORS_FILTER = node -> node.isRunning();
 
     /**
-     * Predicate for filtering schedulable Ports
+     * Predicate for enabling eligible Processors.
      */
-    Predicate<Port> SCHEDULABLE_PORTS = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
+    Predicate<ProcessorNode> ENABLE_PROCESSORS_FILTER = node -> ScheduledState.DISABLED.equals(node.getScheduledState());
 
     /**
-     * Predicate for filtering schedulable Ports
+     * Predicate for disabling eligible Processors.
      */
-    Predicate<Port> UNSCHEDULABLE_PORTS = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
+    Predicate<ProcessorNode> DISABLE_PROCESSORS_FILTER = node -> !node.isRunning();
+
+    /**
+     * Predicate for starting eligible Ports.
+     */
+    Predicate<Port> START_PORTS_FILTER = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
+
+    /**
+     * Predicate for stopping eligible Ports.
+     */
+    Predicate<Port> STOP_PORTS_FILTER = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
+
+    /**
+     * Predicate for enabling eligible Processors.
+     */
+    Predicate<Port> ENABLE_PORTS_FILTER = port -> ScheduledState.DISABLED.equals(port.getScheduledState());
+
+    /**
+     * Predicate for disabling eligible Ports.
+     */
+    Predicate<Port> DISABLE_PORTS_FILTER = port -> !port.isRunning();
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be

@@ -197,6 +197,31 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         return result;
     }
 
+    /**
+     * Audits the update of process group configuration.
+     *
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param state scheduled state
+     * @throws Throwable ex
+     */
+    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
+            + "execution(void enableComponents(String, org.apache.nifi.controller.ScheduledState, java.util.Set<String>)) && "
+            + "args(groupId, state, componentIds)")
+    public void enableComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state, Set<String> componentIds) throws Throwable {
+        final Operation operation;
+
+        proceedingJoinPoint.proceed();
+
+        // determine the running state
+        if (ScheduledState.DISABLED.equals(state)) {
+            operation = Operation.Disable;
+        } else {
+            operation = Operation.Enable;
+        }
+
+        saveUpdateAction(groupId, operation);
+    }
 
     /**
      * Audits the update of controller serivce state

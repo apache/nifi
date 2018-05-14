@@ -1028,6 +1028,8 @@ public interface NiFiServiceFacade {
      */
     ActivateControllerServicesEntity activateControllerServices(String processGroupId, ControllerServiceState state, Map<String, Revision> serviceRevisions);
 
+    ScheduleComponentsEntity enableComponents(String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions);
+
     /**
      * Schedules all applicable components under the specified ProcessGroup on behalf of the currently logged in user.
      *

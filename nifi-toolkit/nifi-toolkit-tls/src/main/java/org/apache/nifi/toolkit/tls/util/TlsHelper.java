@@ -240,4 +240,15 @@ public class TlsHelper {
         return extGen.generate();
     }
 
+
+    /**
+     * Removes special characters (particularly forward and back slashes) from strings that become file names.
+     *
+     * @param filename A filename you plan to write to disk which needs to be escaped.
+     * @return String with special characters converted to underscores.
+     */
+    public static final String escapeFilename(String filename) {
+        return filename.replaceAll("[^\\w\\.\\-\\=]+", "_");
+    }
+
 }

@@ -17,14 +17,9 @@
 package org.apache.nifi.hbase;
 
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,9 +33,26 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Base class for processors that put data to HBase.
  */
+@DynamicProperties({
+    @DynamicProperty(name = "visibility.<COLUMN FAMILY>", description = "Visibility label for everything under that column family " +
+        "when a specific label for a particular column qualifier is not available.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        value = "visibility label for <COLUMN FAMILY>"
+    ),
+    @DynamicProperty(name = "visibility.<COLUMN FAMILY>.<COLUMN QUALIFIER>", description = "Visibility label for the specified column qualifier " +
+        "qualified by a configured column family.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        value = "visibility label for <COLUMN FAMILY>:<COLUMN QUALIFIER>."
+    )
+})
 public abstract class AbstractPutHBase extends AbstractProcessor {
 
     protected static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
@@ -129,6 +141,36 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        if (propertyDescriptorName.startsWith("visibility.")) {
+            String[] parts = propertyDescriptorName.split("\\.");
+            String displayName;
+            String description;
+
+            if (parts.length == 2) {
+                displayName = String.format("Column Family %s Default Visibility", parts[1]);
+                description = String.format("Default visibility setting for %s", parts[1]);
+            } else if (parts.length == 3) {
+                displayName = String.format("Column Qualifier %s.%s Default Visibility", parts[1], parts[2]);
+                description = String.format("Default visibility setting for %s.%s", parts[1], parts[2]);
+            } else {
+                return null;
+            }
+
+            return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .displayName(displayName)
+                .description(description)
+                .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
+        }
+
+        return null;
     }
 
     @Override

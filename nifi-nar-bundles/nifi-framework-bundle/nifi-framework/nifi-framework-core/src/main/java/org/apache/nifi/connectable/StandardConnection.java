@@ -301,6 +301,10 @@ public final class StandardConnection implements Connection {
             throw new IllegalStateException("Cannot change destination of Connection because FlowFiles from this Connection are currently held by " + previousDestination);
         }
 
+        if (newDestination instanceof Funnel && newDestination.equals(source)) {
+            throw new IllegalStateException("Funnels do not support self-looping connections.");
+        }
+
         try {
             previousDestination.removeConnection(this);
             this.destination.set(newDestination);

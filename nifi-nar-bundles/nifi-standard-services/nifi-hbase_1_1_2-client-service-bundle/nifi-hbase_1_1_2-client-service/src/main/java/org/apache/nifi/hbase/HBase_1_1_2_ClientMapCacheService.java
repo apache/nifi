@@ -51,7 +51,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Provides the ability to use an HBase table as a cache, in place of a DistributedMapCache."
     + " Uses a HBase_1_1_2_ClientService controller to communicate with HBase.")
 
-public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService implements DistributedMapCacheClient {
+public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService implements DistributedMapCacheClient, VisibilityLabelService {
 
     static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("HBase Client Service")
@@ -90,6 +90,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(HBASE_CACHE_TABLE_NAME);
+        descriptors.add(AUTHORIZATIONS);
         descriptors.add(HBASE_CLIENT_SERVICE);
         descriptors.add(HBASE_COLUMN_FAMILY);
         descriptors.add(HBASE_COLUMN_QUALIFIER);
@@ -106,6 +107,8 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
     private volatile String hBaseColumnQualifier;
     private volatile byte[] hBaseColumnQualifierBytes;
 
+    private List<String> authorizations;
+
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException{
         hBaseClientService   = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
@@ -116,6 +119,8 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
 
         hBaseColumnFamilyBytes    = hBaseColumnFamily.getBytes(StandardCharsets.UTF_8);
         hBaseColumnQualifierBytes = hBaseColumnQualifier.getBytes(StandardCharsets.UTF_8);
+
+        authorizations = getAuthorizations(context);
     }
 
     private <T> byte[] serialize(final T value, final Serializer<T> serializer) throws IOException {
@@ -158,7 +163,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
 
       final List<Column> columnsList = new ArrayList<Column>(0);
 
-      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, handler);
+      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
       return (handler.numRows() > 0);
     }
 
@@ -190,7 +195,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
 
       final List<Column> columnsList = new ArrayList<Column>(0);
 
-      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, handler);
+      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
       if (handler.numRows() > 1) {
           throw new IOException("Found multiple rows in HBase for key");
       } else if(handler.numRows() == 1) {

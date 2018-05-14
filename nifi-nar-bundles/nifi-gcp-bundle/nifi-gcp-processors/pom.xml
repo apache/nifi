@@ -63,13 +63,8 @@
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud</artifactId>
-            <version>0.8.0</version>
+            <artifactId>google-cloud-storage</artifactId>
             <exclusions>
-                <exclusion> <!-- NIFI-3089 -->
-                    <groupId>org.json</groupId>
-                    <artifactId>json</artifactId>
-                </exclusion>
                 <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>jsr305</artifactId>

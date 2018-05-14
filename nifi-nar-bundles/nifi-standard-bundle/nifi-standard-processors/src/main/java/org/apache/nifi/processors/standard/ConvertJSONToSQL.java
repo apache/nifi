@@ -28,6 +28,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -315,7 +316,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             if (schema == null) {
                 // No schema exists for this table yet. Query the database to determine the schema and put it into the cache.
                 final DBCPService dbcpService = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class);
-                try (final Connection conn = dbcpService.getConnection()) {
+                try (final Connection conn = dbcpService.getConnection(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes())) {
                     schema = TableSchema.from(conn, catalog, schemaName, tableName, translateFieldNames, includePrimaryKeys);
                     schemaCache.put(schemaKey, schema);
                 } catch (final SQLException e) {

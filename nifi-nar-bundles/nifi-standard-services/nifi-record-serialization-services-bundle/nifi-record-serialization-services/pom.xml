@@ -77,9 +77,9 @@
             <version>2.6</version>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
-            <version>0.1.5</version>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
+            <version>0.1.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
@@ -126,6 +126,10 @@
                         <exclude>src/test/resources/json/bank-account-array-different-schemas.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array-optional-balance.json</exclude>
                         <exclude>src/test/resources/json/bank-account-array.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-mixed.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-multiarray.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-multiline.json</exclude>
+                        <exclude>src/test/resources/json/bank-account-oneline.json</exclude>
                         <exclude>src/test/resources/json/json-with-unicode.json</exclude>
                         <exclude>src/test/resources/json/primitive-type-array.json</exclude>
                         <exclude>src/test/resources/json/single-bank-account.json</exclude>
@@ -133,6 +137,8 @@
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
                         <exclude>src/test/resources/json/output/dataTypes.json</exclude>
+                        <exclude>src/test/resources/json/elements-for-record-choice.json</exclude>
+                        <exclude>src/test/resources/json/record-choice.avsc</exclude>
                         <exclude>src/test/resources/xml/people.xml</exclude>
                         <exclude>src/test/resources/xml/people2.xml</exclude>
                         <exclude>src/test/resources/xml/people3.xml</exclude>

@@ -1129,6 +1129,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         boolean creationSuccessful;
         LoggableComponent<Processor> processor;
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         try {
             processor = instantiateProcessor(type, id, coordinate, additionalUrls);
             creationSuccessful = true;
@@ -1154,7 +1158,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 componentType, type, nifiProperties, componentVarRegistry, this, true);
         }
 
-        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         if (registerLogObserver) {
             logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
         }
@@ -2780,6 +2783,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         status.setId(group.getIdentifier());
         status.setName(isAuthorized.evaluate(group) ? group.getName() : group.getIdentifier());
         int activeGroupThreads = 0;
+        int terminatedGroupThreads = 0;
         long bytesRead = 0L;
         long bytesWritten = 0L;
         int queuedCount = 0;
@@ -2802,6 +2806,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final ProcessorStatus procStat = getProcessorStatus(statusReport, procNode, isAuthorized);
             processorStatusCollection.add(procStat);
             activeGroupThreads += procStat.getActiveThreadCount();
+            terminatedGroupThreads += procStat.getTerminatedThreadCount();
             bytesRead += procStat.getBytesRead();
             bytesWritten += procStat.getBytesWritten();
 
@@ -2818,6 +2823,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final ProcessGroupStatus childGroupStatus = getGroupStatus(childGroup, statusReport, isAuthorized);
             localChildGroupStatusCollection.add(childGroupStatus);
             activeGroupThreads += childGroupStatus.getActiveThreadCount();
+            terminatedGroupThreads += childGroupStatus.getTerminatedThreadCount();
             bytesRead += childGroupStatus.getBytesRead();
             bytesWritten += childGroupStatus.getBytesWritten();
             queuedCount += childGroupStatus.getQueuedCount();
@@ -3042,6 +3048,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         status.setActiveThreadCount(activeGroupThreads);
+        status.setTerminatedThreadCount(terminatedGroupThreads);
         status.setBytesRead(bytesRead);
         status.setBytesWritten(bytesWritten);
         status.setQueuedCount(queuedCount);
@@ -3216,6 +3223,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         status.setExecutionNode(procNode.getExecutionNode());
+        status.setTerminatedThreadCount(procNode.getTerminatedThreadCount());
         status.setActiveThreadCount(processScheduler.getActiveThreadCount(procNode));
 
         return status;
@@ -3366,6 +3374,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         LoggableComponent<ReportingTask> task = null;
         boolean creationSuccessful = true;
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         try {
             task = instantiateReportingTask(type, id, bundleCoordinate, additionalUrls);
         } catch (final Exception e) {
@@ -3413,7 +3425,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             reportingTasks.put(id, taskNode);
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
             logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
                     new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
         }
@@ -3546,6 +3557,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         reportingTasks.remove(reportingTaskNode.getIdentifier());
+        LogRepositoryFactory.removeRepository(reportingTaskNode.getIdentifier());
         ExtensionManager.removeInstanceClassLoader(reportingTaskNode.getIdentifier());
     }
 
@@ -3560,10 +3572,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded) {
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         final ControllerServiceNode serviceNode = controllerServiceProvider.createControllerService(type, id, bundleCoordinate, additionalUrls, firstTimeAdded);
 
         // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
                 new ControllerServiceLogObserver(getBulletinRepository(), serviceNode));
 
@@ -3846,6 +3860,73 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         return new QueueSize(count, contentSize);
+    }
+
+    public class GroupStatusCounts {
+        private int queuedCount = 0;
+        private long queuedContentSize = 0;
+        private int activeThreadCount = 0;
+        private int terminatedThreadCount = 0;
+
+        public GroupStatusCounts(final ProcessGroup group) {
+            calculateCounts(group);
+        }
+
+        private void calculateCounts(final ProcessGroup group) {
+            for (final Connection connection : group.getConnections()) {
+                final QueueSize size = connection.getFlowFileQueue().size();
+                queuedCount += size.getObjectCount();
+                queuedContentSize += size.getByteCount();
+
+                final Connectable source = connection.getSource();
+                if (ConnectableType.REMOTE_OUTPUT_PORT.equals(source.getConnectableType())) {
+                    final RemoteGroupPort remoteOutputPort = (RemoteGroupPort) source;
+                    activeThreadCount += processScheduler.getActiveThreadCount(remoteOutputPort);
+                }
+
+                final Connectable destination = connection.getDestination();
+                if (ConnectableType.REMOTE_INPUT_PORT.equals(destination.getConnectableType())) {
+                    final RemoteGroupPort remoteInputPort = (RemoteGroupPort) destination;
+                    activeThreadCount += processScheduler.getActiveThreadCount(remoteInputPort);
+                }
+            }
+            for (final ProcessorNode processor : group.getProcessors()) {
+                activeThreadCount += processScheduler.getActiveThreadCount(processor);
+                terminatedThreadCount += processor.getTerminatedThreadCount();
+            }
+            for (final Port port : group.getInputPorts()) {
+                activeThreadCount += processScheduler.getActiveThreadCount(port);
+            }
+            for (final Port port : group.getOutputPorts()) {
+                activeThreadCount += processScheduler.getActiveThreadCount(port);
+            }
+            for (final Funnel funnel : group.getFunnels()) {
+                activeThreadCount += processScheduler.getActiveThreadCount(funnel);
+            }
+            for (final ProcessGroup childGroup : group.getProcessGroups()) {
+                calculateCounts(childGroup);
+            }
+        }
+
+        public int getQueuedCount() {
+            return queuedCount;
+        }
+
+        public long getQueuedContentSize() {
+            return queuedContentSize;
+        }
+
+        public int getActiveThreadCount() {
+            return activeThreadCount;
+        }
+
+        public int getTerminatedThreadCount() {
+            return terminatedThreadCount;
+        }
+    }
+
+    public GroupStatusCounts getGroupStatusCounts(final ProcessGroup group) {
+        return new GroupStatusCounts(group);
     }
 
     public int getActiveThreadCount() {

@@ -52,8 +52,11 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataTypeUtils {
+    private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
 
     // Regexes for parsing Floating-Point numbers
     private static final String OptionalSign  = "[\\-\\+]?";
@@ -192,8 +195,37 @@ public class DataTypeUtils {
                 return isIntegerTypeCompatible(value);
             case LONG:
                 return isLongTypeCompatible(value);
-            case RECORD:
-                return isRecordTypeCompatible(value);
+            case RECORD: {
+                if (value == null) {
+                    return false;
+                }
+                if (!(value instanceof Record)) {
+                    return false;
+                }
+
+                final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
+                if (schema == null) {
+                    return true;
+                }
+
+                final Record record = (Record) value;
+                for (final RecordField childField : schema.getFields()) {
+                    final Object childValue = record.getValue(childField);
+                    if (childValue == null && !childField.isNullable()) {
+                        logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
+                        return false;
+                    }
+                    if (childValue == null) {
+                        continue; // consider compatible
+                    }
+
+                    if (!isCompatibleDataType(childValue, childField.getDataType())) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
             case SHORT:
                 return isShortTypeCompatible(value);
             case TIME:

@@ -21,7 +21,7 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <curator.version>2.11.0</curator.version>
-        <hadoop.version>2.7.3</hadoop.version>        
+        <hadoop.version>3.0.0</hadoop.version>
     </properties>
     <dependencies>
         <dependency>

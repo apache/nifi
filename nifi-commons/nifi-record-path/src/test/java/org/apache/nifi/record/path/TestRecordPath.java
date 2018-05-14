@@ -849,10 +849,12 @@ public class TestRecordPath {
         assertEquals("hn Doe", RecordPath.compile("substringAfter(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfter(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfter(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("n Doe", RecordPath.compile("substringAfter(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         assertEquals("e", RecordPath.compile("substringAfterLast(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("n Doe", RecordPath.compile("substringAfterLast(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test

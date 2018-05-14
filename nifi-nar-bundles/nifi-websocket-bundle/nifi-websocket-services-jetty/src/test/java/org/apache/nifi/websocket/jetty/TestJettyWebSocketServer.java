@@ -38,6 +38,20 @@ public class TestJettyWebSocketServer {
     }
 
     @Test
+    public void testValidationHashLoginService() throws Exception {
+        final JettyWebSocketServer service = new JettyWebSocketServer();
+        final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
+        context.setCustomValue(JettyWebSocketServer.LISTEN_PORT, "9001");
+        context.setCustomValue(JettyWebSocketServer.LOGIN_SERVICE, "hash");
+        context.setCustomValue(JettyWebSocketServer.BASIC_AUTH, "true");
+        service.initialize(context.getInitializationContext());
+        final Collection<ValidationResult> results = service.validate(context.getValidationContext());
+        assertEquals(1, results.size());
+        final ValidationResult result = results.iterator().next();
+        assertEquals(JettyWebSocketServer.USERS_PROPERTIES_FILE.getDisplayName(), result.getSubject());
+    }
+
+    @Test
     public void testValidationSuccess() throws Exception {
         final JettyWebSocketServer service = new JettyWebSocketServer();
         final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");

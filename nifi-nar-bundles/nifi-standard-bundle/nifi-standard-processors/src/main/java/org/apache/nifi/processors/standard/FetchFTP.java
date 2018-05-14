@@ -29,11 +29,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.processors.standard.FetchFileTransfer;
-import org.apache.nifi.processors.standard.GetFTP;
-import org.apache.nifi.processors.standard.GetSFTP;
-import org.apache.nifi.processors.standard.PutFTP;
-import org.apache.nifi.processors.standard.PutSFTP;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 
 // Note that we do not use @SupportsBatching annotation. This processor cannot support batching because it must ensure that session commits happen before remote files are deleted.
@@ -62,6 +57,7 @@ public class FetchFTP extends FetchFileTransfer {
         properties.add(REMOTE_FILENAME);
         properties.add(COMPLETION_STRATEGY);
         properties.add(MOVE_DESTINATION_DIR);
+        properties.add(MOVE_CREATE_DIRECTORY);
         properties.add(FTPTransfer.CONNECTION_TIMEOUT);
         properties.add(FTPTransfer.DATA_TIMEOUT);
         properties.add(FTPTransfer.USE_COMPRESSION);

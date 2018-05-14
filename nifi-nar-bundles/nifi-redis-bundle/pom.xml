@@ -28,7 +28,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <spring.data.redis.version>1.8.3.RELEASE</spring.data.redis.version>
+        <spring.data.redis.version>1.8.11.RELEASE</spring.data.redis.version>
     </properties>
 
     <modules>
