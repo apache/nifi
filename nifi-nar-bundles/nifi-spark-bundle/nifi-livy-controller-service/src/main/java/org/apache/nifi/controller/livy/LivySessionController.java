@@ -241,12 +241,14 @@ public class LivySessionController extends AbstractControllerService implements 
             while (enabled) {
                 try {
                     manageSessions();
+                } catch (Exception e) {
+                    getLogger().error("Livy Session Manager Thread run into an error, but continues to run", e);
+                }
+                try {
                     Thread.sleep(sessionManagerStatusInterval);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     enabled = false;
-                } catch (IOException ioe) {
-                    throw new ProcessException(ioe);
                 }
             }
         });

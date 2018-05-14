@@ -171,6 +171,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         if (livyController == null || livyController.isEmpty()) {
             log.debug("No Spark session available (yet), routing flowfile to wait");
             session.transfer(flowFile, REL_WAIT);
+            context.yield();
             return;
         }
         final long statusCheckInterval = context.getProperty(STATUS_CHECK_INTERVAL).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);

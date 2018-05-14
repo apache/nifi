@@ -19,6 +19,7 @@ package org.apache.nifi.hadoop;
 import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.apache.http.auth.Credentials;
 import org.apache.http.impl.auth.SPNegoScheme;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
@@ -76,10 +77,8 @@ public class KerberosKeytabSPNegoScheme extends SPNegoScheme {
 
             });
         } catch (PrivilegedActionException | LoginException e) {
-            new RuntimeException(e);
+            throw new ProcessException(e);
         }
-
-        return null;
     }
 
 }
