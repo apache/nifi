@@ -47,6 +47,16 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>io.druid.extensions</groupId>
+            <artifactId>druid-histogram</artifactId>
+            <version>${druid.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.druid.extensions</groupId>
+            <artifactId>druid-datasketches</artifactId>
+            <version>${druid.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <version>1.7.0-SNAPSHOT</version>
