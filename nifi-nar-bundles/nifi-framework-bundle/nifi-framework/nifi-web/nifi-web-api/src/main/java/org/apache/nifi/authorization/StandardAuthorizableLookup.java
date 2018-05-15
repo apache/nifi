@@ -483,14 +483,19 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         // if this is a policy or a provenance event resource, there should be another resource type
         if (ResourceType.Policy.equals(resourceType) || ResourceType.Data.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType)) {
             final ResourceType primaryResourceType = resourceType;
+            resourceType = null;
 
             // get the resource type
-            resource = StringUtils.substringAfter(resource, resourceType.getValue());
+            resource = StringUtils.substringAfter(resource, primaryResourceType.getValue());
 
             for (ResourceType type : ResourceType.values()) {
                 if (resource.equals(type.getValue()) || resource.startsWith(type.getValue() + "/")) {
                     resourceType = type;
                 }
+            }
+
+            if (resourceType == null) {
+                throw new ResourceNotFoundException("Unrecognized resource: " + resource);
             }
 
             // must either be a policy, event, or data transfer

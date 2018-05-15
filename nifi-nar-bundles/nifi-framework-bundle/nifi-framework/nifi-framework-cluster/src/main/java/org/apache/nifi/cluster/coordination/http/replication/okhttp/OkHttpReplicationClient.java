@@ -63,8 +63,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonInclude.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 
 import okhttp3.Call;
 import okhttp3.Headers;
@@ -85,8 +86,8 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
     private final OkHttpClient okHttpClient;
 
     public OkHttpReplicationClient(final NiFiProperties properties, final HostnameVerifier hostnameVerifier) {
-        jsonCodec.registerModule(new JaxbAnnotationModule());
-        jsonCodec.setSerializationInclusion(Include.NON_NULL);
+        jsonCodec.setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));
+        jsonCodec.setAnnotationIntrospector(new JaxbAnnotationIntrospector(jsonCodec.getTypeFactory()));
 
         jsonSerializer = new JsonEntitySerializer(jsonCodec);
         xmlSerializer = new XmlEntitySerializer();
