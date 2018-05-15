@@ -67,6 +67,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @EventDriven
 @SupportsBatching
@@ -101,6 +102,15 @@ public class ExtractGrok extends AbstractProcessor {
         .required(false)
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
         .build();
+
+    public static final PropertyDescriptor KEEP_EMPTY_CAPTURES = new PropertyDescriptor.Builder()
+            .name("Keep Empty Captures")
+            .description("If true, then empty capture values will be included in the returned capture map.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true","false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
         .name("Destination")
@@ -156,6 +166,8 @@ public class ExtractGrok extends AbstractProcessor {
     private volatile Grok grok;
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
 
+    private final AtomicBoolean keepEmptyCaputures = new AtomicBoolean(true);
+
     static {
         final Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_MATCH);
@@ -169,6 +181,7 @@ public class ExtractGrok extends AbstractProcessor {
         _descriptors.add(CHARACTER_SET);
         _descriptors.add(MAX_BUFFER_SIZE);
         _descriptors.add(NAMED_CAPTURES_ONLY);
+        _descriptors.add(KEEP_EMPTY_CAPTURES);
         descriptors = Collections.unmodifiableList(_descriptors);
     }
 
@@ -234,6 +247,9 @@ public class ExtractGrok extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws GrokException, IOException {
+
+        keepEmptyCaputures.set(context.getProperty(KEEP_EMPTY_CAPTURES).asBoolean());
+
         for (int i = 0; i < context.getMaxConcurrentTasks(); i++) {
             final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
             final byte[] buffer = new byte[maxBufferSize];
@@ -254,6 +270,7 @@ public class ExtractGrok extends AbstractProcessor {
             }
         }
         grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue(), context.getProperty(NAMED_CAPTURES_ONLY).asBoolean());
+
     }
 
     @Override
@@ -286,6 +303,7 @@ public class ExtractGrok extends AbstractProcessor {
         }
 
         final Match gm = grok.match(contentString);
+        gm.setKeepEmptyCaptures(keepEmptyCaputures.get());
         final Map<String,Object> captureMap = gm.capture();
 
         if (captureMap.isEmpty()) {
