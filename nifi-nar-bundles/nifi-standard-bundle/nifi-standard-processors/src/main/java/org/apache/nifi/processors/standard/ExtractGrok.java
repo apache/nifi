@@ -106,7 +106,7 @@ public class ExtractGrok extends AbstractProcessor {
     public static final PropertyDescriptor KEEP_EMPTY_CAPTURES = new PropertyDescriptor.Builder()
             .name("Keep Empty Captures")
             .description("If true, then empty capture values will be included in the returned capture map.")
-            .required(false)
+            .required(true)
             .defaultValue("true")
             .allowableValues("true","false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -248,9 +248,7 @@ public class ExtractGrok extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws GrokException, IOException {
 
-        if (context.getProperty(KEEP_EMPTY_CAPTURES).isSet()) {
-            keepEmptyCaputures.set(context.getProperty(KEEP_EMPTY_CAPTURES).asBoolean());
-        }
+        keepEmptyCaputures.set(context.getProperty(KEEP_EMPTY_CAPTURES).asBoolean());
 
         for (int i = 0; i < context.getMaxConcurrentTasks(); i++) {
             final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
