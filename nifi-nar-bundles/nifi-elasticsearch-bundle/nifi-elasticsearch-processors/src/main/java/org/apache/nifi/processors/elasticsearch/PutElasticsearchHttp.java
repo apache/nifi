@@ -150,13 +150,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         _rels.add(REL_RETRY);
         relationships = Collections.unmodifiableSet(_rels);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ES_URL);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(RESPONSE_TIMEOUT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(ID_ATTRIBUTE);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
@@ -174,9 +168,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.addAll(propertyDescriptors);
-        return properties;
+        return propertyDescriptors;
     }
 
     @Override

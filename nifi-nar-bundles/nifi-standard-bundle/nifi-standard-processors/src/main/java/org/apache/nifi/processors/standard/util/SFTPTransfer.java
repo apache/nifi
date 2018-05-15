@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -33,13 +34,18 @@ import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.jcraft.jsch.ProxySOCKS5;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -47,8 +53,11 @@ import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.ChannelSftp.LsEntrySelector;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.ProxyHTTP;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+
+import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
 public class SFTPTransfer implements FileTransfer {
 
@@ -96,6 +105,7 @@ public class SFTPTransfer implements FileTransfer {
         .required(true)
         .build();
 
+
     /**
      * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
      * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
@@ -116,6 +126,10 @@ public class SFTPTransfer implements FileTransfer {
         .defaultValue("false")
         .build();
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS_AUTH};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
     private final ComponentLog logger;
 
     private final ProcessContext ctx;
@@ -132,6 +146,10 @@ public class SFTPTransfer implements FileTransfer {
 
         final PropertyValue disableListing = processContext.getProperty(DISABLE_DIRECTORY_LISTING);
         disableDirectoryListing = disableListing == null ? false : Boolean.TRUE.equals(disableListing.asBoolean());
+    }
+
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+        ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
     @Override
@@ -417,6 +435,26 @@ public class SFTPTransfer implements FileTransfer {
             final Session session = jsch.getSession(username,
                 ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
                 ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
+
+            final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
+            switch (proxyConfig.getProxyType()) {
+                case HTTP:
+                    final ProxyHTTP proxyHTTP = new ProxyHTTP(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
+                    // Check if Username is set and populate the proxy accordingly
+                    if (proxyConfig.hasCredential()) {
+                        proxyHTTP.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                    }
+                    session.setProxy(proxyHTTP);
+                    break;
+                case SOCKS:
+                    final ProxySOCKS5 proxySOCKS5 = new ProxySOCKS5(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
+                    if (proxyConfig.hasCredential()) {
+                        proxySOCKS5.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                    }
+                    session.setProxy(proxySOCKS5);
+                    break;
+
+            }
 
             final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
             if (hostKeyVal != null) {

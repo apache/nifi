@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.queue.CloudQueue;
 import com.microsoft.azure.storage.queue.CloudQueueClient;
@@ -94,7 +95,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
 
     private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
             AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.PROP_SAS_TOKEN, QUEUE, AUTO_DELETE,
-            BATCH_SIZE, VISIBILITY_TIMEOUT));
+            BATCH_SIZE, VISIBILITY_TIMEOUT, AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -122,7 +123,11 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
         try {
             cloudQueueClient = createCloudQueueClient(context, null);
             cloudQueue = cloudQueueClient.getQueueReference(queue);
-            retrievedMessagesIterable = cloudQueue.retrieveMessages(batchSize, visibilityTimeoutInSecs, null, null);
+
+            final OperationContext operationContext = new OperationContext();
+            AzureStorageUtils.setProxy(operationContext, context);
+
+            retrievedMessagesIterable = cloudQueue.retrieveMessages(batchSize, visibilityTimeoutInSecs, null, operationContext);
         } catch (URISyntaxException | StorageException e) {
             getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}", new Object[] {e});
             context.yield();
@@ -183,6 +188,8 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
                                              .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs")
                                              .build());
         }
+
+        AzureStorageUtils.validateProxySpec(validationContext, problems);
 
         return problems;
     }
