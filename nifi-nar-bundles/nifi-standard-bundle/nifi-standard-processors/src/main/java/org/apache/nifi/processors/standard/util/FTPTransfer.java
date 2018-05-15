@@ -46,6 +46,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
 
 public class FTPTransfer implements FileTransfer {
 
@@ -522,12 +523,23 @@ public class FTPTransfer implements FileTransfer {
             }
         }
 
-        final Proxy.Type proxyType = Proxy.Type.valueOf(ctx.getProperty(PROXY_TYPE).getValue());
-        final String proxyHost = ctx.getProperty(PROXY_HOST).getValue();
-        final Integer proxyPort = ctx.getProperty(PROXY_PORT).asInteger();
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, () -> {
+            final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+            componentProxyConfig.setProxyType(Proxy.Type.valueOf(ctx.getProperty(PROXY_TYPE).getValue()));
+            componentProxyConfig.setProxyServerHost(ctx.getProperty(PROXY_HOST).getValue());
+            componentProxyConfig.setProxyServerPort(ctx.getProperty(PROXY_PORT).asInteger());
+            componentProxyConfig.setProxyUserName(ctx.getProperty(HTTP_PROXY_USERNAME).getValue());
+            componentProxyConfig.setProxyUserPassword(ctx.getProperty(HTTP_PROXY_PASSWORD).getValue());
+            return componentProxyConfig;
+        });
+
+        final Proxy.Type proxyType = proxyConfig.getProxyType();
+        final String proxyHost = proxyConfig.getProxyServerHost();
+        final Integer proxyPort = proxyConfig.getProxyServerPort();
+
         FTPClient client;
         if (proxyType == Proxy.Type.HTTP) {
-            client = new FTPHTTPClient(proxyHost, proxyPort, ctx.getProperty(HTTP_PROXY_USERNAME).getValue(), ctx.getProperty(HTTP_PROXY_PASSWORD).getValue());
+            client = new FTPHTTPClient(proxyHost, proxyPort, proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
         } else {
             client = new FTPClient();
             if (proxyType == Proxy.Type.SOCKS) {

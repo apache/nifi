@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"FTP", "get", "retrieve", "files", "fetch", "remote", "ingest", "source", "input"})
@@ -76,6 +77,7 @@ public class GetFTP extends GetFileTransfer {
         properties.add(FTPTransfer.MAX_SELECTS);
         properties.add(FTPTransfer.REMOTE_POLL_BATCH_SIZE);
         properties.add(FTPTransfer.USE_NATURAL_ORDERING);
+        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);

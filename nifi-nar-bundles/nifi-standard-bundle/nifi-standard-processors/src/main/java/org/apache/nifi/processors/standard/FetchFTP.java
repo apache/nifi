@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 // Note that we do not use @SupportsBatching annotation. This processor cannot support batching because it must ensure that session commits happen before remote files are deleted.
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -63,6 +64,7 @@ public class FetchFTP extends FetchFileTransfer {
         properties.add(FTPTransfer.USE_COMPRESSION);
         properties.add(FTPTransfer.CONNECTION_MODE);
         properties.add(FTPTransfer.TRANSFER_MODE);
+        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);

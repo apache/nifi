@@ -33,6 +33,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -79,6 +80,7 @@ public class ListFTP extends ListFileTransfer {
         properties.add(FTPTransfer.DATA_TIMEOUT);
         properties.add(FTPTransfer.CONNECTION_MODE);
         properties.add(FTPTransfer.TRANSFER_MODE);
+        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);

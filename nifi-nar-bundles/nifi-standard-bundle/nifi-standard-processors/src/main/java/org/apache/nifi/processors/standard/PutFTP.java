@@ -41,6 +41,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -89,6 +90,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
         properties.add(FTPTransfer.LAST_MODIFIED_TIME);
         properties.add(FTPTransfer.PERMISSIONS);
         properties.add(FTPTransfer.USE_COMPRESSION);
+        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
