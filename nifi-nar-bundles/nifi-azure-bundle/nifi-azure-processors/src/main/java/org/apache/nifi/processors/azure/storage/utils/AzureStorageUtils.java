@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.azure.storage.utils;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
@@ -29,6 +30,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -161,5 +163,10 @@ public final class AzureStorageUtils {
         }
 
         return results;
+    }
+
+    public static void setProxy(final OperationContext operationContext, final ProcessContext processContext) {
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(processContext);
+        operationContext.setProxy(proxyConfig.createProxy());
     }
 }

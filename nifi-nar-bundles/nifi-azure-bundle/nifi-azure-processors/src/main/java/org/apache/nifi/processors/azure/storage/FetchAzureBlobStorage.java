@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.microsoft.azure.storage.OperationContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -69,6 +70,9 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
+            final OperationContext operationContext = new OperationContext();
+            AzureStorageUtils.setProxy(operationContext, context);
+
             final Map<String, String> attributes = new HashMap<>();
             final CloudBlob blob = container.getBlockBlobReference(blobPath);
 
@@ -76,7 +80,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             // distribution of download over threads, investigate
             flowFile = session.write(flowFile, os -> {
                 try {
-                    blob.download(os);
+                    blob.download(os, null, null, operationContext);
                 } catch (StorageException e) {
                     storedException.set(e);
                     throw new IOException(e);

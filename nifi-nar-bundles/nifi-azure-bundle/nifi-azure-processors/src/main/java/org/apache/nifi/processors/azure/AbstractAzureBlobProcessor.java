@@ -24,6 +24,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,7 +60,8 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
                     AzureStorageUtils.PROP_SAS_TOKEN,
                     AzureStorageUtils.ACCOUNT_NAME,
                     AzureStorageUtils.ACCOUNT_KEY,
-                    BLOB));
+                    BLOB,
+                    ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(

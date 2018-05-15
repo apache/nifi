@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.queue.CloudQueue;
 import com.microsoft.azure.storage.queue.CloudQueueClient;
@@ -33,6 +34,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
@@ -70,7 +72,7 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
     private static final List<PropertyDescriptor> properties =  Collections.unmodifiableList(Arrays.asList(
             AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.PROP_SAS_TOKEN, TTL,
-            QUEUE, VISIBILITY_DELAY));
+            QUEUE, VISIBILITY_DELAY, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -101,7 +103,11 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
         try {
             cloudQueueClient = createCloudQueueClient(context, flowFile);
             cloudQueue = cloudQueueClient.getQueueReference(queue);
-            cloudQueue.addMessage(message, ttl, delay, null, null);
+
+            final OperationContext operationContext = new OperationContext();
+            AzureStorageUtils.setProxy(operationContext, context);
+
+            cloudQueue.addMessage(message, ttl, delay, null, operationContext);
         } catch (URISyntaxException | StorageException e) {
             getLogger().error("Failed to write the message to Azure Queue Storage due to {}", new Object[]{e});
             flowFile = session.penalize(flowFile);
