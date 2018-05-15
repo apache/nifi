@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"deeplearning4j", "dl4j", "predict", "classification", "regression", "deep", "learning"})
+@Tags({"deeplearning4j", "dl4j", "predict", "classification", "regression", "deep", "learning", "neural", "network"})
 @CapabilityDescription("The DeepLearning4JPredictor predicts one or more value(s) based on provided deeplearning4j (https://github.com/deeplearning4j) model and the content of a FlowFile. "
     + "The processor supports both classification and regression by extracting the record from the FlowFile body and applying the model. "
     + "The processor supports batch by allowing multiple records to be passed in the FlowFile body with each record separated by the 'Record Separator' property. "
