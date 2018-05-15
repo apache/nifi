@@ -29,7 +29,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processors.standard.util.JsonPathExpressionValidator;
 import org.apache.nifi.stream.io.BufferedInputStream;
 
 import java.io.IOException;
@@ -112,10 +111,10 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             String error = null;
             if (isStale(subject, input)) {
-                if (JsonPathExpressionValidator.isValidExpression(input)) {
+                try {
                     JsonPath compiledJsonPath = JsonPath.compile(input);
                     cacheComputedValue(subject, input, compiledJsonPath);
-                } else {
+                } catch (Exception ex) {
                     error = "specified expression was not valid: " + input;
                 }
             }
