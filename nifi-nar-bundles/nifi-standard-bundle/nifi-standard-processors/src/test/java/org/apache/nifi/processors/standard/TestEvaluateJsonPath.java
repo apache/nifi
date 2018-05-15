@@ -85,6 +85,9 @@ public class TestEvaluateJsonPath {
             testRunner.enqueue(JSON_SNIPPET);
             testRunner.assertValid();
         }
+
+        testRunner.setProperty("DefinitelyNotJsonPath", "   ");
+        testRunner.assertNotValid();
     }
 
     @Test
