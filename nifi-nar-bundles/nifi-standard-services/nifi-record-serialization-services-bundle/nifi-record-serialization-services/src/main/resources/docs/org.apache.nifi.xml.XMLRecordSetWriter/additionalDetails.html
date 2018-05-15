@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8"/>
+        <title>XMLRecordSetWriter</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    </head>
+
+    <body>
+    <p>
+        The XMLRecordSetWriter Controller Service writes record objects to XML. The Controller Service must be configured
+        with a schema that describes the structure of the record objects. Multiple records are wrapped by a root node.
+        The name of the root node can be configured via property. If no root node is configured, the writer expects
+        only one record for each FlowFile (that will not be wrapped). As Avro does not support defining attributes for
+        records, this writer currently does not support writing XML attributes.
+    </p>
+
+    <h2>
+        Example: Simple records
+    </h2>
+
+    <code>
+            <pre>
+                RecordSet (
+                  Record (
+                    Field "name1" = "value1",
+                    Field "name2" = 42
+                  ),
+                  Record (
+                    Field "name1" = "value2",
+                    Field "name2" = 84
+                  )
+                )
+            </pre>
+    </code>
+
+    <p>
+        This record can be described by the following schema:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "name": "test",
+                  "namespace": "nifi",
+                  "type": "record",
+                  "fields": [
+                    { "name": "name1", "type": "string" },
+                    { "name": "name2", "type": "int" }
+                  ]
+                }
+            </pre>
+    </code>
+
+    <p>
+        Assuming that "root_name" has been configured as the name for the root node and "record_name" has been configured
+        as the name for the record nodes, the writer will write the following XML:
+    </p>
+
+    <code>
+            <pre>
+                &lt;root_name&gt;
+                  &lt;record_name&gt;
+                    &lt;name1&gt;value1&lt;/name1&gt;
+                    &lt;name2&gt;42&lt;/name2&gt;
+                  &lt;/record_name&gt;
+                  &lt;record_name&gt;
+                    &lt;name1&gt;value2&lt;/name1&gt;
+                    &lt;name2&gt;84&lt;/name2&gt;
+                  &lt;/record_name&gt;
+                &lt;/root_name&gt;
+            </pre>
+    </code>
+
+    <p>
+        The writer furthermore can be configured how to treat null or missing values in records:
+    </p>
+
+    <code>
+            <pre>
+                RecordSet (
+                  Record (
+                    Field "name1" = "value1",
+                    Field "name2" = null
+                  ),
+                  Record (
+                    Field "name1" = "value2",
+                  )
+                )
+            </pre>
+    </code>
+
+    <p>
+        If the writer is configured always to suppress missing or null values, only the field of name "name1" will appear
+        in the XML. If the writer ist configured only to suppress missing values, the field of name "name2" will appear in
+        the XML as a node without content for the first record. If the writer is configured never to suppress anything,
+        the field of name "name2" will appear in the XML as a node without content for both records.
+    </p>
+
+    <h2>
+        Example: Arrays
+    </h2>
+
+    <p>
+        The writer furthermore can be configured how to write arrays:
+    </p>
+
+    <code>
+            <pre>
+                RecordSet (
+                  Record (
+                    Field "name1" = "value1",
+                    Field "array_field" = [ 1, 2, 3 ]
+                  )
+                )
+            </pre>
+    </code>
+
+    <p>
+        This record can be described by the following schema:
+    </p>
+
+    <code>
+            <pre>
+                {
+                  "name": "test",
+                  "namespace": "nifi",
+                  "type": "record",
+                  "fields": [
+                    { "name": "array_field", "type":
+                      { "type": "array", "items": int }
+                    },
+                    { "name": "name1", "type": "string" }
+                  ]
+                }
+            </pre>
+    </code>
+
+    <p>
+        If the writer is configured not to wrap arrays, it will transform the record to the following XML:
+    </p>
+
+    <code>
+            <pre>
+                &lt;root_name&gt;
+                  &lt;record_name&gt;
+                    &lt;name1&gt;value1&lt;/name1&gt;
+                    &lt;array_field&gt;1&lt;/array_field&gt;
+                    &lt;array_field&gt;2&lt;/array_field&gt;
+                    &lt;array_field&gt;3&lt;/array_field&gt;
+                  &lt;/record_name&gt;
+                &lt;/root_name&gt;
+            </pre>
+    </code>
+
+    <p>
+        If the writer is configured to wrap arrays using the field name as wrapper and "elem" as tag name for element nodes,
+        it will transform the record to the following XML:
+    </p>
+
+    <code>
+            <pre>
+                &lt;root_name&gt;
+                  &lt;record_name&gt;
+                    &lt;name1&gt;value1&lt;/field2&gt;
+                    &lt;array_field&gt;
+                      &lt;elem&gt;1&lt;/elem&gt;
+                      &lt;elem&gt;2&lt;/elem&gt;
+                      &lt;elem&gt;3&lt;/elem&gt;
+                    &lt;/array_field&gt;
+                  &lt;/record_name&gt;
+                &lt;/root_name&gt;
+            </pre>
+    </code>
+
+    <p>
+        If the writer is configured to wrap arrays using "wrap" as wrapper and the field name as tag name for element nodes,
+        it will transform the record to the following XML:
+    </p>
+
+    <code>
+            <pre>
+                &lt;root_name&gt;
+                  &lt;record_name&gt;
+                    &lt;name1&gt;value1&lt;/field2&gt;
+                    &lt;wrap&gt;
+                      &lt;array_field&gt;1&lt;/array_field&gt;
+                      &lt;array_field&gt;2&lt;/array_field&gt;
+                      &lt;array_field&gt;3&lt;/array_field&gt;
+                    &lt;/wrap&gt;
+                  &lt;/record_name&gt;
+                &lt;/root_name&gt;
+            </pre>
+    </code>
+
+    </body>
+</html>
