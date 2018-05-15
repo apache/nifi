@@ -167,9 +167,17 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
 
         final ComponentLog log = getLogger();
         final LivySessionService livySessionService = context.getProperty(LIVY_CONTROLLER_SERVICE).asControllerService(LivySessionService.class);
-        final Map<String, String> livyController = livySessionService.getSession();
-        if (livyController == null || livyController.isEmpty()) {
-            log.debug("No Spark session available (yet), routing flowfile to wait");
+        final Map<String, String> livyController;
+        try {
+            livyController = livySessionService.getSession();
+            if (livyController == null || livyController.isEmpty()) {
+                log.debug("No Spark session available (yet), routing flowfile to wait");
+                session.transfer(flowFile, REL_WAIT);
+                context.yield();
+                return;
+            }
+        } catch (IOException ioe) {
+            log.error("Error opening spark session, routing flowfile to wait", ioe);
             session.transfer(flowFile, REL_WAIT);
             context.yield();
             return;

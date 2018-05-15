@@ -70,7 +70,6 @@ import org.apache.nifi.hadoop.KerberosKeytabCredentials;
 import org.apache.nifi.hadoop.KerberosKeytabSPNegoAuthSchemeProvider;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -191,6 +190,7 @@ public class LivySessionController extends AbstractControllerService implements 
     private volatile Thread livySessionManagerThread = null;
     private volatile boolean enabled = true;
     private volatile KerberosCredentialsService credentialsService;
+    private volatile Exception sessionManagerError;
 
     private List<PropertyDescriptor> properties;
 
@@ -241,8 +241,10 @@ public class LivySessionController extends AbstractControllerService implements 
             while (enabled) {
                 try {
                     manageSessions();
+                    sessionManagerError = null;
                 } catch (Exception e) {
                     getLogger().error("Livy Session Manager Thread run into an error, but continues to run", e);
+                    sessionManagerError = e;
                 }
                 try {
                     Thread.sleep(sessionManagerStatusInterval);
@@ -270,7 +272,9 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @Override
-    public Map<String, String> getSession() {
+    public Map<String, String> getSession() throws IOException {
+        checkSessionManagerError();
+
         Map<String, String> sessionMap = new HashMap<>();
         try {
             final Map<Integer, JSONObject> sessionsCopy = sessions;
@@ -281,6 +285,7 @@ public class LivySessionController extends AbstractControllerService implements 
                 if (state.equalsIgnoreCase("idle") && sessionKind.equalsIgnoreCase(controllerKind)) {
                     sessionMap.put("sessionId", String.valueOf(sessionId));
                     sessionMap.put("livyUrl", livyUrl);
+                    break;
                 }
             }
         } catch (JSONException e) {
@@ -291,6 +296,11 @@ public class LivySessionController extends AbstractControllerService implements 
 
     @Override
     public HttpClient getConnection(String urlString) throws IOException {
+        checkSessionManagerError();
+        return openConnection(urlString);
+    }
+
+    private HttpClient openConnection(String urlString) throws IOException {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
         if (sslContextService != null) {
@@ -483,7 +493,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     private JSONObject readJSONObjectFromUrlPOST(String urlString, Map<String, String> headers, String payload) throws IOException, JSONException {
-        HttpClient httpClient = getConnection(urlString);
+        HttpClient httpClient = openConnection(urlString);
 
         HttpPost request = new HttpPost(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -502,7 +512,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     private JSONObject readJSONFromUrl(String urlString, Map<String, String> headers) throws IOException, JSONException {
-        HttpClient httpClient = getConnection(urlString);
+        HttpClient httpClient = openConnection(urlString);
 
         HttpGet request = new HttpGet(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -549,6 +559,13 @@ public class LivySessionController extends AbstractControllerService implements 
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
 
         return sslContext;
+    }
+
+    private void checkSessionManagerError() throws IOException {
+        Exception exception = sessionManagerError;
+        if (exception != null) {
+            throw new IOException(exception);
+        }
     }
 
 }

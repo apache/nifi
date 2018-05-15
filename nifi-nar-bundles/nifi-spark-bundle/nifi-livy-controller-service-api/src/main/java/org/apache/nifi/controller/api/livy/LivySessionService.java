@@ -26,7 +26,7 @@ public interface LivySessionService extends ControllerService {
     String APPLICATION_JSON = "application/json";
     String USER = "nifi";
 
-    Map<String, String> getSession();
+    Map<String, String> getSession() throws IOException;
 
     HttpClient getConnection(String urlString) throws IOException;
 }
