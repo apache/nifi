@@ -147,14 +147,6 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .allowableValues(NONE, CURRENT_TIME)
             .defaultValue(NONE.getValue())
             .build();
-    static final PropertyDescriptor AUTHORIZATIONS = new PropertyDescriptor.Builder()
-            .name("hbase-fetch-row-authorizations")
-            .displayName("Authorizations")
-            .description("The list of authorizations to pass to the scanner. This will be ignored if cell visibility labels are not in use.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(Validator.VALID)
-            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
