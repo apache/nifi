@@ -62,7 +62,7 @@ public class DataTypeUtils {
 
     private static final String Base10Digits = "\\d+";
     private static final String Base10Decimal = "\\." + Base10Digits;
-    private static final String OptionalBase10Decimal = "(" + Base10Decimal + ")?";
+    private static final String OptionalBase10Decimal = "(\\.\\d*)?";
 
     private static final String Base10Exponent = "[eE]" + OptionalSign + Base10Digits;
     private static final String OptionalBase10Exponent = "(" + Base10Exponent + ")?";
@@ -376,6 +376,7 @@ public class DataTypeUtils {
      * @param dataType The type of the provided object
      * @return An object representing a native Java conversion of the given input object
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static Object convertRecordFieldtoObject(final Object value, final DataType dataType) {
 
         if (value == null) {
