@@ -229,20 +229,12 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * that this processor can be started. This is idempotent operation and will
      * result in the WARN message if processor can not be enabled.
      */
-    public void enable() {
-        if (!this.scheduledState.compareAndSet(ScheduledState.DISABLED, ScheduledState.STOPPED)) {
-            logger.warn("Processor cannot be enabled because it is not disabled");
-        }
-    }
+    public abstract void enable();
 
     /**
      * Will set the state of the processor to DISABLED which essentially implies
      * that this processor can NOT be started. This is idempotent operation and
      * will result in the WARN message if processor can not be enabled.
      */
-    public void disable() {
-        if (!this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED)) {
-            logger.warn("Processor cannot be disabled because its state is set to " + this.scheduledState);
-        }
-    }
+    public abstract void disable();
 }

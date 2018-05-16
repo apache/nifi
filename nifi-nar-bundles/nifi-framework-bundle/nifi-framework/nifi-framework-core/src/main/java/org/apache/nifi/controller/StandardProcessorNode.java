@@ -1268,6 +1268,31 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    @Override
+    public void enable() {
+        desiredState = ScheduledState.STOPPED;
+        final boolean updated = scheduledState.compareAndSet(ScheduledState.DISABLED, ScheduledState.STOPPED);
+
+        if (updated) {
+            LOG.info("{} enabled so ScheduledState transitioned from DISABLED to STOPPED", this);
+        } else {
+            LOG.info("{} enabled but not currently DISABLED so set desired state to STOPPED; current state is {}", this, scheduledState.get());
+        }
+    }
+
+    @Override
+    public void disable() {
+        desiredState = ScheduledState.DISABLED;
+        final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
+
+        if (updated) {
+            LOG.info("{} disabled so ScheduledState transitioned from STOPPED to DISABLED", this);
+        } else {
+            LOG.info("{} disabled but not currently STOPPED so set desired state to DISABLED; current state is {}", this, scheduledState.get());
+        }
+    }
+
+
     /**
      * Will idempotently start the processor using the following sequence: <i>
      * <ul>
@@ -1453,11 +1478,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         deactivateThread();
                     }
 
-                    if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
+                    if (desiredState == ScheduledState.RUNNING && scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
                         LOG.debug("Successfully completed the @OnScheduled methods of {}; will now start triggering processor to run", processor);
                         schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
                     } else {
-                        LOG.debug("Successfully invoked @OnScheduled methods of {} but scheduled state is no longer STARTING so will stop processor now", processor);
+                        LOG.info("Successfully invoked @OnScheduled methods of {} but scheduled state is no longer STARTING so will stop processor now; current state = {}, desired state = {}",
+                            processor, scheduledState.get(), desiredState);
 
                         // can only happen if stopProcessor was called before service was transitioned to RUNNING state
                         activateThread();
@@ -1470,6 +1496,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         }
 
                         scheduledState.set(ScheduledState.STOPPED);
+
+                        if (desiredState == ScheduledState.DISABLED) {
+                            final boolean disabled = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
+                            if (disabled) {
+                                LOG.info("After stopping {}, determined that Desired State is DISABLED so disabled processor", processor);
+                            }
+                        }
                     }
                 } finally {
                     schedulingAgentCallback.onTaskComplete();
@@ -1603,8 +1636,19 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             // the Processor is to be running. However, if the Processor is already in the process of stopping, we cannot immediately
                             // start running the Processor. As a result, we check here, since the Processor is stopped, and then immediately start the
                             // Processor if need be.
-                            if (desiredState == ScheduledState.RUNNING) {
+                            final ScheduledState desired = StandardProcessorNode.this.desiredState;
+                            if (desired == ScheduledState.RUNNING) {
+                                LOG.info("Finished stopping {} but desired state is now RUNNING so will start processor", this);
                                 processScheduler.startProcessor(StandardProcessorNode.this, true);
+                            } else if (desired == ScheduledState.DISABLED) {
+                                final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
+
+                                if (updated) {
+                                    LOG.info("Finished stopping {} but desired state is now DISABLED so disabled processor", this);
+                                } else {
+                                    LOG.info("Finished stopping {} but desired state is now DISABLED. Scheduled State could not be transitioned from STOPPED to DISABLED, "
+                                        + "though, so will allow the other thread to finish state transition. Current state is {}", this, scheduledState.get());
+                                }
                             }
                         } else {
                             // Not all of the active threads have finished. Try again in 100 milliseconds.
