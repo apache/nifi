@@ -331,6 +331,25 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testEmbeddedReads() {
+        FlowFile ff1 = session.write(session.create(), out -> out.write(new byte[] {'A', 'B'}));
+        FlowFile ff2 = session.write(session.create(), out -> out.write('C'));
+
+        session.read(ff1, in1 -> {
+            int a = in1.read();
+            assertEquals('A', a);
+
+            session.read(ff2, in2 -> {
+                int c = in2.read();
+                assertEquals('C', c);
+            });
+
+            int b = in1.read();
+            assertEquals('B', b);
+        });
+    }
+
+    @Test
     public void testCloneOriginalDataLarger() throws IOException {
         final byte[] originalContent = "hello there 12345".getBytes();
         final byte[] replacementContent = "NEW DATA".getBytes();
