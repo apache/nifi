@@ -2140,12 +2140,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
 
                 currentReadClaim = claim;
-                currentReadClaimStream = new ByteCountingInputStream(rawInStream);
-                StreamUtils.skip(currentReadClaimStream, offset);
 
                 // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
                 // reuse the same InputStream for the next FlowFile
-                return new DisableOnCloseInputStream(currentReadClaimStream);
+                final InputStream disableOnClose = new DisableOnCloseInputStream(rawInStream);
+
+                currentReadClaimStream = new ByteCountingInputStream(disableOnClose);
+                StreamUtils.skip(currentReadClaimStream, offset);
+
+                return currentReadClaimStream;
             } else {
                 claimCache.flush(claim);
                 final InputStream rawInStream = context.getContentRepository().read(claim);
@@ -2173,7 +2176,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     @Override
     public void read(final FlowFile source, final InputStreamCallback reader) {
-        read(source, false, reader);
+        read(source, true, reader);
     }
 
     @Override
@@ -2208,7 +2211,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 reader.process(createTaskTerminationStream(ffais));
 
                 // Allow processors to close the file after reading to avoid too many files open or do smart session stream management.
-                if (this.currentReadClaimStream != null && !allowSessionStreamManagement) {
+                if (rawIn == currentReadClaimStream && !allowSessionStreamManagement) {
                     currentReadClaimStream.close();
                     currentReadClaimStream = null;
                 }
