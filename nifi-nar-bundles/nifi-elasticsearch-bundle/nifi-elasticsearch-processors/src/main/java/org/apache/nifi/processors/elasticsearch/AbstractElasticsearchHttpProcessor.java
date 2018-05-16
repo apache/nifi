@@ -91,6 +91,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .description("Proxy Username")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
             .name("proxy-password")
@@ -99,6 +100,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
@@ -169,8 +171,8 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             okHttpClient.proxy(proxy);
         }
 
-        final String proxyUsername = context.getProperty(PROXY_USERNAME).getValue();
-        final String proxyPassword = context.getProperty(PROXY_PASSWORD).getValue();
+        final String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+        final String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
 
         if (proxyUsername != null && proxyPassword != null){
             okHttpClient.proxyAuthenticator(new Authenticator() {
