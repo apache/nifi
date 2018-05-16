@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -33,7 +34,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .displayName("HTTP Hosts")
             .description("A comma-separated list of HTTP hosts that host ElasticSearch query nodes.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -49,7 +50,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .displayName("Username")
             .description("The username to use with XPack security.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -58,7 +59,7 @@ public interface ElasticSearchClientService extends ControllerService {
             .description("The password to use with XPack security.")
             .required(false)
             .sensitive(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
