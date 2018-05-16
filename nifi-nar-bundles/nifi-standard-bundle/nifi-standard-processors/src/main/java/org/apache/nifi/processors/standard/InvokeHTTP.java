@@ -233,7 +233,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .displayName("Proxy Type")
             .description("The type of the proxy we are connecting to. Must be either " + HTTP + " or " + HTTPS)
             .defaultValue(HTTP)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
