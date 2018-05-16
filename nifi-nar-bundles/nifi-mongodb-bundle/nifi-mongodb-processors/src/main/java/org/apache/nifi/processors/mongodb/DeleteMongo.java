@@ -128,7 +128,7 @@ public class DeleteMongo extends AbstractMongoProcessor {
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         final WriteConcern writeConcern = getWriteConcern(context);
-        final MongoCollection<Document> collection = getCollection(context).withWriteConcern(writeConcern);
+        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
         final String deleteMode = context.getProperty(DELETE_MODE).getValue();
         final String deleteAttr = flowFile.getAttribute("mongodb.delete.mode");
         final Boolean failMode  = context.getProperty(FAIL_ON_NO_DELETE).asBoolean();

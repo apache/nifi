@@ -35,6 +35,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -142,7 +143,7 @@ public class ValidateRecord extends AbstractProcessor {
         .displayName("Schema Name")
         .description("Specifies the name of the schema to lookup in the Schema Registry property")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${schema.name}")
         .required(false)
         .build();
@@ -151,7 +152,7 @@ public class ValidateRecord extends AbstractProcessor {
         .displayName("Schema Text")
         .description("The text of an Avro-formatted Schema")
         .addValidator(new AvroSchemaValidator())
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${avro.schema}")
         .required(false)
         .build();

@@ -113,7 +113,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context).withWriteConcern(writeConcern);
+        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
 
         List<Document> inserts = new ArrayList<>();
         int ceiling = context.getProperty(INSERT_COUNT).asInteger();
