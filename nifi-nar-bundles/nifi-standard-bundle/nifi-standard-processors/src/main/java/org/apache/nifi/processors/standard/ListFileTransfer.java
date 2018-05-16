@@ -23,9 +23,11 @@ import java.text.SimpleDateFormat;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import java.util.Map;
@@ -41,20 +43,20 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .description("The fully qualified hostname or IP address of the remote system")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     static final PropertyDescriptor UNDEFAULTED_PORT = new PropertyDescriptor.Builder()
         .name("Port")
         .description("The port to connect to on the remote host to fetch the data from")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(true)
         .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
         .name("Username")
         .description("Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(true)
         .build();
     public static final PropertyDescriptor REMOTE_PATH = new PropertyDescriptor.Builder()
@@ -62,7 +64,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .description("The path on the remote system from which to pull or push files")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue(".")
         .build();
 
@@ -78,6 +80,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         attributes.put(ListFile.FILE_PERMISSIONS_ATTRIBUTE, fileInfo.getPermissions());
         attributes.put(ListFile.FILE_OWNER_ATTRIBUTE, fileInfo.getOwner());
         attributes.put(ListFile.FILE_GROUP_ATTRIBUTE, fileInfo.getGroup());
+        attributes.put(ListFile.FILE_SIZE_ATTRIBUTE, Long.toString(fileInfo.getSize()));
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
         final String fullPath = fileInfo.getFullPathFileName();
         if (fullPath != null) {
@@ -92,7 +95,7 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
 
     @Override
     protected String getPath(final ProcessContext context) {
-        return context.getProperty(REMOTE_PATH).getValue();
+        return context.getProperty(REMOTE_PATH).evaluateAttributeExpressions().getValue();
     }
 
     @Override

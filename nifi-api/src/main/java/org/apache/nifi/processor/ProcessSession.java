@@ -135,10 +135,17 @@ public interface ProcessSession {
      * {@link #read(FlowFile, InputStreamCallback)}, {@link #read(FlowFile, boolean, InputStreamCallback)} for any of
      * the given FlowFiles.</li>
      * <li>No InputStream can be open for the content of any of the given FlowFiles (see {@link #read(FlowFile)}).</li>
-     * <li>Each of the FlowFiles provided must be the most up-to-date copy of the FlowFile.</li>
+     * <li>No OutputStream can be open for the content of any of the given FlowFiles (see {@link #write(FlowFile)}.</li>
      * <li>For any provided FlowFile, if the FlowFile has any child (e.g., by calling {@link #create(FlowFile)} and passing the FlowFile
      * as the argument), then all children that were created must also be in the Collection of provided FlowFiles.</li>
      * </ul>
+     *
+     * <p>
+     * Also note, that if any FlowFile given is not the most up-to-date version of that FlowFile, then the most up-to-date
+     * version of the FlowFile will be migrated to the new owner. For example, if a call to {@link #putAttribute(FlowFile, String, String)} is made,
+     * passing <code>flowFile1</code> as the FlowFile, and then <code>flowFile1</code> is passed to this method, then the newest version (including the
+     * newly added attribute) will be migrated, not the outdated version of the FlowFile that <code>flowFile1</code> points to.
+     * </p>
      *
      * @param newOwner the ProcessSession that is to become the new owner of all FlowFiles
      *            that currently belong to {@code this}.
@@ -528,8 +535,11 @@ public interface ProcessSession {
      * @param source flowfile to retrieve content of
      * @param reader that will be called to read the flowfile content
      * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
+     *             called from within a write callback of another method (i.e., from within the callback
+     *             that is passed to {@link #write(FlowFile, OutputStreamCallback)} or {@link #write(FlowFile, StreamCallback)})
+     *             or has an OutputStream open (via a call to {@link #write(FlowFile)}) in this session and for
+     *             the given FlowFile(s). Said another way, it is not permissible to call this method while writing to
+     *             the same FlowFile.
      * @throws FlowFileHandlingException if the given FlowFile is already
      *             transferred or removed or doesn't belong to this session. Automatic
      *             rollback will occur.
@@ -557,8 +567,11 @@ public interface ProcessSession {
      * @param flowFile the FlowFile to read
      * @return an InputStream that can be used to read the contents of the FlowFile
      * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
+     *             called from within a write callback of another method (i.e., from within the callback
+     *             that is passed to {@link #write(FlowFile, OutputStreamCallback)} or {@link #write(FlowFile, StreamCallback)})
+     *             or has an OutputStream open (via a call to {@link #write(FlowFile)}) in this session and for
+     *             the given FlowFile(s). Said another way, it is not permissible to call this method while writing to
+     *             the same FlowFile.
      * @throws FlowFileHandlingException if the given FlowFile is already
      *             transferred or removed or doesn't belong to this session. Automatic
      *             rollback will occur.
@@ -580,8 +593,11 @@ public interface ProcessSession {
      * @param allowSessionStreamManagement allow session to hold the stream open for performance reasons
      * @param reader that will be called to read the flowfile content
      * @throws IllegalStateException if detected that this method is being
-     *             called from within a callback of another method in this session and for
-     *             the given FlowFile(s)
+     *             called from within a write callback of another method (i.e., from within the callback
+     *             that is passed to {@link #write(FlowFile, OutputStreamCallback)} or {@link #write(FlowFile, StreamCallback)})
+     *             or has an OutputStream open (via a call to {@link #write(FlowFile)}) in this session and for
+     *             the given FlowFile(s). Said another way, it is not permissible to call this method while writing to
+     *             the same FlowFile.
      * @throws FlowFileHandlingException if the given FlowFile is already
      *             transferred or removed or doesn't belong to this session. Automatic
      *             rollback will occur.
@@ -664,7 +680,8 @@ public interface ProcessSession {
      * @return updated FlowFile
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
-     * the given FlowFile(s)
+     * the given FlowFile(s), or if there is an open InputStream or OutputStream for the FlowFile's content
+     * (see {@link #read(FlowFile)} and {@link #write(FlowFile)}).
      * @throws FlowFileHandlingException if the given FlowFile is already
      * transferred or removed or doesn't belong to this session. Automatic
      * rollback will occur.
@@ -680,6 +697,32 @@ public interface ProcessSession {
     FlowFile write(FlowFile source, OutputStreamCallback writer) throws FlowFileAccessException;
 
     /**
+     * Provides an OutputStream that can be used to write to the contents of the
+     * given FlowFile.
+     *
+     * @param source to write to
+     *
+     * @return an OutputStream that can be used to write to the contents of the FlowFile
+     *
+     * @throws IllegalStateException if detected that this method is being
+     * called from within a callback of another method in this session and for
+     * the given FlowFile(s), or if there is an open InputStream or OutputStream for the FlowFile's content
+     * (see {@link #read(FlowFile)}).
+     * @throws FlowFileHandlingException if the given FlowFile is already
+     * transferred or removed or doesn't belong to this session. Automatic
+     * rollback will occur.
+     * @throws MissingFlowFileException if the given FlowFile content cannot be
+     * found. The FlowFile should no longer be referenced, will be internally
+     * destroyed, and the session is automatically rolled back and what is left
+     * of the FlowFile is destroyed.
+     * @throws FlowFileAccessException if some IO problem occurs accessing
+     * FlowFile content; if an attempt is made to access the OutputStream
+     * provided to the given OutputStreamCallaback after this method completed
+     * its execution
+     */
+    OutputStream write(FlowFile source);
+
+    /**
      * Executes the given callback against the content corresponding to the
      * given flow file.
      *
@@ -692,7 +735,8 @@ public interface ProcessSession {
      * @return updated FlowFile
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
-     * the given FlowFile(s)
+     * the given FlowFile(s), or if there is an open InputStream or OutputStream for the FlowFile's content
+     * (see {@link #read(FlowFile)} and {@link #write(FlowFile)}).
      * @throws FlowFileHandlingException if the given FlowFile is already
      * transferred or removed or doesn't belong to this session. Automatic
      * rollback will occur.
@@ -721,6 +765,10 @@ public interface ProcessSession {
      * @throws FlowFileAccessException if an attempt is made to access the
      * OutputStream provided to the given OutputStreamCallaback after this
      * method completed its execution
+     * @throws IllegalStateException if detected that this method is being
+     * called from within a callback of another method in this session and for
+     * the given FlowFile(s), or if there is an open InputStream or OutputStream for the FlowFile's content
+     * (see {@link #read(FlowFile)} and {@link #write(FlowFile)}).
      */
     FlowFile append(FlowFile source, OutputStreamCallback writer) throws FlowFileAccessException;
 

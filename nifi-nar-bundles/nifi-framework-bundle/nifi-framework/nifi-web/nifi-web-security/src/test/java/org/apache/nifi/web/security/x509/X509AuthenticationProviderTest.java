@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.web.security.x509;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.security.Principal;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -44,6 +30,21 @@ import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.security.Principal;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class X509AuthenticationProviderTest {
 
@@ -190,7 +191,7 @@ public class X509AuthenticationProviderTest {
         String identity = "someone";
 
         // Act
-        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, true);
+        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, true);
 
         // Assert
         assert user != null;
@@ -205,7 +206,7 @@ public class X509AuthenticationProviderTest {
         String identity = "someone";
 
         // Act
-        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, false);
+        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, false);
 
         // Assert
         assert user != null;

@@ -28,10 +28,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TestFetchDistributedMapCache {
 
@@ -62,6 +66,19 @@ public class TestFetchDistributedMapCache {
         // no cache key attribute
         runner.assertAllFlowFilesTransferred(FetchDistributedMapCache.REL_NOT_FOUND, 1);
         runner.assertTransferCount(FetchDistributedMapCache.REL_NOT_FOUND, 1);
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testNoCacheKeyValue() throws InitializationException {
+
+        runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
+        runner.enqueue(new byte[] {});
+        runner.run();
+
+        // Cache key attribute evaluated to empty
+        runner.assertAllFlowFilesTransferred(FetchDistributedMapCache.REL_FAILURE, 1);
+        runner.assertTransferCount(FetchDistributedMapCache.REL_FAILURE, 1);
         runner.clearTransferState();
     }
 
@@ -147,6 +164,51 @@ public class TestFetchDistributedMapCache {
         runner.clearTransferState();
     }
 
+    @Test
+    public void testMultipleKeysToAttributes() throws InitializationException, IOException {
+        service.put("key1","value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        service.put("key2","value2", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "key1, key2");
+        // Not valid to set multiple keys without Put Cache Value In Attribute set
+        runner.assertNotValid();
+        runner.setProperty(FetchDistributedMapCache.PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE, "test");
+        runner.assertValid();
+
+        final Map<String, String> props = new HashMap<>();
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(FetchDistributedMapCache.REL_SUCCESS, 1);
+        runner.assertTransferCount(FetchDistributedMapCache.REL_SUCCESS, 1);
+
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_SUCCESS).get(0);
+        outputFlowFile.assertAttributeEquals("test.key1","value1");
+        outputFlowFile.assertAttributeEquals("test.key2","value2");
+    }
+
+    @Test
+    public void testMultipleKeysOneNotFound() throws InitializationException, IOException {
+        service.put("key1","value1", new FetchDistributedMapCache.StringSerializer(), new FetchDistributedMapCache.StringSerializer());
+        runner.setProperty(FetchDistributedMapCache.PROP_CACHE_ENTRY_IDENTIFIER, "key1, key2");
+        // Not valid to set multiple keys without Put Cache Value In Attribute set
+        runner.assertNotValid();
+        runner.setProperty(FetchDistributedMapCache.PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE, "test");
+        runner.assertValid();
+
+        final Map<String, String> props = new HashMap<>();
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(FetchDistributedMapCache.REL_NOT_FOUND, 1);
+        runner.assertTransferCount(FetchDistributedMapCache.REL_NOT_FOUND, 1);
+
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(FetchDistributedMapCache.REL_NOT_FOUND).get(0);
+        outputFlowFile.assertAttributeEquals("test.key1","value1");
+    }
+
+
     private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
@@ -209,6 +271,23 @@ public class TestFetchDistributedMapCache {
             verifyNotFail();
             values.remove(key);
             return true;
+        }
+
+        @Override
+        public long removeByPattern(String regex) throws IOException {
+            verifyNotFail();
+            final List<Object> removedRecords = new ArrayList<>();
+            Pattern p = Pattern.compile(regex);
+            for (Object key : values.keySet()) {
+                // Key must be backed by something that can be converted into a String
+                Matcher m = p.matcher(key.toString());
+                if (m.matches()) {
+                    removedRecords.add(values.get(key));
+                }
+            }
+            final long numRemoved = removedRecords.size();
+            removedRecords.forEach(values::remove);
+            return numRemoved;
         }
     }
 

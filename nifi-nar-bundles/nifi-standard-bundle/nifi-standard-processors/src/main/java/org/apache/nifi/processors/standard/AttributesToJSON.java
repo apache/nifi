@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Collections;
@@ -76,6 +77,19 @@ public class AttributesToJSON extends AbstractProcessor {
                     "case sensitive. If an attribute specified in the list is not found it will be be emitted " +
                     "to the resulting JSON with an empty string or NULL value.")
             .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+
+    public static final PropertyDescriptor ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
+            .name("attributes-to-json-regex")
+            .displayName("Attributes Regular Expression")
+            .description("Regular expression that will be evaluated against the flow file attributes to select "
+                    + "the matching attributes. This property can be used in combination with the attributes "
+                    + "list property.")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -120,11 +134,13 @@ public class AttributesToJSON extends AbstractProcessor {
     private volatile Set<String> attributes;
     private volatile Boolean nullValueForEmptyString;
     private volatile boolean destinationContent;
+    private volatile Pattern pattern;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ATTRIBUTES_LIST);
+        properties.add(ATTRIBUTES_REGEX);
         properties.add(DESTINATION);
         properties.add(INCLUDE_CORE_ATTRIBUTES);
         properties.add(NULL_VALUE_FOR_EMPTY_STRING);
@@ -153,17 +169,27 @@ public class AttributesToJSON extends AbstractProcessor {
      * @return
      *  Map of values that are feed to a Jackson ObjectMapper
      */
-    protected Map<String, String> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Set<String> attributesToRemove, boolean nullValForEmptyString) {
+    protected Map<String, String> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Set<String> attributesToRemove,
+            boolean nullValForEmptyString, Pattern attPattern) {
         Map<String, String> result;
         //If list of attributes specified get only those attributes. Otherwise write them all
-        if (attributes != null) {
-            result = new HashMap<>(attributes.size());
-            for (String attribute : attributes) {
-                String val = ff.getAttribute(attribute);
-                if (val != null || nullValForEmptyString) {
-                    result.put(attribute, val);
-                } else {
-                    result.put(attribute, "");
+        if (attributes != null || attPattern != null) {
+            result = new HashMap<>();
+            if(attributes != null) {
+                for (String attribute : attributes) {
+                    String val = ff.getAttribute(attribute);
+                    if (val != null || nullValForEmptyString) {
+                        result.put(attribute, val);
+                    } else {
+                        result.put(attribute, "");
+                    }
+                }
+            }
+            if(attPattern != null) {
+                for (Map.Entry<String, String> e : ff.getAttributes().entrySet()) {
+                    if(attPattern.matcher(e.getKey()).matches()) {
+                        result.put(e.getKey(), e.getValue());
+                    }
                 }
             }
         } else {
@@ -204,6 +230,9 @@ public class AttributesToJSON extends AbstractProcessor {
         attributes = buildAtrs(context.getProperty(ATTRIBUTES_LIST).getValue(), attributesToRemove);
         nullValueForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
         destinationContent = DESTINATION_CONTENT.equals(context.getProperty(DESTINATION).getValue());
+        if(context.getProperty(ATTRIBUTES_REGEX).isSet()) {
+            pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());
+        }
     }
 
     @Override
@@ -213,7 +242,7 @@ public class AttributesToJSON extends AbstractProcessor {
             return;
         }
 
-        final Map<String, String> atrList = buildAttributesMapForFlowFile(original, attributes, attributesToRemove, nullValueForEmptyString);
+        final Map<String, String> atrList = buildAttributesMapForFlowFile(original, attributes, attributesToRemove, nullValueForEmptyString, pattern);
 
         try {
             if (destinationContent) {

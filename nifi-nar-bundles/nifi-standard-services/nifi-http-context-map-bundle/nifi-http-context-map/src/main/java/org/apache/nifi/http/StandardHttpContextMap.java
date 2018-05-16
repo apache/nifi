@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.AsyncContext;
@@ -35,9 +36,11 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"http", "request", "response"})
@@ -59,7 +62,7 @@ public class StandardHttpContextMap extends AbstractControllerService implements
             .name("Request Expiration")
             .description("Specifies how long an HTTP Request should be left unanswered before being evicted from the cache and being responded to with a Service Unavailable status code")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("1 min")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -81,13 +84,21 @@ public class StandardHttpContextMap extends AbstractControllerService implements
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
         maxSize = context.getProperty(MAX_OUTSTANDING_REQUESTS).asInteger();
-        executor = Executors.newSingleThreadScheduledExecutor();
+        executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread thread = Executors.defaultThreadFactory().newThread(r);
+                thread.setName("StandardHttpContextMap-" + getIdentifier());
+                return thread;
+            }
+        });
 
         maxRequestNanos = context.getProperty(REQUEST_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
         final long scheduleNanos = maxRequestNanos / 2;
         executor.scheduleWithFixedDelay(new CleanupExpiredRequests(), scheduleNanos, scheduleNanos, TimeUnit.NANOSECONDS);
     }
 
+    @OnShutdown
     @OnDisabled
     public void cleanup() {
         if (executor != null) {
@@ -183,5 +194,10 @@ public class StandardHttpContextMap extends AbstractControllerService implements
                 }
             }
         }
+    }
+
+    @Override
+    public long getRequestTimeout(final TimeUnit timeUnit) {
+        return timeUnit.convert(maxRequestNanos, TimeUnit.NANOSECONDS);
     }
 }

@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
 public class WriteAheadStorePartition implements EventStorePartition {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadStorePartition.class);
 
-
     private final RepositoryConfiguration config;
     private final File partitionDirectory;
     private final String partitionName;
@@ -253,30 +252,12 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final long nextEventId = idGenerator.get();
         final File updatedEventFile = new File(partitionDirectory, nextEventId + ".prov");
         final RecordWriter updatedWriter = recordWriterFactory.createWriter(updatedEventFile, idGenerator, false, true);
+        updatedWriter.writeHeader(nextEventId);
+
         final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount());
         final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
 
-        if (updated) {
-            updatedWriter.writeHeader(nextEventId);
-
-            synchronized (minEventIdToPathMap) {
-                minEventIdToPathMap.put(nextEventId, updatedEventFile);
-            }
-
-            if (config.isCompressOnRollover() && lease != null && lease.getWriter() != null) {
-                boolean offered = false;
-                while (!offered && !closed) {
-                    try {
-                        offered = filesToCompress.offer(lease.getWriter().getFile(), 1, TimeUnit.SECONDS);
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Interrupted while waiting to enqueue " + lease.getWriter().getFile() + " for compression");
-                    }
-                }
-            }
-
-            return true;
-        } else {
+        if (!updated) {
             try {
                 updatedWriter.close();
             } catch (final Exception e) {
@@ -286,6 +267,28 @@ public class WriteAheadStorePartition implements EventStorePartition {
             updatedEventFile.delete();
             return false;
         }
+
+        if (lease != null) {
+            lease.close();
+        }
+
+        synchronized (minEventIdToPathMap) {
+            minEventIdToPathMap.put(nextEventId, updatedEventFile);
+        }
+
+        if (config.isCompressOnRollover() && lease != null && lease.getWriter() != null) {
+            boolean offered = false;
+            while (!offered && !closed) {
+                try {
+                    offered = filesToCompress.offer(lease.getWriter().getFile(), 1, TimeUnit.SECONDS);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted while waiting to enqueue " + lease.getWriter().getFile() + " for compression");
+                }
+            }
+        }
+
+        return true;
     }
 
     private Map<ProvenanceEventRecord, StorageSummary> addEvents(final Iterable<ProvenanceEventRecord> events, final RecordWriter writer) throws IOException {
@@ -622,6 +625,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
         } catch (final IOException e) {
             logger.error("Failed to re-index Provenance Events for partition " + partitionName, e);
         }
+
+        executor.shutdown();
 
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         final long seconds = millis / 1000L;

@@ -67,6 +67,8 @@
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
             this.activeThreadCount = "-";
+            this.terminatedThreadCount = "-";
+            this.threadCounts = "-";
             this.totalQueued = "-";
             this.controllerTransmittingCount = "-";
             this.controllerNotTransmittingCount = "-";
@@ -74,6 +76,11 @@
             this.controllerStoppedCount = "-";
             this.controllerInvalidCount = "-";
             this.controllerDisabledCount = "-";
+            this.controllerUpToDateCount = "-";
+            this.controllerLocallyModifiedCount = "-";
+            this.controllerStaleCount = "-";
+            this.controllerLocallyModifiedAndStaleCount = "-";
+            this.controllerSyncFailureCount = "-";
             this.statsLastRefreshed = "-";
 
             /**
@@ -195,7 +202,23 @@
                             }
                         },
                         _renderItem: function (ul, match) {
-                            var itemContent = $('<a></a>').append($('<div class="search-match-header"></div>').text(match.name));
+                            var itemHeader = $('<div class="search-match-header"></div>').text(match.name);
+
+                            var parentGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Parent: '));
+                            var parentGroup = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
+                            parentGroupHeader = parentGroupHeader.append($('<span></span>').text(parentGroup));
+
+                            var versionedGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Versioned: '));
+                            var versionedGroup = '-';
+
+                            if (nfCommon.isDefinedAndNotNull(match.versionedGroup)) {
+                                versionedGroup = match.versionedGroup.name ? match.versionedGroup.name : match.versionedGroup.id;
+                            }
+
+                            versionedGroupHeader = versionedGroupHeader.append($('<span></span>').text(versionedGroup));
+                            // create a search item wrapper
+                            var itemContent = $('<a></a>').append(itemHeader).append(parentGroupHeader).append(versionedGroupHeader);
+                            // append all matches
                             $.each(match.matches, function (i, match) {
                                 itemContent.append($('<div class="search-match"></div>').text(match));
                             });
@@ -226,9 +249,10 @@
                         },
                         select: function (event, ui) {
                             var item = ui.item;
+                            var group = item.parentGroup;
 
                             // show the selected component
-                            nfCanvasUtils.showComponent(item.groupId, item.id);
+                            nfCanvasUtils.showComponent(group.id, item.id);
 
                             searchCtrl.getInputElement().val('').blur();
 
@@ -415,26 +439,47 @@
             },
 
             /**
+             * Returns whether there are any terminated threads.
+             *
+             * @returns {boolean} whether there are any terminated threads
+             */
+            hasTerminatedThreads: function () {
+                if (Number.isInteger(this.terminatedThreadCount)) {
+                    return this.terminatedThreadCount > 0;
+                } else {
+                    return false;
+                }
+            },
+
+            /**
+             * Returns any additional styles to apply to the thread counts.
+             *
+             * @returns {string}
+             */
+            getExtraThreadStyles: function () {
+                if (Number.isInteger(this.terminatedThreadCount) && this.terminatedThreadCount > 0) {
+                    return 'warning';
+                } else if (this.activeThreadCount === 0) {
+                    return 'zero';
+                }
+
+                return '';
+            },
+
+            /**
              * Update the flow status counts.
              *
              * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
              */
             update: function (status) {
-                var controllerInvalidCount = (nfCommon.isDefinedAndNotNull(status.invalidCount)) ? status.invalidCount : 0;
-
-                if (this.controllerInvalidCount > 0) {
-                    $('#controller-invalid-count').parent().removeClass('zero').addClass('invalid');
-                } else {
-                    $('#controller-invalid-count').parent().removeClass('invalid').addClass('zero');
-                }
-
                 // update the report values
                 this.activeThreadCount = status.activeThreadCount;
+                this.terminatedThreadCount = status.terminatedThreadCount;
 
-                if (this.activeThreadCount > 0) {
-                    $('#flow-status-container').find('.icon-threads').removeClass('zero');
+                if (this.hasTerminatedThreads()) {
+                    this.threadCounts = this.activeThreadCount + ' (' + this.terminatedThreadCount + ')';
                 } else {
-                    $('#flow-status-container').find('.icon-threads').addClass('zero');
+                    this.threadCounts = this.activeThreadCount;
                 }
 
                 this.totalQueued = status.queued;
@@ -500,6 +545,51 @@
                     $('#flow-status-container').find('.icon-enable-false').removeClass('zero').addClass('disabled');
                 } else {
                     $('#flow-status-container').find('.icon-enable-false').removeClass('disabled').addClass('zero');
+                }
+
+                this.controllerUpToDateCount =
+                    nfCommon.isDefinedAndNotNull(status.upToDateCount) ? status.upToDateCount : '-';
+
+                if (this.controllerUpToDateCount > 0) {
+                    $('#flow-status-container').find('.fa-check').removeClass('zero').addClass('up-to-date');
+                } else {
+                    $('#flow-status-container').find('.fa-check').removeClass('up-to-date').addClass('zero');
+                }
+
+                this.controllerLocallyModifiedCount =
+                    nfCommon.isDefinedAndNotNull(status.locallyModifiedCount) ? status.locallyModifiedCount : '-';
+
+                if (this.controllerLocallyModifiedCount > 0) {
+                    $('#flow-status-container').find('.fa-asterisk').removeClass('zero').addClass('locally-modified');
+                } else {
+                    $('#flow-status-container').find('.fa-asterisk').removeClass('locally-modified').addClass('zero');
+                }
+
+                this.controllerStaleCount =
+                    nfCommon.isDefinedAndNotNull(status.staleCount) ? status.staleCount : '-';
+
+                if (this.controllerStaleCount > 0) {
+                    $('#flow-status-container').find('.fa-arrow-circle-up').removeClass('zero').addClass('stale');
+                } else {
+                    $('#flow-status-container').find('.fa-arrow-circle-up').removeClass('stale').addClass('zero');
+                }
+
+                this.controllerLocallyModifiedAndStaleCount =
+                    nfCommon.isDefinedAndNotNull(status.locallyModifiedAndStaleCount) ? status.locallyModifiedAndStaleCount : '-';
+
+                if (this.controllerLocallyModifiedAndStaleCount > 0) {
+                    $('#flow-status-container').find('.fa-exclamation-circle').removeClass('zero').addClass('locally-modified-and-stale');
+                } else {
+                    $('#flow-status-container').find('.fa-exclamation-circle').removeClass('locally-modified-and-stale').addClass('zero');
+                }
+
+                this.controllerSyncFailureCount =
+                    nfCommon.isDefinedAndNotNull(status.syncFailureCount) ? status.syncFailureCount : '-';
+
+                if (this.controllerSyncFailureCount > 0) {
+                    $('#flow-status-container').find('.fa-question').removeClass('zero').addClass('sync-failure');
+                } else {
+                    $('#flow-status-container').find('.fa-question').removeClass('sync-failure').addClass('zero');
                 }
 
             },

@@ -771,7 +771,38 @@ public class TestSplitText {
         splitRunner.assertTransferCount(SplitText.REL_FAILURE, 0);
 
         final List<MockFlowFile> splits = splitRunner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
-        splits.get(0).assertContentEquals("1\n2");
+        MockFlowFile split0 = splits.get(0);
+        split0.assertContentEquals("1\n2");
+        split0.assertAttributeEquals(SplitText.FRAGMENT_INDEX, "1");
+        split0.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "1");
+        split0.assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "2");
+    }
+
+    @Test
+    public void testFragmentCountIsActualFlowFileCount() {
+        final TestRunner splitRunner = TestRunners.newTestRunner(new SplitText());
+        splitRunner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+        splitRunner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");
+        splitRunner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "true");
+
+        splitRunner.enqueue("1\n2\n\n\n\n\n\n\n\n");
+
+        splitRunner.run();
+        splitRunner.assertTransferCount(SplitText.REL_SPLITS, 2);
+        splitRunner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        splitRunner.assertTransferCount(SplitText.REL_FAILURE, 0);
+
+        final List<MockFlowFile> splits = splitRunner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        MockFlowFile split0 = splits.get(0);
+        split0.assertContentEquals("1");
+        split0.assertAttributeEquals(SplitText.FRAGMENT_INDEX, "1");
+        split0.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");
+        split0.assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "1");
+        MockFlowFile split1 = splits.get(1);
+        split1.assertContentEquals("2");
+        split1.assertAttributeEquals(SplitText.FRAGMENT_INDEX, "2");
+        split1.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");
+        split1.assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "1");
     }
 
 

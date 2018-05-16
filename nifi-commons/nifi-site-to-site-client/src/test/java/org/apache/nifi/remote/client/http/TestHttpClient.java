@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote.client.http;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
@@ -41,7 +42,6 @@ import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -96,6 +96,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 public class TestHttpClient {
 
@@ -431,7 +432,7 @@ public class TestHttpClient {
         // Create embedded Jetty server
         // Use less threads to mitigate Gateway Timeout (504) with proxy test
         // Minimum thread pool size = (acceptors=2 + selectors=8 + request=1), defaults to max=200
-        final QueuedThreadPool threadPool = new QueuedThreadPool(20);
+        final QueuedThreadPool threadPool = new QueuedThreadPool(50);
         server = new Server(threadPool);
 
         final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
@@ -1128,7 +1129,7 @@ public class TestHttpClient {
 
     @Test
     public void testSendTimeout() throws Exception {
-
+        assumeFalse(isWindowsEnvironment());//skip on windows
         try (
             SiteToSiteClient client = getDefaultBuilder()
                 .timeout(1, TimeUnit.SECONDS)
@@ -1160,9 +1161,13 @@ public class TestHttpClient {
 
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     public void testSendTimeoutAfterDataExchange() throws Exception {
-
+        assumeFalse(isWindowsEnvironment());//skip on windows
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote.protocol.http.HttpClientTransaction", "INFO");
 
         try (

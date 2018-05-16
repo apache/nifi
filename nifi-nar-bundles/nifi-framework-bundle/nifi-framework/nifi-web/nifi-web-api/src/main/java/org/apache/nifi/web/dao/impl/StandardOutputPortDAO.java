@@ -233,6 +233,7 @@ public class StandardOutputPortDAO extends ComponentDAO implements PortDAO {
             outputPort.setMaxConcurrentTasks(concurrentTasks);
         }
 
+        outputPort.getProcessGroup().onComponentModified();
         return outputPort;
     }
 

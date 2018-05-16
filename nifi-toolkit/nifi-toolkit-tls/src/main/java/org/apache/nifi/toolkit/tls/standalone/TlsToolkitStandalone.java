@@ -29,6 +29,7 @@ import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigW
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
@@ -179,8 +180,9 @@ public class TlsToolkitStandalone {
             tlsClientConfig.setTrustStorePassword(instanceDefinition.getTrustStorePassword());
             TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
+            Extensions sanDnsExtensions = TlsHelper.createDomainAlternativeNamesExtensions(tlsClientConfig.getDomainAlternativeNames(), tlsClientConfig.calcDefaultDn(hostname));
             tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(tlsClientConfig.calcDefaultDn(hostname),
-                    keyPair.getPublic(), null, certificate, caKeyPair, signingAlgorithm, days), certificate);
+                    keyPair.getPublic(), sanDnsExtensions, certificate, caKeyPair, signingAlgorithm, days), certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, new File(hostDir, "nifi.properties"),
                     hostname, instanceDefinition.getNumber()));
@@ -198,7 +200,7 @@ public class TlsToolkitStandalone {
         List<String> clientPasswords = standaloneConfig.getClientPasswords();
         for (int i = 0; i < clientDns.size(); i++) {
             String reorderedDn = CertificateUtils.reorderDn(clientDns.get(i));
-            String clientDnFile = getClientDnFile(reorderedDn);
+            String clientDnFile = TlsHelper.escapeFilename(reorderedDn);
             File clientCertFile = new File(baseDir, clientDnFile + ".p12");
 
             if (clientCertFile.exists()) {
@@ -233,7 +235,4 @@ public class TlsToolkitStandalone {
         }
     }
 
-    protected static String getClientDnFile(String clientDn) {
-        return clientDn.replace(',', '_').replace(' ', '_');
-    }
 }

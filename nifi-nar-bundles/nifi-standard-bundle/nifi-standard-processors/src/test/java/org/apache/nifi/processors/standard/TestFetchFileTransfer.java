@@ -130,6 +130,7 @@ public class TestFetchFileTransfer {
         runner.setProperty(FetchFileTransfer.REMOTE_FILENAME, "${filename}");
         runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_MOVE.getValue());
         runner.setProperty(FetchFileTransfer.MOVE_DESTINATION_DIR, "/moved");
+        runner.setProperty(FetchFileTransfer.MOVE_CREATE_DIRECTORY, "true");
 
         proc.addContent("hello.txt", "world".getBytes());
         final Map<String, String> attrs = new HashMap<>();
@@ -228,10 +229,35 @@ public class TestFetchFileTransfer {
         assertTrue(proc.fileContents.containsKey("hello.txt"));
     }
 
+    @Test
+    public void testCreateDirFails() {
+        final TestableFetchFileTransfer proc = new TestableFetchFileTransfer();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(FetchFileTransfer.HOSTNAME, "localhost");
+        runner.setProperty(FetchFileTransfer.UNDEFAULTED_PORT, "11");
+        runner.setProperty(FetchFileTransfer.REMOTE_FILENAME, "${filename}");
+        runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_MOVE.getValue());
+        runner.setProperty(FetchFileTransfer.MOVE_DESTINATION_DIR, "/moved/");
+        runner.setProperty(FetchFileTransfer.MOVE_CREATE_DIRECTORY, "true");
+
+        proc.addContent("hello.txt", "world".getBytes());
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "hello.txt");
+        runner.enqueue(new byte[0], attrs);
+        proc.allowCreateDir = false;
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
+        assertEquals(1, proc.fileContents.size());
+
+        assertTrue(proc.fileContents.containsKey("hello.txt"));
+    }
+
 
     private static class TestableFetchFileTransfer extends FetchFileTransfer {
         private boolean allowAccess = true;
         private boolean allowDelete = true;
+        private boolean allowCreateDir = true;
         private boolean allowRename = true;
         private boolean closed = false;
         private final Map<String, byte[]> fileContents = new HashMap<>();
@@ -282,6 +308,11 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
+                public boolean flush(FlowFile flowFile) throws IOException {
+                    return true;
+                }
+
+                @Override
                 public FileInfo getRemoteFileInfo(FlowFile flowFile, String path, String remoteFileName) throws IOException {
                     return null;
                 }
@@ -292,7 +323,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void deleteFile(String path, String remoteFileName) throws IOException {
+                public void deleteFile(FlowFile flowFile, String path, String remoteFileName) throws IOException {
                     if (!allowDelete) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -305,7 +336,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void rename(String source, String target) throws IOException {
+                public void rename(FlowFile flowFile, String source, String target) throws IOException {
                     if (!allowRename) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -319,7 +350,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void deleteDirectory(String remoteDirectoryName) throws IOException {
+                public void deleteDirectory(FlowFile flowFile, String remoteDirectoryName) throws IOException {
 
                 }
 
@@ -335,7 +366,9 @@ public class TestFetchFileTransfer {
 
                 @Override
                 public void ensureDirectoryExists(FlowFile flowFile, File remoteDirectory) throws IOException {
-
+                    if (!allowCreateDir) {
+                        throw new PermissionDeniedException("test permission denied");
+                    }
                 }
             };
         }

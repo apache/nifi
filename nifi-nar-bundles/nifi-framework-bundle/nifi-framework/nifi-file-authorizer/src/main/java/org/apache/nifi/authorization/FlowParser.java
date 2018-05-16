@@ -18,6 +18,7 @@ package org.apache.nifi.authorization;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,6 +102,7 @@ public class FlowParser {
 
             // parse the flow
             final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            docBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
             final Document document = docBuilder.parse(new ByteArrayInputStream(flowBytes));
 
             // extract the root group id

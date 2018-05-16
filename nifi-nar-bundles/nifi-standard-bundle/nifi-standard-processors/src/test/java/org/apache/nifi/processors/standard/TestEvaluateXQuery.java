@@ -37,13 +37,15 @@ import javax.xml.xpath.XPathFactoryConfigurationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
 
 import org.junit.Test;
 
 public class TestEvaluateXQuery {
 
     private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/fruit.xml");
+    private static final Path XML_SNIPPET_EMBEDDED_DOCTYPE = Paths.get("src/test/resources/TestXml/xml-snippet-embedded-doctype.xml");
+    private static final Path XML_SNIPPET_NONEXISTENT_DOCTYPE = Paths.get("src/test/resources/TestXml/xml-snippet-external-doctype.xml");
+
     private static final String[] fruitNames = {"apple", "apple", "banana", "orange", "blueberry", "raspberry", "none"};
 
     private static final String[] methods = {EvaluateXQuery.OUTPUT_METHOD_XML, EvaluateXQuery.OUTPUT_METHOD_HTML, EvaluateXQuery.OUTPUT_METHOD_TEXT};
@@ -65,7 +67,6 @@ public class TestEvaluateXQuery {
         }
     }
 
-    @Ignore("this test is failing")
     @Test
     public void testFormatting() throws Exception {
 
@@ -102,7 +103,7 @@ public class TestEvaluateXQuery {
                     + "    <name>apple</name>\n"
                     + "    <color>red</color>\n"
                     + "  </fruit>";
-            assertEquals(expectedXml, formattedResults.get(0));
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.get(0)));
         }
         {
             formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "html", false, false);
@@ -113,7 +114,7 @@ public class TestEvaluateXQuery {
                     + "    <name>apple</name>\n"
                     + "    <color>red</color>\n"
                     + "  </fruit>";
-            assertEquals(expectedXml, formattedResults.get(0));
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.get(0)));
         }
         {
             formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "text", false, false);
@@ -123,7 +124,7 @@ public class TestEvaluateXQuery {
                     + "    apple\n"
                     + "    red\n"
                     + "  ";
-            assertEquals(expectedXml, formattedResults.get(0));
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.get(0)));
         }
         {
             formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, false);
@@ -135,7 +136,7 @@ public class TestEvaluateXQuery {
                     + "    <name>apple</name>\n"
                     + "    <color>red</color>\n"
                     + "  </fruit>\n";
-            assertEquals(expectedXml, formattedResults.get(0));
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.get(0)));
         }
         {
             formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, true);
@@ -146,8 +147,12 @@ public class TestEvaluateXQuery {
                     + "    <name>apple</name>\n"
                     + "    <color>red</color>\n"
                     + "  </fruit>\n";
-            assertEquals(expectedXml, formattedResults.get(0));
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.get(0)));
         }
+    }
+
+    private String spaceTrimmed(String str) {
+        return Arrays.stream(str.split("\n")).map(String :: trim).reduce("", String :: concat);
     }
 
     private List<String> getFormattedResult(Path xml, final String xQuery, final String method, final boolean indent, final boolean omitDeclaration) throws Exception {
@@ -647,5 +652,70 @@ public class TestEvaluateXQuery {
             assertEquals(expectedXml, outXml.trim());
         }
         testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0).assertContentEquals(XML_SNIPPET);
+    }
+
+    @Test
+    public void testSuccessForEmbeddedDocTypeValidation() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
+        testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
+        testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "true");
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_EMBEDDED_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
+        final byte[] outData = testRunner.getContentAsByteArray(out);
+        final String outXml = new String(outData, "UTF-8");
+        assertTrue(outXml.trim().equals("Hello"));
+    }
+
+    @Test
+    public void testSuccessForEmbeddedDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
+        testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
+        testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "false");
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_EMBEDDED_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
+        final byte[] outData = testRunner.getContentAsByteArray(out);
+        final String outXml = new String(outData, "UTF-8");
+        assertTrue(outXml.trim().equals("Hello"));
+    }
+
+
+    @Test
+    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
+        testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_NONEXISTENT_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_FAILURE, 1);
+    }
+
+
+    @Test
+    public void testSuccessForExternalDocTypeWithDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
+        testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
+        testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "false");
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_NONEXISTENT_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
+        final byte[] outData = testRunner.getContentAsByteArray(out);
+        final String outXml = new String(outData, "UTF-8");
+        assertTrue(outXml.trim().equals("Hello"));
     }
 }

@@ -59,7 +59,7 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
                     });
                 }
             }
-            clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinEntities));
+            clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinEntities, entityMap.size()));
 
             // sort the results
             Collections.sort(clientEntity.getBulletins(), BULLETIN_COMPARATOR);

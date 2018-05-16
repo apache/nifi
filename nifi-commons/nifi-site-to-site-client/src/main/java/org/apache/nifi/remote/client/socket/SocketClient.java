@@ -52,7 +52,7 @@ public class SocketClient extends AbstractSiteToSiteClient {
                 commsTimeout,
                 (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
                 config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile(),
-                siteInfoProvider
+                siteInfoProvider, config.getLocalAddress()
         );
 
         this.compress = config.isUseCompression();

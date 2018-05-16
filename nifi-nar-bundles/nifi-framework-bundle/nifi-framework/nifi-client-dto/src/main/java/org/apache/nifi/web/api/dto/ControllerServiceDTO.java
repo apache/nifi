@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,10 +33,15 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     private String name;
     private String type;
+    private BundleDTO bundle;
+    private List<ControllerServiceApiDTO> controllerServiceApis;
     private String comments;
     private String state;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean deprecated;
+    private Boolean isExtensionMissing;
+    private Boolean multipleVersionsAvailable;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -73,6 +79,38 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    /**
+     * The details of the artifact that bundled this controller service type.
+     *
+     * @return The bundle details
+     */
+    @ApiModelProperty(
+            value = "The details of the artifact that bundled this processor type."
+    )
+    public BundleDTO getBundle() {
+        return bundle;
+    }
+
+    public void setBundle(BundleDTO bundle) {
+        this.bundle = bundle;
+    }
+
+    /**
+     * Lists the APIs this Controller Service implements.
+     *
+     * @return The listing of implemented APIs
+     */
+    @ApiModelProperty(
+            value = "Lists the APIs this Controller Service implements."
+    )
+    public List<ControllerServiceApiDTO> getControllerServiceApis() {
+        return controllerServiceApis;
+    }
+
+    public void setControllerServiceApis(List<ControllerServiceApiDTO> controllerServiceApis) {
+        this.controllerServiceApis = controllerServiceApis;
     }
 
     /**
@@ -115,6 +153,48 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return Whether the controller service has been deprecated.
+     */
+    @ApiModelProperty(
+            value = "Whether the ontroller service has been deprecated."
+    )
+    public Boolean getDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(Boolean deprecated) {
+        this.deprecated= deprecated;
+    }
+
+    /**
+     * @return whether the underlying extension is missing
+     */
+    @ApiModelProperty(
+            value = "Whether the underlying extension is missing."
+    )
+    public Boolean getExtensionMissing() {
+        return isExtensionMissing;
+    }
+
+    public void setExtensionMissing(Boolean extensionMissing) {
+        isExtensionMissing = extensionMissing;
+    }
+
+    /**
+     * @return whether this controller service has multiple versions available
+     */
+    @ApiModelProperty(
+            value = "Whether the controller service has multiple versions available."
+    )
+    public Boolean getMultipleVersionsAvailable() {
+        return multipleVersionsAvailable;
+    }
+
+    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+        this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
     /**

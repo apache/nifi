@@ -517,7 +517,7 @@
     };
 
     /**
-     * Generates a human readable global policy strung.
+     * Generates a human readable global policy string.
      *
      * @param dataContext
      * @returns {string}
@@ -525,6 +525,23 @@
     var globalResourceParser = function (dataContext) {
         return 'Global policy to ' +
             nfCommon.getPolicyTypeListing(nfCommon.substringAfterFirst(dataContext.component.resource, '/')).text;
+    };
+
+    /**
+     * Generates a human readable restricted component policy string.
+     *
+     * @param dataContext
+     * @returns {string}
+     */
+    var restrictedComponentResourceParser = function (dataContext) {
+        var resource = dataContext.component.resource;
+
+        if (resource === '/restricted-components') {
+            return 'Restricted components regardless of restrictions';
+        }
+
+        var subResource = nfCommon.substringAfterFirst(resource, '/restricted-components/');
+        return "Restricted components requiring '" + subResource + "'";
     };
 
     /**
@@ -591,14 +608,9 @@
         var policyDisplayNameFormatter = function (row, cell, value, columnDef, dataContext) {
             // if the user has permission to the policy
             if (dataContext.permissions.canRead === true) {
-                // check if Global policy
-                if (nfCommon.isUndefinedOrNull(dataContext.component.componentReference)) {
-                    return globalResourceParser(dataContext);
-                }
-                // not a global policy... check if user has access to the component reference
-                return componentResourceParser(dataContext);
+                return formatPolicy(dataContext);
             } else {
-                return '<span class="unset">' + dataContext.id + '</span>';
+                return '<span class="unset">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
         };
 
@@ -643,7 +655,7 @@
                 markup += dataContext.component.action;
             }
 
-            return markup;
+            return nfCommon.escapeHtml(markup);
         };
 
         var userPoliciesColumns = [
@@ -750,7 +762,7 @@
     /**
      * Initializes the processor list.
      */
-    var initUsersTable = function () {
+    var initUsersTable = function (configurableUsersAndGroups) {
         // define the function for filtering the list
         $('#users-filter').keyup(function () {
             applyFilter();
@@ -774,7 +786,7 @@
                 markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
             }
 
-            markup += dataContext.component.identity;
+            markup += nfCommon.escapeHtml(dataContext.component.identity);
 
             return markup;
         };
@@ -783,11 +795,11 @@
         var membersGroupsFormatter = function (row, cell, value, columnDef, dataContext) {
             if (dataContext.type === 'group') {
                 return 'Members: <b>' + dataContext.component.users.map(function (user) {
-                        return user.component.identity;
+                        return nfCommon.escapeHtml(user.component.identity);
                     }).join('</b>, <b>') + '</b>';
             } else {
                 return 'Member of: <b>' + dataContext.component.userGroups.map(function (group) {
-                        return group.component.identity;
+                        return nfCommon.escapeHtml(group.component.identity);
                     }).join('</b>, <b>') + '</b>';
             }
         };
@@ -797,7 +809,7 @@
             var markup = '';
 
             // ensure user can modify the user
-            if (nfCommon.canModifyTenants()) {
+            if (configurableUsersAndGroups && dataContext.component.configurable === true && nfCommon.canModifyTenants()) {
                 markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
@@ -943,6 +955,25 @@
     };
 
     /**
+     * Formats the specified policy.
+     *
+     * @param dataContext
+     * @returns {string}
+     */
+    var formatPolicy = function (dataContext) {
+        if (dataContext.component.resource.startsWith('/restricted-components')) {
+            // restricted components policy
+            return restrictedComponentResourceParser(dataContext);
+        } else if (nfCommon.isUndefinedOrNull(dataContext.component.componentReference)) {
+            // global policy
+            return globalResourceParser(dataContext);
+        } else {
+            // not restricted/global policy... check if user has access to the component reference
+            return componentResourceParser(dataContext);
+        }
+    };
+
+    /**
      * Sorts the specified data using the specified sort details.
      *
      * @param {object} sortDetails
@@ -962,26 +993,14 @@
 
                     // if the user has permission to the policy
                     if (a.permissions.canRead === true) {
-                        // check if Global policy
-                        if (nfCommon.isUndefinedOrNull(a.component.componentReference)) {
-                            aString = globalResourceParser(a);
-                        } else {
-                            // not a global policy... check if user has access to the component reference
-                            aString = componentResourceParser(a);
-                        }
+                        aString = formatPolicy(a);
                     } else {
                         aString = a.id;
                     }
 
                     // if the user has permission to the policy
                     if (b.permissions.canRead === true) {
-                        // check if Global policy
-                        if (nfCommon.isUndefinedOrNull(b.component.componentReference)) {
-                            bString = globalResourceParser(b);
-                        } else {
-                            // not a global policy... check if user has access to the component reference
-                            bString = componentResourceParser(b);
-                        }
+                        bString = formatPolicy(b);
                     } else {
                         bString = b.id;
                     }
@@ -1215,28 +1234,32 @@
     };
 
     var nfUsersTable = {
-        init: function () {
+        init: function (configurableUsersAndGroups) {
             initUserDialog();
             initUserPoliciesDialog();
             initUserPoliciesTable();
             initUserDeleteDialog();
-            initUsersTable();
+            initUsersTable(configurableUsersAndGroups);
 
-            if (nfCommon.canModifyTenants()) {
-                $('#new-user-button').on('click', function () {
-                    buildUsersList();
-                    buildGroupsList();
+            if (configurableUsersAndGroups) {
+                $('#new-user-button').show();
 
-                    // show the dialog
-                    $('#user-dialog').modal('show');
+                if (nfCommon.canModifyTenants()) {
+                    $('#new-user-button').on('click', function () {
+                        buildUsersList();
+                        buildGroupsList();
 
-                    // set the focus automatically, only when adding a new user
-                    $('#user-identity-edit-dialog').focus();
-                });
+                        // show the dialog
+                        $('#user-dialog').modal('show');
 
-                $('#new-user-button').prop('disabled', false);
-            } else {
-                $('#new-user-button').prop('disabled', true);
+                        // set the focus automatically, only when adding a new user
+                        $('#user-identity-edit-dialog').focus();
+                    });
+
+                    $('#new-user-button').prop('disabled', false);
+                } else {
+                    $('#new-user-button').prop('disabled', true);
+                }
             }
         },
 

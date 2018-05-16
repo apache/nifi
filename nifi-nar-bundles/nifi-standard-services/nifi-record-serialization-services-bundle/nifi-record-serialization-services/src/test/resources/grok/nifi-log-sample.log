@@ -1,0 +1,5 @@
+2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.c.l.e.CuratorLeaderElectionManager org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager$ElectionListener@1fa27ea5 has been interrupted; no longer leader for role 'Cluster Coordinator'
+2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.c.l.e.CuratorLeaderElectionManager org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager$ElectionListener@1fa27ea5 This node is no longer leader for role 'Cluster Coordinator'
+2016-08-04 13:26:32,474 INFO [Leader Election Notification Thread-2] o.apache.nifi.controller.FlowController This node is no longer Primary Node
+2016-08-04 13:26:35,475 WARN [Curator-Framework-0] org.apache.curator.ConnectionState Connection attempt unsuccessful after 3008 (greater than max timeout of 3000). Resetting connection and trying again with a new connection.
+2016-08-04 13:26:35,479 WARN [Curator-Framework-0] org.apache.curator.ConnectionState Connection attempt unsuccessful after 3007 (greater than max timeout of 3000). Resetting connection and trying again with a new connection.

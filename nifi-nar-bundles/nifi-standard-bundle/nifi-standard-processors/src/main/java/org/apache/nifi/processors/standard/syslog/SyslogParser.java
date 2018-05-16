@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard.syslog;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,7 +52,7 @@ public class SyslogParser {
                     // stamp MMM d HH:mm:ss, single digit date has two spaces
                     "([A-Z][a-z][a-z]\\s{1,2}\\d{1,2}\\s\\d{2}[:]\\d{2}[:]\\d{2})" +
                     "\\s" + // separator
-                    "([\\w][\\w\\d\\.@-]*)" + // host
+                    "([\\w][\\w\\d(\\.|\\:)@-]*)" + // host
                     "\\s(.*)$";  // body
 
     public static final Collection<Pattern> MESSAGE_PATTERNS;
@@ -70,6 +71,10 @@ public class SyslogParser {
     public static final int SYSLOG_BODY_POS = 5;
 
     private Charset charset;
+
+    public SyslogParser() {
+        this(StandardCharsets.UTF_8);
+    }
 
     public SyslogParser(final Charset charset) {
         this.charset = charset;
@@ -162,4 +167,7 @@ public class SyslogParser {
         return builder.build();
     }
 
+    public String getCharsetName() {
+        return charset == null ? StandardCharsets.UTF_8.name() : charset.name();
+    }
 }

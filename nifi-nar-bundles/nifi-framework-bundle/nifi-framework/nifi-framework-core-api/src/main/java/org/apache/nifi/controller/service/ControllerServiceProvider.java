@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -36,10 +40,12 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      *
      * @param type of service
      * @param id of service
+     * @param bundleCoordinate the coordinate of the bundle for the service
+     * @param additionalUrls optional additional URL resources to add to the class loader of the component
      * @param firstTimeAdded for service
      * @return the service node
      */
-    ControllerServiceNode createControllerService(String type, String id, boolean firstTimeAdded);
+    ControllerServiceNode createControllerService(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded);
 
     /**
      * @param id of the service
@@ -61,11 +67,13 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
 
     /**
      * Enables the given controller service that it can be used by other
-     * components
+     * components. This method will asynchronously enable the service, returning
+     * immediately.
      *
      * @param serviceNode the service node
+     * @return a Future that can be used to wait for the service to finish being enabled.
      */
-    void enableControllerService(ControllerServiceNode serviceNode);
+    CompletableFuture<Void> enableControllerService(ControllerServiceNode serviceNode);
 
     /**
      * Enables the collection of services. If a service in this collection
@@ -77,17 +85,36 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
     void enableControllerServices(Collection<ControllerServiceNode> serviceNodes);
 
     /**
+     * Enables the collection of services in the background. If a service in this collection
+     * depends on another service, the service being depended on must either already be enabled
+     * or must be in the collection as well.
+     *
+     * @param serviceNodes the nodes
+     * @return a Future that can be used to cancel the task or wait until it is completed
+     */
+    Future<Void> enableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
+
+    /**
      * Disables the given controller service so that it cannot be used by other
      * components. This allows configuration to be updated or allows service to
      * be removed.
      *
      * @param serviceNode the node
      */
-    void disableControllerService(ControllerServiceNode serviceNode);
+    CompletableFuture<Void> disableControllerService(ControllerServiceNode serviceNode);
+
+    /**
+     * Disables the collection of services in the background. If any of the services given is referenced
+     * by another service, then that other service must either be disabled or be in the given collection.
+     *
+     * @param serviceNodes the nodes the disable
+     * @return a Future that can be used to cancel the task or wait until it is completed
+     */
+    Future<Void> disableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
 
     /**
      * @return a Set of all Controller Services that exist for this service
-     * provider
+     *         provider
      */
     Set<ControllerServiceNode> getAllControllerServices();
 

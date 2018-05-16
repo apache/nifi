@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -36,6 +36,7 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -124,10 +125,12 @@ public class ControllerServiceResource extends ApplicationResource {
      * Populates the uri for the specified controller service.
      */
     public ControllerServiceDTO populateRemainingControllerServiceContent(final ControllerServiceDTO controllerService) {
+        final BundleDTO bundle = controllerService.getBundle();
+
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
-        if (uiExtensionMapping.hasUiExtension(controllerService.getType())) {
-            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(controllerService.getType());
+        if (uiExtensionMapping.hasUiExtension(controllerService.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(controllerService.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
             for (final UiExtension uiExtension : uiExtensions) {
                 if (UiExtensionType.ControllerServiceConfiguration.equals(uiExtension.getExtensionType())) {
                     controllerService.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
@@ -152,7 +155,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Gets a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -185,7 +188,7 @@ public class ControllerServiceResource extends ApplicationResource {
         final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
         populateRemainingControllerServiceEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -203,7 +206,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Gets a controller service property descriptor",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -250,7 +253,7 @@ public class ControllerServiceResource extends ApplicationResource {
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -265,9 +268,9 @@ public class ControllerServiceResource extends ApplicationResource {
     @Path("{id}/state")
     @ApiOperation(
             value = "Gets the state for a controller service",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -304,7 +307,7 @@ public class ControllerServiceResource extends ApplicationResource {
         entity.setComponentState(state);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -320,9 +323,9 @@ public class ControllerServiceResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a controller service",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -365,7 +368,7 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ComponentStateEntity entity = new ComponentStateEntity();
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -382,9 +385,9 @@ public class ControllerServiceResource extends ApplicationResource {
     @Path("{id}/references")
     @ApiOperation(
             value = "Gets a controller service",
-            response = ControllerServiceEntity.class,
+            response = ControllerServiceReferencingComponentsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -416,7 +419,7 @@ public class ControllerServiceResource extends ApplicationResource {
         // get the controller service
         final ControllerServiceReferencingComponentsEntity entity = serviceFacade.getControllerServiceReferencingComponents(id);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -434,7 +437,7 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Updates a controller services references",
             response = ControllerServiceReferencingComponentsEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each referencing component specified", type = "")
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each referencing component specified")
             }
     )
     @ApiResponses(
@@ -548,7 +551,7 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
                             referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -569,8 +572,8 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Updates a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -621,7 +624,7 @@ public class ControllerServiceResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     // authorize the service
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerService(id);
+                    final ComponentAuthorizable authorizable = lookup.getControllerService(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // authorize any referenced services
@@ -635,7 +638,7 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, controllerService);
                     populateRemainingControllerServiceEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -660,10 +663,10 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Deletes a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group if scoped by Process Group - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Write - Controller if scoped by Controller - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group if scoped by Process Group - /process-groups/{uuid}"),
+                    @Authorization(value = "Write - Controller if scoped by Controller - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -707,7 +710,7 @@ public class ControllerServiceResource extends ApplicationResource {
                 requestControllerServiceEntity,
                 requestRevision,
                 lookup -> {
-                    final ConfigurableComponentAuthorizable controllerService = lookup.getControllerService(id);
+                    final ComponentAuthorizable controllerService = lookup.getControllerService(id);
 
                     // ensure write permission to the controller service
                     controllerService.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
@@ -722,7 +725,7 @@ public class ControllerServiceResource extends ApplicationResource {
                 (revision, controllerServiceEntity) -> {
                     // delete the specified controller service
                     final ControllerServiceEntity entity = serviceFacade.deleteControllerService(revision, controllerServiceEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

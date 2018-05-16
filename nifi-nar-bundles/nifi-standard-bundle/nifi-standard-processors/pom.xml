@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
-<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
-license agreements. See the NOTICE file distributed with this work for additional
-information regarding copyright ownership. The ASF licenses this file to
-You under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of
-the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
-by applicable law or agreed to in writing, software distributed under the
-License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
-OF ANY KIND, either express or implied. See the License for the specific
-language governing permissions and limitations under the License. -->
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+    license agreements. See the NOTICE file distributed with this work for additional 
+    information regarding copyright ownership. The ASF licenses this file to 
+    You under the Apache License, Version 2.0 (the "License"); you may not use 
+    this file except in compliance with the License. You may obtain a copy of 
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+    by applicable law or agreed to in writing, software distributed under the 
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+    OF ANY KIND, either express or implied. See the License for the specific 
+    language governing permissions and limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -27,10 +27,17 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-path</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -38,7 +45,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-lookup-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -49,16 +61,20 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-http-context-map-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record</artifactId>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-net</groupId>
@@ -91,6 +107,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -113,6 +130,10 @@ language governing permissions and limitations under the License. -->
             <artifactId>httpclient</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+        </dependency>
+        <dependency>
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
         </dependency>
@@ -131,10 +152,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-socket-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-load-distribution-service-api</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -155,39 +178,34 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
-            <version>1.14</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.avro</groupId>
-            <artifactId>avro</artifactId>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-avro-record-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp</groupId>
+            <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>2.7.1</version>
         </dependency>
         <dependency>
             <groupId>com.burgstaller</groupId>
             <artifactId>okhttp-digest</artifactId>
-            <version>0.6</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>de.svenkubiak</groupId>
-            <artifactId>jBcrypt</artifactId>
-            <version>0.4.1</version>
+            <artifactId>jBCrypt</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -196,11 +214,13 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -214,6 +234,30 @@ language governing permissions and limitations under the License. -->
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-prioritizers</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock-record-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-services</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-lookup-services</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derby</artifactId>
             <scope>test</scope>
@@ -221,58 +265,59 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.xerial.snappy</groupId>
             <artifactId>snappy-java</artifactId>
-            <version>1.1.2</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.187</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockftpserver</groupId>
+            <artifactId>MockFtpServer</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>jolt-core</artifactId>
-            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>json-utils</artifactId>
-            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
             <artifactId>super-csv</artifactId>
-            <version>2.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.fluenda</groupId>
             <artifactId>ParCEFone</artifactId>
-            <version>1.2.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
-            <version>0.1.5</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.code</groupId>
-                    <artifactId>gson</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>com.github.wnameless</groupId>
+            <artifactId>json-flattener</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.bval</groupId>
+            <artifactId>bval-jsr</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-schema-registry-service-api</artifactId>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -280,6 +325,7 @@ language governing permissions and limitations under the License. -->
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>src/test/resources/randombytes-1</exclude>
                         <exclude>src/test/resources/localhost.cer</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>
@@ -312,6 +358,8 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
+                        <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
@@ -407,10 +455,45 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
-                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
-                        <exclude>src/main/java/org/apache/nifi/processors/standard/util/crypto/bcrypt/BCrypt.java</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-new-city.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-streets.json</exclude>
+                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt
+                            because the binary is compiled for Java 8 and we must support Java 7 -->
+                        <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
+                        <exclude>src/test/resources/xxe_template.xml</exclude>
+                        <exclude>src/test/resources/xxe_from_report.xml</exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

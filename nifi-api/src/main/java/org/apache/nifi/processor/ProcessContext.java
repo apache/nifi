@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 /**
@@ -34,16 +35,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
  * thread-safe.
  * </p>
  */
-public interface ProcessContext {
-
-    /**
-     * Retrieves the current value set for the given descriptor, if a value is
-     * set - else uses the descriptor to determine the appropriate default value
-     *
-     * @param descriptor to lookup the value of
-     * @return the property value of the given descriptor
-     */
-    PropertyValue getProperty(PropertyDescriptor descriptor);
+public interface ProcessContext extends PropertyContext {
 
     /**
      * Retrieves the current value set for the given descriptor, if a value is

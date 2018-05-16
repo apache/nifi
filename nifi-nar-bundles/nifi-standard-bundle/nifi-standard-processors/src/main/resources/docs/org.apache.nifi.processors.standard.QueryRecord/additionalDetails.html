@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>QueryRecord</title>
+
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+    	<p>
+    		QueryRecord provides users a tremendous amount of power by leveraging an extremely well-known
+    		syntax (SQL) to route, filter, transform, and query data as it traverses the system. In order to
+    		provide the Processor with the maximum amount of flexibility, it is configured with a Controller
+    		Service that is responsible for reading and parsing the incoming FlowFiles and a Controller Service
+    		that is responsible for writing the results out. By using this paradigm, users are not forced to
+    		convert their data from one format to another just to query it, and then transform the data back
+    		into the form that they want. Rather, the appropriate Controller Service can easily be configured
+    		and put to use for the appropriate data format. 
+    	</p>
+    	
+    	<p>
+    		Rather than providing a single "SQL SELECT Statement" type of Property, this Processor makes use
+    		of user-defined properties. Each user-defined property that is added to the Processor has a name
+    		that becomes a new Relationship for the Processor and a corresponding SQL query that will be evaluated
+    		against each FlowFile. This allows multiple SQL queries to be run against each FlowFile.
+    	</p>
+    	
+    	<p>
+			The SQL syntax that is supported by this Processor is ANSI SQL and is powered by Apache Calcite. Please
+			note that identifiers are quoted using double-quotes, and column names/labels are case-insensitive.
+    	</p>
+	</body>
+</html>

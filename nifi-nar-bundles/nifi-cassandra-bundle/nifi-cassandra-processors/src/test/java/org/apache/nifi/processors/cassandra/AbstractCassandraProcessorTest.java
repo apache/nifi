@@ -88,6 +88,16 @@ public class AbstractCassandraProcessorTest {
         testRunner.assertValid();
     }
 
+    @Test
+    public void testCustomValidateEL() throws Exception {
+        testRunner.setProperty(AbstractCassandraProcessor.CONTACT_POINTS, "${host}");
+        testRunner.setProperty(AbstractCassandraProcessor.KEYSPACE, "${keyspace}");
+        testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "${user}");
+        testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "${password}");
+        testRunner.setProperty(AbstractCassandraProcessor.CHARSET, "${charset}");
+        testRunner.assertValid();
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testGetCassandraObject() throws Exception {
@@ -247,7 +257,6 @@ public class AbstractCassandraProcessorTest {
         assertNotNull(processor.getCluster());
     }
 
-
     /**
      * Provides a stubbed processor instance for testing
      */
@@ -255,7 +264,7 @@ public class AbstractCassandraProcessorTest {
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return Arrays.asList(CONTACT_POINTS, USERNAME, PASSWORD, CONSISTENCY_LEVEL);
+            return Arrays.asList(CONTACT_POINTS, KEYSPACE, USERNAME, PASSWORD, CONSISTENCY_LEVEL, CHARSET);
         }
 
         @Override

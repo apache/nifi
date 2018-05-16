@@ -289,8 +289,10 @@
 
     /**
      * Marshals the data that will be used to update the processor's configuration.
+     *
+     * @param {object} processor
      */
-    var marshalDetails = function () {
+    var marshalDetails = function (processor) {
         // create the config dto
         var processorConfigDto = {};
 
@@ -333,7 +335,7 @@
         processorConfigDto['comments'] = $('#processor-comments').val();
 
         // run duration
-        if ($('#run-duration-setting-container').is(':visible')) {
+        if (processor.supportsBatching === true) {
             var runDurationIndex = $('#run-duration-slider').slider('value');
             processorConfigDto['runDurationMillis'] = RUN_DURATION_VALUES[runDurationIndex];
         }
@@ -484,7 +486,7 @@
      */
     var saveProcessor = function (processor) {
         // marshal the settings and properties and update the processor
-        var updatedProcessor = marshalDetails();
+        var updatedProcessor = marshalDetails(processor);
 
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedProcessor)) {
@@ -588,6 +590,9 @@
                 }, {
                     text: 'ERROR',
                     value: 'ERROR'
+                }, {
+                    text: 'NONE',
+                    value: 'NONE'
                 }]
             });
 
@@ -670,7 +675,8 @@
 
                     // populate the processor settings
                     $('#processor-id').text(processor['id']);
-                    $('#processor-type').text(nfCommon.substringAfterLast(processor['type'], '.'));
+                    $('#processor-type').text(nfCommon.formatType(processor));
+                    $('#processor-bundle').text(nfCommon.formatBundle(processor['bundle']));
                     $('#processor-name').val(processor['name']);
                     $('#processor-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(processorEnableStyle);
                     $('#penalty-duration').val(processor.config['penaltyDuration']);

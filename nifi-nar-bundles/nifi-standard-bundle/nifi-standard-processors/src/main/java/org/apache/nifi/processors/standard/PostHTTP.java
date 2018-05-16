@@ -16,38 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
@@ -93,11 +61,13 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -108,8 +78,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
@@ -121,12 +89,49 @@ import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
-import com.sun.jersey.api.client.ClientResponse.Status;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response.Status;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
-@CapabilityDescription("Performs an HTTP Post with the content of the FlowFile")
+@CapabilityDescription("Performs an HTTP Post with the content of the FlowFile. "
+    + "Uses a connection pool with max number of connections equal to its Concurrent Tasks configuration.")
 public class PostHTTP extends AbstractProcessor {
 
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -150,12 +155,12 @@ public class PostHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
             .name("URL")
-            .description("The URL to POST to. The first part of the URL must be static. However, the path of the URL may be defined using the Attribute Expression Language. "
-                    + "For example, https://${hostname} is not valid, but https://1.1.1.1:8080/files/${nf.file.name} is valid.")
+            .description("The URL to POST to. The URL may be defined using the Attribute Expression Language. "
+                    + "A separate connection pool will be created for each unique host:port combination.")
             .required(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor SEND_AS_FLOWFILE = new PropertyDescriptor.Builder()
             .name("Send as FlowFile")
@@ -255,7 +260,7 @@ public class PostHTTP extends AbstractProcessor {
             .description("The Content-Type to specify for the content of the FlowFile being POSTed if " + SEND_AS_FLOWFILE.getName() + " is false. "
                     + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -447,6 +452,26 @@ public class PostHTTP extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        FlowFile firstFlowFile = session.get();
+        if (firstFlowFile == null) {
+            return;
+        }
+
+        final ComponentLog logger = getLogger();
+        final String url = context.getProperty(URL).evaluateAttributeExpressions(firstFlowFile).getValue();
+        try {
+            new java.net.URL(url);
+        } catch (final MalformedURLException e) {
+            logger.error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
+                    new Object[]{firstFlowFile, url});
+            firstFlowFile = session.penalize(firstFlowFile);
+            session.transfer(firstFlowFile, REL_FAILURE);
+            return;
+        }
+
+        final List<FlowFile> toSend = new ArrayList<>();
+        toSend.add(firstFlowFile);
+
         final boolean sendAsFlowFile = context.getProperty(SEND_AS_FLOWFILE).asBoolean();
         final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
         final String userAgent = context.getProperty(USER_AGENT).getValue();
@@ -459,141 +484,115 @@ public class PostHTTP extends AbstractProcessor {
         final RequestConfig requestConfig = requestConfigBuilder.build();
 
         final StreamThrottler throttler = throttlerRef.get();
-        final ComponentLog logger = getLogger();
 
         final Double maxBatchBytes = context.getProperty(MAX_BATCH_SIZE).asDataSize(DataUnit.B);
-        String lastUrl = null;
-        long bytesToSend = 0L;
+        final AtomicLong bytesToSend = new AtomicLong(firstFlowFile.getSize());
 
-        final List<FlowFile> toSend = new ArrayList<>();
         DestinationAccepts destinationAccepts = null;
         CloseableHttpClient client = null;
         final String transactionId = UUID.randomUUID().toString();
 
         final AtomicReference<String> dnHolder = new AtomicReference<>("none");
-        while (true) {
-            FlowFile flowFile = session.get();
-            if (flowFile == null) {
-                break;
-            }
 
-            final String url = context.getProperty(URL).evaluateAttributeExpressions(flowFile).getValue();
-            try {
-                new java.net.URL(url);
-            } catch (final MalformedURLException e) {
-                logger.error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
-                        new Object[]{flowFile, url});
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-                continue;
-            }
+        final Config config = getConfig(url, context);
+        final HttpClientConnectionManager conMan = config.getConnectionManager();
 
-            // If this FlowFile doesn't have the same url, throw it back on the queue and stop grabbing FlowFiles
-            if (lastUrl != null && !lastUrl.equals(url)) {
-                session.transfer(flowFile);
-                break;
-            }
-
-            lastUrl = url;
-            toSend.add(flowFile);
-
-            if (client == null || destinationAccepts == null) {
-                final Config config = getConfig(url, context);
-                final HttpClientConnectionManager conMan = config.getConnectionManager();
-
-                final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
-                clientBuilder.setConnectionManager(conMan);
-                clientBuilder.setUserAgent(userAgent);
-                clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
-                    @Override
-                    public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
-                        final HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
-                        final ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
-                        if (!conn.isOpen()) {
-                            return;
-                        }
-
-                        final SSLSession sslSession = conn.getSSLSession();
-
-                        if (sslSession != null) {
-                            final Certificate[] certChain = sslSession.getPeerCertificates();
-                            if (certChain == null || certChain.length == 0) {
-                                throw new SSLPeerUnverifiedException("No certificates found");
-                            }
-
-                            try {
-                                final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
-                                dnHolder.set(cert.getSubjectDN().getName().trim());
-                            } catch (CertificateException e) {
-                                final String msg = "Could not extract subject DN from SSL session peer certificate";
-                                logger.warn(msg);
-                                throw new SSLPeerUnverifiedException(msg);
-                            }
-                        }
-                    }
-                });
-
-                clientBuilder.disableAutomaticRetries();
-                clientBuilder.disableContentCompression();
-
-                final String username = context.getProperty(USERNAME).getValue();
-                final String password = context.getProperty(PASSWORD).getValue();
-                // set the credentials if appropriate
-                if (username != null) {
-                    final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                    if (password == null) {
-                        credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
-                    } else {
-                        credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                    }
-                    clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+        final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
+        clientBuilder.setConnectionManager(conMan);
+        clientBuilder.setUserAgent(userAgent);
+        clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
+            @Override
+            public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
+                final HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
+                final ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
+                if (!conn.isOpen()) {
+                    return;
                 }
 
-                // Set the proxy if specified
-                if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
-                    final String host = context.getProperty(PROXY_HOST).getValue();
-                    final int port = context.getProperty(PROXY_PORT).asInteger();
-                    clientBuilder.setProxy(new HttpHost(host, port));
-                }
+                final SSLSession sslSession = conn.getSSLSession();
 
-                client = clientBuilder.build();
+                if (sslSession != null) {
+                    final Certificate[] certChain = sslSession.getPeerCertificates();
+                    if (certChain == null || certChain.length == 0) {
+                        throw new SSLPeerUnverifiedException("No certificates found");
+                    }
 
-                // determine whether or not destination accepts flowfile/gzip
-                destinationAccepts = config.getDestinationAccepts();
-                if (destinationAccepts == null) {
                     try {
-                        destinationAccepts = getDestinationAcceptance(sendAsFlowFile, client, url, getLogger(), transactionId);
-                        config.setDestinationAccepts(destinationAccepts);
-                    } catch (final IOException e) {
-                        flowFile = session.penalize(flowFile);
-                        session.transfer(flowFile, REL_FAILURE);
-                        logger.error("Unable to communicate with destination {} to determine whether or not it can accept "
-                                + "flowfiles/gzip; routing {} to failure due to {}", new Object[]{url, flowFile, e});
-                        context.yield();
-                        return;
+                        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
+                        dnHolder.set(cert.getSubjectDN().getName().trim());
+                    } catch (CertificateException e) {
+                        final String msg = "Could not extract subject DN from SSL session peer certificate";
+                        logger.warn(msg);
+                        throw new SSLPeerUnverifiedException(msg);
                     }
                 }
             }
+        });
 
-            bytesToSend += flowFile.getSize();
-            if (bytesToSend > maxBatchBytes.longValue()) {
-                break;
+        clientBuilder.disableAutomaticRetries();
+        clientBuilder.disableContentCompression();
+
+        final String username = context.getProperty(USERNAME).getValue();
+        final String password = context.getProperty(PASSWORD).getValue();
+        // set the credentials if appropriate
+        if (username != null) {
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            if (password == null) {
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
+            } else {
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
             }
+            clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+        }
 
-            // if we are not sending as flowfile, or if the destination doesn't accept V3 or V2 (streaming) format,
-            // then only use a single FlowFile
-            if (!sendAsFlowFile || !destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted()) {
-                break;
+        // Set the proxy if specified
+        if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
+            final String host = context.getProperty(PROXY_HOST).getValue();
+            final int port = context.getProperty(PROXY_PORT).asInteger();
+            clientBuilder.setProxy(new HttpHost(host, port));
+        }
+
+        client = clientBuilder.build();
+
+        // determine whether or not destination accepts flowfile/gzip
+        destinationAccepts = config.getDestinationAccepts();
+        if (destinationAccepts == null) {
+            try {
+                destinationAccepts = getDestinationAcceptance(sendAsFlowFile, client, url, getLogger(), transactionId);
+                config.setDestinationAccepts(destinationAccepts);
+            } catch (final IOException e) {
+                firstFlowFile = session.penalize(firstFlowFile);
+                session.transfer(firstFlowFile, REL_FAILURE);
+                logger.error("Unable to communicate with destination {} to determine whether or not it can accept "
+                        + "flowfiles/gzip; routing {} to failure due to {}", new Object[]{url, firstFlowFile, e});
+                context.yield();
+                return;
             }
         }
 
-        if (toSend.isEmpty()) {
-            return;
+        // if we are sending as flowfile and the destination accepts V3 or V2 (streaming) format,
+        // then we can get more flowfiles from the session up to MAX_BATCH_SIZE for the same URL
+        if (sendAsFlowFile && (destinationAccepts.isFlowFileV3Accepted() || destinationAccepts.isFlowFileV2Accepted())) {
+            toSend.addAll(session.get(new FlowFileFilter() {
+                @Override
+                public FlowFileFilterResult filter(FlowFile flowFile) {
+                    // if over MAX_BATCH_SIZE, then stop adding files
+                    if (bytesToSend.get() + flowFile.getSize() > maxBatchBytes) {
+                        return FlowFileFilterResult.REJECT_AND_TERMINATE;
+                    }
+                    // check URL to see if this flowfile can be included in the batch
+                    final String urlToCheck = context.getProperty(URL).evaluateAttributeExpressions(flowFile).getValue();
+                    if (url.equals(urlToCheck)) {
+                        bytesToSend.addAndGet(flowFile.getSize());
+                        return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    } else {
+                        return FlowFileFilterResult.REJECT_AND_CONTINUE;
+                    }
+                }
+            }));
         }
 
-        final String url = lastUrl;
         final HttpPost post = new HttpPost(url);
-        final List<FlowFile> flowFileList = toSend;
         final DestinationAccepts accepts = destinationAccepts;
         final boolean isDestinationLegacyNiFi = accepts.getProtocolVersion() == null;
 
@@ -607,7 +606,7 @@ public class PostHTTP extends AbstractProcessor {
                 }
 
                 try (final OutputStream out = wrappedOut) {
-                    for (final FlowFile flowFile : flowFileList) {
+                    for (final FlowFile flowFile : toSend) {
                         session.read(flowFile, new InputStreamCallback() {
                             @Override
                             public void process(final InputStream rawIn) throws IOException {
@@ -691,10 +690,10 @@ public class PostHTTP extends AbstractProcessor {
         }
 
         final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
-        if (attributeHeaderRegex != null && !sendAsFlowFile && flowFileList.size() == 1) {
+        if (attributeHeaderRegex != null && !sendAsFlowFile && toSend.size() == 1) {
             final Pattern pattern = Pattern.compile(attributeHeaderRegex);
 
-            final Map<String, String> attributes = flowFileList.get(0).getAttributes();
+            final Map<String, String> attributes = toSend.get(0).getAttributes();
             for (final Map.Entry<String, String> entry : attributes.entrySet()) {
                 final String key = entry.getKey();
                 if (pattern.matcher(key).matches()) {
@@ -729,7 +728,7 @@ public class PostHTTP extends AbstractProcessor {
             // don't do this, the Connection will not be returned to the pool
             EntityUtils.consume(response.getEntity());
             stopWatch.stop();
-            uploadDataRate = stopWatch.calculateDataRate(bytesToSend);
+            uploadDataRate = stopWatch.calculateDataRate(bytesToSend.get());
             uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
         } catch (final IOException e) {
             logger.error("Failed to Post {} due to {}; transferring to failure", new Object[]{flowFileDescription, e});

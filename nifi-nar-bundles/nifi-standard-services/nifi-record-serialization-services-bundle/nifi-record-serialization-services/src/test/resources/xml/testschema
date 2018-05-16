@@ -1,0 +1,11 @@
+{
+  "namespace": "nifi",
+  "name": "test",
+  "type": "record",
+  "fields": [
+    { "name": "ID", "type": "string" },
+    { "name": "NAME", "type": "string" },
+    { "name": "AGE", "type": "int" },
+    { "name": "COUNTRY", "type": "string" }
+  ]
+}

@@ -25,6 +25,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -116,7 +117,7 @@ class ZooKeeperMigrator {
         closeZooKeeper(zooKeeper);
     }
 
-    void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData, boolean ignoreSource) throws IOException, ExecutionException, InterruptedException {
+    void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData, boolean ignoreSource, boolean useExistingACL) throws IOException, ExecutionException, InterruptedException {
         // ensure that the chroot path exists
         ZooKeeper zooKeeperRoot = getZooKeeper(Joiner.on(',').join(zooKeeperEndpointConfig.getServers()), authMode, authData);
         ensureNodeExists(zooKeeperRoot, zooKeeperEndpointConfig.getPath(), CreateMode.PERSISTENT);
@@ -132,7 +133,7 @@ class ZooKeeperMigrator {
         final ZooKeeperEndpointConfig sourceZooKeeperEndpointConfig = gson.fromJson(jsonReader, ZooKeeperEndpointConfig.class);
         LOGGER.info("Source data was obtained from ZooKeeper: {}", sourceZooKeeperEndpointConfig);
         Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath())
-                && sourceZooKeeperEndpointConfig.getServers() != null && sourceZooKeeperEndpointConfig.getServers().size() > 0, "Source ZooKeeper %s from %s is invalid",
+                        && sourceZooKeeperEndpointConfig.getServers() != null && sourceZooKeeperEndpointConfig.getServers().size() > 0, "Source ZooKeeper %s from %s is invalid",
                 sourceZooKeeperEndpointConfig, zkData);
         Preconditions.checkArgument(Collections.disjoint(zooKeeperEndpointConfig.getServers(), sourceZooKeeperEndpointConfig.getServers())
                         || !zooKeeperEndpointConfig.getPath().equals(sourceZooKeeperEndpointConfig.getPath()) || ignoreSource,
@@ -161,16 +162,21 @@ class ZooKeeperMigrator {
 
         final List<CompletableFuture<Stat>> writeFutures = stream.parallel().map(node -> {
             /*
-             * create stage to migrate paths and ACLs based on the migration parent path plus the node path and the given AuthMode,
-             * this stage must be run first
+             * create stage to determine the acls that should be applied to the node.
+             * this stage will be used to initialize the chain
              */
-            final CompletableFuture<DataStatAclNode> transformNodeStage = CompletableFuture.supplyAsync(() -> transformNode(node, authMode));
+            final CompletableFuture<List<ACL>> determineACLStage = CompletableFuture.supplyAsync(() -> determineACLs(node, authMode, useExistingACL));
+            /*
+             * create stage to apply acls to nodes and transform node to DataStatAclNode object
+             */
+            final Function<List<ACL>, CompletableFuture<DataStatAclNode>> transformNodeStage = acls -> CompletableFuture.supplyAsync(() -> transformNode(node, acls));
             /*
              * create stage to ensure that nodes exist for the entire path of the zookeeper node, must be invoked after the transformNode stage to
              * ensure that the node will exist after path migration
              */
-            final Function<DataStatAclNode, String> ensureNodeExistsStage = dataStatAclNode ->
-                    ensureNodeExists(zooKeeper, dataStatAclNode.getPath(), dataStatAclNode.getEphemeralOwner() == 0 ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL);
+            final Function<DataStatAclNode, CompletionStage<String>> ensureNodeExistsStage = dataStatAclNode ->
+                    CompletableFuture.supplyAsync(() -> ensureNodeExists(zooKeeper, dataStatAclNode.getPath(),
+                            dataStatAclNode.getEphemeralOwner() == 0 ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL));
             /*
              * create stage that waits for both the transformNode and ensureNodeExists stages complete, and also provides that the given transformed node is
              * available to the next stage
@@ -180,12 +186,14 @@ class ZooKeeperMigrator {
              * create stage to transmit the node to the destination zookeeper endpoint, must be invoked after the node has been transformed and its path
              * has been created (or already exists) in the destination zookeeper
              */
-            final Function<DataStatAclNode, CompletionStage<Stat>> transmitNodeStage = dataStatNode ->
-                    CompletableFuture.supplyAsync(() -> transmitNode(zooKeeper, dataStatNode));
+            final Function<DataStatAclNode, CompletionStage<Stat>> transmitNodeStage = dataStatNode -> CompletableFuture.supplyAsync(() -> transmitNode(zooKeeper, dataStatNode));
             /*
              * submit the stages chained together in the proper order to perform the processing on the given node
              */
-            return transformNodeStage.thenApply(ensureNodeExistsStage).thenCombine(transformNodeStage, combineEnsureNodeAndTransferNodeStage).thenCompose(transmitNodeStage);
+            final CompletableFuture<DataStatAclNode> dataStatAclNodeCompletableFuture = determineACLStage.thenCompose(transformNodeStage);
+            return dataStatAclNodeCompletableFuture.thenCompose(ensureNodeExistsStage)
+                    .thenCombine(dataStatAclNodeCompletableFuture, combineEnsureNodeAndTransferNodeStage)
+                    .thenCompose(transmitNodeStage);
         }).collect(Collectors.toList());
 
         CompletableFuture<Void> allWritesFuture = CompletableFuture.allOf(writeFutures.toArray(new CompletableFuture[writeFutures.size()]));
@@ -269,11 +277,13 @@ class ZooKeeperMigrator {
         }
     }
 
-    private DataStatAclNode transformNode(DataStatAclNode node, AuthMode destinationAuthMode) {
-        // For the NiFi use case, all nodes will be migrated to CREATOR_ALL_ACL
-        final DataStatAclNode migratedNode = new DataStatAclNode(node.getPath(), node.getData(), node.getStat(),
-                destinationAuthMode.equals(AuthMode.OPEN) ? ZooDefs.Ids.OPEN_ACL_UNSAFE : ZooDefs.Ids.CREATOR_ALL_ACL,
-                node.getEphemeralOwner());
+    private List<ACL> determineACLs(DataStatAclNode node, AuthMode authMode, Boolean useExistingACL) {
+        return useExistingACL ? node.getAcls() :
+                (authMode.equals(AuthMode.OPEN) ? ZooDefs.Ids.OPEN_ACL_UNSAFE : ZooDefs.Ids.CREATOR_ALL_ACL);
+    }
+
+    private DataStatAclNode transformNode(DataStatAclNode node, List<ACL> acls) {
+        final DataStatAclNode migratedNode = new DataStatAclNode(node.getPath(), node.getData(), node.getStat(), acls, node.getEphemeralOwner());
         LOGGER.info("transformed original node {} to {}", node, migratedNode);
         return migratedNode;
     }

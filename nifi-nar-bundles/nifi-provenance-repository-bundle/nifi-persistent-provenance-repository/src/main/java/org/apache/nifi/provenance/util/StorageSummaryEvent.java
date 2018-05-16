@@ -19,7 +19,6 @@ package org.apache.nifi.provenance.util;
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.serialization.StorageSummary;
@@ -181,5 +180,15 @@ public class StorageSummaryEvent implements ProvenanceEventRecord {
     @Override
     public Long getPreviousContentClaimOffset() {
         return event.getPreviousContentClaimOffset();
+    }
+
+    /**
+     * Returns the best event identifier for this event (eventId if available, descriptive identifier if not yet persisted to allow for traceability).
+     *
+     * @return a descriptive event ID to allow tracing
+     */
+    @Override
+    public String getBestEventIdentifier() {
+        return Long.toString(getEventId());
     }
 }

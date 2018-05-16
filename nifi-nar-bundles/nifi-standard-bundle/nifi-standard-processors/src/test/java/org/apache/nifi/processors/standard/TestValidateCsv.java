@@ -90,14 +90,18 @@ public class TestValidateCsv {
 
         runner.setProperty(ValidateCsv.SCHEMA, "Unique()");
 
-        runner.enqueue("John\r\nBob\r\nBob\r\nJohn");
+        runner.enqueue("John\r\nBob\r\nBob\r\nJohn\r\nTom");
         runner.run();
 
         runner.assertTransferCount(ValidateCsv.REL_VALID, 1);
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
 
-        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("John\r\nBob");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("John\r\nBob\r\nTom");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertAttributeEquals("count.total.lines", "5");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertAttributeEquals("count.valid.lines", "3");
         runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertContentEquals("Bob\r\nJohn");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertAttributeEquals("count.invalid.lines", "2");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertAttributeEquals("count.total.lines", "5");
     }
 
     @Test
@@ -260,7 +264,9 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
         runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
         runner.setProperty(ValidateCsv.HEADER, "false");
+        runner.assertNotValid();
 
+        // We
         runner.setProperty(ValidateCsv.SCHEMA, "RequireSubString(\"test\")");
         runner.assertNotValid();
 
@@ -271,4 +277,60 @@ public class TestValidateCsv {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testValidateWithEL() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, "${comma}");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "${crlf}");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "${quote}");
+        runner.setProperty(ValidateCsv.HEADER, "false");
+
+        runner.setProperty(ValidateCsv.SCHEMA, "RequireSubString(\"test\")");
+        runner.assertNotValid();
+
+        runner.setProperty(ValidateCsv.SCHEMA, "''");
+        runner.assertNotValid();
+
+        runner.setProperty(ValidateCsv.SCHEMA, "\"\"");
+        runner.assertNotValid();
+
+        runner.setProperty(ValidateCsv.SCHEMA, "${schema}");
+        runner.assertValid();
+
+        int hashcode = "test".hashCode();
+        runner.setVariable("schema", "RequireHashCode(" + hashcode + "), RequireSubStr(\"test\")");
+        runner.setVariable("comma", ",");
+        runner.setVariable("quote", "\"");
+        runner.setVariable("crlf", "\r\n");
+
+        runner.enqueue("test,test");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
+    }
+
+    @Test
+    public void testParseSchemaCommaBoundary() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.SCHEMA, "Null(),Null");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testMultipleRuns() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "false");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_LINES_INDIVIDUALLY);
+
+        runner.setProperty(ValidateCsv.SCHEMA, "Unique()");
+
+        runner.enqueue("John\r\nBob\r\nTom");
+        runner.enqueue("John\r\nBob\r\nTom");
+        runner.run(2);
+
+        runner.assertTransferCount(ValidateCsv.REL_VALID, 2);
+        runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
+    }
 }

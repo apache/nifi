@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 
-import java.util.List;
 import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 
 /**
  * A description of a property.
@@ -37,7 +37,9 @@ public class PropertyDescriptorDTO {
     private Boolean sensitive;
     private Boolean dynamic;
     private Boolean supportsEl;
+    private String expressionLanguageScope;
     private String identifiesControllerService;
+    private BundleDTO identifiesControllerServiceBundle;
 
     /**
      * @return set of allowable values for this property. If empty then the allowable values are not constrained
@@ -166,10 +168,24 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * @return if this property identifies a controller service, this returns the fully qualified type, null otherwise
+     * @return specifies the scope of expression language evaluation
      */
     @ApiModelProperty(
-            value = "If the property identifies a controller service, this returns the fully qualified type."
+            value = "Scope of the Expression Language evaluation for the property."
+    )
+    public String getExpressionLanguageScope() {
+        return expressionLanguageScope;
+    }
+
+    public void setExpressionLanguageScope(String scope) {
+        this.expressionLanguageScope = scope;
+    }
+
+    /**
+     * @return if this property identifies a controller service this returns the fully qualified type, null otherwise
+     */
+    @ApiModelProperty(
+            value = "If the property identifies a controller service this returns the fully qualified type."
     )
     public String getIdentifiesControllerService() {
         return identifiesControllerService;
@@ -179,4 +195,17 @@ public class PropertyDescriptorDTO {
         this.identifiesControllerService = identifiesControllerService;
     }
 
+    /**
+     * @return if this property identifies a controller service this returns the bundle of the type, null otherwise
+     */
+    @ApiModelProperty(
+            value = "If the property identifies a controller service this returns the bundle of the type, null otherwise."
+    )
+    public BundleDTO getIdentifiesControllerServiceBundle() {
+        return identifiesControllerServiceBundle;
+    }
+
+    public void setIdentifiesControllerServiceBundle(BundleDTO identifiesControllerServiceBundle) {
+        this.identifiesControllerServiceBundle = identifiesControllerServiceBundle;
+    }
 }

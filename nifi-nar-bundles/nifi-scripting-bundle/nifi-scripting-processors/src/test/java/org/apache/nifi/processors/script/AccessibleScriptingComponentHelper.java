@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.script;
 
+import org.apache.nifi.script.ScriptingComponentHelper;
+
 /**
  * An interface for retrieving the scripting component helper for a scripting processor. Aids in testing (for setting the Script Engine descriptor, for example).
  */

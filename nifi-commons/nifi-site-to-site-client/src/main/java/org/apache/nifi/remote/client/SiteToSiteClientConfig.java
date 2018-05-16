@@ -18,6 +18,7 @@ package org.apache.nifi.remote.client;
 
 import java.io.File;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +37,7 @@ public interface SiteToSiteClientConfig extends Serializable {
      * for backward compatibility for implementations that does not expect multiple URLs.
      * {@link #getUrls()} should be used instead then should support multiple URLs when making requests.
      */
+    @Deprecated
     String getUrl();
 
     /**
@@ -161,6 +163,17 @@ public interface SiteToSiteClientConfig extends Serializable {
     int getPreferredBatchCount();
 
     /**
+     * When the contents of a remote NiFi instance are fetched, that information is cached
+     * so that many calls that are made in a short period of time do not overwhelm the remote
+     * NiFi instance. This method will indicate the number of milliseconds that this information
+     * can be cached.
+     *
+     * @param unit the desired time unit
+     * @return the number of milliseconds that the contents of a remote NiFi instance will be cached
+     */
+    long getCacheExpiration(TimeUnit unit);
+
+    /**
      * @return the EventReporter that is to be used by clients to report events
      */
     EventReporter getEventReporter();
@@ -171,4 +184,9 @@ public interface SiteToSiteClientConfig extends Serializable {
      */
     HttpProxy getHttpProxy();
 
+    /**
+     * @return the InetAddress to bind to for the local address when creating a socket, or
+     *         {@code null} to bind to the {@code anyLocal} address.
+     */
+    InetAddress getLocalAddress();
 }

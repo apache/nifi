@@ -39,10 +39,15 @@ public class SystemDiagnostics implements Cloneable {
     private int totalThreads;
     private int daemonThreads;
 
+    private Long totalPhysicalMemory;
+    private Long maxOpenFileHandles;
+    private Long openFileHandles;
+
     private long uptime;
 
     private StorageUsage flowFileRepositoryStorageUsage;
     private Map<String, StorageUsage> contentRepositoryStorageUsage;
+    private Map<String, StorageUsage> provenanceRepositoryStorageUsage;
     private Map<String, GarbageCollection> garbageCollection;
 
     private long creationTimestamp;
@@ -95,6 +100,10 @@ public class SystemDiagnostics implements Cloneable {
         this.contentRepositoryStorageUsage = contentRepositoryStorageUsage;
     }
 
+    public void setProvenanceRepositoryStorageUsage(final Map<String, StorageUsage> provenanceRepositoryStorageUsage) {
+        this.provenanceRepositoryStorageUsage = provenanceRepositoryStorageUsage;
+    }
+
     public long getTotalNonHeap() {
         return totalNonHeap;
     }
@@ -141,6 +150,10 @@ public class SystemDiagnostics implements Cloneable {
 
     public Map<String, StorageUsage> getContentRepositoryStorageUsage() {
         return contentRepositoryStorageUsage;
+    }
+
+    public Map<String, StorageUsage> getProvenanceRepositoryStorageUsage() {
+        return provenanceRepositoryStorageUsage;
     }
 
     public long getFreeNonHeap() {
@@ -191,6 +204,30 @@ public class SystemDiagnostics implements Cloneable {
         this.uptime = uptime;
     }
 
+    public long getTotalPhysicalMemory() {
+        return totalPhysicalMemory;
+    }
+
+    public void setTotalPhysicalMemory(long totalPhysicalMemory) {
+        this.totalPhysicalMemory = totalPhysicalMemory;
+    }
+
+    public long getMaxOpenFileHandles() {
+        return maxOpenFileHandles;
+    }
+
+    public void setMaxOpenFileHandles(long maxOpenFileHandles) {
+        this.maxOpenFileHandles = maxOpenFileHandles;
+    }
+
+    public long getOpenFileHandles() {
+        return openFileHandles;
+    }
+
+    public void setOpenFileHandles(long openFileHandles) {
+        this.openFileHandles = openFileHandles;
+    }
+
     @Override
     public SystemDiagnostics clone() {
         final SystemDiagnostics clonedObj = new SystemDiagnostics();
@@ -203,6 +240,13 @@ public class SystemDiagnostics implements Cloneable {
             final Map<String, StorageUsage> clonedMap = new LinkedHashMap<>();
             clonedObj.setContentRepositoryStorageUsage(clonedMap);
             for (final Map.Entry<String, StorageUsage> entry : contentRepositoryStorageUsage.entrySet()) {
+                clonedMap.put(entry.getKey(), entry.getValue().clone());
+            }
+        }
+        if(provenanceRepositoryStorageUsage != null) {
+            final Map<String, StorageUsage> clonedMap = new LinkedHashMap<>();
+            clonedObj.setProvenanceRepositoryStorageUsage(clonedMap);
+            for (final Map.Entry<String, StorageUsage> entry : provenanceRepositoryStorageUsage.entrySet()) {
                 clonedMap.put(entry.getKey(), entry.getValue().clone());
             }
         }
@@ -223,6 +267,9 @@ public class SystemDiagnostics implements Cloneable {
         clonedObj.usedNonHeap = usedNonHeap;
         clonedObj.creationTimestamp = creationTimestamp;
         clonedObj.uptime = uptime;
+        clonedObj.totalPhysicalMemory = totalPhysicalMemory;
+        clonedObj.openFileHandles = openFileHandles;
+        clonedObj.maxOpenFileHandles = maxOpenFileHandles;
 
         return clonedObj;
     }

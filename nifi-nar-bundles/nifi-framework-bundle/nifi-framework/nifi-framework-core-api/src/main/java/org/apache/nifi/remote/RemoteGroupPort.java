@@ -33,11 +33,26 @@ public abstract class RemoteGroupPort extends AbstractPort implements Port, Remo
 
     public abstract TransferDirection getTransferDirection();
 
+    @Override
     public abstract boolean isUseCompression();
 
     public abstract void setUseCompression(boolean useCompression);
 
     public abstract boolean getTargetExists();
 
+    public abstract String getTargetIdentifier();
+
     public abstract boolean isTargetRunning();
+
+    public abstract Integer getBatchCount();
+
+    public abstract void setBatchCount(Integer batchCount);
+
+    public abstract String getBatchSize();
+
+    public abstract void setBatchSize(String batchSize);
+
+    public abstract String getBatchDuration();
+
+    public abstract void setBatchDuration(String batchDuration);
 }

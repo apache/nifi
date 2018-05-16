@@ -22,6 +22,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -107,7 +108,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClienAuthRequiredAndClientCertProvided() throws InitializationException, IOException, InterruptedException,
+    public void testTLSClientAuthRequiredAndClientCertProvided() throws InitializationException, IOException, InterruptedException,
             UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
 
         runner.setProperty(ListenTCP.CLIENT_AUTH, SSLContextService.ClientAuth.REQUIRED.name());
@@ -140,7 +141,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClienAuthRequiredAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException,
+    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException,
             UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
 
         runner.setProperty(ListenTCP.CLIENT_AUTH, SSLContextService.ClientAuth.REQUIRED.name());
@@ -169,7 +170,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClienAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException,
+    public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException,
             UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
 
         runner.setProperty(ListenTCP.CLIENT_AUTH, SSLContextService.ClientAuth.NONE.name());
@@ -258,7 +259,7 @@ public class TestListenTCP {
     }
 
     private SSLContextService configureProcessorSslContextService() throws InitializationException {
-        final SSLContextService sslContextService = new StandardSSLContextService();
+        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");

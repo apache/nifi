@@ -16,27 +16,7 @@
  */
 package org.apache.nifi.audit;
 
-import org.apache.nifi.action.Action;
-import org.apache.nifi.action.Component;
-import org.apache.nifi.action.FlowChangeAction;
-import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDetails;
-import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.action.details.ConfigureDetails;
-import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
-import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.nifi.web.api.dto.DtoFactory.SENSITIVE_VALUE_MASK;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,8 +28,27 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import static org.apache.nifi.web.api.dto.DtoFactory.SENSITIVE_VALUE_MASK;
+import org.apache.nifi.action.Action;
+import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
+import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.component.details.FlowChangeRemoteProcessGroupDetails;
+import org.apache.nifi.action.details.ActionDetails;
+import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Audits remote process group creation/removal and configuration changes.
@@ -94,6 +93,15 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                     .setConvertName(PORT_NAME_CONVERT),
             new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Compressed",
                     dto -> dto.getUseCompression() != null, RemoteGroupPort::isUseCompression)
+                    .setConvertName(PORT_NAME_CONVERT),
+            new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Batch Count",
+                    dto -> dto.getBatchSettings() != null && dto.getBatchSettings().getCount() != null, RemoteGroupPort::getBatchCount)
+                    .setConvertName(PORT_NAME_CONVERT),
+            new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Batch Size",
+                    dto -> dto.getBatchSettings() != null && dto.getBatchSettings().getSize() != null, RemoteGroupPort::getBatchSize)
+                    .setConvertName(PORT_NAME_CONVERT),
+            new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Batch Duration",
+                    dto -> dto.getBatchSettings() != null && dto.getBatchSettings().getDuration() != null, RemoteGroupPort::getBatchDuration)
                     .setConvertName(PORT_NAME_CONVERT)
     );
 
@@ -355,7 +363,6 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
 
     private RemoteGroupPort auditUpdateProcessGroupPortConfiguration(ProceedingJoinPoint proceedingJoinPoint, RemoteProcessGroupPortDTO remoteProcessGroupPortDto,
                                                                      RemoteProcessGroup remoteProcessGroup, RemoteGroupPort remoteProcessGroupPort) throws Throwable {
-
         final Map<String, Object> previousValues = ConfigurationRecorder.capturePreviousValues(PORT_CONFIG_RECORDERS, remoteProcessGroupPort);
 
         // perform the underlying operation

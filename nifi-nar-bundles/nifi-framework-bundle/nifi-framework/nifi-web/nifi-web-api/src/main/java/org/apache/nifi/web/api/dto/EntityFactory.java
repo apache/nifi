@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import org.apache.nifi.web.api.dto.action.ActionDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
@@ -33,7 +34,9 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -52,9 +55,12 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.RegistryClientEntity;
+import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
@@ -65,11 +71,30 @@ import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
+import org.apache.nifi.web.api.entity.VariableRegistryEntity;
+import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 import java.util.Date;
 import java.util.List;
 
 public final class EntityFactory {
+
+    public ProcessorDiagnosticsEntity createProcessorDiagnosticsEntity(final ProcessorDiagnosticsDTO dto, final RevisionDTO revision, final PermissionsDTO processorPermissions,
+        final ProcessorStatusDTO status, final List<BulletinEntity> bulletins) {
+        final ProcessorDiagnosticsEntity entity = new ProcessorDiagnosticsEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(processorPermissions);
+            entity.setId(dto.getProcessor().getId());
+            if (processorPermissions != null && processorPermissions.getCanRead()) {
+                entity.setComponent(dto);
+                entity.setBulletins(bulletins);
+            }
+        }
+
+        entity.setBulletins(bulletins);
+        return entity;
+    }
 
     public StatusHistoryEntity createStatusHistoryEntity(final StatusHistoryDTO statusHistory, final PermissionsDTO permissions) {
         final StatusHistoryEntity entity = new StatusHistoryEntity();
@@ -210,6 +235,7 @@ public final class EntityFactory {
 
     public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
                                                        final ProcessGroupStatusDTO status, final List<BulletinEntity> bulletins) {
+
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -217,6 +243,7 @@ public final class EntityFactory {
             entity.setStatus(status);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
+
             entity.setInputPortCount(dto.getInputPortCount());
             entity.setOutputPortCount(dto.getOutputPortCount());
             entity.setRunningCount(dto.getRunningCount());
@@ -225,6 +252,17 @@ public final class EntityFactory {
             entity.setDisabledCount(dto.getDisabledCount());
             entity.setActiveRemotePortCount(dto.getActiveRemotePortCount());
             entity.setInactiveRemotePortCount(dto.getInactiveRemotePortCount());
+
+            entity.setUpToDateCount(dto.getUpToDateCount());
+            entity.setLocallyModifiedCount(dto.getLocallyModifiedCount());
+            entity.setStaleCount(dto.getStaleCount());
+            entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
+            entity.setSyncFailureCount(dto.getSyncFailureCount());
+
+            if (dto.getVersionControlInformation() != null) {
+                entity.setVersionedFlowState(dto.getVersionControlInformation().getState());
+            }
+
             entity.setBulletins(bulletins); // include bulletins as authorized descendant component bulletins should be available
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
@@ -302,6 +340,20 @@ public final class EntityFactory {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
             entity.setParentGroupId(dto.getParentGroupId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public AffectedComponentEntity createAffectedComponentEntity(final AffectedComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final AffectedComponentEntity entity = new AffectedComponentEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
 
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
@@ -431,6 +483,18 @@ public final class EntityFactory {
         return entity;
     }
 
+    public VariableRegistryEntity createVariableRegistryEntity(final VariableRegistryDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final VariableRegistryEntity entity = new VariableRegistryEntity();
+        entity.setProcessGroupRevision(revision);
+        if (dto != null) {
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setVariableRegistry(dto);
+            }
+        }
+
+        return entity;
+    }
+
     public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final List<BulletinEntity> bulletins) {
         final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setRevision(revision);
@@ -466,6 +530,11 @@ public final class EntityFactory {
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
+
+            if (dto.getVersionControlInformation() != null) {
+                entity.setVersionedFlowState(dto.getVersionControlInformation().getState());
+            }
+
             if (permissions != null && permissions.getCanRead()) {
                 entity.setBreadcrumb(dto);
             }
@@ -509,4 +578,50 @@ public final class EntityFactory {
         }
         return entity;
     }
+
+    public VersionControlInformationEntity createVersionControlInformationEntity(final VersionControlInformationDTO dto, final RevisionDTO processGroupRevision) {
+        final VersionControlInformationEntity entity = new VersionControlInformationEntity();
+        entity.setVersionControlInformation(dto);
+        entity.setProcessGroupRevision(processGroupRevision);
+        return entity;
+    }
+
+    public RegistryClientEntity createRegistryClientEntity(final RegistryDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final RegistryClientEntity entity = new RegistryClientEntity();
+        entity.setRevision(revision);
+        entity.setPermissions(permissions);
+
+        if (dto != null) {
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+
+        return entity;
+    }
+
+    public RegistryEntity createRegistryEntity(final RegistryDTO dto) {
+        final RegistryEntity entity = new RegistryEntity();
+
+        if (dto != null) {
+            entity.setRegistry(dto);
+        }
+
+        return entity;
+    }
+
+    public BucketEntity createBucketEntity(final BucketDTO dto, final PermissionsDTO permissions) {
+        final BucketEntity entity = new BucketEntity();
+        entity.setId(dto.getId());
+        entity.setPermissions(permissions);
+
+        if (permissions != null && permissions.getCanRead()) {
+            entity.setBucket(dto);
+        }
+
+        return entity;
+    }
+
 }

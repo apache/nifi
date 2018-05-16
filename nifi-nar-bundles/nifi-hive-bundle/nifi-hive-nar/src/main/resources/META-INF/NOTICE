@@ -1,21 +1,21 @@
 nifi-hive-nar
-Copyright 2014-2017 The Apache Software Foundation
+Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
 This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
-Copyright 2015 The Apache Software Foundation
-The derived work is adapted from
-  org/apache/storm/hive/common/HiveWriter.java
-  org/apache/storm/hive/common/HiveOptions.java
-and can be found in the org.apache.nifi.util.hive package
+  Copyright 2015 The Apache Software Foundation
+  The derived work is adapted from
+    org/apache/storm/hive/common/HiveWriter.java
+    org/apache/storm/hive/common/HiveOptions.java
+  and can be found in the org.apache.nifi.util.hive package
 
 This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
-Copyright 2008-2016 The Apache Software Foundation
-The derived work is adapted from
-  release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
-and can be found in the org.apache.hadoop.hive.ql.io.orc package
+  Copyright 2008-2016 The Apache Software Foundation
+  The derived work is adapted from
+    release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+  and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
 ===========================================
 Apache Software License v2
@@ -231,7 +231,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Jetty
     The following NOTICE information applies:
        Jetty Web Container
-       Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+       Copyright 1995-2017 Mort Bay Consulting Pty Ltd.
 
   (ASLv2) Apache log4j
     The following NOTICE information applies:
@@ -314,10 +314,11 @@ The following binary components are provided under the Apache Software License v
 
   The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-      (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.19 - https://jersey.java.net)
-      (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.19 - https://jersey.java.net/)
-      (CDDL 1.1) (GPL2 w/ CPE) jersey-json (com.sun.jersey:jersey-json:jar:1.19 - https://jersey.java.net/)
-      (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.19 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.9 - https://jersey.java.net)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.9 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-json (com.sun.jersey:jersey-json:jar:1.9 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.9 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-guice (com.sun.jersey.contribs:jersey-guice:jar:1.9 - https://jersey.java.net/)
       (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
       (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
 
@@ -332,7 +333,6 @@ The following binary components are provided under the Apache Software License v
       (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
       (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
       (CDDL 1.0) JavaServer Pages(TM) API (javax.servlet.jsp:jsp-api:jar:2.1 - http://jsp.java.net)
-      (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
 
   *****************
   Public Domain

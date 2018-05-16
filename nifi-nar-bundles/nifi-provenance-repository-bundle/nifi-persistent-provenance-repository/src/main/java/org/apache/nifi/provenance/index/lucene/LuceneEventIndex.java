@@ -36,7 +36,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -155,7 +154,7 @@ public class LuceneEventIndex implements EventIndex {
 
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("Provenance Repository Maintenance"));
         maintenanceExecutor.scheduleWithFixedDelay(() -> performMaintenance(), 1, 1, TimeUnit.MINUTES);
-        maintenanceExecutor.scheduleWithFixedDelay(new RemoveExpiredQueryResults(), 30, 30, TimeUnit.SECONDS);
+        maintenanceExecutor.scheduleWithFixedDelay(this::purgeObsoleteQueries, 30, 30, TimeUnit.SECONDS);
 
         cachedQueries.add(new LatestEventsQuery());
         cachedQueries.add(new LatestEventsPerProcessorQuery());
@@ -246,7 +245,7 @@ public class LuceneEventIndex implements EventIndex {
 
             final Document document = eventConverter.convert(event, summary);
             if (document == null) {
-                logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event);
+                logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event.getEventId());
             } else {
                 final File indexDir;
                 if (event.getEventTime() == lastEventTime) {
@@ -291,7 +290,7 @@ public class LuceneEventIndex implements EventIndex {
 
         final Document document = eventConverter.convert(event, location);
         if (document == null) {
-            logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event);
+            logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event.getEventId());
         } else {
             final StoredDocument doc = new StoredDocument(document, location);
             boolean added = false;
@@ -357,13 +356,13 @@ public class LuceneEventIndex implements EventIndex {
             eventOption = eventStore.getEvent(eventId);
         } catch (final Exception e) {
             logger.error("Failed to retrieve Provenance Event with ID " + eventId + " to calculate data lineage due to: " + e, e);
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String> emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Failed to retrieve Provenance Event with ID " + eventId + ". See logs for more information.");
             return result;
         }
 
         if (!eventOption.isPresent()) {
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String> emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Could not find Provenance Event with ID " + eventId);
             lineageSubmissionMap.put(result.getLineageIdentifier(), result);
             return result;
@@ -379,7 +378,7 @@ public class LuceneEventIndex implements EventIndex {
         final LineageComputationType computationType, final Long eventId, final long startTimestamp, final long endTimestamp) {
 
         final List<File> indexDirs = directoryManager.getDirectories(startTimestamp, endTimestamp);
-        final AsyncLineageSubmission submission = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user.getIdentity());
+        final AsyncLineageSubmission submission = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user == null ? null : user.getIdentity());
         lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
         final BooleanQuery lineageQuery = buildLineageQuery(flowFileUuids);
@@ -502,7 +501,7 @@ public class LuceneEventIndex implements EventIndex {
 
     @Override
     public ComputeLineageSubmission submitExpandChildren(final long eventId, final NiFiUser user, final EventAuthorizer authorizer) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final Optional<ProvenanceEventRecord> eventOption = eventStore.getEvent(eventId);
@@ -524,7 +523,7 @@ public class LuceneEventIndex implements EventIndex {
                 }
                 default: {
                     final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN,
-                        eventId, Collections.<String> emptyList(), 1, userId);
+                        eventId, Collections.emptyList(), 1, userId);
 
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its children cannot be expanded");
@@ -533,7 +532,7 @@ public class LuceneEventIndex implements EventIndex {
             }
         } catch (final Exception e) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN,
-                eventId, Collections.<String> emptyList(), 1, userId);
+                eventId, Collections.emptyList(), 1, userId);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
             submission.getResult().setError("Failed to expand children for lineage of event with ID " + eventId + " due to: " + e);
             return submission;
@@ -542,7 +541,7 @@ public class LuceneEventIndex implements EventIndex {
 
     @Override
     public ComputeLineageSubmission submitExpandParents(final long eventId, final NiFiUser user, final EventAuthorizer authorizer) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final Optional<ProvenanceEventRecord> eventOption = eventStore.getEvent(eventId);
@@ -564,7 +563,7 @@ public class LuceneEventIndex implements EventIndex {
                 }
                 default: {
                     final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS,
-                        eventId, Collections.<String> emptyList(), 1, userId);
+                        eventId, Collections.emptyList(), 1, userId);
 
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its parents cannot be expanded");
@@ -573,7 +572,7 @@ public class LuceneEventIndex implements EventIndex {
             }
         } catch (final Exception e) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS,
-                eventId, Collections.<String> emptyList(), 1, userId);
+                eventId, Collections.emptyList(), 1, userId);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
             submission.getResult().setError("Failed to expand parents for lineage of event with ID " + eventId + " due to: " + e);
@@ -634,8 +633,11 @@ public class LuceneEventIndex implements EventIndex {
     private void validate(final Query query) {
         final int numQueries = querySubmissionMap.size();
         if (numQueries > MAX_UNDELETED_QUERY_RESULTS) {
-            throw new IllegalStateException("Cannot process query because there are currently " + numQueries + " queries whose results have not "
-                + "been deleted due to poorly behaving clients not issuing DELETE requests. Please try again later.");
+            purgeObsoleteQueries();
+            if (querySubmissionMap.size() > MAX_UNDELETED_QUERY_RESULTS) {
+                throw new IllegalStateException("Cannot process query because there are currently " + numQueries + " queries whose results have not "
+                    + "been deleted due to poorly behaving clients not issuing DELETE requests. Please try again later.");
+            }
         }
 
         if (query.getEndDate() != null && query.getStartDate() != null && query.getStartDate().getTime() > query.getEndDate().getTime()) {
@@ -646,14 +648,19 @@ public class LuceneEventIndex implements EventIndex {
     void performMaintenance() {
         try {
             final List<ProvenanceEventRecord> firstEvents = eventStore.getEvents(0, 1);
+
+            final long earliestEventTime;
             if (firstEvents.isEmpty()) {
-                return;
+                earliestEventTime = System.currentTimeMillis();
+                logger.debug("Found no events in the Provenance Repository. In order to perform maintenace of the indices, "
+                    + "will assume that the first event time is now ({})", System.currentTimeMillis());
+            } else {
+                final ProvenanceEventRecord firstEvent = firstEvents.get(0);
+                earliestEventTime = firstEvent.getEventTime();
+                logger.debug("First Event Time is {} ({}) with Event ID {}; will delete any Lucene Index that is older than this",
+                    earliestEventTime, new Date(earliestEventTime), firstEvent.getEventId());
             }
 
-            final ProvenanceEventRecord firstEvent = firstEvents.get(0);
-            final long earliestEventTime = firstEvent.getEventTime();
-            logger.debug("First Event Time is {} ({}) with Event ID {}; will delete any Lucene Index that is older than this",
-                earliestEventTime, new Date(earliestEventTime), firstEvent.getEventId());
             final List<File> indicesBeforeEarliestEvent = directoryManager.getDirectoriesBefore(earliestEventTime);
 
             for (final File index : indicesBeforeEarliestEvent) {
@@ -703,35 +710,32 @@ public class LuceneEventIndex implements EventIndex {
         return removed;
     }
 
-    private class RemoveExpiredQueryResults implements Runnable {
-        @Override
-        public void run() {
-            try {
-                final Date now = new Date();
+    private void purgeObsoleteQueries() {
+        try {
+            final Date now = new Date();
 
-                final Iterator<Map.Entry<String, AsyncQuerySubmission>> queryIterator = querySubmissionMap.entrySet().iterator();
-                while (queryIterator.hasNext()) {
-                    final Map.Entry<String, AsyncQuerySubmission> entry = queryIterator.next();
+            final Iterator<Map.Entry<String, AsyncQuerySubmission>> queryIterator = querySubmissionMap.entrySet().iterator();
+            while (queryIterator.hasNext()) {
+                final Map.Entry<String, AsyncQuerySubmission> entry = queryIterator.next();
 
-                    final StandardQueryResult result = entry.getValue().getResult();
-                    if (entry.getValue().isCanceled() || result.isFinished() && result.getExpiration().before(now)) {
-                        queryIterator.remove();
-                    }
+                final StandardQueryResult result = entry.getValue().getResult();
+                if (entry.getValue().isCanceled() || result.isFinished() && result.getExpiration().before(now)) {
+                    queryIterator.remove();
                 }
-
-                final Iterator<Map.Entry<String, AsyncLineageSubmission>> lineageIterator = lineageSubmissionMap.entrySet().iterator();
-                while (lineageIterator.hasNext()) {
-                    final Map.Entry<String, AsyncLineageSubmission> entry = lineageIterator.next();
-
-                    final StandardLineageResult result = entry.getValue().getResult();
-                    if (entry.getValue().isCanceled() || result.isFinished() && result.getExpiration().before(now)) {
-                        lineageIterator.remove();
-                    }
-                }
-            } catch (final Exception e) {
-                logger.error("Failed to expire Provenance Query Results due to {}", e.toString());
-                logger.error("", e);
             }
+
+            final Iterator<Map.Entry<String, AsyncLineageSubmission>> lineageIterator = lineageSubmissionMap.entrySet().iterator();
+            while (lineageIterator.hasNext()) {
+                final Map.Entry<String, AsyncLineageSubmission> entry = lineageIterator.next();
+
+                final StandardLineageResult result = entry.getValue().getResult();
+                if (entry.getValue().isCanceled() || result.isFinished() && result.getExpiration().before(now)) {
+                    lineageIterator.remove();
+                }
+            }
+        } catch (final Exception e) {
+            logger.error("Failed to expire Provenance Query Results due to {}", e.toString());
+            logger.error("", e);
         }
     }
 }

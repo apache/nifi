@@ -16,14 +16,39 @@
  */
 package org.apache.nifi.remote.client.socket;
 
-import static org.apache.nifi.remote.util.EventReportUtil.error;
-import static org.apache.nifi.remote.util.EventReportUtil.warn;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.PeerStatus;
+import org.apache.nifi.remote.RemoteDestination;
+import org.apache.nifi.remote.RemoteResourceInitiator;
+import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.client.PeerSelector;
+import org.apache.nifi.remote.client.PeerStatusProvider;
+import org.apache.nifi.remote.client.SiteInfoProvider;
+import org.apache.nifi.remote.client.SiteToSiteClientConfig;
+import org.apache.nifi.remote.codec.FlowFileCodec;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.PortNotRunningException;
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
+import org.apache.nifi.remote.exception.UnknownPortException;
+import org.apache.nifi.remote.exception.UnreachableClusterException;
+import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
+import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.URI;
 import java.nio.channels.SocketChannel;
 import java.security.cert.CertificateException;
@@ -42,31 +67,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLContext;
-
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.PeerDescription;
-import org.apache.nifi.remote.PeerStatus;
-import org.apache.nifi.remote.RemoteDestination;
-import org.apache.nifi.remote.RemoteResourceInitiator;
-import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.PeerSelector;
-import org.apache.nifi.remote.client.PeerStatusProvider;
-import org.apache.nifi.remote.client.SiteInfoProvider;
-import org.apache.nifi.remote.client.SiteToSiteClientConfig;
-import org.apache.nifi.remote.codec.FlowFileCodec;
-import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.PortNotRunningException;
-import org.apache.nifi.remote.exception.TransmissionDisabledException;
-import org.apache.nifi.remote.exception.UnknownPortException;
-import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
-import org.apache.nifi.remote.protocol.CommunicationsSession;
-import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.nifi.remote.util.EventReportUtil.error;
+import static org.apache.nifi.remote.util.EventReportUtil.warn;
 
 public class EndpointConnectionPool implements PeerStatusProvider {
 
@@ -87,9 +89,11 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     private final SiteInfoProvider siteInfoProvider;
     private final PeerSelector peerSelector;
+    private final InetAddress localAddress;
 
     public EndpointConnectionPool(final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
-            final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider) {
+        final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider,
+        final InetAddress localAddress) {
         Objects.requireNonNull(remoteDestination, "Remote Destination/Port Identifier cannot be null");
 
         this.remoteDestination = remoteDestination;
@@ -97,6 +101,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         this.eventReporter = eventReporter;
         this.commsTimeout = commsTimeoutMillis;
         this.idleExpirationMillis = idleExpirationMillis;
+        this.localAddress = localAddress;
 
         this.siteInfoProvider = siteInfoProvider;
 
@@ -152,7 +157,13 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         SocketClientProtocol protocol = null;
         EndpointConnection connection;
         Peer peer = null;
-        URI clusterUrl = siteInfoProvider.getActiveClusterUrl();
+
+        final URI clusterUrl;
+        try {
+            clusterUrl = siteInfoProvider.getActiveClusterUrl();
+        } catch (final IOException ioe) {
+            throw new UnreachableClusterException("Unable to refresh details from any of the configured remote instances.", ioe);
+        }
 
         do {
             final List<EndpointConnection> addBack = new ArrayList<>();
@@ -440,7 +451,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                             + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
                 }
 
-                final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, true);
+                final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, localAddress, true);
                 socketChannel.connect();
 
                 commsSession = new SSLSocketChannelCommunicationsSession(socketChannel);
@@ -452,6 +463,11 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 }
             } else {
                 final SocketChannel socketChannel = SocketChannel.open();
+                if (localAddress != null) {
+                    final SocketAddress localSocketAddress = new InetSocketAddress(localAddress, 0);
+                    socketChannel.socket().bind(localSocketAddress);
+                }
+
                 socketChannel.socket().connect(new InetSocketAddress(hostname, port), commsTimeout);
                 socketChannel.socket().setSoTimeout(commsTimeout);
 

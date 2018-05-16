@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
 
 
 /**
@@ -148,7 +149,7 @@ public class TestListDatabaseTables {
 
     @Test
     public void testListTablesAfterRefresh() throws Exception {
-
+        assumeFalse(isWindowsEnvironment());
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -185,6 +186,7 @@ public class TestListDatabaseTables {
 
     @Test
     public void testListTablesMultipleRefresh() throws Exception {
+        assumeFalse(isWindowsEnvironment());
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -244,4 +246,9 @@ public class TestListDatabaseTables {
             }
         }
     }
+
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
 }

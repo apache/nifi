@@ -27,9 +27,10 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.zip.GZIPInputStream;
-
+import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.provenance.ByteArraySchemaRecordReader;
 import org.apache.nifi.provenance.ByteArraySchemaRecordWriter;
+import org.apache.nifi.provenance.EncryptedSchemaRecordReader;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordReader;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordWriter;
 import org.apache.nifi.provenance.StandardRecordReader;
@@ -37,17 +38,26 @@ import org.apache.nifi.provenance.lucene.LuceneUtil;
 import org.apache.nifi.provenance.toc.StandardTocReader;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RecordReaders {
+
+    private static Logger logger = LoggerFactory.getLogger(RecordReaders.class);
+
+    private static boolean isEncryptionAvailable = false;
+    private static boolean encryptionPropertiesRead = false;
 
     /**
      * Creates a new Record Reader that is capable of reading Provenance Event Journals
      *
-     * @param file the Provenance Event Journal to read data from
+     * @param file               the Provenance Event Journal to read data from
      * @param provenanceLogFiles collection of all provenance journal files
-     * @param maxAttributeChars the maximum number of characters to retrieve for any one attribute. This allows us to avoid
-     *            issues where a FlowFile has an extremely large attribute and reading events
-     *            for that FlowFile results in loading that attribute into memory many times, exhausting the Java Heap
+     * @param maxAttributeChars  the maximum number of characters to retrieve for any one attribute. This allows us to avoid
+     *                           issues where a FlowFile has an extremely large attribute and reading events
+     *                           for that FlowFile results in loading that attribute into memory many times, exhausting the Java Heap
      * @return a Record Reader capable of reading Provenance Event Journals
      * @throws IOException if unable to create a Record Reader for the given file
      */
@@ -68,7 +78,7 @@ public class RecordReaders {
                 }
             }
 
-            if ( file.exists() ) {
+            if (file.exists()) {
                 try {
                     fis = new FileInputStream(file);
                 } catch (final FileNotFoundException fnfe) {
@@ -77,7 +87,8 @@ public class RecordReaders {
             }
 
             String filename = file.getName();
-            openStream: while ( fis == null ) {
+            openStream:
+            while (fis == null) {
                 final File dir = file.getParentFile();
                 final String baseName = LuceneUtil.substringBefore(file.getName(), ".prov");
 
@@ -85,9 +96,9 @@ public class RecordReaders {
                 // filename that we need. The majority of the time, we will use the extension ".prov.gz"
                 // because most often we are compressing on rollover and most often we have already finished
                 // compressing by the time that we are querying the data.
-                for ( final String extension : new String[] {".prov.gz", ".prov"} ) {
+                for (final String extension : new String[]{".prov.gz", ".prov"}) {
                     file = new File(dir, baseName + extension);
-                    if ( file.exists() ) {
+                    if (file.exists()) {
                         try {
                             fis = new FileInputStream(file);
                             filename = baseName + extension;
@@ -104,7 +115,7 @@ public class RecordReaders {
                 break;
             }
 
-            if ( fis == null ) {
+            if (fis == null) {
                 throw new FileNotFoundException("Unable to locate file " + originalFile);
             }
 
@@ -148,12 +159,25 @@ public class RecordReaders {
                     final TocReader tocReader = new StandardTocReader(tocFile);
                     return new EventIdFirstSchemaRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars);
                 }
+                case EncryptedSchemaRecordReader.SERIALIZATION_NAME: {
+                    if (!tocFile.exists()) {
+                        throw new FileNotFoundException("Cannot create TOC Reader because the file " + tocFile + " does not exist");
+                    }
+
+                    if (!isEncryptionAvailable()) {
+                        throw new IOException("Cannot read encrypted repository because this reader is not configured for encryption");
+                    }
+
+                    final TocReader tocReader = new StandardTocReader(tocFile);
+                    // Return a reader with no eventEncryptor because this method contract cannot change, then inject the encryptor from the writer in the calling method
+                    return new EncryptedSchemaRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars, null);
+                }
                 default: {
                     throw new IOException("Unable to read data from file " + file + " because the file was written using an unknown Serializer: " + serializationName);
                 }
             }
         } catch (final IOException ioe) {
-            if ( fis != null ) {
+            if (fis != null) {
                 try {
                     fis.close();
                 } catch (final IOException inner) {
@@ -162,6 +186,22 @@ public class RecordReaders {
             }
 
             throw ioe;
+        }
+    }
+
+    private static boolean isEncryptionAvailable() {
+        if (encryptionPropertiesRead) {
+            return isEncryptionAvailable;
+        } else {
+            try {
+                NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap();
+                isEncryptionAvailable = CryptoUtils.isProvenanceRepositoryEncryptionConfigured(niFiProperties);
+                encryptionPropertiesRead = true;
+            } catch (IOException e) {
+                logger.error("Encountered an error checking the provenance repository encryption configuration: ", e);
+                isEncryptionAvailable = false;
+            }
+            return isEncryptionAvailable;
         }
     }
 

@@ -91,10 +91,13 @@ div.documentation-header {
 
 #nf-version {
     font-size: 14px;
-    font-style: italic;
-    color: #aaa;
     margin: 11px 5px 0px 5px;
     flex-grow: 1;
+}
+
+.version {
+    font-style: italic;
+    color: #aaa;
 }
 
 #selected-component {
@@ -114,6 +117,7 @@ div.documentation-header {
 #component-listing-container {
     flex-grow: 1;
     min-width: 312px;
+    max-width: 350px;
     padding: 0px 4px 0px 4px;
 }
 

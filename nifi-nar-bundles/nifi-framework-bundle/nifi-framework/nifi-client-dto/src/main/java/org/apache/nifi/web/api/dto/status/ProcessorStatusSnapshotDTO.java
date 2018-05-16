@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
 
@@ -31,6 +31,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     private String name;
     private String type;
     private String runStatus;
+    private String executionNode;
 
     private Long bytesRead = 0L;
     private Long bytesWritten = 0L;
@@ -50,6 +51,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     private String tasks;
     private String tasksDuration;
     private Integer activeThreadCount = 0;
+    private Integer terminatedThreadCount = 0;
 
     /* getters / setters */
     /**
@@ -93,7 +95,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty(
             value = "The state of the processor.",
-            allowableValues = "RUNNING, STOPPED, DISABLED, INVALID"
+            allowableValues = "Running, Stopped, Disabled, Invalid"
     )
     public String getRunStatus() {
         return runStatus;
@@ -101,6 +103,18 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
 
     public void setRunStatus(String runStatus) {
         this.runStatus = runStatus;
+    }
+
+    @ApiModelProperty(
+            value = "Indicates the node where the process will execute.",
+            allowableValues = "ALL, PRIMARY"
+    )
+    public String getExecutionNode() {
+        return executionNode;
+    }
+
+    public void setExecutionNode(String executionNode) {
+        this.executionNode = executionNode;
     }
 
     /**
@@ -173,6 +187,18 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
 
     public void setActiveThreadCount(Integer threadCount) {
         this.activeThreadCount = threadCount;
+    }
+
+    /**
+     * @return number of threads currently terminated for this Processor
+     */
+    @ApiModelProperty("The number of threads currently terminated for the processor.")
+    public Integer getTerminatedThreadCount() {
+        return terminatedThreadCount;
+    }
+
+    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+        this.terminatedThreadCount = terminatedThreadCount;
     }
 
     /**
@@ -280,6 +306,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setType(getType());
 
         other.setRunStatus(getRunStatus());
+        other.setExecutionNode(getExecutionNode());
         other.setBytesRead(getBytesRead());
         other.setBytesWritten(getBytesWritten());
         other.setFlowFilesIn(getFlowFilesIn());
@@ -290,6 +317,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setTasksDuration(getTasksDuration());
         other.setTasksDurationNanos(getTasksDurationNanos());
         other.setActiveThreadCount(getActiveThreadCount());
+        other.setTerminatedThreadCount(getTerminatedThreadCount());
         other.setInput(getInput());
         other.setOutput(getOutput());
         other.setRead(getRead());

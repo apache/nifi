@@ -17,18 +17,8 @@
 package org.apache.nifi.hbase;
 
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -39,6 +29,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -46,10 +37,20 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
+
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.apache.nifi.hbase.util.VisibilityUtil.pickVisibilityString;
 
 @EventDriven
 @SupportsBatching
@@ -67,7 +68,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
     protected static final PropertyDescriptor ROW_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("Row Identifier Field Name")
             .description("Specifies the name of a JSON element whose value should be used as the row id for the given JSON document.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -84,7 +85,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
     protected static final PropertyDescriptor COMPLEX_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("Complex Field Strategy")
             .description("Indicates how to handle complex fields, i.e. fields that do not have a single text value.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(COMPLEX_FIELD_FAIL, COMPLEX_FIELD_WARN, COMPLEX_FIELD_IGNORE, COMPLEX_FIELD_TEXT)
             .defaultValue(COMPLEX_FIELD_TEXT.getValue())
@@ -117,6 +118,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
+        properties.add(TIMESTAMP);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
         properties.add(FIELD_ENCODING_STRATEGY);
@@ -161,21 +163,31 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final String rowId = context.getProperty(ROW_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String rowFieldName = context.getProperty(ROW_FIELD_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String columnFamily = context.getProperty(COLUMN_FAMILY).evaluateAttributeExpressions(flowFile).getValue();
+        final String timestampValue = context.getProperty(TIMESTAMP).evaluateAttributeExpressions(flowFile).getValue();
         final boolean extractRowId = !StringUtils.isBlank(rowFieldName);
         final String complexFieldStrategy = context.getProperty(COMPLEX_FIELD_STRATEGY).getValue();
         final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
         final String rowIdEncodingStrategy = context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue();
 
+        final Long timestamp;
+        if (!StringUtils.isBlank(timestampValue)) {
+            try {
+                timestamp = Long.valueOf(timestampValue);
+            } catch (Exception e) {
+                getLogger().error("Invalid timestamp value: " + timestampValue, e);
+                return null;
+            }
+        } else {
+            timestamp = null;
+        }
+
         // Parse the JSON document
         final ObjectMapper mapper = new ObjectMapper();
         final AtomicReference<JsonNode> rootNodeRef = new AtomicReference<>(null);
         try {
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                        rootNodeRef.set(mapper.readTree(bufferedIn));
-                    }
+            session.read(flowFile, in -> {
+                try (final InputStream bufferedIn = new BufferedInputStream(in)) {
+                    rootNodeRef.set(mapper.readTree(bufferedIn));
                 }
             });
         } catch (final ProcessException pe) {
@@ -194,7 +206,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final AtomicReference<String> rowIdHolder = new AtomicReference<>(null);
 
         // convert each field/value to a column for the put, skip over nulls and arrays
-        final Iterator<String> fieldNames = rootNode.getFieldNames();
+        final Iterator<String> fieldNames = rootNode.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
             final AtomicReference<byte[]> fieldValueHolder = new AtomicReference<>(null);
@@ -238,7 +250,16 @@ public class PutHBaseJSON extends AbstractPutHBase {
                 if (extractRowId && fieldName.equals(rowFieldName)) {
                     rowIdHolder.set(fieldNode.asText());
                 } else {
-                    columns.add(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8), fieldName.getBytes(StandardCharsets.UTF_8), fieldValueHolder.get()));
+                    final byte[] colFamBytes = columnFamily.getBytes(StandardCharsets.UTF_8);
+                    final byte[] colQualBytes = fieldName.getBytes(StandardCharsets.UTF_8);
+                    final byte[] colValBytes = fieldValueHolder.get();
+
+                    final String visibilityStringToUse = pickVisibilityString(columnFamily, fieldName, flowFile, context);
+                    PutColumn column = StringUtils.isEmpty(visibilityStringToUse)
+                            ? new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp)
+                            : new PutColumn(colFamBytes, colQualBytes, colValBytes, timestamp, visibilityStringToUse);
+
+                    columns.add(column);
                 }
             }
         }
@@ -246,14 +267,14 @@ public class PutHBaseJSON extends AbstractPutHBase {
         // if we are expecting a field name to use for the row id and the incoming document doesn't have it
         // log an error message so the user can see what the field names were and return null so it gets routed to failure
         if (extractRowId && rowIdHolder.get() == null) {
-            final String fieldNameStr = StringUtils.join(rootNode.getFieldNames(), ",");
+            final String fieldNameStr = StringUtils.join(rootNode.fieldNames(), ",");
             getLogger().error("Row ID field named '{}' not found in field names '{}'; routing to failure", new Object[] {rowFieldName, fieldNameStr});
             return null;
         }
 
         final String putRowId = (extractRowId ? rowIdHolder.get() : rowId);
 
-        byte[] rowKeyBytes = getRow(putRowId,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
+        byte[] rowKeyBytes = getRow(putRowId, rowIdEncodingStrategy);
         return new PutFlowFile(tableName, rowKeyBytes, columns, flowFile);
     }
 

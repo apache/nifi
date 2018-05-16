@@ -16,49 +16,56 @@
  */
 
 /* 
-    New controller service dialog.
+    New reporting task dialog.
 */
 
 #new-reporting-task-dialog {
     min-height:620px;
     height: 620px;
-    width: 760px;
+    width: 800px;
     min-width: 760px;
-}
-
-#new-reporting-task-dialog span.link{
-    cursor: pointer;
-    color: #004849;
-    font-weight: bold;
-    display: inline-block;
-    background-color: #E3E8EB;
-    border-radius: 2px;
-    padding: 1px 4px;
 }
 
 #reporting-task-types-container {
     padding: 0px;
 }
 
+#reporting-task-bundle-group-combo {
+    margin-right: 2px;
+}
+
 #reporting-task-description-container {
     padding: 0px;
 }
 
-#reporting-task-type-name {
-    min-height: 15px;
-    color: #775351;
-    font-size: 13px;
-    font-weight: 500;
+#reporting-task-type-container {
+    padding: 20px 0 5px 0;
+    display: flex;
 }
 
-#reporting-task-type-name-title {
-    font-family: Roboto Slab;
-    padding: 20px 0 5px 0;
-    font-size: 12px;
+#reporting-task-type-name {
+    color: #775351;
+    font-size: 16px;
+    font-weight: 500;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#reporting-task-type-bundle {
+    margin-left: 15px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 16px;
+    color: #666;
+    letter-spacing: 0.25px;
+    min-width: 0;
 }
 
 #reporting-task-type-description {
-    height: 62px;
+    height: 80px;
     font-size: 13px;
     line-height: 17px;
     padding-top: 10px;
@@ -91,4 +98,8 @@
 
 #reporting-task-type-filter {
     width: 200px;
+}
+
+#reporting-task-tag-cloud {
+    margin-top: -2px;
 }

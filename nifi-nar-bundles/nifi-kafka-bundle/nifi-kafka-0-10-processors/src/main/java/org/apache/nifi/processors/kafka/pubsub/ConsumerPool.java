@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.nifi.logging.ComponentLog;
-
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,8 +24,16 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
+
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaException;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 /**
  * A pool of Kafka Consumers for a given topic. Consumers can be obtained by
@@ -40,6 +44,7 @@ public class ConsumerPool implements Closeable {
 
     private final BlockingQueue<SimpleConsumerLease> pooledLeases;
     private final List<String> topics;
+    private final Pattern topicPattern;
     private final Map<String, Object> kafkaProperties;
     private final long maxWaitMillis;
     private final ComponentLog logger;
@@ -47,6 +52,8 @@ public class ConsumerPool implements Closeable {
     private final String keyEncoding;
     private final String securityProtocol;
     private final String bootstrapServers;
+    private final RecordReaderFactory readerFactory;
+    private final RecordSetWriterFactory writerFactory;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
     private final AtomicLong consumerClosedCountRef = new AtomicLong();
     private final AtomicLong leasesObtainedCountRef = new AtomicLong();
@@ -74,7 +81,7 @@ public class ConsumerPool implements Closeable {
     public ConsumerPool(
             final int maxConcurrentLeases,
             final byte[] demarcator,
-        final Map<String, Object> kafkaProperties,
+            final Map<String, Object> kafkaProperties,
             final List<String> topics,
             final long maxWaitMillis,
             final String keyEncoding,
@@ -90,6 +97,81 @@ public class ConsumerPool implements Closeable {
         this.bootstrapServers = bootstrapServers;
         this.kafkaProperties = Collections.unmodifiableMap(kafkaProperties);
         this.topics = Collections.unmodifiableList(topics);
+        this.topicPattern = null;
+        this.readerFactory = null;
+        this.writerFactory = null;
+    }
+
+    public ConsumerPool(
+            final int maxConcurrentLeases,
+            final byte[] demarcator,
+            final Map<String, Object> kafkaProperties,
+            final Pattern topics,
+            final long maxWaitMillis,
+            final String keyEncoding,
+            final String securityProtocol,
+            final String bootstrapServers,
+            final ComponentLog logger) {
+        this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
+        this.maxWaitMillis = maxWaitMillis;
+        this.logger = logger;
+        this.demarcatorBytes = demarcator;
+        this.keyEncoding = keyEncoding;
+        this.securityProtocol = securityProtocol;
+        this.bootstrapServers = bootstrapServers;
+        this.kafkaProperties = Collections.unmodifiableMap(kafkaProperties);
+        this.topics = null;
+        this.topicPattern = topics;
+        this.readerFactory = null;
+        this.writerFactory = null;
+    }
+
+    public ConsumerPool(
+            final int maxConcurrentLeases,
+            final RecordReaderFactory readerFactory,
+            final RecordSetWriterFactory writerFactory,
+            final Map<String, Object> kafkaProperties,
+            final Pattern topics,
+            final long maxWaitMillis,
+            final String securityProtocol,
+            final String bootstrapServers,
+            final ComponentLog logger) {
+        this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
+        this.maxWaitMillis = maxWaitMillis;
+        this.logger = logger;
+        this.demarcatorBytes = null;
+        this.keyEncoding = null;
+        this.readerFactory = readerFactory;
+        this.writerFactory = writerFactory;
+        this.securityProtocol = securityProtocol;
+        this.bootstrapServers = bootstrapServers;
+        this.kafkaProperties = Collections.unmodifiableMap(kafkaProperties);
+        this.topics = null;
+        this.topicPattern = topics;
+    }
+
+    public ConsumerPool(
+            final int maxConcurrentLeases,
+            final RecordReaderFactory readerFactory,
+            final RecordSetWriterFactory writerFactory,
+            final Map<String, Object> kafkaProperties,
+            final List<String> topics,
+            final long maxWaitMillis,
+            final String securityProtocol,
+            final String bootstrapServers,
+            final ComponentLog logger) {
+        this.pooledLeases = new ArrayBlockingQueue<>(maxConcurrentLeases);
+        this.maxWaitMillis = maxWaitMillis;
+        this.logger = logger;
+        this.demarcatorBytes = null;
+        this.keyEncoding = null;
+        this.readerFactory = readerFactory;
+        this.writerFactory = writerFactory;
+        this.securityProtocol = securityProtocol;
+        this.bootstrapServers = bootstrapServers;
+        this.kafkaProperties = Collections.unmodifiableMap(kafkaProperties);
+        this.topics = topics;
+        this.topicPattern = null;
     }
 
     /**
@@ -97,10 +179,12 @@ public class ConsumerPool implements Closeable {
      * initializes a new one if deemed necessary.
      *
      * @param session the session for which the consumer lease will be
-     * associated
+     *            associated
+     * @param processContext the ProcessContext for which the consumer
+     *            lease will be associated
      * @return consumer to use or null if not available or necessary
      */
-    public ConsumerLease obtainConsumer(final ProcessSession session) {
+    public ConsumerLease obtainConsumer(final ProcessSession session, final ProcessContext processContext) {
         SimpleConsumerLease lease = pooledLeases.poll();
         if (lease == null) {
             final Consumer<byte[], byte[]> consumer = createKafkaConsumer();
@@ -119,9 +203,14 @@ public class ConsumerPool implements Closeable {
              * This subscription tightly couples the lease to the given
              * consumer. They cannot be separated from then on.
              */
-            consumer.subscribe(topics, lease);
+            if (topics != null) {
+              consumer.subscribe(topics, lease);
+            } else {
+              consumer.subscribe(topicPattern, lease);
+            }
         }
-        lease.setProcessSession(session);
+        lease.setProcessSession(session, processContext);
+
         leasesObtainedCountRef.incrementAndGet();
         return lease;
     }
@@ -171,15 +260,24 @@ public class ConsumerPool implements Closeable {
 
         private final Consumer<byte[], byte[]> consumer;
         private volatile ProcessSession session;
+        private volatile ProcessContext processContext;
         private volatile boolean closedConsumer;
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer) {
-            super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers, logger);
+            super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers, readerFactory, writerFactory, logger);
             this.consumer = consumer;
         }
 
-        void setProcessSession(final ProcessSession session) {
+        void setProcessSession(final ProcessSession session, final ProcessContext context) {
             this.session = session;
+            this.processContext = context;
+        }
+
+        @Override
+        public void yield() {
+            if (processContext != null) {
+                processContext.yield();
+            }
         }
 
         @Override
@@ -200,7 +298,7 @@ public class ConsumerPool implements Closeable {
             super.close();
             if (session != null) {
                 session.rollback();
-                setProcessSession(null);
+                setProcessSession(null, null);
             }
             if (forceClose || isPoisoned() || !pooledLeases.offer(this)) {
                 closedConsumer = true;

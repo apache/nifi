@@ -35,10 +35,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -87,6 +89,8 @@ import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
     @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
     @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")})
 @SeeAlso(MergeContent.class)
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The FlowFile with its attributes is stored in memory, not the content of the FlowFile. If many splits are generated " +
+        "due to the size of the content, or how the content is configured to be split, a two-phase approach may be necessary to avoid excessive use of memory.")
 public class SplitText extends AbstractProcessor {
     // attribute keys
     public static final String SPLIT_LINE_COUNT = "text.line.count";
@@ -298,7 +302,7 @@ public class SplitText extends AbstractProcessor {
         if ((computedSplitsInfo.size() == 0) && (headerFlowFile != null)) {
             FlowFile splitFlowFile = processSession.clone(sourceFlowFile, 0, headerFlowFile.getSize() - headerCrlfLength);
             splitFlowFile = this.updateAttributes(processSession, splitFlowFile, 0, splitFlowFile.getSize(),
-                    fragmentId, fragmentIndex++, 0, sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+                    fragmentId, fragmentIndex++, sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
             splitFlowFiles.add(splitFlowFile);
         } else {
             for (SplitInfo computedSplitInfo : computedSplitsInfo) {
@@ -318,9 +322,13 @@ public class SplitText extends AbstractProcessor {
                     }
 
                     splitFlowFile = this.updateAttributes(processSession, splitFlowFile, computedSplitInfo.lineCount, splitFlowFile.getSize(), fragmentId, fragmentIndex++,
-                            computedSplitsInfo.size(), sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+                            sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
                     splitFlowFiles.add(splitFlowFile);
                 }
+            }
+            // Update fragment.count with real split count (i.e. don't count files for which there was no clone)
+            for (FlowFile splitFlowFile : splitFlowFiles) {
+                splitFlowFile = processSession.putAttribute(splitFlowFile, FRAGMENT_COUNT, String.valueOf(fragmentIndex - 1)); // -1 because the index starts at 1 (see above)
             }
         }
 
@@ -356,13 +364,12 @@ public class SplitText extends AbstractProcessor {
     }
 
     private FlowFile updateAttributes(ProcessSession processSession, FlowFile splitFlowFile, long splitLineCount, long splitFlowFileSize,
-            String splitId, int splitIndex, int splitCount, String origFileName) {
+            String splitId, int splitIndex, String origFileName) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put(SPLIT_LINE_COUNT, String.valueOf(splitLineCount));
         attributes.put(FRAGMENT_SIZE, String.valueOf(splitFlowFile.getSize()));
         attributes.put(FRAGMENT_ID, splitId);
         attributes.put(FRAGMENT_INDEX, String.valueOf(splitIndex));
-        attributes.put(FRAGMENT_COUNT, String.valueOf(splitCount));
         attributes.put(SEGMENT_ORIGINAL_FILENAME, origFileName);
         return processSession.putAllAttributes(splitFlowFile, attributes);
     }
@@ -424,6 +431,7 @@ public class SplitText extends AbstractProcessor {
             SplitInfo remainderSplitInfo, long startingLength) throws IOException {
         long length = 0;
         long trailingCrlfLength = 0;
+        long trailingLineCount = 0;
         long actualLineCount = 0;
         OffsetInfo offsetInfo = null;
         SplitInfo splitInfo = null;
@@ -440,6 +448,7 @@ public class SplitText extends AbstractProcessor {
 
             if (offsetInfo.getLength() == offsetInfo.getCrlfLength()) {
                 trailingCrlfLength += offsetInfo.getCrlfLength();
+                trailingLineCount++;
             } else if (offsetInfo.getLength() > offsetInfo.getCrlfLength()) {
                 trailingCrlfLength = 0; // non-empty line came in, thus resetting counter
             }
@@ -465,6 +474,7 @@ public class SplitText extends AbstractProcessor {
             if (length - trailingCrlfLength >= lastCrlfLength) {
                 trailingCrlfLength += lastCrlfLength; // trim CRLF from the last line
             }
+            actualLineCount -= trailingLineCount;
             splitInfo = new SplitInfo(startOffset, length, length - trailingCrlfLength, actualLineCount, remaningOffsetInfo);
         }
         return splitInfo;

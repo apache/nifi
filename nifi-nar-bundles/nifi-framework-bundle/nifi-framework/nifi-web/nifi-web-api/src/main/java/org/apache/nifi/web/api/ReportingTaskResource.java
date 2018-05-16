@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -34,6 +34,7 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -111,10 +112,12 @@ public class ReportingTaskResource extends ApplicationResource {
      * Populates the uri for the specified reporting task.
      */
     public ReportingTaskDTO populateRemainingReportingTaskContent(final ReportingTaskDTO reportingTask) {
+        final BundleDTO bundle = reportingTask.getBundle();
+
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
-        if (uiExtensionMapping.hasUiExtension(reportingTask.getType())) {
-            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(reportingTask.getType());
+        if (uiExtensionMapping.hasUiExtension(reportingTask.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(reportingTask.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
             for (final UiExtension uiExtension : uiExtensions) {
                 if (UiExtensionType.ReportingTaskConfiguration.equals(uiExtension.getExtensionType())) {
                     reportingTask.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
@@ -139,7 +142,7 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Gets a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Read - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -172,7 +175,7 @@ public class ReportingTaskResource extends ApplicationResource {
         final ReportingTaskEntity reportingTask = serviceFacade.getReportingTask(id);
         populateRemainingReportingTaskEntityContent(reportingTask);
 
-        return clusterContext(generateOkResponse(reportingTask)).build();
+        return generateOkResponse(reportingTask).build();
     }
 
     /**
@@ -190,7 +193,7 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Gets a reporting task property descriptor",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Read - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -237,7 +240,7 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -252,9 +255,9 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state")
     @ApiOperation(
             value = "Gets the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -291,7 +294,7 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setComponentState(state);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -307,9 +310,9 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("{id}/state/clear-requests")
     @ApiOperation(
             value = "Clears the state for a reporting task",
-            response = ComponentStateDTO.class,
+            response = ComponentStateEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}")
             }
     )
     @ApiResponses(
@@ -352,7 +355,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     final ComponentStateEntity entity = new ComponentStateEntity();
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -373,8 +376,8 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Updates a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -425,7 +428,7 @@ public class ReportingTaskResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     // authorize reporting task
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getReportingTask(id);
+                    final ComponentAuthorizable authorizable = lookup.getReportingTask(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // authorize any referenced services
@@ -439,7 +442,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDTO);
                     populateRemainingReportingTaskEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -464,9 +467,9 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Deletes a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = ""),
-                    @Authorization(value = "Write - /controller", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}"),
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
@@ -510,7 +513,7 @@ public class ReportingTaskResource extends ApplicationResource {
                 requestReportingTaskEntity,
                 requestRevision,
                 lookup -> {
-                    final ConfigurableComponentAuthorizable reportingTask = lookup.getReportingTask(id);
+                    final ComponentAuthorizable reportingTask = lookup.getReportingTask(id);
 
                     // ensure write permission to the reporting task
                     reportingTask.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
@@ -525,7 +528,7 @@ public class ReportingTaskResource extends ApplicationResource {
                 (revision, reportingTaskEntity) -> {
                     // delete the specified reporting task
                     final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, reportingTaskEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

@@ -81,6 +81,8 @@ public class GetFTP extends GetFileTransfer {
         properties.add(FTPTransfer.PROXY_PORT);
         properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
         properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
+        properties.add(FTPTransfer.BUFFER_SIZE);
+        properties.add(FTPTransfer.UTF8_ENCODING);
         this.properties = Collections.unmodifiableList(properties);
     }
 

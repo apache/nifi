@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.processors.script.impl.ClojureScriptEngineConfigurator
-org.apache.nifi.processors.script.impl.JythonScriptEngineConfigurator
-org.apache.nifi.processors.script.impl.GroovyScriptEngineConfigurator
-org.apache.nifi.processors.script.impl.JavascriptScriptEngineConfigurator
+org.apache.nifi.script.impl.ClojureScriptEngineConfigurator
+org.apache.nifi.script.impl.JythonScriptEngineConfigurator
+org.apache.nifi.script.impl.GroovyScriptEngineConfigurator
+org.apache.nifi.script.impl.JavascriptScriptEngineConfigurator

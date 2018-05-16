@@ -105,7 +105,13 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         final Map<PropertyDescriptor, String> properties = context.getProperties();
-        credentialsProvider = credentialsProviderFactory.getCredentialsProvider(context.getProperties());
+        properties.keySet().forEach(propertyDescriptor -> {
+            if (propertyDescriptor.isExpressionLanguageSupported()) {
+                properties.put(propertyDescriptor,
+                        context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue());
+            }
+        });
+        credentialsProvider = credentialsProviderFactory.getCredentialsProvider(properties);
         getLogger().debug("Using credentials provider: " + credentialsProvider.getClass());
     }
 

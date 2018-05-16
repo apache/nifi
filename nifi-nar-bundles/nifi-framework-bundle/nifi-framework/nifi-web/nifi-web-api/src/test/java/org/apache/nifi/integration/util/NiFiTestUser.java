@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.integration.util;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.Response;
 import java.util.Map;
 
 /**
@@ -48,7 +50,7 @@ public class NiFiTestUser {
      * @param builder the resource builder
      * @return the resource builder
      */
-    private WebResource.Builder addProxiedEntities(final WebResource.Builder builder) {
+    private Invocation.Builder addProxiedEntities(final Invocation.Builder builder) {
         if (proxyDn == null) {
             return builder;
         } else {
@@ -63,7 +65,7 @@ public class NiFiTestUser {
      * @return response
      * @throws Exception ex
      */
-    public ClientResponse testGet(String url) throws Exception {
+    public Response testGet(String url) throws Exception {
         return testGet(url, null);
     }
 
@@ -74,7 +76,7 @@ public class NiFiTestUser {
      * @param queryParams params
      * @return response
      */
-    public ClientResponse testGet(String url, Map<String, String> queryParams) {
+    public Response testGet(String url, Map<String, String> queryParams) {
         return testGetWithHeaders(url, queryParams, null);
     }
 
@@ -86,9 +88,9 @@ public class NiFiTestUser {
      * @param headers http headers
      * @return response
      */
-    public ClientResponse testGetWithHeaders(String url, Map<String, String> queryParams, Map<String, String> headers) {
+    public Response testGetWithHeaders(String url, Map<String, String> queryParams, Map<String, String> headers) {
         // get the resource
-        WebResource resource = client.resource(url);
+        WebTarget resource = client.target(url);
 
         // append any query parameters
         if (queryParams != null && !queryParams.isEmpty()) {
@@ -98,7 +100,7 @@ public class NiFiTestUser {
         }
 
         // get the builder
-        WebResource.Builder builder = addProxiedEntities(resource.getRequestBuilder());
+        Invocation.Builder builder = addProxiedEntities(resource.request());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
@@ -108,7 +110,7 @@ public class NiFiTestUser {
         }
 
         // perform the query
-        return builder.get(ClientResponse.class);
+        return builder.get();
     }
 
     /**
@@ -118,7 +120,7 @@ public class NiFiTestUser {
      * @return response
      * @throws Exception ex
      */
-    public ClientResponse testPost(String url) throws Exception {
+    public Response testPost(String url) throws Exception {
         return testPost(url, (Object) null);
     }
 
@@ -130,7 +132,7 @@ public class NiFiTestUser {
      * @return response
      * @throws Exception ex
      */
-    public ClientResponse testPost(String url, Object entity) throws Exception {
+    public Response testPost(String url, Object entity) throws Exception {
         return testPostWithHeaders(url, entity, null);
     }
 
@@ -143,14 +145,9 @@ public class NiFiTestUser {
      * @return response
      * @throws Exception ex
      */
-    public ClientResponse testPostWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
+    public Response testPostWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_JSON));
-
-        // include the request entity
-        if (entity != null) {
-            resourceBuilder = resourceBuilder.entity(entity);
-        }
+        Invocation.Builder resourceBuilder = addProxiedEntities(client.target(url).request());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
@@ -160,7 +157,7 @@ public class NiFiTestUser {
         }
 
         // perform the request
-        return resourceBuilder.post(ClientResponse.class);
+        return resourceBuilder.post(Entity.json(entity));
     }
 
     /**
@@ -171,7 +168,7 @@ public class NiFiTestUser {
      * @return response
      * @throws Exception ex
      */
-    public ClientResponse testPostMultiPart(String url, Object entity) throws Exception {
+    public Response testPostMultiPart(String url, Object entity) throws Exception {
         return testPostMultiPartWithHeaders(url, entity, null);
     }
 
@@ -184,14 +181,9 @@ public class NiFiTestUser {
      * @return response
      * @throws Exception ex
      */
-    public ClientResponse testPostMultiPartWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
+    public Response testPostMultiPartWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.APPLICATION_XML).type(MediaType.MULTIPART_FORM_DATA));
-
-        // include the request entity
-        if (entity != null) {
-            resourceBuilder = resourceBuilder.entity(entity);
-        }
+        Invocation.Builder resourceBuilder = addProxiedEntities(client.target(url).request());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
@@ -201,7 +193,7 @@ public class NiFiTestUser {
         }
 
         // perform the request
-        return resourceBuilder.post(ClientResponse.class);
+        return resourceBuilder.post(Entity.entity(entity, MediaType.MULTIPART_FORM_DATA));
     }
 
     /**
@@ -212,7 +204,7 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testPost(String url, Map<String, String> formData) throws Exception {
+    public Response testPost(String url, Map<String, String> formData) throws Exception {
         return testPostWithHeaders(url, formData, null);
     }
 
@@ -225,20 +217,15 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testPostWithHeaders(String url, Map<String, String> formData, Map<String, String> headers) throws Exception {
+    public Response testPostWithHeaders(String url, Map<String, String> formData, Map<String, String> headers) throws Exception {
         // convert the form data
-        MultivaluedMapImpl entity = new MultivaluedMapImpl();
+        MultivaluedHashMap<String, String> entity = new MultivaluedHashMap();
         for (String key : formData.keySet()) {
             entity.add(key, formData.get(key));
         }
 
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_FORM_URLENCODED));
-
-        // add the form data if necessary
-        if (!entity.isEmpty()) {
-            resourceBuilder = resourceBuilder.entity(entity);
-        }
+        Invocation.Builder resourceBuilder = addProxiedEntities(client.target(url).request());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
@@ -248,7 +235,7 @@ public class NiFiTestUser {
         }
 
         // perform the request
-        return resourceBuilder.post(ClientResponse.class);
+        return resourceBuilder.post(Entity.form(entity));
     }
 
     /**
@@ -259,7 +246,7 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testPut(String url, Object entity) throws Exception {
+    public Response testPut(String url, Object entity) throws Exception {
         return testPutWithHeaders(url, entity, null);
     }
 
@@ -272,14 +259,9 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testPutWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
+    public Response testPutWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_JSON));
-
-        // include the request entity
-        if (entity != null) {
-            resourceBuilder = resourceBuilder.entity(entity);
-        }
+        Invocation.Builder resourceBuilder = addProxiedEntities(client.target(url).request());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
@@ -289,7 +271,7 @@ public class NiFiTestUser {
         }
 
         // perform the request
-        return resourceBuilder.put(ClientResponse.class);
+        return resourceBuilder.put(Entity.json(entity));
     }
 
     /**
@@ -300,7 +282,7 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testPut(String url, Map<String, String> formData) throws Exception {
+    public Response testPut(String url, Map<String, String> formData) throws Exception {
         return testPutWithHeaders(url, formData, null);
     }
 
@@ -313,30 +295,25 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testPutWithHeaders(String url, Map<String, String> formData, Map<String, String> headers) throws Exception {
+    public Response testPutWithHeaders(String url, Map<String, String> formData, Map<String, String> headers) throws Exception {
         // convert the form data
-        MultivaluedMapImpl entity = new MultivaluedMapImpl();
+        MultivaluedHashMap<String, String> entity = new MultivaluedHashMap();
         for (String key : formData.keySet()) {
             entity.add(key, formData.get(key));
         }
 
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_FORM_URLENCODED));
-
-        // add the form data if necessary
-        if (!entity.isEmpty()) {
-            resourceBuilder = resourceBuilder.entity(entity);
-        }
+        Invocation.Builder builder = addProxiedEntities(client.target(url).request());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
             for (String key : headers.keySet()) {
-                resourceBuilder = resourceBuilder.header(key, headers.get(key));
+                builder = builder.header(key, headers.get(key));
             }
         }
 
         // perform the request
-        return resourceBuilder.put(ClientResponse.class);
+        return builder.put(Entity.form(entity));
     }
 
     /**
@@ -346,7 +323,7 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testDelete(String url) throws Exception {
+    public Response testDelete(String url) throws Exception {
         return testDelete(url, null);
     }
 
@@ -358,19 +335,19 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testDeleteWithHeaders(String url, Map<String, String> headers) throws Exception {
+    public Response testDeleteWithHeaders(String url, Map<String, String> headers) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).getRequestBuilder());
+        Invocation.Builder builder = addProxiedEntities(client.target(url).request());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
             for (String key : headers.keySet()) {
-                resourceBuilder = resourceBuilder.header(key, headers.get(key));
+                builder = builder.header(key, headers.get(key));
             }
         }
 
         // perform the query
-        return resourceBuilder.delete(ClientResponse.class);
+        return builder.delete();
     }
 
     /**
@@ -381,19 +358,19 @@ public class NiFiTestUser {
      * @return response
      * @throws java.lang.Exception ex
      */
-    public ClientResponse testDelete(String url, Map<String, String> queryParams) throws Exception {
+    public Response testDelete(String url, Map<String, String> queryParams) throws Exception {
         // get the resource
-        WebResource resource = client.resource(url);
+        WebTarget target = client.target(url);
 
         // append any query parameters
         if (queryParams != null && !queryParams.isEmpty()) {
             for (String key : queryParams.keySet()) {
-                resource = resource.queryParam(key, queryParams.get(key));
+                target = target.queryParam(key, queryParams.get(key));
             }
         }
 
         // perform the request
-        return addProxiedEntities(resource.type(MediaType.APPLICATION_FORM_URLENCODED)).delete(ClientResponse.class);
+        return addProxiedEntities(target.request()).delete();
     }
 
     /**
@@ -405,17 +382,17 @@ public class NiFiTestUser {
      * @return response
      * @throws Exception ex
      */
-    public ClientResponse testCreateToken(String url, String username, String password) throws Exception {
+    public Response testCreateToken(String url, String username, String password) throws Exception {
         // convert the form data
-        MultivaluedMapImpl entity = new MultivaluedMapImpl();
+        MultivaluedHashMap<String, String> entity = new MultivaluedHashMap();
         entity.add("username", username);
         entity.add("password", password);
 
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.TEXT_PLAIN).type(MediaType.APPLICATION_FORM_URLENCODED)).entity(entity);
+        Invocation.Builder resourceBuilder = addProxiedEntities(client.target(url).request().accept(MediaType.TEXT_PLAIN));
 
         // perform the request
-        return resourceBuilder.post(ClientResponse.class);
+        return resourceBuilder.post(Entity.form(entity));
     }
 
 }

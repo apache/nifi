@@ -16,12 +16,19 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 public interface ProcessScheduler {
@@ -38,9 +45,13 @@ public interface ProcessScheduler {
      * is already scheduled to run, does nothing.
      *
      * @param procNode to start
+     * @param failIfStopping If <code>false</code>, and the Processor is in the 'STOPPING' state,
+     *            then the Processor will automatically restart itself as soon as its last thread finishes. If this
+     *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
+     *            will throw an {@link IllegalStateException}.
      * @throws IllegalStateException if the Processor is disabled
      */
-    void startProcessor(ProcessorNode procNode);
+    Future<Void> startProcessor(ProcessorNode procNode, boolean failIfStopping);
 
     /**
      * Stops scheduling the given processor to run and invokes all methods on
@@ -51,7 +62,34 @@ public interface ProcessScheduler {
      *
      * @param procNode to stop
      */
-    void stopProcessor(ProcessorNode procNode);
+    Future<Void> stopProcessor(ProcessorNode procNode);
+
+    /**
+     * Interrupts all threads that are currently active in the Processor in an attempt to
+     * regain the threads and stop running the tasks in the Processor. All instances of
+     * {@link ProcessSession}, {@link ProcessSessionFactory}, {@link ProcessContext}, and
+     * the {@link InputStream}s and {@link OutputStream}s that were generated from the associated
+     * Process Sessions will also be poisoned, meaning that any calls to those objects will result
+     * in a {@link TerminatedTaskException} being thrown. In addition, the number of active threads
+     * will immediately be set to 0 so that the Processor can be modified. Note, however, that if
+     * the threads do not return, they cannot be returned to the Thread Pool. As such, invoking this
+     * method many times or when many threads are active and deadlocked/livelocked can result in
+     * thread pool exhaustion. If the given Processor is not in a Scheduled State of STOPPED, then this
+     * method does nothing.
+     *
+     * @param procNode the Processor to terminate
+     *
+     * @throws IllegalStateException if the Processor's Scheduled State is not currently STOPPED
+     */
+    void terminateProcessor(ProcessorNode procNode);
+
+    /*
+     * Notifies the schedule that the given processor is being removed so the scheduler may clean up any resources
+     * related to the given processor.
+     *
+     * @param procNode the processor node being removed
+     */
+    void onProcessorRemoved(ProcessorNode procNode);
 
     /**
      * Starts scheduling the given Port to run. If the Port is already scheduled
@@ -162,18 +200,18 @@ public interface ProcessScheduler {
      *
      * @param service to enable
      */
-    void enableControllerService(ControllerServiceNode service);
+    CompletableFuture<Void> enableControllerService(ControllerServiceNode service);
 
     /**
      * Disables all of the given Controller Services in the order provided by the List
      * @param services the controller services to disable
      */
-    void disableControllerServices(List<ControllerServiceNode> services);
+    CompletableFuture<Void> disableControllerServices(List<ControllerServiceNode> services);
 
     /**
      * Disables the Controller Service so that it can be updated
      *
      * @param service to disable
      */
-    void disableControllerService(ControllerServiceNode service);
+    CompletableFuture<Void> disableControllerService(ControllerServiceNode service);
 }

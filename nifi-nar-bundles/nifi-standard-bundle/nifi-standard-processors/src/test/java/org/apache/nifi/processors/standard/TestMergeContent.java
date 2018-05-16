@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,15 +50,13 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestMergeContent {
@@ -86,6 +86,9 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
         runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assertEquals(1024 * 6, bundle.getSize());
 
         // Queue should not be empty because the first FlowFile will be transferred back to the input queue
         // when we run out @OnStopped logic, since it won't be transferred to any bin.
@@ -196,6 +199,251 @@ public class TestMergeContent {
         Assert.assertTrue(places.containsKey("Some Place"));
     }
 
+    @Test
+    public void testAvroConcatWithDifferentMetadataDoNotMerge() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_DO_NOT_MERGE);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 2);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(1, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+    }
+
+    @Test
+    public void testAvroConcatWithDifferentMetadataIgnore() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_IGNORE);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(3, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+        Assert.assertTrue(users.containsKey("Ben"));
+        Assert.assertTrue(users.containsKey("John"));
+    }
+
+    @Test
+    public void testAvroConcatWithDifferentMetadataUseFirst() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_USE_FIRST);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(3, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+        Assert.assertTrue(users.containsKey("Ben"));
+        Assert.assertTrue(users.containsKey("John"));
+    }
+
+    @Test
+    public void testAvroConcatWithDifferentMetadataKeepCommon() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_AVRO);
+        runner.setProperty(MergeContent.METADATA_STRATEGY, MergeContent.METADATA_STRATEGY_ALL_COMMON);
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/TestMergeContent/user.avsc"));
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+        final Map<String, String> userMeta1 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+        }};
+
+        final GenericRecord user2 = new GenericData.Record(schema);
+        user2.put("name", "Ben");
+        user2.put("favorite_number", 7);
+        user2.put("favorite_color", "red");
+        final Map<String, String> userMeta2 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 2"); // Test non-matching values
+        }};
+
+        final GenericRecord user3 = new GenericData.Record(schema);
+        user3.put("name", "John");
+        user3.put("favorite_number", 5);
+        user3.put("favorite_color", "blue");
+        final Map<String, String> userMeta3 = new HashMap<String, String>() {{
+            put("test_metadata1", "Test 1");
+            put("test_metadata2", "Test"); // Test unique
+        }};
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        final ByteArrayOutputStream out1 = serializeAvroRecord(schema, user1, datumWriter, userMeta1);
+        final ByteArrayOutputStream out2 = serializeAvroRecord(schema, user2, datumWriter, userMeta2);
+        final ByteArrayOutputStream out3 = serializeAvroRecord(schema, user3, datumWriter, userMeta3);
+
+        runner.enqueue(out1.toByteArray());
+        runner.enqueue(out2.toByteArray());
+        runner.enqueue(out3.toByteArray());
+
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 1);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+        // create a reader for the merged content
+        byte[] data = runner.getContentAsByteArray(bundle);
+        final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
+
+        Assert.assertEquals(2, users.size());
+        Assert.assertTrue(users.containsKey("Alyssa"));
+        Assert.assertTrue(users.containsKey("John"));
+    }
+
     private Map<String, GenericRecord> getGenericRecordMap(byte[] data, Schema schema, String key) throws IOException {
         // create a reader for the merged contet
         DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
@@ -212,8 +460,15 @@ public class TestMergeContent {
     }
 
     private ByteArrayOutputStream serializeAvroRecord(Schema schema, GenericRecord user2, DatumWriter<GenericRecord> datumWriter) throws IOException {
+        return serializeAvroRecord(schema, user2, datumWriter, null);
+    }
+
+    private ByteArrayOutputStream serializeAvroRecord(Schema schema, GenericRecord user2, DatumWriter<GenericRecord> datumWriter, Map<String, String> metadata) throws IOException {
         ByteArrayOutputStream out2 = new ByteArrayOutputStream();
-        DataFileWriter<GenericRecord> dataFileWriter2 = new DataFileWriter<GenericRecord>(datumWriter);
+        DataFileWriter<GenericRecord> dataFileWriter2 = new DataFileWriter<>(datumWriter);
+        if (metadata != null) {
+            metadata.forEach(dataFileWriter2::setMeta);
+        }
         dataFileWriter2.create(schema, out2);
         dataFileWriter2.append(user2);
         dataFileWriter2.close();
@@ -309,11 +564,20 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
-        runner.setProperty(MergeContent.HEADER, "src/test/resources/TestMergeContent/head");
-        runner.setProperty(MergeContent.DEMARCATOR, "src/test/resources/TestMergeContent/demarcate");
-        runner.setProperty(MergeContent.FOOTER, "src/test/resources/TestMergeContent/foot");
+        runner.setProperty(MergeContent.HEADER, "${header}");
+        runner.setProperty(MergeContent.DEMARCATOR, "${demarcator}");
+        runner.setProperty(MergeContent.FOOTER, "${footer}");
 
-        createFlowFiles(runner);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+        attributes.put("header", "src/test/resources/TestMergeContent/head");
+        attributes.put("demarcator", "src/test/resources/TestMergeContent/demarcate");
+        attributes.put("footer", "src/test/resources/TestMergeContent/foot");
+
+        runner.enqueue("Hello".getBytes("UTF-8"), attributes);
+        runner.enqueue(", ".getBytes("UTF-8"), attributes);
+        runner.enqueue("World!".getBytes("UTF-8"), attributes);
         runner.run();
 
         runner.assertQueueEmpty();
@@ -600,6 +864,68 @@ public class TestMergeContent {
     }
 
     @Test
+    public void testDefragmentDuplicateFragement() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "4");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+
+        runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        // enqueue a duplicate fragment
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
+        runner.enqueue("Panama".getBytes("UTF-8"), attributes);
+
+        runner.run(1, false);
+
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+
+        runner.clearTransferState();
+        Thread.sleep(1_100L);
+        runner.run();
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 1);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 0);
+    }
+
+    @Test
+    public void testDefragmentWithTooManyFragements() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "4");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+
+        runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
+        runner.enqueue("Panama".getBytes("UTF-8"), attributes);
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+    }
+
+    @Test
     public void testDefragmentWithTooFewFragments() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
@@ -658,7 +984,6 @@ public class TestMergeContent {
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
     }
 
-    @Ignore("this test appears to be faulty")
     @Test
     public void testDefragmentMultipleMingledSegments() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -688,7 +1013,7 @@ public class TestMergeContent {
         attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
         runner.enqueue("Panama".getBytes("UTF-8"), attributes);
 
-        runner.run(2);
+        runner.run(1);
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 2);
         final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
@@ -754,7 +1079,6 @@ public class TestMergeContent {
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
     }
 
-    @Ignore("This test appears to be a fail...is retuning 1 instead of 2...needs work")
     @Test
     public void testMergeBasedOnCorrelation() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -775,7 +1099,7 @@ public class TestMergeContent {
         attributes.put("attr", "b");
         runner.enqueue("Panama".getBytes("UTF-8"), attributes);
 
-        runner.run(2);
+        runner.run(1);
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 2);
 
@@ -826,7 +1150,7 @@ public class TestMergeContent {
     @Test
     public void testUniqueAttributes() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.ATTRIBUTE_STRATEGY, MergeContent.ATTRIBUTE_STRATEGY_ALL_UNIQUE);
+        runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_ALL_UNIQUE);
         runner.setProperty(MergeContent.MAX_SIZE, "2 B");
         runner.setProperty(MergeContent.MIN_SIZE, "2 B");
 
@@ -856,7 +1180,7 @@ public class TestMergeContent {
     @Test
     public void testCommonAttributesOnly() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
-        runner.setProperty(MergeContent.ATTRIBUTE_STRATEGY, MergeContent.ATTRIBUTE_STRATEGY_ALL_COMMON);
+        runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_ALL_COMMON);
         runner.setProperty(MergeContent.MAX_SIZE, "2 B");
         runner.setProperty(MergeContent.MIN_SIZE, "2 B");
 
@@ -911,9 +1235,29 @@ public class TestMergeContent {
         bundle.assertAttributeExists(MergeContent.MERGE_BIN_AGE_ATTRIBUTE);
     }
 
+    @Test
+    public void testLeavesSmallBinUnmerged() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MIN_ENTRIES, "5");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "5");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
+
+        for (int i = 0; i < 17; i++) {
+            runner.enqueue(String.valueOf(i) + "\n");
+        }
+
+        runner.run(5);
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 3);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 15);
+        assertEquals(2, runner.getQueueSize().getObjectCount());
+    }
+
     private void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+        // add 'fragment.index' attribute to ensure non-defragment mode operates correctly even when index is present
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
 
         testRunner.enqueue("Hello".getBytes("UTF-8"), attributes);
         testRunner.enqueue(", ".getBytes("UTF-8"), attributes);

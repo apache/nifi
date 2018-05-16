@@ -23,7 +23,7 @@
     </bean>
 
     <!-- variable registry -->
-    <bean id="variableRegistry" class="org.apache.nifi.util.FileBasedVariableRegistry">
+    <bean id="variableRegistry" class="org.apache.nifi.registry.variable.FileBasedVariableRegistry">
         <constructor-arg type="java.nio.file.Path[]" value="#{nifiProperties.getVariableRegistryPropertiesPaths()}" />
     </bean>
 
@@ -33,6 +33,11 @@
     
     <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor">
         <constructor-arg ref="nifiProperties" />
+    </bean>
+
+    <!-- flow registry -->
+    <bean id="flowRegistryClient" class="org.apache.nifi.registry.flow.StandardFlowRegistryClient">
+        <property name="properties" ref="nifiProperties" />
     </bean>
 
     <!-- flow controller -->
@@ -45,6 +50,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="variableRegistry" ref="variableRegistry"/>
         <property name="leaderElectionManager" ref="leaderElectionManager" />
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
     </bean>
 
     <!-- flow service -->

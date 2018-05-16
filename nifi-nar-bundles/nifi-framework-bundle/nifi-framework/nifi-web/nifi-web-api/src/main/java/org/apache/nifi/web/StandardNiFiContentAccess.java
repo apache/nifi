@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.ClientResponse.Status;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -39,6 +26,19 @@ import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.util.NiFiProperties;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -71,7 +71,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
             }
 
             // set the request parameters
-            final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
+            final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
             parameters.add(CLIENT_ID_PARAM, request.getClientId());
 
             // set the headers
@@ -99,17 +99,17 @@ public class StandardNiFiContentAccess implements ContentAccess {
                 throw new IllegalClusterStateException("Interrupted while waiting for a response from node");
             }
 
-            final ClientResponse clientResponse = nodeResponse.getClientResponse();
-            final MultivaluedMap<String, String> responseHeaders = clientResponse.getHeaders();
+            final Response clientResponse = nodeResponse.getClientResponse();
+            final MultivaluedMap<String, String> responseHeaders = clientResponse.getStringHeaders();
 
             // ensure an appropriate response
-            if (Status.NOT_FOUND.getStatusCode() == clientResponse.getStatusInfo().getStatusCode()) {
-                throw new ResourceNotFoundException(clientResponse.getEntity(String.class));
-            } else if (Status.FORBIDDEN.getStatusCode() == clientResponse.getStatusInfo().getStatusCode()
-                        || Status.UNAUTHORIZED.getStatusCode() == clientResponse.getStatusInfo().getStatusCode()) {
-                throw new AccessDeniedException(clientResponse.getEntity(String.class));
-            } else if (Status.OK.getStatusCode() != clientResponse.getStatusInfo().getStatusCode()) {
-                throw new IllegalStateException(clientResponse.getEntity(String.class));
+            if (Response.Status.NOT_FOUND.getStatusCode() == clientResponse.getStatusInfo().getStatusCode()) {
+                throw new ResourceNotFoundException(clientResponse.readEntity(String.class));
+            } else if (Response.Status.FORBIDDEN.getStatusCode() == clientResponse.getStatusInfo().getStatusCode()
+                        || Response.Status.UNAUTHORIZED.getStatusCode() == clientResponse.getStatusInfo().getStatusCode()) {
+                throw new AccessDeniedException(clientResponse.readEntity(String.class));
+            } else if (Response.Status.OK.getStatusCode() != clientResponse.getStatusInfo().getStatusCode()) {
+                throw new IllegalStateException(clientResponse.readEntity(String.class));
             }
 
             // get the file name
@@ -120,7 +120,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final String contentType = responseHeaders.getFirst("Content-Type");
 
             // create the downloadable content
-            return new DownloadableContent(filename, contentType, clientResponse.getEntityInputStream());
+            return new DownloadableContent(filename, contentType, nodeResponse.getInputStream());
         } else {
             // example URIs:
             // http://localhost:8080/nifi-api/provenance/events/{id}/content/{input|output}

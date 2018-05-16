@@ -36,7 +36,7 @@ public interface ProcessGroupAuthorizable {
      *
      * @return all encapsulated processors
      */
-    Set<ConfigurableComponentAuthorizable> getEncapsulatedProcessors();
+    Set<ComponentAuthorizable> getEncapsulatedProcessors();
 
     /**
      * The authorizables for all encapsulated connections. Non null
@@ -99,6 +99,6 @@ public interface ProcessGroupAuthorizable {
      *
      * @return all encapsulated input ports
      */
-    Set<ConfigurableComponentAuthorizable> getEncapsulatedControllerServices();
+    Set<ComponentAuthorizable> getEncapsulatedControllerServices();
 
 }

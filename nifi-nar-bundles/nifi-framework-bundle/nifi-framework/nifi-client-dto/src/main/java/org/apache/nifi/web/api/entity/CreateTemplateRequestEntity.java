@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request to the API.
  */
-@XmlRootElement(name = "copySnippetRequestEntity")
+@XmlRootElement(name = "createTemplateRequestEntity")
 public class CreateTemplateRequestEntity extends Entity {
 
     private String name;

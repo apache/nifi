@@ -22,8 +22,8 @@ import org.apache.nifi.components.PropertyValue
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentHelper
-import org.apache.nifi.processors.script.ScriptingComponentUtils
+import org.apache.nifi.script.ScriptingComponentHelper
+import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.provenance.ProvenanceEventBuilder
 import org.apache.nifi.provenance.ProvenanceEventRecord
 import org.apache.nifi.provenance.ProvenanceEventRepository
@@ -192,7 +192,7 @@ class ScriptedReportingTaskGroovyTest {
         task.onTrigger context
         def se = task.scriptEngine
         // This script should store a variable called x with a map of stats to values
-        assertTrue se.x?.uptime > 0
+        assertTrue se.x?.uptime >= 0
         task.offerScriptEngine(se)
 
     }

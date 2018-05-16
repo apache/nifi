@@ -15,13 +15,17 @@
  * limitations under the License.
  */
 package org.apache.nifi.web.security.x509.ocsp
+
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import com.google.common.cache.LoadingCache
-import com.sun.jersey.api.client.Client
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.asn1.x500.X500Name
-import org.bouncycastle.asn1.x509.*
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage
+import org.bouncycastle.asn1.x509.KeyPurposeId
+import org.bouncycastle.asn1.x509.KeyUsage
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.asn1.x509.X509Extension
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.X509v3CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
@@ -29,11 +33,24 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.OperatorCreationException
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
-import org.junit.*
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Ignore
+import org.junit.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import java.security.*
+import javax.ws.rs.client.ClientBuilder
+import java.security.InvalidKeyException
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.NoSuchAlgorithmException
+import java.security.NoSuchProviderException
+import java.security.PrivateKey
+import java.security.PublicKey
+import java.security.Security
+import java.security.SignatureException
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 
@@ -295,7 +312,7 @@ public class OcspCertificateValidatorGroovyTest {
         certificateValidator = new OcspCertificateValidator(mockProperties)
 
         // Must populate the client even though it is not used in this check
-        certificateValidator.client = new Client()
+        certificateValidator.client = ClientBuilder.newBuilder().build()
 
         // Form a map of the request to a good status and load it into the cache
         OcspRequest revokedRequest = new OcspRequest(certificateChain.first(), certificateChain.last())
@@ -328,7 +345,7 @@ public class OcspCertificateValidatorGroovyTest {
         certificateValidator = new OcspCertificateValidator(mockProperties)
 
         // Must populate the client even though it is not used in this check
-        certificateValidator.client = new Client()
+        certificateValidator.client = ClientBuilder.newBuilder().build()
 
         // Form a map of the request to a revoked status and load it into the cache
         OcspRequest revokedRequest = new OcspRequest(certificateChain.first(), certificateChain.last())

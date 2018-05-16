@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import io.swagger.annotations.ApiModelProperty;
+
+import javax.xml.bind.annotation.XmlType;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,15 +29,13 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import javax.xml.bind.annotation.XmlType;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
-
 /**
  * The contents of a flow snippet.
  */
 @XmlType(name = "flowSnippet")
 public class FlowSnippetDTO {
+
+    private static final long LSB = 0;
 
     private Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
     private Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
@@ -45,6 +48,7 @@ public class FlowSnippetDTO {
     private Set<ControllerServiceDTO> controllerServices = new LinkedHashSet<>();
 
     private final boolean newTemplate;
+    private Set<String> convertedUuids = new HashSet<>();
 
     public FlowSnippetDTO() {
         this(false);
@@ -199,15 +203,26 @@ public class FlowSnippetDTO {
         return components;
     }
 
+    private long generateMsb(String id) {
+        final UUID temp;
+        if (convertedUuids.contains(id)) {
+            temp = UUID.fromString(id);
+        } else {
+            temp = UUID.nameUUIDFromBytes(id.getBytes(StandardCharsets.UTF_8));
+
+            // record what the converted uuid will be so we do not re-convert a previously converted uuid
+            convertedUuids.add(new UUID(temp.getMostSignificantBits(), LSB).toString());
+        }
+        return temp.getMostSignificantBits();
+    }
+
     private void removeInstanceIdentifierIfNecessary(Set<? extends ComponentDTO> componentDtos) {
         if (this.newTemplate) {
             for (ComponentDTO componentDto : componentDtos) {
-                UUID id = UUID.fromString(componentDto.getId());
-                id = new UUID(id.getMostSignificantBits(), 0);
+                UUID id = new UUID(this.generateMsb(componentDto.getId()), LSB);
                 componentDto.setId(id.toString());
 
-                id = UUID.fromString(componentDto.getParentGroupId());
-                id = new UUID(id.getMostSignificantBits(), 0);
+                id = new UUID(this.generateMsb(componentDto.getParentGroupId()), LSB);
                 componentDto.setParentGroupId(id.toString());
                 if (componentDto instanceof ControllerServiceDTO) {
                     ControllerServiceDTO csDTO = (ControllerServiceDTO) componentDto;
@@ -217,8 +232,7 @@ public class FlowSnippetDTO {
                         if (entry.getValue().getIdentifiesControllerService() != null && props.get(entry.getKey()) != null) {
                             String key = entry.getKey();
                             String value = props.get(key);
-                            id = UUID.fromString(value);
-                            id = new UUID(id.getMostSignificantBits(), 0);
+                            id = new UUID(this.generateMsb(value), LSB);
                             props.put(key, id.toString());
                         }
                     }
@@ -230,8 +244,7 @@ public class FlowSnippetDTO {
                         if (entry.getValue().getIdentifiesControllerService() != null && props.get(entry.getKey()) != null) {
                             String key = entry.getKey();
                             String value = props.get(key);
-                            id = UUID.fromString(value);
-                            id = new UUID(id.getMostSignificantBits(), 0);
+                            id = new UUID(this.generateMsb(value), LSB);
                             props.put(key, id.toString());
                         }
                     }
@@ -240,24 +253,20 @@ public class FlowSnippetDTO {
 
                     ConnectableDTO cdto = connectionDTO.getSource();
                     if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {
-                        id = UUID.fromString(cdto.getId());
-                        id = new UUID(id.getMostSignificantBits(), 0);
+                        id = new UUID(this.generateMsb(cdto.getId()), LSB);
                         cdto.setId(id.toString());
                     }
 
-                    id = UUID.fromString(cdto.getGroupId());
-                    id = new UUID(id.getMostSignificantBits(), 0);
+                    id = new UUID(this.generateMsb(cdto.getGroupId()), LSB);
                     cdto.setGroupId(id.toString());
 
                     cdto = connectionDTO.getDestination();
                     if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {
-                        id = UUID.fromString(cdto.getId());
-                        id = new UUID(id.getMostSignificantBits(), 0);
+                        id = new UUID(this.generateMsb(cdto.getId()), LSB);
                         cdto.setId(id.toString());
                     }
 
-                    id = UUID.fromString(cdto.getGroupId());
-                    id = new UUID(id.getMostSignificantBits(), 0);
+                    id = new UUID(this.generateMsb(cdto.getGroupId()), LSB);
                     cdto.setGroupId(id.toString());
                 } else if (componentDto instanceof ProcessGroupDTO) {
                     FlowSnippetDTO fsDTO = ((ProcessGroupDTO) componentDto).getContents();

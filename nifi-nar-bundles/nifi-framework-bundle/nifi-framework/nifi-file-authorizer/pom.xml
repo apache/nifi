@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-file-authorizer</artifactId>
     <build>
@@ -41,8 +41,9 @@
                             <goal>xjc</goal>
                         </goals>
                         <configuration>
-                            <schemaDirectory>src/main/xsd</schemaDirectory>
-                            <schemaFiles>authorizations.xsd</schemaFiles>
+                            <sources>
+                                <source>src/main/xsd/authorizations.xsd</source>
+                            </sources>
                             <packageName>org.apache.nifi.authorization.file.generated</packageName>
                         </configuration>
                     </execution>
@@ -52,8 +53,9 @@
                             <goal>xjc</goal>
                         </goals>
                         <configuration>
-                            <schemaDirectory>src/main/xsd</schemaDirectory>
-                            <schemaFiles>tenants.xsd</schemaFiles>
+                            <sources>
+                                <source>src/main/xsd/tenants.xsd</source>
+                            </sources>
                             <packageName>org.apache.nifi.authorization.file.tenants.generated</packageName>
                             <clearOutputDir>false</clearOutputDir>
                         </configuration>
@@ -64,8 +66,9 @@
                             <goal>xjc</goal>
                         </goals>
                         <configuration>
-                            <schemaDirectory>src/main/xsd</schemaDirectory>
-                            <schemaFiles>legacy-users.xsd</schemaFiles>
+                            <sources>
+                                <source>src/main/xsd/legacy-users.xsd</source>
+                            </sources>
                             <packageName>org.apache.nifi.user.generated</packageName>
                             <clearOutputDir>false</clearOutputDir>
                         </configuration>
@@ -96,6 +99,10 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

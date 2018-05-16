@@ -17,29 +17,25 @@
 package org.apache.nifi.web.api;
 
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
+import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.PeerDescriptionModifier;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.BadRequestException;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -63,6 +59,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,9 +85,11 @@ public class SiteToSiteResource extends ApplicationResource {
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
     private final HttpRemoteSiteListener transactionManager;
+    private final PeerDescriptionModifier peerDescriptionModifier;
 
     public SiteToSiteResource(final NiFiProperties nifiProperties) {
         transactionManager = HttpRemoteSiteListener.getInstance(nifiProperties);
+        peerDescriptionModifier = new PeerDescriptionModifier(nifiProperties);
     }
 
     /**
@@ -99,30 +98,10 @@ public class SiteToSiteResource extends ApplicationResource {
      * Note: Protected for testing purposes
      */
     protected void authorizeSiteToSite() {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getSiteToSiteResource())
-                .identity(user.getIdentity())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(RequestAction.READ)
-                .userContext(userContext)
-                .explanationSupplier(() -> "Unable to retrieve site to site details.")
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        if (!Result.Approved.equals(result.getResult())) {
-            throw new AccessDeniedException(result.getExplanation());
-        }
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable siteToSite = lookup.getSiteToSite();
+            siteToSite.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
     }
 
     /**
@@ -137,7 +116,7 @@ public class SiteToSiteResource extends ApplicationResource {
             value = "Returns the details about this NiFi necessary to communicate via site to site",
             response = ControllerEntity.class,
             authorizations = {
-                @Authorization(value = "Read - /site-to-site", type = "")
+                @Authorization(value = "Read - /site-to-site")
             }
     )
     @ApiResponses(
@@ -159,6 +138,34 @@ public class SiteToSiteResource extends ApplicationResource {
         // get the controller dto
         final ControllerDTO controller = serviceFacade.getSiteToSiteDetails();
 
+        // Alter s2s port.
+        final boolean modificationNeededRaw = peerDescriptionModifier.isModificationNeeded(SiteToSiteTransportProtocol.RAW);
+        final boolean modificationNeededHttp = peerDescriptionModifier.isModificationNeeded(SiteToSiteTransportProtocol.HTTP);
+        if (modificationNeededRaw || modificationNeededHttp) {
+            final PeerDescription source = getSourcePeerDescription(req);
+            final Boolean isSiteToSiteSecure = controller.isSiteToSiteSecure();
+            final String siteToSiteHostname = getSiteToSiteHostname(req);
+            final Map<String, String> httpHeaders = getHttpHeaders(req);
+
+            if (modificationNeededRaw) {
+                final PeerDescription rawTarget = new PeerDescription(siteToSiteHostname, controller.getRemoteSiteListeningPort(), isSiteToSiteSecure);
+                final PeerDescription modifiedRawTarget = peerDescriptionModifier.modify(source, rawTarget,
+                        SiteToSiteTransportProtocol.RAW, PeerDescriptionModifier.RequestType.SiteToSiteDetail, new HashMap<>(httpHeaders));
+                controller.setRemoteSiteListeningPort(modifiedRawTarget.getPort());
+            }
+
+            if (modificationNeededHttp) {
+                final PeerDescription httpTarget = new PeerDescription(siteToSiteHostname, controller.getRemoteSiteHttpListeningPort(), isSiteToSiteSecure);
+                final PeerDescription modifiedHttpTarget = peerDescriptionModifier.modify(source, httpTarget,
+                        SiteToSiteTransportProtocol.HTTP, PeerDescriptionModifier.RequestType.SiteToSiteDetail, new HashMap<>(httpHeaders));
+                controller.setRemoteSiteHttpListeningPort(modifiedHttpTarget.getPort());
+                if (!controller.isSiteToSiteSecure() && modifiedHttpTarget.isSecure()) {
+                    // In order to enable TLS terminate at the reverse proxy server, even if NiFi itself is not secured, introduce the endpoint as secure.
+                    controller.setSiteToSiteSecure(true);
+                }
+            }
+        }
+
         // build the response entity
         final ControllerEntity entity = new ControllerEntity();
         entity.setController(controller);
@@ -172,7 +179,21 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         // generate the response
-        return clusterContext(noCache(Response.ok(entity))).build();
+        return noCache(Response.ok(entity)).build();
+    }
+
+    private PeerDescription getSourcePeerDescription(@Context HttpServletRequest req) {
+        return new PeerDescription(req.getRemoteHost(), req.getRemotePort(), req.isSecure());
+    }
+
+    private Map<String, String> getHttpHeaders(@Context HttpServletRequest req) {
+        final Map<String, String> headers = new HashMap<>();
+        final Enumeration<String> headerNames = req.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            final String name = headerNames.nextElement();
+            headers.put(name, req.getHeader(name));
+        }
+        return headers;
     }
 
     /**
@@ -188,7 +209,7 @@ public class SiteToSiteResource extends ApplicationResource {
             value = "Returns the available Peers and its status of this NiFi",
             response = PeersEntity.class,
             authorizations = {
-                @Authorization(value = "Read - /site-to-site", type = "")
+                @Authorization(value = "Read - /site-to-site")
             }
     )
     @ApiResponses(
@@ -215,18 +236,29 @@ public class SiteToSiteResource extends ApplicationResource {
         }
 
         final List<PeerDTO> peers = new ArrayList<>();
+        final PeerDescription source = getSourcePeerDescription(req);
+        final boolean modificationNeeded = peerDescriptionModifier.isModificationNeeded(SiteToSiteTransportProtocol.HTTP);
+        final Map<String, String> headers = modificationNeeded ? getHttpHeaders(req) : null;
         if (properties.isNode()) {
 
             try {
                 final Map<NodeIdentifier, NodeWorkload> clusterWorkload = clusterCoordinator.getClusterWorkload();
-                clusterWorkload.entrySet().stream().forEach(entry -> {
+                clusterWorkload.forEach((nodeId, workload) -> {
+                    final String siteToSiteHostname = nodeId.getSiteToSiteAddress() == null ? nodeId.getApiAddress() : nodeId.getSiteToSiteAddress();
+                    final int siteToSitePort = nodeId.getSiteToSiteHttpApiPort() == null ? nodeId.getApiPort() : nodeId.getSiteToSiteHttpApiPort();
+
+                    PeerDescription target = new PeerDescription(siteToSiteHostname, siteToSitePort, nodeId.isSiteToSiteSecure());
+
+                    if (modificationNeeded) {
+                        target = peerDescriptionModifier.modify(source, target,
+                                SiteToSiteTransportProtocol.HTTP, PeerDescriptionModifier.RequestType.Peers, new HashMap<>(headers));
+                    }
+
                     final PeerDTO peer = new PeerDTO();
-                    final NodeIdentifier nodeId = entry.getKey();
-                    final String siteToSiteAddress = nodeId.getSiteToSiteAddress();
-                    peer.setHostname(siteToSiteAddress == null ? nodeId.getApiAddress() : siteToSiteAddress);
-                    peer.setPort(nodeId.getSiteToSiteHttpApiPort() == null ? nodeId.getApiPort() : nodeId.getSiteToSiteHttpApiPort());
-                    peer.setSecure(nodeId.isSiteToSiteSecure());
-                    peer.setFlowFileCount(entry.getValue().getFlowFileCount());
+                    peer.setHostname(target.getHostname());
+                    peer.setPort(target.getPort());
+                    peer.setSecure(target.isSecure());
+                    peer.setFlowFileCount(workload.getFlowFileCount());
                     peers.add(peer);
                 });
             } catch (IOException e) {
@@ -236,24 +268,20 @@ public class SiteToSiteResource extends ApplicationResource {
         } else {
             // Standalone mode.
             final PeerDTO peer = new PeerDTO();
+            final String siteToSiteHostname = getSiteToSiteHostname(req);
 
-            // Private IP address or hostname may not be accessible from client in some environments.
-            // So, use the value defined in nifi.properties instead when it is defined.
-            final String remoteInputHost = properties.getRemoteInputHost();
-            String localName;
-            try {
-                // Get local host name using InetAddress if available, same as RAW socket does.
-                localName = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException e) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to get local host name using InetAddress.", e);
-                }
-                localName = req.getLocalName();
+
+            PeerDescription target = new PeerDescription(siteToSiteHostname,
+                    properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
+
+            if (modificationNeeded) {
+                target = peerDescriptionModifier.modify(source, target,
+                        SiteToSiteTransportProtocol.HTTP, PeerDescriptionModifier.RequestType.Peers, new HashMap<>(headers));
             }
 
-            peer.setHostname(isEmpty(remoteInputHost) ? localName : remoteInputHost);
-            peer.setPort(properties.getRemoteInputHttpPort());
-            peer.setSecure(properties.isSiteToSiteSecure());
+            peer.setHostname(target.getHostname());
+            peer.setPort(target.getPort());
+            peer.setSecure(target.isSecure());
             peer.setFlowFileCount(0);  // doesn't matter how many FlowFiles we have, because we're the only host.
 
             peers.add(peer);
@@ -262,7 +290,25 @@ public class SiteToSiteResource extends ApplicationResource {
         final PeersEntity entity = new PeersEntity();
         entity.setPeers(peers);
 
-        return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager))).build();
+        return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
+    }
+
+    private String getSiteToSiteHostname(final HttpServletRequest req) {
+        // Private IP address or hostname may not be accessible from client in some environments.
+        // So, use the value defined in nifi.properties instead when it is defined.
+        final String remoteInputHost = properties.getRemoteInputHost();
+        String localName;
+        try {
+            // Get local host name using InetAddress if available, same as RAW socket does.
+            localName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Failed to get local host name using InetAddress.", e);
+            }
+            localName = req.getLocalName();
+        }
+
+        return isEmpty(remoteInputHost) ? localName : remoteInputHost;
     }
 
     // setters

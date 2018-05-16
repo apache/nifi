@@ -39,6 +39,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.LinkedHashSet;
@@ -153,6 +154,7 @@ public interface SiteToSiteClient extends Closeable {
         private long timeoutNanos = TimeUnit.SECONDS.toNanos(30);
         private long penalizationNanos = TimeUnit.SECONDS.toNanos(3);
         private long idleExpirationNanos = TimeUnit.SECONDS.toNanos(30L);
+        private long contentsCacheExpirationMillis = TimeUnit.SECONDS.toMillis(30L);
         private SSLContext sslContext;
         private String keystoreFilename;
         private String keystorePass;
@@ -168,6 +170,7 @@ public interface SiteToSiteClient extends Closeable {
         private int batchCount;
         private long batchSize;
         private long batchNanos;
+        private InetAddress localAddress;
         private SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
         private HttpProxy httpProxy;
 
@@ -182,6 +185,7 @@ public interface SiteToSiteClient extends Closeable {
             this.timeoutNanos = config.getTimeout(TimeUnit.NANOSECONDS);
             this.penalizationNanos = config.getPenalizationPeriod(TimeUnit.NANOSECONDS);
             this.idleExpirationNanos = config.getIdleConnectionExpiration(TimeUnit.NANOSECONDS);
+            this.contentsCacheExpirationMillis = config.getCacheExpiration(TimeUnit.MILLISECONDS);
             this.sslContext = config.getSslContext();
             this.keystoreFilename = config.getKeystoreFilename();
             this.keystorePass = config.getKeystorePassword();
@@ -198,6 +202,7 @@ public interface SiteToSiteClient extends Closeable {
             this.batchCount = config.getPreferredBatchCount();
             this.batchSize = config.getPreferredBatchSize();
             this.batchNanos = config.getPreferredBatchDuration(TimeUnit.NANOSECONDS);
+            this.localAddress = config.getLocalAddress();
             this.httpProxy = config.getHttpProxy();
 
             return this;
@@ -223,12 +228,31 @@ public interface SiteToSiteClient extends Closeable {
         }
 
         /**
-         * <p>Specifies the URLs of the remote NiFi instance.</p>
-         * <p>If this URL points to a NiFi node in a NiFi cluster, data transfer to and from
-         * nodes will be automatically load balanced across the different nodes.</p>
+         * <p>
+         * Specifies the local address to use when communicating with the remote NiFi instance.
+         * </p>
          *
-         * <p>Multiple urls provide better connectivity with a NiFi cluster, able to connect
-         * to the target cluster at long as one of the specified urls is accessible.</p>
+         * @param localAddress the local address to use, or <code>null</code> to use <code>anyLocal</code> address.
+         * @return the builder
+         */
+        public Builder localAddress(final InetAddress localAddress) {
+            this.localAddress = localAddress;
+            return this;
+        }
+
+        /**
+         * <p>
+         * Specifies the URLs of the remote NiFi instance.
+         * </p>
+         * <p>
+         * If this URL points to a NiFi node in a NiFi cluster, data transfer to and from
+         * nodes will be automatically load balanced across the different nodes.
+         * </p>
+         *
+         * <p>
+         * Multiple urls provide better connectivity with a NiFi cluster, able to connect
+         * to the target cluster at long as one of the specified urls is accessible.
+         * </p>
          *
          * @param urls urls of remote instance
          * @return the builder
@@ -248,6 +272,19 @@ public interface SiteToSiteClient extends Closeable {
          */
         public Builder timeout(final long timeout, final TimeUnit unit) {
             this.timeoutNanos = unit.toNanos(timeout);
+            return this;
+        }
+
+        /**
+         * Specifies how long the contents of a remote NiFi instance should be cached before making
+         * another web request to the remote instance.
+         *
+         * @param expirationPeriod the amount of time that an entry in the cache should expire
+         * @param unit unit of time over which to interpret the given expirationPeriod
+         * @return the builder
+         */
+        public Builder cacheExpiration(final long expirationPeriod, final TimeUnit unit) {
+            this.contentsCacheExpirationMillis = unit.toMillis(expirationPeriod);
             return this;
         }
 
@@ -700,6 +737,7 @@ public interface SiteToSiteClient extends Closeable {
         private final long timeoutNanos;
         private final long penalizationNanos;
         private final long idleExpirationNanos;
+        private final long contentsCacheExpirationMillis;
         private final SSLContext sslContext;
         private final String keystoreFilename;
         private final String keystorePass;
@@ -717,12 +755,14 @@ public interface SiteToSiteClient extends Closeable {
         private final long batchSize;
         private final long batchNanos;
         private final HttpProxy httpProxy;
+        private final InetAddress localAddress;
 
         // some serialization frameworks require a default constructor
         private StandardSiteToSiteClientConfig() {
             this.timeoutNanos = 0;
             this.penalizationNanos = 0;
             this.idleExpirationNanos = 0;
+            this.contentsCacheExpirationMillis = 30000L;
             this.sslContext = null;
             this.keystoreFilename = null;
             this.keystorePass = null;
@@ -740,6 +780,7 @@ public interface SiteToSiteClient extends Closeable {
             this.batchNanos = 0;
             this.transportProtocol = null;
             this.httpProxy = null;
+            this.localAddress = null;
         }
 
         private StandardSiteToSiteClientConfig(final SiteToSiteClient.Builder builder) {
@@ -749,6 +790,7 @@ public interface SiteToSiteClient extends Closeable {
             this.timeoutNanos = builder.timeoutNanos;
             this.penalizationNanos = builder.penalizationNanos;
             this.idleExpirationNanos = builder.idleExpirationNanos;
+            this.contentsCacheExpirationMillis = builder.contentsCacheExpirationMillis;
             this.sslContext = builder.sslContext;
             this.keystoreFilename = builder.keystoreFilename;
             this.keystorePass = builder.keystorePass;
@@ -766,6 +808,7 @@ public interface SiteToSiteClient extends Closeable {
             this.batchNanos = builder.batchNanos;
             this.transportProtocol = builder.getTransportProtocol();
             this.httpProxy = builder.getHttpProxy();
+            this.localAddress = builder.localAddress;
         }
 
         @Override
@@ -789,6 +832,11 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public long getTimeout(final TimeUnit timeUnit) {
             return timeUnit.convert(timeoutNanos, TimeUnit.NANOSECONDS);
+        }
+
+        @Override
+        public long getCacheExpiration(final TimeUnit timeUnit) {
+            return timeUnit.convert(contentsCacheExpirationMillis, TimeUnit.MILLISECONDS);
         }
 
         @Override
@@ -930,6 +978,11 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public HttpProxy getHttpProxy() {
             return httpProxy;
+        }
+
+        @Override
+        public InetAddress getLocalAddress() {
+            return localAddress;
         }
     }
 }

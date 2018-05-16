@@ -25,12 +25,14 @@ import org.apache.flume.conf.Configurables;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -46,10 +48,16 @@ import java.util.Set;
  * This processor runs a Flume sink
  */
 @TriggerSerially
-@Tags({"flume", "hadoop", "put", "sink", "restricted"})
+@Tags({"flume", "hadoop", "put", "sink"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Execute a Flume sink. Each input FlowFile is converted into a Flume Event for processing by the sink.")
-@Restricted("Provides operator the ability to execute arbitrary Flume configurations assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary Flume configurations assuming all permissions that NiFi has.")
+        }
+)
 public class ExecuteFlumeSink extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SINK_TYPE = new PropertyDescriptor.Builder()

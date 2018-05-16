@@ -35,12 +35,12 @@ public abstract class AbstractSingleDTOEndpoint<EntityType extends Entity, DtoTy
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final EntityType responseEntity = clientResponse.getClientResponse().getEntity(getEntityClass());
+        final EntityType responseEntity = clientResponse.getClientResponse().readEntity(getEntityClass());
         final DtoType dto = getDto(responseEntity);
 
         final Map<NodeIdentifier, DtoType> dtoMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final EntityType nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(getEntityClass());
+            final EntityType nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(getEntityClass());
             final DtoType nodeDto = getDto(nodeResponseEntity);
             dtoMap.put(nodeResponse.getNodeId(), nodeDto);
         }

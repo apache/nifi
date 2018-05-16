@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +35,7 @@ import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.registry.VariableRegistry;
 
 
-public class MockValidationContext implements ValidationContext, ControllerServiceLookup {
+public class MockValidationContext extends MockControllerServiceLookup implements ValidationContext, ControllerServiceLookup {
 
     private final MockProcessContext context;
     private final Map<String, Boolean> expressionLanguageSupported;
@@ -86,6 +87,15 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return context.getProperties();
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
     }
 
     @Override

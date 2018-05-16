@@ -17,18 +17,19 @@
 
 package org.apache.nifi.reporting;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalLong;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -36,57 +37,51 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalLong;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.configuration.DefaultSchedule;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.remote.Transaction;
-import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.scheduling.SchedulingStrategy;
-
-@Tags({"bulletin", "site", "site to site", "restricted"})
+@Tags({"bulletin", "site", "site to site"})
 @CapabilityDescription("Publishes Bulletin events using the Site To Site protocol. Note: only up to 5 bulletins are stored per component and up to "
         + "10 bulletins at controller level for a duration of up to 5 minutes. If this reporting task is not scheduled frequently enough some bulletins "
         + "may not be sent.")
-@Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last bulletin ID so that on restart the task knows where it left off.")
-@Restricted("Provides operator the ability to send sensitive details contained in bulletin events to any external system.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXPORT_NIFI_DETAILS,
+                        explanation = "Provides operator the ability to send sensitive details contained in bulletin events to any external system.")
+        }
+)
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReportingTask {
-
-    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-    static final String LAST_EVENT_ID_KEY = "last_event_id";
 
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
         .description("The value to use for the platform field in each provenance event.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("nifi")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     private volatile long lastSentBulletinId = -1L;
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
-
-    static {
-        descriptors.add(DESTINATION_URL);
-        descriptors.add(PORT_NAME);
-        descriptors.add(SSL_CONTEXT);
-        descriptors.add(COMPRESS);
-        descriptors.add(TIMEOUT);
-        descriptors.add(PLATFORM);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(PLATFORM);
+        properties.remove(BATCH_SIZE);
+        return properties;
     }
 
     @Override
@@ -98,19 +93,6 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             getLogger().debug("This instance of NiFi is configured for clustering, but the Cluster Node Identifier is not yet available. "
                 + "Will wait for Node Identifier to be established.");
             return;
-        }
-
-        if (lastSentBulletinId < 0) {
-            Map<String, String> state;
-            try {
-                state = context.getStateManager().getState(Scope.LOCAL).toMap();
-            } catch (IOException e) {
-                getLogger().error("Failed to get state at start up due to:" + e.getMessage(), e);
-                return;
-            }
-            if (state.containsKey(LAST_EVENT_ID_KEY)) {
-                lastSentBulletinId = Long.parseLong(state.get(LAST_EVENT_ID_KEY));
-            }
         }
 
         final BulletinQuery bulletinQuery = new BulletinQuery.Builder().after(lastSentBulletinId).build();
@@ -163,9 +145,16 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
                 return;
             }
 
+            final Map<String, String> attributes = new HashMap<>();
             final String transactionId = UUID.randomUUID().toString();
+            attributes.put("reporting.task.transaction.id", transactionId);
+            attributes.put("reporting.task.name", getName());
+            attributes.put("reporting.task.uuid", getIdentifier());
+            attributes.put("reporting.task.type", this.getClass().getSimpleName());
+            attributes.put("mime.type", "application/json");
+
             final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);
-            transaction.send(data, Collections.singletonMap("reporting.task.transaction.id", transactionId));
+            transaction.send(data, attributes);
             transaction.confirm();
             transaction.complete();
 
@@ -176,18 +165,10 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
         }
 
-        // Store the id of the last event so we know where we left off
-        try {
-            context.getStateManager().setState(Collections.singletonMap(LAST_EVENT_ID_KEY, String.valueOf(currMaxId)), Scope.LOCAL);
-        } catch (final IOException ioe) {
-            getLogger().error("Failed to update state to {} due to {}; this could result in events being re-sent after a restart.",
-                    new Object[]{currMaxId, ioe.getMessage()}, ioe);
-        }
-
         lastSentBulletinId = currMaxId;
     }
 
-    static JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
+    private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
         final String platform, final String nodeIdentifier) {
 
         addField(builder, "objectId", UUID.randomUUID().toString());
@@ -195,6 +176,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinId", bulletin.getId());
         addField(builder, "bulletinCategory", bulletin.getCategory());
         addField(builder, "bulletinGroupId", bulletin.getGroupId());
+        addField(builder, "bulletinGroupName", bulletin.getGroupName());
         addField(builder, "bulletinLevel", bulletin.getLevel());
         addField(builder, "bulletinMessage", bulletin.getMessage());
         addField(builder, "bulletinNodeAddress", bulletin.getNodeAddress());
@@ -205,19 +187,6 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()));
 
         return builder.build();
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final Long value) {
-        if (value != null) {
-            builder.add(key, value.longValue());
-        }
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final String value) {
-        if (value == null) {
-            return;
-        }
-        builder.add(key, value);
     }
 
 }

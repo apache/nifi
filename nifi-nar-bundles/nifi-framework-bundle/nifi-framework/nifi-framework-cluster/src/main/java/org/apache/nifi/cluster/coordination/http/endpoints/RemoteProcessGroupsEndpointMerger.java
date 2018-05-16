@@ -44,12 +44,12 @@ public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final RemoteProcessGroupsEntity responseEntity = clientResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
+        final RemoteProcessGroupsEntity responseEntity = clientResponse.getClientResponse().readEntity(RemoteProcessGroupsEntity.class);
         final Set<RemoteProcessGroupEntity> rpgEntities = responseEntity.getRemoteProcessGroups();
 
         final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final RemoteProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
+            final RemoteProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(RemoteProcessGroupsEntity.class);
             final Set<RemoteProcessGroupEntity> nodeRpgEntities = nodeResponseEntity.getRemoteProcessGroups();
 
             for (final RemoteProcessGroupEntity nodeRpgEntity : nodeRpgEntities) {

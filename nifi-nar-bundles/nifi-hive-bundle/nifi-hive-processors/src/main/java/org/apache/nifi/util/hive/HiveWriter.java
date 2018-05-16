@@ -19,6 +19,7 @@
 package org.apache.nifi.util.hive;
 
 import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -53,6 +54,7 @@ public class HiveWriter {
     private final ExecutorService callTimeoutPool;
     private final long callTimeout;
     private final Object txnBatchLock = new Object();
+    private final UserGroupInformation ugi;
     private TransactionBatch txnBatch;
     private long lastUsed; // time of last flush on this writer
     protected boolean closed; // flag indicating HiveWriter was closed
@@ -61,6 +63,7 @@ public class HiveWriter {
     public HiveWriter(HiveEndPoint endPoint, int txnsPerBatch, boolean autoCreatePartitions, long callTimeout, ExecutorService callTimeoutPool, UserGroupInformation ugi, HiveConf hiveConf)
             throws InterruptedException, ConnectFailure {
         try {
+            this.ugi = ugi;
             this.callTimeout = callTimeout;
             this.callTimeoutPool = callTimeoutPool;
             this.endPoint = endPoint;
@@ -81,7 +84,16 @@ public class HiveWriter {
         if (ugi == null) {
             return new StrictJsonWriter(endPoint, hiveConf);
         } else {
-            return ugi.doAs((PrivilegedExceptionAction<StrictJsonWriter>) () -> new StrictJsonWriter(endPoint, hiveConf));
+            try {
+                return ugi.doAs((PrivilegedExceptionAction<StrictJsonWriter>) () -> new StrictJsonWriter(endPoint, hiveConf));
+            } catch (UndeclaredThrowableException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof StreamingException) {
+                    throw (StreamingException) cause;
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -348,7 +360,21 @@ public class HiveWriter {
      */
     private <T> T callWithTimeout(final CallRunner<T> callRunner)
             throws TimeoutException, StreamingException, InterruptedException {
-        Future<T> future = callTimeoutPool.submit(callRunner::call);
+        Future<T> future = callTimeoutPool.submit(() -> {
+            if (ugi == null) {
+                return callRunner.call();
+            }
+            try {
+                return ugi.doAs((PrivilegedExceptionAction<T>) () -> callRunner.call());
+            } catch (UndeclaredThrowableException e) {
+                Throwable cause = e.getCause();
+                // Unwrap exception so it is thrown the same way as without ugi
+                if (!(cause instanceof Exception)) {
+                    throw e;
+                }
+                throw (Exception)cause;
+            }
+        });
         try {
             if (callTimeout > 0) {
                 return future.get(callTimeout, TimeUnit.MILLISECONDS);

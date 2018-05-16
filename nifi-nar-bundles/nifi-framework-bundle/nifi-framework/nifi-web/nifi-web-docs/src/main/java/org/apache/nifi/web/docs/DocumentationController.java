@@ -62,27 +62,30 @@ public class DocumentationController extends HttpServlet {
 
         // create the processors lookup
         final Map<String, String> processors = new TreeMap<>(collator);
-        for (final String processorClass : extensionMappings.getProcessorNames()) {
+        for (final String processorClass : extensionMappings.getProcessorNames().keySet()) {
             processors.put(StringUtils.substringAfterLast(processorClass, "."), processorClass);
         }
 
         // create the controller service lookup
         final Map<String, String> controllerServices = new TreeMap<>(collator);
-        for (final String controllerServiceClass : extensionMappings.getControllerServiceNames()) {
+        for (final String controllerServiceClass : extensionMappings.getControllerServiceNames().keySet()) {
             controllerServices.put(StringUtils.substringAfterLast(controllerServiceClass, "."), controllerServiceClass);
         }
 
         // create the reporting task lookup
         final Map<String, String> reportingTasks = new TreeMap<>(collator);
-        for (final String reportingTaskClass : extensionMappings.getReportingTaskNames()) {
+        for (final String reportingTaskClass : extensionMappings.getReportingTaskNames().keySet()) {
             reportingTasks.put(StringUtils.substringAfterLast(reportingTaskClass, "."), reportingTaskClass);
         }
 
         // make the available components available to the documentation jsp
         request.setAttribute("processors", processors);
+        request.setAttribute("processorBundleLookup", extensionMappings.getProcessorNames());
         request.setAttribute("controllerServices", controllerServices);
+        request.setAttribute("controllerServiceBundleLookup", extensionMappings.getControllerServiceNames());
         request.setAttribute("reportingTasks", reportingTasks);
-        request.setAttribute("totalComponents", GENERAL_LINK_COUNT + processors.size() + controllerServices.size() + reportingTasks.size() + DEVELOPER_LINK_COUNT);
+        request.setAttribute("reportingTaskBundleLookup", extensionMappings.getReportingTaskNames());
+        request.setAttribute("totalComponents", GENERAL_LINK_COUNT + extensionMappings.size() + DEVELOPER_LINK_COUNT);
 
         // forward appropriately
         request.getRequestDispatcher("/WEB-INF/jsp/documentation.jsp").forward(request, response);

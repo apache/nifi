@@ -42,9 +42,7 @@ public interface AuthorizerConfigurationContext {
 
     /**
      * @param property to lookup the descriptor and value of
-     * @return the value the component currently understands for the given
-     * PropertyDescriptor. This method does not substitute default
-     * PropertyDescriptor values, so the value returned will be null if not set
+     * @return the value the component currently understands for the given PropertyDescriptor
      */
     PropertyValue getProperty(String property);
 }

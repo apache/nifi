@@ -83,7 +83,6 @@ public class TestFetchElasticsearch5 {
     @Test
     public void testFetchElasticsearch5OnTrigger() throws IOException {
         runner = TestRunners.newTestRunner(new FetchElasticsearch5TestProcessor(true)); // all docs are found
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
@@ -110,7 +109,6 @@ public class TestFetchElasticsearch5 {
     @Test
     public void testFetchElasticsearch5OnTriggerEL() throws IOException {
         runner = TestRunners.newTestRunner(new FetchElasticsearch5TestProcessor(true)); // all docs are found
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "${cluster.name}");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "${hosts}");
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "${ping.timeout}");
@@ -147,7 +145,6 @@ public class TestFetchElasticsearch5 {
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.SAMPLER_INTERVAL, "5s");
         runner.setProperty(FetchElasticsearch5.INDEX, "doc");
         runner.setProperty(FetchElasticsearch5.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(FetchElasticsearch5.DOC_ID, "${doc_id}");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
@@ -171,7 +168,6 @@ public class TestFetchElasticsearch5 {
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.SAMPLER_INTERVAL, "5s");
         runner.setProperty(FetchElasticsearch5.INDEX, "doc");
         runner.setProperty(FetchElasticsearch5.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(FetchElasticsearch5.DOC_ID, "${doc_id}");
 
         runner.assertNotValid();
@@ -187,7 +183,6 @@ public class TestFetchElasticsearch5 {
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.SAMPLER_INTERVAL, "5s");
         runner.setProperty(FetchElasticsearch5.INDEX, "doc");
         runner.setProperty(FetchElasticsearch5.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(FetchElasticsearch5.DOC_ID, "${doc_id}");
 
         // No Node Available exception
@@ -273,7 +268,6 @@ public class TestFetchElasticsearch5 {
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.SAMPLER_INTERVAL, "5s");
         runner.setProperty(FetchElasticsearch5.INDEX, "doc");
         runner.setProperty(FetchElasticsearch5.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(FetchElasticsearch5.DOC_ID, "${doc_id}");
 
         // Allow time for the controller service to fully initialize
@@ -387,7 +381,6 @@ public class TestFetchElasticsearch5 {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearch5());
-        runner.setValidateExpressionUsage(true);
 
         //Local Cluster - Mac pulled from brew
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch_brew");
@@ -418,7 +411,6 @@ public class TestFetchElasticsearch5 {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearch5());
-        runner.setValidateExpressionUsage(true);
 
         //Local Cluster - Mac pulled from brew
         runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch_brew");

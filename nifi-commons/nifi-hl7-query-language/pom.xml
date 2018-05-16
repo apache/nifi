@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hl7-query-language</artifactId>
@@ -45,22 +45,12 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/test/resources/hypoglycemia</exclude>
-                        <exclude>src/test/resources/hyperglycemia</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
                     <excludes>**/HL7QueryParser.java,**/HL7QueryLexer.java</excludes>
                 </configuration>
-            </plugin>            
+            </plugin>
         </plugins>
     </build>
 
@@ -68,8 +58,9 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr-runtime</artifactId>
+            <version>3.5.2</version>
         </dependency>
-	
+
         <!-- HAPI to parse v2 messages -->
         <dependency>
             <groupId>ca.uhn.hapi</groupId>

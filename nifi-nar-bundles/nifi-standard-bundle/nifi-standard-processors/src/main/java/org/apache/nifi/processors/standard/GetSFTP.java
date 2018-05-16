@@ -93,7 +93,7 @@ public class GetSFTP extends GetFileTransfer {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
         final boolean passwordSpecified = context.getProperty(SFTPTransfer.PASSWORD).getValue() != null;
-        final boolean privateKeySpecified = context.getProperty(SFTPTransfer.PRIVATE_KEY_PATH).getValue() != null;
+        final boolean privateKeySpecified = context.getProperty(SFTPTransfer.PRIVATE_KEY_PATH).evaluateAttributeExpressions().getValue() != null;
 
         if (!passwordSpecified && !privateKeySpecified) {
             results.add(new ValidationResult.Builder().subject("Password")

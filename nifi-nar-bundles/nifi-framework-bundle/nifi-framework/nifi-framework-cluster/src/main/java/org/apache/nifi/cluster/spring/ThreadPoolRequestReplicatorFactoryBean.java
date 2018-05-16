@@ -17,8 +17,6 @@
 
 package org.apache.nifi.cluster.spring;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
 import org.apache.nifi.cluster.coordination.http.replication.ThreadPoolRequestReplicator;
@@ -30,6 +28,8 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+
+import javax.ws.rs.client.Client;
 
 public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<ThreadPoolRequestReplicator>, ApplicationContextAware {
     private ApplicationContext applicationContext;
@@ -44,12 +44,14 @@ public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<Threa
             final ClusterCoordinator clusterCoordinator = applicationContext.getBean("clusterCoordinator", ClusterCoordinator.class);
             final RequestCompletionCallback requestCompletionCallback = applicationContext.getBean("clusterCoordinator", RequestCompletionCallback.class);
 
-            final int numThreads = nifiProperties.getClusterNodeProtocolThreads();
-            final Client jerseyClient = WebUtils.createClient(new DefaultClientConfig(), SslContextFactory.createSslContext(nifiProperties));
+            final int corePoolSize = nifiProperties.getClusterNodeProtocolCorePoolSize();
+            final int maxPoolSize = nifiProperties.getClusterNodeProtocolMaxPoolSize();
+            final int maxConcurrentRequests = nifiProperties.getClusterNodeMaxConcurrentRequests();
+            final Client jerseyClient = WebUtils.createClient(null, SslContextFactory.createSslContext(nifiProperties));
             final String connectionTimeout = nifiProperties.getClusterNodeConnectionTimeout();
             final String readTimeout = nifiProperties.getClusterNodeReadTimeout();
 
-            replicator = new ThreadPoolRequestReplicator(numThreads, jerseyClient, clusterCoordinator,
+            replicator = new ThreadPoolRequestReplicator(corePoolSize, maxPoolSize, maxConcurrentRequests, jerseyClient, clusterCoordinator,
                 connectionTimeout, readTimeout, requestCompletionCallback, eventReporter, nifiProperties);
         }
 

@@ -17,23 +17,32 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 
+import java.net.InetAddress;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable {
+public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
 
+    void initialize();
+
+    @Override
     String getIdentifier();
 
     String getTargetUri();
 
     String getTargetUris();
+
+    void setTargetUris(String targetUris);
 
     ProcessGroup getProcessGroup();
 
@@ -54,9 +63,9 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
 
     void setName(String name);
 
-    void setInputPorts(Set<RemoteProcessGroupPortDescriptor> ports);
+    void setInputPorts(Set<RemoteProcessGroupPortDescriptor> ports, boolean pruneUnusedPorts);
 
-    void setOutputPorts(Set<RemoteProcessGroupPortDescriptor> ports);
+    void setOutputPorts(Set<RemoteProcessGroupPortDescriptor> ports, boolean pruneUnusedPorts);
 
     Set<RemoteGroupPort> getInputPorts();
 
@@ -66,7 +75,7 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
 
     RemoteGroupPort getOutputPort(String id);
 
-    ProcessGroupCounts getCounts();
+    RemoteProcessGroupCounts getCounts();
 
     void refreshFlowContents() throws CommunicationsException;
 
@@ -155,6 +164,16 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
     String getAuthorizationIssue();
 
     /**
+     * Validates the current configuration, returning ValidationResults for any
+     * invalid configuration parameter.
+     *
+     * @return Collection of validation result objects for any invalid findings
+     *         only. If the collection is empty then the component is valid. Guaranteed
+     *         non-null
+     */
+    Collection<ValidationResult> validate();
+
+    /**
      * @return the {@link EventReporter} that can be used to report any notable
      * events
      */
@@ -180,6 +199,16 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
 
     void setProxyPassword(String proxyPassword);
 
+    void setNetworkInterface(String interfaceName);
+
+    String getNetworkInterface();
+
+    /**
+     * Returns the InetAddress that the will this instance will bind to when communicating with a
+     * remote NiFi instance, or <code>null</code> if no specific address has been specified
+     */
+    InetAddress getLocalAddress();
+
     /**
      * Initiates a task in the remote process group to re-initialize, as a
      * result of clustering changes
@@ -187,11 +216,6 @@ public interface RemoteProcessGroup extends ComponentAuthorizable, Positionable 
      * @param isClustered whether or not this instance is now clustered
      */
     void reinitialize(boolean isClustered);
-
-    /**
-     * Removes all non existent ports from this RemoteProcessGroup.
-     */
-    void removeAllNonExistentPorts();
 
     /**
      * Removes a port that no longer exists on the remote instance from this

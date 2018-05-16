@@ -14,14 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-Apache NiFi Expression Language Guide
-=====================================
+= Apache NiFi Expression Language Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
+:linkattrs:
 
 [[overview]]
-Overview
---------
+== Overview
 All data in Apache NiFi is represented by an abstraction called a FlowFile.
 A FlowFile is comprised of two major pieces: content and attributes.
 The content portion of the FlowFile represents the data on which to operate.
@@ -48,8 +47,7 @@ and manipulate their values.
 
 
 [[structure]]
-Structure of a NiFi Expression
-------------------------------
+== Structure of a NiFi Expression
 
 The NiFi Expression Language always begins with the start delimiter `${` and ends
 with the end delimiter `}`. Between the start and end delimiters is the text of the
@@ -149,8 +147,18 @@ icon (
 image:iconInfo.png["Info"]
 ) next to the name of the Property. Hovering over this icon with the mouse will provide a tooltip that
 provides helpful information about the Property. This information includes a description of the Property,
-the default value (if any), historically configured values (if any), and whether or not this Property
-supports the expression language.
+the default value (if any), historically configured values (if any), and the evaluation scope of this
+property for expression language. There are three values and the evaluation scope of the expression 
+language is hierarchical: NONE -> VARIABLE_REGISTRY -> FLOWFILE_ATTRIBUTES.
+
+* NONE - expression language is not supported for this property
+* VARIABLE_REGISTRY is hierarchically constructed as below:
+** Variables defined at process group level and then, recursively, up to the higher process group until 
+the root process group.
+** Variables defined in custom properties files through the nifi.variable.registry.properties property 
+in nifi.properties file.
+** Environment variables defined at JVM level and system properties.
+* FLOWFILE_ATTRIBUTES - will use attributes of each individual flow file.
 
 
 [[editor]]
@@ -194,7 +202,7 @@ Language supports four different data types:
 - *Decimal*: A Decimal is a numeric value that can support decimals and larger values with minimal loss of precision. More precisely it
     is a double-precision 64-bit IEEE 754 floating point. Due to this minimal loss of precision this data type should not be used for
     very precise values, such as currency. For more documentation on the range of values stored in this data type
-    refer to this https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link]. The following are some examples of the forms of
+    refer to this link:https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link^]. The following are some examples of the forms of
     literal decimals that are supported in expression language (the "E" can also be lower-case):
 
         * 1.1
@@ -265,8 +273,8 @@ subject exists and `false` otherwise.#
 
 [.function]
 === isEmpty
-*Description*: [.description]#The `isEmpty` function returns `true` if the Subject is null or contains only white-space
-	(new line, carriage return, space, tab), `false` otherwise.#
+*Description*: [.description]#The `isEmpty` function returns `true` if the Subject is null, does not contain any characters
+	or contains only white-space (new line, carriage return, space, tab), `false` otherwise.#
 
 *Subject Type*: [.subject]#String#
 
@@ -275,7 +283,7 @@ subject exists and `false` otherwise.#
 *Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${filename:isEmpty()}` returns `true` if the "filename" attribute does not exist or contains only
-	white space.
+	white space. `${literal(" "):isEmpty()}` returns true as well as `${literal(""):isEmpty()}`.
 
 
 
@@ -1644,11 +1652,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === toRadix
 
-*Description*: [.description]#Converts the Subject from a Base 10 number to a different Radix (or number base). An optional
-	second argument can be used to indicate the minimum number of characters to be used. If the converted value
-	has fewer than this number of characters, the number will be padded with leading zeroes.
-
-	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
+*Description*: [.description]#Converts the Subject from a Base 10 number to a different Radix (or number base). An optional second argument can be used to indicate the minimum number of characters to be used. If the converted value has fewer than this number of characters, the number will be padded with leading zeroes. If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
 
 *Subject Type*: [.subject]#Number#
 
@@ -1678,10 +1682,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === fromRadix
 
-*Description*: [.description]#Converts the Subject from a specified Radix (or number base) to a base ten whole number. The subject will converted as is, without interpretation, and all characters
-must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to "x" being a invalid hex character.
-
-	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
+*Description*: [.description]#Converts the Subject from a specified Radix (or number base) to a base ten whole number. The subject will converted as is, without interpretation, and all characters must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to "x" being a invalid hex character. If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
 
 *Subject Type*: [.subject]#String#
 
@@ -1719,7 +1720,7 @@ must be valid for the base being converted from. For example converting "0xFF" f
 [.function]
 === math
 
-*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 8 API can be found here: https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html
+*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 8 API can be found here: link:https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html[https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html^]
  +
 In order to run the correct method, the parameter types must be correct. The Expression Language "Number" (whole number) type is interpreted as a Java "long". The "Decimal" type is interpreted as a Java "double". Running the desired method may require calling "toNumber()" or "toDecimal()" in order to "cast" the value to the desired type. This also is important to remember when cascading "math()" calls since the return type depends on the method that was run.#
 
@@ -1754,7 +1755,7 @@ In order to run the correct method, the parameter types must be correct. The Exp
 
 *Description*: [.description]#Formats a number as a date/time according to the format specified by the argument. The argument
 	must be a String that is a valid Java SimpleDateFormat format. The Subject is expected to be a Number that
-	represents the number of milliseconds since Midnight GMT on January 1, 1970. The number will be evaluated using the local 
+	represents the number of milliseconds since Midnight GMT on January 1, 1970. The number will be evaluated using the local
 	time zone unless specified in the second optional argument.#
 
 *Subject Type*: [.subject]#Number#
@@ -2066,7 +2067,7 @@ provides several functions for evaluating the same conditions against groups of 
 [.function]
 === allAttributes
 
-*Description*: [.description]#Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+*Description*: [.description]#Checks to see if all of the given attributes match the given condition. This function has no subject and takes one or more
 	arguments that are the names of attributes to which the remainder of the Expression is to be applied. If all of the attributes specified,
 	when evaluated against the rest of the Expression, returns a value of `true`, then this function will return `true`. Otherwise, this function
 	will return `false`.#

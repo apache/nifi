@@ -25,6 +25,7 @@ import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -53,6 +54,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
 
     private static final String NAME = "Name";
     private static final String ANNOTATION_DATA = "Annotation Data";
+    private static final String EXTENSION_VERSION = "Extension Version";
 
     /**
      * Audits the creation of reporting task via createReportingTask().
@@ -305,6 +307,10 @@ public class ReportingTaskAuditor extends NiFiAuditor {
         }
         if (reportingTaskDTO.getAnnotationData() != null) {
             values.put(ANNOTATION_DATA, reportingTask.getAnnotationData());
+        }
+        if (reportingTaskDTO.getBundle() != null) {
+            final BundleCoordinate bundle = reportingTask.getBundleCoordinate();
+            values.put(EXTENSION_VERSION, formatExtensionVersion(reportingTask.getComponentType(), bundle));
         }
         if (reportingTaskDTO.getProperties() != null) {
             // for each property specified, extract its configured value

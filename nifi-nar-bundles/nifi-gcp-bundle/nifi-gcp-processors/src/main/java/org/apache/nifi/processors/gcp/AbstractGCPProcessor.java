@@ -17,15 +17,16 @@
 package org.apache.nifi.processors.gcp;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.HttpServiceOptions;
 import com.google.cloud.Service;
+import com.google.cloud.ServiceOptions;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 
 import java.util.List;
 
@@ -35,8 +36,7 @@ import java.util.List;
  */
 public abstract class AbstractGCPProcessor<
         CloudService extends Service<CloudServiceOptions>,
-        CloudServiceRpc,
-        CloudServiceOptions extends HttpServiceOptions<CloudService, CloudServiceRpc, CloudServiceOptions>> extends AbstractProcessor {
+        CloudServiceOptions extends ServiceOptions<CloudService, CloudServiceOptions>> extends AbstractProcessor {
 
     public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor
             .Builder().name("gcp-project-id")
@@ -54,6 +54,25 @@ public abstract class AbstractGCPProcessor<
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
+
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor
+            .Builder().name("gcp-proxy-host")
+            .displayName("Proxy host")
+            .description("IP or hostname of the proxy to be used")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor
+            .Builder().name("gcp-proxy-port")
+            .displayName("Proxy port")
+            .description("Proxy port number")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
 
     /**
      * Links to the {@link GCPCredentialsService} which provides credentials for this particular processor.
@@ -78,7 +97,9 @@ public abstract class AbstractGCPProcessor<
         return ImmutableList.of(
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 PROJECT_ID,
-                RETRY_COUNT
+                RETRY_COUNT,
+                PROXY_HOST,
+                PROXY_PORT
         );
     }
 

@@ -50,6 +50,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -93,14 +94,14 @@ public class GetKafka extends AbstractProcessor {
                     + " combinations. For example, host1:2181,host2:2181,host3:2188")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
             .name("Topic Name")
             .description("The Kafka Topic to pull messages from")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor ZOOKEEPER_COMMIT_DELAY = new PropertyDescriptor.Builder()
             .name("Zookeeper Commit Frequency")
@@ -108,7 +109,7 @@ public class GetKafka extends AbstractProcessor {
                     + " result in better overall performance but can result in more data duplication if a NiFi node is lost")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("60 secs")
             .build();
     public static final PropertyDescriptor ZOOKEEPER_TIMEOUT = new PropertyDescriptor.Builder()
@@ -116,7 +117,7 @@ public class GetKafka extends AbstractProcessor {
             .description("The amount of time to wait for a response from ZooKeeper before determining that there is a communications error")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("30 secs")
             .build();
     public static final PropertyDescriptor KAFKA_TIMEOUT = new PropertyDescriptor.Builder()
@@ -124,7 +125,7 @@ public class GetKafka extends AbstractProcessor {
             .description("The amount of time to wait for a response from Kafka before determining that there is a communications error")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("30 secs")
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -134,7 +135,7 @@ public class GetKafka extends AbstractProcessor {
                     + "If the messages from Kafka should not be concatenated together, leave this value at 1.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("1")
             .build();
     public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
@@ -144,7 +145,7 @@ public class GetKafka extends AbstractProcessor {
                     + "this value will be placed in between them.")
             .required(true)
             .addValidator(Validator.VALID) // accept anything as a demarcator, including empty string
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("\\n")
             .build();
 
@@ -153,14 +154,14 @@ public class GetKafka extends AbstractProcessor {
             .description("Client Name to use when communicating with Kafka")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
             .name("Group ID")
             .description("A Group ID is used to identify consumers that are within the same consumer group")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
@@ -218,11 +219,11 @@ public class GetKafka extends AbstractProcessor {
     }
 
     public void createConsumers(final ProcessContext context) {
-        final String topic = context.getProperty(TOPIC).getValue();
+        final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions().getValue();
 
         final Properties props = new Properties();
-        props.setProperty("zookeeper.connect", context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue());
-        props.setProperty("group.id", context.getProperty(GROUP_ID).getValue());
+        props.setProperty("zookeeper.connect", context.getProperty(ZOOKEEPER_CONNECTION_STRING).evaluateAttributeExpressions().getValue());
+        props.setProperty("group.id", context.getProperty(GROUP_ID).evaluateAttributeExpressions().getValue());
         props.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
         props.setProperty("auto.commit.interval.ms", String.valueOf(context.getProperty(ZOOKEEPER_COMMIT_DELAY).asTimePeriod(TimeUnit.MILLISECONDS)));
         props.setProperty("auto.offset.reset", context.getProperty(AUTO_OFFSET_RESET).getValue());
@@ -257,7 +258,7 @@ public class GetKafka extends AbstractProcessor {
         }
 
         int partitionCount = KafkaUtils.retrievePartitionCountForTopic(
-                context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue(), context.getProperty(TOPIC).getValue());
+                context.getProperty(ZOOKEEPER_CONNECTION_STRING).evaluateAttributeExpressions().getValue(), context.getProperty(TOPIC).evaluateAttributeExpressions().getValue());
 
         final ConsumerConfig consumerConfig = new ConsumerConfig(props);
         consumer = Consumer.createJavaConsumerConnector(consumerConfig);
@@ -267,12 +268,12 @@ public class GetKafka extends AbstractProcessor {
         int concurrentTaskToUse = context.getMaxConcurrentTasks();
         if (context.getMaxConcurrentTasks() < partitionCount){
             this.getLogger().warn("The amount of concurrent tasks '" + context.getMaxConcurrentTasks() + "' configured for "
-                    + "this processor is less than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).getValue() + "'. "
+                    + "this processor is less than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).evaluateAttributeExpressions().getValue() + "'. "
                 + "Consider making it equal to the amount of partition count for most efficient event consumption.");
         } else if (context.getMaxConcurrentTasks() > partitionCount){
             concurrentTaskToUse = partitionCount;
             this.getLogger().warn("The amount of concurrent tasks '" + context.getMaxConcurrentTasks() + "' configured for "
-                    + "this processor is greater than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).getValue() + "'. "
+                    + "this processor is greater than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).evaluateAttributeExpressions().getValue() + "'. "
                 + "Therefore those tasks would never see a message. To avoid that the '" + partitionCount + "'(partition count) will be used to consume events");
         }
 
@@ -400,7 +401,7 @@ public class GetKafka extends AbstractProcessor {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final String demarcator = context.getProperty(MESSAGE_DEMARCATOR).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         final byte[] demarcatorBytes = demarcator.getBytes(StandardCharsets.UTF_8);
-        final String topic = context.getProperty(TOPIC).getValue();
+        final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions().getValue();
 
         FlowFile flowFile = session.create();
 

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -102,7 +102,7 @@ public class FunnelResource extends ApplicationResource {
             value = "Gets a funnel",
             response = FunnelEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /funnels/{uuid}", type = "")
+                    @Authorization(value = "Read - /funnels/{uuid}")
             }
     )
     @ApiResponses(
@@ -135,7 +135,7 @@ public class FunnelResource extends ApplicationResource {
         final FunnelEntity entity = serviceFacade.getFunnel(id);
         populateRemainingFunnelEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -154,7 +154,7 @@ public class FunnelResource extends ApplicationResource {
             value = "Updates a funnel",
             response = FunnelEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /funnels/{uuid}", type = "")
+                    @Authorization(value = "Write - /funnels/{uuid}")
             }
     )
     @ApiResponses(
@@ -220,7 +220,7 @@ public class FunnelResource extends ApplicationResource {
                     final FunnelEntity entity = serviceFacade.updateFunnel(revision, funnelEntity.getComponent());
                     populateRemainingFunnelEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -245,8 +245,8 @@ public class FunnelResource extends ApplicationResource {
             value = "Deletes a funnel",
             response = FunnelEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /funnels/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
+                    @Authorization(value = "Write - /funnels/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}")
             }
     )
     @ApiResponses(
@@ -302,7 +302,7 @@ public class FunnelResource extends ApplicationResource {
                 (revision, funnelEntity) -> {
                     // delete the specified funnel
                     final FunnelEntity entity = serviceFacade.deleteFunnel(revision, funnelEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

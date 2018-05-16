@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-nar-utils</artifactId>
     <packaging>jar</packaging>
@@ -35,4 +35,20 @@
             <artifactId>nifi-framework-api</artifactId>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/nars/nar-with-versioning/META-INF/MANIFEST.MF</exclude>
+                        <exclude>src/test/resources/nars/nar-without-versioning/META-INF/MANIFEST.MF</exclude>
+                        <exclude>src/test/resources/nars/nar-without-dependency/META-INF/MANIFEST.MF</exclude>
+                        <exclude>src/test/resources/nars/nar-requires-cloning/META-INF/MANIFEST.MF</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

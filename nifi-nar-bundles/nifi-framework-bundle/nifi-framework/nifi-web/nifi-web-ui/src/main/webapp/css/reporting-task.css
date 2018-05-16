@@ -61,6 +61,12 @@ div.reporting-task-enabled-container {
     margin-left: 10px;
 }
 
+#reporting-task-bundle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 input.reporting-task-scheduling-period {
     width: 150px;
 }
@@ -71,4 +77,9 @@ input.reporting-task-scheduling-period {
 
 #reporting-task-comments {
     height: 100%;
+}
+
+#read-only-reporting-task-comments {
+    height: 100%;
+    white-space: pre-wrap;
 }

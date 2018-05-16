@@ -21,12 +21,17 @@ import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGroupPortDescriptor {
 
     private String id;
+    private String targetId;
+    private String versionedComponentId;
     private String groupId;
     private String name;
     private String comments;
     private Integer concurrentlySchedulableTaskCount;
     private Boolean transmitting;
     private Boolean useCompression;
+    private Integer batchCount;
+    private String batchSize;
+    private String batchDuration;
     private Boolean exists;
     private Boolean targetRunning;
     private Boolean connected;
@@ -56,6 +61,15 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getTargetId() {
+        return targetId;
+    }
+
+    public void setTargetId(String targetId) {
+        this.targetId = targetId;
     }
 
     @Override
@@ -92,6 +106,33 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
 
     public void setUseCompression(Boolean useCompression) {
         this.useCompression = useCompression;
+    }
+
+    @Override
+    public Integer getBatchCount() {
+        return batchCount;
+    }
+
+    public void setBatchCount(Integer batchCount) {
+        this.batchCount = batchCount;
+    }
+
+    @Override
+    public String getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(String batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    @Override
+    public String getBatchDuration() {
+        return batchDuration;
+    }
+
+    public void setBatchDuration(String batchDuration) {
+        this.batchDuration = batchDuration;
     }
 
     @Override
@@ -144,5 +185,14 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
             return false;
         }
         return name.equals(other.getName());
+    }
+
+    @Override
+    public String getVersionedComponentId() {
+        return versionedComponentId;
+    }
+
+    public void setVersionedComponentId(String versionedId) {
+        this.versionedComponentId = versionedId;
     }
 }

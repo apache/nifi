@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -116,7 +116,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     + "a 403 response will be returned.",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /policies/{resource}", type = "")
+                    @Authorization(value = "Read - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -140,8 +140,8 @@ public class AccessPolicyResource extends ApplicationResource {
             ) @PathParam("resource") String rawResource) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         // parse the action and resource type
@@ -162,7 +162,7 @@ public class AccessPolicyResource extends ApplicationResource {
         final AccessPolicyEntity entity = serviceFacade.getAccessPolicy(requestAction, resource);
         populateRemainingAccessPolicyEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     // -----------------------
@@ -183,7 +183,7 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Creates an access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /policies/{resource}", type = "")
+                    @Authorization(value = "Write - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -203,8 +203,8 @@ public class AccessPolicyResource extends ApplicationResource {
             ) final AccessPolicyEntity requestAccessPolicyEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_POLICIES);
         }
 
         if (requestAccessPolicyEntity == null || requestAccessPolicyEntity.getComponent() == null) {
@@ -255,7 +255,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     populateRemainingAccessPolicyEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -274,7 +274,7 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Gets an access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /policies/{resource}", type = "")
+                    @Authorization(value = "Read - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -294,8 +294,8 @@ public class AccessPolicyResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -312,7 +312,7 @@ public class AccessPolicyResource extends ApplicationResource {
         final AccessPolicyEntity entity = serviceFacade.getAccessPolicy(id);
         populateRemainingAccessPolicyEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -331,7 +331,7 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Updates a access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /policies/{resource}", type = "")
+                    @Authorization(value = "Write - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -356,8 +356,8 @@ public class AccessPolicyResource extends ApplicationResource {
             ) final AccessPolicyEntity requestAccessPolicyEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_POLICIES);
         }
 
         if (requestAccessPolicyEntity == null || requestAccessPolicyEntity.getComponent() == null) {
@@ -397,7 +397,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     final AccessPolicyEntity entity = serviceFacade.updateAccessPolicy(revision, accessPolicyDTO);
                     populateRemainingAccessPolicyEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -422,8 +422,8 @@ public class AccessPolicyResource extends ApplicationResource {
             value = "Deletes an access policy",
             response = AccessPolicyEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /policies/{resource}", type = ""),
-                    @Authorization(value = "Write - Policy of the parent resource - /policies/{resource}", type = "")
+                    @Authorization(value = "Write - /policies/{resource}"),
+                    @Authorization(value = "Write - Policy of the parent resource - /policies/{resource}")
             }
     )
     @ApiResponses(
@@ -454,8 +454,8 @@ public class AccessPolicyResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableAccessPolicyProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_POLICIES);
         }
 
         if (isReplicateRequest()) {
@@ -484,7 +484,7 @@ public class AccessPolicyResource extends ApplicationResource {
                 (revision, accessPolicyEntity) -> {
                     // delete the specified access policy
                     final AccessPolicyEntity entity = serviceFacade.deleteAccessPolicy(revision, accessPolicyEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

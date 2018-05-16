@@ -27,6 +27,7 @@ import org.apache.nifi.provenance.search.SearchableField;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 public interface ProvenanceRepository extends ProvenanceEventRepository {
 
@@ -43,6 +44,19 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
     void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory, IdentifierLookup identifierLookup) throws IOException;
 
 
+    /**
+     * Retrieves the Provenance Event with the given ID. The event will be returned only
+     * if the given user is authorized to access the event.
+     * Otherwise, an AccessDeniedException will be thrown.
+     * If the component for the event no longer exists, ResourceNotFoundException will be thrown.
+     *
+     * @param id to lookup
+     * @param user The NiFi user that the event should be authorized against.
+     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
+     * @return the Provenance Event Record with the given ID, if it exists, or
+     *         {@code null} otherwise
+     * @throws IOException if failure while retrieving event
+     */
     ProvenanceEventRecord getEvent(long id, NiFiUser user) throws IOException;
 
     /**
@@ -54,7 +68,9 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      *
      * @param firstRecordId id of the first record to retrieve
      * @param maxRecords    maximum number of records to retrieve
-     * @param user          the NiFi user that the events should be authorized against
+     * @param user          The NiFi user that the events should be authorized against.
+     *                      It can be {@code null} if called by NiFi components internally
+     *                      where authorization is not required.
      * @return records
      * @throws java.io.IOException if error reading from repository
      */
@@ -70,7 +86,8 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * identifier that can be used to fetch the results at a later time
      *
      * @param query to submit
-     * @param user the NiFi User to authorize the events against
+     * @param user The NiFi User to authorize the events against.
+     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
      *
      * @return an identifier that can be used to fetch the results at a later
      *         time
@@ -79,7 +96,9 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
 
     /**
      * @param queryIdentifier of the query
-     * @param user the user who is retrieving the query
+     * @param user The user who is retrieving the query.
+     *             It can be {@code null} if the request was made by NiFi components internally where authorization is not required.
+     *             If the queried user and the retrieved user do not match, AccessDeniedException will be thrown.
      *
      * @return the QueryResult associated with the given identifier, if the
      *         query has finished processing. If the query has not yet finished running,
@@ -100,7 +119,8 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      *
      * @param flowFileUuid the UUID of the FlowFile for which the Lineage should
      *            be calculated
-     * @param user the NiFi User to authorize events against
+     * @param user The NiFi User to authorize the events against.
+     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
      *
      * @return a {@link ComputeLineageSubmission} object that can be used to
      *         check if the computing is complete and if so get the results
@@ -123,7 +143,8 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * available.
      *
      * @param eventId the numeric ID of the event that the lineage is for
-     * @param user the NiFi User to authorize events against
+     * @param user The NiFi User to authorize the events against.
+     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
      *
      * @return a {@link ComputeLineageSubmission} object that can be used to
      *         check if the computing is complete and if so get the results
@@ -132,7 +153,9 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
 
     /**
      * @param lineageIdentifier identifier of lineage to compute
-     * @param user the user who is retrieving the lineage submission
+     * @param user The user who is retrieving the lineage submission.
+     *             It can be {@code null} if the request was made by NiFi components internally where authorization is not required.
+     *             If the queried user and the retrieved user do not match, AccessDeniedException will be thrown.
      *
      * @return the {@link ComputeLineageSubmission} associated with the given
      *         identifier
@@ -145,7 +168,8 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * the ID of the component that emitted the event.
      *
      * @param eventId the one-up id of the Event to expand
-     * @param user the NiFi user to authorize events against
+     * @param user The NiFi user to authorize events against.
+     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
      * @return a submission which can be checked for status
      *
      * @throws IllegalArgumentException if the given identifier identifies a
@@ -160,7 +184,8 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * the ID of the component that emitted the event.
      *
      * @param eventId the one-up id of the Event
-     * @param user the NiFi user to authorize events against
+     * @param user The NiFi user to authorize events against.
+     *             It can be {@code null} if called by NiFi components internally where authorization is not required.
      *
      * @return a submission which can be checked for status
      *
@@ -181,4 +206,39 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      * {@link ProvenanceRepository#submitQuery(Query, NiFiUser)} method
      */
     List<SearchableField> getSearchableAttributes();
+
+    /**
+     * @return the names of all Containers that exist for this Provenance
+     * Repository
+     */
+    Set<String> getContainerNames();
+
+    /**
+     * @param containerName name of container to check capacity on
+     * @return the maximum number of bytes that can be stored in the storage
+     * mechanism that backs the container with the given name
+     * @throws java.io.IOException if unable to check capacity
+     * @throws IllegalArgumentException if no container exists with the given
+     * name
+     */
+    long getContainerCapacity(String containerName) throws IOException;
+
+    /**
+     * Returns the name of the FileStore that the given container is stored on, or <code>null</code>
+     * if not applicable or unable to determine the file store name
+     *
+     * @param containerName the name of the container
+     * @return the name of the FileStore
+     */
+    String getContainerFileStoreName(String containerName);
+
+    /**
+     * @param containerName to check space on
+     * @return the number of bytes available to be used used by the storage
+     * mechanism that backs the container with the given name
+     * @throws java.io.IOException if unable to check space
+     * @throws IllegalArgumentException if no container exists with the given
+     * name
+     */
+    long getContainerUsableSpace(String containerName) throws IOException;
 }

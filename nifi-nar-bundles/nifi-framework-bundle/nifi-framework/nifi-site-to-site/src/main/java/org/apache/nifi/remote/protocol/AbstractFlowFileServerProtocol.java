@@ -440,6 +440,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final CheckedInputStream checkedInputStream = new CheckedInputStream(flowFileInputStream, crc);
 
             final DataPacket dataPacket = codec.decode(checkedInputStream);
+
             if (dataPacket == null) {
                 logger.debug("{} Received null dataPacket indicating the end of transaction from {}", this, peer);
                 break;
@@ -447,6 +448,11 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             FlowFile flowFile = session.create();
             flowFile = session.importFrom(dataPacket.getData(), flowFile);
             flowFile = session.putAllAttributes(flowFile, dataPacket.getAttributes());
+
+            if (handshakeProperties.isUseGzip()) {
+                // Close CompressionInputStream to free acquired memory, without closing underlying stream.
+                checkedInputStream.close();
+            }
 
             final long transferNanos = System.nanoTime() - startNanos;
             final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);

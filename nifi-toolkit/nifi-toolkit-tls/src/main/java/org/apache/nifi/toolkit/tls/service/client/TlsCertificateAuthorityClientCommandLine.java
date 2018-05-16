@@ -57,7 +57,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         super(DESCRIPTION);
         this.inputStreamFactory = inputStreamFactory;
         addOptionWithArg("C", CERTIFICATE_DIRECTORY, "The file to write the CA certificate to", DEFAULT_CERTIFICATE_DIRECTORY);
-        addOptionWithArg("S", SUBJECT_ALTERNATIVE_NAMES, "Comma-separated list of domains to use as Subject Alternative Names in the certificate");
+        addOptionWithArg(null, SUBJECT_ALTERNATIVE_NAMES, "Comma-separated list of domains to use as Subject Alternative Names in the certificate");
     }
 
     public static void main(String[] args) throws Exception {

@@ -40,6 +40,7 @@ import org.apache.nifi.reporting.Severity;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -108,9 +109,23 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     }
 
     @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
+    }
+
+    @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
+        final PropertyDescriptor descriptor = reportingTask.getPropertyDescriptor(property.getName());
+        if (descriptor == null) {
+            return null;
+        }
+
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry);
+        return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry);
     }
 
     @Override

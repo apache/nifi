@@ -415,6 +415,9 @@
         }).done(function (response) {
             var flowFile = response.flowFile;
 
+            // set a default for flowfiles with no content claim
+            var fileSize = nfCommon.isDefinedAndNotNull(flowFile.contentClaimFileSize) ? flowFile.contentClaimFileSize : nfCommon.formatDataSize(0);
+
             // show the URI to this flowfile
             $('#flowfile-uri').text(flowFile.uri);
 
@@ -422,7 +425,7 @@
             $('#flowfile-uuid').html(nfCommon.formatValue(flowFile.uuid));
             $('#flowfile-filename').html(nfCommon.formatValue(flowFile.filename));
             $('#flowfile-queue-position').html(nfCommon.formatValue(flowFile.position));
-            $('#flowfile-file-size').html(nfCommon.formatValue(flowFile.contentClaimFileSize));
+            $('#flowfile-file-size').html(nfCommon.formatValue(fileSize));
             $('#flowfile-queued-duration').text(nfCommon.formatDuration(flowFile.queuedDuration));
             $('#flowfile-lineage-duration').text(nfCommon.formatDuration(flowFile.lineageDuration));
             $('#flowfile-penalized').text(flowFile.penalized === true ? 'Yes' : 'No');
@@ -454,15 +457,20 @@
 
                 // show the content details
                 $('#flowfile-content-details').show();
+                $('#flowfile-with-no-content').hide();
             } else {
                 $('#flowfile-content-details').hide();
+                $('#flowfile-with-no-content').show();
             }
 
             // attributes
             var attributesContainer = $('#flowfile-attributes-container');
 
             // get any action details
-            $.each(flowFile.attributes, function (attributeName, attributeValue) {
+            var sortedAttributeNames = Object.keys(flowFile.attributes).sort();
+            sortedAttributeNames.forEach(function (attributeName) {
+                var attributeValue = flowFile.attributes[attributeName];
+
                 // create the attribute record
                 var attributeRecord = $('<div class="attribute-detail"></div>')
                     .append($('<div class="attribute-name">' + nfCommon.formatValue(attributeName) + '</div>').ellipsis())
@@ -534,21 +542,24 @@
                     sortable: false,
                     resizable: false,
                     width: 75,
-                    maxWidth: 75
+                    maxWidth: 75,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'uuid',
                     name: 'UUID',
                     field: 'uuid',
                     sortable: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'filename',
                     name: 'Filename',
                     field: 'filename',
                     sortable: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'size',
@@ -594,7 +605,8 @@
                     name: 'Node',
                     field: 'clusterNodeAddress',
                     sortable: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 });
             }
 

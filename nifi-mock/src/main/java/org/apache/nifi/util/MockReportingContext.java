@@ -19,6 +19,7 @@ package org.apache.nifi.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +60,15 @@ public class MockReportingContext extends MockControllerServiceLookup implements
     }
 
     @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
+    }
+
+    @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = properties.get(property);
         return new MockPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, this, variableRegistry);
@@ -90,7 +100,7 @@ public class MockReportingContext extends MockControllerServiceLookup implements
 
     @Override
     public Bulletin createBulletin(final String componentId, final String category, final Severity severity, final String message) {
-        final Bulletin bulletin = BulletinFactory.createBulletin(null, componentId, "test processor", category, severity.name(), message);
+        final Bulletin bulletin = BulletinFactory.createBulletin(null, null, componentId, "test processor", category, severity.name(), message);
         List<Bulletin> bulletins = componentBulletinsCreated.get(componentId);
         if (bulletins == null) {
             bulletins = new ArrayList<>();

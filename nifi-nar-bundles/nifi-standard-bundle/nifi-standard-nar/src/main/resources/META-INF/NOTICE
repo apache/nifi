@@ -1,23 +1,38 @@
 nifi-standard-nar
-Copyright 2014-2017 The Apache Software Foundation
-
-This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
-Copyright 2013-2014 Bazaarvoice, Inc
-The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java, com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
-
-This includes derived works from Elastic Logstash (https://github.com/elastic/logstash/tree/v1.4.0/) and modified by Anthony Corbacho, and contributors.
-Copyright 2009-2013 Jordan Sissel, Pete Fritchman, and contributors.
-Copyright 2014 Anthony Corbacho, and contributors.
-The derived work consists in modifications from patterns/grok-patterns and found in the file nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestExtractGrok/patterns
+Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
+
+This product includes the following work from the Apache Hadoop project under Apache Software License V2:
+  BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
+
+This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
+  Copyright 2013-2014 Bazaarvoice, Inc
+  The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java,
+  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
+
+This includes derived works from Apache Calcite available under Apache Software License V2.  Portions of code found in 
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvProjectTableScanRule.java
+  and 
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java
+  Copyright 2012-2017 The Apache Software Foundation
+  The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
+  and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan
 
 ******************
 Apache Software License v2
 ******************
 
 The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache BVal Project
+    The following NOTICE information applies:
+      Apache BVal project
+     Copyright 2010-2016 The Apache Software Foundation.
+
+     This product includes software developed by Agimatec GmbH.
+     Copyright 2007-2010 Agimatec GmbH. All rights reserved.
 
   (ASLv2) Apache Commons IO
     The following NOTICE information applies:
@@ -27,7 +42,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
       Apache Commons Lang
-      Copyright 2001-2015 The Apache Software Foundation
+      Copyright 2001-2017 The Apache Software Foundation
 
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
@@ -40,7 +55,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons Compress
     The following NOTICE information applies:
       Apache Commons Compress
-      Copyright 2002-2014 The Apache Software Foundation
+      Copyright 2002-2017 The Apache Software Foundation
 
       The files in the package org.apache.commons.compress.archivers.sevenz
       were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
@@ -72,7 +87,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache ActiveMQ
     The following NOTICE information applies:
       ActiveMQ :: Client
-      Copyright 2005-2015 The Apache Software Foundation
+      Copyright 2005-2017 The Apache Software Foundation
 
   (ASLv2) Apache Geronimo
     The following NOTICE information applies:
@@ -153,7 +168,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Avro
     The following NOTICE information applies:
       Apache Avro
-      Copyright 2009-2013 The Apache Software Foundation
+      Copyright 2009-2017 The Apache Software Foundation
 
   (ASLv2) Snappy Java
     The following NOTICE information applies:
@@ -178,6 +193,31 @@ The following binary components are provided under the Apache Software License v
       Grok
       Copyright 2014 Anthony Corbacho, and contributors.
 
+  (ASLv2) Apache Calcite -- Avatica
+    The following NOTICE information applies:
+		Apache Calcite -- Avatica
+		Copyright 2012-2017 The Apache Software Foundation
+
+  (ASLv2) Apache Calcite
+    The following NOTICE information applies:
+		Apache Calcite
+		Copyright 2012-2017 The Apache Software Foundation
+		
+		This product is based on source code originally developed
+		by DynamoBI Corporation, LucidEra Inc., SQLstream Inc. and others
+		under the auspices of the Eigenbase Foundation
+		and released as the LucidDB project.
+		
+		The web site includes files generated by Jekyll.
+
+  (ASLv2) Aggregate Designer
+    The following NOTICE information applies:
+
+        Aggregate Designer
+
+        Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
+        Copyright 2000-2005, 2014-2016 Julian Hyde
+
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -190,6 +230,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
     (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
     (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
 
 *****************
 Common Development and Distribution License v1.0:
@@ -198,7 +239,6 @@ Common Development and Distribution License v1.0:
 The following binary components are provided under the Common Development and Distribution License v1.0.  See project link for details.
 
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
-    (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
 
 *****************
 Mozilla Public License v2.0

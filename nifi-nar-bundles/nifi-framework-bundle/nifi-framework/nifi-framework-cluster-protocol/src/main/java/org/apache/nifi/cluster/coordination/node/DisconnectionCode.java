@@ -58,6 +58,11 @@ public enum DisconnectionCode {
     MISMATCHED_FLOWS("Node's Flow did not Match Cluster Flow"),
 
     /**
+     * The node was missing a bundle used the cluster flow.
+     */
+    MISSING_BUNDLE("Node was missing bundle used by Cluster Flow"),
+
+    /**
      * Cannot communicate with the node
      */
     UNABLE_TO_COMMUNICATE("Unable to Communicate with Node"),

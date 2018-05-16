@@ -16,9 +16,15 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
+
+import java.util.List;
 
 public abstract class ComponentDAO {
 
@@ -65,5 +71,22 @@ public abstract class ComponentDAO {
         }
 
         return group;
+    }
+
+    protected void verifyCreate(final String type, final BundleDTO bundle) {
+        final List<Bundle> bundles = ExtensionManager.getBundles(type);
+
+        if (bundle != null) {
+            final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+            if (bundles.stream().filter(b -> b.getBundleDetails().getCoordinate().equals(coordinate)).count() == 0) {
+                throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", coordinate.toString()));
+            }
+        } else {
+            if (bundles.isEmpty()) {
+                throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
+            } else if (bundles.size() > 1) {
+                throw new IllegalStateException(String.format("Multiple versions of %s exist. Please specify the desired bundle.", type));
+            }
+        }
     }
 }

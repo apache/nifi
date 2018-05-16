@@ -18,6 +18,9 @@ package org.apache.nifi.distributed.cache.server.map;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface MapCache {
 
@@ -29,11 +32,17 @@ public interface MapCache {
 
     ByteBuffer get(ByteBuffer key) throws IOException;
 
+    Map<ByteBuffer, ByteBuffer> subMap(List<ByteBuffer> keys) throws IOException;
+
     ByteBuffer remove(ByteBuffer key) throws IOException;
+
+    Map<ByteBuffer, ByteBuffer> removeByPattern(String regex) throws IOException;
 
     MapCacheRecord fetch(ByteBuffer key) throws IOException;
 
     MapPutResult replace(MapCacheRecord record) throws IOException;
+
+    Set<ByteBuffer> keySet() throws IOException;
 
     void shutdown() throws IOException;
 }

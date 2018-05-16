@@ -30,9 +30,19 @@ public interface RemoteProcessGroupPortDescriptor {
     Integer getConcurrentlySchedulableTaskCount();
 
     /**
-     * @return id of the target port
+     * @return id of the port
      */
     String getId();
+
+    /**
+     * @return the id of the target port
+     */
+    String getTargetId();
+
+    /**
+     * @return the ID corresponding to the component that is under version control
+     */
+    String getVersionedComponentId();
 
     /**
      * @return id of the remote process group that this port resides in
@@ -53,6 +63,21 @@ public interface RemoteProcessGroupPortDescriptor {
      * @return Whether or not flow file are compressed when sent to this target port
      */
     Boolean getUseCompression();
+
+    /**
+     * @return Preferred number of flow files to include in a transaction
+     */
+    Integer getBatchCount();
+
+    /**
+     * @return Preferred number of bytes to include in a transaction
+     */
+    String getBatchSize();
+
+    /**
+     * @return Preferred amount of for a transaction to span
+     */
+    String getBatchDuration();
 
     /**
      * @return Whether or not the target port exists

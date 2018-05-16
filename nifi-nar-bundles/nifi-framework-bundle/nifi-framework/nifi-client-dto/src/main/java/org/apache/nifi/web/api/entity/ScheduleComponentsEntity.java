@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,6 +27,10 @@ import java.util.Map;
  */
 @XmlRootElement(name = "scheduleComponentEntity")
 public class ScheduleComponentsEntity extends Entity {
+    public static final String STATE_RUNNING = "RUNNING";
+    public static final String STATE_STOPPED = "STOPPED";
+    public static final String STATE_ENABLED = "ENABLED";
+    public static final String STATE_DISABLED = "DISABLED";
 
     private String id;
     private String state;
@@ -47,11 +51,11 @@ public class ScheduleComponentsEntity extends Entity {
     }
 
     /**
-     * @return The desired state of the descendant components. Possible states are 'RUNNING' and 'STOPPED'
+     * @return The desired state of the descendant components. Possible states are 'RUNNING', 'STOPPED', 'ENABLED', and 'DISABLED'
      */
     @ApiModelProperty(
         value = "The desired state of the descendant components",
-        allowableValues = "RUNNING, STOPPED"
+        allowableValues = STATE_RUNNING + ", " + STATE_STOPPED + ", " + STATE_ENABLED + ", " + STATE_DISABLED
     )
     public String getState() {
         return state;

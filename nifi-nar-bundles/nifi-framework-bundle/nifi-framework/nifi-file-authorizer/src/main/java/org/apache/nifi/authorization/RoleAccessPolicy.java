@@ -104,7 +104,6 @@ public final class RoleAccessPolicy {
         final Set<RoleAccessPolicy> nifiPolicies = new HashSet<>();
         nifiPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), READ_ACTION));
         nifiPolicies.add(new RoleAccessPolicy(ResourceType.SiteToSite.getValue(), READ_ACTION));
-        nifiPolicies.add(new RoleAccessPolicy(ResourceType.SiteToSite.getValue(), WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_NIFI, Collections.unmodifiableSet(nifiPolicies));
 
         return roleAccessPolicies;

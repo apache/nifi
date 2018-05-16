@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8"/>
+        <title>CSVReader</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    </head>
+
+    <body>
+        <p>
+        	The CSVReader Controller Service, expects input in such a way that the first line of a FlowFile specifies the name of
+        	each column in the data. Following the first line, the rest of the FlowFile is expected to be valid CSV data from which
+        	to form appropriate Records. The reader allows for customization of the CSV Format, such as which character should be used
+        	to separate CSV fields, which character should be used for quoting and when to quote fields, which character should denote
+        	a comment, etc.
+        </p>
+
+
+		<h2>Schemas and Type Coercion</h2>
+		
+		<p>
+			When a record is parsed from incoming data, it is separated into fields. Each of these fields is then looked up against the
+			configured schema (by field name) in order to determine what the type of the data should be. If the field is not present in
+			the schema, that field is omitted from the Record. If the field is found in the schema, the data type of the received data
+			is compared against the data type specified in the schema. If the types match, the value of that field is used as-is. If the
+			schema indicates that the field should be of a different type, then the Controller Service will attempt to coerce the data
+			into the type specified by the schema. If the field cannot be coerced into the specified type, an Exception will be thrown.
+		</p>
+		
+		<p>
+			The following rules apply when attempting to coerce a field value from one data type to another:
+		</p>
+			
+		<ul>
+			<li>Any data type can be coerced into a String type.</li>
+			<li>Any numeric data type (Byte, Short, Int, Long, Float, Double) can be coerced into any other numeric data type.</li>
+			<li>Any numeric value can be coerced into a Date, Time, or Timestamp type, by assuming that the Long value is the number of
+			milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>A String value can be coerced into a Date, Time, or Timestamp type, if its format matches the configured "Date Format," "Time Format,"
+				or "Timestamp Format."</li>
+			<li>A String value can be coerced into a numeric value if the value is of the appropriate type. For example, the String value
+				<code>8</code> can be coerced into any numeric type. However, the String value <code>8.2</code> can be coerced into a Double or Float
+				type but not an Integer.</li>
+			<li>A String value of "true" or "false" (regardless of case) can be coerced into a Boolean value.</li>
+			<li>A String value that is not empty can be coerced into a Char type. If the String contains more than 1 character, the first character is used
+				and the rest of the characters are ignored.</li>
+			<li>Any "date/time" type (Date, Time, Timestamp) can be coerced into any other "date/time" type.</li>
+			<li>Any "date/time" type can be coerced into a Long type, representing the number of milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+			<li>Any "date/time" type can be coerced into a String. The format of the String is whatever DateFormat is configured for the corresponding
+				property (Date Format, Time Format, Timestamp Format property).</li>
+		</ul>
+		
+		<p>
+			If none of the above rules apply when attempting to coerce a value from one data type to another, the coercion will fail and an Exception
+			will be thrown.
+		</p>
+			
+			
+
+		<h2>Examples</h2>
+		
+		<h3>Example 1</h3>
+		
+        <p>
+        	As an example, consider a FlowFile whose contents consists of the following:
+        </p>
+
+<code>
+id, name, balance, join_date, notes<br />
+1, John, 48.23, 04/03/2007 "Our very<br />
+first customer!"<br />
+2, Jane, 1245.89, 08/22/2009,<br />
+3, Frank Franklin, "48481.29", 04/04/2016,<br />
+</code>
+        
+        <p>
+        	Additionally, let's consider that this Controller Service is configured with the Schema Registry pointing to an AvroSchemaRegistry and the schema is
+        	configured as the following:
+        </p>
+        
+<code>
+<pre>
+{
+  "namespace": "nifi",
+  "name": "balances",
+  "type": "record",
+  "fields": [
+    { "name": "id", "type": "int" },
+    { "name": "name": "type": "string" },
+    { "name": "balance": "type": "double" },
+    { "name": "join_date", "type": {
+      "type": "int",
+      "logicalType": "date"
+    }},
+    { "name": "notes": "type": "string" }
+  ]
+}
+</pre>
+</code>
+
+    	<p>
+    		In the example above, we see that the 'join_date' column is a Date type. In order for the CSV Reader to be able to properly parse a value as a date,
+    		we need to provide the reader with the date format to use. In this example, we would configure the Date Format property to be <code>MM/dd/yyyy</code>
+    		to indicate that it is a two-digit month, followed by a two-digit day, followed by a four-digit year - each separated by a slash.
+    		In this case, the result will be that this FlowFile consists of 3 different records. The first record will contain the following values:
+    	</p>
+
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>1</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>John</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>48.23</td>
+    			</tr>
+    			<tr>
+    				<td>join_date</td>
+    				<td>04/03/2007</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td>Our very<br />first customer!</td>
+    			</tr>
+    		</body>
+    	</table>
+    	
+    	<p>
+    		The second record will contain the following values:
+    	</p>
+    	
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>2</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>Jane</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>1245.89</td>
+    			</tr>
+    			<tr>
+    				<td>join_date</td>
+    				<td>08/22/2009</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td></td>
+    			</tr>
+    		</body>
+    	</table>
+    	
+		<p>
+			The third record will contain the following values:
+		</p>    	
+    	
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>3</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>Frank Franklin</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>48481.29</td>
+    			</tr>
+    			<tr>
+    				<td>join_date</td>
+    				<td>04/04/2016</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td></td>
+    			</tr>
+    		</body>
+    	</table>
+
+
+
+    	<h3>Example 2 - Schema with CSV Header Line</h3>
+
+    	<p>
+    		When CSV data consists of a header line that outlines the column names, the reader provides
+    		a couple of different properties for configuring how to handle these column names. The
+    		"Schema Access Strategy" property as well as the associated properties ("Schema Registry," "Schema Text," and
+    		"Schema Name" properties) can be used to specify how to obtain the schema. If the "Schema Access Strategy" is set
+    		to "Use String Fields From Header" then the header line of the CSV will be used to determine the schema. Otherwise,
+    		a schema will be referenced elsewhere. But what happens if a schema is obtained from a Schema Registry, for instance,
+    		and the CSV Header indicates a different set of column names?
+    	</p>
+    	
+    	<p>
+    		For example, let's say that the following schema is obtained from the Schema Registry:
+    	</p>
+
+<code>
+<pre>
+{
+  "namespace": "nifi",
+  "name": "balances",
+  "type": "record",
+  "fields": [
+    { "name": "id", "type": "int" },
+    { "name": "name": "type": "string" },
+    { "name": "balance": "type": "double" },
+    { "name": "memo": "type": "string" }
+  ]
+}
+</pre>
+</code>
+		
+		<p>
+			And the CSV contains the following data:
+		</p>
+		
+<code>
+<pre>
+id, name, balance, notes
+1, John Doe, 123.45, First Customer
+</pre>
+</code>
+		
+		<p>
+		Note here that our schema indicates that the final column is named "memo" whereas the CSV Header indicates that it is named "notes."
+		</p>
+    	
+    	<p>
+    	In this case, the reader will look at the "Ignore CSV Header Column Names" property. If this property is set to "true" then the column names
+    	provided in the CSV will simply be ignored and the last column will be called "memo." However, if the "Ignore CSV Header Column Names" property
+    	is set to "false" then the result will be that the last column will be named "notes" and each record will have a null value for the "memo" column.
+    	</p>
+
+		<p>
+		With "Ignore CSV Header Column Names" property set to "false":<br />
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>1</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>John Doe</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>123.45</td>
+    			</tr>
+    			<tr>
+    				<td>memo</td>
+    				<td>First Customer</td>
+    			</tr>
+    		</body>
+    	</table>
+		</p>
+		
+		
+		<p>
+		With "Ignore CSV Header Column Names" property set to "true":<br />
+				<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>1</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>John Doe</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>123.45</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td>First Customer</td>
+    			</tr>
+    			<tr>
+    				<td>memo</td>
+    				<td><code>null</code></td>
+    			</tr>
+    		</body>
+    	</table>
+		</p>
+		
+    </body>
+</html>

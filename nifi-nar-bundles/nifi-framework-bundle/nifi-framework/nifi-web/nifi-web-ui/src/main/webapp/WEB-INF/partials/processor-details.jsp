@@ -36,9 +36,12 @@
                     </div>
                     <div class="setting">
                         <div class="setting-name">Type</div>
-                        <div class="setting-field">
-                            <span id="read-only-processor-type"></span>
-                        </div>
+                        <div id="read-only-processor-type" class="setting-field"></div>
+                        <div class="clear"></div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Bundle</div>
+                        <div id="read-only-processor-bundle" class="setting-field"></div>
                         <div class="clear"></div>
                     </div>
                     <div class="setting">

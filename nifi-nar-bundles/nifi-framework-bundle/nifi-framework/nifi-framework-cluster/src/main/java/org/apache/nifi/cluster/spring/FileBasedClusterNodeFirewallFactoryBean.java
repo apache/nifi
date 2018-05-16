@@ -25,14 +25,14 @@ import org.springframework.beans.factory.FactoryBean;
 /**
  * Factory bean for creating a singleton FileBasedClusterNodeFirewall instance.
  */
-public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean {
+public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean<FileBasedClusterNodeFirewall> {
 
     private FileBasedClusterNodeFirewall firewall;
 
     private NiFiProperties properties;
 
     @Override
-    public Object getObject() throws Exception {
+    public FileBasedClusterNodeFirewall getObject() throws Exception {
         if (firewall == null) {
             final File config = properties.getClusterNodeFirewallFile();
             final File restoreDirectory = properties.getRestoreDirectory();
@@ -44,7 +44,7 @@ public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean {
     }
 
     @Override
-    public Class getObjectType() {
+    public Class<FileBasedClusterNodeFirewall> getObjectType() {
         return FileBasedClusterNodeFirewall.class;
     }
 

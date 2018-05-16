@@ -32,10 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.processors.standard.ListFileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processors.standard.PutFTP;
-import org.apache.nifi.processors.standard.GetFTP;
 
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -47,9 +44,12 @@ import org.apache.nifi.processors.standard.GetFTP;
     @WritesAttribute(attribute = "ftp.remote.host", description = "The hostname of the FTP Server"),
     @WritesAttribute(attribute = "ftp.remote.port", description = "The port that was connected to on the FTP Server"),
     @WritesAttribute(attribute = "ftp.listing.user", description = "The username of the user that performed the FTP Listing"),
-    @WritesAttribute(attribute = "file.owner", description = "The numeric owner id of the source file"),
-    @WritesAttribute(attribute = "file.group", description = "The numeric group id of the source file"),
-    @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the source file"),
+    @WritesAttribute(attribute = ListFile.FILE_OWNER_ATTRIBUTE, description = "The numeric owner id of the source file"),
+    @WritesAttribute(attribute = ListFile.FILE_GROUP_ATTRIBUTE, description = "The numeric group id of the source file"),
+    @WritesAttribute(attribute = ListFile.FILE_PERMISSIONS_ATTRIBUTE, description = "The read/write/execute permissions of the source file"),
+    @WritesAttribute(attribute = ListFile.FILE_SIZE_ATTRIBUTE, description = "The number of bytes in the source file"),
+    @WritesAttribute(attribute = ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description = "The timestamp of when the file in the filesystem was" +
+            "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
     @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
     @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the SFTP Server from which the file was pulled"),
 })
@@ -84,6 +84,8 @@ public class ListFTP extends ListFileTransfer {
         properties.add(FTPTransfer.PROXY_PORT);
         properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
         properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
+        properties.add(FTPTransfer.BUFFER_SIZE);
+        properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
         return properties;
     }
 

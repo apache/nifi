@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -102,7 +102,7 @@ public class InputPortResource extends ApplicationResource {
             value = "Gets an input port",
             response = PortEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /input-ports/{uuid}", type = "")
+                    @Authorization(value = "Read - /input-ports/{uuid}")
             }
     )
     @ApiResponses(
@@ -135,7 +135,7 @@ public class InputPortResource extends ApplicationResource {
         final PortEntity entity = serviceFacade.getInputPort(id);
         populateRemainingInputPortEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -154,7 +154,7 @@ public class InputPortResource extends ApplicationResource {
             value = "Updates an input port",
             response = PortEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /input-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /input-ports/{uuid}")
             }
     )
     @ApiResponses(
@@ -222,7 +222,7 @@ public class InputPortResource extends ApplicationResource {
                     final PortEntity entity = serviceFacade.updateInputPort(revision, portDTO);
                     populateRemainingInputPortEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -244,8 +244,8 @@ public class InputPortResource extends ApplicationResource {
             value = "Deletes an input port",
             response = PortEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /input-ports/{uuid}", type = ""),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
+                    @Authorization(value = "Write - /input-ports/{uuid}"),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}")
             }
     )
     @ApiResponses(
@@ -301,7 +301,7 @@ public class InputPortResource extends ApplicationResource {
                 (revision, portEntity) -> {
                     // delete the specified input port
                     final PortEntity entity = serviceFacade.deleteInputPort(revision, portEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

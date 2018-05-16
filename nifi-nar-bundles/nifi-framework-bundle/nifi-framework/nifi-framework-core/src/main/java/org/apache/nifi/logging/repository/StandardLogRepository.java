@@ -16,22 +16,21 @@
  */
 package org.apache.nifi.logging.repository;
 
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogMessage;
+import org.apache.nifi.logging.LogObserver;
+import org.apache.nifi.logging.LogRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.logging.LogMessage;
-import org.apache.nifi.logging.LogObserver;
-import org.apache.nifi.logging.LogRepository;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 
 public class StandardLogRepository implements LogRepository {
 
@@ -71,18 +70,24 @@ public class StandardLogRepository implements LogRepository {
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params) {
+        replaceThrowablesWithMessage(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params).getMessage();
         addLogMessage(level, formattedMessage);
     }
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params, final Throwable t) {
-        final Object[] paramsWithThrowable = new Object[params.length + 1];
-        System.arraycopy(params, 0, paramsWithThrowable, 0, params.length);
-        paramsWithThrowable[paramsWithThrowable.length - 1] = t;
-
-        final String formattedMessage = MessageFormatter.arrayFormat(format, paramsWithThrowable).getMessage();
+        replaceThrowablesWithMessage(params);
+        final String formattedMessage = MessageFormatter.arrayFormat(format, params, t).getMessage();
         addLogMessage(level, formattedMessage, t);
+    }
+
+    private void replaceThrowablesWithMessage(Object[] params) {
+        for (int i = 0; i < params.length; i++) {
+            if(params[i] instanceof Throwable) {
+                params[i] = ((Throwable) params[i]).getLocalizedMessage();
+            }
+        }
     }
 
     @Override
@@ -118,8 +123,8 @@ public class StandardLogRepository implements LogRepository {
                 }
             }
 
-            // at this point, the observer should have been found
-            throw new IllegalStateException("The specified observer identifier does not exist.");
+            // at this point, the LogLevel must be NONE since we don't register observers for NONE
+            return LogLevel.NONE;
         } finally {
             readLock.unlock();
         }
@@ -136,12 +141,15 @@ public class StandardLogRepository implements LogRepository {
 
             final LogLevel[] allLevels = LogLevel.values();
             for (int i = minimumLevel.ordinal(); i < allLevels.length; i++) {
-                Collection<LogObserver> collection = observers.get(allLevels[i]);
-                if (collection == null) {
-                    collection = new ArrayList<>();
-                    observers.put(allLevels[i], collection);
+                // no need to register an observer for NONE since that level will never be logged to by a component
+                if (i != LogLevel.NONE.ordinal()) {
+                    Collection<LogObserver> collection = observers.get(allLevels[i]);
+                    if (collection == null) {
+                        collection = new ArrayList<>();
+                        observers.put(allLevels[i], collection);
+                    }
+                    collection.add(observer);
                 }
-                collection.add(observer);
             }
             observerLookup.put(observerIdentifier, observer);
         } finally {

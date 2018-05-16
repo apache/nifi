@@ -34,13 +34,18 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
@@ -95,7 +100,7 @@ public class TlsHelper {
         logger.warn("resulting client certificate: " + fileToString);
         logger.warn("");
         logger.warn("openssl pkcs12 -in '" + fileToString + "' -out '/tmp/" + fileName + "'");
-        logger.warn("openssl pkcs12 -export -in '/tmp/"  + fileName + "' -out '" + fileToString + "'");
+        logger.warn("openssl pkcs12 -export -in '/tmp/" + fileName + "' -out '" + fileToString + "'");
         logger.warn("rm -f '/tmp/" + fileName + "'");
         logger.warn("");
         logger.warn("**********************************************************************************");
@@ -141,7 +146,14 @@ public class TlsHelper {
     }
 
     public static byte[] calculateHMac(String token, PublicKey publicKey) throws GeneralSecurityException {
-        SecretKeySpec keySpec = new SecretKeySpec(token.getBytes(StandardCharsets.UTF_8), "RAW");
+        if (token == null) {
+            throw new IllegalArgumentException("Token cannot be null");
+        }
+        byte[] tokenBytes = token.getBytes(StandardCharsets.UTF_8);
+        if (tokenBytes.length < 16) {
+            throw new GeneralSecurityException("Token does not meet minimum size of 16 bytes.");
+        }
+        SecretKeySpec keySpec = new SecretKeySpec(tokenBytes, "RAW");
         Mac mac = Mac.getInstance("Hmac-SHA256", BouncyCastleProvider.PROVIDER_NAME);
         mac.init(keySpec);
         return mac.doFinal(getKeyIdentifier(publicKey));
@@ -192,27 +204,51 @@ public class TlsHelper {
     }
 
     public static JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, String domainAlternativeNames,
-            KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
+                                                                             KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
         JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(requestedDn), keyPair.getPublic());
 
         // add Subject Alternative Name(s)
-        if(StringUtils.isNotBlank(domainAlternativeNames)) {
-            try {
-                List<GeneralName> namesList = new ArrayList<>();
-                for(String alternativeName : domainAlternativeNames.split(",")) {
-                    namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
-                }
-
-                GeneralNames subjectAltNames = new GeneralNames(namesList.toArray(new GeneralName [] {}));
-                ExtensionsGenerator extGen = new ExtensionsGenerator();
-                extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
-                jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
-            } catch (IOException e) {
-                throw new OperatorCreationException("Error while adding " + domainAlternativeNames + " as Subject Alternative Name.", e);
-            }
+        try {
+            jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, createDomainAlternativeNamesExtensions(domainAlternativeNames, requestedDn));
+        } catch (IOException e) {
+            throw new OperatorCreationException("Error while adding " + domainAlternativeNames + " as Subject Alternative Name.", e);
         }
 
         JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder(signingAlgorithm);
         return new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
     }
+
+    public static Extensions createDomainAlternativeNamesExtensions(String domainAlternativeNames, String requestedDn) throws IOException {
+        List<GeneralName> namesList = new ArrayList<>();
+
+        try {
+            final String cn = IETFUtils.valueToString(new X500Name(requestedDn).getRDNs(BCStyle.CN)[0].getFirst().getValue());
+            namesList.add(new GeneralName(GeneralName.dNSName, cn));
+        } catch (Exception e) {
+            throw new IOException("Failed to extract CN from request DN: " + requestedDn, e);
+        }
+
+        if (StringUtils.isNotBlank(domainAlternativeNames)) {
+            for (String alternativeName : domainAlternativeNames.split(",")) {
+                namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
+            }
+        }
+
+        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray(new GeneralName[]{}));
+        ExtensionsGenerator extGen = new ExtensionsGenerator();
+        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
+        return extGen.generate();
+    }
+
+
+    /**
+     * Removes special characters (particularly forward and back slashes) from strings that become file names.
+     *
+     * @param filename A filename you plan to write to disk which needs to be escaped.
+     * @return String with special characters converted to underscores.
+     */
+    public static final String escapeFilename(String filename) {
+        return filename.replaceAll("[^\\w\\.\\-\\=]+", "_");
+    }
+
 }

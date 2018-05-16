@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-services</artifactId>
     <packaging>pom</packaging>
@@ -26,14 +26,22 @@
         <module>nifi-distributed-cache-client-service-api</module>
         <module>nifi-distributed-cache-services-bundle</module>
         <module>nifi-load-distribution-service-api</module>
-	    <module>nifi-http-context-map-api</module>
+        <module>nifi-http-context-map-api</module>
+        <module>nifi-lookup-service-api</module>
+        <module>nifi-lookup-services-bundle</module>
         <module>nifi-ssl-context-bundle</module>
         <module>nifi-ssl-context-service-api</module>
-	    <module>nifi-http-context-map-bundle</module>
+        <module>nifi-http-context-map-bundle</module>
         <module>nifi-standard-services-api-nar</module>
         <module>nifi-dbcp-service-api</module>
         <module>nifi-dbcp-service-bundle</module>
         <module>nifi-hbase-client-service-api</module>
         <module>nifi-hbase_1_1_2-client-service-bundle</module>
+        <module>nifi-schema-registry-service-api</module>
+        <module>nifi-record-serialization-service-api</module>
+        <module>nifi-record-serialization-services-bundle</module>
+        <module>nifi-hwx-schema-registry-bundle</module>
+        <module>nifi-kerberos-credentials-service-api</module>
+        <module>nifi-kerberos-credentials-service-bundle</module>
     </modules>
 </project>

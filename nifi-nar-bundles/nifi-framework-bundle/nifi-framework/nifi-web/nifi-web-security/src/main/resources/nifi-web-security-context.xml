@@ -43,7 +43,7 @@
     <bean id="x509AuthenticationProvider" class="org.apache.nifi.web.security.x509.X509AuthenticationProvider">
         <constructor-arg ref="certificateIdentityProvider" index="0"/>
         <constructor-arg ref="authorizer" index="1"/>
-        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="nifiProperties" index="2"/>
     </bean>
 
     <!-- jwt service -->
@@ -53,8 +53,9 @@
 
     <!-- jwt authentication provider -->
     <bean id="jwtAuthenticationProvider" class="org.apache.nifi.web.security.jwt.JwtAuthenticationProvider">
-        <constructor-arg ref="jwtService"/>
-        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="jwtService" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+        <constructor-arg ref="authorizer" index="2"/>
     </bean>
 
     <!-- otp service -->
@@ -62,8 +63,21 @@
 
     <!-- otp authentication provider -->
     <bean id="otpAuthenticationProvider" class="org.apache.nifi.web.security.otp.OtpAuthenticationProvider">
-        <constructor-arg ref="otpService"/>
-        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="otpService" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+        <constructor-arg ref="authorizer" index="2"/>
+    </bean>
+
+    <!-- knox service -->
+    <bean id="knoxService" class="org.apache.nifi.web.security.knox.KnoxServiceFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+
+    <!-- knox authentication provider -->
+    <bean id="knoxAuthenticationProvider" class="org.apache.nifi.web.security.knox.KnoxAuthenticationProvider">
+        <constructor-arg ref="knoxService" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+        <constructor-arg ref="authorizer" index="2"/>
     </bean>
 
     <!-- Kerberos service -->
@@ -74,6 +88,15 @@
     <!-- login identity provider -->
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">
         <property name="properties" ref="nifiProperties"/>
+    </bean>
+
+    <!-- oidc -->
+    <bean id="oidcProvider" class="org.apache.nifi.web.security.oidc.StandardOidcIdentityProvider">
+        <constructor-arg ref="jwtService" index="0"/>
+        <constructor-arg ref="nifiProperties" index="1"/>
+    </bean>
+    <bean id="oidcService" class="org.apache.nifi.web.security.oidc.OidcService">
+        <constructor-arg ref="oidcProvider"/>
     </bean>
 
 </beans>

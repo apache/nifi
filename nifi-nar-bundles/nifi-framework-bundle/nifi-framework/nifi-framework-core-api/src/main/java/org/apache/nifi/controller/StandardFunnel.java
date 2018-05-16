@@ -43,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -77,6 +78,7 @@ public class StandardFunnel implements Funnel {
     private final AtomicBoolean lossTolerant;
     private final AtomicReference<ScheduledState> scheduledState;
     private final AtomicLong yieldExpiration;
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -188,7 +190,7 @@ public class StandardFunnel implements Funnel {
             writeLock.lock();
             try {
                 if (!outgoingConnections.remove(connection)) {
-                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Port");
+                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Funnel");
                 }
                 outgoingConnections.add(connection);
             } finally {
@@ -200,7 +202,7 @@ public class StandardFunnel implements Funnel {
             writeLock.lock();
             try {
                 if (!incomingConnections.remove(connection)) {
-                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Port");
+                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Funnel");
                 }
                 incomingConnections.add(connection);
             } finally {
@@ -216,7 +218,7 @@ public class StandardFunnel implements Funnel {
             if (!requireNonNull(connection).getSource().equals(this)) {
                 final boolean existed = incomingConnections.remove(connection);
                 if (!existed) {
-                    throw new IllegalStateException("The given connection is not currently registered for this ProcessorNode");
+                    throw new IllegalStateException("The given connection is not currently registered for this Funnel");
                 }
                 return;
             }
@@ -457,6 +459,12 @@ public class StandardFunnel implements Funnel {
     @Override
     public void yield() {
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);
+        yield(yieldMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void yield(final long yieldDuration, final TimeUnit timeUnit) {
+        final long yieldMillis = timeUnit.toMillis(yieldDuration);
         yieldExpiration.set(Math.max(yieldExpiration.get(), System.currentTimeMillis() + yieldMillis));
     }
 
@@ -556,5 +564,28 @@ public class StandardFunnel implements Funnel {
     @Override
     public String getComponentType() {
         return "Funnel";
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
+            }
+        }
     }
 }

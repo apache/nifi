@@ -19,6 +19,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -42,6 +43,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestPutHiveQL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
@@ -126,8 +128,95 @@ public class TestPutHiveQL {
 
         runner.assertTransferCount(PutHiveQL.REL_FAILURE, 1);
         runner.assertTransferCount(PutHiveQL.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS)
+                .forEach(f -> f.assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS"));
     }
 
+    @Test
+    public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final File tempDir = folder.getRoot();
+        final File dbDir = new File(tempDir, "db");
+        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createPersonsAutoId);
+            }
+        }
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+        runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Mark', 84)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS".getBytes()); // intentionally wrong syntax
+        runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Tom', 3)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Harry', 44)".getBytes());
+        runner.run();
+
+        // The 1st one should be routed to success, others should stay in queue.
+        assertEquals(3, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(PutHiveQL.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveQL.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testFailAtBeginning() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final File tempDir = folder.getRoot();
+        final File dbDir = new File(tempDir, "db");
+        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createPersonsAutoId);
+            }
+        }
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+        runner.enqueue("INSERT INTO PERSONS".getBytes()); // intentionally wrong syntax
+        runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Tom', 3)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Harry', 44)".getBytes());
+        runner.run();
+
+        runner.assertTransferCount(PutHiveQL.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveQL.REL_SUCCESS, 2);
+    }
+
+    @Test
+    public void testFailAtBeginningRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final File tempDir = folder.getRoot();
+        final File dbDir = new File(tempDir, "db");
+        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createPersonsAutoId);
+            }
+        }
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+        runner.enqueue("INSERT INTO PERSONS".getBytes()); // intentionally wrong syntax
+        runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Tom', 3)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS (NAME, CODE) VALUES ('Harry', 44)".getBytes());
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        assertEquals(3, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(PutHiveQL.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveQL.REL_SUCCESS, 0);
+    }
 
     @Test
     public void testFailInMiddleWithBadParameterType() throws InitializationException, ProcessException, SQLException, IOException {
@@ -189,7 +278,56 @@ public class TestPutHiveQL {
 
         final Map<String, String> badAttributes = new HashMap<>();
         badAttributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
-        badAttributes.put("hiveql.args.1.value", "9999");
+        badAttributes.put("hiveql.args.1.value", "101"); // Constraint violation, up to 100
+
+        final byte[] data = "INSERT INTO PERSONS (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.run();
+
+        runner.assertTransferCount(PutHiveQL.REL_SUCCESS, 3);
+        runner.assertTransferCount(PutHiveQL.REL_FAILURE, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals("Mark", rs.getString(2));
+                assertEquals(84, rs.getInt(3));
+                assertTrue(rs.next());
+                assertTrue(rs.next());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testFailInMiddleWithBadNumberFormat() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final File tempDir = folder.getRoot();
+        final File dbDir = new File(tempDir, "db");
+        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createPersonsAutoId);
+            }
+        }
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("hiveql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        badAttributes.put("hiveql.args.1.value", "NOT_NUMBER");
 
         final byte[] data = "INSERT INTO PERSONS (NAME, CODE) VALUES ('Mark', ?)".getBytes();
         runner.enqueue(data, goodAttributes);
@@ -239,6 +377,7 @@ public class TestPutHiveQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS).get(0).assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS");
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -357,6 +496,8 @@ public class TestPutHiveQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(PutHiveQL.REL_SUCCESS)
+                .forEach(f -> f.assertAttributeEquals(PutHiveQL.ATTR_OUTPUT_TABLES, "PERSONS"));
 
         // Now we can check that the values were inserted by the multi-statement script.
         try (final Connection conn = service.getConnection()) {
@@ -540,6 +681,44 @@ public class TestPutHiveQL {
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_RETRY, 1);
     }
 
+    @Test
+    public void testRetryableFailureRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
+        final DBCPService service = new SQLExceptionService(null);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutHiveQL.HIVE_DBCP_SERVICE, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.1.value", "1");
+
+        attributes.put("hiveql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("hiveql.args.2.value", "Mark");
+
+        attributes.put("hiveql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.3.value", "84");
+
+        attributes.put("hiveql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        try {
+            runner.run();
+            fail("Should throw ProcessException");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_RETRY, 0);
+    }
+
     /**
      * Simple implementation only for testing purposes
      */
@@ -594,7 +773,8 @@ public class TestPutHiveQL {
             try {
                 if (++successful > allowedBeforeFailure) {
                     final Connection conn = Mockito.mock(Connection.class);
-                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException"));
+                    // Throw a retryable error
+                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException", "42000", 20000));
                     return conn;
                 } else {
                     return service.getConnection();
@@ -607,7 +787,7 @@ public class TestPutHiveQL {
 
         @Override
         public String getConnectionURL() {
-            return service.getConnectionURL();
+            return service != null ? service.getConnectionURL() : null;
         }
     }
 }

@@ -77,8 +77,67 @@ public class PutCassandraQLTest {
     }
 
     @Test
+    public void testProcessorELConfigValidity() {
+        testRunner.setProperty(AbstractCassandraProcessor.CONTACT_POINTS, "${hosts}");
+        testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "${pass}");
+        testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "${user}");
+        testRunner.setProperty(AbstractCassandraProcessor.CHARSET, "${charset}");
+        testRunner.setProperty(PutCassandraQL.STATEMENT_TIMEOUT, "${timeout}");
+
+        testRunner.assertValid();
+    }
+
+    @Test
     public void testProcessorHappyPath() {
         setUpStandardTestConfig();
+
+        testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                new HashMap<String, String>() {
+                    {
+                        put("cql.args.1.type", "int");
+                        put("cql.args.1.value", "1");
+                        put("cql.args.2.type", "text");
+                        put("cql.args.2.value", "Joe");
+                        put("cql.args.3.type", "text");
+                        // No value for arg 3 to test setNull
+                        put("cql.args.4.type", "map<text,text>");
+                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
+                        put("cql.args.5.type", "list<boolean>");
+                        put("cql.args.5.value", "[true,false,true]");
+                        put("cql.args.6.type", "set<double>");
+                        put("cql.args.6.value", "{1.0, 2.0}");
+                        put("cql.args.7.type", "bigint");
+                        put("cql.args.7.value", "20000000");
+                        put("cql.args.8.type", "float");
+                        put("cql.args.8.value", "1.0");
+                        put("cql.args.9.type", "blob");
+                        put("cql.args.9.value", "0xDEADBEEF");
+                        put("cql.args.10.type", "timestamp");
+                        put("cql.args.10.value", "2016-07-01T15:21:05Z");
+
+                    }
+                });
+
+        testRunner.run(1, true, true);
+        testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_SUCCESS, 1);
+        testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorHappyPathELConfig() {
+        testRunner.setProperty(AbstractCassandraProcessor.CONTACT_POINTS, "${hosts}");
+        testRunner.setProperty(AbstractCassandraProcessor.PASSWORD, "${pass}");
+        testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "${user}");
+        testRunner.setProperty(AbstractCassandraProcessor.CONSISTENCY_LEVEL, "ONE");
+        testRunner.setProperty(AbstractCassandraProcessor.CHARSET, "${charset}");
+        testRunner.setProperty(PutCassandraQL.STATEMENT_TIMEOUT, "${timeout}");
+        testRunner.assertValid();
+
+        testRunner.setVariable("hosts", "localhost:9042");
+        testRunner.setVariable("user", "username");
+        testRunner.setVariable("pass", "password");
+        testRunner.setVariable("charset", "UTF-8");
+        testRunner.setVariable("timeout", "30 sec");
 
         testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
                 new HashMap<String, String>() {

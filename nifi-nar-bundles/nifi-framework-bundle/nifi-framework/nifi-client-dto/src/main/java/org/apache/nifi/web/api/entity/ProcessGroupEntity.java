@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 
@@ -30,6 +31,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     private ProcessGroupDTO component;
     private ProcessGroupStatusDTO status;
+    private VersionedFlowSnapshot versionedFlowSnapshot;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -37,6 +39,14 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     private Integer disabledCount;
     private Integer activeRemotePortCount;
     private Integer inactiveRemotePortCount;
+
+    private String versionedFlowState;
+
+    private Integer upToDateCount;
+    private Integer locallyModifiedCount;
+    private Integer staleCount;
+    private Integer locallyModifiedAndStaleCount;
+    private Integer syncFailureCount;
 
     private Integer inputPortCount;
     private Integer outputPortCount;
@@ -46,10 +56,12 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
      *
      * @return The ProcessGroupDTO object
      */
+    @Override
     public ProcessGroupDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(ProcessGroupDTO component) {
         this.component = component;
     }
@@ -180,4 +192,68 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
+    @ApiModelProperty(value = "Returns the Versioned Flow that describes the contents of the Versioned Flow to be imported", readOnly = true)
+    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+        return versionedFlowSnapshot;
+    }
+
+    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+        this.versionedFlowSnapshot = versionedFlowSnapshot;
+    }
+
+    @ApiModelProperty(readOnly = true,
+            value = "The current state of the Process Group, as it relates to the Versioned Flow",
+            allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
+    public String getVersionedFlowState() {
+        return versionedFlowState;
+    }
+
+    public void setVersionedFlowState(String versionedFlowState) {
+        this.versionedFlowState = versionedFlowState;
+    }
+
+    @ApiModelProperty("The number of up to date versioned process groups in the process group.")
+    public Integer getUpToDateCount() {
+        return upToDateCount;
+    }
+
+    public void setUpToDateCount(Integer upToDateCount) {
+        this.upToDateCount = upToDateCount;
+    }
+
+    @ApiModelProperty("The number of locally modified versioned process groups in the process group.")
+    public Integer getLocallyModifiedCount() {
+        return locallyModifiedCount;
+    }
+
+    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+        this.locallyModifiedCount = locallyModifiedCount;
+    }
+
+    @ApiModelProperty("The number of stale versioned process groups in the process group.")
+    public Integer getStaleCount() {
+        return staleCount;
+    }
+
+    public void setStaleCount(Integer staleCount) {
+        this.staleCount = staleCount;
+    }
+
+    @ApiModelProperty("The number of locally modified and stale versioned process groups in the process group.")
+    public Integer getLocallyModifiedAndStaleCount() {
+        return locallyModifiedAndStaleCount;
+    }
+
+    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+        this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
+    }
+
+    @ApiModelProperty("The number of versioned process groups in the process group that are unable to sync to a registry.")
+    public Integer getSyncFailureCount() {
+        return syncFailureCount;
+    }
+
+    public void setSyncFailureCount(Integer syncFailureCount) {
+        this.syncFailureCount = syncFailureCount;
+    }
 }

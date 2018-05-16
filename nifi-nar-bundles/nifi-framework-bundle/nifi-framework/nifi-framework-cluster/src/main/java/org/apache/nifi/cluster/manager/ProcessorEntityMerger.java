@@ -32,7 +32,6 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
     public void merge(ProcessorEntity clientEntity, Map<NodeIdentifier, ProcessorEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
         for (Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final ProcessorEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -80,10 +79,19 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
             // merge the validation errors and aggregate the property descriptors, if authorized
             if (nodeProcessor != null) {
                 final NodeIdentifier nodeId = nodeEntry.getKey();
+
+                // merge the validation errors
                 ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeProcessor.getValidationErrors());
+
+                // aggregate the property descriptors
                 nodeProcessor.getConfig().getDescriptors().values().stream().forEach(propertyDescriptor -> {
                     propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
                 });
+
+                // if any node does not support multiple versions (null or false), make it unavailable
+                if (clientDto.getMultipleVersionsAvailable() == null || !Boolean.TRUE.equals(nodeProcessor.getMultipleVersionsAvailable())) {
+                    clientDto.setMultipleVersionsAvailable(Boolean.FALSE);
+                }
             }
         }
 

@@ -23,7 +23,7 @@
             <div class="clear"></div>
         </div>
         <div id="settings-tabs-content">
-            <button id="new-service-or-task" class="add-button fa fa-plus" title="Create a new controller service" style="display: block;"></button>
+            <button id="new-service-or-task" class="add-button fa fa-plus" title="Create a new reporting task controller service" style="display: block;"></button>
             <div id="general-settings-tab-content" class="configuration-tab">
                 <div id="general-settings">
                     <div class="setting">
@@ -62,6 +62,9 @@
             <div id="reporting-tasks-tab-content" class="configuration-tab controller-settings-table">
                 <div id="reporting-tasks-table" class="settings-table"></div>
             </div>
+            <div id="registries-tab-content" class="configuration-tab controller-settings-table">
+                <div id="registries-table" class="settings-table"></div>
+            </div>
         </div>
     </div>
     <div id="settings-refresh-container">
@@ -70,5 +73,7 @@
             Last updated:&nbsp;<span id="settings-last-refreshed" class="value-color"></span>
         </div>
         <div id="settings-loading-container" class="loading-container"></div>
+        <div id="controller-cs-availability" class="hidden">Listed services are available to all Reporting Tasks and services defined in the Controller Settings.</div>
+        <div class="clear"></div>
     </div>
 </div>

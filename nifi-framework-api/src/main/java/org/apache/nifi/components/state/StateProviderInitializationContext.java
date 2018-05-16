@@ -23,12 +23,14 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * This interface defines an initialization context that is passed to a {@link StateProvider} when it
  * is initialized.
  */
-public interface StateProviderInitializationContext {
+public interface StateProviderInitializationContext extends PropertyContext {
     /**
      * @return the identifier if the StateProvider
      */
@@ -40,17 +42,14 @@ public interface StateProviderInitializationContext {
     Map<PropertyDescriptor, PropertyValue> getProperties();
 
     /**
-     * Returns the configured value for the given property
-     *
-     * @param property the property to retrieve the value for
-     *
-     * @return the configured value for the property.
-     */
-    PropertyValue getProperty(PropertyDescriptor property);
-
-    /**
      * @return the SSL Context that should be used to communicate with remote resources,
      *         or <code>null</code> if no SSLContext has been configured
      */
     SSLContext getSSLContext();
+
+    /**
+     * @return the logger for the given state provider
+     */
+    ComponentLog getLogger();
+
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.service;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -82,6 +83,15 @@ public class StandardConfigurationContext implements ConfigurationContext {
     }
 
     @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
+    }
+
+    @Override
     public String getSchedulingPeriod() {
         return schedulingPeriod;
     }
@@ -89,5 +99,10 @@ public class StandardConfigurationContext implements ConfigurationContext {
     @Override
     public Long getSchedulingPeriod(final TimeUnit timeUnit) {
         return schedulingNanos == null ? null : timeUnit.convert(schedulingNanos, TimeUnit.NANOSECONDS);
+    }
+
+    @Override
+    public String getName() {
+        return component.getName();
     }
 }

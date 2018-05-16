@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.script;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -104,7 +105,8 @@ public class TestInvokeJython extends BaseScriptTest {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_reader.py");
-        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jython");
+        // Use EL to populate MODULES property
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/${literal('JYTHON'):toLower()}");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -139,6 +141,7 @@ public class TestInvokeJython extends BaseScriptTest {
         final TestRunner two = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         two.setValidateExpressionUsage(false);
         two.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+
         two.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jython");
         two.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_compress.py");
         two.setProperty("mode", "decompress");

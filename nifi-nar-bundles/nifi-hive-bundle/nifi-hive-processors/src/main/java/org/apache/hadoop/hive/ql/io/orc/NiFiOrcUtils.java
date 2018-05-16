@@ -40,15 +40,14 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -68,9 +67,15 @@ public class NiFiOrcUtils {
         if (o != null) {
             if (typeInfo instanceof UnionTypeInfo) {
                 OrcUnion union = new OrcUnion();
+                // Avro uses Utf8 and GenericData.EnumSymbol objects instead of Strings. This is handled in other places in the method, but here
+                // we need to determine the union types from the objects, so choose String.class if the object is one of those Avro classes
+                Class clazzToCompareTo = o.getClass();
+                if (o instanceof org.apache.avro.util.Utf8 || o instanceof GenericData.EnumSymbol) {
+                    clazzToCompareTo = String.class;
+                }
                 // Need to find which of the union types correspond to the primitive object
                 TypeInfo objectTypeInfo = TypeInfoUtils.getTypeInfoFromObjectInspector(
-                        ObjectInspectorFactory.getReflectionObjectInspector(o.getClass(), ObjectInspectorFactory.ObjectInspectorOptions.JAVA));
+                        ObjectInspectorFactory.getReflectionObjectInspector(clazzToCompareTo, ObjectInspectorFactory.ObjectInspectorOptions.JAVA));
                 List<TypeInfo> unionTypeInfos = ((UnionTypeInfo) typeInfo).getAllUnionObjectTypeInfos();
 
                 int index = 0;
@@ -147,23 +152,20 @@ public class NiFiOrcUtils {
                 return o;
             }
             if (o instanceof Map) {
-                MapWritable mapWritable = new MapWritable();
+                Map map = new HashMap();
                 TypeInfo keyInfo = ((MapTypeInfo) typeInfo).getMapKeyTypeInfo();
-                TypeInfo valueInfo = ((MapTypeInfo) typeInfo).getMapKeyTypeInfo();
+                TypeInfo valueInfo = ((MapTypeInfo) typeInfo).getMapValueTypeInfo();
                 // Unions are not allowed as key/value types, so if we convert the key and value objects,
                 // they should return Writable objects
                 ((Map) o).forEach((key, value) -> {
                     Object keyObject = convertToORCObject(keyInfo, key);
                     Object valueObject = convertToORCObject(valueInfo, value);
-                    if (keyObject == null
-                            || !(keyObject instanceof Writable)
-                            || !(valueObject instanceof Writable)
-                            ) {
-                        throw new IllegalArgumentException("Maps may only contain Writable types, and the key cannot be null");
+                    if (keyObject == null) {
+                        throw new IllegalArgumentException("Maps' key cannot be null");
                     }
-                    mapWritable.put((Writable) keyObject, (Writable) valueObject);
+                    map.put(keyObject, valueObject);
                 });
-                return mapWritable;
+                return map;
             }
             if (o instanceof GenericData.Record) {
                 GenericData.Record record = (GenericData.Record) o;

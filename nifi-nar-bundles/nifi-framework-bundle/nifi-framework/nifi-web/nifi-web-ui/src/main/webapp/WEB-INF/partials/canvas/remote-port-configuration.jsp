@@ -37,6 +37,40 @@
                     <span class="nf-checkbox-label">Compressed</span>
                 </div>
             </div>
+            <div class="clear"></div>
+        </div>
+        <div class="batch-settings">
+            <div class="setting-name">
+                Batch Settings:
+            </div>
+            <div class="setting batch-setting">
+                <div class="setting-name">
+                    Count
+                    <div class="fa fa-question-circle" alt="Info" title="The preferred number of flow files to include in a transaction for this port."></div>
+                </div>
+                <div class="setting-field">
+                    <input id="remote-port-batch-count" type="text"/>
+                </div>
+            </div>
+            <div class="setting batch-setting">
+                <div class="setting-name">
+                    Size
+                    <div class="fa fa-question-circle" alt="Info" title="The preferred number of bytes to include in a transaction for this port."></div>
+                </div>
+                <div class="setting-field">
+                    <input id="remote-port-batch-size" type="text"/>
+                </div>
+            </div>
+            <div class="setting batch-setting">
+                <div class="setting-name">
+                    Duration
+                    <div class="fa fa-question-circle" alt="Info" title="The preferred amount of time that a transaction should span for this port."></div>
+                </div>
+                <div class="setting-field">
+                    <input id="remote-port-batch-duration" type="text"/>
+                </div>
+            </div>
+            <div class="clear"></div>
         </div>
     </div>
 </div>

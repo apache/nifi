@@ -20,18 +20,25 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Consumer;
 
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -43,26 +50,34 @@ import org.apache.nifi.stream.io.StreamUtils;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
 
-/**
- * Publishing AMQP processor which upon each invocation of
- * {@link #onTrigger(ProcessContext, ProcessSession)} method will construct an
- * AMQP message sending it to an exchange identified during construction of this
- * class while transferring the incoming {@link FlowFile} to 'success'
- * {@link Relationship}.
- *
- * Expects that queues, exchanges and bindings are pre-defined by an AMQP
- * administrator
- */
 @Tags({ "amqp", "rabbit", "put", "message", "send", "publish" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Creates a AMQP Message from the contents of a FlowFile and sends the message to an AMQP Exchange."
-        + "In a typical AMQP exchange model, the message that is sent to the AMQP Exchange will be routed based on the 'Routing Key' "
-        + "to its final destination in the queue (the binding). If due to some misconfiguration the binding between the Exchange, Routing Key "
-        + "and Queue is not set up, the message will have no final destination and will return (i.e., the data will not make it to the queue). If "
-        + "that happens you will see a log in both app-log and bulletin stating to that effect. Fixing the binding "
-        + "(normally done by AMQP administrator) will resolve the issue.")
+@CapabilityDescription("Creates an AMQP Message from the contents of a FlowFile and sends the message to an AMQP Exchange. "
+    + "In a typical AMQP exchange model, the message that is sent to the AMQP Exchange will be routed based on the 'Routing Key' "
+    + "to its final destination in the queue (the binding). If due to some misconfiguration the binding between the Exchange, Routing Key "
+    + "and Queue is not set up, the message will have no final destination and will return (i.e., the data will not make it to the queue). If "
+    + "that happens you will see a log in both app-log and bulletin stating to that effect, and the FlowFile will be routed to the 'failure' relationship.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
+@ReadsAttributes({
+    @ReadsAttribute(attribute = "amqp$appId", description = "The App ID field to set on the AMQP Message"),
+    @ReadsAttribute(attribute = "amqp$contentEncoding", description = "The Content Encoding to set on the AMQP Message"),
+    @ReadsAttribute(attribute = "amqp$contentType", description = "The Content Type to set on the AMQP Message"),
+    @ReadsAttribute(attribute = "amqp$headers", description = "The headers to set on the AMQP Message"),
+    @ReadsAttribute(attribute = "amqp$deliveryMode", description = "The numeric indicator for the Message's Delivery Mode"),
+    @ReadsAttribute(attribute = "amqp$priority", description = "The Message priority"),
+    @ReadsAttribute(attribute = "amqp$correlationId", description = "The Message's Correlation ID"),
+    @ReadsAttribute(attribute = "amqp$replyTo", description = "The value of the Message's Reply-To field"),
+    @ReadsAttribute(attribute = "amqp$expiration", description = "The Message Expiration"),
+    @ReadsAttribute(attribute = "amqp$messageId", description = "The unique ID of the Message"),
+    @ReadsAttribute(attribute = "amqp$timestamp", description = "The timestamp of the Message, as the number of milliseconds since epoch"),
+    @ReadsAttribute(attribute = "amqp$type", description = "The type of message"),
+    @ReadsAttribute(attribute = "amqp$userId", description = "The ID of the user"),
+    @ReadsAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
+})
 public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
+    private static final String ATTRIBUTES_PREFIX = "amqp$";
 
     public static final PropertyDescriptor EXCHANGE = new PropertyDescriptor.Builder()
             .name("Exchange Name")
@@ -70,7 +85,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     + "It is an optional property. If kept empty the messages will be sent to a default AMQP exchange.")
             .required(true)
             .defaultValue("")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(Validator.VALID)
             .build();
     public static final PropertyDescriptor ROUTING_KEY = new PropertyDescriptor.Builder()
@@ -80,7 +95,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     + "corresponds to a destination queue name, otherwise a binding from the Exchange to a Queue via Routing Key must be set "
                     + "(usually by the AMQP administrator)")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -97,84 +112,71 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
     private final static Set<Relationship> relationships;
 
-    /*
-     * Will ensure that the list of property descriptors is build only once.
-     * Will also create a Set of relationships
-     */
     static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.add(EXCHANGE);
-        _propertyDescriptors.add(ROUTING_KEY);
-        _propertyDescriptors.addAll(descriptors);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+        List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(EXCHANGE);
+        properties.add(ROUTING_KEY);
+        properties.addAll(getCommonPropertyDescriptors());
+        propertyDescriptors = Collections.unmodifiableList(properties);
 
-        Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
+        Set<Relationship> rels = new HashSet<>();
+        rels.add(REL_SUCCESS);
+        rels.add(REL_FAILURE);
+        relationships = Collections.unmodifiableSet(rels);
     }
 
+
     /**
-     * Will construct AMQP message by extracting its body from the incoming
-     * {@link FlowFile}. AMQP Properties will be extracted from the
-     * {@link FlowFile} and converted to {@link BasicProperties} to be sent
-     * along with the message. Upon success the incoming {@link FlowFile} is
-     * transferred to 'success' {@link Relationship} and upon failure FlowFile is
-     * penalized and transferred to the 'failure' {@link Relationship}
+     * Will construct AMQP message by extracting its body from the incoming {@link FlowFile}. AMQP Properties will be extracted from the
+     * {@link FlowFile} and converted to {@link BasicProperties} to be sent along with the message. Upon success the incoming {@link FlowFile} is
+     * transferred to 'success' {@link Relationship} and upon failure FlowFile is penalized and transferred to the 'failure' {@link Relationship}
      * <br>
+     *
      * NOTE: Attributes extracted from {@link FlowFile} are considered
      * candidates for AMQP properties if their names are prefixed with
      * {@link AMQPUtils#AMQP_PROP_PREFIX} (e.g., amqp$contentType=text/xml)
-     *
      */
     @Override
-    protected void rendezvousWithAmqp(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        FlowFile flowFile = processSession.get();
-        if (flowFile != null) {
-            BasicProperties amqpProperties = this.extractAmqpPropertiesFromFlowFile(flowFile);
-            String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
-            if (routingKey == null){
-                throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
-                        + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
-            }
-            String exchange = context.getProperty(EXCHANGE).evaluateAttributeExpressions(flowFile).getValue();
+    protected void processResource(final Connection connection, final AMQPPublisher publisher, ProcessContext context, ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-            byte[] messageContent = this.extractMessage(flowFile, processSession);
+        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile);
+        final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
+        if (routingKey == null) {
+            throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
+                + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
+        }
 
-            try {
-                this.targetResource.publish(messageContent, amqpProperties, routingKey, exchange);
-                processSession.transfer(flowFile, REL_SUCCESS);
-                processSession.getProvenanceReporter().send(flowFile, this.amqpConnection.toString() + "/E:" + exchange + "/RK:" + routingKey);
-            } catch (Exception e) {
-                processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
-                this.getLogger().error("Failed while sending message to AMQP via " + this.targetResource, e);
-                context.yield();
-            }
+        final String exchange = context.getProperty(EXCHANGE).evaluateAttributeExpressions(flowFile).getValue();
+        final byte[] messageContent = extractMessage(flowFile, session);
+
+        try {
+            publisher.publish(messageContent, amqpProperties, routingKey, exchange);
+            session.transfer(flowFile, REL_SUCCESS);
+            session.getProvenanceReporter().send(flowFile, connection.toString() + "/E:" + exchange + "/RK:" + routingKey);
+        } catch (Exception e) {
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            getLogger().error("Failed while sending message to AMQP via " + publisher, e);
         }
     }
 
-    /**
-     *
-     */
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propertyDescriptors;
     }
 
-    /**
-     *
-     */
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
 
-    /**
-     * Will create an instance of {@link AMQPPublisher}
-     */
     @Override
-    protected AMQPPublisher finishBuildingTargetResource(ProcessContext context) {
-        return new AMQPPublisher(this.amqpConnection, this.getLogger());
+    protected AMQPPublisher createAMQPWorker(final ProcessContext context, final Connection connection) {
+        return new AMQPPublisher(connection, getLogger());
     }
 
     /**
@@ -191,6 +193,20 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         return messageContent;
     }
 
+
+    private void updateBuilderFromAttribute(final FlowFile flowFile, final String attribute, final Consumer<String> updater) {
+        final String attributeValue = flowFile.getAttribute(ATTRIBUTES_PREFIX + attribute);
+        if (attributeValue == null) {
+            return;
+        }
+
+        try {
+            updater.accept(attributeValue);
+        } catch (final Exception e) {
+            getLogger().warn("Failed to update AMQP Message Property " + attribute, e);
+        }
+    }
+
     /**
      * Extracts AMQP properties from the {@link FlowFile} attributes. Attributes
      * extracted from {@link FlowFile} are considered candidates for AMQP
@@ -205,66 +221,45 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * {@link AMQPUtils#validateAMQPTimestampProperty}
      */
     private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile) {
-        Map<String, String> attributes = flowFile.getAttributes();
-        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
-        for (Entry<String, String> attributeEntry : attributes.entrySet()) {
-            if (attributeEntry.getKey().startsWith(AMQPUtils.AMQP_PROP_PREFIX)) {
-                String amqpPropName = attributeEntry.getKey();
-                String amqpPropValue = attributeEntry.getValue();
+        final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
-                AMQPUtils.PropertyNames propertyNames = AMQPUtils.PropertyNames.fromValue(amqpPropName);
+        updateBuilderFromAttribute(flowFile, "contentType", builder::contentType);
+        updateBuilderFromAttribute(flowFile, "contentEncoding", builder::contentEncoding);
+        updateBuilderFromAttribute(flowFile, "deliveryMode", mode -> builder.deliveryMode(Integer.parseInt(mode)));
+        updateBuilderFromAttribute(flowFile, "priority", pri -> builder.priority(Integer.parseInt(pri)));
+        updateBuilderFromAttribute(flowFile, "correlationId", builder::correlationId);
+        updateBuilderFromAttribute(flowFile, "replyTo", builder::replyTo);
+        updateBuilderFromAttribute(flowFile, "expiration", builder::expiration);
+        updateBuilderFromAttribute(flowFile, "messageId", builder::messageId);
+        updateBuilderFromAttribute(flowFile, "timestamp", ts -> builder.timestamp(new Date(Long.parseLong(ts))));
+        updateBuilderFromAttribute(flowFile, "type", builder::type);
+        updateBuilderFromAttribute(flowFile, "userId", builder::userId);
+        updateBuilderFromAttribute(flowFile, "appId", builder::appId);
+        updateBuilderFromAttribute(flowFile, "clusterId", builder::clusterId);
+        updateBuilderFromAttribute(flowFile, "headers", headers -> builder.headers(validateAMQPHeaderProperty(headers)));
 
-                if (propertyNames != null) {
-                    switch (propertyNames){
-                        case CONTENT_TYPE:
-                            builder.contentType(amqpPropValue);
-                            break;
-                        case CONTENT_ENCODING:
-                            builder.contentEncoding(amqpPropValue);
-                            break;
-                        case HEADERS:
-                            builder.headers(AMQPUtils.validateAMQPHeaderProperty(amqpPropValue));
-                            break;
-                        case DELIVERY_MODE:
-                            builder.deliveryMode(AMQPUtils.validateAMQPDeliveryModeProperty(amqpPropValue));
-                            break;
-                        case PRIORITY:
-                            builder.priority(AMQPUtils.validateAMQPPriorityProperty(amqpPropValue));
-                            break;
-                        case CORRELATION_ID:
-                            builder.correlationId(amqpPropValue);
-                            break;
-                        case REPLY_TO:
-                            builder.replyTo(amqpPropValue);
-                            break;
-                        case EXPIRATION:
-                            builder.expiration(amqpPropValue);
-                            break;
-                        case MESSAGE_ID:
-                            builder.messageId(amqpPropValue);
-                            break;
-                        case TIMESTAMP:
-                            builder.timestamp(AMQPUtils.validateAMQPTimestampProperty(amqpPropValue));
-                            break;
-                        case TYPE:
-                            builder.type(amqpPropValue);
-                            break;
-                        case USER_ID:
-                            builder.userId(amqpPropValue);
-                            break;
-                        case APP_ID:
-                            builder.appId(amqpPropValue);
-                            break;
-                        case CLUSTER_ID:
-                            builder.clusterId(amqpPropValue);
-                            break;
-                    }
+        return builder.build();
+    }
 
-                } else {
-                    getLogger().warn("Unrecognised AMQP property '" + amqpPropName + "', will ignore.");
-                }
+    /**
+     * Will validate if provided amqpPropValue can be converted to a {@link Map}.
+     * Should be passed in the format: amqp$headers=key=value,key=value etc.
+     *
+     * @param amqpPropValue the value of the property
+     * @return {@link Map} if valid otherwise null
+     */
+    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue) {
+        String[] strEntries = amqpPropValue.split(",");
+        Map<String, Object> headers = new HashMap<>();
+        for (String strEntry : strEntries) {
+            String[] kv = strEntry.split("=");
+            if (kv.length == 2) {
+                headers.put(kv[0].trim(), kv[1].trim());
+            } else {
+                getLogger().warn("Malformed key value pair for AMQP header property: " + amqpPropValue);
             }
         }
-        return builder.build();
+
+        return headers;
     }
 }

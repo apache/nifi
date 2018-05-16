@@ -17,8 +17,8 @@
 package org.apache.nifi.reporting;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 import java.util.Map;
@@ -29,7 +29,7 @@ import java.util.Map;
  * statistics, metrics, and monitoring information, as well as configuration
  * supplied by the user.
  */
-public interface ReportingContext {
+public interface ReportingContext extends PropertyContext {
 
     /**
      * @return a Map of all known {@link PropertyDescriptor}s to their
@@ -38,13 +38,6 @@ public interface ReportingContext {
      * PropertyDescriptor has a default value
      */
     Map<PropertyDescriptor, String> getProperties();
-
-    /**
-     * @param propertyName descriptor of property to lookup the value of
-     * @return PropertyValue that represents the user-configured value for the given
-     * {@link PropertyDescriptor}
-     */
-    PropertyValue getProperty(PropertyDescriptor propertyName);
 
     /**
      * @return the {@link EventAccess} object that can be used to obtain

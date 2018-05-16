@@ -26,8 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Unmarshaller;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -38,10 +36,10 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.ProtocolListener;
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.util.NiFiProperties;
@@ -60,16 +58,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     private final String heartbeatAddress;
     private final ConcurrentMap<NodeIdentifier, NodeHeartbeat> heartbeatMessages = new ConcurrentHashMap<>();
 
-    protected static final Unmarshaller nodeIdentifierUnmarshaller;
-
-    static {
-        try {
-            final JAXBContext jaxbContext = JAXBContext.newInstance(NodeIdentifier.class);
-            nodeIdentifierUnmarshaller = jaxbContext.createUnmarshaller();
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to create an Unmarshaller for unmarshalling Node Identifier", e);
-        }
-    }
+    private volatile long purgeTimestamp = System.currentTimeMillis();
 
     public ClusterProtocolHeartbeatMonitor(final ClusterCoordinator clusterCoordinator, final ProtocolListener protocolListener, final NiFiProperties nifiProperties) {
         super(clusterCoordinator, nifiProperties);
@@ -136,6 +125,12 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     public synchronized void purgeHeartbeats() {
         logger.debug("Purging old heartbeats");
         heartbeatMessages.clear();
+        purgeTimestamp = System.currentTimeMillis();
+    }
+
+    @Override
+    public synchronized long getPurgeTimestamp() {
+        return purgeTimestamp;
     }
 
     @Override

@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -57,13 +56,17 @@ import org.apache.nifi.stream.io.StreamUtils;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"logs", "syslog", "attributes", "system", "event", "message"})
-@CapabilityDescription("Parses the contents of a Syslog message and adds attributes to the FlowFile for each of the parts of the Syslog message")
+@CapabilityDescription("Attempts to parses the contents of a Syslog message in accordance to RFC5424 and RFC3164 " +
+        "formats and adds attributes to the FlowFile for each of the parts of the Syslog message." +
+        "Note: Be mindfull that RFC3164 is informational and a wide range of different implementations are present in" +
+        " the wild. If messages fail parsing, considering using RFC5424 or using a generic parsing processors such as " +
+        "ExtractGrok.")
 @WritesAttributes({@WritesAttribute(attribute = "syslog.priority", description = "The priority of the Syslog message."),
     @WritesAttribute(attribute = "syslog.severity", description = "The severity of the Syslog message derived from the priority."),
     @WritesAttribute(attribute = "syslog.facility", description = "The facility of the Syslog message derived from the priority."),
     @WritesAttribute(attribute = "syslog.version", description = "The optional version from the Syslog message."),
     @WritesAttribute(attribute = "syslog.timestamp", description = "The timestamp of the Syslog message."),
-    @WritesAttribute(attribute = "syslog.hostname", description = "The hostname of the Syslog message."),
+    @WritesAttribute(attribute = "syslog.hostname", description = "The hostname or IP address of the Syslog message."),
     @WritesAttribute(attribute = "syslog.sender", description = "The hostname of the Syslog server that sent the message."),
     @WritesAttribute(attribute = "syslog.body", description = "The body of the Syslog message, everything after the hostname.")})
 @SeeAlso({ListenSyslog.class, PutSyslog.class})
@@ -85,6 +88,8 @@ public class ParseSyslog extends AbstractProcessor {
         .name("success")
         .description("Any FlowFile that is successfully parsed as a Syslog message will be to this Relationship.")
         .build();
+
+    private SyslogParser parser;
 
 
     @Override
@@ -110,7 +115,12 @@ public class ParseSyslog extends AbstractProcessor {
         }
 
         final String charsetName = context.getProperty(CHARSET).getValue();
-        final SyslogParser parser = new SyslogParser(Charset.forName(charsetName));
+
+        // If the parser already exists and uses the same charset, it does not need to be re-initialized
+        if (parser == null || !parser.getCharsetName().equals(charsetName)) {
+            parser = new SyslogParser(Charset.forName(charsetName));
+        }
+
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, new InputStreamCallback() {
             @Override
@@ -128,7 +138,7 @@ public class ParseSyslog extends AbstractProcessor {
             return;
         }
 
-        if (!event.isValid()) {
+        if (event == null || !event.isValid()) {
             getLogger().error("Failed to parse {} as a Syslog message: it does not conform to any of the RFC formats supported; routing to failure", new Object[] {flowFile});
             session.transfer(flowFile, REL_FAILURE);
             return;

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,7 +89,7 @@ public class TestNodeClusterCoordinator {
         };
 
         final FlowService flowService = Mockito.mock(FlowService.class);
-        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
+        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50], new HashSet<>());
         Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
     }
@@ -143,7 +144,7 @@ public class TestNodeClusterCoordinator {
         };
 
         final NodeIdentifier requestedNodeId = createNodeId(6);
-        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
+        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
 
@@ -184,8 +185,8 @@ public class TestNodeClusterCoordinator {
         };
 
         final FlowService flowService = Mockito.mock(FlowService.class);
-        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
-        Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
+        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50], new HashSet<>());
+        Mockito.when(flowService.createDataFlowFromController()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
         coordinator.setConnected(true);
 
@@ -408,7 +409,7 @@ public class TestNodeClusterCoordinator {
         final NodeIdentifier id1 = new NodeIdentifier("1234", "localhost", 8000, "localhost", 9000, "localhost", 10000, 11000, false);
         final NodeIdentifier conflictingId = new NodeIdentifier("1234", "localhost", 8001, "localhost", 9000, "localhost", 10000, 11000, false);
 
-        final ConnectionRequest connectionRequest = new ConnectionRequest(id1, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
+        final ConnectionRequest connectionRequest = new ConnectionRequest(id1, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
         final ConnectionRequestMessage crm = new ConnectionRequestMessage();
         crm.setConnectionRequest(connectionRequest);
 
@@ -419,7 +420,7 @@ public class TestNodeClusterCoordinator {
         final NodeIdentifier resolvedNodeId = responseMessage.getConnectionResponse().getNodeIdentifier();
         assertEquals(id1, resolvedNodeId);
 
-        final ConnectionRequest conRequest2 = new ConnectionRequest(conflictingId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
+        final ConnectionRequest conRequest2 = new ConnectionRequest(conflictingId, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
         final ConnectionRequestMessage crm2 = new ConnectionRequestMessage();
         crm2.setConnectionRequest(conRequest2);
 
@@ -442,7 +443,7 @@ public class TestNodeClusterCoordinator {
     }
 
     private ProtocolMessage requestConnection(final NodeIdentifier requestedNodeId, final NodeClusterCoordinator coordinator) {
-        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
+        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
         return coordinator.handle(requestMsg);

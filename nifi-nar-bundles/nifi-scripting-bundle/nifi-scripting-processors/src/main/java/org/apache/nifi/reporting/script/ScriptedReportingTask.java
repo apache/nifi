@@ -20,22 +20,23 @@ import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
-import org.apache.nifi.processors.script.ScriptingComponentHelper;
-import org.apache.nifi.processors.script.ScriptingComponentUtils;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.script.ScriptingComponentHelper;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -60,10 +61,16 @@ import java.util.Map;
 @DynamicProperty(
         name = "A script engine property to update",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value")
-@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+        }
+)
 public class ScriptedReportingTask extends AbstractReportingTask {
 
     protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
@@ -101,7 +108,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .dynamic(true)
                 .build();
     }
@@ -119,15 +126,8 @@ public class ScriptedReportingTask extends AbstractReportingTask {
      */
     @OnScheduled
     public void setup(final ConfigurationContext context) {
-        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
-        scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
-        scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).getValue();
-        if (!StringUtils.isEmpty(modulePath)) {
-            scriptingComponentHelper.setModules(modulePath.split(","));
-        } else {
-            scriptingComponentHelper.setModules(new String[0]);
-        }
+        scriptingComponentHelper.setupVariables(context);
+
         // Create a script engine for each possible task
         scriptingComponentHelper.setup(1, getLogger());
         scriptToRun = scriptingComponentHelper.getScriptBody();

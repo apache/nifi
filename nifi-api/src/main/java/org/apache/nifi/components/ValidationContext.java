@@ -18,11 +18,12 @@ package org.apache.nifi.components;
 
 import java.util.Map;
 
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 
-public interface ValidationContext {
+public interface ValidationContext extends PropertyContext {
 
     /**
      * @return the {@link ControllerServiceLookup} which can be used to obtain
@@ -42,13 +43,6 @@ public interface ValidationContext {
      * compile & evaluate Attribute Expressions
      */
     ExpressionLanguageCompiler newExpressionLanguageCompiler();
-
-    /**
-     * @param property being validated
-     * @return a PropertyValue that encapsulates the value configured for the
-     * given PropertyDescriptor
-     */
-    PropertyValue getProperty(PropertyDescriptor property);
 
     /**
      * @param value to make a PropertyValue object for

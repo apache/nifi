@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -37,6 +38,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -53,9 +55,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Caches a release signal identifier in the distributed cache, optionally along with "
         + "the FlowFile's attributes.  Any flow files held at a corresponding Wait processor will be "
         + "released once this signal in the cache is discovered.")
+@WritesAttribute(attribute = "notified", description = "All FlowFiles will have an attribute 'notified'. The value of this " +
+        "attribute is true, is the FlowFile is notified, otherwise false.")
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
         "org.apache.nifi.processors.standard.Wait"})
 public class Notify extends AbstractProcessor {
+
+    public static final String NOTIFIED_ATTRIBUTE_NAME = "notified";
 
     // Identifies the distributed map cache client
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
@@ -74,7 +80,7 @@ public class Notify extends AbstractProcessor {
                 "be evaluated against a FlowFile in order to determine the release signal cache key")
             .required(true)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor SIGNAL_COUNTER_NAME = new PropertyDescriptor.Builder()
@@ -86,7 +92,7 @@ public class Notify extends AbstractProcessor {
                 "of different types of events, such as success or failure, or destination data source names, etc.")
             .required(true)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(WaitNotifyProtocol.DEFAULT_COUNT_NAME)
             .build();
 
@@ -97,10 +103,13 @@ public class Notify extends AbstractProcessor {
                 "be evaluated against a FlowFile in order to determine the signal counter delta. " +
                 "Specify how much the counter should increase. " +
                 "For example, if multiple signal events are processed at upstream flow in batch oriented way, " +
-                "the number of events processed can be notified with this property at once.")
+                "the number of events processed can be notified with this property at once. " +
+                "Zero (0) has a special meaning, it clears target count back to 0, which is especially useful when used with Wait " +
+                Wait.RELEASABLE_FLOWFILE_COUNT.getDisplayName() + " = Zero (0) mode, to provide 'open-close-gate' type of flow control. " +
+                "One (1) can open a corresponding Wait processor, and Zero (0) can negate it as if closing a gate.")
             .required(true)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("1")
             .build();
 
@@ -124,7 +133,7 @@ public class Notify extends AbstractProcessor {
                     + "uuid attribute will not be cached regardless of this value.  If blank, no attributes "
                     + "will be cached.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -171,7 +180,8 @@ public class Notify extends AbstractProcessor {
 
         int incrementDelta(final String counterName, final int delta) {
             int current = deltas.containsKey(counterName) ? deltas.get(counterName) : 0;
-            int updated = current + delta;
+            // Zero (0) clears count.
+            int updated = delta == 0 ? 0 : current + delta;
             deltas.put(counterName, updated);
             return updated;
         }
@@ -206,7 +216,8 @@ public class Notify extends AbstractProcessor {
             // if the computed value is null, or empty, we transfer the flow file to failure relationship
             if (StringUtils.isBlank(signalId)) {
                 logger.error("FlowFile {} has no attribute for given Release Signal Identifier", new Object[] {flowFile});
-                session.transfer(flowFile, REL_FAILURE);
+                // set 'notified' attribute
+                session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(false)), REL_FAILURE);
                 continue;
             }
 
@@ -222,7 +233,7 @@ public class Notify extends AbstractProcessor {
                     delta = Integer.parseInt(deltaStr);
                 } catch (final NumberFormatException e) {
                     logger.error("Failed to calculate delta for FlowFile {} due to {}", new Object[] {flowFile, e}, e);
-                    session.transfer(flowFile, REL_FAILURE);
+                    session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(false)), REL_FAILURE);
                     continue;
                 }
             }
@@ -252,7 +263,8 @@ public class Notify extends AbstractProcessor {
             // retry after yielding for a while.
             try {
                 protocol.notify(signalId, signalBuffer.deltas, signalBuffer.attributesToCache);
-                session.transfer(signalBuffer.flowFiles, REL_SUCCESS);
+                signalBuffer.flowFiles.forEach(flowFile ->
+                        session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(true)), REL_SUCCESS));
             } catch (IOException e) {
                 throw new RuntimeException(String.format("Unable to communicate with cache when processing %s due to %s", signalId, e), e);
             }

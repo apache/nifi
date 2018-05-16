@@ -16,50 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexNotFoundException;
@@ -112,6 +68,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
@@ -122,6 +79,50 @@ import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PersistentProvenanceRepository implements ProvenanceRepository {
 
@@ -135,6 +136,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     public static final int MAX_UNDELETED_QUERY_RESULTS = 10;
     public static final int MAX_INDEXING_FAILURE_COUNT = 5; // how many indexing failures we will tolerate before skipping indexing for a prov file
     public static final int MAX_JOURNAL_ROLLOVER_RETRIES = 5;
+
+    private static final float PURGE_OLD_EVENTS_HIGH_WATER = 0.9f;
+    private static final float PURGE_OLD_EVENTS_LOW_WATER = 0.88f;
+    private static final float ROLLOVER_HIGH_WATER = 0.99f;
 
     private static final Logger logger = LoggerFactory.getLogger(PersistentProvenanceRepository.class);
 
@@ -394,7 +399,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     public void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
@@ -519,6 +524,55 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public RepositoryConfiguration getConfiguration() {
         return configuration;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(configuration.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        Map<String, File> map = configuration.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            long capacity = FileUtils.getContainerCapacity(container.toPath());
+            if(capacity==0) {
+                throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                        + "Nifi can not create a zero sized provenance repository.");
+            }
+            return capacity;
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
+    }
+
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Map<String, File> map = configuration.getStorageDirectories();
+        final File container = map.get(containerName);
+        if (container == null) {
+            return null;
+        }
+
+        try {
+            return Files.getFileStore(container.toPath()).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        Map<String, File> map = configuration.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            return FileUtils.getContainerUsableSpace(container.toPath());
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
     }
 
     private void recover() throws IOException {
@@ -910,13 +964,13 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         };
 
         // If we have too much data (at least 90% of our max capacity), start aging it off
-        if (bytesUsed > configuration.getMaxStorageCapacity() * 0.9) {
+        if (bytesUsed > configuration.getMaxStorageCapacity() * PURGE_OLD_EVENTS_HIGH_WATER) {
             Collections.sort(sortedByBasename, sortByBasenameComparator);
 
             for (final File file : sortedByBasename) {
                 toPurge.add(file);
                 bytesUsed -= file.length();
-                if (bytesUsed < configuration.getMaxStorageCapacity()) {
+                if (bytesUsed < configuration.getMaxStorageCapacity() * PURGE_OLD_EVENTS_LOW_WATER) {
                     // we've shrunk the repo size down enough to stop
                     break;
                 }
@@ -1334,7 +1388,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             int journalFileCount = getJournalCount();
             long repoSize = getSize(getLogFiles(), 0L);
             final int journalCountThreshold = configuration.getJournalCount() * 5;
-            final long sizeThreshold = (long) (configuration.getMaxStorageCapacity() * 1.1D); // do not go over 10% of max capacity
+            final long sizeThreshold = (long) (configuration.getMaxStorageCapacity() * ROLLOVER_HIGH_WATER);
 
             // check if we need to apply backpressure.
             // If we have too many journal files, or if the repo becomes too large, backpressure is necessary. Without it,
@@ -1724,9 +1778,8 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
                         boolean indexEvents = true;
                         while (!recordToReaderMap.isEmpty()) {
-                            final Map.Entry<StandardProvenanceEventRecord, RecordReader> entry = recordToReaderMap.entrySet().iterator().next();
-                            final StandardProvenanceEventRecord record = entry.getKey();
-                            final RecordReader reader = entry.getValue();
+                            final StandardProvenanceEventRecord record = recordToReaderMap.firstKey();
+                            final RecordReader reader = recordToReaderMap.get(record);
 
                             writer.writeRecord(record);
                             final int blockIndex = writer.getTocWriter().getCurrentBlockIndex();
@@ -1923,11 +1976,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public List<SearchableField> getSearchableFields() {
-        final List<SearchableField> searchableFields = new ArrayList<>(configuration.getSearchableFields());
-        // we exclude the Event Time because it is always searchable and is a bit special in its handling
-        // because it dictates in some cases which index files we look at
-        searchableFields.remove(SearchableFields.EventTime);
-        return searchableFields;
+        return new ArrayList<>(configuration.getSearchableFields());
     }
 
     @Override
@@ -1955,7 +2004,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
         final int numQueries = querySubmissionMap.size();
 
         if (numQueries > MAX_UNDELETED_QUERY_RESULTS) {
@@ -2213,13 +2262,15 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             event = getEvent(eventId);
         } catch (final Exception e) {
             logger.error("Failed to retrieve Provenance Event with ID " + eventId + " to calculate data lineage due to: " + e, e);
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String>emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId,
+                Collections.<String> emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Failed to retrieve Provenance Event with ID " + eventId + ". See logs for more information.");
             return result;
         }
 
         if (event == null) {
-            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String>emptySet(), 1, user.getIdentity());
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId,
+                Collections.<String> emptySet(), 1, user == null ? null : user.getIdentity());
             result.getResult().setError("Could not find Provenance Event with ID " + eventId);
             lineageSubmissionMap.put(result.getLineageIdentifier(), result);
             return result;
@@ -2236,7 +2287,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType,
             final Long eventId, final long startTimestamp, final long endTimestamp) {
         final List<File> indexDirs = indexConfig.getIndexDirectories(startTimestamp, endTimestamp);
-        final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user.getIdentity());
+        final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user == null ? null : user.getIdentity());
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
 
         for (final File indexDir : indexDirs) {
@@ -2248,7 +2299,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public AsyncLineageSubmission submitExpandChildren(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
@@ -2287,7 +2338,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public AsyncLineageSubmission submitExpandParents(final long eventId, final NiFiUser user) {
-        final String userId = user.getIdentity();
+        final String userId = user == null ? null : user.getIdentity();
 
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
@@ -2444,7 +2495,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public Collection<Path> getAllLogFiles() {
         final SortedMap<Long, Path> map = idToPathMap.get();
-        return map == null ? new ArrayList<Path>() : map.values();
+        return map == null ? new ArrayList<>() : map.values();
     }
 
     private static class PathMapComparator implements Comparator<Long> {

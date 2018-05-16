@@ -1,29 +1,52 @@
 Apache NiFi
-Copyright 2014-2017 The Apache Software Foundation
+Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
-This product includes the following work from the Apache Hadoop project:
+This product includes the following work from the Apache Hadoop project under Apache Software License V2:
+  BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
 
-BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
-
-This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
-Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
-while at Mandiant http://www.mandiant.com
-The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
-
-
+This product includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
+  Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
+  while at Mandiant http://www.mandiant.com
+  The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py
+  and can be found in the org.apache.nifi.processors.evtx.parser package.
 
 This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
-Copyright 2015 The Apache Software Foundation
-The derived work is adapted from
-  org/apache/storm/hive/common/HiveWriter.java
-  org/apache/storm/hive/common/HiveOptions.java
-and can be found in the org.apache.nifi.util.hive package
+  Copyright 2015 The Apache Software Foundation
+  The derived work is adapted from
+    org/apache/storm/hive/common/HiveWriter.java
+    org/apache/storm/hive/common/HiveOptions.java
+  and can be found in the org.apache.nifi.util.hive package
 
 This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
-Copyright 2008-2016 The Apache Software Foundation
-The derived work is adapted from
-  release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
-and can be found in the org.apache.hadoop.hive.ql.io.orc package
+  Copyright 2008-2016 The Apache Software Foundation
+  The derived work is adapted from
+    release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+  and can be found in the org.apache.hadoop.hive.ql.io.orc package
+
+This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
+  Copyright 2013-2014 Bazaarvoice, Inc
+  The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java,
+  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
+
+This includes derived works from Elastic Logstash (https://github.com/elastic/logstash/tree/v1.4.0/) and modified by Anthony Corbacho, and contributors
+  available under an Apache Software License V2.
+  Copyright 2009-2013 Jordan Sissel, Pete Fritchman, and contributors.
+  Copyright 2014 Anthony Corbacho, and contributors.
+  The derived work consists in modifications from patterns/grok-patterns
+  and can be found in the file nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestExtractGrok/patterns
+
+This includes derived works from Maxmind GeoIP2 Java available under Apache Software License V2.  Portions of test code found in
+  https://github.com/maxmind/GeoIP2-java/blob/v2.2.0/src/test/java/com/maxmind/geoip2/TestTransport.java
+  Copyright (c) 2013 by MaxMind, Inc.
+  Are used in unit tests found in nifi/nifi-nar-bundles/nifi-enrich-bundle/nifi-enrich-processors/src/test/java/org/apache/nifi/processors/TestGeoEnrichIP.java
+
+This includes derived works from Apache Calcite available under Apache Software License V2.  Portions of code found in 
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvProjectTableScanRule.java
+  and 
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java
+  Copyright 2012-2017 The Apache Software Foundation
+  The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
+  and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan

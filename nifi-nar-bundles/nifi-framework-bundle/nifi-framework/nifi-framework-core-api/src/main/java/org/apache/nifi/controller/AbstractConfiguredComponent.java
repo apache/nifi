@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.nar.InstanceClassLoader;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -43,45 +29,78 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractConfiguredComponent implements ConfigurableComponent, ConfiguredComponent {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractConfiguredComponent.class);
 
     private final String id;
-    private final ConfigurableComponent component;
     private final ValidationContextFactory validationContextFactory;
     private final ControllerServiceProvider serviceProvider;
     private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
+    private final AtomicReference<ValidationContext> validationContext = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
-    private final VariableRegistry variableRegistry;
-    private final ComponentLog logger;
+    private final ComponentVariableRegistry variableRegistry;
+    private final ReloadComponent reloadComponent;
 
+    private final AtomicBoolean isExtensionMissing;
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
+    private volatile String additionalResourcesFingerprint;
 
-    public AbstractConfiguredComponent(final ConfigurableComponent component, final String id,
+    public AbstractConfiguredComponent(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-                                       final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
-                                       final ComponentLog logger) {
+                                       final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
+                                       final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
         this.id = id;
-        this.component = component;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
-        this.name = new AtomicReference<>(component.getClass().getSimpleName());
+        this.name = new AtomicReference<>(componentType);
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
         this.variableRegistry = variableRegistry;
-        this.logger = logger;
+        this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
+        this.reloadComponent = reloadComponent;
     }
 
     @Override
     public String getIdentifier() {
         return id;
+    }
+
+    @Override
+    public void setExtensionMissing(boolean extensionMissing) {
+        this.isExtensionMissing.set(extensionMissing);
+    }
+
+    @Override
+    public boolean isExtensionMissing() {
+        return isExtensionMissing.get();
     }
 
     @Override
@@ -91,7 +110,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void setName(final String name) {
-        this.name.set(Objects.requireNonNull(name).intern());
+        this.name.set(CharacterFilterUtils.filterInvalidXmlCharacters(Objects.requireNonNull(name).intern()));
     }
 
     @Override
@@ -101,11 +120,39 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void setAnnotationData(final String data) {
-        annotationData.set(data);
+        invalidateValidationContext();
+        annotationData.set(CharacterFilterUtils.filterInvalidXmlCharacters(data));
     }
 
     @Override
-    public void setProperties(Map<String, String> properties) {
+    public Set<URL> getAdditionalClasspathResources(final List<PropertyDescriptor> propertyDescriptors) {
+        final Set<String> modulePaths = new LinkedHashSet<>();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            if (descriptor.isDynamicClasspathModifier()) {
+                final String value = getProperty(descriptor);
+                if (!StringUtils.isEmpty(value)) {
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(value, null, variableRegistry);
+                    modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
+                }
+            }
+        }
+
+        final Set<URL> additionalUrls = new LinkedHashSet<>();
+        try {
+            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
+            if (urls != null) {
+                for (final URL url : urls) {
+                    additionalUrls.add(url);
+                }
+            }
+        } catch (MalformedURLException mfe) {
+            getLogger().error("Error processing classpath resources for " + id + ": " + mfe.getMessage(), mfe);
+        }
+        return additionalUrls;
+    }
+
+    @Override
+    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties) {
         if (properties == null) {
             return;
         }
@@ -114,34 +161,32 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         try {
             verifyModifiable();
 
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), id)) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
                 for (final Map.Entry<String, String> entry : properties.entrySet()) {
                     // determine if any of the property changes require resetting the InstanceClassLoader
-                    final PropertyDescriptor descriptor = component.getPropertyDescriptor(entry.getKey());
+                    final PropertyDescriptor descriptor = getComponent().getPropertyDescriptor(entry.getKey());
                     if (descriptor.isDynamicClasspathModifier()) {
                         classpathChanged = true;
                     }
 
                     if (entry.getKey() != null && entry.getValue() == null) {
-                        removeProperty(entry.getKey());
+                        removeProperty(entry.getKey(), allowRemovalOfRequiredProperties);
                     } else if (entry.getKey() != null) {
-                        setProperty(entry.getKey(), entry.getValue());
+                        setProperty(entry.getKey(), CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue()));
                     }
                 }
 
-                // if at least one property with dynamicallyModifiesClasspath(true) was set, then re-calculate the module paths
-                // and reset the InstanceClassLoader to the new module paths
+                // if at least one property with dynamicallyModifiesClasspath(true) was set, then reload the component with the new urls
                 if (classpathChanged) {
-                    final Set<String> modulePaths = new LinkedHashSet<>();
-                    for (final Map.Entry<PropertyDescriptor, String> entry : this.properties.entrySet()) {
-                        final PropertyDescriptor descriptor = entry.getKey();
-                        if (descriptor.isDynamicClasspathModifier() && !StringUtils.isEmpty(entry.getValue())) {
-                            final StandardPropertyValue propertyValue = new StandardPropertyValue(entry.getValue(), null, variableRegistry);
-                            modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
-                        }
+                    logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
+
+                    final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
+                    try {
+                        reload(additionalUrls);
+                    } catch (Exception e) {
+                        getLogger().error("Error reloading component with id " + id + ": " + e.getMessage(), e);
                     }
-                    processClasspathModifiers(modulePaths);
                 }
             }
         } finally {
@@ -155,7 +200,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             throw new IllegalArgumentException("Name or Value can not be null");
         }
 
-        final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
+        final PropertyDescriptor descriptor = getComponent().getPropertyDescriptor(name);
 
         final String oldValue = properties.put(descriptor, value);
         if (!value.equals(oldValue)) {
@@ -175,7 +220,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
 
             try {
-                component.onPropertyModified(descriptor, oldValue, value);
+                onPropertyModified(descriptor, oldValue, value);
             } catch (final Exception e) {
                 // nothing really to do here...
             }
@@ -189,17 +234,20 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      * if was a dynamic property.
      *
      * @param name the property to remove
+     * @param allowRemovalOfRequiredProperties whether or not the property should be removed if it's required
      * @return true if removed; false otherwise
      * @throws java.lang.IllegalArgumentException if the name is null
      */
-    private boolean removeProperty(final String name) {
+    private boolean removeProperty(final String name, final boolean allowRemovalOfRequiredProperties) {
         if (null == name) {
             throw new IllegalArgumentException("Name can not be null");
         }
 
-        final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
+        final PropertyDescriptor descriptor = getComponent().getPropertyDescriptor(name);
         String value = null;
-        if (!descriptor.isRequired() && (value = properties.remove(descriptor)) != null) {
+
+        final boolean allowRemoval = allowRemovalOfRequiredProperties || !descriptor.isRequired();
+        if (allowRemoval && (value = properties.remove(descriptor)) != null) {
 
             if (descriptor.getControllerServiceDefinition() != null) {
                 if (value != null) {
@@ -211,9 +259,9 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             }
 
             try {
-                component.onPropertyModified(descriptor, value, null);
+                onPropertyModified(descriptor, value, null);
             } catch (final Exception e) {
-                logger.error(e.getMessage(), e);
+                getLogger().error(e.getMessage(), e);
             }
 
             return true;
@@ -222,45 +270,10 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         return false;
     }
 
-    /**
-     * Adds all of the modules identified by the given module paths to the InstanceClassLoader for this component.
-     *
-     * @param modulePaths a list of module paths where each entry can be a comma-separated list of multiple module paths
-     */
-    private void processClasspathModifiers(final Set<String> modulePaths) {
-        try {
-            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("Adding {} resources to the classpath for {}", new Object[] {urls.length, name});
-                for (URL url : urls) {
-                    logger.debug(url.getFile());
-                }
-            }
-
-            final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-
-            if (!(classLoader instanceof InstanceClassLoader)) {
-                // Really shouldn't happen, but if we somehow got here and don't have an InstanceClassLoader then log a warning and move on
-                final String classLoaderName = classLoader == null ? "null" : classLoader.getClass().getName();
-                if (logger.isWarnEnabled()) {
-                    logger.warn(String.format("Unable to modify the classpath for %s, expected InstanceClassLoader, but found %s", name, classLoaderName));
-                }
-                return;
-            }
-
-            final InstanceClassLoader instanceClassLoader = (InstanceClassLoader) classLoader;
-            instanceClassLoader.setInstanceResources(urls);
-        } catch (MalformedURLException e) {
-            // Shouldn't get here since we are suppressing errors
-            logger.warn("Error processing classpath resources", e);
-        }
-    }
-
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
-            final List<PropertyDescriptor> supported = component.getPropertyDescriptors();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
             if (supported == null || supported.isEmpty()) {
                 return Collections.unmodifiableMap(properties);
             } else {
@@ -277,6 +290,42 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     @Override
     public String getProperty(final PropertyDescriptor property) {
         return properties.get(property);
+    }
+
+    @Override
+    public void refreshProperties() {
+        // use setProperty instead of setProperties so we can bypass the class loading logic
+        getProperties().entrySet().stream()
+                .filter(e -> e.getKey() != null && e.getValue() != null)
+                .forEach(e -> setProperty(e.getKey().getName(), e.getValue()));
+    }
+
+    /**
+     * Generates fingerprint for the additional urls and compares it with the previous
+     * fingerprint value. If the fingerprint values don't match, the function calls the
+     * component's reload() to load the newly found resources.
+     */
+    @Override
+    public synchronized void reloadAdditionalResourcesIfNecessary() {
+        // Components that don't have any PropertyDescriptors marked `dynamicallyModifiesClasspath`
+        // won't have the fingerprint i.e. will be null, in such cases do nothing
+        if (additionalResourcesFingerprint == null) {
+            return;
+        }
+
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(this.getProperties().keySet());
+        final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
+
+        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
+            setAdditionalResourcesFingerprint(newFingerprint);
+            try {
+                logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
+                reload(additionalUrls);
+            } catch (Exception e) {
+                logger.error("Error reloading component with id " + id + ": " + e.getMessage(), e);
+            }
+        }
     }
 
     @Override
@@ -303,43 +352,141 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
-            return component.toString();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            return getComponent().toString();
         }
     }
 
     @Override
     public Collection<ValidationResult> validate(final ValidationContext context) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
-            return component.validate(context);
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            final Collection<ValidationResult> validationResults = getComponent().validate(context);
+
+            // validate selected controller services implement the API required by the processor
+
+            final List<PropertyDescriptor> supportedDescriptors = getComponent().getPropertyDescriptors();
+            if (null != supportedDescriptors) {
+                for (final PropertyDescriptor descriptor : supportedDescriptors) {
+                    if (descriptor.getControllerServiceDefinition() == null) {
+                        // skip properties that aren't for a controller service
+                        continue;
+                    }
+
+                    final String controllerServiceId = context.getProperty(descriptor).getValue();
+                    if (controllerServiceId == null) {
+                        // if the property value is null we should already have a validation error
+                        continue;
+                    }
+
+                    final ControllerServiceNode controllerServiceNode = getControllerServiceProvider().getControllerServiceNode(controllerServiceId);
+                    if (controllerServiceNode == null) {
+                        // if the node was null we should already have a validation error
+                        continue;
+                    }
+
+                    final Class<? extends ControllerService> controllerServiceApiClass = descriptor.getControllerServiceDefinition();
+                    final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
+
+                    final Consumer<String> addValidationError = explanation -> validationResults.add(new ValidationResult.Builder()
+                            .input(controllerServiceId)
+                            .subject(descriptor.getDisplayName())
+                            .valid(false)
+                            .explanation(explanation)
+                            .build());
+
+                    final Bundle controllerServiceApiBundle = ExtensionManager.getBundle(controllerServiceApiClassLoader);
+                    if (controllerServiceApiBundle == null) {
+                        addValidationError.accept(String.format("Unable to find bundle for ControllerService API class %s.", controllerServiceApiClass.getCanonicalName()));
+                        continue;
+                    }
+                    final BundleCoordinate controllerServiceApiCoordinate = controllerServiceApiBundle.getBundleDetails().getCoordinate();
+
+                    final Bundle controllerServiceBundle = ExtensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+                    if (controllerServiceBundle == null) {
+                        addValidationError.accept(String.format("Unable to find bundle for coordinate %s.", controllerServiceNode.getBundleCoordinate()));
+                        continue;
+                    }
+                    final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
+
+                    final boolean matchesApi = matchesApi(controllerServiceBundle, controllerServiceApiCoordinate);
+
+                    if (!matchesApi) {
+                        final String controllerServiceType = controllerServiceNode.getComponentType();
+                        final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
+
+                        final String explanation = new StringBuilder()
+                                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
+                                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
+                                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
+                                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
+                                .toString();
+
+                        addValidationError.accept(explanation);
+                    }
+
+                }
+            }
+
+            return validationResults;
         }
+    }
+
+    /**
+     * Determines if the given controller service node has the required API as an ancestor.
+     *
+     * @param controllerServiceImplBundle the bundle of a controller service being referenced by a processor
+     * @param requiredApiCoordinate the controller service API required by the processor
+     * @return true if the controller service node has the require API as an ancestor, false otherwise
+     */
+    private boolean matchesApi(final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
+        // start with the coordinate of the controller service for cases where the API and service are in the same bundle
+        BundleCoordinate controllerServiceDependencyCoordinate = controllerServiceImplBundle.getBundleDetails().getCoordinate();
+
+        boolean foundApiDependency = false;
+        while (controllerServiceDependencyCoordinate != null) {
+            // determine if the dependency coordinate matches the required API
+            if (requiredApiCoordinate.equals(controllerServiceDependencyCoordinate)) {
+                foundApiDependency = true;
+                break;
+            }
+
+            // move to the next dependency in the chain, or stop if null
+            final Bundle controllerServiceDependencyBundle = ExtensionManager.getBundle(controllerServiceDependencyCoordinate);
+            if (controllerServiceDependencyBundle == null) {
+                controllerServiceDependencyCoordinate = null;
+            } else {
+                controllerServiceDependencyCoordinate = controllerServiceDependencyBundle.getBundleDetails().getDependencyCoordinate();
+            }
+        }
+
+        return foundApiDependency;
     }
 
     @Override
     public PropertyDescriptor getPropertyDescriptor(final String name) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
-            return component.getPropertyDescriptor(name);
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            return getComponent().getPropertyDescriptor(name);
         }
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
-            component.onPropertyModified(descriptor, oldValue, newValue);
+    public final void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        invalidateValidationContext();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
     }
 
     @Override
     public List<PropertyDescriptor> getPropertyDescriptors() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
-            return component.getPropertyDescriptors();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            return getComponent().getPropertyDescriptors();
         }
     }
 
     @Override
     public boolean isValid() {
-        final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(
-            getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier()));
+        final Collection<ValidationResult> validationResults = validate(getValidationContext());
 
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
@@ -359,12 +506,17 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         final List<ValidationResult> results = new ArrayList<>();
         lock.lock();
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(
-                serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            final ValidationContext validationContext;
+            if (serviceIdentifiersNotToValidate == null || serviceIdentifiersNotToValidate.isEmpty()) {
+                validationContext = getValidationContext();
+            } else {
+                validationContext = getValidationContextFactory().newValidationContext(serviceIdentifiersNotToValidate,
+                    getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            }
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
-                validationResults = component.validate(validationContext);
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+                validationResults = getComponent().validate(validationContext);
             }
 
             for (final ValidationResult result : validationResults) {
@@ -373,6 +525,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                 }
             }
         } catch (final Throwable t) {
+            logger.error("Failed to perform validation of " + this, t);
             results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t.toString()).valid(false).build());
         } finally {
             lock.unlock();
@@ -403,8 +556,52 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         return this.validationContextFactory;
     }
 
-    protected VariableRegistry getVariableRegistry() {
+    protected void invalidateValidationContext() {
+        this.validationContext.set(null);
+    }
+
+    protected ValidationContext getValidationContext() {
+        while (true) {
+            ValidationContext context = this.validationContext.get();
+            if (context != null) {
+                return context;
+            }
+
+            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            final boolean updated = validationContext.compareAndSet(null, context);
+            if (updated) {
+                return context;
+            }
+        }
+    }
+
+    @Override
+    public ComponentVariableRegistry getVariableRegistry() {
         return this.variableRegistry;
+    }
+
+    protected ReloadComponent getReloadComponent() {
+        return this.reloadComponent;
+    }
+
+    @Override
+    public void verifyCanUpdateBundle(final BundleCoordinate incomingCoordinate) throws IllegalArgumentException {
+        final BundleCoordinate existingCoordinate = getBundleCoordinate();
+
+        // determine if this update is changing the bundle for the processor
+        if (!existingCoordinate.equals(incomingCoordinate)) {
+            // if it is changing the bundle, only allow it to change to a different version within same group and id
+            if (!existingCoordinate.getGroup().equals(incomingCoordinate.getGroup())
+                    || !existingCoordinate.getId().equals(incomingCoordinate.getId())) {
+                throw new IllegalArgumentException(String.format(
+                        "Unable to update component %s from %s to %s because bundle group and id must be the same.",
+                        getIdentifier(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
+            }
+        }
+    }
+
+    protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
+        this.additionalResourcesFingerprint = additionalResourcesFingerprint;
     }
 
 }

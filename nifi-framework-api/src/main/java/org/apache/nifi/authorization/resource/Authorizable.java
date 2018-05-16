@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization.resource;
 
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationAuditor;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -44,6 +45,17 @@ public interface Authorizable {
      * @return the resource
      */
     Resource getResource();
+
+    /**
+     * The originally requested resource for this Authorizable. Because policies are inherited, if a resource
+     * does not have a policy, this Authorizable may represent a parent resource and this method will return
+     * the originally requested resource.
+     *
+     * @return the originally requested resource
+     */
+    default Resource getRequestedResource() {
+        return getResource();
+    }
 
     /**
      * Returns whether the current user is authorized for the specified action on the specified resource. This
@@ -82,12 +94,15 @@ public interface Authorizable {
         }
 
         final Resource resource = getResource();
+        final Resource requestedResource = getRequestedResource();
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(false)
                 .action(action)
                 .resource(resource)
+                .requestedResource(requestedResource)
                 .resourceContext(resourceContext)
                 .userContext(userContext)
                 .explanationSupplier(() -> {
@@ -119,6 +134,11 @@ public interface Authorizable {
                     @Override
                     public Authorizable getParentAuthorizable() {
                         return parent.getParentAuthorizable();
+                    }
+
+                    @Override
+                    public Resource getRequestedResource() {
+                        return requestedResource;
                     }
 
                     @Override
@@ -186,12 +206,15 @@ public interface Authorizable {
         }
 
         final Resource resource = getResource();
+        final Resource requestedResource = getRequestedResource();
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(user.getIdentity())
+                .groups(user.getGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(action)
                 .resource(resource)
+                .requestedResource(requestedResource)
                 .resourceContext(resourceContext)
                 .userContext(userContext)
                 .explanationSupplier(() -> {
@@ -213,13 +236,26 @@ public interface Authorizable {
         if (Result.ResourceNotFound.equals(result.getResult())) {
             final Authorizable parent = getParentAuthorizable();
             if (parent == null) {
-                throw new AccessDeniedException("No applicable policies could be found.");
+                final AuthorizationResult failure = AuthorizationResult.denied("No applicable policies could be found.");
+
+                // audit authorization request
+                if (authorizer instanceof AuthorizationAuditor) {
+                    ((AuthorizationAuditor) authorizer).auditAccessAttempt(request, failure);
+                }
+
+                // denied
+                throw new AccessDeniedException(failure.getExplanation());
             } else {
                 // create a custom authorizable to override the safe description but still defer to the parent authorizable
                 final Authorizable parentProxy = new Authorizable() {
                     @Override
                     public Authorizable getParentAuthorizable() {
                         return parent.getParentAuthorizable();
+                    }
+
+                    @Override
+                    public Resource getRequestedResource() {
+                        return requestedResource;
                     }
 
                     @Override

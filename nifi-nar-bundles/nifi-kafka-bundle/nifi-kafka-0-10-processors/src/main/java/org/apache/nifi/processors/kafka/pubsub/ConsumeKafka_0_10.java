@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.KafkaException;
@@ -42,6 +43,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -53,9 +55,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_EN
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
 
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 0.10.x Consumer API. "
-        + " Please note there are cases where the publisher can get into an indefinite stuck state.  We are closely monitoring"
-        + " how this evolves in the Kafka community and will take advantage of those fixes as soon as we can.  In the meantime"
-        + " it is possible to enter states where the only resolution will be to restart the JVM NiFi runs on. The complementary NiFi processor for sending messages is PublishKafka_0_10.")
+        + "The complementary NiFi processor for sending messages is PublishKafka_0_10.")
 @Tags({"Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "0.10.x"})
 @WritesAttributes({
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_COUNT, description = "The number of messages written if more than one"),
@@ -78,13 +78,26 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
 
     static final AllowableValue OFFSET_NONE = new AllowableValue("none", "none", "Throw exception to the consumer if no previous offset is found for the consumer's group");
 
+    static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
+
+    static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
+
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topic")
             .displayName("Topic Name(s)")
             .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
+            .name("topic_type")
+            .displayName("Topic Name Format")
+            .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
+            .required(true)
+            .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
+            .defaultValue(TOPIC_NAME.getValue())
             .build();
 
     static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
@@ -93,7 +106,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
             .description("A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
@@ -120,7 +133,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
             .displayName("Message Demarcator")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .description("Since KafkaConsumer receives messages in batches, you have an option to output FlowFiles which contains "
                     + "all Kafka messages in a single batch for a given topic and partition and this property allows you to provide a string (interpreted as UTF-8) to use "
                     + "for demarcating apart multiple Kafka messages. This is an optional property and if not provided each Kafka message received "
@@ -152,9 +165,9 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
-            .build();
+        .name("success")
+        .description("FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
+        .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS;
     static final Set<Relationship> RELATIONSHIPS;
@@ -166,6 +179,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
         List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
         descriptors.add(TOPICS);
+        descriptors.add(TOPIC_TYPE);
         descriptors.add(GROUP_ID);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
@@ -229,18 +243,26 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         final String topicListing = context.getProperty(ConsumeKafka_0_10.TOPICS).evaluateAttributeExpressions().getValue();
+        final String topicType = context.getProperty(ConsumeKafka_0_10.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
-        for (final String topic : topicListing.split(",", 100)) {
-            final String trimmedName = topic.trim();
-            if (!trimmedName.isEmpty()) {
-                topics.add(trimmedName);
-            }
-        }
         final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
         final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
-        final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).getValue();
-
-        return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime, keyEncoding, securityProtocol, bootstrapServers, log);
+        final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
+        if (topicType.equals(TOPIC_NAME.getValue())) {
+          for (final String topic : topicListing.split(",", 100)) {
+              final String trimmedName = topic.trim();
+              if (!trimmedName.isEmpty()) {
+                  topics.add(trimmedName);
+              }
+          }
+          return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime, keyEncoding, securityProtocol, bootstrapServers, log);
+        } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
+          final Pattern topicPattern = Pattern.compile(topicListing.trim());
+          return new ConsumerPool(maxLeases, demarcator, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol, bootstrapServers, log);
+        } else {
+          getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
+          return null;
+        }
     }
 
     @OnUnscheduled
@@ -282,7 +304,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
             return;
         }
 
-        try (final ConsumerLease lease = pool.obtainConsumer(session)) {
+        try (final ConsumerLease lease = pool.obtainConsumer(session, context)) {
             if (lease == null) {
                 context.yield();
                 return;

@@ -67,6 +67,7 @@
 #new-user-button {
     float: right;
     padding-left: 5px;
+    display: none;
 }
 
 /* users table */

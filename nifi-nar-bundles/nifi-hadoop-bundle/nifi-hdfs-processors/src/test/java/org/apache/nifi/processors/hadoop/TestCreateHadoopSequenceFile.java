@@ -206,7 +206,7 @@ public class TestCreateHadoopSequenceFile {
     @Test
     public void testSequenceFileBzipCompressionCodec() throws UnsupportedEncodingException, IOException {
 
-        controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, AbstractHadoopProcessor.CompressionType.BZIP.name());
+        controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.BZIP.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
         File inFile = inFiles[0];
@@ -253,7 +253,7 @@ public class TestCreateHadoopSequenceFile {
     @Test
     public void testSequenceFileDefaultCompressionCodec() throws UnsupportedEncodingException, IOException {
 
-        controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, AbstractHadoopProcessor.CompressionType.DEFAULT.name());
+        controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.DEFAULT.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
         File inFile = inFiles[0];
@@ -300,7 +300,7 @@ public class TestCreateHadoopSequenceFile {
     @Test
     public void testSequenceFileNoneCompressionCodec() throws UnsupportedEncodingException, IOException {
 
-        controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, AbstractHadoopProcessor.CompressionType.NONE.name());
+        controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.NONE.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
         File inFile = inFiles[0];

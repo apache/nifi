@@ -33,6 +33,8 @@ import org.junit.Test;
 public class TestEvaluateXPath {
 
     private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
+    private static final Path XML_SNIPPET_EMBEDDED_DOCTYPE = Paths.get("src/test/resources/TestXml/xml-snippet-embedded-doctype.xml");
+    private static final Path XML_SNIPPET_NONEXISTENT_DOCTYPE = Paths.get("src/test/resources/TestXml/xml-snippet-external-doctype.xml");
 
     @Test
     public void testAsAttribute() throws XPathFactoryConfigurationException, IOException {
@@ -155,4 +157,72 @@ public class TestEvaluateXPath {
         assertTrue(outXml.contains("subNode"));
         assertTrue(outXml.contains("Hello"));
     }
+
+    @Test
+    public void testSuccessForEmbeddedDocTypeValidation() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
+        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
+        testRunner.setProperty(EvaluateXPath.VALIDATE_DTD, "true");
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_EMBEDDED_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
+        final byte[] outData = testRunner.getContentAsByteArray(out);
+        final String outXml = new String(outData, "UTF-8");
+        assertTrue(outXml.trim().equals("Hello"));
+    }
+
+    @Test
+    public void testSuccessForEmbeddedDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
+        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
+        testRunner.setProperty(EvaluateXPath.VALIDATE_DTD, "false");
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_EMBEDDED_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
+        final byte[] outData = testRunner.getContentAsByteArray(out);
+        final String outXml = new String(outData, "UTF-8");
+        assertTrue(outXml.trim().equals("Hello"));
+    }
+
+    @Test
+    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
+        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_NONEXISTENT_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testSuccessForExternalDocTypeWithDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
+        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
+        testRunner.setProperty(EvaluateXPath.VALIDATE_DTD, "false");
+        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+
+        testRunner.enqueue(XML_SNIPPET_NONEXISTENT_DOCTYPE);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
+        final byte[] outData = testRunner.getContentAsByteArray(out);
+        final String outXml = new String(outData, "UTF-8");
+        assertTrue(outXml.trim().equals("Hello"));
+    }
+
 }

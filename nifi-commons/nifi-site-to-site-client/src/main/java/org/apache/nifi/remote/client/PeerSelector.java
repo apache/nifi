@@ -22,10 +22,10 @@ import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.util.PeerStatusCache;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -201,6 +202,11 @@ public class PeerSelector {
                 }
             }
         }
+
+        // Shuffle destinations to provide better distribution.
+        // Without this, same host will be used continuously, especially when remote peers have the same number of queued files.
+        // Use Random(0) to provide consistent result for unit testing. Randomness is not important to shuffle destinations.
+        Collections.shuffle(destinations, new Random(0));
 
         final StringBuilder distributionDescription = new StringBuilder();
         distributionDescription.append("New Weighted Distribution of Nodes:");

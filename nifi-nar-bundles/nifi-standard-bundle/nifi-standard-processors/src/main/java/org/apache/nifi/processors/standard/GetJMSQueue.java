@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -35,11 +36,13 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 
+@Deprecated
+@DeprecationNotice(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS"}, reason = "This processor is deprecated and may be removed in future releases. ")
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"jms", "queue", "listen", "get", "pull", "source", "consume", "consumer"})
-@CapabilityDescription("Pulls messages from a JMS Queue, creating a FlowFile for each JMS Message or bundle of messages, as configured")
-@SeeAlso(PutJMS.class)
+@CapabilityDescription("Pulls messages from a ActiveMQ JMS Queue, creating a FlowFile for each JMS Message or bundle of messages, as configured")
+@SeeAlso({PutJMS.class})
 public class GetJMSQueue extends JmsConsumer {
 
     private final Queue<WrappedMessageConsumer> consumerQueue = new LinkedBlockingQueue<>();

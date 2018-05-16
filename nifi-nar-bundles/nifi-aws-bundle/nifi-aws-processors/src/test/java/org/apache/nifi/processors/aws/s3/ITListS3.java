@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.util.MockFlowFile;
@@ -27,8 +26,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link ListS3} and requires additional configuration and resources to work.
@@ -145,25 +142,4 @@ public class ITListS3 extends AbstractS3IT {
         flowFiles.get(0).assertAttributeEquals("filename", "b/c");
     }
 
-    @Test
-    public void testGetPropertyDescriptors() throws Exception {
-        ListS3 processor = new ListS3();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 15, pd.size());
-        assertTrue(pd.contains(ListS3.ACCESS_KEY));
-        assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(ListS3.BUCKET));
-        assertTrue(pd.contains(ListS3.CREDENTIALS_FILE));
-        assertTrue(pd.contains(ListS3.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(ListS3.REGION));
-        assertTrue(pd.contains(ListS3.SECRET_KEY));
-        assertTrue(pd.contains(ListS3.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(ListS3.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(ListS3.TIMEOUT));
-        assertTrue(pd.contains(ListS3.PROXY_HOST));
-        assertTrue(pd.contains(ListS3.PROXY_HOST_PORT));
-        assertTrue(pd.contains(ListS3.DELIMITER));
-        assertTrue(pd.contains(ListS3.PREFIX));
-        assertTrue(pd.contains(ListS3.USE_VERSIONS));
-    }
 }

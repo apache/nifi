@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
 import javax.xml.bind.annotation.XmlAttribute;
@@ -29,7 +29,7 @@ import java.util.Date;
  */
 @XmlRootElement(name = "template")
 public class TemplateDTO {
-    public static final String MAX_ENCODING_VERSION = "1.0";
+    public static final String MAX_ENCODING_VERSION = "1.2";
 
     private String uri;
 

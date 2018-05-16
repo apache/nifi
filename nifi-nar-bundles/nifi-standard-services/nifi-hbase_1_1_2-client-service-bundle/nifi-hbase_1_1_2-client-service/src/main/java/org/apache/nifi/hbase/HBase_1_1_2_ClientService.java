@@ -25,13 +25,17 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.ParseFilter;
+import org.apache.hadoop.hbase.security.visibility.Authorizations;
+import org.apache.hadoop.hbase.security.visibility.CellVisibility;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -47,18 +51,21 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.hadoop.KerberosTicketRenewer;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -79,17 +86,27 @@ import java.util.concurrent.atomic.AtomicReference;
 @DynamicProperty(name="The name of an HBase configuration property.", value="The value of the given HBase configuration property.",
         description="These properties will be set on the HBase configuration after loading any provided configuration files.")
 public class HBase_1_1_2_ClientService extends AbstractControllerService implements HBaseClientService {
+    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
+
+    private static final Logger logger = LoggerFactory.getLogger(HBase_1_1_2_ClientService.class);
+
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
+
 
     static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
     static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";
     static final String HBASE_CONF_ZNODE_PARENT = "zookeeper.znode.parent";
     static final String HBASE_CONF_CLIENT_RETRIES = "hbase.client.retries.number";
 
-    static final long TICKET_RENEWAL_PERIOD = 60000;
-
     private volatile Connection connection;
     private volatile UserGroupInformation ugi;
-    private volatile KerberosTicketRenewer renewer;
+    private volatile String masterAddress;
 
     private List<PropertyDescriptor> properties;
     private KerberosProperties kerberosProperties;
@@ -98,6 +115,14 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
+    protected Connection getConnection() {
+        return connection;
+    }
+
+    protected void setConnection(Connection connection) {
+        this.connection = connection;
+    }
+
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
         kerberosConfigFile = config.getKerberosConfigurationFile();
@@ -105,6 +130,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONF_FILES);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
         props.add(ZOOKEEPER_QUORUM);
@@ -112,7 +138,12 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(ZOOKEEPER_ZNODE_PARENT);
         props.add(HBASE_CLIENT_RETRIES);
         props.add(PHOENIX_CLIENT_JAR_LOCATION);
+        props.addAll(getAdditionalProperties());
         this.properties = Collections.unmodifiableList(props);
+    }
+
+    protected List<PropertyDescriptor> getAdditionalProperties() {
+        return new ArrayList<>();
     }
 
     protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
@@ -142,6 +173,20 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         boolean znodeParentProvided = validationContext.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet();
         boolean retriesProvided = validationContext.getProperty(HBASE_CLIENT_RETRIES).isSet();
 
+        final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+        final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        final String resolvedPrincipal;
+        final String resolvedKeytab;
+        if (credentialsService == null) {
+            resolvedPrincipal = explicitPrincipal;
+            resolvedKeytab = explicitKeytab;
+        } else {
+            resolvedPrincipal = credentialsService.getPrincipal();
+            resolvedKeytab = credentialsService.getKeytab();
+        }
+
         final List<ValidationResult> problems = new ArrayList<>();
 
         if (!confFileProvided && (!zkQuorumProvided || !zkPortProvided || !znodeParentProvided || !retriesProvided)) {
@@ -166,16 +211,48 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             }
 
             final Configuration hbaseConfig = resources.getConfiguration();
-            final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
 
-            problems.addAll(KerberosProperties.validatePrincipalAndKeytab(
-                    this.getClass().getSimpleName(), hbaseConfig, principal, keytab, getLogger()));
+            problems.addAll(KerberosProperties.validatePrincipalAndKeytab(getClass().getSimpleName(), hbaseConfig, resolvedPrincipal, resolvedKeytab, getLogger()));
+        }
+
+        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
+                .build());
+        }
+
+        final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
+        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
+                    + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
+                .build());
         }
 
         return problems;
     }
 
+    /**
+     * As of Apache NiFi 1.5.0, due to changes made to
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this
+     * class to authenticate a principal with Kerberos, HBase controller services no longer
+     * attempt relogins explicitly.  For more information, please read the documentation for
+     * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
+     * <p/>
+     * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started
+     * when the HBase controller service was enabled.  The use of a separate thread to explicitly relogin could cause
+     * race conditions with the implicit relogin attempts made by hadoop/HBase code on a thread that references the same
+     * {@link UserGroupInformation} instance.  One of these threads could leave the
+     * {@link javax.security.auth.Subject} in {@link UserGroupInformation} to be cleared or in an unexpected state
+     * while the other thread is attempting to use the {@link javax.security.auth.Subject}, resulting in failed
+     * authentication attempts that would leave the HBase controller service in an unrecoverable state.
+     *
+     * @see SecurityUtil#loginKerberos(Configuration, String, String)
+     */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
         this.connection = createConnection(context);
@@ -185,12 +262,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final Admin admin = this.connection.getAdmin();
             if (admin != null) {
                 admin.listTableNames();
-            }
-
-            // if we got here then we have a successful connection, so if we have a ugi then start a renewer
-            if (ugi != null) {
-                final String id = getClass().getSimpleName();
-                renewer = SecurityUtil.startTicketRenewalThread(id, ugi, TICKET_RENEWAL_PERIOD, getLogger());
+                masterAddress = admin.getClusterStatus().getMaster().getHostAndPort();
             }
         }
     }
@@ -222,8 +294,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
 
         if (SecurityUtil.isSecurityEnabled(hbaseConfig)) {
-            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+
+            // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
+            // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
+            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+            if (credentialsService != null) {
+                principal = credentialsService.getPrincipal();
+                keyTab = credentialsService.getKeytab();
+            }
 
             getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[] {principal, keyTab});
             ugi = SecurityUtil.loginKerberos(hbaseConfig, principal, keyTab);
@@ -243,6 +323,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     }
 
+    private String principal = null;
+
     protected Configuration getConfigurationFromFiles(final String configFiles) {
         final Configuration hbaseConfig = HBaseConfiguration.create();
         if (StringUtils.isNotBlank(configFiles)) {
@@ -255,10 +337,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @OnDisabled
     public void shutdown() {
-        if (renewer != null) {
-            renewer.stop();
-        }
-
         if (connection != null) {
             try {
                 connection.close();
@@ -268,50 +346,163 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
     }
 
-    @Override
-    public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
-        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            // Create one Put per row....
-            final Map<String, Put> rowPuts = new HashMap<>();
-            for (final PutFlowFile putFlowFile : puts) {
-                //this is used for the map key as a byte[] does not work as a key.
-                final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
-                Put put = rowPuts.get(rowKeyString);
-                if (put == null) {
-                    put = new Put(putFlowFile.getRow());
-                    rowPuts.put(rowKeyString, put);
+    private static final byte[] EMPTY_VIS_STRING;
+
+    static {
+        try {
+            EMPTY_VIS_STRING = "".getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<Put> buildPuts(byte[] rowKey, List<PutColumn> columns) {
+        List<Put> retVal = new ArrayList<>();
+
+        try {
+            Put put = null;
+
+            for (final PutColumn column : columns) {
+                if (put == null || (put.getCellVisibility() == null && column.getVisibility() != null) || ( put.getCellVisibility() != null
+                        && !put.getCellVisibility().getExpression().equals(column.getVisibility())
+                    )) {
+                    put = new Put(rowKey);
+
+                    if (column.getVisibility() != null) {
+                        put.setCellVisibility(new CellVisibility(column.getVisibility()));
+                    }
+                    retVal.add(put);
                 }
 
-                for (final PutColumn column : putFlowFile.getColumns()) {
+                if (column.getTimestamp() != null) {
+                    put.addColumn(
+                            column.getColumnFamily(),
+                            column.getColumnQualifier(),
+                            column.getTimestamp(),
+                            column.getBuffer());
+                } else {
                     put.addColumn(
                             column.getColumnFamily(),
                             column.getColumnQualifier(),
                             column.getBuffer());
                 }
             }
+        } catch (DeserializationException de) {
+            getLogger().error("Error writing cell visibility statement.", de);
+            throw new RuntimeException(de);
+        }
 
-            table.put(new ArrayList<>(rowPuts.values()));
+        return retVal;
+    }
+
+    @Override
+    public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            // Create one Put per row....
+            final Map<String, List<PutColumn>> sorted = new HashMap<>();
+            final List<Put> newPuts = new ArrayList<>();
+
+            for (final PutFlowFile putFlowFile : puts) {
+                final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
+                List<PutColumn> columns = sorted.get(rowKeyString);
+                if (columns == null) {
+                    columns = new ArrayList<>();
+                    sorted.put(rowKeyString, columns);
+                }
+
+                columns.addAll(putFlowFile.getColumns());
+            }
+
+            for (final Map.Entry<String, List<PutColumn>> entry : sorted.entrySet()) {
+                newPuts.addAll(buildPuts(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
+            }
+
+            table.put(newPuts);
         }
     }
 
     @Override
     public void put(final String tableName, final byte[] rowId, final Collection<PutColumn> columns) throws IOException {
         try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            table.put(buildPuts(rowId, new ArrayList(columns)));
+        }
+    }
+
+    @Override
+    public boolean checkAndPut(final String tableName, final byte[] rowId, final byte[] family, final byte[] qualifier, final byte[] value, final PutColumn column) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
             Put put = new Put(rowId);
-            for (final PutColumn column : columns) {
-                put.addColumn(
-                        column.getColumnFamily(),
-                        column.getColumnQualifier(),
-                        column.getBuffer());
+            put.addColumn(
+                column.getColumnFamily(),
+                column.getColumnQualifier(),
+                column.getBuffer());
+            return table.checkAndPut(rowId, family, qualifier, value, put);
+        }
+    }
+
+    @Override
+    public void delete(final String tableName, final byte[] rowId) throws IOException {
+        delete(tableName, rowId, null);
+    }
+
+    @Override
+    public void delete(String tableName, byte[] rowId, String visibilityLabel) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            Delete delete = new Delete(rowId);
+            if (!StringUtils.isEmpty(visibilityLabel)) {
+                delete.setCellVisibility(new CellVisibility(visibilityLabel));
             }
-            table.put(put);
+            table.delete(delete);
+        }
+    }
+
+    @Override
+    public void delete(String tableName, List<byte[]> rowIds) throws IOException {
+        delete(tableName, rowIds);
+    }
+
+    @Override
+    public void deleteCells(String tableName, List<DeleteRequest> deletes) throws IOException {
+        List<Delete> deleteRequests = new ArrayList<>();
+        for (int index = 0; index < deletes.size(); index++) {
+            DeleteRequest req = deletes.get(index);
+            Delete delete = new Delete(req.getRowId())
+                .addColumn(req.getColumnFamily(), req.getColumnQualifier());
+            if (!StringUtils.isEmpty(req.getVisibilityLabel())) {
+                delete.setCellVisibility(new CellVisibility(req.getVisibilityLabel()));
+            }
+            deleteRequests.add(delete);
+        }
+        batchDelete(tableName, deleteRequests);
+    }
+
+    @Override
+    public void delete(String tableName, List<byte[]> rowIds, String visibilityLabel) throws IOException {
+        List<Delete> deletes = new ArrayList<>();
+        for (int index = 0; index < rowIds.size(); index++) {
+            Delete delete = new Delete(rowIds.get(index));
+            if (!StringUtils.isBlank(visibilityLabel)) {
+                delete.setCellVisibility(new CellVisibility(visibilityLabel));
+            }
+            deletes.add(delete);
+        }
+        batchDelete(tableName, deletes);
+    }
+
+    private void batchDelete(String tableName, List<Delete> deletes) throws IOException {
+        try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
+            table.delete(deletes);
         }
     }
 
     @Override
     public void scan(final String tableName, final Collection<Column> columns, final String filterExpression, final long minTime, final ResultHandler handler)
             throws IOException {
+        scan(tableName, columns, filterExpression, minTime, null, handler);
+    }
 
+    @Override
+    public void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, List<String> visibilityLabels, ResultHandler handler) throws IOException {
         Filter filter = null;
         if (!StringUtils.isBlank(filterExpression)) {
             ParseFilter parseFilter = new ParseFilter();
@@ -319,7 +510,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
 
         try (final Table table = connection.getTable(TableName.valueOf(tableName));
-             final ResultScanner scanner = getResults(table, columns, filter, minTime)) {
+             final ResultScanner scanner = getResults(table, columns, filter, minTime, visibilityLabels)) {
 
             for (final Result result : scanner) {
                 final byte[] rowKey = result.getRow();
@@ -344,11 +535,11 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     @Override
-    public void scan(final String tableName, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, final ResultHandler handler)
+    public void scan(final String tableName, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, List<String> authorizations, final ResultHandler handler)
             throws IOException {
 
         try (final Table table = connection.getTable(TableName.valueOf(tableName));
-             final ResultScanner scanner = getResults(table, startRow, endRow, columns)) {
+             final ResultScanner scanner = getResults(table, startRow, endRow, columns, authorizations)) {
 
             for (final Result result : scanner) {
                 final byte[] rowKey = result.getRow();
@@ -372,13 +563,104 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
     }
 
+    @Override
+    public void scan(final String tableName, final String startRow, final String endRow, String filterExpression,
+            final Long timerangeMin, final Long timerangeMax, final Integer limitRows, final Boolean isReversed,
+            final Collection<Column> columns, List<String> visibilityLabels, final ResultHandler handler) throws IOException {
+
+        try (final Table table = connection.getTable(TableName.valueOf(tableName));
+                final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
+                        timerangeMax, limitRows, isReversed, columns, visibilityLabels)) {
+
+            int cnt = 0;
+            final int lim = limitRows != null ? limitRows : 0;
+            for (final Result result : scanner) {
+
+                if (lim > 0 && ++cnt > lim){
+                    break;
+                }
+
+                final byte[] rowKey = result.getRow();
+                final Cell[] cells = result.rawCells();
+
+                if (cells == null) {
+                    continue;
+                }
+
+                // convert HBase cells to NiFi cells
+                final ResultCell[] resultCells = new ResultCell[cells.length];
+                for (int i = 0; i < cells.length; i++) {
+                    final Cell cell = cells[i];
+                    final ResultCell resultCell = getResultCell(cell);
+                    resultCells[i] = resultCell;
+                }
+
+                // delegate to the handler
+                handler.handle(rowKey, resultCells);
+            }
+        }
+    }
+
+    //
+    protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
+            final Integer limitRows, final Boolean isReversed, final Collection<Column> columns, List<String> authorizations)  throws IOException {
+        final Scan scan = new Scan();
+        if (!StringUtils.isBlank(startRow)){
+            scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
+        }
+        if (!StringUtils.isBlank(endRow)){
+            scan.setStopRow(   endRow.getBytes(StandardCharsets.UTF_8));
+        }
+
+        if (authorizations != null && authorizations.size() > 0) {
+            scan.setAuthorizations(new Authorizations(authorizations));
+        }
+
+        Filter filter = null;
+        if (columns != null) {
+            for (Column col : columns) {
+                if (col.getQualifier() == null) {
+                    scan.addFamily(col.getFamily());
+                } else {
+                    scan.addColumn(col.getFamily(), col.getQualifier());
+                }
+            }
+        }
+        if (!StringUtils.isBlank(filterExpression)) {
+            ParseFilter parseFilter = new ParseFilter();
+            filter = parseFilter.parseFilterString(filterExpression);
+        }
+        if (filter != null){
+            scan.setFilter(filter);
+        }
+
+        if (timerangeMin != null && timerangeMax != null){
+            scan.setTimeRange(timerangeMin, timerangeMax);
+        }
+
+        // ->>> reserved for HBase v 2 or later
+        //if (limitRows != null && limitRows > 0){
+        //    scan.setLimit(limitRows)
+        //}
+
+        if (isReversed != null){
+            scan.setReversed(isReversed);
+        }
+
+        return table.getScanner(scan);
+    }
+
     // protected and extracted into separate method for testing
-    protected ResultScanner getResults(final Table table, final byte[] startRow, final byte[] endRow, final Collection<Column> columns) throws IOException {
+    protected ResultScanner getResults(final Table table, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, List<String> authorizations) throws IOException {
         final Scan scan = new Scan();
         scan.setStartRow(startRow);
         scan.setStopRow(endRow);
 
-        if (columns != null) {
+        if (authorizations != null && authorizations.size() > 0) {
+            scan.setAuthorizations(new Authorizations(authorizations));
+        }
+
+        if (columns != null && columns.size() > 0) {
             for (Column col : columns) {
                 if (col.getQualifier() == null) {
                     scan.addFamily(col.getFamily());
@@ -392,13 +674,17 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     // protected and extracted into separate method for testing
-    protected ResultScanner getResults(final Table table, final Collection<Column> columns, final Filter filter, final long minTime) throws IOException {
+    protected ResultScanner getResults(final Table table, final Collection<Column> columns, final Filter filter, final long minTime, List<String> authorizations) throws IOException {
         // Create a new scan. We will set the min timerange as the latest timestamp that
         // we have seen so far. The minimum timestamp is inclusive, so we will get duplicates.
         // We will record any cells that have the latest timestamp, so that when we scan again,
         // we know to throw away those duplicates.
         final Scan scan = new Scan();
         scan.setTimeRange(minTime, Long.MAX_VALUE);
+
+        if (authorizations != null && authorizations.size() > 0) {
+            scan.setAuthorizations(new Authorizations(authorizations));
+        }
 
         if (filter != null) {
             scan.setFilter(filter);
@@ -469,6 +755,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     @Override
+    public byte[] toBytes(float f) {
+        return Bytes.toBytes(f);
+    }
+
+    @Override
+    public byte[] toBytes(int i) {
+        return Bytes.toBytes(i);
+    }
+
+    @Override
     public byte[] toBytes(long l) {
         return Bytes.toBytes(l);
     }
@@ -486,5 +782,15 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     @Override
     public byte[] toBytesBinary(String s) {
         return Bytes.toBytesBinary(s);
+    }
+
+    @Override
+    public String toTransitUri(String tableName, String rowKey) {
+        if (connection == null) {
+            logger.warn("Connection has not been established, could not create a transit URI. Returning null.");
+            return null;
+        }
+        final String transitUriMasterAddress = StringUtils.isEmpty(masterAddress) ? "unknown" : masterAddress;
+        return "hbase://" + transitUriMasterAddress + "/" + tableName + (StringUtils.isEmpty(rowKey) ? "" : "/" + rowKey);
     }
 }

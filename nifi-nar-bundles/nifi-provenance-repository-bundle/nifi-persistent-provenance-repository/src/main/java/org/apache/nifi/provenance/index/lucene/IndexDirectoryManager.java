@@ -75,7 +75,7 @@ public class IndexDirectoryManager {
 
                 final long startTime = DirectoryUtils.getIndexTimestamp(indexDir);
                 final List<IndexLocation> dirsForTimestamp = indexLocationByTimestamp.computeIfAbsent(startTime, t -> new ArrayList<>());
-                final IndexLocation indexLoc = new IndexLocation(indexDir, startTime, partitionName, repoConfig.getDesiredIndexSize());
+                final IndexLocation indexLoc = new IndexLocation(indexDir, startTime, partitionName);
                 dirsForTimestamp.add(indexLoc);
 
                 final Tuple<Long, IndexLocation> tuple = latestIndexByStorageDir.get(storageDir);
@@ -99,8 +99,7 @@ public class IndexDirectoryManager {
             final Map.Entry<Long, List<IndexLocation>> entry = itr.next();
             final List<IndexLocation> locations = entry.getValue();
 
-            final IndexLocation locToRemove = new IndexLocation(directory, DirectoryUtils.getIndexTimestamp(directory),
-                directory.getName(), repoConfig.getDesiredIndexSize());
+            final IndexLocation locToRemove = new IndexLocation(directory, DirectoryUtils.getIndexTimestamp(directory), directory.getName());
             locations.remove(locToRemove);
             if (locations.isEmpty()) {
                 itr.remove();
@@ -126,9 +125,9 @@ public class IndexDirectoryManager {
         // If looking at index N, we can determine the index end time by assuming that it is the same as the
         // start time of index N+1. So we determine the time range of each index and select an index only if
         // its start time is before the given timestamp and its end time is <= the given timestamp.
-        for (final List<IndexLocation> startTimeWithFile : startTimeWithFileByStorageDirectory.values()) {
-            for (int i = 0; i < startTimeWithFile.size(); i++) {
-                final IndexLocation indexLoc = startTimeWithFile.get(i);
+        for (final List<IndexLocation> locationList : startTimeWithFileByStorageDirectory.values()) {
+            for (int i = 0; i < locationList.size(); i++) {
+                final IndexLocation indexLoc = locationList.get(i);
 
                 final String partition = indexLoc.getPartitionName();
                 final IndexLocation activeLocation = activeIndices.get(partition);
@@ -144,16 +143,13 @@ public class IndexDirectoryManager {
                     break;
                 }
 
-                if (i < startTimeWithFile.size() - 1) {
-                    final IndexLocation nextLocation = startTimeWithFile.get(i + 1);
-                    final Long indexEndTime = nextLocation.getIndexStartTimestamp();
-                    if (indexEndTime <= timestamp) {
-                        logger.debug("Considering Index Location {} older than {} ({}) because its events have an EventTime "
-                            + "ranging from {} ({}) to {} ({}) based on the following IndexLocations: {}", nextLocation, timestamp, new Date(timestamp),
-                            indexStartTime, new Date(indexStartTime), indexEndTime, new Date(indexEndTime), startTimeWithFile);
+                final long indexEndTime = indexLoc.getIndexEndTimestamp();
+                if (indexEndTime <= timestamp) {
+                    logger.debug("Considering Index Location {} older than {} ({}) because its events have an EventTime "
+                        + "ranging from {} ({}) to {} ({}) based on the following IndexLocations: {}", indexLoc, timestamp, new Date(timestamp),
+                        indexStartTime, new Date(indexStartTime), indexEndTime, new Date(indexEndTime), locationList);
 
-                        selected.add(nextLocation.getIndexDirectory());
-                    }
+                    selected.add(indexLoc.getIndexDirectory());
                 }
             }
         }
@@ -334,8 +330,8 @@ public class IndexDirectoryManager {
      */
     public synchronized File getWritableIndexingDirectory(final long earliestTimestamp, final String partitionName) {
         IndexLocation indexLoc = activeIndices.get(partitionName);
-        if (indexLoc == null || indexLoc.isIndexFull()) {
-            indexLoc = new IndexLocation(createIndex(earliestTimestamp, partitionName), earliestTimestamp, partitionName, repoConfig.getDesiredIndexSize());
+        if (indexLoc == null) {
+            indexLoc = new IndexLocation(createIndex(earliestTimestamp, partitionName), earliestTimestamp, partitionName);
             logger.debug("Created new Index Directory {}", indexLoc);
 
             indexLocationByTimestamp.computeIfAbsent(earliestTimestamp, t -> new ArrayList<>()).add(indexLoc);

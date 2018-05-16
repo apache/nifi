@@ -18,6 +18,8 @@ package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
+import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
+import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -43,7 +45,7 @@ import java.util.Set;
 /**
  * An Authorizer that provides management of users, groups, and policies.
  */
-public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
+public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer {
 
     static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
@@ -60,32 +62,9 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     static final String RESOURCE_ATTR = "resource";
     static final String ACTIONS_ATTR = "actions";
 
-    public static final String EMPTY_FINGERPRINT = "EMPTY";
-
     @Override
     public final void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         doOnConfigured(configurationContext);
-
-        // ensure that only one policy per resource-action exists
-        for (AccessPolicy accessPolicy : getAccessPolicies()) {
-            if (policyExists(accessPolicy)) {
-                throw new AuthorizerCreationException(String.format("Found multiple policies for '%s' with '%s'.", accessPolicy.getResource(), accessPolicy.getAction()));
-            }
-        }
-
-        // ensure that only one group exists per identity
-        for (User user : getUsers()) {
-            if (tenantExists(user.getIdentifier(), user.getIdentity())) {
-                throw new AuthorizerCreationException(String.format("Found multiple users/user groups with identity '%s'.", user.getIdentity()));
-            }
-        }
-
-        // ensure that only one group exists per identity
-        for (Group group : getGroups()) {
-            if (tenantExists(group.getIdentifier(), group.getName())) {
-                throw new AuthorizerCreationException(String.format("Found multiple users/user groups with name '%s'.", group.getName()));
-            }
-        }
     }
 
     /**
@@ -95,48 +74,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @throws AuthorizerCreationException if an error occurs during onConfigured process
      */
     protected abstract void doOnConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException;
-
-    /**
-     * Checks if another policy exists with the same resource and action as the given policy.
-     *
-     * @param checkAccessPolicy an access policy being checked
-     * @return true if another access policy exists with the same resource and action, false otherwise
-     */
-    private boolean policyExists(final AccessPolicy checkAccessPolicy) {
-        for (AccessPolicy accessPolicy : getAccessPolicies()) {
-            if (!accessPolicy.getIdentifier().equals(checkAccessPolicy.getIdentifier())
-                    && accessPolicy.getResource().equals(checkAccessPolicy.getResource())
-                    && accessPolicy.getAction().equals(checkAccessPolicy.getAction())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Checks if another user exists with the same identity.
-     *
-     * @param identifier identity of the user
-     * @param identity identity of the user
-     * @return true if another user exists with the same identity, false otherwise
-     */
-    private boolean tenantExists(final String identifier, final String identity) {
-        for (User user : getUsers()) {
-            if (!user.getIdentifier().equals(identifier)
-                    && user.getIdentity().equals(identity)) {
-                return true;
-            }
-        }
-
-        for (Group group : getGroups()) {
-            if (!group.getIdentifier().equals(identifier)
-                    && group.getName().equals(identity)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     @Override
     public final AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
@@ -191,9 +128,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @throws IllegalStateException if a group with the same name already exists
      */
     public final synchronized Group addGroup(Group group) throws AuthorizationAccessException {
-        if (tenantExists(group.getIdentifier(), group.getName())) {
-            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
-        }
         return doAddGroup(group);
     }
 
@@ -224,9 +158,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @throws IllegalStateException if there is already a group with the same name
      */
     public final synchronized Group updateGroup(Group group) throws AuthorizationAccessException {
-        if (tenantExists(group.getIdentifier(), group.getName())) {
-            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
-        }
         return doUpdateGroup(group);
     }
 
@@ -266,9 +197,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @throws IllegalStateException if there is already a user with the same identity
      */
     public final synchronized User addUser(User user) throws AuthorizationAccessException {
-        if (tenantExists(user.getIdentifier(), user.getIdentity())) {
-            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
-        }
         return doAddUser(user);
     }
 
@@ -308,9 +236,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @throws IllegalStateException if there is already a user with the same identity
      */
     public final synchronized User updateUser(final User user) throws AuthorizationAccessException {
-        if (tenantExists(user.getIdentifier(), user.getIdentity())) {
-            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
-        }
         return doUpdateUser(user);
     }
 
@@ -348,9 +273,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
     public final synchronized AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-        if (policyExists(accessPolicy)) {
-            throw new IllegalStateException(String.format("Found multiple policies for '%s' with '%s'.", accessPolicy.getResource(), accessPolicy.getAction()));
-        }
         return doAddAccessPolicy(accessPolicy);
     }
 
@@ -407,17 +329,54 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     public abstract UsersAndAccessPolicies getUsersAndAccessPolicies() throws AuthorizationAccessException;
 
     /**
+     * Returns whether the proposed fingerprint is inheritable.
+     *
+     * @param proposedFingerprint the proposed fingerprint
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     * @throws UninheritableAuthorizationsException if the proposed fingerprint was uninheritable
+     */
+    @Override
+    public final void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+        try {
+            // ensure we understand the proposed fingerprint
+            parsePoliciesUsersAndGroups(proposedFingerprint);
+        } catch (final AuthorizationAccessException e) {
+            throw new UninheritableAuthorizationsException("Unable to parse proposed fingerprint: " + e);
+        }
+
+        final List<User> users = getSortedUsers();
+        final List<Group> groups = getSortedGroups();
+        final List<AccessPolicy> accessPolicies = getSortedAccessPolicies();
+
+        // ensure we're in a state to inherit
+        if (!users.isEmpty() || !groups.isEmpty() || !accessPolicies.isEmpty()) {
+            throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current Authorizations is not empty..");
+        }
+    }
+
+    /**
      * Parses the fingerprint and adds any users, groups, and policies to the current Authorizer.
      *
      * @param fingerprint the fingerprint that was obtained from calling getFingerprint() on another Authorizer.
      */
+    @Override
     public final void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         if (fingerprint == null || fingerprint.trim().isEmpty()) {
             return;
         }
 
-        final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
+        final PoliciesUsersAndGroups policiesUsersAndGroups = parsePoliciesUsersAndGroups(fingerprint);
+        policiesUsersAndGroups.getUsers().forEach(user -> addUser(user));
+        policiesUsersAndGroups.getGroups().forEach(group -> addGroup(group));
+        policiesUsersAndGroups.getAccessPolicies().forEach(policy -> addAccessPolicy(policy));
+    }
 
+    private PoliciesUsersAndGroups parsePoliciesUsersAndGroups(final String fingerprint) {
+        final List<AccessPolicy> accessPolicies = new ArrayList<>();
+        final List<User> users = new ArrayList<>();
+        final List<Group> groups = new ArrayList<>();
+
+        final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
             final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
             final Document document = docBuilder.parse(in);
@@ -427,29 +386,27 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
             NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
             for (int i=0; i < userNodes.getLength(); i++) {
                 Node userNode = userNodes.item(i);
-                User user = parseUser((Element) userNode);
-                addUser(user);
+                users.add(parseUser((Element) userNode));
             }
 
             // parse all the groups and add them to the current authorizer
             NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
             for (int i=0; i < groupNodes.getLength(); i++) {
                 Node groupNode = groupNodes.item(i);
-                Group group = parseGroup((Element) groupNode);
-                addGroup(group);
+                groups.add(parseGroup((Element) groupNode));
             }
 
             // parse all the policies and add them to the current authorizer
             NodeList policyNodes = rootElement.getElementsByTagName(POLICY_ELEMENT);
             for (int i=0; i < policyNodes.getLength(); i++) {
                 Node policyNode = policyNodes.item(i);
-                AccessPolicy policy = parsePolicy((Element) policyNode);
-                addAccessPolicy(policy);
+                accessPolicies.add(parsePolicy((Element) policyNode));
             }
-
         } catch (SAXException | ParserConfigurationException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
+
+        return new PoliciesUsersAndGroups(accessPolicies, users, groups);
     }
 
     private User parseUser(final Element element) {
@@ -503,6 +460,181 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
         return builder.build();
     }
 
+    @Override
+    public final AccessPolicyProvider getAccessPolicyProvider() {
+        return new ConfigurableAccessPolicyProvider() {
+            @Override
+            public Set<AccessPolicy> getAccessPolicies() throws AuthorizationAccessException {
+                return AbstractPolicyBasedAuthorizer.this.getAccessPolicies();
+            }
+
+            @Override
+            public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+                return AbstractPolicyBasedAuthorizer.this.getAccessPolicy(identifier);
+            }
+
+            @Override
+            public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                return AbstractPolicyBasedAuthorizer.this.addAccessPolicy(accessPolicy);
+            }
+
+            @Override
+            public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                return AbstractPolicyBasedAuthorizer.this.updateAccessPolicy(accessPolicy);
+            }
+
+            @Override
+            public AccessPolicy deleteAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                return AbstractPolicyBasedAuthorizer.this.deleteAccessPolicy(accessPolicy);
+            }
+
+            @Override
+            public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+                final UsersAndAccessPolicies usersAndAccessPolicies = AbstractPolicyBasedAuthorizer.this.getUsersAndAccessPolicies();
+                return usersAndAccessPolicies.getAccessPolicy(resourceIdentifier, action);
+            }
+
+            @Override
+            public String getFingerprint() throws AuthorizationAccessException {
+                // fingerprint is managed by the encapsulating class
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+                // fingerprint is managed by the encapsulating class
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+                // fingerprint is managed by the encapsulating class
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public UserGroupProvider getUserGroupProvider() {
+                return new ConfigurableUserGroupProvider() {
+                    @Override
+                    public User addUser(User user) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.addUser(user);
+                    }
+
+                    @Override
+                    public User updateUser(User user) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.updateUser(user);
+                    }
+
+                    @Override
+                    public User deleteUser(User user) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.deleteUser(user);
+                    }
+
+                    @Override
+                    public Group addGroup(Group group) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.addGroup(group);
+                    }
+
+                    @Override
+                    public Group updateGroup(Group group) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.updateGroup(group);
+                    }
+
+                    @Override
+                    public Group deleteGroup(Group group) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.deleteGroup(group);
+                    }
+
+                    @Override
+                    public Set<User> getUsers() throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.getUsers();
+                    }
+
+                    @Override
+                    public User getUser(String identifier) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.getUser(identifier);
+                    }
+
+                    @Override
+                    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.getUserByIdentity(identity);
+                    }
+
+                    @Override
+                    public Set<Group> getGroups() throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.getGroups();
+                    }
+
+                    @Override
+                    public Group getGroup(String identifier) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.getGroup(identifier);
+                    }
+
+                    @Override
+                    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+                        final UsersAndAccessPolicies usersAndAccessPolicies = AbstractPolicyBasedAuthorizer.this.getUsersAndAccessPolicies();
+                        final User user = usersAndAccessPolicies.getUser(identity);
+                        final Set<Group> groups = usersAndAccessPolicies.getGroups(identity);
+
+                        return new UserAndGroups() {
+                            @Override
+                            public User getUser() {
+                                return user;
+                            }
+
+                            @Override
+                            public Set<Group> getGroups() {
+                                return groups;
+                            }
+                        };
+                    }
+
+                    @Override
+                    public String getFingerprint() throws AuthorizationAccessException {
+                        // fingerprint is managed by the encapsulating class
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+                        // fingerprint is managed by the encapsulating class
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+                        // fingerprint is managed by the encapsulating class
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public void initialize(UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+                    }
+
+                    @Override
+                    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                    }
+
+                    @Override
+                    public void preDestruction() throws AuthorizerDestructionException {
+                    }
+                };
+            }
+
+            @Override
+            public void initialize(AccessPolicyProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+            }
+
+            @Override
+            public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+            }
+
+            @Override
+            public void preDestruction() throws AuthorizerDestructionException {
+            }
+        };
+    }
+
     /**
      * Returns a fingerprint representing the authorizations managed by this authorizer. The fingerprint will be
      * used for comparison to determine if two policy-based authorizers represent a compatible set of users,
@@ -510,16 +642,11 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      *
      * @return the fingerprint for this Authorizer
      */
+    @Override
     public final String getFingerprint() throws AuthorizationAccessException {
         final List<User> users = getSortedUsers();
         final List<Group> groups = getSortedGroups();
         final List<AccessPolicy> policies = getSortedAccessPolicies();
-
-        // when there are no users, groups, policies we want to always return a simple indicator so
-        // it can easily be determined when comparing fingerprints
-        if (users.isEmpty() && groups.isEmpty() && policies.isEmpty()) {
-            return EMPTY_FINGERPRINT;
-        }
 
         XMLStreamWriter writer = null;
         final StringWriter out = new StringWriter();
@@ -611,38 +738,43 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
 
     private List<AccessPolicy> getSortedAccessPolicies() {
         final List<AccessPolicy> policies = new ArrayList<>(getAccessPolicies());
-
-        Collections.sort(policies, new Comparator<AccessPolicy>() {
-            @Override
-            public int compare(AccessPolicy p1, AccessPolicy p2) {
-                return p1.getIdentifier().compareTo(p2.getIdentifier());
-            }
-        });
+        Collections.sort(policies, Comparator.comparing(AccessPolicy::getIdentifier));
         return policies;
     }
 
     private List<Group> getSortedGroups() {
         final List<Group> groups = new ArrayList<>(getGroups());
-
-        Collections.sort(groups, new Comparator<Group>() {
-            @Override
-            public int compare(Group g1, Group g2) {
-                return g1.getIdentifier().compareTo(g2.getIdentifier());
-            }
-        });
+        Collections.sort(groups, Comparator.comparing(Group::getIdentifier));
         return groups;
     }
 
     private List<User> getSortedUsers() {
         final List<User> users = new ArrayList<>(getUsers());
-
-        Collections.sort(users, new Comparator<User>() {
-            @Override
-            public int compare(User u1, User u2) {
-                return u1.getIdentifier().compareTo(u2.getIdentifier());
-            }
-        });
+        Collections.sort(users, Comparator.comparing(User::getIdentifier));
         return users;
     }
 
+    private static class PoliciesUsersAndGroups {
+        final List<AccessPolicy> accessPolicies;
+        final List<User> users;
+        final List<Group> groups;
+
+        public PoliciesUsersAndGroups(List<AccessPolicy> accessPolicies, List<User> users, List<Group> groups) {
+            this.accessPolicies = accessPolicies;
+            this.users = users;
+            this.groups = groups;
+        }
+
+        public List<AccessPolicy> getAccessPolicies() {
+            return accessPolicies;
+        }
+
+        public List<User> getUsers() {
+            return users;
+        }
+
+        public List<Group> getGroups() {
+            return groups;
+        }
+    }
 }

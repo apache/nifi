@@ -36,9 +36,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -78,7 +78,6 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final Processor processor;
     private final MockProcessContext context;
     private final MockFlowFileQueue flowFileQueue;
-    private final MockSessionFactory sessionFactory;
     private final SharedSessionState sharedState;
     private final AtomicLong idGenerator;
     private final boolean triggerSerially;
@@ -87,17 +86,20 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final MockVariableRegistry variableRegistry;
 
     private int numThreads = 1;
+    private MockSessionFactory sessionFactory;
+    private long runSchedule = 0;
     private final AtomicInteger invocations = new AtomicInteger(0);
 
     private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
     private final MockComponentLog logger;
+    private boolean enforceReadStreamsClosed = true;
 
     StandardProcessorTestRunner(final Processor processor) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
-        this.sessionFactory = new MockSessionFactory(sharedState, processor);
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
         this.processorStateManager = new MockStateManager(processor);
         this.variableRegistry = new MockVariableRegistry();
         this.context = new MockProcessContext(processor, processorStateManager, variableRegistry);
@@ -115,6 +117,12 @@ public class StandardProcessorTestRunner implements TestRunner {
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
 
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
+    }
+
+    @Override
+    public void enforceReadStreamsClosed(final boolean enforce) {
+        enforceReadStreamsClosed = enforce;
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
     }
 
     @Override
@@ -170,11 +178,11 @@ public class StandardProcessorTestRunner implements TestRunner {
                 }
             }
 
-            final ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+            final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(numThreads);
             @SuppressWarnings("unchecked")
             final Future<Throwable>[] futures = new Future[iterations];
             for (int i = 0; i < iterations; i++) {
-                final Future<Throwable> future = executorService.submit(new RunProcessor());
+                final Future<Throwable> future = executorService.schedule(new RunProcessor(), i * runSchedule, TimeUnit.MILLISECONDS);
                 futures[i] = future;
             }
 
@@ -412,7 +420,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final InputStream data, final Map<String, String> attributes) {
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor, enforceReadStreamsClosed);
         MockFlowFile flowFile = session.create();
         flowFile = session.importFrom(data, flowFile);
         flowFile = session.putAllAttributes(flowFile, attributes);
@@ -796,6 +804,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public boolean removeProperty(String property) {
+        return context.removeProperty(property);
+    }
+
+    @Override
     public List<ProvenanceEventRecord> getProvenanceEvents() {
         return sharedState.getProvenanceEvents();
     }
@@ -899,5 +912,16 @@ public class StandardProcessorTestRunner implements TestRunner {
                 Assert.fail("FlowFile " + flowFile + " does not meet all condition");
             }
         }
+    }
+
+    /**
+     * Set the Run Schedule parameter (in milliseconds). If set, this will be the duration
+     * between two calls of the onTrigger method.
+     *
+     * @param runSchedule Run schedule duration in milliseconds.
+     */
+    @Override
+    public void setRunSchedule(long runSchedule) {
+        this.runSchedule = runSchedule;
     }
 }

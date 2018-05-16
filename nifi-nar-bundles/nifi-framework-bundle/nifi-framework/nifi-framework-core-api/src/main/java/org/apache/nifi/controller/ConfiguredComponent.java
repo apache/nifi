@@ -16,22 +16,30 @@
  */
 package org.apache.nifi.controller;
 
+import java.net.URL;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
-import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizable;
+import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
-
-import java.util.Collection;
-import java.util.Map;
+import org.apache.nifi.registry.ComponentVariableRegistry;
 
 public interface ConfiguredComponent extends ComponentAuthorizable {
 
+    @Override
     public String getIdentifier();
 
     public String getName();
@@ -42,13 +50,37 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
 
     public void setAnnotationData(String data);
 
-    public void setProperties(Map<String, String> properties);
+    public default void setProperties(Map<String, String> properties) {
+        setProperties(properties, false);
+    }
+
+    public void setProperties(Map<String, String> properties, boolean allowRemovalOfRequiredProperties);
 
     public Map<PropertyDescriptor, String> getProperties();
 
     public String getProperty(final PropertyDescriptor property);
 
     boolean isValid();
+
+    void reload(Set<URL> additionalUrls) throws Exception;
+
+    void refreshProperties();
+
+    Set<URL> getAdditionalClasspathResources(List<PropertyDescriptor> propertyDescriptors);
+
+    BundleCoordinate getBundleCoordinate();
+
+    ConfigurableComponent getComponent();
+
+    TerminationAwareLogger getLogger();
+
+    boolean isExtensionMissing();
+
+    void setExtensionMissing(boolean extensionMissing);
+
+    void verifyCanUpdateBundle(BundleCoordinate bundleCoordinate) throws IllegalStateException;
+
+    void reloadAdditionalResourcesIfNecessary();
 
     /**
      * @return the any validation errors for this connectable
@@ -61,24 +93,42 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
     String getComponentType();
 
     /**
+     * @return the class of the underlying
+     */
+    Class<?> getComponentClass();
+
+    /**
      * @return the Canonical Class Name of the component
      */
     String getCanonicalClassName();
 
     /**
-     * @return whether or not the underlying implementation is restricted
+     * @return whether or not the underlying implementation has any restrictions
      */
     boolean isRestricted();
+
+    /**
+     * @return whether or not the underlying implementation is deprecated
+     */
+    boolean isDeprecated();
+
+    /**
+     * @return the variable registry for this component
+     */
+    ComponentVariableRegistry getVariableRegistry();
 
     @Override
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
         // if this is a modification request and the reporting task is restricted ensure the user has elevated privileges. if this
         // is not a modification request, we just want to use the normal rules
         if (RequestAction.WRITE.equals(action) && isRestricted()) {
-            final RestrictedComponentsAuthorizable restrictedComponentsAuthorizable = new RestrictedComponentsAuthorizable();
-            final AuthorizationResult result = restrictedComponentsAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user, resourceContext);
-            if (Result.Denied.equals(result.getResult())) {
-                return result;
+            final Set<Authorizable> restrictedComponentsAuthorizables = RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(getComponentClass());
+
+            for (final Authorizable restrictedComponentsAuthorizable : restrictedComponentsAuthorizables) {
+                final AuthorizationResult result = restrictedComponentsAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user, resourceContext);
+                if (Result.Denied.equals(result.getResult())) {
+                    return result;
+                }
             }
         }
 
@@ -91,8 +141,11 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
         // if this is a modification request and the reporting task is restricted ensure the user has elevated privileges. if this
         // is not a modification request, we just want to use the normal rules
         if (RequestAction.WRITE.equals(action) && isRestricted()) {
-            final RestrictedComponentsAuthorizable restrictedComponentsAuthorizable = new RestrictedComponentsAuthorizable();
-            restrictedComponentsAuthorizable.authorize(authorizer, RequestAction.WRITE, user, resourceContext);
+            final Set<Authorizable> restrictedComponentsAuthorizables = RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(getComponentClass());
+
+            for (final Authorizable restrictedComponentsAuthorizable : restrictedComponentsAuthorizables) {
+                restrictedComponentsAuthorizable.authorize(authorizer, RequestAction.WRITE, user, resourceContext);
+            }
         }
 
         // defer to the base authorization check

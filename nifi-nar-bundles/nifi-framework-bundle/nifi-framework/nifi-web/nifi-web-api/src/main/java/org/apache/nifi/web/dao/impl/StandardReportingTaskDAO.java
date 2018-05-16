@@ -16,6 +16,31 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.exception.ComponentLifeCycleException;
+import org.apache.nifi.controller.exception.ValidationException;
+import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
+import org.apache.nifi.controller.reporting.ReportingTaskProvider;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.BundleUtils;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.NiFiCoreException;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
+import org.apache.nifi.web.dao.ReportingTaskDAO;
+import org.quartz.CronExpression;
+
+import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,29 +48,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.exception.ComponentLifeCycleException;
-
-import org.apache.nifi.controller.exception.ValidationException;
-import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
-import org.apache.nifi.controller.reporting.ReportingTaskProvider;
-import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.NiFiCoreException;
-import org.apache.nifi.web.ResourceNotFoundException;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.dao.ComponentStateDAO;
-import org.apache.nifi.web.dao.ReportingTaskDAO;
-import org.quartz.CronExpression;
 
 public class StandardReportingTaskDAO extends ComponentDAO implements ReportingTaskDAO {
 
     private ReportingTaskProvider reportingTaskProvider;
     private ComponentStateDAO componentStateDAO;
+    private ReloadComponent reloadComponent;
 
     private ReportingTaskNode locateReportingTask(final String reportingTaskId) {
         // get the reporting task
@@ -60,6 +68,11 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     }
 
     @Override
+    public void verifyCreate(final ReportingTaskDTO reportingTaskDTO) {
+        verifyCreate(reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
+    }
+
+    @Override
     public ReportingTaskNode createReportingTask(final ReportingTaskDTO reportingTaskDTO) {
         // ensure the type is specified
         if (reportingTaskDTO.getType() == null) {
@@ -68,7 +81,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
         try {
             // create the reporting task
-            final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(reportingTaskDTO.getType(), reportingTaskDTO.getId(), true);
+            final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
+                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), BundleUtils.getBundle(reportingTaskDTO.getType(), reportingTaskDTO.getBundle()), true);
 
             // ensure we can perform the update
             verifyUpdate(reportingTask, reportingTaskDTO);
@@ -107,6 +121,10 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
         // perform the update
         configureReportingTask(reportingTask, reportingTaskDTO);
+
+        // attempt to change the underlying processor if an updated bundle is specified
+        // updating the bundle must happen after configuring so that any additional classpath resources are set first
+        updateBundle(reportingTask, reportingTaskDTO);
 
         // configure scheduled state
         // see if an update is necessary
@@ -148,6 +166,25 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         }
 
         return reportingTask;
+    }
+
+    private void updateBundle(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
+        final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
+        if (bundleDTO != null) {
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate existingCoordinate = reportingTask.getBundleCoordinate();
+            if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
+                try {
+                    // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
+                    final ConfigurableComponent tempComponent = ExtensionManager.getTempComponent(reportingTask.getCanonicalClassName(), incomingCoordinate);
+                    final Set<URL> additionalUrls = reportingTask.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
+                    reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, additionalUrls);
+                } catch (ReportingTaskInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
+                            reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
+            }
+        }
     }
 
     private List<String> validateProposedConfiguration(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
@@ -242,7 +279,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                 reportingTaskDTO.getSchedulingStrategy(),
                 reportingTaskDTO.getSchedulingPeriod(),
                 reportingTaskDTO.getAnnotationData(),
-                reportingTaskDTO.getProperties())) {
+                reportingTaskDTO.getProperties(),
+                reportingTaskDTO.getBundle())) {
             modificationRequest = true;
 
             // validate the request
@@ -252,6 +290,14 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             if (!requestValidation.isEmpty()) {
                 throw new ValidationException(requestValidation);
             }
+        }
+
+        final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
+        if (bundleDTO != null) {
+            // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+            // ensure we are only changing to a bundle with the same group and id, but different version
+            reportingTask.verifyCanUpdateBundle(bundleCoordinate);
         }
 
         if (modificationRequest) {
@@ -320,5 +366,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
     public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
+    }
+
+    public void setReloadComponent(ReloadComponent reloadComponent) {
+        this.reloadComponent = reloadComponent;
     }
 }

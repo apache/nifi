@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.client.StandardCacheEntry;
 import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -30,10 +30,14 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -68,6 +72,7 @@ public class TestNotify {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).get(0).assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true");
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
@@ -103,6 +108,7 @@ public class TestNotify {
         runner.run(3);
 
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -142,6 +148,7 @@ public class TestNotify {
 
         // Limited by the buffer count
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -154,6 +161,7 @@ public class TestNotify {
         // Run it again, and it should process remaining one flow file.
         runner.run();
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -197,6 +205,7 @@ public class TestNotify {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -240,7 +249,9 @@ public class TestNotify {
 
         // Only failed records should be transferred to failure.
         runner.assertTransferCount(Notify.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true"));
         runner.assertTransferCount(Notify.REL_FAILURE, 1);
+        runner.getFlowFilesForRelationship(Notify.REL_FAILURE).forEach(flowFile -> flowFile.assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "false"));
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
@@ -306,8 +317,8 @@ public class TestNotify {
 
     }
 
-    static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient {
-        private final ConcurrentMap<Object, CacheEntry> values = new ConcurrentHashMap<>();
+    static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
+        private final ConcurrentMap<Object, AtomicCacheEntry<Object, Object, Long>> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
         void setFailOnCalls(boolean failOnCalls){
@@ -355,7 +366,7 @@ public class TestNotify {
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
-            final CacheEntry entry = values.get(key);
+            final AtomicCacheEntry entry = values.get(key);
             if (entry == null) {
                 return null;
             }
@@ -375,23 +386,41 @@ public class TestNotify {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
-        public <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public long removeByPattern(String regex) throws IOException {
             verifyNotFail();
-
-            return values.get(key);
+            final List<Object> removedRecords = new ArrayList<>();
+            Pattern p = Pattern.compile(regex);
+            for (Object key : values.keySet()) {
+                // Key must be backed by something that can be converted into a String
+                Matcher m = p.matcher(key.toString());
+                if (m.matches()) {
+                    removedRecords.add(values.get(key));
+                }
+            }
+            final long numRemoved = removedRecords.size();
+            removedRecords.forEach(values::remove);
+            return numRemoved;
         }
 
         @Override
-        public <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException {
+        @SuppressWarnings("unchecked")
+        public <K, V> AtomicCacheEntry<K, V, Long> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
-            final CacheEntry existing = values.get(key);
-            if (existing != null && existing.getRevision() != revision) {
+            return (AtomicCacheEntry<K, V, Long>) values.get(key);
+        }
+
+        @Override
+        public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+            verifyNotFail();
+
+            final K key = entry.getKey();
+            final AtomicCacheEntry<Object, Object, Long> existing = values.get(key);
+            if (existing != null && !existing.getRevision().equals(entry.getRevision())) {
                 return false;
             }
 
-            values.put(key, new StandardCacheEntry<>(key, value, revision + 1));
+            values.put(key, new AtomicCacheEntry<>(key, entry.getValue(), entry.getRevision().orElse(0L) + 1));
 
             return true;
         }

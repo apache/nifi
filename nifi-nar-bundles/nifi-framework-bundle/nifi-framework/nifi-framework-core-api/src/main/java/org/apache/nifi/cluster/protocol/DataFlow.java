@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import java.util.Set;
+
 public interface DataFlow {
 
     /**
@@ -30,8 +32,13 @@ public interface DataFlow {
 
     /**
      * @return the raw byte array of the Authorizer's fingerprint,
-     *              null when not using a sub-class of AbstractPolicyBasedAuthorizer
+     *              null when not using a ManagedAuthorizer
      */
     public byte[] getAuthorizerFingerprint();
+
+    /**
+     * @return the component ids of components that were created as a missing ghost component
+     */
+    public Set<String> getMissingComponents();
 
 }

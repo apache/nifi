@@ -96,34 +96,26 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     }
 
     @Override
-    public FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId, String idGenerationSeed) {
+    public FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String encodingVersion,
+                                              FlowSnippetDTO requestSnippet, String idGenerationSeed) {
+
         ProcessGroup group = locateProcessGroup(flowController, groupId);
-
-        // get the template id and find the template
-        Template template = getTemplate(templateId);
-
-        // ensure the template could be found
-        if (template == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate template with id '%s'.", templateId));
-        }
 
         try {
             // copy the template which pre-processes all ids
-            TemplateDTO templateDetails = template.getDetails();
-            FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group, idGenerationSeed, false);
+            FlowSnippetDTO snippet = snippetUtils.copy(requestSnippet, group, idGenerationSeed, false);
 
-            // calculate scaling factors based on the template encoding version
-            // attempt to parse the encoding version
-            final FlowEncodingVersion templateEncodingVersion = FlowEncodingVersion.parse(templateDetails.getEncodingVersion());
+            // calculate scaling factors based on the template encoding version attempt to parse the encoding version.
             // get the major version, or 0 if no version could be parsed
+            final FlowEncodingVersion templateEncodingVersion = FlowEncodingVersion.parse(encodingVersion);
             int templateEncodingMajorVersion = templateEncodingVersion != null ? templateEncodingVersion.getMajorVersion() : 0;
+
             // based on the major version < 1, use the default scaling factors.  Otherwise, don't scale (use factor of 1.0)
             double factorX = templateEncodingMajorVersion < 1 ? FlowController.DEFAULT_POSITION_SCALE_FACTOR_X : 1.0;
             double factorY = templateEncodingMajorVersion < 1 ? FlowController.DEFAULT_POSITION_SCALE_FACTOR_Y : 1.0;
 
             // reposition and scale the template contents
             org.apache.nifi.util.SnippetUtils.moveAndScaleSnippet(snippet, originX, originY, factorX, factorY);
-
 
             // find all the child process groups in each process group in the top level of this snippet
             final List<ProcessGroupDTO> childProcessGroups  = org.apache.nifi.util.SnippetUtils.findAllProcessGroups(snippet);

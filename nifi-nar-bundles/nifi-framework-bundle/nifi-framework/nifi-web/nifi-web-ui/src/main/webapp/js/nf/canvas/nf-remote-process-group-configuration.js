@@ -78,13 +78,15 @@
                                 'revision': nfClient.getRevision(remoteProcessGroupData),
                                 'component': {
                                     id: remoteProcessGroupId,
+                                    targetUris: $('#remote-process-group-urls').val(),
                                     communicationsTimeout: $('#remote-process-group-timeout').val(),
                                     yieldDuration: $('#remote-process-group-yield-duration').val(),
                                     transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
                                     proxyHost: $('#remote-process-group-proxy-host').val(),
                                     proxyPort: $('#remote-process-group-proxy-port').val(),
                                     proxyUser: $('#remote-process-group-proxy-user').val(),
-                                    proxyPassword: $('#remote-process-group-proxy-password').val()
+                                    proxyPassword: $('#remote-process-group-proxy-password').val(),
+                                    localNetworkInterface: $('#remote-process-group-local-network-interface').val()
                                 }
                             };
 
@@ -144,12 +146,13 @@
                         // clear the remote process group details
                         $('#remote-process-group-id').text('');
                         $('#remote-process-group-name').text('');
-                        $('#remote-process-group-urls').text('');
+                        $('#remote-process-group-urls').val('');
                         $('#remote-process-group-timeout').val('');
                         $('#remote-process-group-yield-duration').val('');
                         $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
                             value: 'RAW'
                         });
+                        $('#remote-process-group-local-network-interface').val('');
                         $('#remote-process-group-proxy-host').val('');
                         $('#remote-process-group-proxy-port').val('');
                         $('#remote-process-group-proxy-user').val('');
@@ -182,7 +185,7 @@
                 // populate the port settings
                 $('#remote-process-group-id').text(selectionData.id);
                 $('#remote-process-group-name').text(selectionData.component.name);
-                $('#remote-process-group-urls').text(selectionData.component.targetUris);
+                $('#remote-process-group-urls').val(selectionData.component.targetUris);
 
                 // populate the text fields
                 $('#remote-process-group-timeout').val(selectionData.component.communicationsTimeout);
@@ -191,6 +194,7 @@
                 $('#remote-process-group-proxy-port').val(selectionData.component.proxyPort);
                 $('#remote-process-group-proxy-user').val(selectionData.component.proxyUser);
                 $('#remote-process-group-proxy-password').val(selectionData.component.proxyPassword);
+                $('#remote-process-group-local-network-interface').val(selectionData.component.localNetworkInterface);
 
                 // select the appropriate transport-protocol
                 $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {

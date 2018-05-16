@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
@@ -29,11 +29,16 @@ import java.util.Date;
 @XmlType(name = "flowConfiguration")
 public class FlowConfigurationDTO {
 
+    private Boolean supportsManagedAuthorizer;
     private Boolean supportsConfigurableAuthorizer;
+    private Boolean supportsConfigurableUsersAndGroups;
     private Long autoRefreshIntervalSeconds;
 
     private Date currentTime;
     private Integer timeOffset;
+
+    private Long defaultBackPressureObjectThreshold;
+    private String defaultBackPressureDataSizeThreshold;
 
     /**
      * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
@@ -48,6 +53,37 @@ public class FlowConfigurationDTO {
 
     public void setAutoRefreshIntervalSeconds(Long autoRefreshIntervalSeconds) {
         this.autoRefreshIntervalSeconds = autoRefreshIntervalSeconds;
+    }
+
+    /**
+     * @return whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups,
+     * and policies in the UI. This value is read only
+     */
+    @ApiModelProperty(
+            value = "Whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
+            readOnly = true
+    )
+    public Boolean getSupportsManagedAuthorizer() {
+        return supportsManagedAuthorizer;
+    }
+
+    public void setSupportsManagedAuthorizer(Boolean supportsManagedAuthorizer) {
+        this.supportsManagedAuthorizer = supportsManagedAuthorizer;
+    }
+
+    /**
+     * @return whether this NiFi supports configurable users and groups. This value is read only
+     */
+    @ApiModelProperty(
+            value = "Whether this NiFi supports configurable users and groups.",
+            readOnly = true
+    )
+    public Boolean getSupportsConfigurableUsersAndGroups() {
+        return supportsConfigurableUsersAndGroups;
+    }
+
+    public void setSupportsConfigurableUsersAndGroups(Boolean supportsConfigurableUsersAndGroups) {
+        this.supportsConfigurableUsersAndGroups = supportsConfigurableUsersAndGroups;
     }
 
     /**
@@ -93,5 +129,33 @@ public class FlowConfigurationDTO {
 
     public void setTimeOffset(Integer timeOffset) {
         this.timeOffset = timeOffset;
+    }
+
+    /**
+     * @return the default back pressure object threshold
+     */
+    @ApiModelProperty(
+            value = "The default back pressure object threshold."
+    )
+    public Long getDefaultBackPressureObjectThreshold() {
+        return defaultBackPressureObjectThreshold;
+    }
+
+    public void setDefaultBackPressureObjectThreshold(Long backPressureObjectThreshold) {
+        this.defaultBackPressureObjectThreshold = backPressureObjectThreshold;
+    }
+
+    /**
+     * @return the default back pressure data size threshold
+     */
+    @ApiModelProperty(
+            value = "The default back pressure data size threshold."
+    )
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return defaultBackPressureDataSizeThreshold;
+    }
+
+    public void setDefaultBackPressureDataSizeThreshold(String backPressureDataSizeThreshold) {
+        this.defaultBackPressureDataSizeThreshold = backPressureDataSizeThreshold;
     }
 }

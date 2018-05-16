@@ -128,6 +128,9 @@
                 handler: {
                     close: function () {
                         labelId = '';
+                    },
+                    open: function () {
+                        $('#label-value').focus();    
                     }
                 }
             });

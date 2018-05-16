@@ -22,6 +22,7 @@ import java.io.OutputStream;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
@@ -49,9 +50,10 @@ public interface FlowConfigurationDAO {
      * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
      * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning flow files
      * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
+     * @throws MissingBundleException if the proposed flow cannot be loaded by the controller because it contains a bundle that does not exist in the controller
      */
     void load(FlowController controller, DataFlow dataFlow)
-            throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException;
+            throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException;
 
     /**
      * Loads the stored flow onto the given stream.

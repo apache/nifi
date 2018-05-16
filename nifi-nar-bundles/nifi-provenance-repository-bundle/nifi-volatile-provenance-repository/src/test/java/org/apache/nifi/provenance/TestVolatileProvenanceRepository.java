@@ -26,9 +26,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -183,6 +185,11 @@ public class TestVolatileProvenanceRepository {
             @Override
             public String getIdentity() {
                 return "unit-test";
+            }
+
+            @Override
+            public Set<String> getGroups() {
+                return Collections.EMPTY_SET;
             }
 
             @Override

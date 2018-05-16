@@ -69,7 +69,7 @@
                 provenance: '../nifi-api/provenance',
                 provenanceEvents: '../nifi-api/provenance-events/',
                 clusterSearch: '../nifi-api/flow/cluster/search-results',
-                d3Script: 'js/d3/d3.min.js',
+                d3Script: 'js/d3/build/d3.min.js',
                 lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
                 uiExtensionToken: '../nifi-api/access/ui-extension-token',
                 downloadToken: '../nifi-api/access/download-token'
@@ -664,21 +664,24 @@
                     field: 'eventTime',
                     sortable: true,
                     defaultSortAsc: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'eventType',
                     name: 'Type',
                     field: 'eventType',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'flowFileUuid',
                     name: 'FlowFile Uuid',
                     field: 'flowFileUuid',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'fileSize',
@@ -686,7 +689,8 @@
                     field: 'fileSize',
                     sortable: true,
                     defaultSortAsc: false,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'componentName',
@@ -701,7 +705,8 @@
                     name: 'Component Type',
                     field: 'componentType',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 }
             ];
 
@@ -712,7 +717,8 @@
                     name: 'Node',
                     field: 'clusterNodeAddress',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 });
             }
 
@@ -1342,6 +1348,11 @@
 
                     // conditionally show SEND details
                     if (event.eventType === 'SEND') {
+                        formatEventDetail('Transit Uri', event.transitUri);
+                    }
+
+                    // conditionally show REMOTE_INVOCATION details
+                    if (event.eventType === 'REMOTE_INVOCATION') {
                         formatEventDetail('Transit Uri', event.transitUri);
                     }
 

@@ -18,17 +18,16 @@ package org.wali;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.util.Map;
 
 public class DummyRecordSerde implements SerDe<DummyRecord> {
 
-    public static final int NUM_UPDATE_TYPES = UpdateType.values().length;
     private int throwIOEAfterNserializeEdits = -1;
     private int throwOOMEAfterNserializeEdits = -1;
     private int serializeEditCount = 0;
 
+    @SuppressWarnings("fallthrough")
     @Override
     public void serializeEdit(final DummyRecord previousState, final DummyRecord record, final DataOutputStream out) throws IOException {
         if (throwIOEAfterNserializeEdits >= 0 && (serializeEditCount++ >= throwIOEAfterNserializeEdits)) {
@@ -38,17 +37,31 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
             throw new OutOfMemoryError("Serialized " + (serializeEditCount - 1) + " records successfully, so now it's time to throw OOME");
         }
 
-        out.write(record.getUpdateType().ordinal());
+        out.writeUTF(record.getUpdateType().name());
         out.writeUTF(record.getId());
 
-        if (record.getUpdateType() != UpdateType.DELETE) {
-            final Map<String, String> props = record.getProperties();
-            out.writeInt(props.size());
-            for (final Map.Entry<String, String> entry : props.entrySet()) {
-                out.writeUTF(entry.getKey());
-                out.writeUTF(entry.getValue());
+        switch (record.getUpdateType()) {
+            case DELETE:
+                break;
+            case SWAP_IN: {
+                out.writeUTF(record.getSwapLocation());
+                // intentionally fall through to CREATE/UPDATE block
             }
+            case CREATE:
+            case UPDATE: {
+                    final Map<String, String> props = record.getProperties();
+                    out.writeInt(props.size());
+                    for (final Map.Entry<String, String> entry : props.entrySet()) {
+                        out.writeUTF(entry.getKey());
+                        out.writeUTF(entry.getValue());
+                    }
+                }
+                break;
+            case SWAP_OUT:
+                out.writeUTF(record.getSwapLocation());
+                break;
         }
+
     }
 
     @Override
@@ -57,26 +70,36 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
     }
 
     @Override
+    @SuppressWarnings("fallthrough")
     public DummyRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
-        final int index = in.read();
-        if (index < 0) {
-            throw new EOFException();
-        }
-        if (index >= NUM_UPDATE_TYPES) {
-            throw new IOException("Corrupt stream; got UpdateType value of " + index + " but there are only " + NUM_UPDATE_TYPES + " valid values");
-        }
-        final UpdateType updateType = UpdateType.values()[index];
+        final String updateTypeName = in.readUTF();
+        final UpdateType updateType = UpdateType.valueOf(updateTypeName);
         final String id = in.readUTF();
         final DummyRecord record = new DummyRecord(id, updateType);
 
-        if (record.getUpdateType() != UpdateType.DELETE) {
-            final int numProps = in.readInt();
-            for (int i = 0; i < numProps; i++) {
-                final String key = in.readUTF();
-                final String value = in.readUTF();
-                record.setProperty(key, value);
+        switch (record.getUpdateType()) {
+            case DELETE:
+                break;
+            case SWAP_IN: {
+                final String swapLocation = in.readUTF();
+                record.setSwapLocation(swapLocation);
+                // intentionally fall through to the CREATE/UPDATE block
             }
+            case CREATE:
+            case UPDATE:
+                final int numProps = in.readInt();
+                for (int i = 0; i < numProps; i++) {
+                    final String key = in.readUTF();
+                    final String value = in.readUTF();
+                    record.setProperty(key, value);
+                }
+                break;
+            case SWAP_OUT:
+                final String swapLocation = in.readUTF();
+                record.setSwapLocation(swapLocation);
+                break;
         }
+
         return record;
     }
 
@@ -110,6 +133,6 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
 
     @Override
     public String getLocation(final DummyRecord record) {
-        return null;
+        return record.getSwapLocation();
     }
 }

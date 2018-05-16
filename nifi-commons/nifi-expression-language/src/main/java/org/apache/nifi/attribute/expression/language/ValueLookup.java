@@ -49,6 +49,7 @@ final class ValueLookup implements Map<String, String> {
      * @param flowFile the flowFile to pull attributes from; may be null
      * @param additionalMaps the maps to pull values from; may be null or empty
      */
+    @SuppressWarnings("unchecked")
     ValueLookup(final VariableRegistry registry, final FlowFile flowFile, final Map<String, String>... additionalMaps) {
         for (final Map<String, String> map : additionalMaps) {
             if (map != null && !map.isEmpty()) {

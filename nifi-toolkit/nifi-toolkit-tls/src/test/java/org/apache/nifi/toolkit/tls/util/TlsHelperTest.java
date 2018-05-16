@@ -43,6 +43,7 @@ import java.security.KeyStoreSpi;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -168,6 +169,41 @@ public class TlsHelperTest {
 
     private Date inFuture(int days) {
         return new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days));
+    }
+
+    @Test
+    public void testTokenLengthInCalculateHmac() throws CertificateException, NoSuchAlgorithmException {
+        List<String> badTokens = new ArrayList<>();
+        List<String> goodTokens = new ArrayList<>();
+        badTokens.add(null);
+        badTokens.add("");
+        badTokens.add("123");
+        goodTokens.add("0123456789abcdefghijklm");
+        goodTokens.add("0123456789abcdef");
+
+        String dn = "CN=testDN,O=testOrg";
+        X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), dn, signingAlgorithm, days);
+        PublicKey pubKey = x509Certificate.getPublicKey();
+
+        for (String token : badTokens) {
+            try {
+                TlsHelper.calculateHMac(token, pubKey);
+                fail("HMAC was calculated with a token that was too short.");
+            } catch (GeneralSecurityException e) {
+                assertEquals("Token does not meet minimum size of 16 bytes.", e.getMessage());
+            } catch (IllegalArgumentException e) {
+                assertEquals("Token cannot be null", e.getMessage());
+            }
+        }
+
+        for (String token : goodTokens) {
+            try {
+                byte[] hmac = TlsHelper.calculateHMac(token, pubKey);
+                assertTrue("HMAC length ok", hmac.length > 0);
+            } catch (GeneralSecurityException e) {
+                fail(e.getMessage());
+            }
+        }
     }
 
     @Test
@@ -319,9 +355,12 @@ public class TlsHelperTest {
         assert subjectName.equals(DN);
 
         List<String> extractedSans = extractSanFromCsr(csrWithSan);
-        assert extractedSans.size() == SAN_COUNT;
+        assert extractedSans.size() == SAN_COUNT + 1;
         List<String> formattedSans = SAN_ENTRIES.stream().map(s -> "DNS: " + s).collect(Collectors.toList());
         assert extractedSans.containsAll(formattedSans);
+
+        // We check that the SANs also contain the CN
+        assert extractedSans.contains("DNS: localhost");
     }
 
     private List<String> extractSanFromCsr(JcaPKCS10CertificationRequest csr) {
@@ -350,4 +389,63 @@ public class TlsHelperTest {
 
         return sans;
     }
+
+    @Test
+    public void testEscapeAliasFilenameWithForwardSlashes() {
+        String result = TlsHelper.escapeFilename("my/silly/filename.pem");
+        assertEquals("my_silly_filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameWithBackSlashes() {
+        String result = TlsHelper.escapeFilename("my\\silly\\filename.pem");
+        assertEquals("my_silly_filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameWithDollarSign() {
+        String result = TlsHelper.escapeFilename("my$illyfilename.pem");
+        assertEquals("my_illyfilename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameTwoSymbolsInARow() {
+        String result = TlsHelper.escapeFilename("my!?sillyfilename.pem");
+        assertEquals("my_sillyfilename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameKeepHyphens() {
+        String result = TlsHelper.escapeFilename("my-silly-filename.pem");
+        assertEquals("my-silly-filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameDoubleSpaces() {
+        String result = TlsHelper.escapeFilename("my  silly  filename.pem");
+        assertEquals("my_silly_filename.pem", result);
+    }
+
+    @Test
+    public void testEscapeAliasFilenameSymbols() {
+        String result = TlsHelper.escapeFilename("./\\!@#$%^&*()_-+=.pem");
+        assertEquals(".__-_=.pem", result);
+    }
+
+    @Test
+    public void testClientDnFilenameSlashes() throws Exception {
+        String clientDn = "OU=NiFi/Organisation,CN=testuser";
+        String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
+
+        assertEquals("CN=testuser_OU=NiFi_Organisation", escapedClientDn);
+    }
+
+    @Test
+    public void testClientDnFilenameSpecialChars() throws Exception {
+        String clientDn = "OU=NiFi#!Organisation,CN=testuser";
+        String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
+
+        assertEquals("CN=testuser_OU=NiFi_Organisation", escapedClientDn);
+    }
+
 }

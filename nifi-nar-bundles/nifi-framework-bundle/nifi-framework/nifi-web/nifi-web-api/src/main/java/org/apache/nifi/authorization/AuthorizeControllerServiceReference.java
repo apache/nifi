@@ -37,7 +37,7 @@ public final class AuthorizeControllerServiceReference {
      * @param authorizer authorizer
      * @param lookup lookup
      */
-    public static void authorizeControllerServiceReferences(final ConfigurableComponentAuthorizable authorizable, final Authorizer authorizer,
+    public static void authorizeControllerServiceReferences(final ComponentAuthorizable authorizable, final Authorizer authorizer,
                                                             final AuthorizableLookup lookup, final boolean authorizeTransitiveServices) {
 
         // consider each property when looking for service references
@@ -50,7 +50,7 @@ public final class AuthorizeControllerServiceReference {
                 // authorize the service if configured
                 if (serviceId != null) {
                     try {
-                        final ConfigurableComponentAuthorizable currentServiceAuthorizable = lookup.getControllerService(serviceId);
+                        final ComponentAuthorizable currentServiceAuthorizable = lookup.getControllerService(serviceId);
                         currentServiceAuthorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
 
                         if (authorizeTransitiveServices) {
@@ -72,7 +72,7 @@ public final class AuthorizeControllerServiceReference {
      * @param authorizer authorizer
      * @param lookup lookup
      */
-    public static void authorizeControllerServiceReferences(final Map<String, String> proposedProperties, final ConfigurableComponentAuthorizable authorizable,
+    public static void authorizeControllerServiceReferences(final Map<String, String> proposedProperties, final ComponentAuthorizable authorizable,
                                                             final Authorizer authorizer, final AuthorizableLookup lookup) {
 
         // only attempt to authorize if properties are changing

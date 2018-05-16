@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.nio.charset.StandardCharsets;
+import java.security.Security;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +34,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -41,26 +53,15 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
-import org.apache.nifi.processors.standard.util.crypto.KeyedEncryptor;
-import org.apache.nifi.processors.standard.util.crypto.OpenPGPKeyBasedEncryptor;
-import org.apache.nifi.processors.standard.util.crypto.OpenPGPPasswordBasedEncryptor;
-import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.security.util.crypto.CipherUtility;
+import org.apache.nifi.security.util.crypto.KeyedEncryptor;
+import org.apache.nifi.security.util.crypto.OpenPGPKeyBasedEncryptor;
+import org.apache.nifi.security.util.crypto.OpenPGPPasswordBasedEncryptor;
+import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.util.StopWatch;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import java.nio.charset.StandardCharsets;
-import java.security.Security;
-import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @EventDriven
 @SideEffectFree
@@ -68,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG"})
 @CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a password and randomly generated salt, or asymmetric encryption using a public and secret key.")
+@SystemResourceConsideration(resource = SystemResource.CPU)
 public class EncryptContent extends AbstractProcessor {
 
     public static final String ENCRYPT_MODE = "Encrypt";
@@ -132,6 +134,7 @@ public class EncryptContent extends AbstractProcessor {
             .description("In a PGP decrypt mode, this is the private keyring passphrase")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .sensitive(true)
             .build();
     public static final PropertyDescriptor RAW_KEY_HEX = new PropertyDescriptor.Builder()
@@ -251,7 +254,7 @@ public class EncryptContent extends AbstractProcessor {
             final String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
             final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
             final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
-            final String privateKeyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue();
+            final String privateKeyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue();
             validationResults.addAll(validatePGP(encryptionMethod, password, encrypt, publicKeyring, publicUserId, privateKeyring, privateKeyringPassphrase));
         } else { // Not PGP
             if (encryptionMethod.isKeyedCipher()) { // Raw key
@@ -474,7 +477,7 @@ public class EncryptContent extends AbstractProcessor {
                     final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
                     encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, publicKeyring, publicUserId, null, filename);
                 } else if (!encrypt && privateKeyring != null) {
-                    final char[] keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue().toCharArray();
+                    final char[] keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue().toCharArray();
                     encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, privateKeyring, null, keyringPassphrase,
                             filename);
                 } else {

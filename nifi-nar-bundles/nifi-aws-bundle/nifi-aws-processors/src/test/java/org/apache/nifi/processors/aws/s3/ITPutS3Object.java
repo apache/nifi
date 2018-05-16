@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -327,35 +324,6 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
-    }
-
-
-    @Test
-    public void testGetPropertyDescriptors() throws Exception {
-        PutS3Object processor = new PutS3Object();
-        List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 28, pd.size());
-        assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
-        assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
-        assertTrue(pd.contains(PutS3Object.BUCKET));
-        assertTrue(pd.contains(PutS3Object.CANNED_ACL));
-        assertTrue(pd.contains(PutS3Object.CREDENTIALS_FILE));
-        assertTrue(pd.contains(PutS3Object.ENDPOINT_OVERRIDE));
-        assertTrue(pd.contains(PutS3Object.FULL_CONTROL_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.KEY));
-        assertTrue(pd.contains(PutS3Object.OWNER));
-        assertTrue(pd.contains(PutS3Object.READ_ACL_LIST));
-        assertTrue(pd.contains(PutS3Object.READ_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.REGION));
-        assertTrue(pd.contains(PutS3Object.SECRET_KEY));
-        assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
-        assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
-        assertTrue(pd.contains(PutS3Object.TIMEOUT));
-        assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
-        assertTrue(pd.contains(PutS3Object.STORAGE_CLASS));
-        assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
-        assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
     }
 
     @Test
@@ -854,13 +822,13 @@ public class ITPutS3Object extends AbstractS3IT {
         // initiation times in whole seconds.
         Long now = System.currentTimeMillis();
 
-        MultipartUploadListing uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now);
+        MultipartUploadListing uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now, BUCKET_NAME);
         Assert.assertEquals(3, uploadList.getMultipartUploads().size());
 
         MultipartUpload upload0 = uploadList.getMultipartUploads().get(0);
         processor.abortS3MultipartUpload(client, BUCKET_NAME, upload0);
 
-        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+1000);
+        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+1000, BUCKET_NAME);
         Assert.assertEquals(2, uploadList.getMultipartUploads().size());
 
         final Map<String, String> attrs = new HashMap<>();
@@ -868,7 +836,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
         runner.run();
 
-        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+2000);
+        uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+2000, BUCKET_NAME);
         Assert.assertEquals(0, uploadList.getMultipartUploads().size());
     }
 

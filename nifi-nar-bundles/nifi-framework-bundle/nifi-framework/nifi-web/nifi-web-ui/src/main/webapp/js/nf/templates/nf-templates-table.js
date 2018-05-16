@@ -251,15 +251,15 @@
                     return '';
                 }
 
-                return dataContext.template.timestamp;
+                return nfCommon.escapeHtml(dataContext.template.timestamp);
             };
 
             var nameFormatter = function (row, cell, value, columnDef, dataContext) {
                 if (!dataContext.permissions.canRead) {
-                    return '<span class="blank">' + dataContext.id + '</span>';
+                    return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
                 }
 
-                return dataContext.template.name;
+                return nfCommon.escapeHtml(dataContext.template.name);
             };
 
             var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -275,7 +275,7 @@
                     return '';
                 }
 
-                return dataContext.template.groupId;
+                return nfCommon.escapeHtml(dataContext.template.groupId);
             };
 
             // function for formatting the actions column
@@ -293,7 +293,7 @@
 
                 // allow policy configuration conditionally if embedded in
                 if (top !== window && nfCommon.canAccessTenants()) {
-                    if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isConfigurableAuthorizer()) {
+                    if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isManagedAuthorizer()) {
                         markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
                     }
                 }

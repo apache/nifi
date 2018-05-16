@@ -29,11 +29,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<RemoteProcessGroupEntity>, ComponentEntityStatusMerger<RemoteProcessGroupStatusDTO> {
+
     @Override
     public void merge(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
         for (Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final RemoteProcessGroupEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -47,6 +47,7 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final RemoteProcessGroupEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         final RemoteProcessGroupDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap = new HashMap<>();
@@ -75,9 +76,11 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
         final RemoteProcessGroupContentsDTO remoteProcessGroupContents = clientDto.getContents();
 
         final Map<String, Set<NodeIdentifier>> authorizationErrorMap = new HashMap<>();
+        final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
+
         Boolean mergedIsTargetSecure = null;
-        final Set<RemoteProcessGroupPortDTO> mergedInputPorts = new HashSet<>();
-        final Set<RemoteProcessGroupPortDTO> mergedOutputPorts = new HashSet<>();
+        Set<RemoteProcessGroupPortDTO> mergedInputPorts = null;
+        Set<RemoteProcessGroupPortDTO> mergedOutputPorts = null;
 
         for (final Map.Entry<NodeIdentifier, RemoteProcessGroupDTO> nodeEntry : dtoMap.entrySet()) {
             final RemoteProcessGroupDTO nodeRemoteProcessGroup = nodeEntry.getValue();
@@ -88,6 +91,7 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
 
                 // merge the authorization errors
                 ErrorMerger.mergeErrors(authorizationErrorMap, nodeId, nodeRemoteProcessGroup.getAuthorizationIssues());
+                ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeRemoteProcessGroup.getValidationErrors());
 
                 // use the first target secure flag since they will all be the same
                 final Boolean nodeIsTargetSecure = nodeRemoteProcessGroup.isTargetSecure();
@@ -98,22 +102,32 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
                 // merge the ports in the contents
                 final RemoteProcessGroupContentsDTO nodeRemoteProcessGroupContentsDto = nodeRemoteProcessGroup.getContents();
                 if (remoteProcessGroupContents != null && nodeRemoteProcessGroupContentsDto != null) {
-                    if (nodeRemoteProcessGroupContentsDto.getInputPorts() != null) {
-                        mergedInputPorts.addAll(nodeRemoteProcessGroupContentsDto.getInputPorts());
+                    final Set<RemoteProcessGroupPortDTO> nodeInputPorts = nodeRemoteProcessGroupContentsDto.getInputPorts();
+                    if (nodeInputPorts != null) {
+                        if (mergedInputPorts == null) {
+                            mergedInputPorts = new HashSet<>(nodeInputPorts);
+                        } else {
+                            mergedInputPorts.retainAll(nodeInputPorts);
+                        }
                     }
-                    if (nodeRemoteProcessGroupContentsDto.getOutputPorts() != null) {
-                        mergedOutputPorts.addAll(nodeRemoteProcessGroupContentsDto.getOutputPorts());
+
+                    final Set<RemoteProcessGroupPortDTO> nodeOutputPorts = nodeRemoteProcessGroupContentsDto.getOutputPorts();
+                    if (nodeOutputPorts != null) {
+                        if (mergedOutputPorts == null) {
+                            mergedOutputPorts = new HashSet<>(nodeOutputPorts);
+                        } else {
+                            mergedOutputPorts.retainAll(nodeOutputPorts);
+                        }
                     }
                 }
             }
-
         }
 
         if (remoteProcessGroupContents != null) {
-            if (!mergedInputPorts.isEmpty()) {
+            if (mergedInputPorts != null && !mergedInputPorts.isEmpty()) {
                 remoteProcessGroupContents.setInputPorts(mergedInputPorts);
             }
-            if (!mergedOutputPorts.isEmpty()) {
+            if (mergedOutputPorts != null && !mergedOutputPorts.isEmpty()) {
                 remoteProcessGroupContents.setOutputPorts(mergedOutputPorts);
             }
         }
@@ -124,5 +138,6 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
 
         // set the merged the validation errors
         clientDto.setAuthorizationIssues(ErrorMerger.normalizedMergedErrors(authorizationErrorMap, dtoMap.size()));
+        clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));
     }
 }

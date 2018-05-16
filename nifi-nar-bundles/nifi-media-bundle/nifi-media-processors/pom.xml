@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-media-bundle</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-media-processors</artifactId>
@@ -33,32 +33,46 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.drewnoakes</groupId>
             <artifactId>metadata-extractor</artifactId>
-            <version>2.8.0</version>
-        </dependency>
-        <!-- Would like a newer version of tika-core and tika-parsers but newer 
-        tika-parser versions have cat-X json lib and other libraries that need to
-        have their license validated such as geoapis. --> 
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
-            <version>1.8</version>
+            <version>2.11.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-parsers</artifactId>
-            <version>1.8</version>
+            <version>1.17</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+                <!--This must be excluded because it appears to have an invalid ASF unfriendly license.
+                This might cause weird behavior in usage of Tika Parsers - not sure.  Have emailed the
+                Tika community 
+                https://lists.apache.org/thread.html/283e34e24db9382512b58bc24bc000efeffabba5e3475bc72e624967@%3Cuser.tika.apache.org%3E
+                -->
+                <exclusion>
+                    <groupId>javax.measure</groupId>
+                    <artifactId>jsr-275</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- Once Tika-Parsers 1.18 comes out this explicit dependency ref forcing 1.16.1 can be removed -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.16.1</version>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>

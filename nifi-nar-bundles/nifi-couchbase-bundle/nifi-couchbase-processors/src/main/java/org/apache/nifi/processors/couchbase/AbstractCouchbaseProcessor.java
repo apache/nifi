@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -52,7 +53,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder().name("Document Id")
         .description("A static, fixed Couchbase document id, or an expression to construct the Couchbase document id.")
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 

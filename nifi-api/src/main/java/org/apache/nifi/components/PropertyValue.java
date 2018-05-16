@@ -324,4 +324,13 @@ public interface PropertyValue {
      * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(FlowFile flowFile, AttributeValueDecorator decorator) throws ProcessException;
+
+    /**
+     * <p>
+     * Indicates whether the value of the property uses Expression Language.
+     * </p>
+     *
+     * @return <code>true</code> if the property value makes use of the Expression Language, <code>false</code> otherwise.
+     */
+    boolean isExpressionLanguagePresent();
 }

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController>
+    <maxThreadCount>15</maxThreadCount>
+    <rootGroup>
+        <id>e3909250-331d-420b-a9b3-cc54ad459401</id>
+        <name>NiFi Flow</name>
+        <position x="0.0" y="0.0"/>
+        <style/>
+        <comment/>
+        <processor>
+            <id>d89ada5d-35fb-44ff-83f1-4cc00b48b2df</id>
+            <name>GenerateFlowFile</name>
+            <position x="0.0" y="0.0"/>
+            <style>processor</style>
+            <comment/>
+            <class>org.apache.nifi.processors.standard.GenerateFlowFile</class>
+            <bundle>
+                <group>org.apache.nifi</group>
+                <artifact>nifi-standard-nar</artifact>
+                <version>2.0</version>
+            </bundle>
+            <maxConcurrentTasks>1</maxConcurrentTasks>
+            <schedulingPeriod>0 sec</schedulingPeriod>
+            <penalizationPeriod>30 sec</penalizationPeriod>
+            <yieldPeriod>1 sec</yieldPeriod>
+            <bulletinLevel>WARN</bulletinLevel>
+            <lossTolerant>false</lossTolerant>
+            <scheduledState>STOPPED</scheduledState>
+            <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+            <executionNode>ALL</executionNode>
+            <runDurationNanos>0</runDurationNanos>
+            <property>
+                <name>file.size</name>
+                <value>5</value>
+            </property>
+            <annotationData/>
+        </processor>
+    </rootGroup>
+</flowController>

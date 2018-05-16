@@ -102,14 +102,13 @@ public class NaiveRevisionManager implements RevisionManager {
         final List<Revision> revisionList = new ArrayList<>(originalClaim.getRevisions());
         revisionList.sort(new RevisionComparator());
 
-        String failedId = null;
         for (final Revision revision : revisionList) {
             final Revision currentRevision = getRevision(revision.getComponentId());
             final boolean verified = revision.equals(currentRevision);
 
             if (!verified) {
                 // Throw an Exception indicating that we failed to obtain the locks
-                throw new InvalidRevisionException("Invalid Revision was given for component with ID '" + failedId + "'");
+                throw new InvalidRevisionException("Invalid Revision was given for component with ID '" + revision.getComponentId() + "'");
             }
         }
 

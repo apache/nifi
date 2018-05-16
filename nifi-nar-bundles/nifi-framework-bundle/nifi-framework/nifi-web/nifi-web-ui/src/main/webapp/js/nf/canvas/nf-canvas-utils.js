@@ -21,17 +21,19 @@
         define(['d3',
                 'jquery',
                 'nf.Common',
+                'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Clipboard',
                 'nf.Storage'],
-            function (d3, $, nfCommon, nfDialog, nfClipboard, nfStorage) {
-                return (nf.CanvasUtils = factory(d3, $, nfCommon, nfDialog, nfClipboard, nfStorage));
+            function (d3, $, nfCommon, nfErrorHandler, nfDialog, nfClipboard, nfStorage) {
+                return (nf.CanvasUtils = factory(d3, $, nfCommon, nfErrorHandler, nfDialog, nfClipboard, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.CanvasUtils = factory(
             require('d3'),
             require('jquery'),
             require('nf.Common'),
+            require('nf.ErrorHandler'),
             require('nf.Dialog'),
             require('nf.Clipboard'),
             require('nf.Storage')));
@@ -40,11 +42,12 @@
             root.d3,
             root.$,
             root.nf.Common,
+            root.nf.ErrorHandler,
             root.nf.Dialog,
             root.nf.Clipboard,
             root.nf.Storage);
     }
-}(this, function (d3, $, nfCommon, nfDialog, nfClipboard, nfStorage) {
+}(this, function (d3, $, nfCommon, nfErrorHandler, nfDialog, nfClipboard, nfStorage) {
     'use strict';
 
     var nfCanvas;
@@ -52,6 +55,9 @@
     var nfSnippet;
     var nfBirdseye;
     var nfGraph;
+
+    var restrictedUsage = d3.map();
+    var requiredPermissions = d3.map();
 
     var config = {
         storage: {
@@ -61,6 +67,8 @@
             controller: '../nifi-api/controller'
         }
     };
+
+    var MAX_URL_LENGTH = 2000;  // the maximum (suggested) safe string length of a URL supported by all browsers and application servers
 
     var TWO_PI = 2 * Math.PI;
 
@@ -87,8 +95,10 @@
 
     var moveComponents = function (components, groupId) {
         return $.Deferred(function (deferred) {
+            var parentGroupId = nfCanvasUtils.getGroupId();
+
             // create a snippet for the specified components
-            var snippet = nfSnippet.marshal(components);
+            var snippet = nfSnippet.marshal(components, parentGroupId);
             nfSnippet.create(snippet).done(function (response) {
                 // move the snippet into the target
                 nfSnippet.move(response.snippet.id, groupId).done(function () {
@@ -108,18 +118,18 @@
                     });
 
                     // refresh all component types as necessary (handle components that have been removed)
-                    componentMap.forEach(function (type, ids) {
+                    componentMap.each(function (ids, type) {
                         nfCanvasUtils.getComponentByType(type).remove(ids);
-                    });  
+                    });
 
                     // refresh the birdseye
                     nfBirdseye.refresh();
 
                     deferred.resolve();
-                }).fail(nfCommon.handleAjaxError).fail(function () {
+                }).fail(nfErrorHandler.handleAjaxError).fail(function () {
                     deferred.reject();
                 });
-            }).fail(nfCommon.handleAjaxError).fail(function () {
+            }).fail(nfErrorHandler.handleAjaxError).fail(function () {
                 deferred.reject();
             });
         }).promise();
@@ -234,10 +244,103 @@
         },
 
         /**
+         * Queries for bulletins for the specified components.
+         *
+         * @param {array} componentIds
+         * @returns {deferred}
+         */
+        queryBulletins: function (componentIds) {
+            var queries = [];
+
+            var query = function (ids) {
+                var url = new URL(window.location);
+                var origin = nfCommon.substringBeforeLast(url.href, '/nifi');
+                var endpoint = origin + '/nifi-api/flow/bulletin-board?' + $.param({
+                    sourceId: ids.join('|')
+                });
+
+                if (endpoint.length > MAX_URL_LENGTH) {
+                    // split into two arrays and recurse with both halves
+                    var mid = Math.ceil(ids.length / 2);
+
+                    // left half
+                    var left = ids.slice(0, mid);
+                    if (left.length > 0) {
+                        query(left);
+                    }
+
+                    // right half
+                    var right = ids.slice(mid);
+                    if (right.length > 0) {
+                        query(right);
+                    }
+                } else {
+                    queries.push($.ajax({
+                        type: 'GET',
+                        url: endpoint,
+                        dataType: 'json'
+                    }));
+                }
+            };
+
+            // initiate the queries
+            query(componentIds);
+
+            if (queries.length === 1) {
+                // if there was only one query, return it
+                return $.Deferred(function (deferred) {
+                    queries[0].done(function (response) {
+                        deferred.resolve(response);
+                    }).fail(function () {
+                        deferred.reject();
+                    }).fail(nfErrorHandler.handleAjaxError);
+                }).promise();
+            } else {
+                // if there were multiple queries, wait for each to complete
+                return $.Deferred(function (deferred) {
+                    $.when.apply(window, queries).done(function () {
+                        var results = $.makeArray(arguments);
+
+                        var generated = null;
+                        var bulletins = [];
+
+                        $.each(results, function (_, result) {
+                            var response = result[0];
+                            var bulletinBoard = response.bulletinBoard;
+
+                            // use the first generated timestamp
+                            if (generated === null) {
+                                generated = bulletinBoard.generated;
+                            }
+
+                            // build up all the bulletins
+                            Array.prototype.push.apply(bulletins, bulletinBoard.bulletins);
+                        });
+
+                        // sort all the bulletins
+                        bulletins.sort(function (a, b) {
+                            return b.id - a.id;
+                        });
+
+                        // resolve with a aggregated result
+                        deferred.resolve({
+                            bulletinBoard: {
+                                generated: generated,
+                                bulletins: bulletins
+                            }
+                        });
+                    }).fail(function () {
+                        deferred.reject();
+                    }).fail(nfErrorHandler.handleAjaxError);
+                }).promise();
+            }
+        },
+
+        /**
          * Shows the specified component in the specified group.
          *
-         * @argument {string} groupId       The id of the group
-         * @argument {string} componentId   The id of the component
+         * @param {string} groupId       The id of the group
+         * @param {string} componentId   The id of the component
          */
         showComponent: function (groupId, componentId) {
             // ensure the group id is specified
@@ -252,12 +355,12 @@
                         // reload
                         nfCanvas.reload().done(function () {
                             deferred.resolve();
-                        }).fail(function () {
+                        }).fail(function (xhr, status, error) {
                             nfDialog.showOkDialog({
-                                headerText: 'Process Group',
+                                headerText: 'Error',
                                 dialogContent: 'Unable to load the group for the specified component.'
                             });
-                            deferred.reject();
+                            deferred.reject(xhr, status, error);
                         });
                     } else {
                         deferred.resolve();
@@ -272,11 +375,193 @@
                         nfActions.show(component);
                     } else {
                         nfDialog.showOkDialog({
-                            headerText: 'Process Group',
+                            headerText: 'Error',
                             dialogContent: 'Unable to find the specified component.'
                         });
                     }
                 });
+
+                return refreshGraph;
+            } else {
+                return $.Deferred(function (deferred) {
+                    deferred.reject();
+                }).promise();
+            }
+        },
+
+        /**
+         * Displays the URL deep link on the canvas.
+         *
+         * @param forceCanvasLoad   Boolean enabling the update of the URL parameters.
+         */
+        showDeepLink: function (forceCanvasLoad) {
+            // deselect components
+            nfCanvasUtils.getSelection().classed('selected', false);
+
+            // close the ok dialog if open
+            if ($('#nf-ok-dialog').is(':visible') === true) {
+                $('#nf-ok-dialog').modal('hide');
+            }
+
+            // Feature detection and browser support for URLSearchParams
+            if ('URLSearchParams' in window) {
+                // get the `urlSearchParams` from the URL
+                var urlSearchParams = new URL(window.location).searchParams;
+                // if the `urlSearchParams` are `undefined` then the browser does not support
+                // the URL object's `.searchParams` property
+                if (!nf.Common.isDefinedAndNotNull(urlSearchParams)) {
+                    // attempt to get the `urlSearchParams` using the URLSearchParams constructor and
+                    // the URL object's `.search` property
+                    urlSearchParams = new URLSearchParams(new URL(window.location).search);
+                }
+
+                var groupId = nfCanvasUtils.getGroupId();
+
+                // if the `urlSearchParams` are still `undefined` then the browser does not support
+                // the URL object's `.search` property. In this case we cannot support deep links.
+                if (nf.Common.isDefinedAndNotNull(urlSearchParams)) {
+                    var componentIds = [];
+
+                    if (urlSearchParams.get('processGroupId')) {
+                        groupId = urlSearchParams.get('processGroupId');
+                    }
+                    if (urlSearchParams.get('componentIds')) {
+                        componentIds = urlSearchParams.get('componentIds').split(',');
+                    }
+
+                    // load the graph but do not update the browser history
+                    if (componentIds.length >= 1) {
+                        return nfCanvasUtils.showComponents(groupId, componentIds, forceCanvasLoad);
+                    } else {
+                        return nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(groupId);
+                    }
+                } else {
+                    return nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(groupId);
+                }
+            }
+        },
+
+        /**
+         * Shows the specified components in the specified group.
+         *
+         * @param {string} groupId       The id of the group
+         * @param {array} componentIds   The ids of the components
+         * @param {bool} forceCanvasLoad   Boolean to force reload of the canvas.
+         */
+        showComponents: function (groupId, componentIds, forceCanvasLoad) {
+            // ensure the group id is specified
+            if (nfCommon.isDefinedAndNotNull(groupId)) {
+                // initiate a graph refresh
+                var refreshGraph = $.Deferred(function (deferred) {
+                    // load a different group if necessary
+                    if (groupId !== nfCanvas.getGroupId() || forceCanvasLoad) {
+                        // set the new group id
+                        nfCanvas.setGroupId(groupId);
+
+                        // reload
+                        nfCanvas.reload().done(function () {
+                            deferred.resolve();
+                        }).fail(function (xhr, status, error) {
+                            nfDialog.showOkDialog({
+                                headerText: 'Error',
+                                dialogContent: 'Unable to enter the selected group.'
+                            });
+
+                            deferred.reject(xhr, status, error);
+                        });
+                    } else {
+                        deferred.resolve();
+                    }
+                }).promise();
+
+                // when the refresh has completed, select the match
+                refreshGraph.done(function () {
+                    // get the components to select
+                    var components = d3.selectAll('g.component, g.connection').filter(function (d) {
+                        if (componentIds.indexOf(d.id) >= 0) {
+                            // remove located components from array so that only unfound components will remain
+                            componentIds.splice(componentIds.indexOf(d.id), 1);
+                            return d;
+                        }
+                    });
+
+                    if (componentIds.length > 0) {
+                        var dialogContent = $('<p></p>').text('Specified component(s) not found: ' + componentIds.join(', ') + '.').append('<br/><br/>').append($('<p>Unable to select component(s).</p>'));
+
+                        nfDialog.showOkDialog({
+                            headerText: 'Error',
+                            dialogContent: dialogContent
+                        });
+                    }
+
+                    nfActions.show(components);
+                });
+
+                return refreshGraph;
+            }
+        },
+
+        /**
+         * Set the parameters of the URL.
+         *
+         * @param groupId       The process group id.
+         * @param selections    The component ids.
+         */
+        setURLParameters: function (groupId, selections) {
+            // Feature detection and browser support for URLSearchParams
+            if ('URLSearchParams' in window) {
+                if (!nfCommon.isDefinedAndNotNull(groupId)) {
+                    groupId = nfCanvasUtils.getGroupId();
+                }
+
+                if (!nfCommon.isDefinedAndNotNull(selections)) {
+                    selections = nfCanvasUtils.getSelection();
+                }
+
+                var selectedComponentIds = [];
+                selections.each(function (selection) {
+                    selectedComponentIds.push(selection.id);
+                });
+
+                // get all URL parameters
+                var url = new URL(window.location);
+
+                // get the `params` from the URL
+                var params = new URL(window.location).searchParams;
+                // if the `params` are undefined then the browser does not support
+                // the URL object's `.searchParams` property
+                if (!nf.Common.isDefinedAndNotNull(params)) {
+                    // attempt to get the `params` using the URLSearchParams constructor and
+                    // the URL object's `.search` property
+                    params = new URLSearchParams(url.search);
+                }
+
+                // if the `params` are still `undefined` then the browser does not support
+                // the URL object's `.search` property. In this case we cannot support deep links.
+                if (nf.Common.isDefinedAndNotNull(params)) {
+                    var params = new URLSearchParams(url.search);
+                    params.set('processGroupId', groupId);
+                    params.set('componentIds', selectedComponentIds.sort());
+
+                    var newUrl = url.origin + url.pathname;
+
+                    if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId()) || selectedComponentIds.length > 0) {
+                        if (!nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
+                            // we are in the root group so set processGroupId param value to 'root' alias
+                            params.set('processGroupId', 'root');
+                        }
+
+                        if ((url.origin + url.pathname + '?' + params.toString()).length <= MAX_URL_LENGTH) {
+                            newUrl = url.origin + url.pathname + '?' + params.toString();
+                        } else if (nfCommon.isDefinedAndNotNull(nfCanvasUtils.getParentGroupId())) {
+                            // silently remove all component ids
+                            params.set('componentIds', '');
+                            newUrl = url.origin + url.pathname + '?' + params.toString();
+                        }
+                    }
+
+                    window.history.replaceState({'previous_url': url.href}, window.document.title, newUrl);
+                }
             }
         },
 
@@ -295,7 +580,10 @@
          * @param {type} boundingBox
          */
         centerBoundingBox: function (boundingBox) {
-            var scale = nfCanvas.View.scale();
+            var scale = nfCanvas.View.getScale();
+            if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
+                scale = boundingBox.scale;
+            }
 
             // get the canvas normalized width and height
             var canvasContainer = $('#canvas-container');
@@ -306,7 +594,7 @@
             var center = [(screenWidth / 2) - (boundingBox.width / 2), (screenHeight / 2) - (boundingBox.height / 2)];
 
             // calculate the difference between the center point and the position of this component and convert to screen space
-            nfCanvas.View.translate([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale]);
+            nfCanvas.View.transform([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale], scale);
         },
 
         /**
@@ -371,6 +659,7 @@
          * @param {string} text
          */
         ellipsis: function (selection, text) {
+            text = text.trim();
             var width = parseInt(selection.attr('width'), 10);
             var node = selection.node();
 
@@ -419,7 +708,7 @@
 
             var line = [];
             var tspan = selection.append('tspan')
-                .attr({
+                .attrs({
                     'x': x,
                     'y': y,
                     'width': width
@@ -444,7 +733,7 @@
 
                     // create the tspan for the next line
                     tspan = selection.append('tspan')
-                        .attr({
+                        .attrs({
                             'x': x,
                             'dy': '1.2em',
                             'width': width
@@ -483,20 +772,44 @@
          * @return
          */
         activeThreadCount: function (selection, d, setOffset) {
+            var activeThreads = d.status.aggregateSnapshot.activeThreadCount;
+            var terminatedThreads = d.status.aggregateSnapshot.terminatedThreadCount;
+
             // if there is active threads show the count, otherwise hide
-            if (d.status.aggregateSnapshot.activeThreadCount > 0) {
+            if (activeThreads > 0 || terminatedThreads > 0) {
+                var generateThreadsTip = function () {
+                    var tip = activeThreads + ' active threads';
+                    if (terminatedThreads > 0) {
+                        tip += ' (' + terminatedThreads + ' terminated)';
+                    }
+
+                    return tip;
+                };
+
                 // update the active thread count
                 var activeThreadCount = selection.select('text.active-thread-count')
                     .text(function () {
-                        return d.status.aggregateSnapshot.activeThreadCount;
+                        if (terminatedThreads > 0) {
+                            return activeThreads + ' (' + terminatedThreads + ')';
+                        } else {
+                            return activeThreads;
+                        }
                     })
                     .style('display', 'block')
                     .each(function () {
+                        var activeThreadCountText = d3.select(this);
+
                         var bBox = this.getBBox();
-                        d3.select(this).attr('x', function () {
+                        activeThreadCountText.attr('x', function () {
                             return d.dimensions.width - bBox.width - 15;
                         });
+
+                        // reset the active thread count tooltip
+                        activeThreadCountText.selectAll('title').remove();
                     });
+
+                // append the tooltip
+                activeThreadCount.append('title').text(generateThreadsTip);
 
                 // update the background width
                 selection.select('text.active-thread-count-icon')
@@ -510,9 +823,26 @@
 
                         return d.dimensions.width - bBox.width - 20;
                     })
-                    .style('display', 'block');
+                    .style('fill', function () {
+                        if (terminatedThreads > 0) {
+                            return '#ba554a';
+                        } else {
+                            return '#728e9b';
+                        }
+                    })
+                    .style('display', 'block')
+                    .each(function () {
+                        var activeThreadCountIcon = d3.select(this);
+
+                        // reset the active thread count tooltip
+                        activeThreadCountIcon.selectAll('title').remove();
+                    }).append('title').text(generateThreadsTip);
             } else {
-                selection.selectAll('text.active-thread-count, text.active-thread-count-icon').style('display', 'none');
+                selection.selectAll('text.active-thread-count, text.active-thread-count-icon')
+                    .style('display', 'none')
+                    .each(function () {
+                        d3.select(this).selectAll('title').remove();
+                    });
             }
         },
 
@@ -852,10 +1182,19 @@
                 var selected = d3.select(this);
                 var selectedData = selected.datum();
 
+                // enable always allowed for PGs since they will invoke the /flow endpoint for enabling all applicable components (based on permissions)
+                if (nfCanvasUtils.isProcessGroup(selected)) {
+                    return true;
+                }
+
+                // not a PG, verify permissions to modify
+                if (nfCanvasUtils.canModify(selected) === false) {
+                    return false;
+                }
+
                 // ensure its a processor, input port, or output port and supports modification and is disabled (can enable)
                 return ((nfCanvasUtils.isProcessor(selected) || nfCanvasUtils.isInputPort(selected) || nfCanvasUtils.isOutputPort(selected)) &&
-                nfCanvasUtils.supportsModification(selected) &&
-                selectedData.status.aggregateSnapshot.runStatus === 'Disabled');
+                    nfCanvasUtils.supportsModification(selected) && selectedData.status.aggregateSnapshot.runStatus === 'Disabled');
             });
         },
 
@@ -866,11 +1205,7 @@
          */
         canEnable: function (selection) {
             if (selection.empty()) {
-                return false;
-            }
-
-            if (nfCanvasUtils.canModify(selection) === false) {
-                return false;
+                return true;
             }
 
             return nfCanvasUtils.filterEnable(selection).size() === selection.size();
@@ -886,11 +1221,20 @@
                 var selected = d3.select(this);
                 var selectedData = selected.datum();
 
+                // disable always allowed for PGs since they will invoke the /flow endpoint for disabling all applicable components (based on permissions)
+                if (nfCanvasUtils.isProcessGroup(selected)) {
+                    return true;
+                }
+
+                // not a PG, verify permissions to modify
+                if (nfCanvasUtils.canModify(selected) === false) {
+                    return false;
+                }
+
                 // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
                 return ((nfCanvasUtils.isProcessor(selected) || nfCanvasUtils.isInputPort(selected) || nfCanvasUtils.isOutputPort(selected)) &&
-                nfCanvasUtils.supportsModification(selected) &&
-                (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' ||
-                selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
+                    nfCanvasUtils.supportsModification(selected) &&
+                    (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' || selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
             });
         },
 
@@ -901,11 +1245,7 @@
          */
         canDisable: function (selection) {
             if (selection.empty()) {
-                return false;
-            }
-
-            if (nfCanvasUtils.canModify(selection) === false) {
-                return false;
+                return true;
             }
 
             return nfCanvasUtils.filterDisable(selection).size() === selection.size();
@@ -1278,9 +1618,9 @@
             var name = config.storage.namePrefix + nfCanvas.getGroupId();
 
             // create the item to store
-            var translate = nfCanvas.View.translate();
+            var translate = nfCanvas.View.getTranslate();
             var item = {
-                scale: nfCanvas.View.scale(),
+                scale: nfCanvas.View.getScale(),
                 translateX: translate[0],
                 translateY: translate[1]
             };
@@ -1370,13 +1710,7 @@
                 if (nfCommon.isDefinedAndNotNull(item)) {
                     if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
                         // restore previous view
-                        nfCanvas.View.translate([item.translateX, item.translateY]);
-                        nfCanvas.View.scale(item.scale);
-
-                        // refresh the canvas
-                        nfCanvas.View.refresh({
-                            transition: true
-                        });
+                        nfCanvas.View.transform([item.translateX, item.translateY], item.scale);
 
                         // mark the view was restore
                         viewRestored = true;
@@ -1542,10 +1876,59 @@
         },
 
         /**
+         * Returns whether the authorizer is managed.
+         */
+        isManagedAuthorizer: function () {
+            return nfCanvas.isManagedAuthorizer();
+        },
+
+        /**
          * Returns whether the authorizer is configurable.
          */
         isConfigurableAuthorizer: function () {
             return nfCanvas.isConfigurableAuthorizer();
+        },
+
+        /**
+         * Returns whether the authorizer support configurable users and groups.
+         */
+        isConfigurableUsersAndGroups: function () {
+            return nfCanvas.isConfigurableUsersAndGroups();
+        },
+
+        /**
+         * Adds the restricted usage and the required permissions.
+         *
+         * @param additionalRestrictedUsages
+         * @param additionalRequiredPermissions
+         */
+        addComponentRestrictions: function (additionalRestrictedUsages, additionalRequiredPermissions) {
+            additionalRestrictedUsages.each(function (componentRestrictions, requiredPermissionId) {
+                if (!restrictedUsage.has(requiredPermissionId)) {
+                    restrictedUsage.set(requiredPermissionId, []);
+                }
+
+                componentRestrictions.forEach(function (componentRestriction) {
+                    restrictedUsage.get(requiredPermissionId).push(componentRestriction);
+                });
+            });
+            additionalRequiredPermissions.each(function (requiredPermissionLabel, requiredPermissionId) {
+                if (!requiredPermissions.has(requiredPermissionId)) {
+                    requiredPermissions.set(requiredPermissionId, requiredPermissionLabel);
+                }
+            });
+        },
+
+        /**
+         * Gets the component restrictions and the require permissions.
+         *
+         * @returns {{restrictedUsage: map, requiredPermissions: map}} component restrictions
+         */
+        getComponentRestrictions: function () {
+            return {
+                restrictedUsage: restrictedUsage,
+                requiredPermissions: requiredPermissions
+            };
         },
 
         /**
@@ -1592,7 +1975,7 @@
          *
          * @returns {boolean}   can write
          */
-        canReadFromGroup: function () {
+        canReadCurrentGroup: function () {
             return nfCanvas.canRead();
         },
 
@@ -1601,62 +1984,58 @@
          *
          * @returns {boolean}   can write
          */
-        canWrite: function () {
+        canWriteCurrentGroup: function () {
             return nfCanvas.canWrite();
         },
 
         /**
-         * Refreshes the view based on the configured translation and scale.
-         *
-         * @param {object} options Options for the refresh operation
+         * Gets the current scale.
          */
-        refreshCanvasView: function (options) {
-            return nfCanvas.View.refresh(options);
+        getCanvasScale: function () {
+            return nfCanvas.View.getScale();
         },
 
         /**
-         * Sets/gets the current scale.
-         *
-         * @param {number} scale        The new scale
+         * Gets the current translation.
          */
-        scaleCanvasView: function (scale) {
-            return nfCanvas.View.scale(scale);
+        getCanvasTranslate: function () {
+            return nfCanvas.View.getTranslate();
         },
 
         /**
-         * Sets/gets the current translation.
+         * Translate the canvas by the specified [x, y]
          *
-         * @param {array} translate     [x, y]
+         * @param {array} translate     [x, y] to translate by
          */
-        translateCanvasView: function (translate) {
-            return nfCanvas.View.translate(translate);
+        translateCanvas: function (translate) {
+            nfCanvas.View.translate(translate);
         },
 
         /**
          * Zooms to fit the entire graph on the canvas.
          */
-        fitCanvasView: function () {
+        fitCanvas: function () {
             return nfCanvas.View.fit();
         },
 
         /**
          * Zooms in a single zoom increment.
          */
-        zoomCanvasViewIn: function () {
+        zoomInCanvas: function () {
             return nfCanvas.View.zoomIn();
         },
 
         /**
          * Zooms out a single zoom increment.
          */
-        zoomCanvasViewOut: function () {
+        zoomOutCanvas: function () {
             return nfCanvas.View.zoomOut();
         },
 
         /**
          * Zooms to the actual size (1 to 1).
          */
-        actualSizeCanvasView: function () {
+        actualSizeCanvas: function () {
             return nfCanvas.View.actualSize();
         },
 

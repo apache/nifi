@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>ExtractCCDAAttributes</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Apache NiFi C-CDA Processor</h2>
+        <p>
+            C-CDA Processor Bundle provides parser for Consolidated-CDA documents</br>
+            This processor parses C-CDA and sets attributes as FlowFile attributes. The attributes are named as &lt;Parent&gt; &lt;dot&gt; &lt;Key&gt;.</br>
+            If the Parent is repeating, the naming will be &lt;Parent&gt; &lt;underscore&gt; &lt;Parent Index&gt; &lt;dot&gt; &lt;Key&gt;.</br>
+        </p>
+        <h3>Example Attribute Output</h3>
+        <p>
+            <pre><code>
+    problemSection.act.observation.problemStatus.code.code=33999-4
+    problemSection.act.observation.problemStatus.code.codeSystem=2.16.840.1.113883.6.1
+    problemSection.act.observation.problemStatus.code.codeSystemName=LOINC
+    problemSection.act.observation.problemStatus.code.displayName=Status
+    problemSection.act.observation.problemStatus.statusCode.code=completed
+    problemSection.act.observation.statusCode.code=completed
+            </code></pre>
+        </p>
+        <h3>Example Parser Mapping</h3>
+        <p>
+            This processor is driven by a mapping file which specifies the element relationships. For example
+            <pre><code>
+    org.openhealthtools.mdht.uml.cda.consol.impl.ProblemObservationImpl=id#element.ids\
+        @values#element.values[0]\
+        @statusCode#element.statusCode\
+        @effectiveTime#element.effectiveTime\
+        @negation#element.negationInd\
+        @problemStatus#element.problemStatus
+    org.openhealthtools.mdht.uml.cda.consol.impl.ProblemStatusImpl=id#element.id\
+        @code#element.code\
+        @values#element.values[0]\
+        @statusCode#element.statusCode
+            </code></pre>
+        </p>
+        <h3>References</h3>
+        <p>
+            These mappings are defined as per the implementation guide&mdash;<a href="http://www.hl7.org/documentcenter/public/standards/dstu/CDAR2_IG_IHE_CONSOL_DSTU_R1dot1_2012JUL.zip">HL7 Implementation Guide for CDA&reg; Release 2</a></br>
+        </p>
+    </body>
+</html>

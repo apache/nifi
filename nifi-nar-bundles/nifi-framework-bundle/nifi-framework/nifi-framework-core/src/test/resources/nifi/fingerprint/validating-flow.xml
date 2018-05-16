@@ -30,6 +30,11 @@
       </styles>
       <comment>write a file</comment>
       <class>org.apache.nifi.processors.standard.PutFile</class>
+      <bundle>
+        <group>org.apache.nifi</group>
+        <artifact>nifi-standard-nar</artifact>
+        <version>1.1.0</version>
+      </bundle>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>3000 millisecond</penalizationPeriod>
@@ -76,6 +81,11 @@
       </styles>
       <comment/>
       <class>org.apache.nifi.processors.standard.GetFile</class>
+      <bundle>
+        <group>org.apache.nifi</group>
+        <artifact>nifi-standard-nar</artifact>
+        <version>1.1.0</version>
+      </bundle>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>

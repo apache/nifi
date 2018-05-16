@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlEnum;
 import javax.xml.bind.annotation.XmlType;
 
@@ -47,7 +48,8 @@ public class LineageRequestDTO {
      * @return event id that was used to generate this lineage
      */
     @ApiModelProperty(
-            value = ""
+            value = "The event id that was used to generate this lineage, if applicable. The event id is allowed for any type of lineageRequestType. If the lineageRequestType is FLOWFILE and the "
+                    + "flowfile uuid is also included in the request, the event id will be ignored."
     )
     public Long getEventId() {
         return eventId;
@@ -90,7 +92,7 @@ public class LineageRequestDTO {
      * @return uuid that was used to generate this lineage
      */
     @ApiModelProperty(
-            value = "The uuid that was used to generate the lineage."
+            value = "The flowfile uuid that was used to generate the lineage. The flowfile uuid is only allowed when the lineageRequestType is FLOWFILE and will take precedence over event id."
     )
     public String getUuid() {
         return uuid;

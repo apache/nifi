@@ -137,8 +137,13 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         addHandler(new MyProxyHandler());
         URL proxyURL = new URL(url);
 
+        runner.setVariable("proxy.host", proxyURL.getHost());
+        runner.setVariable("proxy.port", String.valueOf(proxyURL.getPort()));
+        runner.setVariable("proxy.username", "username");
+        runner.setVariable("proxy.password", "password");
+
         runner.setProperty(InvokeHTTP.PROP_URL, "http://nifi.apache.org/"); // just a dummy URL no connection goes out
-        runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, proxyURL.getHost());
+        runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, "${proxy.host}");
 
         try{
             runner.run();
@@ -146,9 +151,9 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         } catch (AssertionError e){
             // Expect assertion error when proxy port isn't set but host is.
         }
-        runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, String.valueOf(proxyURL.getPort()));
+        runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, "${proxy.port}");
 
-        runner.setProperty(InvokeHTTP.PROP_PROXY_USER, "username");
+        runner.setProperty(InvokeHTTP.PROP_PROXY_USER, "${proxy.username}");
 
         try{
             runner.run();
@@ -156,7 +161,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         } catch (AssertionError e){
             // Expect assertion error when proxy password isn't set but host is.
         }
-        runner.setProperty(InvokeHTTP.PROP_PROXY_PASSWORD, "password");
+        runner.setProperty(InvokeHTTP.PROP_PROXY_PASSWORD, "${proxy.password}");
 
         createFlowFiles(runner);
 

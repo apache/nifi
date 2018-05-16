@@ -1,13 +1,14 @@
 nifi-evtx-nar
 Copyright 2016 The Apache Software Foundation
 
-This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
-Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
-while at Mandiant http://www.mandiant.com
-The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
-
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
+
+This product includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
+  Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
+  while at Mandiant http://www.mandiant.com
+  The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py
+  and can be found in the org.apache.nifi.processors.evtx.parser package.
 
 ******************
 Apache Software License v2

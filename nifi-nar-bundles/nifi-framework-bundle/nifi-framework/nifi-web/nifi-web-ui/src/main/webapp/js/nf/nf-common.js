@@ -61,6 +61,8 @@
             } else {
                 checkbox.removeClass('checkbox-checked').addClass('checkbox-unchecked');
             }
+            // emit a state change event
+            checkbox.trigger('change');
         });
 
         // setup click areas for custom checkboxes
@@ -86,15 +88,15 @@
         // handle logout
         $('#user-logout').on('click', function () {
             nfStorage.removeItem('jwt');
-            window.location = '/nifi/login';
+            window.location = '../nifi/login';
         });
 
         // handle home
         $('#user-home').on('click', function () {
             if (top !== window) {
-                parent.window.location = '/nifi';
+                parent.window.location = '../nifi';
             } else {
-                window.location = '/nifi';
+                window.location = '../nifi';
             }
         });
     });
@@ -117,7 +119,7 @@
     }, {
         text: 'access restricted components',
         value: 'restricted-components',
-        description: 'Allows users to create/modify restricted components assuming otherwise sufficient permissions'
+        description: 'Allows users to create/modify restricted components assuming other permissions are sufficient'
     }, {
         text: 'access all policies',
         value: 'policies',
@@ -165,11 +167,8 @@
                     }
                 },
                 position: {
-                    at: 'bottom center',
-                    my: 'top center',
-                    adjust: {
-                        y: 5
-                    }
+                    at: 'top center',
+                    my: 'bottom center'
                 }
             }
         },
@@ -185,6 +184,124 @@
         currentUser: undefined,
 
         /**
+         * Sorts the specified version strings.
+         *
+         * @param aRawVersion version string
+         * @param bRawVersion version string
+         * @returns {number} negative if a before b, positive if a after b, 0 otherwise
+         */
+        sortVersion: function (aRawVersion, bRawVersion) {
+            if (aRawVersion === bRawVersion) {
+                return 0;
+            }
+
+            // attempt to parse the raw strings
+            var aTokens = aRawVersion.split(/-/);
+            var bTokens = bRawVersion.split(/-/);
+
+            // ensure there is at least one token
+            if (aTokens.length >= 1 && bTokens.length >= 1) {
+                var aVersionTokens = aTokens[0].split(/\./);
+                var bVersionTokens = bTokens[0].split(/\./);
+
+                // ensure both versions have at least one token
+                if (aVersionTokens.length >= 1 && bVersionTokens.length >= 1) {
+                    // find the number of tokens a and b have in common
+                    var commonTokenLength = Math.min(aVersionTokens.length, bVersionTokens.length);
+
+                    // consider all tokens in common
+                    for (var i = 0; i < commonTokenLength; i++) {
+                        var aVersionSegment = parseInt(aVersionTokens[i], 10);
+                        var bVersionSegment = parseInt(bVersionTokens[i], 10);
+
+                        // if both are non numeric, consider the next token
+                        if (isNaN(aVersionSegment) && isNaN(bVersionSegment)) {
+                            continue;
+                        }  else if (isNaN(aVersionSegment)) {
+                            // NaN is considered less
+                            return -1;
+                        } else if (isNaN(bVersionSegment)) {
+                            // NaN is considered less
+                            return 1;
+                        }
+
+                        // if a version at any point does not match
+                        if (aVersionSegment !== bVersionSegment) {
+                            return aVersionSegment - bVersionSegment;
+                        }
+                    }
+
+                    if (aVersionTokens.length === bVersionTokens.length) {
+                        if (aTokens.length === bTokens.length) {
+                            // same version for all tokens so consider the trailing bits (1.1-RC vs 1.1-SNAPSHOT)
+                            var aExtraBits = nfCommon.substringAfterFirst(aRawVersion, aTokens[0]);
+                            var bExtraBits = nfCommon.substringAfterFirst(bRawVersion, bTokens[0]);
+                            return aExtraBits === bExtraBits ? 0 : aExtraBits > bExtraBits ? 1 : -1;
+                        } else {
+                            // in this case, extra bits means it's consider less than no extra bits (1.1 vs 1.1-SNAPSHOT)
+                            return bTokens.length - aTokens.length;
+                        }
+                    } else {
+                        // same version for all tokens in common (ie 1.1 vs 1.1.1)
+                        return aVersionTokens.length - bVersionTokens.length;
+                    }
+                } else if (aVersionTokens.length >= 1) {
+                    // presence of version tokens is considered greater
+                    return 1;
+                } else if (bVersionTokens.length >= 1) {
+                    // presence of version tokens is considered greater
+                    return -1;
+                } else {
+                    return 0;
+                }
+            } else if (aTokens.length >= 1) {
+                // presence of tokens is considered greater
+                return 1;
+            } else if (bTokens.length >= 1) {
+                // presence of tokens is considered greater
+                return -1;
+            } else {
+                return 0;
+            }
+        },
+
+        /**
+         * Sorts the specified type data using the specified sort details.
+         *
+         * @param {object} sortDetails
+         * @param {object} data
+         */
+        sortType: function (sortDetails, data) {
+            // compares two bundles
+            var compareBundle = function (a, b) {
+                var aBundle = nfCommon.formatBundle(a.bundle);
+                var bBundle = nfCommon.formatBundle(b.bundle);
+                return aBundle === bBundle ? 0 : aBundle > bBundle ? 1 : -1;
+            };
+
+            // defines a function for sorting
+            var comparer = function (a, b) {
+                if (sortDetails.columnId === 'version') {
+                    var aVersion = nfCommon.isDefinedAndNotNull(a.bundle[sortDetails.columnId]) ? a.bundle[sortDetails.columnId] : '';
+                    var bVersion = nfCommon.isDefinedAndNotNull(b.bundle[sortDetails.columnId]) ? b.bundle[sortDetails.columnId] : '';
+                    var versionResult = nfCommon.sortVersion(aVersion, bVersion);
+                    return versionResult === 0 ? compareBundle(a, b) : versionResult;
+                } else if (sortDetails.columnId === 'type') {
+                    var aType = nfCommon.substringAfterLast(a[sortDetails.columnId], '.');
+                    var bType = nfCommon.substringAfterLast(b[sortDetails.columnId], '.');
+                    return aType === bType ? 0 : aType > bType ? 1 : -1;
+                } else {
+                    var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                    var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                    return aString === bString ? compareBundle(a, b) : aString > bString ? 1 : -1;
+                }
+            };
+
+            // perform the sort
+            data.sort(comparer, sortDetails.sortAsc);
+        },
+
+        /**
          * Formats type of a component for a new instance dialog.
          *
          * @param row
@@ -198,16 +315,152 @@
             var markup = '';
 
             // restriction
-            if (nfCommon.isBlank(dataContext.usageRestriction) === false) {
+            if (dataContext.restricted === true) {
                 markup += '<div class="view-usage-restriction fa fa-shield"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             } else {
                 markup += '<div class="fa"></div>';
             }
 
             // type
-            markup += value;
+            markup += nfCommon.escapeHtml(value);
 
             return markup;
+        },
+
+        /**
+         * Escapes any malicious HTML characters from the value.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        genericValueFormatter: function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.escapeHtml(value);
+        },
+
+        /**
+         * Formats the bundle of a component type for the new instance dialog.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        typeBundleFormatter: function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.escapeHtml(nfCommon.formatBundle(dataContext.bundle));
+        },
+
+        /**
+         * Formats the bundle of a component type for the new instance dialog.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        typeVersionFormatter: function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (nfCommon.isDefinedAndNotNull(dataContext.bundle)) {
+                markup += ('<div style="float: left;">' + nfCommon.escapeHtml(dataContext.bundle.version) + '</div>');
+            } else {
+                markup += '<div style="float: left;">unversioned</div>';
+            }
+
+            if (!nfCommon.isEmpty(dataContext.controllerServiceApis)) {
+                markup += '<div class="controller-service-apis fa fa-list" title="Compatible Controller Service" style="margin-top: 2px; margin-left: 4px;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+            }
+
+            markup += '<div class="clear"></div>';
+
+            return markup;
+        },
+
+        /**
+         * Formatter for the type column.
+         *
+         * @param {type} row
+         * @param {type} cell
+         * @param {type} value
+         * @param {type} columnDef
+         * @param {type} dataContext
+         * @returns {String}
+         */
+        instanceTypeFormatter: function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            return nfCommon.escapeHtml(nfCommon.formatType(dataContext.component));
+        },
+
+        /**
+         * Formats the bundle of a component instance for the component listing table.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        instanceBundleFormatter: function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            return nfCommon.typeBundleFormatter(row, cell, value, columnDef, dataContext.component);
+        },
+
+        /**
+         * Gets the version control tooltip.
+         *
+         * @param versionControlInformation
+         */
+        getVersionControlTooltip: function (versionControlInformation) {
+            return versionControlInformation.stateExplanation;
+        },
+
+        /**
+         * Formats the class name of this component.
+         *
+         * @param dataContext component datum
+         */
+        formatClassName: function (dataContext) {
+            return nfCommon.substringAfterLast(dataContext.type, '.');
+        },
+
+        /**
+         * Formats the type of this component.
+         *
+         * @param dataContext component datum
+         */
+        formatType: function (dataContext) {
+            var typeString = nfCommon.formatClassName(dataContext);
+            if (dataContext.bundle.version !== 'unversioned') {
+                typeString += (' ' + dataContext.bundle.version);
+            }
+            return typeString;
+        },
+
+        /**
+         * Formats the bundle label.
+         *
+         * @param bundle
+         */
+        formatBundle: function (bundle) {
+            var groupString = '';
+            if (bundle.group !== 'default') {
+                groupString = bundle.group + ' - ';
+            }
+            return groupString + bundle.artifact;
         },
 
         /**
@@ -313,6 +566,17 @@
         },
 
         /**
+         * Determines whether the current user can version flows.
+         */
+        canVersionFlows: function () {
+            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                return nfCommon.currentUser.canVersionFlows === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Determines whether the current user can access provenance.
          *
          * @returns {boolean}
@@ -326,13 +590,63 @@
         },
 
         /**
-         * Determines whether the current user can access restricted comopnents.
+         * Determines whether the current user can access restricted components.
          *
          * @returns {boolean}
          */
         canAccessRestrictedComponents: function () {
             if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
                 return nfCommon.currentUser.restrictedComponentsPermissions.canWrite === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can access the specific explicit component restrictions.
+         *
+         * @param {object} explicitRestrictions
+         * @returns {boolean}
+         */
+        canAccessComponentRestrictions: function (explicitRestrictions) {
+            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                if (nfCommon.currentUser.restrictedComponentsPermissions.canWrite === true) {
+                    return true;
+                }
+
+                var satisfiesRequiredPermission = function (requiredPermission) {
+                    if (nfCommon.isEmpty(nfCommon.currentUser.componentRestrictionPermissions)) {
+                        return false;
+                    }
+
+                    var hasPermission = false;
+
+                    $.each(nfCommon.currentUser.componentRestrictionPermissions, function (_, componentRestrictionPermission) {
+                        if (componentRestrictionPermission.requiredPermission.id === requiredPermission.id) {
+                            if (componentRestrictionPermission.permissions.canWrite === true) {
+                                hasPermission = true;
+                                return false;
+                            }
+                        }
+                    });
+
+                    return hasPermission;
+                };
+
+                var satisfiesRequiredPermissions = true;
+
+                if (nfCommon.isEmpty(explicitRestrictions)) {
+                    satisfiesRequiredPermissions = false;
+                } else {
+                    $.each(explicitRestrictions, function (_, explicitRestriction) {
+                        if (!satisfiesRequiredPermission(explicitRestriction.requiredPermission)) {
+                            satisfiesRequiredPermissions = false;
+                            return false;
+                        }
+                    });
+                }
+
+                return satisfiesRequiredPermissions;
             } else {
                 return false;
             }
@@ -586,7 +900,15 @@
                     tipContent.push('<b>Default value:</b> ' + nfCommon.escapeHtml(propertyDescriptor.defaultValue));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.supportsEl)) {
-                    tipContent.push('<b>Supports expression language:</b> ' + nfCommon.escapeHtml(propertyDescriptor.supportsEl));
+                    tipContent.push('<b>Expression language scope:</b> ' + nfCommon.escapeHtml(propertyDescriptor.expressionLanguageScope));
+                }
+                if (!nfCommon.isBlank(propertyDescriptor.identifiesControllerService)) {
+                    var formattedType = nfCommon.formatType({
+                        'type': propertyDescriptor.identifiesControllerService,
+                        'bundle': propertyDescriptor.identifiesControllerServiceBundle
+                    });
+                    var formattedBundle = nfCommon.formatBundle(propertyDescriptor.identifiesControllerServiceBundle);
+                    tipContent.push('<b>Requires Controller Service:</b> ' + nfCommon.escapeHtml(formattedType + ' from ' + formattedBundle));
                 }
             }
 
@@ -750,7 +1072,7 @@
         },
 
         /**
-         * Extracts the contents of the specified str after the strToFind. If the
+         * Extracts the contents of the specified str after the last strToFind. If the
          * strToFind is not found or the last part of the str, an empty string is
          * returned.
          *
@@ -790,8 +1112,25 @@
         },
 
         /**
-         * Extracts the contents of the specified str before the strToFind. If the
+         * Extracts the contents of the specified str before the last strToFind. If the
          * strToFind is not found or the first part of the str, an empty string is
+         * returned.
+         *
+         * @argument {string} str       The full string
+         * @argument {string} strToFind The substring to find
+         */
+        substringBeforeLast: function (str, strToFind) {
+            var result = '';
+            var indexOfStrToFind = str.lastIndexOf(strToFind);
+            if (indexOfStrToFind >= 0) {
+                result = str.substr(0, indexOfStrToFind);
+            }
+            return result;
+        },
+
+        /**
+         * Extracts the contents of the specified str before the strToFind. If the
+         * strToFind is not found or the first path of the str, an empty string is
          * returned.
          *
          * @argument {string} str       The full string
@@ -954,11 +1293,11 @@
             while (regex.test(string)) {
                 string = string.replace(regex, '$1' + ',' + '$2');
             }
-            return string;
+            return nfCommon.escapeHtml(string);
         },
 
         /**
-         * Formats the specified float using two demical places.
+         * Formats the specified float using two decimal places.
          *
          * @param {float} f
          */
@@ -1250,6 +1589,47 @@
                 }
             });
             return formattedBulletinEntities;
+        },
+
+        /**
+         * Formats the specified controller service list.
+         *
+         * @param {array} controllerServiceApis
+         * @returns {array}
+         */
+        getFormattedServiceApis: function (controllerServiceApis) {
+            var formattedControllerServiceApis = [];
+            $.each(controllerServiceApis, function (i, controllerServiceApi) {
+                var formattedType = nfCommon.formatType({
+                    'type': controllerServiceApi.type,
+                    'bundle': controllerServiceApi.bundle
+                });
+                var formattedBundle = nfCommon.formatBundle(controllerServiceApi.bundle);
+                formattedControllerServiceApis.push($('<div></div>').text(formattedType + ' from ' + formattedBundle));
+            });
+            return formattedControllerServiceApis;
+        },
+
+        /**
+         * Formats the specified garbage collections list.
+         *
+         * @param {array} garbageCollections    The garbage collections
+         * @returns {array}                     The formatted messages
+         */
+        getFormattedGarbageCollections: function (garbageCollections) {
+            // sort the garbage collections
+            garbageCollections.sort(function (a, b) {
+                return b.collectionCount - a.collectionCount;
+            });
+
+            var formattedGarbageCollections = [];
+            $.each(garbageCollections, function (_, garbageCollection) {
+                var name = $('<span style="font-weight: bold;"></span>').text(garbageCollection.name);
+                var stats = $('<span></span>').text(' - ' + garbageCollection.collectionCount + ' times (' + garbageCollection.collectionTime + ')');
+                var gc = $('<div></div>').append(name).append(stats);
+                formattedGarbageCollections.push(gc);
+            });
+            return formattedGarbageCollections;
         },
 
         getPolicyTypeListing: function (value) {

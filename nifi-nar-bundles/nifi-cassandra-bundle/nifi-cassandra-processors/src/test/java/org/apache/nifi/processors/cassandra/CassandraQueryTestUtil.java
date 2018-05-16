@@ -61,7 +61,7 @@ public class CassandraQueryTestUtil {
             }
         });
 
-        when(columnDefinitions.getTable(1)).thenReturn("users");
+        when(columnDefinitions.getTable(0)).thenReturn("users");
 
         when(columnDefinitions.getType(anyInt())).thenAnswer(new Answer<DataType>() {
 
@@ -86,13 +86,50 @@ public class CassandraQueryTestUtil {
                 createRow("user1", "Joe", "Smith", Sets.newHashSet("jsmith@notareal.com"),
                         Arrays.asList("New York, NY", "Santa Clara, CA"),
                         new HashMap<Date, String>() {{
-                            put(aMonthPrior, "Set my alarm for a month from now");
+                            put(aMonthPrior, "Set my alarm \"for\" a month from now");
                         }}, false, 1.0f, 2.0),
                 createRow("user2", "Mary", "Jones", Sets.newHashSet("mjones@notareal.com"),
                         Collections.singletonList("Orlando, FL"),
                         new HashMap<Date, String>() {{
                             put(testDate, "Get milk and bread");
                         }}, true, 3.0f, 4.0)
+        );
+
+        when(resultSet.iterator()).thenReturn(rows.iterator());
+        when(resultSet.all()).thenReturn(rows);
+        when(resultSet.getAvailableWithoutFetching()).thenReturn(rows.size());
+        when(resultSet.isFullyFetched()).thenReturn(false).thenReturn(true);
+        when(resultSet.getColumnDefinitions()).thenReturn(columnDefinitions);
+        return resultSet;
+    }
+
+    public static ResultSet createMockResultSetOneColumn() throws Exception {
+        ResultSet resultSet = mock(ResultSet.class);
+        ColumnDefinitions columnDefinitions = mock(ColumnDefinitions.class);
+        when(columnDefinitions.size()).thenReturn(1);
+        when(columnDefinitions.getName(anyInt())).thenAnswer(new Answer<String>() {
+            List<String> colNames = Arrays.asList("user_id");
+            @Override
+            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return colNames.get((Integer) invocationOnMock.getArguments()[0]);
+
+            }
+        });
+
+        when(columnDefinitions.getTable(0)).thenReturn("users");
+
+        when(columnDefinitions.getType(anyInt())).thenAnswer(new Answer<DataType>() {
+            List<DataType> dataTypes = Arrays.asList(DataType.text());
+            @Override
+            public DataType answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return dataTypes.get((Integer) invocationOnMock.getArguments()[0]);
+
+            }
+        });
+
+        List<Row> rows = Arrays.asList(
+                createRow("user1"),
+                createRow("user2")
         );
 
         when(resultSet.iterator()).thenReturn(rows.iterator());
@@ -117,6 +154,12 @@ public class CassandraQueryTestUtil {
         when(row.getFloat(7)).thenReturn(scale);
         when(row.getDouble(8)).thenReturn(metric);
 
+        return row;
+    }
+
+    public static Row createRow(String user_id) {
+        Row row = mock(Row.class);
+        when(row.getString(0)).thenReturn(user_id);
         return row;
     }
 }

@@ -45,8 +45,12 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
+import org.apache.nifi.authorization.ManagedAuthorizer;
+import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -69,6 +73,7 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.controller.service.ControllerServiceLoader;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.fingerprint.FingerprintException;
@@ -81,19 +86,27 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -105,6 +118,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -139,14 +153,20 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
         final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootGroupElement);
-
         final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, null, encodingVersion);
-        return isEmpty(rootGroupDto);
+
+        final NodeList reportingTasks = rootElement.getElementsByTagName("reportingTask");
+        final ReportingTaskDTO reportingTaskDTO = reportingTasks.getLength() == 0 ? null : FlowFromDOMFactory.getReportingTask((Element)reportingTasks.item(0),null);
+
+        final NodeList controllerServices = rootElement.getElementsByTagName("controllerService");
+        final ControllerServiceDTO controllerServiceDTO = controllerServices.getLength() == 0 ? null : FlowFromDOMFactory.getControllerService((Element)controllerServices.item(0),null);
+
+        return isEmpty(rootGroupDto) && isEmpty(reportingTaskDTO) && isEmpty(controllerServiceDTO);
     }
 
     @Override
     public void sync(final FlowController controller, final DataFlow proposedFlow, final StringEncryptor encryptor)
-            throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
+            throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException, MissingBundleException {
 
         // handle corner cases involving no proposed flow
         if (proposedFlow == null) {
@@ -157,17 +177,20 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        // determine if the controller has been initialized
-        final boolean initialized = controller.isInitialized();
-        logger.debug("Synching FlowController with proposed flow: Controller is Initialized = {}", initialized);
+        // determine if the controller already had flow sync'd to it
+        final boolean flowAlreadySynchronized = controller.isFlowSynchronized();
+        logger.debug("Synching FlowController with proposed flow: Controller is Already Synchronized = {}", flowAlreadySynchronized);
 
         // serialize controller state to bytes
         final byte[] existingFlow;
         final boolean existingFlowEmpty;
         try {
-            if (initialized) {
+            if (flowAlreadySynchronized) {
                 existingFlow = toBytes(controller);
-                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty() && controller.getAllReportingTasks().isEmpty() && controller.getAllControllerServices().isEmpty();
+                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty()
+                    && controller.getAllReportingTasks().isEmpty()
+                    && controller.getAllControllerServices().isEmpty()
+                    && controller.getFlowRegistryClient().getRegistryIdentifiers().isEmpty();
             } else {
                 existingFlow = readFlowFromDisk();
                 if (existingFlow == null || existingFlow.length == 0) {
@@ -203,10 +226,22 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         unrootedControllerServiceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
                     }
 
+                    final boolean registriesPresent;
+                    final Element registriesElement = DomUtils.getChild(rootElement, "registries");
+                    if (registriesElement == null) {
+                        registriesPresent = false;
+                    } else {
+                        final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+                        registriesPresent = !flowRegistryElems.isEmpty();
+                    }
+
                     logger.trace("Parsing process group from DOM");
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
                     final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
-                    existingFlowEmpty = taskElements.isEmpty() && unrootedControllerServiceElements.isEmpty() && isEmpty(rootGroupDto);
+                    existingFlowEmpty = taskElements.isEmpty()
+                        && unrootedControllerServiceElements.isEmpty()
+                        && isEmpty(rootGroupDto)
+                        && !registriesPresent;
                     logger.debug("Existing Flow Empty = {}", existingFlowEmpty);
                 }
             }
@@ -220,22 +255,35 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         logger.trace("Getting Authorizer fingerprint from controller");
 
         final byte[] existingAuthFingerprint;
-        final AbstractPolicyBasedAuthorizer policyBasedAuthorizer;
+        final ManagedAuthorizer managedAuthorizer;
         final Authorizer authorizer = controller.getAuthorizer();
 
-        if (authorizer instanceof AbstractPolicyBasedAuthorizer) {
-            policyBasedAuthorizer = (AbstractPolicyBasedAuthorizer) authorizer;
-            existingAuthFingerprint = policyBasedAuthorizer.getFingerprint().getBytes(StandardCharsets.UTF_8);
+        if (AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            managedAuthorizer = (ManagedAuthorizer) authorizer;
+            existingAuthFingerprint = managedAuthorizer.getFingerprint().getBytes(StandardCharsets.UTF_8);
         } else {
             existingAuthFingerprint = null;
-            policyBasedAuthorizer = null;
+            managedAuthorizer = null;
         }
 
-        final DataFlow existingDataFlow = new StandardDataFlow(existingFlow, existingSnippets, existingAuthFingerprint);
+        final Set<String> missingComponents = new HashSet<>();
+        controller.getAllControllerServices().stream().filter(cs -> cs.isExtensionMissing()).forEach(cs -> missingComponents.add(cs.getIdentifier()));
+        controller.getAllReportingTasks().stream().filter(r -> r.isExtensionMissing()).forEach(r -> missingComponents.add(r.getIdentifier()));
+        controller.getRootGroup().findAllProcessors().stream().filter(p -> p.isExtensionMissing()).forEach(p -> missingComponents.add(p.getIdentifier()));
+
+        final DataFlow existingDataFlow = new StandardDataFlow(existingFlow, existingSnippets, existingAuthFingerprint, missingComponents);
+
+        Document configuration = null;
 
         // check that the proposed flow is inheritable by the controller
         try {
-            if (!existingFlowEmpty) {
+            if (existingFlowEmpty) {
+                configuration = parseFlowBytes(proposedFlow.getFlow());
+                if (configuration != null) {
+                    logger.trace("Checking bundle compatibility");
+                    checkBundleCompatibility(configuration);
+                }
+            } else {
                 logger.trace("Checking flow inheritability");
                 final String problemInheritingFlow = checkFlowInheritability(existingDataFlow, proposedFlow, controller);
                 if (problemInheritingFlow != null) {
@@ -246,16 +294,25 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             throw new FlowSerializationException("Failed to generate flow fingerprints", fe);
         }
 
+        logger.trace("Checking missing component inheritability");
+
+        final String problemInheritingMissingComponents = checkMissingComponentsInheritability(existingDataFlow, proposedFlow);
+        if (problemInheritingMissingComponents != null) {
+            throw new UninheritableFlowException("Proposed Flow is not inheritable by the flow controller because of differences in missing components: " + problemInheritingMissingComponents);
+        }
+
         logger.trace("Checking authorizer inheritability");
 
-        final AuthorizerInheritability authInheritability = checkAuthorizerInheritability(existingDataFlow, proposedFlow);
+        final AuthorizerInheritability authInheritability = checkAuthorizerInheritability(authorizer, existingDataFlow, proposedFlow);
         if (!authInheritability.isInheritable() && authInheritability.getReason() != null) {
             throw new UninheritableFlowException("Proposed Authorizer is not inheritable by the flow controller because of Authorizer differences: " + authInheritability.getReason());
         }
 
         // create document by parsing proposed flow bytes
         logger.trace("Parsing proposed flow bytes as DOM document");
-        final Document configuration = parseFlowBytes(proposedFlow.getFlow());
+        if (configuration == null) {
+            configuration = parseFlowBytes(proposedFlow.getFlow());
+        }
 
         // attempt to sync controller with proposed flow
         try {
@@ -279,15 +336,33 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     // get the root group XML element
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
 
+                    if (!flowAlreadySynchronized || existingFlowEmpty) {
+                        final Element registriesElement = DomUtils.getChild(rootElement, "registries");
+                        if (registriesElement != null) {
+                            final List<Element> flowRegistryElems = DomUtils.getChildElementsByTagName(registriesElement, "flowRegistry");
+                            for (final Element flowRegistryElement : flowRegistryElems) {
+                                final String registryId = getString(flowRegistryElement, "id");
+                                final String registryName = getString(flowRegistryElement, "name");
+                                final String registryUrl = getString(flowRegistryElement, "url");
+                                final String description = getString(flowRegistryElement, "description");
+
+                                final FlowRegistryClient client = controller.getFlowRegistryClient();
+                                client.addFlowRegistry(registryId, registryName, registryUrl, description);
+                            }
+                        }
+                    }
+
                     // if this controller isn't initialized or its empty, add the root group, otherwise update
                     final ProcessGroup rootGroup;
-                    if (!initialized || existingFlowEmpty) {
+                    if (!flowAlreadySynchronized || existingFlowEmpty) {
                         logger.trace("Adding root process group");
                         rootGroup = addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
                     } else {
                         logger.trace("Updating root process group");
                         rootGroup = updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
                     }
+
+                    rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
 
                     // If there are any Templates that do not exist in the Proposed Flow that do exist in the 'existing flow', we need
                     // to ensure that we also add those to the appropriate Process Groups, so that we don't lose them.
@@ -314,7 +389,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     final Map<ReportingTaskNode, ReportingTaskDTO> reportingTaskNodesToDTOs = new HashMap<>();
                     for (final Element taskElement : reportingTaskElements) {
                         final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(taskElement, encryptor);
-                        final ReportingTaskNode reportingTask = getOrCreateReportingTask(controller, dto, initialized, existingFlowEmpty);
+                        final ReportingTaskNode reportingTask = getOrCreateReportingTask(controller, dto, flowAlreadySynchronized, existingFlowEmpty);
                         reportingTaskNodesToDTOs.put(reportingTask, dto);
                     }
 
@@ -322,7 +397,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     if (controllerServicesElement != null) {
                         final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
 
-                        if (!initialized || existingFlowEmpty) {
+                        if (!flowAlreadySynchronized || existingFlowEmpty) {
                             // If the encoding version is null, we are loading a flow from NiFi 0.x, where Controller
                             // Services could not be scoped by Process Group. As a result, we want to move the Process Groups
                             // to the root Group. Otherwise, we want to use a null group, which indicates a Controller-level
@@ -369,7 +444,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
                     // now that controller services are loaded and enabled we can apply the scheduled state to each reporting task
                     for (Map.Entry<ReportingTaskNode, ReportingTaskDTO> entry : reportingTaskNodesToDTOs.entrySet()) {
-                        applyReportingTaskScheduleState(controller, entry.getValue(), entry.getKey(), initialized, existingFlowEmpty);
+                        applyReportingTaskScheduleState(controller, entry.getValue(), entry.getKey(), flowAlreadySynchronized, existingFlowEmpty);
                     }
                 }
             }
@@ -389,15 +464,51 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             // if auths are inheritable and we have a policy based authorizer, then inherit
-            if (authInheritability.isInheritable() && policyBasedAuthorizer != null) {
+            if (authInheritability.isInheritable() && managedAuthorizer != null) {
                 logger.trace("Inheriting authorizations");
                 final String proposedAuthFingerprint = new String(proposedFlow.getAuthorizerFingerprint(), StandardCharsets.UTF_8);
-                policyBasedAuthorizer.inheritFingerprint(proposedAuthFingerprint);
+                managedAuthorizer.inheritFingerprint(proposedAuthFingerprint);
             }
 
             logger.debug("Finished syncing flows");
         } catch (final Exception ex) {
             throw new FlowSynchronizationException(ex);
+        }
+    }
+
+    private void checkBundleCompatibility(final Document configuration) {
+        final NodeList bundleNodes = configuration.getElementsByTagName("bundle");
+        for (int i = 0; i < bundleNodes.getLength(); i++) {
+            final Node bundleNode = bundleNodes.item(i);
+            if (bundleNode instanceof Element) {
+                final Element bundleElement = (Element) bundleNode;
+
+                final Node componentNode = bundleElement.getParentNode();
+                if (componentNode instanceof Element) {
+                    final Element componentElement = (Element) componentNode;
+                    if (!withinTemplate(componentElement)) {
+                        final String componentType = DomUtils.getChildText(componentElement, "class");
+                        try {
+                            BundleUtils.getBundle(componentType, FlowFromDOMFactory.getBundle(bundleElement));
+                        } catch (IllegalStateException e) {
+                            throw new MissingBundleException(e.getMessage(), e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean withinTemplate(final Element element) {
+        if ("template".equals(element.getTagName())) {
+            return true;
+        } else {
+            final Node parentNode = element.getParentNode();
+            if (parentNode instanceof Element) {
+                return withinTemplate((Element) parentNode);
+            } else {
+                return false;
+            }
         }
     }
 
@@ -472,6 +583,18 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 && CollectionUtils.isEmpty(contents.getRemoteProcessGroups());
     }
 
+    private static boolean isEmpty(final ReportingTaskDTO reportingTaskDTO){
+
+       return reportingTaskDTO == null || StringUtils.isEmpty(reportingTaskDTO.getName()) ;
+
+    }
+
+    private static boolean isEmpty(final ControllerServiceDTO controllerServiceDTO){
+
+        return controllerServiceDTO == null || StringUtils.isEmpty(controllerServiceDTO.getName());
+
+    }
+
     private static Document parseFlowBytes(final byte[] flow) throws FlowSerializationException {
         // create document by parsing proposed flow bytes
         try {
@@ -483,6 +606,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             docFactory.setSchema(schema);
 
             final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            docBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
 
             // parse flow
             return (flow == null || flow.length == 0) ? null : docBuilder.parse(new ByteArrayInputStream(flow));
@@ -512,7 +636,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             throws ReportingTaskInstantiationException {
         // create a new reporting task node when the controller is not initialized or the flow is empty
         if (!controllerInitialized || existingFlowEmpty) {
-            final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), false);
+            BundleCoordinate coordinate;
+            try {
+                coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
+            } catch (final IllegalStateException e) {
+                final BundleDTO bundleDTO = dto.getBundle();
+                if (bundleDTO == null) {
+                    coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+                } else {
+                    coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+                }
+            }
+
+            final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), coordinate, false);
             reportingTask.setName(dto.getName());
             reportingTask.setComments(dto.getComments());
             reportingTask.setSchedulingPeriod(dto.getSchedulingPeriod());
@@ -523,7 +659,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             final ComponentLog componentLog = new SimpleProcessLogger(dto.getId(), reportingTask.getReportingTask());
             final ReportingInitializationContext config = new StandardReportingInitializationContext(dto.getId(), dto.getName(),
-                    SchedulingStrategy.valueOf(dto.getSchedulingStrategy()), dto.getSchedulingPeriod(), componentLog, controller, nifiProperties);
+                    SchedulingStrategy.valueOf(dto.getSchedulingStrategy()), dto.getSchedulingPeriod(), componentLog, controller, nifiProperties, controller);
 
             try {
                 reportingTask.getReportingTask().initialize(config);
@@ -614,6 +750,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
+    private ControllerServiceState getFinalTransitionState(final ControllerServiceState state) {
+        switch (state) {
+            case DISABLED:
+            case DISABLING:
+                return ControllerServiceState.DISABLED;
+            case ENABLED:
+            case ENABLING:
+                return ControllerServiceState.ENABLED;
+            default:
+                throw new AssertionError();
+        }
+    }
+
     private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
             final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
 
@@ -644,11 +793,43 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // get the real process group and ID
         final ProcessGroup processGroup = controller.getGroup(processGroupDto.getId());
 
+        // determine the scheduled state of all of the Controller Service
+        final List<Element> controllerServiceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
+        final Set<ControllerServiceNode> toDisable = new HashSet<>();
+        final Set<ControllerServiceNode> toEnable = new HashSet<>();
+
+        for (final Element serviceElement : controllerServiceNodeList) {
+            final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(serviceElement, encryptor);
+            final ControllerServiceNode serviceNode = processGroup.getControllerService(dto.getId());
+
+            // Check if the controller service is in the correct state. We consider it the correct state if
+            // we are in a transitional state and heading in the right direction or already in the correct state.
+            // E.g., it is the correct state if it should be 'DISABLED' and it is either DISABLED or DISABLING.
+            final ControllerServiceState serviceState = getFinalTransitionState(serviceNode.getState());
+            final ControllerServiceState clusterState = getFinalTransitionState(ControllerServiceState.valueOf(dto.getState()));
+
+            if (serviceState != clusterState) {
+                switch (clusterState) {
+                    case DISABLED:
+                        toDisable.add(serviceNode);
+                        break;
+                    case ENABLED:
+                        toEnable.add(serviceNode);
+                        break;
+                }
+            }
+        }
+
+        controller.disableControllerServicesAsync(toDisable);
+        controller.enableControllerServices(toEnable);
+
         // processors & ports cannot be updated - they must be the same. Except for the scheduled state.
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
             final ProcessorDTO dto = FlowFromDOMFactory.getProcessor(processorElement, encryptor);
             final ProcessorNode procNode = processGroup.getProcessor(dto.getId());
+
+            updateNonFingerprintedProcessorSettings(procNode, dto);
 
             if (!procNode.getScheduledState().name().equals(dto.getState())) {
                 try {
@@ -656,19 +837,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         case DISABLED:
                             // switch processor do disabled. This means we have to stop it (if it's already stopped, this method does nothing),
                             // and then we have to disable it.
-                            procNode.getProcessGroup().stopProcessor(procNode);
+                            controller.stopProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier());
                             procNode.getProcessGroup().disableProcessor(procNode);
                             break;
                         case RUNNING:
                             // we want to run now. Make sure processor is not disabled and then start it.
                             procNode.getProcessGroup().enableProcessor(procNode);
-                            procNode.getProcessGroup().startProcessor(procNode);
+                            controller.startProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier(), false);
                             break;
                         case STOPPED:
                             if (procNode.getScheduledState() == ScheduledState.DISABLED) {
                                 procNode.getProcessGroup().enableProcessor(procNode);
                             } else if (procNode.getScheduledState() == ScheduledState.RUNNING) {
-                                procNode.getProcessGroup().stopProcessor(procNode);
+                                controller.stopProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier());
                             }
                             break;
                     }
@@ -697,19 +878,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     case DISABLED:
                         // switch processor do disabled. This means we have to stop it (if it's already stopped, this method does nothing),
                         // and then we have to disable it.
-                        port.getProcessGroup().stopInputPort(port);
+                        controller.stopConnectable(port);
                         port.getProcessGroup().disableInputPort(port);
                         break;
                     case RUNNING:
                         // we want to run now. Make sure processor is not disabled and then start it.
                         port.getProcessGroup().enableInputPort(port);
-                        port.getProcessGroup().startInputPort(port);
+                        controller.startConnectable(port);
                         break;
                     case STOPPED:
                         if (port.getScheduledState() == ScheduledState.DISABLED) {
                             port.getProcessGroup().enableInputPort(port);
                         } else if (port.getScheduledState() == ScheduledState.RUNNING) {
-                            port.getProcessGroup().stopInputPort(port);
+                            controller.stopConnectable(port);
                         }
                         break;
                 }
@@ -726,19 +907,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     case DISABLED:
                         // switch processor do disabled. This means we have to stop it (if it's already stopped, this method does nothing),
                         // and then we have to disable it.
-                        port.getProcessGroup().stopOutputPort(port);
+                        controller.stopConnectable(port);
                         port.getProcessGroup().disableOutputPort(port);
                         break;
                     case RUNNING:
                         // we want to run now. Make sure processor is not disabled and then start it.
                         port.getProcessGroup().enableOutputPort(port);
-                        port.getProcessGroup().startOutputPort(port);
+                        controller.startConnectable(port);
                         break;
                     case STOPPED:
                         if (port.getScheduledState() == ScheduledState.DISABLED) {
                             port.getProcessGroup().enableOutputPort(port);
                         } else if (port.getScheduledState() == ScheduledState.RUNNING) {
-                            port.getProcessGroup().stopOutputPort(port);
+                            controller.stopConnectable(port);
                         }
                         break;
                 }
@@ -797,6 +978,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final Label label = controller.createLabel(labelDTO.getId(), labelDTO.getLabel());
             label.setStyle(labelDTO.getStyle());
             label.setPosition(new Position(labelDTO.getPosition().getX(), labelDTO.getPosition().getY()));
+            label.setVersionedComponentId(labelDTO.getVersionedComponentId());
             if (labelDTO.getWidth() != null && labelDTO.getHeight() != null) {
                 label.setSize(new Size(labelDTO.getWidth(), labelDTO.getHeight()));
             }
@@ -889,15 +1071,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     private void updateProcessor(final ProcessorNode procNode, final ProcessorDTO processorDTO, final ProcessGroup processGroup, final FlowController controller)
             throws ProcessorInstantiationException {
         final ProcessorConfigDTO config = processorDTO.getConfig();
-        procNode.setPosition(toPosition(processorDTO.getPosition()));
-        procNode.setName(processorDTO.getName());
-        procNode.setStyle(processorDTO.getStyle());
         procNode.setProcessGroup(processGroup);
-        procNode.setComments(config.getComments());
         procNode.setLossTolerant(config.isLossTolerant());
         procNode.setPenalizationPeriod(config.getPenaltyDuration());
         procNode.setYieldPeriod(config.getYieldDuration());
         procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
+        updateNonFingerprintedProcessorSettings(procNode, processorDTO);
 
         if (config.getSchedulingStrategy() != null) {
             procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
@@ -931,7 +1110,16 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             controller.startProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
         } else if (ScheduledState.DISABLED.equals(scheduledState)) {
             processGroup.disableProcessor(procNode);
+        } else if (ScheduledState.STOPPED.equals(scheduledState)) {
+            controller.stopProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
         }
+    }
+
+    private void updateNonFingerprintedProcessorSettings(final ProcessorNode procNode, final ProcessorDTO processorDTO) {
+        procNode.setName(processorDTO.getName());
+        procNode.setPosition(toPosition(processorDTO.getPosition()));
+        procNode.setStyle(processorDTO.getStyle());
+        procNode.setComments(processorDTO.getConfig().getComments());
     }
 
     private ProcessGroup addProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
@@ -943,6 +1131,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final ProcessGroupDTO processGroupDTO = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor, encodingVersion);
         final ProcessGroup processGroup = controller.createProcessGroup(processGroupDTO.getId());
         processGroup.setComments(processGroupDTO.getComments());
+        processGroup.setVersionedComponentId(processGroupDTO.getVersionedComponentId());
         processGroup.setPosition(toPosition(processGroupDTO.getPosition()));
         processGroup.setName(processGroupDTO.getName());
         processGroup.setParent(parentGroup);
@@ -950,6 +1139,36 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             controller.setRootGroup(processGroup);
         } else {
             parentGroup.addProcessGroup(processGroup);
+        }
+
+        // Set the variables for the variable registry
+        final Map<String, String> variables = new HashMap<>();
+        final List<Element> variableElements = getChildrenByTagName(processGroupElement, "variable");
+        for (final Element variableElement : variableElements) {
+            final String variableName = variableElement.getAttribute("name");
+            final String variableValue = variableElement.getAttribute("value");
+            if (variableName == null || variableValue == null) {
+                continue;
+            }
+
+            variables.put(variableName, variableValue);
+        }
+
+        processGroup.setVariables(variables);
+
+        final VersionControlInformationDTO versionControlInfoDto = processGroupDTO.getVersionControlInformation();
+        if (versionControlInfoDto != null) {
+            final FlowRegistry flowRegistry = controller.getFlowRegistryClient().getFlowRegistry(versionControlInfoDto.getRegistryId());
+            final String registryName = flowRegistry == null ? versionControlInfoDto.getRegistryId() : flowRegistry.getName();
+
+            versionControlInfoDto.setState(VersionedFlowState.SYNC_FAILURE.name());
+            versionControlInfoDto.setStateExplanation("Process Group has not yet been synchronized with the Flow Registry");
+            final StandardVersionControlInformation versionControlInformation = StandardVersionControlInformation.Builder.fromDto(versionControlInfoDto)
+                .registryName(registryName)
+                .build();
+
+            // pass empty map for the version control mapping because the VersionedComponentId has already been set on the components
+            processGroup.setVersionControlInformation(versionControlInformation, Collections.emptyMap());
         }
 
         // Add Controller Services
@@ -963,7 +1182,21 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
             final ProcessorDTO processorDTO = FlowFromDOMFactory.getProcessor(processorElement, encryptor);
-            final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId(), false);
+
+            BundleCoordinate coordinate;
+            try {
+                coordinate = BundleUtils.getCompatibleBundle(processorDTO.getType(), processorDTO.getBundle());
+            } catch (final IllegalStateException e) {
+                final BundleDTO bundleDTO = processorDTO.getBundle();
+                if (bundleDTO == null) {
+                    coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+                } else {
+                    coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+                }
+            }
+
+            final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId(), coordinate, false);
+            procNode.setVersionedComponentId(processorDTO.getVersionedComponentId());
             processGroup.addProcessor(procNode);
             updateProcessor(procNode, processorDTO, processGroup, controller);
         }
@@ -980,6 +1213,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 port = controller.createLocalInputPort(portDTO.getId(), portDTO.getName());
             }
 
+            port.setVersionedComponentId(portDTO.getVersionedComponentId());
             port.setPosition(toPosition(portDTO.getPosition()));
             port.setComments(portDTO.getComments());
             port.setProcessGroup(processGroup);
@@ -1023,6 +1257,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             } else {
                 port = controller.createLocalOutputPort(portDTO.getId(), portDTO.getName());
             }
+
+            port.setVersionedComponentId(portDTO.getVersionedComponentId());
             port.setPosition(toPosition(portDTO.getPosition()));
             port.setComments(portDTO.getComments());
             port.setProcessGroup(processGroup);
@@ -1060,6 +1296,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element funnelElement : funnelNodeList) {
             final FunnelDTO funnelDTO = FlowFromDOMFactory.getFunnel(funnelElement);
             final Funnel funnel = controller.createFunnel(funnelDTO.getId());
+            funnel.setVersionedComponentId(funnelDTO.getVersionedComponentId());
             funnel.setPosition(toPosition(funnelDTO.getPosition()));
 
             // Since this is called during startup, we want to add the funnel without enabling it
@@ -1074,6 +1311,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element labelElement : labelNodeList) {
             final LabelDTO labelDTO = FlowFromDOMFactory.getLabel(labelElement);
             final Label label = controller.createLabel(labelDTO.getId(), labelDTO.getLabel());
+            label.setVersionedComponentId(labelDTO.getVersionedComponentId());
             label.setStyle(labelDTO.getStyle());
 
             label.setPosition(toPosition(labelDTO.getPosition()));
@@ -1092,6 +1330,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         for (final Element remoteProcessGroupElement : remoteProcessGroupNodeList) {
             final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteProcessGroupElement, encryptor);
             final RemoteProcessGroup remoteGroup = controller.createRemoteProcessGroup(remoteGroupDto.getId(), remoteGroupDto.getTargetUris());
+            remoteGroup.setVersionedComponentId(remoteGroupDto.getVersionedComponentId());
             remoteGroup.setComments(remoteGroupDto.getComments());
             remoteGroup.setPosition(toPosition(remoteGroupDto.getPosition()));
             final String name = remoteGroupDto.getName();
@@ -1126,17 +1365,23 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 remoteGroup.setProxyPassword(remoteGroupDto.getProxyPassword());
             }
 
+            if (StringUtils.isBlank(remoteGroupDto.getLocalNetworkInterface())) {
+                remoteGroup.setNetworkInterface(null);
+            } else {
+                remoteGroup.setNetworkInterface(remoteGroupDto.getLocalNetworkInterface());
+            }
+
             final Set<RemoteProcessGroupPortDescriptor> inputPorts = new HashSet<>();
             for (final Element portElement : getChildrenByTagName(remoteProcessGroupElement, "inputPort")) {
                 inputPorts.add(FlowFromDOMFactory.getRemoteProcessGroupPort(portElement));
             }
-            remoteGroup.setInputPorts(inputPorts);
+            remoteGroup.setInputPorts(inputPorts, false);
 
             final Set<RemoteProcessGroupPortDescriptor> outputPorts = new HashSet<>();
             for (final Element portElement : getChildrenByTagName(remoteProcessGroupElement, "outputPort")) {
                 outputPorts.add(FlowFromDOMFactory.getRemoteProcessGroupPort(portElement));
             }
-            remoteGroup.setOutputPorts(outputPorts);
+            remoteGroup.setOutputPorts(outputPorts, false);
             processGroup.addRemoteProcessGroup(remoteGroup);
 
             for (final RemoteProcessGroupPortDescriptor remoteGroupPortDTO : outputPorts) {
@@ -1193,6 +1438,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             final Connection connection = controller.createConnection(dto.getId(), dto.getName(), source, destination, dto.getSelectedRelationships());
+            connection.setVersionedComponentId(dto.getVersionedComponentId());
             connection.setProcessGroup(processGroup);
 
             final List<Position> bendPoints = new ArrayList<>();
@@ -1250,6 +1496,30 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         return processGroup;
     }
 
+    public String checkMissingComponentsInheritability(final DataFlow existingFlow, final DataFlow proposedFlow) {
+        if (existingFlow == null) {
+            return null;  // no existing flow, so equivalent to proposed flow
+        }
+
+        final Set<String> existingMissingComponents = new HashSet<>(existingFlow.getMissingComponents());
+        existingMissingComponents.removeAll(proposedFlow.getMissingComponents());
+
+        if (existingMissingComponents.size() > 0) {
+            final String missingIds = StringUtils.join(existingMissingComponents, ",");
+            return "Current flow has missing components that are not considered missing in the proposed flow (" + missingIds + ")";
+        }
+
+        final Set<String> proposedMissingComponents = new HashSet<>(proposedFlow.getMissingComponents());
+        proposedMissingComponents.removeAll(existingFlow.getMissingComponents());
+
+        if (proposedMissingComponents.size() > 0) {
+            final String missingIds = StringUtils.join(proposedMissingComponents, ",");
+            return "Proposed flow has missing components that are not considered missing in the current flow (" + missingIds + ")";
+        }
+
+        return null;
+    }
+
     /**
      * If both authorizers are external authorizers, or if the both are internal
      * authorizers with equal fingerprints, then an uniheritable result with no
@@ -1265,7 +1535,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
      * @param proposedFlow the proposed DataFlow
      * @return the AuthorizerInheritability result
      */
-    public AuthorizerInheritability checkAuthorizerInheritability(final DataFlow existingFlow, final DataFlow proposedFlow) {
+    private AuthorizerInheritability checkAuthorizerInheritability(final Authorizer authorizer, final DataFlow existingFlow, final DataFlow proposedFlow) {
         final byte[] existing = existingFlow.getAuthorizerFingerprint();
         final byte[] proposed = proposedFlow.getAuthorizerFingerprint();
 
@@ -1288,15 +1558,20 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         // both are internal, but not the same
         if (!Arrays.equals(existing, proposed)) {
-            final byte[] emptyAuthBytes = AbstractPolicyBasedAuthorizer.EMPTY_FINGERPRINT.getBytes(StandardCharsets.UTF_8);
+            if (AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+                final ManagedAuthorizer managedAuthorizer = (ManagedAuthorizer) authorizer;
 
-            // if current is empty then we can take all the proposed authorizations
-            // otherwise they are both internal authorizers and don't match so we can't proceed
-            if (Arrays.equals(emptyAuthBytes, existing)) {
-                return AuthorizerInheritability.inheritable();
+                try {
+                    // if the configurations are not equal, see if the manager indicates the proposed configuration is inheritable
+                    managedAuthorizer.checkInheritability(new String(proposed, StandardCharsets.UTF_8));
+                    return AuthorizerInheritability.inheritable();
+                } catch (final UninheritableAuthorizationsException e) {
+                    return AuthorizerInheritability.uninheritable("Proposed Authorizations do not match current Authorizations: " + e.getMessage());
+                }
             } else {
+                // should never hit since the existing is only null when authorizer is not managed
                 return AuthorizerInheritability.uninheritable(
-                        "Proposed Authorizations do not match current Authorizations");
+                        "Proposed Authorizations do not match current Authorizations and are not configured with an internal Authorizer");
             }
         }
 
@@ -1344,6 +1619,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final String proposedFlowFingerprintBeforeHash = fingerprintFactory.createFingerprint(proposedFlow, controller);
         if (proposedFlowFingerprintBeforeHash.trim().isEmpty()) {
             return "Proposed Flow was empty but Current Flow is not";  // existing flow is not empty and proposed flow is empty (we could orphan flowfiles)
+        }
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Local Fingerprint Before Hash = {}", new Object[] {existingFlowFingerprintBeforeHash});
+            logger.trace("Proposed Fingerprint Before Hash = {}", new Object[] {proposedFlowFingerprintBeforeHash});
         }
 
         final boolean inheritable = existingFlowFingerprintBeforeHash.equals(proposedFlowFingerprintBeforeHash);

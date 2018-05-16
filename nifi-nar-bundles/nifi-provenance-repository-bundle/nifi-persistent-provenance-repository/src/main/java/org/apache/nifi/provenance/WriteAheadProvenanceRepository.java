@@ -17,11 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -51,8 +46,18 @@ import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.provenance.util.CloseableUtil;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -84,7 +89,7 @@ import org.slf4j.LoggerFactory;
  */
 public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadProvenanceRepository.class);
-    private static final int BLOCK_SIZE = 1024 * 32;
+    static final int BLOCK_SIZE = 1024 * 32;
     public static final String EVENT_CATEGORY = "Provenance Repository";
 
     private final RepositoryConfiguration config;
@@ -129,6 +134,14 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             }
         };
 
+       init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory);
+    }
+
+    synchronized void init(RecordWriterFactory recordWriterFactory, RecordReaderFactory recordReaderFactory,
+                           final EventReporter eventReporter, final Authorizer authorizer,
+                           final ProvenanceAuthorizableFactory resourceFactory) throws IOException {
+        final EventFileManager fileManager = new EventFileManager();
+
         eventStore = new PartitionedWriteAheadEventStore(config, recordWriterFactory, recordReaderFactory, eventReporter, fileManager);
 
         final IndexManager indexManager = new SimpleIndexManager(config);
@@ -145,7 +158,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             eventStore.reindexLatestEvents(eventIndex);
         } catch (final Exception e) {
             logger.error("Failed to re-index some of the Provenance Events. It is possible that some of the latest "
-                + "events will not be available from the Provenance Repository when a query is issued.", e);
+                    + "events will not be available from the Provenance Repository when a query is issued.", e);
         }
     }
 
@@ -209,7 +222,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     private void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
-        if (authorizer == null) {
+        if (authorizer == null || user == null) {
             return;
         }
 
@@ -240,7 +253,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
-        return eventIndex.submitQuery(query, createEventAuthorizer(user), user.getIdentity());
+        return eventIndex.submitQuery(query, createEventAuthorizer(user), user == null ? null : user.getIdentity());
     }
 
     @Override
@@ -281,5 +294,58 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     @Override
     public List<SearchableField> getSearchableAttributes() {
         return Collections.unmodifiableList(config.getSearchableAttributes());
+    }
+
+    RepositoryConfiguration getConfig() {
+        return this.config;
+    }
+
+    @Override
+    public Set<String> getContainerNames() {
+        return new HashSet<>(config.getStorageDirectories().keySet());
+    }
+
+    @Override
+    public long getContainerCapacity(final String containerName) throws IOException {
+        Map<String, File> map = config.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            long capacity = FileUtils.getContainerCapacity(container.toPath());
+            if(capacity==0) {
+                throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                        + "Nifi can not create a zero sized provenance repository.");
+            }
+            return capacity;
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
+    }
+
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Map<String, File> map = config.getStorageDirectories();
+        final File container = map.get(containerName);
+        if (container == null) {
+            return null;
+        }
+
+        try {
+            return Files.getFileStore(container.toPath()).name();
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public long getContainerUsableSpace(String containerName) throws IOException {
+        Map<String, File> map = config.getStorageDirectories();
+
+        File container = map.get(containerName);
+        if(container != null) {
+            return FileUtils.getContainerUsableSpace(container.toPath());
+        } else {
+            throw new IllegalArgumentException("There is no defined container with name " + containerName);
+        }
     }
 }

@@ -16,31 +16,51 @@
  */
 package org.apache.nifi.web
 
-import org.apache.nifi.authorization.*
+import org.apache.nifi.authorization.AccessDeniedException
+import org.apache.nifi.authorization.AccessPolicy
+import org.apache.nifi.authorization.AuthorizableLookup
+import org.apache.nifi.authorization.AuthorizationResult
+import org.apache.nifi.authorization.Authorizer
+import org.apache.nifi.authorization.Group
+import org.apache.nifi.authorization.RequestAction
+import org.apache.nifi.authorization.Resource
+import org.apache.nifi.authorization.User
 import org.apache.nifi.authorization.resource.Authorizable
 import org.apache.nifi.authorization.resource.ResourceFactory
 import org.apache.nifi.authorization.user.NiFiUser
-import org.apache.nifi.authorization.user.StandardNiFiUser
 import org.apache.nifi.authorization.user.NiFiUserDetails
+import org.apache.nifi.authorization.user.StandardNiFiUser
 import org.apache.nifi.controller.service.ControllerServiceProvider
-import org.apache.nifi.web.api.dto.*
+import org.apache.nifi.reporting.Bulletin
+import org.apache.nifi.reporting.BulletinRepository
+import org.apache.nifi.web.api.dto.AccessPolicyDTO
+import org.apache.nifi.web.api.dto.BulletinDTO
+import org.apache.nifi.web.api.dto.DtoFactory
+import org.apache.nifi.web.api.dto.EntityFactory
+import org.apache.nifi.web.api.dto.RevisionDTO
+import org.apache.nifi.web.api.dto.UserDTO
+import org.apache.nifi.web.api.dto.UserGroupDTO
+import org.apache.nifi.web.api.entity.BulletinEntity
 import org.apache.nifi.web.api.entity.UserEntity
 import org.apache.nifi.web.controller.ControllerFacade
 import org.apache.nifi.web.dao.AccessPolicyDAO
 import org.apache.nifi.web.dao.UserDAO
 import org.apache.nifi.web.dao.UserGroupDAO
-import org.apache.nifi.web.revision.*
+import org.apache.nifi.web.revision.DeleteRevisionTask
+import org.apache.nifi.web.revision.ReadOnlyRevisionCallback
+import org.apache.nifi.web.revision.RevisionClaim
+import org.apache.nifi.web.revision.RevisionManager
+import org.apache.nifi.web.revision.UpdateRevisionTask
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import spock.lang.Ignore
 import spock.lang.Specification
 import spock.lang.Unroll
 
-@Ignore
 class StandardNiFiServiceFacadeSpec extends Specification {
 
     def setup() {
-        final NiFiUser user = new StandardNiFiUser("nifi-user");
+        final NiFiUser user = new StandardNiFiUser.Builder().identity("nifi-user").build();
         final NiFiAuthenticationToken auth = new NiFiAuthenticationToken(new NiFiUserDetails(user));
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -49,6 +69,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
+    @Ignore
     @Unroll
     def "CreateUser: isAuthorized: #isAuthorized"() {
         given:
@@ -87,6 +108,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         createUserDTO() | null               | ResourceFactory.usersResource | false        | AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "GetUser: isAuthorized: #isAuthorized"() {
         given:
@@ -134,6 +156,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         createUserDTO() | false        | AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "UpdateUser: isAuthorized: #isAuthorized, policy exists: #userExists"() {
         given:
@@ -188,6 +211,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         true       | new Revision(1L, 'client1', 'root') | createUserDTO() | false        | AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "DeleteUser: isAuthorized: #isAuthorized, user exists: #userExists"() {
         given:
@@ -239,6 +263,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         false      | null                                  | createUserDTO() | false        | AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "CreateUserGroup: isAuthorized: #isAuthorized"() {
         given:
@@ -307,6 +332,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         createUserGroupDTO() | false        | [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
     }
 
+    @Ignore
     @Unroll
     def "GetUserGroup: isAuthorized: #isAuthorized"() {
         given:
@@ -363,6 +389,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | false        | AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "UpdateUserGroup: isAuthorized: #isAuthorized, userGroupExists exists: #userGroupExists"() {
         given:
@@ -444,6 +471,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
                 [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
     }
 
+    @Ignore
     @Unroll
     def "DeleteUserGroup: isAuthorized: #isAuthorized, userGroup exists: #userGroupExists"() {
         given:
@@ -521,6 +549,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
                 [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
     }
 
+    @Ignore
     @Unroll
     def "CreateAccessPolicy: #isAuthorized"() {
         given:
@@ -589,6 +618,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        | AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "GetAccessPolicy: isAuthorized: #isAuthorized"() {
         given:
@@ -654,6 +684,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        | AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "UpdateAccessPolicy: isAuthorized: #isAuthorized, policy exists: #hasPolicy"() {
         given:
@@ -741,6 +772,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
                 AuthorizationResult.denied()
     }
 
+    @Ignore
     @Unroll
     def "DeleteAccessPolicy: isAuthorized: #isAuthorized, hasPolicy: #hasPolicy"() {
         given:
@@ -826,6 +858,44 @@ class StandardNiFiServiceFacadeSpec extends Specification {
                 AuthorizationResult.denied()
         false     | null                                | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        |
                 AuthorizationResult.denied()
+    }
+
+
+    def "CreateBulletin Successfully"() {
+        given:
+
+        def entityFactory = new EntityFactory()
+        def dtoFactory = new DtoFactory()
+        dtoFactory.setEntityFactory entityFactory
+        def authorizableLookup = Mock AuthorizableLookup
+        def controllerFacade = Mock ControllerFacade
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        def bulletinRepository = Mock BulletinRepository
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
+        niFiServiceFacade.setDtoFactory dtoFactory
+        niFiServiceFacade.setEntityFactory entityFactory
+        niFiServiceFacade.setControllerFacade controllerFacade
+        niFiServiceFacade.setBulletinRepository bulletinRepository
+
+        def bulletinDto = new BulletinDTO()
+        bulletinDto.category = "SYSTEM"
+        bulletinDto.message = "test system message"
+        bulletinDto.level = "WARN"
+        def bulletinEntity
+        def retBulletinEntity = new BulletinEntity()
+        retBulletinEntity.bulletin = bulletinDto
+
+        when:
+
+        bulletinEntity = niFiServiceFacade.createBulletin(bulletinDto,true)
+
+
+        then:
+        1 * bulletinRepository.addBulletin(_ as Bulletin)
+        bulletinEntity
+        bulletinEntity.bulletin.message == bulletinDto.message
+
+
     }
 
     private UserGroupDTO createUserGroupDTO() {

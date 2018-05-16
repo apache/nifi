@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 
 public abstract class AbstractControllerService extends AbstractConfigurableComponent implements ControllerService {
@@ -28,6 +31,8 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     private ControllerServiceLookup serviceLookup;
     private ComponentLog logger;
     private StateManager stateManager;
+    private volatile ConfigurationContext configurationContext;
+    private volatile boolean enabled = false;
 
     @Override
     public final void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
@@ -45,7 +50,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
 
     /**
      * @return the {@link ControllerServiceLookup} that was passed to the
-     * {@link #init(ProcessorInitializationContext)} method
+     * {@link #init(ControllerServiceInitializationContext)} method
      */
     protected final ControllerServiceLookup getControllerServiceLookup() {
         return serviceLookup;
@@ -61,6 +66,20 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     protected void init(final ControllerServiceInitializationContext config) throws InitializationException {
     }
 
+    @OnEnabled
+    public final void enabled() {
+        this.enabled = true;
+    }
+
+    @OnDisabled
+    public final void disabled() {
+        this.enabled = false;
+    }
+
+    public boolean isEnabled() {
+        return this.enabled;
+    }
+
     /**
      * @return the logger that has been provided to the component by the
      * framework in its initialize method
@@ -74,5 +93,28 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
      */
     protected StateManager getStateManager() {
         return stateManager;
+    }
+
+    @OnEnabled
+    public final void abstractStoreConfigContext(final ConfigurationContext configContext) {
+        this.configurationContext = configContext;
+    }
+
+    @OnDisabled
+    public final void abstractClearConfigContext() {
+        this.configurationContext = null;
+    }
+
+    protected ConfigurationContext getConfigurationContext() {
+        final ConfigurationContext context = this.configurationContext;
+        if (context == null) {
+            throw new IllegalStateException("No Configuration Context exists");
+        }
+
+        return configurationContext;
+    }
+
+    protected PropertyValue getProperty(final PropertyDescriptor descriptor) {
+        return getConfigurationContext().getProperty(descriptor);
     }
 }

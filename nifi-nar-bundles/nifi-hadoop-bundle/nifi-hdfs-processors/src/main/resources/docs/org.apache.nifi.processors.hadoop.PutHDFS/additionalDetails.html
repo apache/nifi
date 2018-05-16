@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+<head>
+  <meta charset="utf-8" />
+  <title>PutHDFS</title>
+  <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+  <!-- Processor Documentation ================================================== -->
+  <h2>SSL Configuration:</h2>
+  <p>
+    Hadoop provides the ability to configure keystore and/or truststore properties. If you want to use SSL-secured file system like swebhdfs, you can use the Hadoop configurations instead of using SSL Context Service.
+    <ol>
+      <li>create 'ssl-client.xml' to configure the truststores.</li>
+      <p>ssl-client.xml Properties:</p>
+      <table>
+        <tr>
+          <th>Property</th>
+          <th>Default Value</th>
+          <th>Explanation</th>
+        </tr>
+        <tr>
+          <td>ssl.client.truststore.type</td>
+          <td>jks</td>
+          <td>Truststore file type</td>
+        </tr>
+        <tr>
+          <td>ssl.client.truststore.location</td>
+          <td>NONE</td>
+          <td>Truststore file location</td>
+        </tr>
+        <tr>
+          <td>ssl.client.truststore.password</td>
+          <td>NONE</td>
+          <td>Truststore file password</td>
+        </tr>
+        <tr>
+          <td>ssl.client.truststore.reload.interval</td>
+          <td>10000</td>
+          <td>Truststore reload interval, in milliseconds</td>
+        </tr>
+      </table>
+
+      <p>ssl-client.xml Example:</p>
+      <pre>
+&lt;configuration&gt;
+  &lt;property&gt;
+    &lt;name&gt;ssl.client.truststore.type&lt;/name&gt;
+    &lt;value&gt;jks&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;ssl.client.truststore.location&lt;/name&gt;
+    &lt;value&gt;/path/to/truststore.jks&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;ssl.client.truststore.password&lt;/name&gt;
+    &lt;value&gt;clientfoo&lt;/value&gt;
+  &lt;/property&gt;
+  &lt;property&gt;
+    &lt;name&gt;ssl.client.truststore.reload.interval&lt;/name&gt;
+    &lt;value&gt;10000&lt;/value&gt;
+  &lt;/property&gt;
+&lt;/configuration&gt;
+                    </pre>
+
+      <li>put 'ssl-client.xml' to the location looked up in the classpath, like under NiFi conriguration directory.</li>
+
+      <li>set the name of 'ssl-client.xml' to <i>hadoop.ssl.client.conf</i> in the 'core-site.xml' which HDFS processors use.</li>
+      <pre>
+&lt;configuration&gt;
+    &lt;property&gt;
+      &lt;name&gt;fs.defaultFS&lt;/name&gt;
+      &lt;value&gt;swebhdfs://{namenode.hostname:port}&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+      &lt;name&gt;hadoop.ssl.client.conf&lt;/name&gt;
+      &lt;value&gt;ssl-client.xml&lt;/value&gt;
+    &lt;/property&gt;
+&lt;configuration&gt;
+                  </pre>
+    </ol>
+  </p>
+</body>
+
+</html>

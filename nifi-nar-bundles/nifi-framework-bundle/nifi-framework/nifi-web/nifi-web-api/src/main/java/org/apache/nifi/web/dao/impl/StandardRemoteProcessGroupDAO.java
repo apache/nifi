@@ -16,32 +16,32 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import static org.apache.nifi.util.StringUtils.isEmpty;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 
-import static org.apache.nifi.util.StringUtils.isEmpty;
-
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardRemoteProcessGroupDAO.class);
     private FlowController flowController;
 
     private RemoteProcessGroup locateRemoteProcessGroup(final String remoteProcessGroupId) {
@@ -82,6 +82,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
         // create the remote process group
         RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
+        remoteProcessGroup.initialize();
 
         // set other properties
         updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
@@ -125,6 +126,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     /**
      * Verifies the specified remote group can be updated, if necessary.
      */
+    @SuppressWarnings("unchecked")
     private void verifyUpdate(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDto) {
         // see if the remote process group can start/stop transmitting
         if (isNotNull(remoteProcessGroupDto.isTransmitting())) {
@@ -144,6 +146,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
         // if any remote group properties are changing, verify update
         if (isAnyNotNull(remoteProcessGroupDto.getYieldDuration(),
+                remoteProcessGroupDto.getLocalNetworkInterface(),
                 remoteProcessGroupDto.getCommunicationsTimeout(),
                 remoteProcessGroupDto.getProxyHost(),
                 remoteProcessGroupDto.getProxyPort(),
@@ -201,7 +204,9 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
 
         // verify update when appropriate
-        if (isAnyNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount(), remoteProcessGroupPortDto.getUseCompression())) {
+        if (isAnyNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount(),
+                remoteProcessGroupPortDto.getUseCompression(),
+                remoteProcessGroupPortDto.getBatchSettings())) {
             port.verifyCanUpdate();
         }
     }
@@ -215,6 +220,30 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // ensure the proposed port configuration is valid
         if (isNotNull(remoteProcessGroupPortDTO.getConcurrentlySchedulableTaskCount()) && remoteProcessGroupPortDTO.getConcurrentlySchedulableTaskCount() <= 0) {
             validationErrors.add(String.format("Concurrent tasks for port '%s' must be a positive integer.", remoteGroupPort.getName()));
+        }
+
+        final BatchSettingsDTO batchSettingsDTO = remoteProcessGroupPortDTO.getBatchSettings();
+        if (batchSettingsDTO != null) {
+            final Integer batchCount = batchSettingsDTO.getCount();
+            if (isNotNull(batchCount) && batchCount < 0) {
+                validationErrors.add(String.format("Batch count for port '%s' must be a positive integer.", remoteGroupPort.getName()));
+            }
+
+            final String batchSize = batchSettingsDTO.getSize();
+            if (isNotNull(batchSize) && batchSize.length() > 0
+                    && !DataUnit.DATA_SIZE_PATTERN.matcher(batchSize.trim().toUpperCase()).matches()) {
+                validationErrors.add(String.format("Batch size for port '%s' must be of format <Data Size> <Data Unit>" +
+                        " where <Data Size> is a non-negative integer and <Data Unit> is a supported Data"
+                        + " Unit, such as: B, KB, MB, GB, TB", remoteGroupPort.getName()));
+            }
+
+            final String batchDuration = batchSettingsDTO.getDuration();
+            if (isNotNull(batchDuration) && batchDuration.length() > 0
+                    && !FormatUtils.TIME_DURATION_PATTERN.matcher(batchDuration.trim().toLowerCase()).matches()) {
+                validationErrors.add(String.format("Batch duration for port '%s' must be of format <duration> <TimeUnit>" +
+                        " where <duration> is a non-negative integer and TimeUnit is a supported Time Unit, such "
+                        + "as: nanos, millis, secs, mins, hrs, days", remoteGroupPort.getName()));
+            }
         }
 
         return validationErrors;
@@ -282,23 +311,9 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         verifyUpdatePort(port, remoteProcessGroupPortDto);
 
         // perform the update
-        if (isNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount())) {
-            port.setMaxConcurrentTasks(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount());
-        }
-        if (isNotNull(remoteProcessGroupPortDto.getUseCompression())) {
-            port.setUseCompression(remoteProcessGroupPortDto.getUseCompression());
-        }
+        updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
 
-        final Boolean isTransmitting = remoteProcessGroupPortDto.isTransmitting();
-        if (isNotNull(isTransmitting)) {
-            // start or stop as necessary
-            if (!port.isRunning() && isTransmitting) {
-                remoteProcessGroup.startTransmitting(port);
-            } else if (port.isRunning() && !isTransmitting) {
-                remoteProcessGroup.stopTransmitting(port);
-            }
-        }
-
+        remoteProcessGroup.getProcessGroup().onComponentModified();
         return port;
     }
 
@@ -316,11 +331,32 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         verifyUpdatePort(port, remoteProcessGroupPortDto);
 
         // perform the update
+        updatePort(port, remoteProcessGroupPortDto, remoteProcessGroup);
+        remoteProcessGroup.getProcessGroup().onComponentModified();
+
+        return port;
+    }
+
+    /**
+     *
+     * @param port Port instance to be updated.
+     * @param remoteProcessGroupPortDto DTO containing updated remote process group port settings.
+     * @param remoteProcessGroup If remoteProcessGroupPortDto has updated isTransmitting input,
+     *                           this method will start or stop the port in this remoteProcessGroup as necessary.
+     */
+    private void updatePort(RemoteGroupPort port, RemoteProcessGroupPortDTO remoteProcessGroupPortDto, RemoteProcessGroup remoteProcessGroup) {
         if (isNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount())) {
             port.setMaxConcurrentTasks(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount());
         }
         if (isNotNull(remoteProcessGroupPortDto.getUseCompression())) {
             port.setUseCompression(remoteProcessGroupPortDto.getUseCompression());
+        }
+
+        final BatchSettingsDTO batchSettingsDTO = remoteProcessGroupPortDto.getBatchSettings();
+        if (isNotNull(batchSettingsDTO)) {
+            port.setBatchCount(batchSettingsDTO.getCount());
+            port.setBatchSize(batchSettingsDTO.getSize());
+            port.setBatchDuration(batchSettingsDTO.getDuration());
         }
 
         final Boolean isTransmitting = remoteProcessGroupPortDto.isTransmitting();
@@ -332,16 +368,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
                 remoteProcessGroup.stopTransmitting(port);
             }
         }
-
-        return port;
     }
 
     @Override
     public RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroupDTO) {
         RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupDTO.getId());
         return updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
-
-
     }
 
     private RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDTO) {
@@ -349,6 +381,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         verifyUpdate(remoteProcessGroup, remoteProcessGroupDTO);
 
         // configure the remote process group
+        final String targetUris = remoteProcessGroupDTO.getTargetUris();
         final String name = remoteProcessGroupDTO.getName();
         final String comments = remoteProcessGroupDTO.getComments();
         final String communicationsTimeout = remoteProcessGroupDTO.getCommunicationsTimeout();
@@ -359,7 +392,11 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String proxyPassword = remoteProcessGroupDTO.getProxyPassword();
 
         final String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
+        final String localNetworkInterface = remoteProcessGroupDTO.getLocalNetworkInterface();
 
+        if (isNotNull(targetUris)) {
+            remoteProcessGroup.setTargetUris(targetUris);
+        }
         if (isNotNull(name)) {
             remoteProcessGroup.setName(name);
         }
@@ -391,6 +428,13 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
                 remoteProcessGroup.setProxyPassword(proxyPassword);
             }
         }
+        if (localNetworkInterface != null) {
+            if (StringUtils.isBlank(localNetworkInterface)) {
+                remoteProcessGroup.setNetworkInterface(null);
+            } else {
+                remoteProcessGroup.setNetworkInterface(localNetworkInterface);
+            }
+        }
 
         final Boolean isTransmitting = remoteProcessGroupDTO.isTransmitting();
         if (isNotNull(isTransmitting)) {
@@ -402,6 +446,10 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             }
         }
 
+        final ProcessGroup group = remoteProcessGroup.getProcessGroup();
+        if (group != null) {
+            group.onComponentModified();
+        }
         return remoteProcessGroup;
     }
 

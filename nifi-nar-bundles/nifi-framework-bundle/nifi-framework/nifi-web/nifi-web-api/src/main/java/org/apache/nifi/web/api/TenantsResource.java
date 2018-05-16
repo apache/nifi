@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -129,7 +129,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -149,8 +149,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserEntity requestUserEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserEntity == null || requestUserEntity.getComponent() == null) {
@@ -194,7 +194,7 @@ public class TenantsResource extends ApplicationResource {
                     populateRemainingUserEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -214,7 +214,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -234,8 +234,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -252,7 +252,7 @@ public class TenantsResource extends ApplicationResource {
         final UserEntity entity = serviceFacade.getUser(id);
         populateRemainingUserEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -269,7 +269,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UsersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -284,8 +284,8 @@ public class TenantsResource extends ApplicationResource {
     public Response getUsers() {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -307,7 +307,7 @@ public class TenantsResource extends ApplicationResource {
         entity.setUsers(populateRemainingUserEntitiesContent(users));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -327,7 +327,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -352,8 +352,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserEntity requestUserEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserEntity == null || requestUserEntity.getComponent() == null) {
@@ -391,7 +391,7 @@ public class TenantsResource extends ApplicationResource {
                     final UserEntity entity = serviceFacade.updateUser(revision, userEntity.getComponent());
                     populateRemainingUserEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -417,7 +417,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -448,8 +448,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (isReplicateRequest()) {
@@ -473,7 +473,7 @@ public class TenantsResource extends ApplicationResource {
                 (revision, userEntity) -> {
                     // delete the specified user
                     final UserEntity entity = serviceFacade.deleteUser(revision, userEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -518,7 +518,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -538,8 +538,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserGroupEntity requestUserGroupEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserGroupEntity == null || requestUserGroupEntity.getComponent() == null) {
@@ -583,7 +583,7 @@ public class TenantsResource extends ApplicationResource {
                     populateRemainingUserGroupEntityContent(entity);
 
                     // build the response
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
     }
@@ -603,7 +603,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -623,8 +623,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -641,7 +641,7 @@ public class TenantsResource extends ApplicationResource {
         final UserGroupEntity entity = serviceFacade.getUserGroup(id);
         populateRemainingUserGroupEntityContent(entity);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -658,7 +658,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -673,8 +673,8 @@ public class TenantsResource extends ApplicationResource {
     public Response getUserGroups() {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -695,7 +695,7 @@ public class TenantsResource extends ApplicationResource {
         entity.setUserGroups(populateRemainingUserGroupEntitiesContent(users));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -715,7 +715,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -740,8 +740,8 @@ public class TenantsResource extends ApplicationResource {
             ) final UserGroupEntity requestUserGroupEntity) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (requestUserGroupEntity == null || requestUserGroupEntity.getComponent() == null) {
@@ -779,7 +779,7 @@ public class TenantsResource extends ApplicationResource {
                     final UserGroupEntity entity = serviceFacade.updateUserGroup(revision, userGroupEntity.getComponent());
                     populateRemainingUserGroupEntityContent(entity);
 
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -805,7 +805,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /tenants", type = "")
+                    @Authorization(value = "Write - /tenants")
             }
     )
     @ApiResponses(
@@ -836,8 +836,8 @@ public class TenantsResource extends ApplicationResource {
             @PathParam("id") final String id) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_CONFIGURABLE_USERS);
         }
 
         if (isReplicateRequest()) {
@@ -861,7 +861,7 @@ public class TenantsResource extends ApplicationResource {
                 (revision, userGroupEntity) -> {
                     // delete the specified user group
                     final UserGroupEntity entity = serviceFacade.deleteUserGroup(revision, userGroupEntity.getId());
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }
@@ -885,7 +885,7 @@ public class TenantsResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = TenantsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /tenants", type = "")
+                    @Authorization(value = "Read - /tenants")
             }
     )
     @ApiResponses(
@@ -897,7 +897,7 @@ public class TenantsResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response searchCluster(
+    public Response searchTenants(
             @ApiParam(
                     value = "Identity to search for.",
                     required = true
@@ -905,8 +905,8 @@ public class TenantsResource extends ApplicationResource {
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
 
         // ensure we're running with a configurable authorizer
-        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
-            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        if (!AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_MANAGED_AUTHORIZER);
         }
 
         if (isReplicateRequest()) {
@@ -929,6 +929,7 @@ public class TenantsResource extends ApplicationResource {
                 final TenantDTO tenant = new TenantDTO();
                 tenant.setId(user.getId());
                 tenant.setIdentity(user.getIdentity());
+                tenant.setConfigurable(user.getConfigurable());
 
                 final TenantEntity entity = new TenantEntity();
                 entity.setPermissions(userEntity.getPermissions());
@@ -947,6 +948,7 @@ public class TenantsResource extends ApplicationResource {
                 final TenantDTO tenant = new TenantDTO();
                 tenant.setId(userGroup.getId());
                 tenant.setIdentity(userGroup.getIdentity());
+                tenant.setConfigurable(userGroup.getConfigurable());
 
                 final TenantEntity entity = new TenantEntity();
                 entity.setPermissions(userGroupEntity.getPermissions());

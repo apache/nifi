@@ -53,7 +53,7 @@ public class JwtAuthenticationRequestToken extends NiFiAuthenticationRequestToke
 
     @Override
     public String toString() {
-        return getName();
+        return "<JWT token>";
     }
 
 }

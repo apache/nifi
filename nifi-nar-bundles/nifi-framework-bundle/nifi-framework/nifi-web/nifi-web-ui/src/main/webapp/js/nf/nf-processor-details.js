@@ -179,7 +179,8 @@
 
                     // populate the processor settings
                     nfCommon.populateField('read-only-processor-id', details['id']);
-                    nfCommon.populateField('read-only-processor-type', nfCommon.substringAfterLast(details['type'], '.'));
+                    nfCommon.populateField('read-only-processor-type', nfCommon.formatType(details));
+                    nfCommon.populateField('read-only-processor-bundle', nfCommon.formatBundle(details['bundle']));
                     nfCommon.populateField('read-only-processor-name', details['name']);
                     nfCommon.populateField('read-only-concurrently-schedulable-tasks', details.config['concurrentlySchedulableTaskCount']);
                     nfCommon.populateField('read-only-scheduling-period', details.config['schedulingPeriod']);

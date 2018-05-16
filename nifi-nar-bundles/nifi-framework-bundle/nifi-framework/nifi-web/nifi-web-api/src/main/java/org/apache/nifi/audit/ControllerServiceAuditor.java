@@ -25,6 +25,7 @@ import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ProcessorNode;
@@ -60,6 +61,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     private static final String COMMENTS = "Comments";
     private static final String NAME = "Name";
     private static final String ANNOTATION_DATA = "Annotation Data";
+    private static final String EXTENSION_VERSION = "Extension Version";
 
     /**
      * Audits the creation of controller service via createControllerService().
@@ -413,6 +415,10 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         }
         if (controllerServiceDTO.getAnnotationData() != null) {
             values.put(ANNOTATION_DATA, controllerService.getAnnotationData());
+        }
+        if (controllerServiceDTO.getBundle() != null) {
+            final BundleCoordinate bundle = controllerService.getBundleCoordinate();
+            values.put(EXTENSION_VERSION, formatExtensionVersion(controllerService.getComponentType(), bundle));
         }
         if (controllerServiceDTO.getProperties() != null) {
             // for each property specified, extract its configured value

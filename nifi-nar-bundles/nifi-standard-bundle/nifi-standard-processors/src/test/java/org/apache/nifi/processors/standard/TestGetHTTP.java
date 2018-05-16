@@ -323,7 +323,6 @@ public class TestGetHTTP {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(HttpErrorServlet.class, "/*");
-        HttpErrorServlet servlet = (HttpErrorServlet) handler.getServlets()[0].getServlet();
 
         // create the service
         TestServer server = new TestServer();
@@ -331,6 +330,7 @@ public class TestGetHTTP {
 
         try {
             server.startServer();
+            HttpErrorServlet servlet = (HttpErrorServlet) handler.getServlets()[0].getServlet();
             String destination = server.getUrl();
 
             this.controller = TestRunners.newTestRunner(GetHTTP.class);

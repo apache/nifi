@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.XMLConstants;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
@@ -50,6 +51,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -76,7 +78,8 @@ import com.google.common.cache.LoadingCache;
 @CapabilityDescription("Applies the provided XSLT file to the flowfile XML payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the XSL transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship")
-@DynamicProperty(name = "An XSLT transform parameter name", value = "An XSLT transform parameter value", supportsExpressionLanguage = true,
+@DynamicProperty(name = "An XSLT transform parameter name", value = "An XSLT transform parameter value",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "These XSLT parameters are passed to the transformer")
 public class TransformXml extends AbstractProcessor {
 
@@ -84,7 +87,7 @@ public class TransformXml extends AbstractProcessor {
             .name("XSLT file name")
             .description("Provides the name (including full path) of the XSLT file to apply to the flowfile XML content.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
@@ -92,6 +95,16 @@ public class TransformXml extends AbstractProcessor {
             .name("indent-output")
             .displayName("Indent")
             .description("Whether or not to indent the output.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SECURE_PROCESSING = new PropertyDescriptor.Builder()
+            .name("secure-processing")
+            .displayName("Secure processing")
+            .description("Whether or not to mitigate various XML-related attacks like XXE (XML External Entity) attacks.")
             .required(true)
             .defaultValue("true")
             .allowableValues("true", "false")
@@ -135,6 +148,7 @@ public class TransformXml extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(XSLT_FILE_NAME);
         properties.add(INDENT_OUTPUT);
+        properties.add(SECURE_PROCESSING);
         properties.add(CACHE_SIZE);
         properties.add(CACHE_TTL_AFTER_LAST_ACCESS);
         this.properties = Collections.unmodifiableList(properties);
@@ -159,15 +173,24 @@ public class TransformXml extends AbstractProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .required(false)
                 .dynamic(true)
                 .build();
     }
 
-    private Templates newTemplates(String path) throws TransformerConfigurationException {
+    private Templates newTemplates(ProcessContext context, String path) throws TransformerConfigurationException {
+        final Boolean secureProcessing = context.getProperty(SECURE_PROCESSING).asBoolean();
         TransformerFactory factory = TransformerFactory.newInstance();
+
+        if (secureProcessing) {
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            // don't be overly DTD-unfriendly forcing http://apache.org/xml/features/disallow-doctype-decl
+            factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-general-entities", false);
+        }
+
         return factory.newTemplates(new StreamSource(path));
     }
 
@@ -186,7 +209,7 @@ public class TransformXml extends AbstractProcessor {
             cache = cacheBuilder.build(
                new CacheLoader<String, Templates>() {
                    public Templates load(String path) throws TransformerConfigurationException {
-                       return newTemplates(path);
+                       return newTemplates(context, path);
                    }
                });
         } else {
@@ -218,7 +241,7 @@ public class TransformXml extends AbstractProcessor {
                         if (cache != null) {
                             templates = cache.get(xsltFileName);
                         } else {
-                            templates = newTemplates(xsltFileName);
+                            templates = newTemplates(context, xsltFileName);
                         }
 
                         final Transformer transformer = templates.newTransformer();

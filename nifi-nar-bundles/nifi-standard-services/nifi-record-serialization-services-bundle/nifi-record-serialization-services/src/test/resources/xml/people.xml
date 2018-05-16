@@ -1,0 +1,22 @@
+<PEOPLE attr="attr1">
+    <PERSON ID="P1">
+        <NAME>Cleve Butler</NAME>
+        <AGE>42</AGE>
+        <COUNTRY>USA</COUNTRY>
+    </PERSON>
+    <PERSON ID="P2">
+        <NAME>Ainslie Fletcher</NAME>
+        <AGE>33</AGE>
+        <COUNTRY>UK</COUNTRY>
+    </PERSON>
+    <PERSON ID="P3">
+        <NAME>Amélie Bonfils</NAME>
+        <AGE>74</AGE>
+        <COUNTRY>FR</COUNTRY>
+    </PERSON>
+    <PERSON ID="P4">
+        <NAME>Elenora Scrivens</NAME>
+        <AGE>16</AGE>
+        <COUNTRY>USA</COUNTRY>
+    </PERSON>
+</PEOPLE>

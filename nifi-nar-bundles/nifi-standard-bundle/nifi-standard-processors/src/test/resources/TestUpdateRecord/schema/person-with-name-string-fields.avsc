@@ -1,0 +1,10 @@
+{
+	"name": "personWithNameRecord",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name": "id", "type": "int" },
+		{ "name": "firstName", "type": "string" },
+		{ "name": "lastName", "type": "string" }
+	]
+}

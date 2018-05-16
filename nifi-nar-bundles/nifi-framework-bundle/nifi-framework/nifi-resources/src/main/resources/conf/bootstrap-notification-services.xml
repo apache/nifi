@@ -43,4 +43,11 @@
         <property name="To"></property>
      </service>
 -->
+<!--
+     <service>
+        <id>http-notification</id>
+        <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>
+        <property name="URL"></property>
+     </service>
+-->
 </services>

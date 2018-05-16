@@ -137,10 +137,15 @@ public class CompressionOutputStream extends OutputStream {
         super.flush();
     }
 
+    /**
+     * Flushes remaining buffer and calls {@link Deflater#end()} to free acquired memory to prevent OutOfMemory error.
+     * @throws IOException for any issues closing underlying stream
+     */
     @Override
     public void close() throws IOException {
         compressAndWrite();
         out.write(0);   // indicate that the stream is finished.
         out.flush();
+        deflater.end();
     }
 }

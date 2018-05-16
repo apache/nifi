@@ -16,15 +16,19 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
-public interface ControllerServiceNode extends ConfiguredComponent {
+public interface ControllerServiceNode extends ConfiguredComponent, ConfigurableComponent, VersionedComponent {
 
     /**
      * @return the Process Group that this Controller Service belongs to, or <code>null</code> if the Controller Service
@@ -50,6 +54,11 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * @return a proxied ControllerService that can be addressed outside of the framework.
      */
     ControllerService getProxiedControllerService();
+
+    /**
+     * @return the invocation handler being used by the proxy
+     */
+    ControllerServiceInvocationHandler getInvocationHandler();
 
     /**
      * Returns the list of services that are required to be enabled before this
@@ -88,8 +97,10 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      *            initiate service enabling task as well as its re-tries
      * @param administrativeYieldMillis
      *            the amount of milliseconds to wait for administrative yield
+     *
+     * @return a CompletableFuture that can be used to wait for the service to finish enabling
      */
-    void enable(ScheduledExecutorService scheduler, long administrativeYieldMillis);
+    CompletableFuture<Void> enable(ScheduledExecutorService scheduler, long administrativeYieldMillis);
 
     /**
      * Will disable this service. Disabling of the service typically means
@@ -99,7 +110,7 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      *            implementation of {@link ScheduledExecutorService} used to
      *            initiate service disabling task
      */
-    void disable(ScheduledExecutorService scheduler);
+    CompletableFuture<Void> disable(ScheduledExecutorService scheduler);
 
     /**
      * @return the ControllerServiceReference that describes which components are referencing this Controller Service
@@ -167,4 +178,16 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * {@link #disable(ScheduledExecutorService)}.
      */
     boolean isActive();
+
+    /**
+     * Sets a new proxy and implementation for this node.
+     *
+     * @param implementation the actual implementation controller service
+     * @param proxiedControllerService the proxied controller service
+     * @param invocationHandler the invocation handler being used by the proxy
+     */
+    void setControllerServiceAndProxy(final LoggableComponent<ControllerService> implementation,
+                                      final LoggableComponent<ControllerService> proxiedControllerService,
+                                      final ControllerServiceInvocationHandler invocationHandler);
+
 }

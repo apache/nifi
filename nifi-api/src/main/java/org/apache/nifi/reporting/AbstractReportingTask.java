@@ -18,10 +18,12 @@ package org.apache.nifi.reporting;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 
 public abstract class AbstractReportingTask extends AbstractConfigurableComponent implements ReportingTask {
 
@@ -30,6 +32,7 @@ public abstract class AbstractReportingTask extends AbstractConfigurableComponen
     private long schedulingNanos;
     private ControllerServiceLookup serviceLookup;
     private ComponentLog logger;
+    private NodeTypeProvider nodeTypeProvider;
 
     @Override
     public final void initialize(final ReportingInitializationContext config) throws InitializationException {
@@ -38,16 +41,25 @@ public abstract class AbstractReportingTask extends AbstractConfigurableComponen
         name = config.getName();
         schedulingNanos = config.getSchedulingPeriod(TimeUnit.NANOSECONDS);
         serviceLookup = config.getControllerServiceLookup();
+        nodeTypeProvider = config.getNodeTypeProvider();
 
         init(config);
     }
 
     /**
      * @return the {@link ControllerServiceLookup} that was passed to the
-     * {@link #init(ProcessorInitializationContext)} method
+     * {@link #initialize(ReportingInitializationContext)} method
      */
     protected final ControllerServiceLookup getControllerServiceLookup() {
         return serviceLookup;
+    }
+
+    /**
+     * @return the {@link NodeTypeProvider} that was passed to the
+     * {@link #initialize(ReportingInitializationContext)} method
+     */
+    protected final NodeTypeProvider getNodeTypeProvider() {
+        return nodeTypeProvider;
     }
 
     /**
@@ -63,6 +75,15 @@ public abstract class AbstractReportingTask extends AbstractConfigurableComponen
      */
     protected String getName() {
         return name;
+    }
+
+    /**
+     * Sets various component information using the given context
+     * @param context the context to use for this reporting task
+     */
+    @OnScheduled
+    public void setComponentInfo(ConfigurationContext context) {
+        this.name = context.getName();
     }
 
     /**

@@ -121,10 +121,12 @@
 
     /**
      * Updates the parent group of all selected components.
+     *
+     * @param {selection} the destination group
      */
-    var updateComponentsGroup = function () {
-        var selection = d3.selectAll('g.component.selected, g.connection.selected');
-        var group = d3.select('g.drop');
+    var updateComponentsGroup = function (group) {
+        // get the selection and deselect the components being moved
+        var selection = d3.selectAll('g.component.selected, g.connection.selected').classed('selected', false);
 
         if (nfCanvasUtils.canModify(selection) === false) {
             nfDialog.showOkDialog({
@@ -150,8 +152,8 @@
             nfCanvas = canvas;
 
             // handle component drag events
-            drag = d3.behavior.drag()
-                .on('dragstart', function () {
+            drag = d3.drag()
+                .on('start', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
                 })
@@ -193,10 +195,10 @@
                             .attr('width', maxX - minX)
                             .attr('height', maxY - minY)
                             .attr('stroke-width', function () {
-                                return 1 / nfCanvasUtils.scaleCanvasView();
+                                return 1 / nfCanvasUtils.getCanvasScale();
                             })
                             .attr('stroke-dasharray', function () {
-                                return 4 / nfCanvasUtils.scaleCanvasView();
+                                return 4 / nfCanvasUtils.getCanvasScale();
                             })
                             .datum({
                                 original: {
@@ -218,7 +220,7 @@
                             });
                     }
                 })
-                .on('dragend', function () {
+                .on('end', function () {
                     // stop further propagation
                     d3.event.sourceEvent.stopPropagation();
 
@@ -230,11 +232,15 @@
                         return;
                     }
 
+                    // get the destination group if applicable... remove the drop flag if necessary to prevent
+                    // subsequent drop events from triggering prior to this move's completion
+                    var group = d3.select('g.drop').classed('drop', false);
+
                     // either move or update the selections group as appropriate
-                    if (d3.select('g.drop').empty()) {
+                    if (group.empty()) {
                         updateComponentsPosition(dragSelection);
                     } else {
-                        updateComponentsGroup();
+                        updateComponentsGroup(group);
                     }
 
                     // remove the drag selection
@@ -384,7 +390,7 @@
                     });
 
                     // refresh the connections
-                    connections.forEach(function (connectionId) {
+                    connections.each(function (connectionId) {
                         nfConnection.refresh(connectionId);
                     });
                 }).always(function () {

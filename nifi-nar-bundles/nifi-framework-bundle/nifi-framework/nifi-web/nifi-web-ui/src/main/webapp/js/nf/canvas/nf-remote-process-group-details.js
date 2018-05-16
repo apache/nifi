@@ -65,6 +65,7 @@
                         nfCommon.clearField('read-only-remote-process-group-timeout');
                         nfCommon.clearField('read-only-remote-process-group-yield-duration');
                         nfCommon.clearField('read-only-remote-process-group-transport-protocol');
+                        nfCommon.clearField('read-only-remote-process-group-local-network-interface');
                         nfCommon.clearField('read-only-remote-process-group-proxy-host');
                         nfCommon.clearField('read-only-remote-process-group-proxy-port');
                         nfCommon.clearField('read-only-remote-process-group-proxy-user');
@@ -91,6 +92,7 @@
                 nfCommon.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);
                 nfCommon.populateField('read-only-remote-process-group-yield-duration', selectionData.component.yieldDuration);
                 nfCommon.populateField('read-only-remote-process-group-transport-protocol', selectionData.component.transportProtocol);
+                nfCommon.populateField('read-only-remote-process-group-local-network-interface', selectionData.component.localNetworkInterface);
                 nfCommon.populateField('read-only-remote-process-group-proxy-host', selectionData.component.proxyHost);
                 nfCommon.populateField('read-only-remote-process-group-proxy-port', selectionData.component.proxyPort);
                 nfCommon.populateField('read-only-remote-process-group-proxy-user', selectionData.component.proxyUser);

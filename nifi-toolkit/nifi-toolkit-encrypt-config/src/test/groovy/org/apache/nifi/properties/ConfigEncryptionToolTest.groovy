@@ -16,15 +16,22 @@
  */
 package org.apache.nifi.properties
 
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import org.apache.commons.cli.CommandLine
+import org.apache.commons.cli.CommandLineParser
+import org.apache.commons.cli.DefaultParser
 import org.apache.commons.lang3.SystemUtils
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Assume
@@ -65,6 +72,17 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
     public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
     private static final String PASSWORD = "thisIsABadPassword"
+
+    private static final String STATIC_SALT = "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUV"
+    private static final String SCRYPT_SALT_PATTERN = /\$\w{2}\$\w{5,}\$[\w\/\=\+]+/
+
+    // Hash of "password" with 00 * 16 salt
+    private static
+    final String HASHED_PASSWORD = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM"
+    // Hash of [key derived from "password"] with 00 * 16 salt
+    private static
+    final String HASHED_KEY_HEX = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$pJOGA9sPL+pRzynnwt6G2FfVTyLQdbKSbk6W8IKId8E"
+
     // From ConfigEncryptionTool.deriveKeyFromPassword("thisIsABadPassword")
     private static
     final String PASSWORD_KEY_HEX_256 = "2C576A9585DB862F5ECBEE5B4FFFCCA14B18D8365968D7081651006507AD2BDE"
@@ -80,6 +98,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     final String FLOW_PASSWORD = isUnlimitedStrengthCryptoAvailable() ? FLOW_PASSWORD_256 : FLOW_PASSWORD_128
 
     private static final int LIP_PASSWORD_LINE_COUNT = 3
+    private static final int AUTHORIZERS_PASSWORD_LINE_COUNT = 3
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
 
     private static final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
@@ -88,7 +107,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private final String DEFAULT_LEGACY_SENSITIVE_PROPS_KEY = "nififtw!"
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -99,17 +118,19 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @AfterClass
-    public static void tearDownOnce() throws Exception {
+    static void tearDownOnce() throws Exception {
         File tmpDir = new File("target/tmp/")
         tmpDir.delete()
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
+        // Manually override the constant path to allow for easy cleanup
+        ConfigEncryptionTool.secureHashPath = "target/tmp/secure_hash.key"
     }
 
     @After
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         TestAppender.reset()
     }
 
@@ -320,6 +341,60 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldParseAuthorizersArgument() {
+        // Arrange
+        def flags = ["-a", "--authorizers"]
+        String authorizersPath = "src/test/resources/authorizers.xml"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        flags.each { String arg ->
+            tool.parse([arg, authorizersPath] as String[])
+            logger.info("Parsed authorizers.xml location: ${tool.authorizersPath}")
+
+            // Assert
+            assert tool.authorizersPath == authorizersPath
+            assert tool.handlingAuthorizers
+        }
+    }
+
+    @Test
+    void testShouldParseOutputAuthorizersArgument() {
+        // Arrange
+        def flags = ["-u", "--outputAuthorizers"]
+        String authorizersPath = "src/test/resources/authorizers.xml"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        flags.each { String arg ->
+            final outputAuthorizersPath = authorizersPath.reverse()
+            tool.parse([arg, outputAuthorizersPath, "-a", authorizersPath] as String[])
+            logger.info("Parsed output authorizers.xml location: ${tool.outputAuthorizersPath}")
+
+            // Assert
+            assert tool.outputAuthorizersPath == outputAuthorizersPath
+        }
+    }
+
+    @Test
+    void testParseShouldWarnIfAuthorizersWillBeOverwritten() {
+        // Arrange
+        String authorizersPath = "conf/authorizers.xml"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        tool.parse("-a ${authorizersPath} -u ${authorizersPath}".split(" ") as String[])
+        logger.info("Parsed authorizers.xml location: ${tool.authorizersPath}")
+        logger.info("Parsed output authorizers.xml location: ${tool.outputAuthorizersPath}")
+
+        // Assert
+        assert !TestAppender.events.isEmpty()
+        assert TestAppender.events.any {
+            it.message =~ "The source authorizers.xml and destination authorizers.xml are identical \\[.*\\] so the original will be overwritten"
+        }
+    }
+
+    @Test
     void testShouldParseKeyArgument() {
         // Arrange
         def flags = ["-k", "--key"]
@@ -351,7 +426,82 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    void testParseShouldFailIfNiFiPropertiesAndLoginIdentityProviderBothMissing() {
+    void testParseShouldFailIfMigrationPasswordAndHashedPasswordBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -w oldPassword -z oldPasswordHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationPasswordAndHashedKeyBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -w oldPassword -y oldKeyHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationKeyAndHashedPasswordBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -e oldKey -z oldPasswordHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationKeyAndHashedKeyBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -e oldKey -y oldKeyHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "If the '-w'/'--oldPassword' or '-e'/'--oldKey' arguments are present, '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' cannot be used"
+    }
+
+    @Test
+    void testParseShouldFailIfHashedPasswordAndHashedKeyBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -z oldPasswordHashed -y oldKeyHashed".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Only one of '-z'/'--secureHashPassword' and '-y'/'--secureHashKey' can be used together"
+    }
+
+    @Test
+    void testParseShouldFailIfPropertiesAndProvidersMissing() {
         // Arrange
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
@@ -360,16 +510,22 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 "-v -s password",
                 "-n",
                 "-l",
-                "-o output-nifi.properties -i output-login-identity-providers.xml",
+                "-a",
+                "-o output-nifi.properties -i output-login-identity-providers.xml -u output-authorizers.xml",
                 "-f flow.xml.gz",
         ]
 
-        final String NO_NFP_OR_LIP = "One or both of '-n'/'--${ConfigEncryptionTool.NIFI_PROPERTIES_ARG}' or '-l'/'--${ConfigEncryptionTool.LOGIN_IDENTITY_PROVIDERS_ARG}' must be provided unless '-x'/--'${ConfigEncryptionTool.DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified"
+        final String NO_NFP_OR_LIP = "One or more of [" +
+                "'-n'/'--${ConfigEncryptionTool.NIFI_PROPERTIES_ARG}', " +
+                "'-l'/'--${ConfigEncryptionTool.LOGIN_IDENTITY_PROVIDERS_ARG}', " +
+                "'-a'/'--${ConfigEncryptionTool.AUTHORIZERS_ARG}'" +
+                "] must be provided unless '-x'/--'${ConfigEncryptionTool.DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified"
         final String MISSING_NFP_ARGUMENT = "Error parsing command line. (Missing argument for option: n)"
         final String MISSING_LIP_ARGUMENT = "Error parsing command line. (Missing argument for option: l)"
+        final String MISSING_A_ARGUMENT = "Error parsing command line. (Missing argument for option: a)"
         final String MIGRATE_NEEDS_NFP = "In order to migrate a flow.xml.gz, a nifi.properties file must also be specified via '-n'/'--niFiProperties'."
 
-        def ACCEPTABLE_ERROR_MSGS = [NO_NFP_OR_LIP, MISSING_NFP_ARGUMENT, MISSING_LIP_ARGUMENT, MIGRATE_NEEDS_NFP]
+        def ACCEPTABLE_ERROR_MSGS = [NO_NFP_OR_LIP, MISSING_NFP_ARGUMENT, MISSING_LIP_ARGUMENT, MISSING_A_ARGUMENT, MIGRATE_NEEDS_NFP]
 
         // Act
         invalidArgs.each { String badArgs ->
@@ -1380,8 +1536,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert msg == "The nifi.properties file at ${workingFile.path} must be writable by the user running this tool".toString()
 
         workingFile.deleteOnExit()
-        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE])
-        tmpDir.deleteOnExit()
+        setupTmpDir()
     }
 
     @Ignore("Setting the Windows file permissions fails in the test harness, so the test does not throw the expected exception")
@@ -1457,7 +1612,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-o", outputPropertiesFile.path, "-k", KEY_HEX]
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
@@ -1489,7 +1644,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -1539,7 +1694,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-o", outputPropertiesFile.path, "-p", PASSWORD]
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
@@ -1571,7 +1726,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -1633,7 +1788,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         outputPropertiesFile.text = outputPropertiesFile.text.replace("nifi.sensitive.props.additional.keys=", "nifi.sensitive.props.additional.keys=nifi.ui.banner.text")
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
@@ -1665,7 +1820,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
             }
-        });
+        })
 
         logger.info("Invoked #main second time with ${args.join(" ")}")
         ConfigEncryptionTool.main(args)
@@ -1752,7 +1907,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Running [${scenario}] with args: ${localArgs}")
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 assert outputPropertiesFile.exists()
                 final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
@@ -1785,7 +1940,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
             }
-        });
+        })
 
         logger.info("Migrating key (${scenario}) with ${localArgs.join(" ")}")
         ConfigEncryptionTool.main(localArgs as String[])
@@ -1799,7 +1954,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
      * Ideally all of the combination tests would be a single test with iterative argument lists, but due to the System.exit(), it can only be captured once per test.
      */
     @Test
-    public void testShouldMigrateFromPasswordToPassword() {
+    void testShouldMigrateFromPasswordToPassword() {
         // Arrange
         String scenario = "password to password"
         def args = ["-w", PASSWORD, "-p", PASSWORD.reverse()]
@@ -1813,7 +1968,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldMigrateFromPasswordToKey() {
+    void testShouldMigrateFromPasswordToKey() {
         // Arrange
         String scenario = "password to key"
         def args = ["-w", PASSWORD, "-k", KEY_HEX]
@@ -1827,7 +1982,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldMigrateFromKeyToPassword() {
+    void testShouldMigrateFromKeyToPassword() {
         // Arrange
         String scenario = "key to password"
         def args = ["-e", PASSWORD_KEY_HEX, "-p", PASSWORD.reverse()]
@@ -1841,7 +1996,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldMigrateFromKeyToKey() {
+    void testShouldMigrateFromKeyToKey() {
         // Arrange
         String scenario = "key to key"
         def args = ["-e", PASSWORD_KEY_HEX, "-k", KEY_HEX]
@@ -1852,6 +2007,631 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assert
 
         // Assertions in common method above
+    }
+
+    /**
+     * Helper method to execute key migration test for varying combinations of new key/password with securely hashed key/password.
+     *
+     * @param scenario a human-readable description of the test scenario
+     * @param scenarioArgs a list of the arguments specific to this scenario to be passed to the tool
+     * @param oldHashedPassword the secure hash of the original password
+     * @param newPassword the new password
+     * @param oldHashedKeyHex the original key hex (if present, original hashed password is ignored)
+     * @param newKeyHex the new key hex (if present, new password is ignored; if not, this is derived)
+     */
+    private void performSecureHashKeyMigration(String scenario, List scenarioArgs, String oldHashedPassword = HASHED_PASSWORD, String newPassword = PASSWORD.reverse(), String oldHashedKeyHex = "", String newKeyHex = "", int desiredExitCode = 0) {
+        // Arrange
+        exit.expectSystemExitWithStatus(desiredExitCode)
+
+        // Initial set up
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key_password.conf" :
+                "src/test/resources/bootstrap_with_master_key_password_128.conf"
+        File originalKeyFile = new File(bootstrapPath)
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(originalKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+
+        // Copy the hashed credentials file
+        String secureHashedPasswordPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/secure_hash.key" :
+                "src/test/resources/secure_hash_128.key"
+        File originalSecureHashedPasswordFile = new File(secureHashedPasswordPath)
+        File secureHashedFile = new File("target/tmp/tmp_secure_hash.key")
+        secureHashedFile.delete()
+        Files.copy(originalSecureHashedPasswordFile.toPath(), secureHashedFile.toPath())
+
+        // Perform necessary key derivations
+        if (!newKeyHex) {
+            newKeyHex = ConfigEncryptionTool.deriveKeyFromPassword(newPassword)
+            logger.info("Migration key derived from password [${newPassword}]: \t${newKeyHex}")
+        } else {
+            logger.info("Migration key provided directly: \t${newKeyHex}")
+        }
+
+        // Extract old key hex from bootstrap.conf
+        String oldKeyHex = originalKeyLine.split("=", 2).last()
+        logger.info("Extracted old key hex from bootstrap.conf: ${oldKeyHex}")
+
+        String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ?
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_password.properties" :
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_password_128.properties"
+        File inputPropertiesFile = new File(inputPropertiesPath)
+        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        outputPropertiesFile.delete()
+
+        // Log original sensitive properties (encrypted with first key)
+        NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(oldKeyHex).load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        final String EXPECTED_NEW_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + newKeyHex
+
+        // Act
+        String[] args = ["-n", inputPropertiesFile.path,
+                         "-b", bootstrapFile.path,
+                         "-o", outputPropertiesFile.path,
+                         "-m",
+                         "-v"]
+
+        List<String> localArgs = args + scenarioArgs
+        logger.info("Running [${scenario}] with args: ${localArgs}")
+
+        // If an error is expected, check that the nifi.properties file doesn't exist (i.e. nothing happened)
+        Assertion assertion
+        if (desiredExitCode != 0) {
+            assertion = new Assertion() {
+                void checkAssertion() {
+                    assert !outputPropertiesFile.exists()
+                    logger.expected("No output nifi.properties found")
+
+                    // Check that the key was NOT persisted to the bootstrap.conf
+                    final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                    String updatedKeyLine = updatedBootstrapLines.find {
+                        it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                    }
+                    logger.info("'Updated' key line: ${updatedKeyLine}")
+
+                    assert updatedKeyLine == originalKeyLine
+                    assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                    // Check that the secure hash was NOT persisted to the secure_hash.key
+                    final List<String> updatedSecureHashLines = secureHashedFile.readLines()
+                    String updatedSecureHashKeyLine = updatedSecureHashLines.find { it.startsWith("secureHashKey=") }
+                    logger.info("'Updated' secure hash lines: \n${updatedSecureHashLines.join("\n")}")
+
+                    int expectedSecureHashLineCount = 1
+
+                    List<String> originalSecureHashLines = originalSecureHashedPasswordFile.readLines()
+
+                    // Only evaluate the secure hash password line if the raw password was provided (otherwise, can't store hash)
+                    if (newPassword) {
+                        String updatedSecureHashPasswordLine = updatedSecureHashLines.find {
+                            it.startsWith("secureHashPassword=")
+                        }
+                        expectedSecureHashLineCount = 2
+
+                        logger.info("Asserting \n${updatedSecureHashPasswordLine} == \n${originalSecureHashLines.last()}")
+                        assert updatedSecureHashPasswordLine == originalSecureHashLines.last()
+                    }
+
+                    logger.info("Asserting \n${updatedSecureHashKeyLine} == \n${originalSecureHashLines.first()}")
+                    assert updatedSecureHashKeyLine == originalSecureHashLines.first()
+                    assert updatedSecureHashLines.size() == expectedSecureHashLineCount
+
+                    // Clean up
+                    outputPropertiesFile.deleteOnExit()
+                    bootstrapFile.deleteOnExit()
+                    tmpDir.deleteOnExit()
+                    secureHashedFile.deleteOnExit()
+                }
+            }
+        } else {
+            assertion = new Assertion() {
+                void checkAssertion() {
+                    assert outputPropertiesFile.exists()
+                    final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
+                    logger.info("Updated nifi.properties:")
+                    logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                    // Check that the output values for sensitive properties are not the same as the original (i.e. it was re-encrypted)
+                    NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                    assert updatedProperties.size() >= inputProperties.size()
+                    originalSensitiveValues.every { String key, String originalValue ->
+                        assert updatedProperties.getProperty(key) != originalValue
+                    }
+
+                    // Check that the new NiFiProperties instance matches the output file (values still encrypted)
+                    updatedProperties.getPropertyKeys().every { String key ->
+                        assert updatedPropertiesLines.contains("${key}=${updatedProperties.getProperty(key)}".toString())
+                    }
+
+                    // Check that the key was persisted to the bootstrap.conf
+                    final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                    String updatedKeyLine = updatedBootstrapLines.find {
+                        it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                    }
+                    logger.info("Updated key line: ${updatedKeyLine}")
+
+                    assert updatedKeyLine == EXPECTED_NEW_KEY_LINE
+                    assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                    // Check that the secure hash was persisted to the secure_hash.key
+                    final List<String> updatedSecureHashLines = secureHashedFile.readLines()
+                    String updatedSecureHashKeyLine = updatedSecureHashLines.find { it.startsWith("secureHashKey=") }
+                    logger.info("Updated secure hash lines: \n${updatedSecureHashLines.join("\n")}")
+
+                    int expectedSecureHashLineCount = 1
+
+                    // Extract the salt(s) so the credentials can be hashed with the same salt
+                    final String keySalt = updatedSecureHashKeyLine.find(SCRYPT_SALT_PATTERN)
+                    logger.info("Extracted key salt:      ${keySalt}")
+
+                    final String EXPECTED_NEW_SECURE_HASH_KEY_LINE = "secureHashKey=${ConfigEncryptionTool.secureHashKey(newKeyHex, keySalt)}"
+
+                    // Only evaluate the secure hash password line if the raw password was provided (otherwise, can't store hash)
+                    if (newPassword) {
+                        String updatedSecureHashPasswordLine = updatedSecureHashLines.find {
+                            it.startsWith("secureHashPassword=")
+                        }
+                        final String passwordSalt = updatedSecureHashPasswordLine.find(SCRYPT_SALT_PATTERN)
+                        logger.info("Extracted password salt: ${passwordSalt}")
+                        final String EXPECTED_NEW_SECURE_HASH_PASSWORD_LINE = "secureHashPassword=${ConfigEncryptionTool.secureHashPassword(newPassword, passwordSalt)}"
+                        expectedSecureHashLineCount = 2
+
+                        logger.info("Asserting \n${updatedSecureHashPasswordLine} == \n${EXPECTED_NEW_SECURE_HASH_PASSWORD_LINE}")
+                        assert updatedSecureHashPasswordLine == EXPECTED_NEW_SECURE_HASH_PASSWORD_LINE
+                    }
+
+                    logger.info("Asserting \n${updatedSecureHashKeyLine} == \n${EXPECTED_NEW_SECURE_HASH_KEY_LINE}")
+                    assert updatedSecureHashKeyLine == EXPECTED_NEW_SECURE_HASH_KEY_LINE
+                    assert updatedSecureHashLines.size() == expectedSecureHashLineCount
+
+                    // Clean up
+                    outputPropertiesFile.deleteOnExit()
+                    bootstrapFile.deleteOnExit()
+                    tmpDir.deleteOnExit()
+                    secureHashedFile.deleteOnExit()
+                }
+            }
+        }
+
+        exit.checkAssertionAfterwards(assertion)
+
+        logger.info("Migrating key (${scenario}) with ${localArgs.join(" ")}")
+
+        // Override the "final" secure hash file path
+        ConfigEncryptionTool.secureHashPath = secureHashedFile.path
+        ConfigEncryptionTool.main(localArgs as String[])
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    /**
+     * Ideally all of the combination tests would be a single test with iterative argument lists, but due to the System.exit(), it can only be captured once per test.
+     */
+//    @Ignore
+    // TODO re-enable once this is passing on all platforms
+    @Test
+    void testShouldMigrateFromHashedPasswordToPassword() {
+        // Arrange
+        String scenario = "hashed password to password"
+        def args = ["-z", HASHED_PASSWORD, "-p", PASSWORD.reverse()]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, HASHED_PASSWORD, PASSWORD.reverse())
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+//    @Ignore
+    // TODO re-enable once this is passing on all platforms
+    @Test
+    void testShouldMigrateFromHashedPasswordToKey() {
+        // Arrange
+        String scenario = "hashed password to key"
+        def args = ["-z", HASHED_PASSWORD, "-k", KEY_HEX]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, HASHED_PASSWORD, "", "", KEY_HEX)
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+//    @Ignore
+    // TODO re-enable once this is passing on all platforms
+    @Test
+    void testShouldMigrateFromHashedKeyToPassword() {
+        // Arrange
+        String scenario = "hashed key to password"
+        def args = ["-y", HASHED_KEY_HEX, "-p", PASSWORD.reverse()]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, "", PASSWORD.reverse(), HASHED_KEY_HEX, "")
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+//    @Ignore
+    // TODO re-enable once this is passing on all platforms
+    @Test
+    void testShouldMigrateFromHashedKeyToKey() {
+        // Arrange
+        String scenario = "hashed key to key"
+        def args = ["-y", HASHED_KEY_HEX, "-k", KEY_HEX]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, "", "", HASHED_KEY_HEX, KEY_HEX)
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+//    @Ignore
+    // TODO re-enable once this is passing on all platforms
+    @Test
+    void testShouldFailToMigrateFromIncorrectHashedPasswordToPassword() {
+        // Arrange
+        String scenario = "(incorrect) hashed password to password"
+        final String INCORRECT_HASHED_PASSWORD = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$thisIsDefinitelyNotTheCorrectPasswordHashxx"
+        def args = ["-z", INCORRECT_HASHED_PASSWORD, "-p", PASSWORD.reverse()]
+
+        // Act
+        performSecureHashKeyMigration(scenario, args, HASHED_PASSWORD, PASSWORD.reverse(), "", "", 4)
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    void testShouldDeriveSecureHashOfPassword() {
+        // Arrange
+        def testPasswords = ["password", "thisIsABadPassword", "bWZerzZo6fw9ZrDz*YfM6CVj2Ktx(YJd"]
+
+        // All zero, 22 (16B) Base64 static, 40 (32B) Base64 randomly-generated
+        def salts = [
+                Hex.decode("00" * 16),
+                Base64.decoder.decode("ABCDEFGHIJKLMNOPQRSTUV"),
+                Base64.decoder.decode("eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc=")
+        ]
+
+        // These values were generated using CET#secureHashPassword() and verified using src/test/resources/scrypt.py
+        def passwordHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$99aTTB39TJo69aZCONQmRdyWOgYsDi+1MI+8D0EgMNM"
+        ]
+        def badPasswordHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$Gk7K9YmlsWbd8FS7e4RKVWnkg9vlsqYnlD593pJ71gg",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$Ri78VZbrp2cCVmGh2a9Nbfdov8LPnFb49MYyzPCaXmE",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$rZIrP2qdIY7LN4CZAMgbCzl3YhXz6WhaNyXJXqFIjaI"
+        ]
+        def randomPasswordHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$GxH68bGykmPDZ6gaPIGOONOT2omlZ7cd0xlcZ9UsY/0",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$KLGZjWlo59sbCbtmTg5b4k0Nu+biWZRRzhPhN7K5kkI",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$6Ql6Efd2ac44ERoV31CL3Q0J3LffNZKN4elyMHux99Y"
+        ]
+
+        def expectedHashes = [
+                (testPasswords[0]): passwordHashes,
+                (testPasswords[1]): badPasswordHashes,
+                (testPasswords[2]): randomPasswordHashes
+        ]
+
+        // Low cost factors for performance
+        int n = 2**4
+        int r = 8
+        int p = 1
+        logger.info("Cost factors for test: N=${n}, R=${r}, P=${p}")
+
+        // Act
+        testPasswords.each { String password ->
+            salts.eachWithIndex { byte[] rawSalt, int i ->
+                logger.info("Hashing '${password}' with salt ${Base64.encoder.encodeToString(rawSalt)}")
+                String formattedSalt = Scrypt.formatSalt(rawSalt, n, r, p)
+                logger.info("Formatted salt: ${formattedSalt}")
+                String generatedHash = ConfigEncryptionTool.secureHashPassword(password, formattedSalt)
+                logger.info("Generated hash: ${generatedHash}")
+
+                // Assert
+                String expectedHash = expectedHashes[(password)][i]
+                logger.info("Comparing to expectedHashes['${password}'][${i}]: ${expectedHash}")
+
+                // Remember to perform constant-time equality check in production code
+                assert generatedHash == expectedHash
+            }
+        }
+    }
+
+    @Test
+    void testShouldDeriveSecureHashOfKey() {
+        // Arrange
+        def testKeys = [
+                "00" * 32,
+                "0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210",
+                "0123456789abcdeffedcba98765432100123456789abcdeffedcba9876543210"
+        ]
+
+        // All zero, 22 (16B) Base64 static, 40 (32B) Base64 randomly-generated
+        def salts = [
+                Hex.decode("00" * 16),
+                Base64.decoder.decode("ABCDEFGHIJKLMNOPQRSTUV"),
+                Base64.decoder.decode("eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc=")
+        ]
+
+        // These values were generated using CET#secureHashKey() and verified using src/test/resources/scrypt.py
+        def zeroHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$pOoIk4K9OPYxusXBFNGtEaoHzIIxlgDOTiVO9OiLJrE",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$kQJ7CeAt5qHK4/r2lMnuBzNyBt1h1WDDkmgXH7N0hRc",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$diExTMVvETmC6gjKx+9ITn1L/0FOYNHeQq2oPLMsFvY"
+        ]
+        def uppercaseHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$K5uQBtbkmq2b2M1H6kX/U7g5QiPgmoLCuJYfpOar8w4",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$TbPrKP7+/xPlc74L15QFG+iDqIysPW/dOFVRaj4Rk/k",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$yGpGz7FyBE3nf8Ed/o84o8Glyd4m091HxdVQEhN55zI"
+        ]
+
+        // Should be identical to uppercase hashes due to case-normalization in method
+        def lowercaseHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$K5uQBtbkmq2b2M1H6kX/U7g5QiPgmoLCuJYfpOar8w4",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$TbPrKP7+/xPlc74L15QFG+iDqIysPW/dOFVRaj4Rk/k",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$yGpGz7FyBE3nf8Ed/o84o8Glyd4m091HxdVQEhN55zI"
+        ]
+
+        def expectedHashes = [
+                (testKeys[0]): zeroHashes,
+                (testKeys[1]): uppercaseHashes,
+                (testKeys[2]): lowercaseHashes
+        ]
+
+        // Low cost factors for performance
+        int n = 2**4
+        int r = 8
+        int p = 1
+        logger.info("Cost factors for test: N=${n}, R=${r}, P=${p}")
+
+        // Act
+        testKeys.each { String key ->
+            salts.eachWithIndex { byte[] rawSalt, int i ->
+                logger.info("Hashing '${key}' with salt ${Base64.encoder.encodeToString(rawSalt)}")
+                String formattedSalt = Scrypt.formatSalt(rawSalt, n, r, p)
+                logger.info("Formatted salt: ${formattedSalt}")
+                String generatedHash = ConfigEncryptionTool.secureHashKey(key, formattedSalt)
+                logger.info("Generated hash: ${generatedHash}")
+
+                // Assert
+                String expectedHash = expectedHashes[(key)][i]
+                logger.info("Comparing to expectedHashes['${key}'][${i}]: ${expectedHash}")
+
+                // Remember to perform constant-time equality check in production code
+                assert generatedHash == expectedHash
+            }
+        }
+    }
+
+    @Test
+    void testShouldVerifySecureHashOfPassword() {
+        // Arrange
+        String password = "password"
+
+        // This is a known existing hash of "password"
+        String existingHashedPassword = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM"
+        logger.info("Known existing hash: ${existingHashedPassword}")
+
+        // Low cost factors for performance
+        int n = 2**4
+        int r = 8
+        int p = 1
+        logger.info("Cost factors for test: N=${n}, R=${r}, P=${p}")
+
+        byte[] rawSalt = Hex.decode("00" * 16)
+
+        // This is a generated hash of "password"
+        String formattedSalt = Scrypt.formatSalt(rawSalt, n, r, p)
+        logger.info("Formatted salt: ${formattedSalt}")
+        String hashedPassword = ConfigEncryptionTool.secureHashPassword(password, formattedSalt)
+        logger.info("Generated hash: ${hashedPassword}")
+
+        // This is a generated hash of "password" using a different salt
+        byte[] otherRawSalt = Hex.decode("01" * 16)
+        String otherFormattedSalt = Scrypt.formatSalt(otherRawSalt, n, r, p)
+        logger.info("Formatted salt: ${otherFormattedSalt}")
+        String otherHashedPassword = ConfigEncryptionTool.secureHashPassword(password, otherFormattedSalt)
+        logger.info("Generated hash: ${otherHashedPassword}")
+
+        // Act
+        logger.info("Checking \n${existingHashedPassword} against hash(${password}, ${formattedSalt}) -> \n${hashedPassword}")
+        boolean hashIsIdentical = ConfigEncryptionTool.checkHashedValue(existingHashedPassword, hashedPassword)
+        logger.info("Hash values equal: ${hashIsIdentical}")
+
+        logger.info("Checking \n${existingHashedPassword} against hash(${password}, ${otherFormattedSalt}) -> \n${otherHashedPassword}")
+        boolean otherHashIsIdentical = ConfigEncryptionTool.checkHashedValue(existingHashedPassword, otherHashedPassword)
+        logger.info("Hash values equal: ${otherHashIsIdentical}")
+
+        // Assert
+        assert hashIsIdentical
+        assert !otherHashIsIdentical
+    }
+
+    @Test
+    void testCheckHashedValueShouldVerifyScryptFormat() {
+        // Arrange
+        def validHashes = [
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$99aTTB39TJo69aZCONQmRdyWOgYsDi+1MI+8D0EgMNM",
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$Gk7K9YmlsWbd8FS7e4RKVWnkg9vlsqYnlD593pJ71gg",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$Ri78VZbrp2cCVmGh2a9Nbfdov8LPnFb49MYyzPCaXmE",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$rZIrP2qdIY7LN4CZAMgbCzl3YhXz6WhaNyXJXqFIjaI",
+                "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$GxH68bGykmPDZ6gaPIGOONOT2omlZ7cd0xlcZ9UsY/0",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$KLGZjWlo59sbCbtmTg5b4k0Nu+biWZRRzhPhN7K5kkI",
+                "\$s0\$40801\$eO+UUcKYL2gnpD51QCc+gnywQ7Eg9tZeLMlf0XXr2zc\$6Ql6Efd2ac44ERoV31CL3Q0J3LffNZKN4elyMHux99Y"
+        ]
+
+        // Some of these are valid "scrypt" hashes but do not conform to the additional requirements NiFi imposes
+        def invalidHashes = [
+                "\$s1\$40801\$AAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM",
+                "\$s0\$\$ABCDEFGHIJKLMNOPQRSTUQ\$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8",
+                "\$s0\$40801\$\$99aTTB39TJo69aZCONQmRdyWOgYsDi+1MI+8D0EgMNM",
+                "\$s0\$40801\$!!!!\$Gk7K9YmlsWbd8FS7e4RKVWnkg9vlsqYnlD593pJ71gg",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUQ\$xxxx",
+        ]
+
+        // Low cost factors for performance
+        int n = 2**4
+        int r = 8
+        int p = 1
+        logger.info("Cost factors for test: N=${n}, R=${r}, P=${p}")
+
+        // Act
+        logger.info("Checking ${validHashes.size()} valid hashes")
+        validHashes.each { String hash ->
+            logger.info("Verifying hash format: ${hash}")
+            boolean validFormat = ConfigEncryptionTool.verifyHashFormat(hash)
+            logger.info("Valid format: ${validFormat}")
+
+            // Assert
+            assert validFormat
+        }
+
+        logger.info("Checking ${invalidHashes.size()} invalid hashes")
+        invalidHashes.each { String invalidHash ->
+            logger.info("Verifying hash format: ${invalidHash}")
+            boolean validFormat = ConfigEncryptionTool.verifyHashFormat(invalidHash)
+            logger.info("Valid format: ${validFormat}")
+
+            // Assert
+            assert !validFormat
+        }
+    }
+
+    @Test
+    void testGetMigrationKeyShouldVerifySecureHashOfPassword() {
+        // Arrange
+        File bootstrapWithKeyFile = new File("src/test/resources/bootstrap_with_master_key_password.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(bootstrapWithKeyFile.toPath(), bootstrapFile.toPath())
+
+        String expectedMigrationKey = bootstrapFile.readLines().find {
+            it.startsWith("nifi.bootstrap.sensitive.key=")
+        }.split("=").last()
+        logger.info("Retrieved expected migration key ${expectedMigrationKey} from bootstrap.conf")
+
+        File secureHashSourceFile = new File("src/test/resources/secure_hash.key")
+        File secureHashFile = new File("target/tmp/secure_hash.key")
+        secureHashFile.delete()
+
+        Files.copy(secureHashSourceFile.toPath(), secureHashFile.toPath())
+
+        // The second line in the file is for the password
+        String expectedHash = secureHashFile.readLines().last().split("=").last()
+        logger.info("Retrieved expected hash ${expectedHash} from secure_hash.key")
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.usingSecureHash = true
+        tool.secureHashPath = secureHashFile.path
+        tool.bootstrapConfPath = bootstrapFile.path
+
+        String correctHash = expectedHash
+        String incorrectHash = correctHash[0..-10] + ("x" * 9)
+
+        // Act
+        tool.secureHashPassword = correctHash
+        logger.info("Trying to retrieve migration key comparing: \n" +
+                "Command-line provided hash: ${correctHash}\n" +
+                " Hash from secure_hash.key: ${expectedHash}")
+        String correctRetrievedMigrationKey = tool.getMigrationKey()
+        logger.info("  [Correct] Retrieved migration key: ${correctRetrievedMigrationKey}")
+
+        tool.secureHashPassword = incorrectHash
+        logger.info("Trying to retrieve migration key comparing: \n" +
+                "Command-line provided hash: ${incorrectHash}\n" +
+                " Hash from secure_hash.key: ${expectedHash}")
+        def msg = shouldFail() {
+            String incorrectRetrievedMigrationKey = tool.getMigrationKey()
+            logger.info("[Incorrect] Retrieved migration key: ${incorrectRetrievedMigrationKey}")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert correctRetrievedMigrationKey == expectedMigrationKey
+        assert msg =~ "The provided hashed key/password is not correct"
+    }
+
+    @Test
+    void testGetMigrationKeyShouldVerifySecureHashOfKey() {
+        // Arrange
+        File bootstrapWithKeyFile = new File("src/test/resources/bootstrap_with_master_key_password.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(bootstrapWithKeyFile.toPath(), bootstrapFile.toPath())
+
+        String expectedMigrationKey = bootstrapFile.readLines().find {
+            it.startsWith("nifi.bootstrap.sensitive.key=")
+        }.split("=").last()
+        logger.info("Retrieved expected migration key ${expectedMigrationKey} from bootstrap.conf")
+
+        File secureHashSourceFile = new File("src/test/resources/secure_hash.key")
+        File secureHashFile = new File("target/tmp/secure_hash.key")
+        secureHashFile.delete()
+
+        Files.copy(secureHashSourceFile.toPath(), secureHashFile.toPath())
+
+        // The first line in the file is for the key
+        String expectedHash = secureHashFile.readLines().first().split("=").last()
+        logger.info("Retrieved expected hash ${expectedHash} from secure_hash.key")
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.usingSecureHash = true
+        tool.secureHashPath = secureHashFile.path
+        tool.bootstrapConfPath = bootstrapFile.path
+
+        String correctHash = expectedHash
+        String incorrectHash = correctHash[0..-10] + ("x" * 9)
+
+        // Act
+        tool.secureHashKey = correctHash
+        logger.info("Trying to retrieve migration key comparing: \n" +
+                "Command-line provided hash: ${correctHash}\n" +
+                " Hash from secure_hash.key: ${expectedHash}")
+        String correctRetrievedMigrationKey = tool.getMigrationKey()
+        logger.info("  [Correct] Retrieved migration key: ${correctRetrievedMigrationKey}")
+
+        tool.secureHashKey = incorrectHash
+        logger.info("Trying to retrieve migration key comparing: \n" +
+                "Command-line provided hash: ${incorrectHash}\n" +
+                " Hash from secure_hash.key: ${expectedHash}")
+        def msg = shouldFail() {
+            String incorrectRetrievedMigrationKey = tool.getMigrationKey()
+            logger.info("[Incorrect] Retrieved migration key: ${incorrectRetrievedMigrationKey}")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert correctRetrievedMigrationKey == expectedMigrationKey
+        assert msg =~ "The provided hashed key/password is not correct"
     }
 
     @Test
@@ -2313,6 +3093,44 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleManyProviders() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-with-many-providers.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
+    }
+
+    @Test
     void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleEmptyFile() {
         // Arrange
         File tmpDir = setupTmpDir()
@@ -2341,6 +3159,52 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert TestAppender.events.any {
             it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out"
         }
+    }
+
+    @Test
+    void testWriteLoginIdentityProvidersShouldHandleUnreadableFile() {
+        // Arrange
+        String providersPath = "src/test/resources/login-identity-providers-populated.xml"
+        File providersFile = new File(providersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(providersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        tool.loginIdentityProvidersPath = workingFile.path
+        String writtenPath = "target/tmp/tmp-login-identity-providers-written.xml"
+        tool.outputLoginIdentityProvidersPath = writtenPath
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        tool.loginIdentityProviders = encryptedXml
+
+        // Remove the working file (simulating an external process)
+        workingFile.delete()
+
+        // Act
+        tool.writeLoginIdentityProviders()
+
+        // Assert
+        File writtenFile = new File(writtenPath)
+        List<String> writtenLines = writtenFile.readLines()
+        logger.info("Written lines: \n${writtenLines.join("\n")}")
+
+        // The output should contain only what was explicitly serialized in this operation (no pre-existing content)
+        assert writtenLines.join("\n") == encryptedXml.trim()
+
+        // Ensure the replacement actually occurred
+        assert writtenLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
     }
 
     @Test
@@ -2376,7 +3240,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final String updatedXmlContent = outputLIPFile.text
                 logger.info("Updated XML content: ${updatedXmlContent}")
 
@@ -2413,7 +3277,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -2459,7 +3323,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(PASSWORD_KEY_HEX)
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final String updatedXmlContent = outputLIPFile.text
                 logger.info("Updated XML content: ${updatedXmlContent}")
 
@@ -2494,7 +3358,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -2506,7 +3370,706 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldPerformFullOperationForNiFiPropertiesAndLoginIdentityProviders() {
+    void testShouldDecryptAuthorizers() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-encrypted.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Sanity check for decryption
+        String cipherText = "q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA"
+        String EXPECTED_PASSWORD = "thisIsABadPassword"
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX_128)
+        assert spp.unprotect(cipherText) == EXPECTED_PASSWORD
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        // Some lines were not encrypted originally so the encryption attribute would not have been updated
+        assert passwordLines.any { it =~ "encryption=\"none\"" }
+    }
+
+    @Test
+    void testShouldDecryptAuthorizersWithMultilineElements() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-encrypted-multiline.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        // Some lines were not encrypted originally so the encryption attribute would not have been updated
+        assert passwordLines.any { it =~ "encryption=\"none\"" }
+    }
+
+    @Test
+    void testShouldDecryptAuthorizersWithMultipleElementsPerLine() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-encrypted-multiple-per-line.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        // Some lines were not encrypted originally so the encryption attribute would not have been updated
+        assert passwordLines.any { it =~ "encryption=\"none\"" }
+    }
+
+
+    @Test
+    void testDecryptAuthorizersShouldHandleCommentedElements() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-commented.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+
+        // If no encrypted properties are found, the original input text is just returned (comments and formatting in tact)
+        assert decryptedLines == lines
+    }
+
+    @Test
+    void testShouldEncryptAuthorizers() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        assert passwordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert passwordLines.every { it.contains(encryptionScheme) }
+        passwordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptAuthorizersWithEmptySensitiveElements() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-empty.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        def populatedPasswordLines = passwordLines.findAll { it =~ />.+</ }
+        assert populatedPasswordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert populatedPasswordLines.every { it.contains(encryptionScheme) }
+        populatedPasswordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptAuthorizersWithMultilineElements() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-multiline.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        assert passwordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert passwordLines.every { it.contains(encryptionScheme) }
+        passwordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptAuthorizersWithMultipleElementsPerLine() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-multiple-per-line.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        assert passwordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert passwordLines.every { it.contains(encryptionScheme) }
+        passwordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptAuthorizersWithRenamedProvider() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-renamed.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+        assert lines.findAll { it =~ "ldap-user-group-provider" }.empty
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        def populatedPasswordLines = passwordLines.findAll { it =~ />.+</ }
+        assert populatedPasswordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert populatedPasswordLines.every { it.contains(encryptionScheme) }
+        populatedPasswordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testEncryptAuthorizersShouldHandleCommentedElements() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-commented.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        assert encryptedLines == lines
+    }
+
+    @Test
+    void testSerializeAuthorizersAndPreserveFormatShouldRespectComments() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptAuthorizers(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeAuthorizersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeAuthorizersAndPreserveFormatShouldHandleRenamedProvider() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-renamed.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+        assert lines.findAll { it =~ "ldap-user-group-provider" }.empty
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptAuthorizers(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeAuthorizersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeAuthorizersAndPreserveFormatShouldHandleCommentedFile() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-commented.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+        assert encryptedLines == lines
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeAuthorizersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines == encryptedLines
+        assert TestAppender.events.any {
+            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.tenants.LdapUserGroupProvider found in XML content; " +
+                    "the file could be empty or the element may be missing or commented out"
+        }
+    }
+
+    @Test
+    void testSerializeAuthorizersAndPreserveFormatShouldHandleEmptyFile() {
+        // Arrange
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        workingFile.createNewFile()
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = lines
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeAuthorizersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines.findAll { it }.isEmpty()
+        assert TestAppender.events.any {
+            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.tenants.LdapUserGroupProvider found in XML content; " +
+                    "the file could be empty or the element may be missing or commented out"
+        }
+    }
+
+    @Test
+    void testWriteAuthorizersShouldHandleUnreadableFile() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        tool.authorizersPath = workingFile.path
+        String writtenPath = "target/tmp/tmp-authorizers-written.xml"
+        tool.outputAuthorizersPath = writtenPath
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptAuthorizers(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        tool.authorizers = encryptedXml
+
+        // Remove the working file (simulating an external process)
+        workingFile.delete()
+
+        // Act
+        tool.writeAuthorizers()
+
+        // Assert
+        File writtenFile = new File(writtenPath)
+        List<String> writtenLines = writtenFile.readLines()
+        logger.info("Written lines: \n${writtenLines.join("\n")}")
+
+        // The output should contain only what was explicitly serialized in this operation (no pre-existing content)
+        assert writtenLines.join("\n") == encryptedXml.trim()
+
+        // Ensure the replacement actually occurred
+        assert writtenLines.findAll { it =~ "encryption=" }.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testShouldPerformFullOperationForAuthorizers() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
+
+        File inputAuthorizersFile = new File("src/test/resources/authorizers-populated.xml")
+        File outputAuthorizersFile = new File("target/tmp/tmp-authorizers.xml")
+        outputAuthorizersFile.delete()
+
+        String originalXmlContent = inputAuthorizersFile.text
+        logger.info("Original XML content: ${originalXmlContent}")
+
+        String[] args = ["-a", inputAuthorizersFile.path, "-b", bootstrapFile.path, "-u", outputAuthorizersFile.path, "-k", KEY_HEX, "-v"]
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String updatedXmlContent = outputAuthorizersFile.text
+                logger.info("Updated XML content: ${updatedXmlContent}")
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                assert originalParsedXml != updatedParsedXml
+                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
+                    it.@encryption
+                }
+
+                def encryptedValues = updatedParsedXml.userGroupProvider.find {
+                    it.identifier == 'ldap-user-group-provider'
+                }.property.findAll {
+                    it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+                }
+
+                encryptedValues.each {
+                    assert spp.unprotect(it.text()) == PASSWORD
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputAuthorizersFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldPerformFullOperationMigratingAuthorizers() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        // Start with 128-bit encryption and go to whatever is supported on this system
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_master_key_128.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX_128
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX
+
+        File inputAuthorizersFile = new File("src/test/resources/authorizers-populated-encrypted.xml")
+        File outputAuthorizersFile = new File("target/tmp/tmp-authorizers.xml")
+        outputAuthorizersFile.delete()
+
+        String originalXmlContent = inputAuthorizersFile.text
+        logger.info("Original XML content: ${originalXmlContent}")
+
+        // Migrate from KEY_HEX_128 to PASSWORD_KEY_HEX
+        String[] args = ["-a", inputAuthorizersFile.path, "-b", bootstrapFile.path, "-u", outputAuthorizersFile.path, "-m", "-e", KEY_HEX_128, "-k", PASSWORD_KEY_HEX, "-v"]
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(PASSWORD_KEY_HEX)
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String updatedXmlContent = outputAuthorizersFile.text
+                logger.info("Updated XML content: ${updatedXmlContent}")
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                assert originalParsedXml != updatedParsedXml
+//                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll { it.@encryption }
+
+                def encryptedValues = updatedParsedXml.userGroupProvider.find {
+                    it.identifier == 'ldap-user-group-provider'
+                }.property.findAll {
+                    it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+                }
+
+                encryptedValues.each {
+                    assert spp.unprotect(it.text()) == PASSWORD
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputAuthorizersFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldPerformFullOperationForNiFiPropertiesAndLoginIdentityProvidersAndAuthorizers() {
         // Arrange
         exit.expectSystemExitWithStatus(0)
 
@@ -2542,15 +4105,35 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         File outputLIPFile = new File("target/tmp/tmp-lip.xml")
         outputLIPFile.delete()
 
-        String originalXmlContent = inputLIPFile.text
-        logger.info("Original XML content: ${originalXmlContent}")
+        String originalLipXmlContent = inputLIPFile.text
+        logger.info("Original LIP XML content: ${originalLipXmlContent}")
 
-        String[] args = ["-n", inputPropertiesFile.path, "-l", inputLIPFile.path, "-b", bootstrapFile.path, "-i", outputLIPFile.path, "-o", outputPropertiesFile.path, "-k", KEY_HEX, "-v"]
+        // Set up the Authorizers file
+        File inputAuthorizersFile = new File("src/test/resources/authorizers-populated.xml")
+        File outputAuthorizersFile = new File("target/tmp/tmp-authorizers.xml")
+        outputAuthorizersFile.delete()
+
+        String originalAuthorizersXmlContent = inputAuthorizersFile.text
+        logger.info("Original Authorizers XML content: ${originalAuthorizersXmlContent}")
+
+        String[] args = [
+                "-n", inputPropertiesFile.path,
+                "-l", inputLIPFile.path,
+                "-a", inputAuthorizersFile.path,
+                "-b", bootstrapFile.path,
+                "-o", outputPropertiesFile.path,
+                "-i", outputLIPFile.path,
+                "-u", outputAuthorizersFile.path,
+                "-k", KEY_HEX,
+                "-v"]
 
         AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
+
+                /*** NiFi Properties Assertions ***/
+
                 final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
@@ -2567,31 +4150,59 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     assert updatedPropertiesLines.contains("${key}=${updatedProperties.getProperty(key)}".toString())
                 }
 
-                final String updatedXmlContent = outputLIPFile.text
-                logger.info("Updated XML content: ${updatedXmlContent}")
+                /*** Login Identity Providers Assertions ***/
 
+                final String updatedLipXmlContent = outputLIPFile.text
+                logger.info("Updated LIP XML content: ${updatedLipXmlContent}")
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
-                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
-                assert originalParsedXml != updatedParsedXml
-                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
+                def originalLipParsedXml = new XmlSlurper().parseText(originalLipXmlContent)
+                def updatedLipParsedXml = new XmlSlurper().parseText(updatedLipXmlContent)
+                assert originalLipParsedXml != updatedLipParsedXml
+                assert originalLipParsedXml.'**'.findAll { it.@encryption } != updatedLipParsedXml.'**'.findAll {
                     it.@encryption
                 }
-
-                def encryptedValues = updatedParsedXml.provider.find {
+                def lipEncryptedValues = updatedLipParsedXml.provider.find {
                     it.identifier == 'ldap-provider'
                 }.property.findAll {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
-
-                encryptedValues.each {
+                lipEncryptedValues.each {
                     assert spp.unprotect(it.text()) == PASSWORD
                 }
-
                 // Check that the comments are still there
-                def trimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
-                def trimmedSerializedLines = updatedXmlContent.split("\n").collect { it.trim() }.findAll { it }
-                assert trimmedLines.size() == trimmedSerializedLines.size()
+                def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
+                def lipTrimmedSerializedLines = updatedLipXmlContent.split("\n").collect { it.trim() }.findAll { it }
+                assert lipTrimmedLines.size() == lipTrimmedSerializedLines.size()
+
+                /*** Authorizers Assertions ***/
+
+                final String updatedAuthorizersXmlContent = outputAuthorizersFile.text
+                logger.info("Updated Authorizers XML content: ${updatedAuthorizersXmlContent}")
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                def originalAuthorizersParsedXml = new XmlSlurper().parseText(originalAuthorizersXmlContent)
+                def updatedAuthorizersParsedXml = new XmlSlurper().parseText(updatedAuthorizersXmlContent)
+                assert originalAuthorizersParsedXml != updatedAuthorizersParsedXml
+                assert originalAuthorizersParsedXml.'**'.findAll {
+                    it.@encryption
+                } != updatedAuthorizersParsedXml.'**'.findAll {
+                    it.@encryption
+                }
+                def authorizersEncryptedValues = updatedAuthorizersParsedXml.userGroupProvider.find {
+                    it.identifier == 'ldap-user-group-provider'
+                }.property.findAll {
+                    it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+                }
+                authorizersEncryptedValues.each {
+                    assert spp.unprotect(it.text()) == PASSWORD
+                }
+                // Check that the comments are still there
+                def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }
+                def authorizersTrimmedSerializedLines = updatedAuthorizersXmlContent.split("\n").collect {
+                    it.trim()
+                }.findAll { it }
+                assert authorizersTrimmedLines.size() == authorizersTrimmedSerializedLines.size()
+
+                /*** Bootstrap assertions ***/
 
                 // Check that the key was persisted to the bootstrap.conf
                 final List<String> updatedBootstrapLines = bootstrapFile.readLines()
@@ -2606,10 +4217,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Clean up
                 outputPropertiesFile.deleteOnExit()
                 outputLIPFile.deleteOnExit()
+                outputAuthorizersFile.deleteOnExit()
                 bootstrapFile.deleteOnExit()
                 tmpDir.deleteOnExit()
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -2726,7 +4338,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-x", "-v", "-s", newFlowPassword]
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
@@ -2769,7 +4381,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
                 }
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -2834,7 +4446,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-x", "-v", "-s", newFlowPassword]
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
@@ -2874,7 +4486,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
                 }
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -2950,7 +4562,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-b", bootstrapFile.path, "-x", "-v", "-s", newFlowPassword]
 
         exit.checkAssertionAfterwards(new Assertion() {
-            public void checkAssertion() {
+            void checkAssertion() {
                 final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
                 logger.info("Updated nifi.properties:")
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
@@ -3015,7 +4627,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
                 }
             }
-        });
+        })
 
         // Act
         ConfigEncryptionTool.main(args)
@@ -3109,7 +4721,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Assert
                 // Get the updated nifi.properties and check the sensitive key
                 final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
-                String updatedSensitiveKeyLine = updatedPropertiesLines.find { it.startsWith(NiFiProperties.SENSITIVE_PROPS_KEY) }
+                String updatedSensitiveKeyLine = updatedPropertiesLines.find {
+                    it.startsWith(NiFiProperties.SENSITIVE_PROPS_KEY)
+                }
                 logger.info("Updated key line: ${updatedSensitiveKeyLine}")
 
                 // Check that the output values for everything are the same except the sensitive props key
@@ -3547,22 +5161,633 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert tool.loadFlowXml() == xmlContent
     }
 
-    // TODO: Test with 128/256-bit available
+    @Test
+    void testShouldDetectActionFlags() {
+        // Arrange
+        final def HELP_AND_VERBOSE_ARGS = [["-h", "--help"], ["-v", "--verbose"]]
+        final List<String> IGNORED_ARGS = ["currentHashParams"]
+
+        // Create a list with combinations of h[elp] and v[erbose], individual flags, and empty flag
+        def args = GroovyCollections.combinations(HELP_AND_VERBOSE_ARGS as Iterable) + HELP_AND_VERBOSE_ARGS.flatten().collect {
+            [it]
+        } + [[""]]
+        String acceptableArg = "--currentHashParams"
+        String unacceptableArg = "--migrate"
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+        CommandLineParser parser = new DefaultParser()
+
+        // Act
+        args.each { List<String> invocationArgs ->
+            // Run each scenario with an allowed argument and without
+            [IGNORED_ARGS, []].each { List<String> acceptableArgs ->
+                // Check ""/-h/-v alone
+                logger.info("Checking '${invocationArgs.join(" ")}' with acceptable args: ${acceptableArgs}")
+                CommandLine commandLine = parser.parse(ConfigEncryptionTool.getCliOptions(), invocationArgs as String[])
+                boolean cleanRun = tool.commandLineHasActionFlags(commandLine, acceptableArgs)
+                logger.info("Clean run has action flags: ${cleanRun} | Expected: false")
+
+                // Check with an allowed/ignored arg
+                def allowedArgs = invocationArgs + acceptableArg
+                logger.info("Checking '${allowedArgs.join(" ")}' with acceptable args: ${acceptableArgs}")
+                commandLine = parser.parse(ConfigEncryptionTool.getCliOptions(), allowedArgs as String[])
+                boolean allowedRun = tool.commandLineHasActionFlags(commandLine, acceptableArgs)
+                logger.info("Allowed run has action flags: ${allowedRun} | Expected: ${acceptableArgs.isEmpty().toString()}")
+
+                // Check with an unallowed arg
+                def unallowedArgs = invocationArgs + unacceptableArg
+                logger.info("Checking '${unallowedArgs.join(" ")}' with acceptable args: ${acceptableArgs}")
+                commandLine = parser.parse(ConfigEncryptionTool.getCliOptions(), unallowedArgs as String[])
+                boolean unallowedRun = tool.commandLineHasActionFlags(commandLine, acceptableArgs)
+                logger.info("Unallowed run has action flags: ${unallowedRun} | Expected: true")
+
+                // Assert
+                assert !cleanRun
+                assert allowedRun == acceptableArgs.isEmpty()
+                assert unallowedRun
+            }
+        }
+    }
+
+    @Ignore
+    // TODO re-enable once this is passing on all platforms
+    @Test
+    void testShouldReturnCurrentHashParams() {
+        // Arrange
+
+        // Params from secure_hash.key
+        int N = 2**4
+        int r = 8
+        int p = 1
+        String base64Salt = "A" * 22
+
+        String expectedJsonParams = new JsonBuilder([N: N, r: r, p: p, salt: base64Salt]).toString()
+        logger.info("Expected JSON params: ${expectedJsonParams}")
+
+        // Set up assertions for after System.exit()
+        exit.expectSystemExitWithStatus(0)
+
+        // Initial set up
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        // Copy the hashed credentials file
+        String secureHashedPasswordPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/secure_hash.key" :
+                "src/test/resources/secure_hash_128.key"
+        File originalSecureHashedPasswordFile = new File(secureHashedPasswordPath)
+        File secureHashedFile = new File("target/tmp/tmp_secure_hash.key")
+        secureHashedFile.delete()
+        Files.copy(originalSecureHashedPasswordFile.toPath(), secureHashedFile.toPath())
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                // If JSON ordering changes, may need to capture and build JSON object from this text
+                assert systemOutRule.getLog().contains(expectedJsonParams)
+
+                // Clean up
+                tmpDir.deleteOnExit()
+                secureHashedFile.deleteOnExit()
+            }
+        })
+
+        // Override the "final" secure hash file path
+        ConfigEncryptionTool.secureHashPath = secureHashedFile.path
+
+        // Act
+        ConfigEncryptionTool.main(["--currentHashParams"] as String[])
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldReturnDefaultHashParamsIfNonePresent() {
+        // Arrange
+
+        // Default params
+        int N = ConfigEncryptionTool.SCRYPT_N
+        int r = ConfigEncryptionTool.SCRYPT_R
+        int p = ConfigEncryptionTool.SCRYPT_P
+
+        String expectedJsonParams = new JsonBuilder([N: N, r: r, p: p, salt: "<some 22 char B64 str>"]).toString()
+        logger.info("Expected JSON params: ${expectedJsonParams}")
+
+        // Set up assertions for after System.exit()
+        exit.expectSystemExitWithStatus(0)
+
+        // Initial set up
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        // Ensure the file is not present
+        File secureHashedFile = new File("target/tmp/tmp_secure_hash.key")
+        secureHashedFile.delete()
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                // If JSON ordering changes, may need to capture and build JSON object from this text
+                List<String> returnedJSONParams = systemOutRule.getLog().readLines()
+                logger.returned("Returned JSON params: ${returnedJSONParams.join("\n")}")
+
+                JsonSlurper slurper = new JsonSlurper()
+                def expectedJson = slurper.parseText(expectedJsonParams)
+                def returnedJson = slurper.parseText(returnedJSONParams.first())
+                assert returnedJson.N == expectedJson.N
+                assert returnedJson.r == expectedJson.r
+                assert returnedJson.p == expectedJson.p
+                assert returnedJson.salt =~ /[\w\/+=]{22}/
+
+                // Clean up
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Override the "final" secure hash file path
+        ConfigEncryptionTool.secureHashPath = secureHashedFile.path
+
+        // Act
+        ConfigEncryptionTool.main(["--currentHashParams"] as String[])
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldFailOnCurrentHashParamsIfOtherFlagsPresent() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        def validOpts = [
+                "",
+                "-v",
+                "--verbose"
+        ]
+
+        def invalidOpts = [
+                "--migrate",
+                "-f flow.xml.gz",
+                "-n nifi.properties",
+                "-o output"
+        ]
+
+        // Act
+        validOpts.each { String valid ->
+            def args = (valid + " --currentHashParams").split(" ")
+            logger.info("Testing with ${args}")
+            tool.parse(args as String[])
+        }
+
+        invalidOpts.each { String invalid ->
+            def args = (invalid + " --currentHashParams").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '--currentHashParams' is specified, only '-h'/'--help' and '-v'/'--verbose' are allowed"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
+    }
+
+    @Test
+    void testShouldTranslateCliWithPlaintextInput() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-c"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldTranslateCliWithPlaintextInputWithoutBootstrapConf() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-c"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldTranslateCliWithEncryptedInput() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key.conf" :
+                "src/test/resources/bootstrap_with_master_key_128.conf"
+        File masterKeyFile = new File(bootstrapPath)
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
+
+        String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/nifi_with_sensitive_properties_protected_aes.properties" :
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_128.properties"
+        File inputPropertiesFile = new File(inputPropertiesPath)
+
+        NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-c"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testTranslateCliWithEncryptedInputShouldNotIntersperseVerboseOutput() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key.conf" :
+                "src/test/resources/bootstrap_with_master_key_128.conf"
+        File masterKeyFile = new File(bootstrapPath)
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(masterKeyFile.toPath(), bootstrapFile.toPath())
+
+        String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/nifi_with_sensitive_properties_protected_aes.properties" :
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_128.properties"
+        File inputPropertiesFile = new File(inputPropertiesPath)
+
+        NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-c", "-v"]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String standardOutput = systemOutRule.getLog()
+                List<String> lines = standardOutput.split("\n")
+
+                // The SystemRule log also includes STDERR, so truncate after 9 lines
+                def stdoutLines = lines[0..<EXPECTED_CLI_OUTPUT.size()]
+                logger.info("STDOUT:\n\t${stdoutLines.join("\n\t")}")
+
+                // Split the output into lines and create a map of the keys and values
+                def parsedCli = stdoutLines.collectEntries { String line ->
+                    def components = line.split("=", 2)
+                    components.size() > 1 ? [(components[0]): components[1]] : [(components[0]): ""]
+                }
+
+                assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+                assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+
+                // Clean up
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldTranslateCli() {
+        // Arrange
+        final Map<String, String> EXPECTED_CLI_OUTPUT = [
+                "baseUrl"         : "https://nifi.nifi.apache.org:8443",
+                "keystore"        : "/path/to/keystore.jks",
+                "keystoreType"    : "JKS",
+                "keystorePasswd"  : "thisIsABadKeystorePassword",
+                "keyPasswd"       : "thisIsABadKeyPassword",
+                "truststore"      : "",
+                "truststoreType"  : "",
+                "truststorePasswd": "",
+                "proxiedEntity"   : "",
+        ]
+
+        String originalNiFiPropertiesPath = "src/test/resources/nifi_with_sensitive_properties_unprotected.properties"
+
+        NiFiProperties plainProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(originalNiFiPropertiesPath)
+        logger.info("Loaded NiFiProperties from ${originalNiFiPropertiesPath}")
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.translatingCli = true
+        tool.niFiProperties = plainProperties
+
+        // Act
+        String cliOutput = tool.translateNiFiPropertiesToCLI()
+        logger.info("Translated to CLI format: \n${cliOutput}")
+
+        // Assert
+        def parsedCli = cliOutput.split("\n").collectEntries { String line ->
+            def components = line.split("=", 2)
+            [(components[0]): components[1]]
+        }
+
+        assert parsedCli.size() == EXPECTED_CLI_OUTPUT.size()
+        assert EXPECTED_CLI_OUTPUT.every { String k, String v -> parsedCli.get(k) == v }
+    }
+
+    @Test
+    void testShouldFailOnCliTranslateIfConflictingFlagsPresent() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        def validOpts = [
+                "-n nifi.properties",
+                "--niFiProperties nifi.properties",
+                "--verbose -n nifi.properties -b bootstrap.conf",
+        ]
+
+        // These values won't cause an error in #commandLineHasActionFlags() but will throw an error later in #parse()
+        // Don't test with -h/--help because it will cause a System.exit()
+        def incompleteOpts = [
+                "",
+                "-v",
+                "--verbose",
+//                "-h",
+//                "--help",
+                "-b bootstrap.conf",
+                "--bootstrapConf bootstrap.conf",
+        ]
+
+        def invalidOpts = [
+                "--migrate",
+                "-o output",
+                "-x \$s0\$"
+        ]
+
+        // Act
+        validOpts.each { String valid ->
+            tool = new ConfigEncryptionTool()
+            def args = (valid + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            tool.parse(args as String[])
+        }
+
+        incompleteOpts.each { String incomplete ->
+            tool = new ConfigEncryptionTool()
+            def args = (incomplete + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
+
+        invalidOpts.each { String invalid ->
+            tool = new ConfigEncryptionTool()
+            def args = (invalid + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '-c'/'--translateCli' is specified, only '-h', '-v', and '-n'/'-b' with the relevant files are allowed"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
+    }
+
+    @Test
+    void testTranslateCliShouldFailIfMissingNecessaryFlags() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Bootstrap alone is insufficient; nifi.properties alone is ok if it is in plaintext
+        def invalidOpts = [
+                "-b bootstrap.conf",
+        ]
+
+        // Act
+        invalidOpts.each { String invalid ->
+            def args = (invalid + " -c").split(" ")
+            logger.info("Testing with ${args}")
+            def msg = shouldFail(CommandLineParseException) {
+                tool.parse(args as String[])
+            }
+
+            // Assert
+            assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
+            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+        }
+    }
+
+// TODO: Test with 128/256-bit available
 }
 
-public class TestAppender extends AppenderSkeleton {
-    static final List<LoggingEvent> events = new ArrayList<>();
+class TestAppender extends AppenderSkeleton {
+    static final List<LoggingEvent> events = new ArrayList<>()
 
     @Override
     protected void append(LoggingEvent e) {
         synchronized (events) {
-            events.add(e);
+            events.add(e)
         }
     }
 
-    public static void reset() {
+    static void reset() {
         synchronized (events) {
-            events.clear();
+            events.clear()
         }
     }
 

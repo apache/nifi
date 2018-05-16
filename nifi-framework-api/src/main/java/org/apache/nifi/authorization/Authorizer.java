@@ -27,6 +27,10 @@ public interface Authorizer {
 
     /**
      * Determines if the specified user/entity is authorized to access the specified resource within the given context.
+     * These details are all contained in the AuthorizationRequest.
+     *
+     * NOTE: This method will be called often and frequently. Because of this, if the underlying implementation needs to
+     * make remote calls or expensive calculations those should probably be done asynchronously and/or cache the results.
      *
      * @param   request The authorization request
      * @return  the authorization result

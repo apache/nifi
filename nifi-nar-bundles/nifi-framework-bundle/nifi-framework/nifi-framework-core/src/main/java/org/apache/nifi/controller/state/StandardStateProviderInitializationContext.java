@@ -19,6 +19,7 @@ package org.apache.nifi.controller.state;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
@@ -26,21 +27,33 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.logging.ComponentLog;
 
 public class StandardStateProviderInitializationContext implements StateProviderInitializationContext {
     private final String id;
     private final Map<PropertyDescriptor, PropertyValue> properties;
     private final SSLContext sslContext;
+    private final ComponentLog logger;
 
-    public StandardStateProviderInitializationContext(final String identifier, final Map<PropertyDescriptor, PropertyValue> properties, final SSLContext sslContext) {
+    public StandardStateProviderInitializationContext(final String identifier, final Map<PropertyDescriptor, PropertyValue> properties, final SSLContext sslContext, final ComponentLog logger) {
         this.id = identifier;
         this.properties = new HashMap<>(properties);
         this.sslContext = sslContext;
+        this.logger = logger;
     }
 
     @Override
     public Map<PropertyDescriptor, PropertyValue> getProperties() {
         return Collections.unmodifiableMap(properties);
+    }
+
+    @Override
+    public Map<String,String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, PropertyValue> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue().getValue());
+        }
+        return propValueMap;
     }
 
     @Override
@@ -56,5 +69,10 @@ public class StandardStateProviderInitializationContext implements StateProvider
     @Override
     public SSLContext getSSLContext() {
         return sslContext;
+    }
+
+    @Override
+    public ComponentLog getLogger() {
+        return logger;
     }
 }

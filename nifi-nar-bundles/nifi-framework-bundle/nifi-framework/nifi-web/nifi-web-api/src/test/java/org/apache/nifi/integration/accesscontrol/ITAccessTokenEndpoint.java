@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.util.NiFiTestServer;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.integration.util.SourceTestProcessor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
@@ -40,6 +40,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.core.Response;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -70,8 +72,9 @@ public class ITAccessTokenEndpoint {
         FileUtils.deleteDirectory(props.getDatabaseRepositoryPath().toFile());
 
         // load extensions
+        final Bundle systemBundle = SystemBundle.create(props);
         NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
-        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
+        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
 
         // start the server
         SERVER = new NiFiTestServer("src/main/webapp", CONTEXT_PATH, props);
@@ -104,13 +107,13 @@ public class ITAccessTokenEndpoint {
     public void testGetAccessConfig() throws Exception {
         String url = BASE_URL + "/access/config";
 
-        ClientResponse response = TOKEN_USER.testGet(url);
+        Response response = TOKEN_USER.testGet(url);
 
         // ensure the request is successful
         Assert.assertEquals(200, response.getStatus());
 
         // extract the process group
-        AccessConfigurationEntity accessConfigEntity = response.getEntity(AccessConfigurationEntity.class);
+        AccessConfigurationEntity accessConfigEntity = response.readEntity(AccessConfigurationEntity.class);
 
         // ensure there is content
         Assert.assertNotNull(accessConfigEntity);
@@ -131,13 +134,13 @@ public class ITAccessTokenEndpoint {
     public void testCreateProcessorUsingToken() throws Exception {
         String url = BASE_URL + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testCreateToken(url, "user@nifi", "whatever");
+        Response response = TOKEN_USER.testCreateToken(url, "user@nifi", "whatever");
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());
 
         // get the token
-        String token = response.getEntity(String.class);
+        String token = response.readEntity(String.class);
 
         // attempt to create a processor with it
         createProcessor(token);
@@ -166,13 +169,13 @@ public class ITAccessTokenEndpoint {
         entity.setComponent(processor);
 
         // perform the request
-        ClientResponse response = TOKEN_USER.testPostWithHeaders(url, entity, headers);
+        Response response = TOKEN_USER.testPostWithHeaders(url, entity, headers);
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(ProcessorEntity.class);
+        entity = response.readEntity(ProcessorEntity.class);
 
         // verify creation
         processor = entity.getComponent();
@@ -191,7 +194,7 @@ public class ITAccessTokenEndpoint {
     public void testInvalidCredentials() throws Exception {
         String url = BASE_URL + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testCreateToken(url, "user@nifi", "not a real password");
+        Response response = TOKEN_USER.testCreateToken(url, "user@nifi", "not a real password");
 
         // ensure the request is successful
         Assert.assertEquals(400, response.getStatus());
@@ -206,7 +209,7 @@ public class ITAccessTokenEndpoint {
     public void testUnknownUser() throws Exception {
         String url = BASE_URL + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testCreateToken(url, "not a real user", "not a real password");
+        Response response = TOKEN_USER.testCreateToken(url, "not a real user", "not a real password");
 
         // ensure the request is successful
         Assert.assertEquals(400, response.getStatus());
@@ -222,12 +225,12 @@ public class ITAccessTokenEndpoint {
         String accessStatusUrl = BASE_URL + "/access";
         String accessTokenUrl = BASE_URL + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testGet(accessStatusUrl);
+        Response response = TOKEN_USER.testGet(accessStatusUrl);
 
         // ensure the request is successful
         Assert.assertEquals(200, response.getStatus());
 
-        AccessStatusEntity accessStatusEntity = response.getEntity(AccessStatusEntity.class);
+        AccessStatusEntity accessStatusEntity = response.readEntity(AccessStatusEntity.class);
         AccessStatusDTO accessStatus = accessStatusEntity.getAccessStatus();
 
         // verify unknown
@@ -239,7 +242,7 @@ public class ITAccessTokenEndpoint {
         Assert.assertEquals(201, response.getStatus());
 
         // get the token
-        String token = response.getEntity(String.class);
+        String token = response.readEntity(String.class);
 
         // authorization header
         Map<String, String> headers = new HashMap<>();
@@ -251,7 +254,7 @@ public class ITAccessTokenEndpoint {
         // ensure the request is successful
         Assert.assertEquals(200, response.getStatus());
 
-        accessStatusEntity = response.getEntity(AccessStatusEntity.class);
+        accessStatusEntity = response.readEntity(AccessStatusEntity.class);
         accessStatus = accessStatusEntity.getAccessStatus();
 
         // verify unregistered

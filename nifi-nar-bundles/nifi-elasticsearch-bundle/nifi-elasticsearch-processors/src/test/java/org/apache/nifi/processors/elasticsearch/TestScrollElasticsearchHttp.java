@@ -17,11 +17,13 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +63,6 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTrigger_withNoInput() throws IOException {
         runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
@@ -81,7 +82,6 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTrigger_withNoInput_EL() throws IOException {
         runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
@@ -129,7 +129,6 @@ public class TestScrollElasticsearchHttp {
     @Test
     public void testScrollElasticsearchOnTriggerWithFields() throws IOException {
         runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
@@ -155,7 +154,6 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
         runner.setIncomingConnection(false);
 
@@ -180,7 +178,6 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
         runner.setIncomingConnection(false);
 
@@ -205,7 +202,6 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
@@ -230,7 +226,6 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.setIncomingConnection(false);
@@ -252,7 +247,6 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(ScrollElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
         runner.setIncomingConnection(false);
 
@@ -276,7 +270,6 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
@@ -300,7 +293,6 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
 
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
@@ -314,6 +306,23 @@ public class TestScrollElasticsearchHttp {
         // This test generates a HTTP 100 "Should fail"
         runner.assertTransferCount(ScrollElasticsearchHttp.REL_SUCCESS, 0);
         runner.assertTransferCount(ScrollElasticsearchHttp.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testScrollElasticsearchOnTrigger_withQueryParameter() throws IOException {
+        ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedParam("myparam=myvalue");
+        runner = TestRunners.newTestRunner(p);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
+        runner.setProperty(ScrollElasticsearchHttp.QUERY, "source:WZ");
+        runner.setProperty(ScrollElasticsearchHttp.PAGE_SIZE, "2");
+        // Set dynamic property, to be added to the URL as a query parameter
+        runner.setProperty("myparam", "myvalue");
+        runner.setIncomingConnection(false);
+        runAndVerifySuccess();
     }
 
     /**
@@ -331,6 +340,8 @@ public class TestScrollElasticsearchHttp {
 
         List<String> pages = Arrays.asList(getDoc("scroll-page1.json"),
                 getDoc("scroll-page2.json"), getDoc("scroll-page3.json"));
+
+        String expectedParam = null;
 
         public void setExceptionToThrow(Exception exceptionToThrow) {
             this.exceptionToThrow = exceptionToThrow;
@@ -364,6 +375,16 @@ public class TestScrollElasticsearchHttp {
             this.runNumber = runNumber;
         }
 
+        /**
+         * Sets an query parameter (name=value) expected to be at the end of the URL for the query operation
+         *
+         * @param param
+         *            The parameter to expect
+         */
+        void setExpectedParam(String param) {
+            expectedParam = param;
+        }
+
         @Override
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
@@ -387,6 +408,7 @@ public class TestScrollElasticsearchHttp {
                 @Override
                 public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
+                    assertTrue((expectedParam == null) || (realRequest.url().toString().endsWith(expectedParam)));
                     Response mockResponse = new Response.Builder()
                             .request(realRequest)
                             .protocol(Protocol.HTTP_1_1)
@@ -405,6 +427,7 @@ public class TestScrollElasticsearchHttp {
             });
         }
 
+        @Override
         protected OkHttpClient getClient() {
             return client;
         }
@@ -412,8 +435,7 @@ public class TestScrollElasticsearchHttp {
 
     private static String getDoc(String filename) {
         try {
-            return IOUtils.toString(ScrollElasticsearchHttp.class.getClassLoader()
-                    .getResourceAsStream(filename));
+            return IOUtils.toString(ScrollElasticsearchHttp.class.getClassLoader().getResourceAsStream(filename), StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.out.println("Error reading document " + filename);
             return "";

@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.ws.rs.core.Response;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
@@ -58,7 +58,7 @@ public class ITCountersAccessControl {
     public void testUpdateCounters() throws Exception {
         final String counterUri = uri + "/my-counter";
 
-        ClientResponse response;
+        Response response;
 
         // read
         response = helper.getReadUser().testPut(counterUri, Collections.emptyMap());

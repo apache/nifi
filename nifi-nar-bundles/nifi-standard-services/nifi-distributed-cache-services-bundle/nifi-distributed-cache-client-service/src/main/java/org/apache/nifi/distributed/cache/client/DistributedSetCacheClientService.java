@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +31,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -39,8 +42,6 @@ import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.stream.io.DataOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,17 +101,22 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
         this.configContext = context;
     }
 
+    @OnStopped
+    public void onStopped() throws IOException {
+        close();
+    }
+
     public CommsSession createCommsSession(final ConfigurationContext context) throws IOException {
         final String hostname = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).asInteger();
-        final long timeoutMillis = context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        final int timeoutMillis = context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
         final CommsSession commsSession;
         if (sslContextService == null) {
-            commsSession = new StandardCommsSession(hostname, port);
+            commsSession = new StandardCommsSession(hostname, port, timeoutMillis);
         } else {
-            commsSession = new SSLCommsSession(sslContextService.createSSLContext(ClientAuth.REQUIRED), hostname, port);
+            commsSession = new SSLCommsSession(sslContextService.createSSLContext(ClientAuth.REQUIRED), hostname, port, timeoutMillis);
         }
 
         commsSession.setTimeout(timeoutMillis, TimeUnit.MILLISECONDS);

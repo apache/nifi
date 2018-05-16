@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import org.apache.nifi.controller.status.ProcessGroupStatus;
-
 import java.util.Date;
+import java.util.List;
+
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 
 /**
  * A repository for storing and retrieving components' historical status
@@ -38,8 +39,9 @@ public interface ComponentStatusRepository {
      * Captures the status information provided in the given report
      *
      * @param rootGroupStatus status of root group
+     * @param garbageCollectionStatus status of garbage collection
      */
-    void capture(ProcessGroupStatus rootGroupStatus);
+    void capture(ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus);
 
     /**
      * Captures the status information provided in the given report, providing a
@@ -48,8 +50,9 @@ public interface ComponentStatusRepository {
      *
      * @param rootGroupStatus status
      * @param timestamp timestamp of capture
+     * @param garbageCollectionStatus status of garbage collection
      */
-    void capture(ProcessGroupStatus rootGroupStatus, Date timestamp);
+    void capture(ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus, Date timestamp);
 
     /**
      * @return the Date at which the latest capture was performed
@@ -103,10 +106,12 @@ public interface ComponentStatusRepository {
      * If the date range is large, the total number of data points could be far
      * too many to process. Therefore, this parameter allows the requestor to
      * indicate how many samples to return.
+     * @param includeCounters specifies whether or not metrics from Processor counters
+     * should be included in the StatusHistory.
      * @return a {@link StatusHistory} that provides the status information
      * about the Processor with the given ID during the given time period
      */
-    StatusHistory getProcessorStatusHistory(String processorId, Date start, Date end, int preferredDataPoints);
+    StatusHistory getProcessorStatusHistory(String processorId, Date start, Date end, int preferredDataPoints, boolean includeCounters);
 
     /**
      * @param remoteGroupId to get history of
@@ -125,4 +130,6 @@ public interface ComponentStatusRepository {
      * period
      */
     StatusHistory getRemoteProcessGroupStatusHistory(String remoteGroupId, Date start, Date end, int preferredDataPoints);
+
+    GarbageCollectionHistory getGarbageCollectionHistory(Date start, Date end);
 }

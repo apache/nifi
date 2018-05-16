@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Archiver-Version: Plexus Archiver
+Build-Jdk: 1.8.0_74
+Built-By: bbende
+Nar-Id: nifi-hadoop-nar
+Nar-Dependency-Id: nifi-hadoop-libraries-nar
+Created-By: Apache Maven 3.3.3

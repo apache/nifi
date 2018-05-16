@@ -39,8 +39,10 @@ import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPHTTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -74,6 +76,7 @@ public class FTPTransfer implements FileTransfer {
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .required(true)
         .defaultValue("21")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
         .name("Proxy Type")
@@ -104,6 +107,21 @@ public class FTPTransfer implements FileTransfer {
         .required(false)
         .sensitive(true)
         .build();
+    public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
+        .name("Internal Buffer Size")
+        .description("Set the internal buffer size for buffered data streams")
+        .defaultValue("16KB")
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .build();
+    public static final PropertyDescriptor UTF8_ENCODING = new PropertyDescriptor.Builder()
+            .name("ftp-use-utf8")
+            .displayName("Use UTF-8 Encoding")
+            .description("Tells the client to use UTF-8 encoding when processing files and filenames. If set to true, the server must also support UTF-8 encoding.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
     private final ComponentLog logger;
 
@@ -222,7 +240,7 @@ public class FTPTransfer implements FileTransfer {
                 try {
                     listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
                 } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory");
+                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
                 }
             }
 
@@ -279,7 +297,7 @@ public class FTPTransfer implements FileTransfer {
 
     @Override
     public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final FTPClient client = getClient(null);
+        final FTPClient client = getClient(flowFile);
         InputStream in = client.retrieveFileStream(remoteFileName);
         if (in == null) {
             throw new IOException(client.getReplyString());
@@ -291,6 +309,11 @@ public class FTPTransfer implements FileTransfer {
     public void flush() throws IOException {
         final FTPClient client = getClient(null);
         client.completePendingCommand();
+    }
+
+    @Override
+    public boolean flush(final FlowFile flowFile) throws IOException {
+        return getClient(flowFile).completePendingCommand();
     }
 
     @Override
@@ -434,8 +457,8 @@ public class FTPTransfer implements FileTransfer {
 
 
     @Override
-    public void rename(final String source, final String target) throws IOException {
-        final FTPClient client = getClient(null);
+    public void rename(final FlowFile flowFile, final String source, final String target) throws IOException {
+        final FTPClient client = getClient(flowFile);
         final boolean renameSuccessful = client.rename(source, target);
         if (!renameSuccessful) {
             throw new IOException("Failed to rename temporary file " + source + " to " + target + " due to: " + client.getReplyString());
@@ -443,8 +466,8 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void deleteFile(final String path, final String remoteFileName) throws IOException {
-        final FTPClient client = getClient(null);
+    public void deleteFile(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
+        final FTPClient client = getClient(flowFile);
         if (path != null) {
             setWorkingDirectory(path);
         }
@@ -454,8 +477,8 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void deleteDirectory(final String remoteDirectoryName) throws IOException {
-        final FTPClient client = getClient(null);
+    public void deleteDirectory(final FlowFile flowFile, final String remoteDirectoryName) throws IOException {
+        final FTPClient client = getClient(flowFile);
         final boolean success = client.removeDirectory(remoteDirectoryName);
         if (!success) {
             throw new IOException("Failed to remove directory " + remoteDirectoryName + " due to " + client.getReplyString());
@@ -512,6 +535,7 @@ public class FTPTransfer implements FileTransfer {
             }
         }
         this.client = client;
+        client.setBufferSize(ctx.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B).intValue());
         client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setDefaultTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setRemoteVerificationEnabled(false);
@@ -526,6 +550,11 @@ public class FTPTransfer implements FileTransfer {
 
         if (inetAddress == null) {
             inetAddress = InetAddress.getByName(remoteHostname);
+        }
+
+        final boolean useUtf8Encoding = ctx.getProperty(UTF8_ENCODING).isSet() ? ctx.getProperty(UTF8_ENCODING).asBoolean() : false;
+        if (useUtf8Encoding) {
+            client.setControlEncoding("UTF-8");
         }
 
         client.connect(inetAddress, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());
@@ -547,7 +576,7 @@ public class FTPTransfer implements FileTransfer {
             client.enterLocalPassiveMode();
         }
 
-        final String transferMode = ctx.getProperty(TRANSFER_MODE).evaluateAttributeExpressions(flowFile).getValue();
+        final String transferMode = ctx.getProperty(TRANSFER_MODE).getValue();
         final int fileType = (transferMode.equalsIgnoreCase(TRANSFER_MODE_ASCII)) ? FTPClient.ASCII_FILE_TYPE : FTPClient.BINARY_FILE_TYPE;
         if (!client.setFileType(fileType)) {
             throw new IOException("Unable to set transfer mode to type " + transferMode);

@@ -230,7 +230,7 @@
                 applyFilter();
             });
 
-            // initialize the processor configuration dialog
+            // initialize the component state dialog
             $('#component-state-dialog').modal({
                 scrollableContentStyle: 'scrollable',
                 headerText: 'Component State',
@@ -298,14 +298,16 @@
                     field: 'key',
                     name: 'Key',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 },
                 {
                     id: 'value',
                     field: 'value',
                     name: 'Value',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 }
             ];
 
@@ -316,7 +318,8 @@
                     field: 'scope',
                     name: 'Scope',
                     sortable: true,
-                    resizable: true
+                    resizable: true,
+                    formatter: nfCommon.genericValueFormatter
                 });
             }
 

@@ -40,8 +40,14 @@
         <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="assets/angular-material/angular-material.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <script>
+            //force browsers to use URLSearchParams polyfill do to bugs and inconsistent browser implementations
+            URLSearchParams = undefined;
+        </script>
+        <script type="text/javascript" src="assets/url-search-params/build/url-search-params.js"></script>
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
-        <script type="text/javascript" src="assets/d3/d3.min.js"></script>
+        <script type="text/javascript" src="assets/d3/build/d3.min.js"></script>
+        <script type="text/javascript" src="assets/d3-selection-multi/build/d3-selection-multi.min.js"></script>
         <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
         <script type="text/javascript" src="assets/jquery-ui-dist/jquery-ui.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
@@ -110,6 +116,11 @@
         <jsp:include page="/WEB-INF/partials/canvas/instantiate-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/fill-color-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connections-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/save-flow-version-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/import-flow-version-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/revert-local-changes-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/show-local-changes-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/registry-configuration-dialog.jsp"/>
         <div id="canvas-container" class="unselectable"></div>
         <div id="canvas-tooltips">
             <div id="processor-tooltips"></div>
@@ -124,6 +135,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/reporting-task-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/variable-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/override-policy-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/policy-management.jsp"/>
@@ -140,6 +152,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/listing-request-status-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/queue-listing.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-state-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/component-version-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/connection-details.jsp"/>
         <div id="context-menu" class="context-menu unselectable"></div>
         <span id="nifi-content-viewer-url" class="hidden"></span>

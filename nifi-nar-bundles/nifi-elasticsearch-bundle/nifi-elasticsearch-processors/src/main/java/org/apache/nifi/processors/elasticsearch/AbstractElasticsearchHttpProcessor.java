@@ -16,22 +16,25 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.Route;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -41,6 +44,7 @@ import java.net.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,13 +54,19 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
 
+    static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
+    static final String QUERY_QUERY_PARAM = "q";
+    static final String SORT_QUERY_PARAM = "sort";
+    static final String SIZE_QUERY_PARAM = "size";
+
+
     public static final PropertyDescriptor ES_URL = new PropertyDescriptor.Builder()
             .name("elasticsearch-http-url")
             .displayName("Elasticsearch URL")
             .description("Elasticsearch URL which will be connected to, including scheme (http, e.g.), host, and port. The default port for the REST API is 9200.")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
@@ -75,6 +85,24 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("proxy-username")
+            .displayName("Proxy Username")
+            .description("Proxy Username")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("proxy-password")
+            .displayName("Proxy Password")
+            .description("Proxy Password")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("elasticsearch-http-connect-timeout")
             .displayName("Connection Timeout")
@@ -82,7 +110,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .required(true)
             .defaultValue("5 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor RESPONSE_TIMEOUT = new PropertyDescriptor.Builder()
@@ -92,10 +120,42 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .required(true)
             .defaultValue("15 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .dynamic(true)
+                .build();
+    }
+
+    private static final List<PropertyDescriptor> propertyDescriptors;
+
+    static {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(ES_URL);
+        properties.add(PROXY_HOST);
+        properties.add(PROXY_PORT);
+        properties.add(PROXY_USERNAME);
+        properties.add(PROXY_PASSWORD);
+        properties.add(RESPONSE_TIMEOUT);
+
+        propertyDescriptors = Collections.unmodifiableList(properties);
+    }
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.addAll(propertyDescriptors);
+        return properties;
+    }
 
     @Override
     protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
@@ -104,11 +164,26 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
 
         // Add a proxy if set
-        final String proxyHost = context.getProperty(PROXY_HOST).getValue();
-        final Integer proxyPort = context.getProperty(PROXY_PORT).asInteger();
+        final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+        final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
         if (proxyHost != null && proxyPort != null) {
             final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
             okHttpClient.proxy(proxy);
+        }
+
+        final String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+        final String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+
+        if (proxyUsername != null && proxyPassword != null){
+            okHttpClient.proxyAuthenticator(new Authenticator() {
+                @Override
+                public Request authenticate(Route route, Response response) throws IOException {
+                    final String credential=Credentials.basic(proxyUsername, proxyPassword);
+                    return response.request().newBuilder()
+                            .header("Proxy-Authorization", credential)
+                            .build();
+                }
+            });
         }
 
         // Set timeouts

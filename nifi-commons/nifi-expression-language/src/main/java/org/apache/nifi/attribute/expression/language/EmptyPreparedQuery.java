@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language;
 
 
 import java.util.Map;
+
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
 
@@ -37,5 +38,15 @@ public class EmptyPreparedQuery implements PreparedQuery {
     @Override
     public String evaluateExpressions(Map<String, String> attributes, AttributeValueDecorator decorator, Map<String, String> stateVariables) throws ProcessException {
         return value;
+    }
+
+    @Override
+    public boolean isExpressionLanguagePresent() {
+        return false;
+    }
+
+    @Override
+    public VariableImpact getVariableImpact() {
+        return VariableImpact.NEVER_IMPACTED;
     }
 }

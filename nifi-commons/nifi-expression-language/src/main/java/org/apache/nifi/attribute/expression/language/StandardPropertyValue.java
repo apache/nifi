@@ -149,13 +149,16 @@ public class StandardPropertyValue implements PropertyValue {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
             throws ProcessException {
         if (rawValue == null || preparedQuery == null) {
             return this;
         }
+
         final ValueLookup lookup = new ValueLookup(variableRegistry, flowFile, additionalAttributes);
-        return new StandardPropertyValue(preparedQuery.evaluateExpressions(lookup, decorator, stateValues), serviceLookup, null);
+        final String evaluated = preparedQuery.evaluateExpressions(lookup, decorator, stateValues);
+        return new StandardPropertyValue(evaluated, serviceLookup, new EmptyPreparedQuery(evaluated), null);
     }
 
     @Override
@@ -194,5 +197,10 @@ public class StandardPropertyValue implements PropertyValue {
     @Override
     public boolean isSet() {
         return rawValue != null;
+    }
+
+    @Override
+    public boolean isExpressionLanguagePresent() {
+        return preparedQuery.isExpressionLanguagePresent();
     }
 }

@@ -66,6 +66,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
@@ -85,6 +86,9 @@ public class FileSystemRepository implements ContentRepository {
     public static final int SECTIONS_PER_CONTAINER = 1024;
     public static final long MIN_CLEANUP_INTERVAL_MILLIS = 1000;
     public static final String ARCHIVE_DIR_NAME = "archive";
+    // 100 MB cap for the configurable NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE property to prevent
+    // unnecessarily large resource claim files
+    public static final String APPENDABLE_CLAIM_LENGTH_CAP = "100 MB";
     public static final Pattern MAX_ARCHIVE_SIZE_PATTERN = Pattern.compile("\\d{1,2}%");
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemRepository.class);
 
@@ -97,22 +101,23 @@ public class FileSystemRepository implements ContentRepository {
     private final ScheduledExecutorService executor = new FlowEngine(4, "FileSystemRepository Workers", true);
     private final ConcurrentMap<String, BlockingQueue<ResourceClaim>> reclaimable = new ConcurrentHashMap<>();
     private final Map<String, ContainerState> containerStateMap = new HashMap<>();
-    // 1 MB. This could be adjusted but 1 MB seems reasonable, as it means that we won't continually write to one
-    // file that keeps growing but gives us a chance to bunch together a lot of small files. Before, we had issues
-    // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
-    // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
-    // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
-    static final int MAX_APPENDABLE_CLAIM_LENGTH = 1024 * 1024;
 
-    // Queue for claims that are kept open for writing. Size of 100 is pretty arbitrary. Ideally, this will be at
+    // Queue for claims that are kept open for writing. Ideally, this will be at
     // least as large as the number of threads that will be updating the repository simultaneously but we don't want
     // to get too large because it will hold open up to this many FileOutputStreams.
     // The queue is used to determine which claim to write to and then the corresponding Map can be used to obtain
     // the OutputStream that we can use for writing to the claim.
-    private final BlockingQueue<ClaimLengthPair> writableClaimQueue = new LinkedBlockingQueue<>(100);
+    private final BlockingQueue<ClaimLengthPair> writableClaimQueue;
     private final ConcurrentMap<ResourceClaim, ByteCountingOutputStream> writableClaimStreams = new ConcurrentHashMap<>(100);
 
     private final boolean archiveData;
+    // 1 MB default, as it means that we won't continually write to one
+    // file that keeps growing but gives us a chance to bunch together a lot of small files. Before, we had issues
+    // with creating and deleting too many files, as we had to delete 100's of thousands of files every 2 minutes
+    // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
+    // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
+    private final long maxAppendableClaimLength;
+    private final int maxFlowFilesPerClaim;
     private final long maxArchiveMillis;
     private final Map<String, Long> minUsableContainerBytesForArchive = new HashMap<>();
     private final boolean alwaysSync;
@@ -140,6 +145,9 @@ public class FileSystemRepository implements ContentRepository {
         alwaysSync = false;
         containerCleanupExecutor = null;
         nifiProperties = null;
+        maxAppendableClaimLength = 0;
+        maxFlowFilesPerClaim = 0;
+        writableClaimQueue = null;
     }
 
     public FileSystemRepository(final NiFiProperties nifiProperties) throws IOException {
@@ -148,6 +156,20 @@ public class FileSystemRepository implements ContentRepository {
         final Map<String, Path> fileRespositoryPaths = nifiProperties.getContentRepositoryPaths();
         for (final Path path : fileRespositoryPaths.values()) {
             Files.createDirectories(path);
+        }
+        this.maxFlowFilesPerClaim = nifiProperties.getMaxFlowFilesPerClaim();
+        this.writableClaimQueue  = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
+        final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
+        final long appendableClaimLengthCap = DataUnit.parseDataSize(APPENDABLE_CLAIM_LENGTH_CAP, DataUnit.B).longValue();
+        if (configuredAppendableClaimLength > appendableClaimLengthCap) {
+            LOG.warn("Configured property '{}' with value {} exceeds cap of {}. Setting value to {}",
+                    NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE,
+                    configuredAppendableClaimLength,
+                    APPENDABLE_CLAIM_LENGTH_CAP,
+                    APPENDABLE_CLAIM_LENGTH_CAP);
+            this.maxAppendableClaimLength = appendableClaimLengthCap;
+        } else {
+            this.maxAppendableClaimLength = configuredAppendableClaimLength;
         }
 
         this.containers = new HashMap<>(fileRespositoryPaths);
@@ -199,13 +221,16 @@ public class FileSystemRepository implements ContentRepository {
             for (final Map.Entry<String, Path> container : containers.entrySet()) {
                 final String containerName = container.getKey();
 
-                final long capacity = Files.getFileStore(container.getValue()).getTotalSpace();
+                final long capacity = container.getValue().toFile().getTotalSpace();
+                if(capacity==0) {
+                    throw new RuntimeException("System returned total space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
+                }
                 final long maxArchiveBytes = (long) (capacity * (1D - (maxArchiveRatio - 0.02)));
                 minUsableContainerBytesForArchive.put(container.getKey(), Long.valueOf(maxArchiveBytes));
                 LOG.info("Maximum Threshold for Container {} set to {} bytes; if volume exceeds this size, archived data will be deleted until it no longer exceeds this size",
                         containerName, maxArchiveBytes);
 
-                final long backPressureBytes = (long) (Files.getFileStore(container.getValue()).getTotalSpace() * archiveBackPressureRatio);
+                final long backPressureBytes = (long) (container.getValue().toFile().getTotalSpace() * archiveBackPressureRatio);
                 final ContainerState containerState = new ContainerState(containerName, true, backPressureBytes, capacity);
                 containerStateMap.put(containerName, containerState);
             }
@@ -379,21 +404,40 @@ public class FileSystemRepository implements ContentRepository {
     @Override
     public long getContainerCapacity(final String containerName) throws IOException {
         final Path path = containers.get(containerName);
+
         if (path == null) {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
 
-        return Files.getFileStore(path).getTotalSpace();
+        long capacity = FileUtils.getContainerCapacity(path);
+
+        if(capacity==0) {
+            throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
+                    + "Nifi can not create a zero sized FileSystemRepository.");
+        }
+
+        return capacity;
     }
 
     @Override
     public long getContainerUsableSpace(String containerName) throws IOException {
         final Path path = containers.get(containerName);
+
         if (path == null) {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
 
-        return Files.getFileStore(path).getUsableSpace();
+        return FileUtils.getContainerUsableSpace(path);
+    }
+
+    @Override
+    public String getContainerFileStoreName(final String containerName) {
+        final Path path = containers.get(containerName);
+        try {
+            return Files.getFileStore(path).name();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     @Override
@@ -942,7 +986,7 @@ public class FileSystemRepository implements ContentRepository {
                 // is called. In this case, we don't have to actually close the file stream. Instead, we
                 // can just add it onto the queue and continue to use it for the next content claim.
                 final long resourceClaimLength = scc.getOffset() + scc.getLength();
-                if (recycle && resourceClaimLength < MAX_APPENDABLE_CLAIM_LENGTH) {
+                if (recycle && resourceClaimLength < maxAppendableClaimLength) {
                     final ClaimLengthPair pair = new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength);
 
                     // We are checking that writableClaimStreams contains the resource claim as a key, as a sanity check.

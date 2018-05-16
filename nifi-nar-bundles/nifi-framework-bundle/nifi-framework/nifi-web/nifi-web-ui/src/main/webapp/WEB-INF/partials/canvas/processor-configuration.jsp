@@ -44,6 +44,10 @@
                         </div>
                     </div>
                     <div class="setting">
+                        <div class="setting-name">Bundle</div>
+                        <div id="processor-bundle" class="setting-field"></div>
+                    </div>
+                    <div class="setting">
                         <div class="penalty-duration-setting">
                             <div class="setting-name">
                                 Penalty duration

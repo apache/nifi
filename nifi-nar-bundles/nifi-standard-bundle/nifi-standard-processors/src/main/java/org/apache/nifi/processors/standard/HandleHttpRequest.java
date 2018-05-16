@@ -16,7 +16,51 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+
+import javax.servlet.AsyncContext;
+import javax.servlet.DispatcherType;
+import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response.Status;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -37,45 +81,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-import javax.servlet.AsyncContext;
-import javax.servlet.DispatcherType;
-import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.http.HttpContextMap;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.HTTPUtils;
-import org.apache.nifi.ssl.SSLContextService;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import com.sun.jersey.api.client.ClientResponse.Status;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
@@ -90,10 +95,11 @@ import com.sun.jersey.api.client.ClientResponse.Status;
     @WritesAttribute(attribute = "http.method", description = "The HTTP Method that was used for the request, such as GET or POST"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_LOCAL_NAME, description = "IP address/hostname of the server"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_PORT, description = "Listening port of the server"),
-    @WritesAttribute(attribute = "http.query.string", description = "The query string portion of hte Request URL"),
+    @WritesAttribute(attribute = "http.query.string", description = "The query string portion of the Request URL"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_REMOTE_HOST, description = "The hostname of the requestor"),
     @WritesAttribute(attribute = "http.remote.addr", description = "The hostname:port combination of the requestor"),
     @WritesAttribute(attribute = "http.remote.user", description = "The username of the requestor"),
+    @WritesAttribute(attribute = "http.protocol", description = "The protocol used to communicate"),
     @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
@@ -104,8 +110,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
     @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\"")})
-@SeeAlso(value = {HandleHttpResponse.class},
-        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
+@SeeAlso(value = {HandleHttpResponse.class})
 public class HandleHttpRequest extends AbstractProcessor {
 
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
@@ -124,7 +129,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The Port to listen on for incoming HTTP requests")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(0L, 65535L, true))
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue("80")
             .build();
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
@@ -132,7 +137,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The Hostname to bind to. If not specified, will bind to all hosts")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor HTTP_CONTEXT_MAP = new PropertyDescriptor.Builder()
             .name("HTTP Context Map")
@@ -145,7 +150,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only HTTPS requests; "
                     + "otherwise, the server will accept only HTTP requests")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
     public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Default URL Character Set")
@@ -161,7 +166,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                     + "404: NotFound")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor ALLOW_GET = new PropertyDescriptor.Builder()
             .name("Allow GET")
@@ -210,7 +215,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("A comma-separated list of non-standard HTTP Methods that should be allowed")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Authentication")
@@ -279,6 +284,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String host = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).asInteger();
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
+        final HttpContextMap httpContextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
+        final long requestTimeout = httpContextMap.getRequestTimeout(TimeUnit.MILLISECONDS);
 
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
         final boolean need;
@@ -402,7 +409,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                 // Right now, that information, though, is only in the ProcessSession, not the ProcessContext,
                 // so it is not known to us. Should see if it can be added to the ProcessContext.
                 final AsyncContext async = baseRequest.startAsync();
-                async.setTimeout(Long.MAX_VALUE); // timeout is handled by HttpContextMap
+                async.setTimeout(requestTimeout);
                 final boolean added = containerQueue.offer(new HttpRequestContainer(request, response, async));
 
                 if (added) {
@@ -447,6 +454,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
 
+        sslFactory.setProtocol(sslService.getSslAlgorithm());
+
         if (sslService.isKeyStoreConfigured()) {
             sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
             sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
@@ -481,10 +490,25 @@ public class HandleHttpRequest extends AbstractProcessor {
             }
         } catch (Exception e) {
             context.yield();
-            throw new ProcessException("Failed to initialize the server",e);
+
+            try {
+                // shutdown to release any resources allocated during the failed initialization
+                shutdown();
+            } catch (final Exception shutdownException) {
+                getLogger().debug("Failed to shutdown following a failed initialization: " + shutdownException);
+            }
+
+            throw new ProcessException("Failed to initialize the server", e);
         }
 
-        final HttpRequestContainer container = containerQueue.poll();
+        HttpRequestContainer container;
+        try {
+            container = containerQueue.poll(2, TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException e1) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+
         if (container == null) {
             return;
         }
@@ -492,12 +516,26 @@ public class HandleHttpRequest extends AbstractProcessor {
         final long start = System.nanoTime();
         final HttpServletRequest request = container.getRequest();
         FlowFile flowFile = session.create();
-        try {
-            flowFile = session.importFrom(request.getInputStream(), flowFile);
+        try (OutputStream flowFileOut = session.write(flowFile)) {
+            StreamUtils.copy(request.getInputStream(), flowFileOut);
         } catch (final IOException e) {
+            // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, eg.
+            // bad requests, the connection to the client is not closed. In order to address also these cases, we try
+            // and answer with a BAD_REQUEST, which lets the client know that the request has not been correctly
+            // processed and makes it aware that the connection can be closed.
             getLogger().error("Failed to receive content from HTTP Request from {} due to {}",
                     new Object[]{request.getRemoteAddr(), e});
             session.remove(flowFile);
+
+            try {
+                HttpServletResponse response = container.getResponse();
+                response.sendError(Status.BAD_REQUEST.getStatusCode());
+                response.flushBuffer();
+                container.getContext().complete();
+            } catch (final IOException ioe) {
+                getLogger().warn("Failed to send HTTP response to {} due to {}",
+                        new Object[]{request.getRemoteAddr(), ioe});
+            }
             return;
         }
 
@@ -520,6 +558,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, HTTPUtils.HTTP_REMOTE_HOST, request.getRemoteHost());
             putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
             putAttribute(attributes, "http.remote.user", request.getRemoteUser());
+            putAttribute(attributes, "http.protocol", request.getProtocol());
             putAttribute(attributes, HTTPUtils.HTTP_REQUEST_URI, request.getRequestURI());
             putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
             putAttribute(attributes, "http.auth.type", request.getAuthType());

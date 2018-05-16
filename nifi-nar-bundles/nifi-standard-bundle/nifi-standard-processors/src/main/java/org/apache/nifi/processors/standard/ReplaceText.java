@@ -16,36 +16,23 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -58,11 +45,29 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.NLKBufferedReader;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @EventDriven
 @SideEffectFree
@@ -71,6 +76,7 @@ import org.apache.nifi.util.StopWatch;
 @Tags({"Text", "Regular Expression", "Update", "Change", "Replace", "Modify", "Regex"})
 @CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression (regex) against it and replacing the section of "
     + "the content that matches the Regular Expression with some alternate value.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class ReplaceText extends AbstractProcessor {
 
     private static Pattern REPLACEMENT_NORMALIZATION_PATTERN = Pattern.compile("(\\$\\D)");
@@ -83,7 +89,7 @@ public class ReplaceText extends AbstractProcessor {
     public static final String regexReplaceValue = "Regex Replace";
     public static final String literalReplaceValue = "Literal Replace";
     public static final String alwaysReplace = "Always Replace";
-    private static final Pattern backReferencePattern = Pattern.compile("\\$(\\d+)");
+    private static final Pattern unescapedBackReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
     private static final String DEFAULT_REGEX = "(?s)(^.*$)";
     private static final String DEFAULT_REPLACEMENT_VALUE = "$1";
 
@@ -110,8 +116,8 @@ public class ReplaceText extends AbstractProcessor {
         .displayName("Search Value")
         .description("The Search Value to search for in the FlowFile content. Only used for 'Literal Replace' and 'Regex Replace' matching strategies")
         .required(true)
-        .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
-        .expressionLanguageSupported(true)
+        .addValidator(Validator.VALID)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(DEFAULT_REGEX)
         .build();
     public static final PropertyDescriptor REPLACEMENT_VALUE = new PropertyDescriptor.Builder()
@@ -123,7 +129,7 @@ public class ReplaceText extends AbstractProcessor {
         .required(true)
         .defaultValue(DEFAULT_REPLACEMENT_VALUE)
         .addValidator(Validator.VALID)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
@@ -202,9 +208,35 @@ public class ReplaceText extends AbstractProcessor {
     }
 
     @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> errors = new ArrayList<>(super.customValidate(validationContext));
+
+        switch (validationContext.getProperty(REPLACEMENT_STRATEGY).getValue()) {
+            case literalReplaceValue:
+                errors.add(StandardValidators.NON_EMPTY_VALIDATOR
+                        .validate(SEARCH_VALUE.getName(), validationContext.getProperty(SEARCH_VALUE).getValue(), validationContext));
+                break;
+
+            case regexReplaceValue:
+                errors.add(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true)
+                        .validate(SEARCH_VALUE.getName(), validationContext.getProperty(SEARCH_VALUE).getValue(), validationContext));
+                break;
+
+            case appendValue:
+            case prependValue:
+            case alwaysReplace:
+            default:
+                // nothing to check, search value is not used
+                break;
+        }
+
+        return errors;
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 100));
-        if (flowFiles.isEmpty()) {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
 
@@ -250,22 +282,20 @@ public class ReplaceText extends AbstractProcessor {
                 throw new AssertionError();
         }
 
-        for (FlowFile flowFile : flowFiles) {
-            if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
-                    session.transfer(flowFile, REL_FAILURE);
-                    continue;
-                }
+        if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
+            if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
+                session.transfer(flowFile, REL_FAILURE);
+                return;
             }
-
-            final StopWatch stopWatch = new StopWatch(true);
-
-            flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
-
-            logger.info("Transferred {} to 'success'", new Object[] {flowFile});
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, REL_SUCCESS);
         }
+
+        final StopWatch stopWatch = new StopWatch(true);
+
+        flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
+
+        logger.info("Transferred {} to 'success'", new Object[] {flowFile});
+        session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
 
@@ -278,7 +308,7 @@ public class ReplaceText extends AbstractProcessor {
         }
 
         String value = unescaped;
-        final Matcher backRefMatcher = backReferencePattern.matcher(value);
+        final Matcher backRefMatcher = unescapedBackReferencePattern.matcher(value); // consider unescaped back references
         while (backRefMatcher.find()) {
             final String backRefNum = backRefMatcher.group(1);
             if (backRefNum.startsWith("0")) {
@@ -465,10 +495,12 @@ public class ReplaceText extends AbstractProcessor {
         private final int numCapturingGroups;
         private final Map<String, String> additionalAttrs;
 
+        // back references are not supported in the evaluated expression
         private static final AttributeValueDecorator escapeBackRefDecorator = new AttributeValueDecorator() {
             @Override
             public String decorate(final String attributeValue) {
-                return attributeValue.replace("$", "\\$");
+                // when we encounter a '$[0-9+]'  replace it with '\$[0-9+]'
+                return attributeValue.replaceAll("(\\$\\d+?)", "\\\\$1");
             }
         };
 

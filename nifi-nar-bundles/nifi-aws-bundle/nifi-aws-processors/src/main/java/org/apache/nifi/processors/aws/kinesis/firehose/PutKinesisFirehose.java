@@ -72,7 +72,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT,
-                  PROXY_HOST,PROXY_HOST_PORT));
+                  PROXY_HOST, PROXY_HOST_PORT, ENDPOINT_OVERRIDE));
 
     /**
      * Max buffer size 1 MB
@@ -89,16 +89,14 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final long maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asDataSize(DataUnit.B).longValue();
-        final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).getValue();
 
-        List<FlowFile> flowFiles = filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, firehoseStreamName,
-            AWS_KINESIS_FIREHOSE_ERROR_MESSAGE);
+        List<FlowFile> flowFiles = filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, AWS_KINESIS_FIREHOSE_ERROR_MESSAGE);
+        HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
+        HashMap<String, List<Record>> recordHash = new HashMap<String, List<Record>>();
 
         final AmazonKinesisFirehoseClient client = getClient();
 
         try {
-            List<Record> records = new ArrayList<>();
-
             List<FlowFile> failedFlowFiles = new ArrayList<>();
             List<FlowFile> successfulFlowFiles = new ArrayList<>();
 
@@ -106,46 +104,66 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
             for (int i = 0; i < flowFiles.size(); i++) {
                 FlowFile flowFile = flowFiles.get(i);
 
+                final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
+
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 session.exportTo(flowFile, baos);
-                records.add(new Record().withData(ByteBuffer.wrap(baos.toByteArray())));
+
+                if (recordHash.containsKey(firehoseStreamName) == false) {
+                    recordHash.put(firehoseStreamName, new ArrayList<>());
+                }
+
+                if (hashFlowFiles.containsKey(firehoseStreamName) == false) {
+                    hashFlowFiles.put(firehoseStreamName, new ArrayList<>());
+                }
+
+                hashFlowFiles.get(firehoseStreamName).add(flowFile);
+                recordHash.get(firehoseStreamName).add(new Record().withData(ByteBuffer.wrap(baos.toByteArray())));
             }
 
-            if ( records.size() > 0 ) {
-                // Send the batch
-                PutRecordBatchRequest putRecordBatchRequest = new PutRecordBatchRequest();
-                putRecordBatchRequest.setDeliveryStreamName(firehoseStreamName);
-                putRecordBatchRequest.setRecords(records);
-                PutRecordBatchResult results = client.putRecordBatch(putRecordBatchRequest);
+            for (Map.Entry<String, List<Record>> entryRecord : recordHash.entrySet()) {
+                String streamName = entryRecord.getKey();
+                List<Record> records = entryRecord.getValue();
 
-                // Separate out the successful and failed flow files
-                List<PutRecordBatchResponseEntry> responseEntries = results.getRequestResponses();
-                for (int i = 0; i < responseEntries.size(); i++ ) {
-                    PutRecordBatchResponseEntry entry = responseEntries.get(i);
-                    FlowFile flowFile = flowFiles.get(i);
+                if (records.size() > 0) {
+                    // Send the batch
+                    PutRecordBatchRequest putRecordBatchRequest = new PutRecordBatchRequest();
+                    putRecordBatchRequest.setDeliveryStreamName(streamName);
+                    putRecordBatchRequest.setRecords(records);
+                    PutRecordBatchResult results = client.putRecordBatch(putRecordBatchRequest);
 
-                    Map<String,String> attributes = new HashMap<>();
-                    attributes.put(AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
-                    flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
-                    if ( ! StringUtils.isBlank(entry.getErrorCode()) ) {
-                        attributes.put(AWS_KINESIS_FIREHOSE_ERROR_CODE, entry.getErrorCode());
-                        attributes.put(AWS_KINESIS_FIREHOSE_ERROR_MESSAGE, entry.getErrorMessage());
-                        flowFile = session.putAllAttributes(flowFile, attributes);
-                        failedFlowFiles.add(flowFile);
-                    } else {
-                        flowFile = session.putAllAttributes(flowFile, attributes);
-                        successfulFlowFiles.add(flowFile);
+                    // Separate out the successful and failed flow files
+                    List<PutRecordBatchResponseEntry> responseEntries = results.getRequestResponses();
+                    for (int i = 0; i < responseEntries.size(); i++ ) {
+
+                        PutRecordBatchResponseEntry entry = responseEntries.get(i);
+                        FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
+
+                        Map<String,String> attributes = new HashMap<>();
+                        attributes.put(AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
+                        flowFile = session.putAttribute(flowFile, AWS_KINESIS_FIREHOSE_RECORD_ID, entry.getRecordId());
+                        if (StringUtils.isBlank(entry.getErrorCode()) == false) {
+                            attributes.put(AWS_KINESIS_FIREHOSE_ERROR_CODE, entry.getErrorCode());
+                            attributes.put(AWS_KINESIS_FIREHOSE_ERROR_MESSAGE, entry.getErrorMessage());
+                            flowFile = session.putAllAttributes(flowFile, attributes);
+                            failedFlowFiles.add(flowFile);
+                        } else {
+                            flowFile = session.putAllAttributes(flowFile, attributes);
+                            successfulFlowFiles.add(flowFile);
+                        }
                     }
+                    recordHash.get(streamName).clear();
+                    records.clear();
                 }
-                if ( failedFlowFiles.size() > 0 ) {
-                    session.transfer(failedFlowFiles, REL_FAILURE);
-                    getLogger().error("Failed to publish to kinesis firehose {} records {}", new Object[]{firehoseStreamName, failedFlowFiles});
-                }
-                if ( successfulFlowFiles.size() > 0 ) {
-                    session.transfer(successfulFlowFiles, REL_SUCCESS);
-                    getLogger().info("Successfully published to kinesis firehose {} records {}", new Object[]{firehoseStreamName, successfulFlowFiles});
-                }
-                records.clear();
+            }
+
+            if (failedFlowFiles.size() > 0) {
+                session.transfer(failedFlowFiles, REL_FAILURE);
+                getLogger().error("Failed to publish to kinesis firehose {}", new Object[]{failedFlowFiles});
+            }
+            if (successfulFlowFiles.size() > 0) {
+                session.transfer(successfulFlowFiles, REL_SUCCESS);
+                getLogger().info("Successfully published to kinesis firehose {}", new Object[]{successfulFlowFiles});
             }
 
         } catch (final Exception exception) {

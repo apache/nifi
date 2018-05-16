@@ -34,6 +34,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,6 +82,7 @@ public abstract class AbstractPort implements Port {
     private final AtomicReference<String> penalizationPeriod;
     private final AtomicReference<String> yieldPeriod;
     private final AtomicReference<String> schedulingPeriod;
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicLong schedulingNanos;
     private final AtomicLong yieldExpiration;
     private final ProcessScheduler processScheduler;
@@ -179,7 +182,7 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void setComments(final String comments) {
-        this.comments.set(comments);
+        this.comments.set(CharacterFilterUtils.filterInvalidXmlCharacters(comments));
     }
 
     @Override
@@ -491,6 +494,12 @@ public abstract class AbstractPort implements Port {
     @Override
     public void yield() {
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);
+        yield(yieldMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void yield(final long yieldDuration, final TimeUnit timeUnit) {
+        final long yieldMillis = timeUnit.toMillis(yieldDuration);
         yieldExpiration.set(Math.max(yieldExpiration.get(), System.currentTimeMillis() + yieldMillis));
     }
 
@@ -633,5 +642,28 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void verifyCanClearState() {
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
+            }
+        }
     }
 }

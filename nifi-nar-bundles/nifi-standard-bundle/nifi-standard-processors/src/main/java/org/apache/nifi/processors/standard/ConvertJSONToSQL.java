@@ -26,7 +26,9 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -38,11 +40,11 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -50,6 +52,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -74,17 +77,18 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
 @SupportsBatching
 @SeeAlso(PutSQL.class)
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"json", "sql", "database", "rdbms", "insert", "update", "relational", "flat"})
-@CapabilityDescription("Converts a JSON-formatted FlowFile into an UPDATE or INSERT SQL statement. The incoming FlowFile is expected to be "
+@Tags({"json", "sql", "database", "rdbms", "insert", "update", "delete", "relational", "flat"})
+@CapabilityDescription("Converts a JSON-formatted FlowFile into an UPDATE, INSERT, or DELETE SQL statement. The incoming FlowFile is expected to be "
         + "\"flat\" JSON message, meaning that it consists of a single JSON element and each field maps to a simple type. If a field maps to "
         + "a JSON object, that JSON object will be interpreted as Text. If the input is an array of JSON elements, each element in the array is "
         + "output as a separate FlowFile to the 'sql' relationship. Upon successful conversion, the original FlowFile is routed to the 'original' "
         + "relationship and the SQL is routed to the 'sql' relationship.")
 @WritesAttributes({
         @WritesAttribute(attribute="mime.type", description="Sets mime.type of FlowFile that is routed to 'sql' to 'text/plain'."),
-        @WritesAttribute(attribute="sql.table", description="Sets the sql.table attribute of FlowFile that is routed to 'sql' to the name of the table that is updated by the SQL statement."),
-        @WritesAttribute(attribute="sql.catalog", description="If the Catalog name is set for this database, specifies the name of the catalog that the SQL statement will update. "
-                + "If no catalog is used, this attribute will not be added."),
+        @WritesAttribute(attribute = "<sql>.table", description = "Sets the <sql>.table attribute of FlowFile that is routed to 'sql' to the name of the table that is updated by the SQL statement. "
+                + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property."),
+        @WritesAttribute(attribute="<sql>.catalog", description="If the Catalog name is set for this database, specifies the name of the catalog that the SQL statement will update. "
+                + "If no catalog is used, this attribute will not be added. The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property."),
         @WritesAttribute(attribute="fragment.identifier", description="All FlowFiles routed to the 'sql' relationship for the same incoming FlowFile (multiple will be output for the same incoming "
                 + "FlowFile if the incoming FlowFile is a JSON Array) will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
         @WritesAttribute(attribute="fragment.count", description="The number of SQL FlowFiles that were produced for same incoming FlowFile. This can be used in conjunction with the "
@@ -92,16 +96,19 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
         @WritesAttribute(attribute="fragment.index", description="The position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same incoming FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier and fragment.count attributes to know which FlowFiles originated from the same incoming FlowFile and in what order the SQL "
                 + "FlowFiles were produced"),
-        @WritesAttribute(attribute="sql.args.N.type", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The types of the Parameters "
-                + "to use are stored in attributes named sql.args.1.type, sql.args.2.type, sql.args.3.type, and so on. The type is a number representing a JDBC Type constant. "
-                + "Generally, this is useful only for software to read and interpret but is added so that a processor such as PutSQL can understand how to interpret the values."),
-        @WritesAttribute(attribute="sql.args.N.value", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The values of the Parameters "
+        @WritesAttribute(attribute="<sql>.args.N.type", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The types of the Parameters "
+                + "to use are stored in attributes named <sql>.args.1.type, <sql>.args.2.type, <sql>.args.3.type, and so on. The type is a number representing a JDBC Type constant. "
+                + "Generally, this is useful only for software to read and interpret but is added so that a processor such as PutSQL can understand how to interpret the values. "
+                + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property."),
+        @WritesAttribute(attribute="<sql>.args.N.value", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The values of the Parameters "
                 + "to use are stored in the attributes named sql.args.1.value, sql.args.2.value, sql.args.3.value, and so on. Each of these attributes has a corresponding "
-                + "sql.args.N.type attribute that indicates how the value should be interpreted when inserting it into the database.")
+                + "<sql>.args.N.type attribute that indicates how the value should be interpreted when inserting it into the database."
+                + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property.")
 })
 public class ConvertJSONToSQL extends AbstractProcessor {
     private static final String UPDATE_TYPE = "UPDATE";
     private static final String INSERT_TYPE = "INSERT";
+    private static final String DELETE_TYPE = "DELETE";
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
             "Any field in the JSON document that cannot be mapped to a column in the database is ignored");
@@ -128,27 +135,27 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .name("Statement Type")
             .description("Specifies the type of SQL Statement to generate")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, DELETE_TYPE)
             .build();
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
             .description("The name of the table that the statement should update")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor CATALOG_NAME = new PropertyDescriptor.Builder()
             .name("Catalog Name")
             .description("The name of the catalog that the statement should update. This may not apply for the database that you are updating. In this case, leave the field empty")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
             .name("Schema Name")
             .description("The name of the schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new PropertyDescriptor.Builder()
@@ -178,7 +185,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                     + "This property is ignored if the Statement Type is INSERT")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor QUOTED_IDENTIFIERS = new PropertyDescriptor.Builder()
@@ -197,6 +204,16 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                     + "use of special characters in the table name")
             .allowableValues("true", "false")
             .defaultValue("false")
+            .build();
+
+    static final PropertyDescriptor SQL_PARAM_ATTR_PREFIX = new PropertyDescriptor.Builder()
+            .name("jts-sql-param-attr-prefix")
+            .displayName("SQL Parameter Attribute Prefix")
+            .description("The string to be prepended to the outgoing flow file attributes, such as <sql>.args.1.value, where <sql> is replaced with the specified value")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .required(true)
+            .defaultValue("sql")
             .build();
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -236,6 +253,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         properties.add(UPDATE_KEY);
         properties.add(QUOTED_IDENTIFIERS);
         properties.add(QUOTED_TABLE_IDENTIFIER);
+        properties.add(SQL_PARAM_ATTR_PREFIX);
         return properties;
     }
 
@@ -285,6 +303,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // Quote table name?
         final boolean quoteTableName = context.getProperty(QUOTED_TABLE_IDENTIFIER).asBoolean();
 
+        // Attribute prefix
+        final String attributePrefix = context.getProperty(SQL_PARAM_ATTR_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
+
         // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
         // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
         // the Map grows beyond this capacity, old elements are evicted. We do this in order to avoid filling the
@@ -295,7 +316,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             if (schema == null) {
                 // No schema exists for this table yet. Query the database to determine the schema and put it into the cache.
                 final DBCPService dbcpService = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class);
-                try (final Connection conn = dbcpService.getConnection()) {
+                try (final Connection conn = dbcpService.getConnection(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes())) {
                     schema = TableSchema.from(conn, catalog, schemaName, tableName, translateFieldNames, includePrimaryKeys);
                     schemaCache.put(schemaKey, schema);
                 } catch (final SQLException e) {
@@ -362,10 +383,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
                 if (INSERT_TYPE.equals(statementType)) {
                     sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
-                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
-                } else {
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
+                } else if (UPDATE_TYPE.equals(statementType)) {
                     sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
-                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName);
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
+                } else {
+                    sql = generateDelete(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames, quoteTableName, attributePrefix);
                 }
             } catch (final ProcessException pe) {
                 getLogger().error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
@@ -386,13 +410,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             });
 
             attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-            attributes.put("sql.table", tableName);
+            attributes.put(attributePrefix + ".table", tableName);
             attributes.put(FRAGMENT_ID.key(), fragmentIdentifier);
             attributes.put(FRAGMENT_COUNT.key(), String.valueOf(arrayNode.size()));
             attributes.put(FRAGMENT_INDEX.key(), String.valueOf(i));
 
             if (catalog != null) {
-                attributes.put("sql.catalog", catalog);
+                attributes.put(attributePrefix + ".catalog", catalog);
             }
 
             sqlFlowFile = session.putAllAttributes(sqlFlowFile, attributes);
@@ -415,7 +439,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
     private String generateInsert(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
                                   final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
-                                  final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName) {
+                                  final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
 
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         for (final String requiredColName : schema.getRequiredColumnNames()) {
@@ -444,7 +468,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         sqlBuilder.append(" (");
 
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
-        // adding the column value to a "sql.args.N.value" attribute and the type of a "sql.args.N.type" attribute add the
+        // adding the column value to a "<sql>.args.N.value" attribute and the type of a "<sql>.args.N.type" attribute add the
         // columns that we are inserting into
         final Iterator<String> fieldNames = rootNode.getFieldNames();
         while (fieldNames.hasNext()) {
@@ -469,16 +493,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 }
 
                 final int sqlType = desc.getDataType();
-                attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
+                attributes.put(attributePrefix + ".args." + fieldCount + ".type", String.valueOf(sqlType));
 
                 final Integer colSize = desc.getColumnSize();
                 final JsonNode fieldNode = rootNode.get(fieldName);
                 if (!fieldNode.isNull()) {
-                    String fieldValue = fieldNode.asText();
-                    if (colSize != null && fieldValue.length() > colSize) {
-                        fieldValue = fieldValue.substring(0, colSize);
-                    }
-                    attributes.put("sql.args." + fieldCount + ".value", fieldValue);
+                    String fieldValue = createSqlStringValue(fieldNode, colSize, sqlType);
+                    attributes.put(attributePrefix + ".args." + fieldCount + ".value", fieldValue);
                 }
             }
         }
@@ -501,9 +522,66 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         return sqlBuilder.toString();
     }
 
+    /**
+     *  Try to create correct SQL String representation of value.
+     *
+     */
+    protected static String createSqlStringValue(final JsonNode fieldNode, final Integer colSize, final int sqlType) {
+        String fieldValue = fieldNode.asText();
+
+        switch (sqlType) {
+
+        // only "true" is considered true, everything else is false
+        case Types.BOOLEAN:
+            fieldValue = Boolean.valueOf(fieldValue).toString();
+            break;
+
+        // Don't truncate numeric types.
+        case Types.BIT:
+        case Types.TINYINT:
+        case Types.SMALLINT:
+        case Types.INTEGER:
+        case Types.BIGINT:
+        case Types.REAL:
+        case Types.FLOAT:
+        case Types.DOUBLE:
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+            if (fieldNode.isBoolean()) {
+                // Convert boolean to number representation for databases those don't support boolean type.
+                fieldValue = fieldNode.asBoolean() ? "1" : "0";
+            }
+            break;
+
+        // Don't truncate DATE, TIME and TIMESTAMP types. We assume date and time is already correct in long representation.
+        // Specifically, milliseconds since January 1, 1970, 00:00:00 GMT
+        // However, for TIMESTAMP, PutSQL accepts optional timestamp format via FlowFile attribute.
+        // See PutSQL.setParameter method and NIFI-3430 for detail.
+        // Alternatively, user can use JSONTreeReader and PutDatabaseRecord to handle date format more efficiently.
+        case Types.DATE:
+        case Types.TIME:
+        case Types.TIMESTAMP:
+            break;
+
+        // Truncate string data types only.
+        case Types.CHAR:
+        case Types.VARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+            if (colSize != null && fieldValue.length() > colSize) {
+                fieldValue = fieldValue.substring(0, colSize);
+            }
+            break;
+        }
+
+        return fieldValue;
+    }
+
     private String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
                                   final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
-                                  final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName) {
+                                  final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
 
         final Set<String> updateKeyNames;
         if (updateKeys == null) {
@@ -553,7 +631,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         }
 
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
-        // adding the column value to a "sql.args.N.value" attribute and the type of a "sql.args.N.type" attribute add the
+        // adding the column value to a "<sql>.args.N.value" attribute and the type of a "<sql>.args.N.type" attribute add the
         // columns that we are inserting into
         Iterator<String> fieldNames = rootNode.getFieldNames();
         while (fieldNames.hasNext()) {
@@ -589,17 +667,14 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
             sqlBuilder.append(" = ?");
             final int sqlType = desc.getDataType();
-            attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
+            attributes.put(attributePrefix + ".args." + fieldCount + ".type", String.valueOf(sqlType));
 
             final Integer colSize = desc.getColumnSize();
 
             final JsonNode fieldNode = rootNode.get(fieldName);
             if (!fieldNode.isNull()) {
-                String fieldValue = rootNode.get(fieldName).asText();
-                if (colSize != null && fieldValue.length() > colSize) {
-                    fieldValue = fieldValue.substring(0, colSize);
-                }
-                attributes.put("sql.args." + fieldCount + ".value", fieldValue);
+                String fieldValue = createSqlStringValue(fieldNode, colSize, sqlType);
+                attributes.put(attributePrefix + ".args." + fieldCount + ".value", fieldValue);
             }
         }
 
@@ -637,14 +712,92 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             }
             sqlBuilder.append(" = ?");
             final int sqlType = desc.getDataType();
-            attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
+            attributes.put(attributePrefix + ".args." + fieldCount + ".type", String.valueOf(sqlType));
 
             final Integer colSize = desc.getColumnSize();
             String fieldValue = rootNode.get(fieldName).asText();
             if (colSize != null && fieldValue.length() > colSize) {
                 fieldValue = fieldValue.substring(0, colSize);
             }
-            attributes.put("sql.args." + fieldCount + ".value", fieldValue);
+            attributes.put(attributePrefix + ".args." + fieldCount + ".value", fieldValue);
+        }
+
+        return sqlBuilder.toString();
+    }
+
+    private String generateDelete(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
+                                  final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+                                  final boolean warningUnmappedColumns, boolean escapeColumnNames, boolean quoteTableName, final String attributePrefix) {
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
+        for (final String requiredColName : schema.getRequiredColumnNames()) {
+            final String normalizedColName = normalizeColumnName(requiredColName, translateFieldNames);
+            if (!normalizedFieldNames.contains(normalizedColName)) {
+                String missingColMessage = "JSON does not have a value for the Required column '" + requiredColName + "'";
+                if (failUnmappedColumns) {
+                    getLogger().error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    getLogger().warn(missingColMessage);
+                }
+            }
+        }
+
+        final StringBuilder sqlBuilder = new StringBuilder();
+        int fieldCount = 0;
+        sqlBuilder.append("DELETE FROM ");
+        if (quoteTableName) {
+            sqlBuilder.append(schema.getQuotedIdentifierString())
+                    .append(tableName)
+                    .append(schema.getQuotedIdentifierString());
+        } else {
+            sqlBuilder.append(tableName);
+        }
+
+        sqlBuilder.append(" WHERE ");
+
+        // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
+        // adding the column value to a "<sql>.args.N.value" attribute and the type of a "<sql>.args.N.type" attribute add the
+        // columns that we are inserting into
+        final Iterator<String> fieldNames = rootNode.getFieldNames();
+        while (fieldNames.hasNext()) {
+            final String fieldName = fieldNames.next();
+
+            final ColumnDescription desc = schema.getColumns().get(normalizeColumnName(fieldName, translateFieldNames));
+            if (desc == null && !ignoreUnmappedFields) {
+                throw new ProcessException("Cannot map JSON field '" + fieldName + "' to any column in the database");
+            }
+
+            if (desc != null) {
+                if (fieldCount++ > 0) {
+                    sqlBuilder.append(" AND ");
+                }
+
+                if (escapeColumnNames) {
+                    sqlBuilder.append(schema.getQuotedIdentifierString())
+                            .append(desc.getColumnName())
+                            .append(schema.getQuotedIdentifierString());
+                } else {
+                    sqlBuilder.append(desc.getColumnName());
+                }
+                sqlBuilder.append(" = ?");
+
+                final int sqlType = desc.getDataType();
+                attributes.put(attributePrefix + ".args." + fieldCount + ".type", String.valueOf(sqlType));
+
+                final Integer colSize = desc.getColumnSize();
+                final JsonNode fieldNode = rootNode.get(fieldName);
+                if (!fieldNode.isNull()) {
+                    String fieldValue = fieldNode.asText();
+                    if (colSize != null && fieldValue.length() > colSize) {
+                        fieldValue = fieldValue.substring(0, colSize);
+                    }
+                    attributes.put(attributePrefix + ".args." + fieldCount + ".value", fieldValue);
+                }
+            }
+        }
+
+        if (fieldCount == 0) {
+            throw new ProcessException("None of the fields in the JSON map to the columns defined by the " + tableName + " table");
         }
 
         return sqlBuilder.toString();

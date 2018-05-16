@@ -115,12 +115,13 @@ public enum ProcessorStatusDescriptor {
 
                 for (final StatusSnapshot snapshot : values) {
                     final long removed = snapshot.getStatusMetrics().get(FLOWFILES_REMOVED.getDescriptor()).longValue();
-                    count += removed;
+                    final long outputCount = snapshot.getStatusMetrics().get(OUTPUT_COUNT.getDescriptor()).longValue();
+                    final long processed = removed + outputCount;
 
-                    count += snapshot.getStatusMetrics().get(OUTPUT_COUNT.getDescriptor()).longValue();
+                    count += processed;
 
                     final long avgMillis = snapshot.getStatusMetrics().get(AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue();
-                    final long totalMillis = avgMillis * removed;
+                    final long totalMillis = avgMillis * processed;
                     millis += totalMillis;
                 }
 

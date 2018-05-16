@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.test.processors.ModifiesClasspathProcessor
 org.apache.nifi.test.processors.ModifiesClasspathNoAnnotationProcessor
+org.apache.nifi.controller.service.mock.DummyProcessor

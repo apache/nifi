@@ -19,10 +19,13 @@ package org.apache.nifi.processors.standard;
 import static javax.xml.xpath.XPathConstants.NODESET;
 import static javax.xml.xpath.XPathConstants.STRING;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,6 +46,7 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
@@ -63,6 +67,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -73,12 +78,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 
 import net.sf.saxon.lib.NamespaceConstant;
 import net.sf.saxon.xpath.XPathEvaluator;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 @EventDriven
 @SideEffectFree
@@ -125,6 +132,14 @@ public class EvaluateXPath extends AbstractProcessor {
             .defaultValue(RETURN_TYPE_AUTO)
             .build();
 
+    public static final PropertyDescriptor VALIDATE_DTD = new PropertyDescriptor.Builder()
+            .name("Validate DTD")
+            .description("Specifies whether or not the XML content should be validated against the DTD.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship "
@@ -162,6 +177,7 @@ public class EvaluateXPath extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(DESTINATION);
         properties.add(RETURN_TYPE);
+        properties.add(VALIDATE_DTD);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -206,8 +222,12 @@ public class EvaluateXPath extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName).expressionLanguageSupported(false)
-                .addValidator(new XPathValidator()).required(false).dynamic(true).build();
+                .name(propertyDescriptorName)
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+                .addValidator(new XPathValidator())
+                .required(false)
+                .dynamic(true)
+                .build();
     }
 
     @Override
@@ -219,6 +239,24 @@ public class EvaluateXPath extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
+        final XMLReader xmlReader;
+
+        try {
+            xmlReader = XMLReaderFactory.createXMLReader();
+        } catch (SAXException e) {
+            logger.error("Error while constructing XMLReader {}", new Object[]{e});
+            throw new ProcessException(e.getMessage());
+        }
+
+        if (!context.getProperty(VALIDATE_DTD).asBoolean()) {
+            xmlReader.setEntityResolver(new EntityResolver() {
+                @Override
+                public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
+                    return new InputSource(new StringReader(""));
+                }
+            });
+        }
+
         final XPathFactory factory = factoryRef.get();
         final XPathEvaluator xpathEvaluator = (XPathEvaluator) factory.newXPath();
         final Map<String, XPathExpression> attributeToXPathMap = new HashMap<>();
@@ -277,7 +315,8 @@ public class EvaluateXPath extends AbstractProcessor {
                 @Override
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
-                        final List<Source> rootList = (List<Source>) slashExpression.evaluate(new InputSource(in), NODESET);
+                        final List<Source> rootList = (List<Source>) slashExpression.evaluate(new SAXSource(xmlReader,
+                                new InputSource(in)), NODESET);
                         sourceRef.set(rootList.get(0));
                     } catch (final Exception e) {
                         error.set(e);

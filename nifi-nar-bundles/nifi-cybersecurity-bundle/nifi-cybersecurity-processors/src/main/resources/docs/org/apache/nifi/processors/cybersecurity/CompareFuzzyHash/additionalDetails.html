@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+<head>
+    <meta charset="utf-8" />
+    <title>CompareFuzzyHash</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css"
+          type="text/css" />
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h2>Description:</h2>
+<p>This Processor compares a an attribute containing a Fuzzy Hash (TLSH or SSDeep) value and compares it against a list
+    of hashes of the same family (i.e. TLSH is compared with a list of TLSH hashes), routing them to match or non-match
+    depending on a user configured threshold for similarity.
+</p>
+
+<p>It is important to note that:</p>
+
+<ul>
+    <li>TLSH similarity increases as product of its comparison function decreases (i.e. 0 indicates nearly identical files)</li>
+    <li>SSDeep similarity directly relates to the product of its comparison function (e.g. 99 indicates nearly identical files</li>
+</ul>
+<p>Based on the above, this processor when referring to "exceed the score" may be referring to:
+
+<ul>
+    <li>a value equal or lower than the configured threshold (in case of TLSH)</li>
+    <li>a value equal or higher than the configured threshold (in case of SSDeep)</li>
+</ul>
+</body>
+</html>

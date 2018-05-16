@@ -28,6 +28,7 @@ import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.SimpleEmail;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -56,32 +57,28 @@ public class TestListenSMTP {
         TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
         runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
-        runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
 
         runner.assertValid();
         runner.run(5, false);
         final int numMessages = 5;
         CountDownLatch latch = new CountDownLatch(numMessages);
 
-        this.executor.schedule(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < numMessages; i++) {
-                    try {
-                        Email email = new SimpleEmail();
-                        email.setHostName("localhost");
-                        email.setSmtpPort(port);
-                        email.setFrom("alice@nifi.apache.org");
-                        email.setSubject("This is a test");
-                        email.setMsg("MSG-" + i);
-                        email.addTo("bob@nifi.apache.org");
-                        email.send();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
-                    } finally {
-                        latch.countDown();
-                    }
+        this.executor.schedule(() -> {
+            for (int i = 0; i < numMessages; i++) {
+                try {
+                    Email email = new SimpleEmail();
+                    email.setHostName("localhost");
+                    email.setSmtpPort(port);
+                    email.setFrom("alice@nifi.apache.org");
+                    email.setSubject("This is a test");
+                    email.setMsg("MSG-" + i);
+                    email.addTo("bob@nifi.apache.org");
+                    email.send();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
                 }
             }
         }, 1500, TimeUnit.MILLISECONDS);
@@ -102,10 +99,9 @@ public class TestListenSMTP {
         TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
         runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
-        runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
 
         // Setup the SSL Context
-        SSLContextService sslContextService = new StandardSSLContextService();
+        SSLContextService sslContextService = new StandardRestrictedSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
@@ -124,30 +120,27 @@ public class TestListenSMTP {
         CountDownLatch latch = new CountDownLatch(messageCount);
         runner.run(messageCount, false);
 
-        this.executor.schedule(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < messageCount; i++) {
-                    try {
-                        Email email = new SimpleEmail();
-                        email.setHostName("localhost");
-                        email.setSmtpPort(port);
-                        email.setFrom("alice@nifi.apache.org");
-                        email.setSubject("This is a test");
-                        email.setMsg("MSG-" + i);
-                        email.addTo("bob@nifi.apache.org");
+        this.executor.schedule(() -> {
+            for (int i = 0; i < messageCount; i++) {
+                try {
+                    Email email = new SimpleEmail();
+                    email.setHostName("localhost");
+                    email.setSmtpPort(port);
+                    email.setFrom("alice@nifi.apache.org");
+                    email.setSubject("This is a test");
+                    email.setMsg("MSG-" + i);
+                    email.addTo("bob@nifi.apache.org");
 
-                        // Enable STARTTLS but ignore the cert
-                        email.setStartTLSEnabled(true);
-                        email.setStartTLSRequired(true);
-                        email.setSSLCheckServerIdentity(false);
-                        email.send();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
-                    } finally {
-                        latch.countDown();
-                    }
+                    // Enable STARTTLS but ignore the cert
+                    email.setStartTLSEnabled(true);
+                    email.setStartTLSRequired(true);
+                    email.setSSLCheckServerIdentity(false);
+                    email.send();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
                 }
             }
         }, 1500, TimeUnit.MILLISECONDS);
@@ -165,7 +158,6 @@ public class TestListenSMTP {
         TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
         runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
-        runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_MSG_SIZE, "10 B");
 
         runner.assertValid();
@@ -175,25 +167,22 @@ public class TestListenSMTP {
 
         runner.run(messageCount, false);
 
-        this.executor.schedule(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < messageCount; i++) {
-                    try {
-                        Email email = new SimpleEmail();
-                        email.setHostName("localhost");
-                        email.setSmtpPort(port);
-                        email.setFrom("alice@nifi.apache.org");
-                        email.setSubject("This is a test");
-                        email.setMsg("MSG-" + i);
-                        email.addTo("bob@nifi.apache.org");
-                        email.send();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
-                    } finally {
-                        latch.countDown();
-                    }
+        this.executor.schedule(() -> {
+            for (int i = 0; i < messageCount; i++) {
+                try {
+                    Email email = new SimpleEmail();
+                    email.setHostName("localhost");
+                    email.setSmtpPort(port);
+                    email.setFrom("alice@nifi.apache.org");
+                    email.setSubject("This is a test");
+                    email.setMsg("MSG-" + i);
+                    email.addTo("bob@nifi.apache.org");
+                    email.send();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
                 }
             }
         }, 1000, TimeUnit.MILLISECONDS);

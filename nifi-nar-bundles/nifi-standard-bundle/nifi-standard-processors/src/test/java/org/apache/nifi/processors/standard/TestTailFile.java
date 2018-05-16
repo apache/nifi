@@ -20,8 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -31,18 +33,21 @@ import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
 import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Assert;
+import static org.junit.Assume.assumeFalse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -313,6 +318,42 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("1\n");
     }
+
+    @Test
+    public void testRolloverWriteMoreDataThanPrevious() throws IOException, InterruptedException {
+        // If we have read all data in a file, and that file does not end with a new-line, then the last line
+        // in the file will have been read, added to the checksum, and then we would re-seek to "unread" that
+        // last line since it didn't have a new-line. We need to ensure that if the data is then rolled over
+        // that our checksum does not take into account those bytes that have been "unread."
+
+        // this mimics the case when we are reading a log file that rolls over while processor is running.
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
+        runner.run(1, false, true);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        raf.write("hello\n".getBytes());
+        runner.run(1, true, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
+        runner.clearTransferState();
+
+        raf.write("world".getBytes());
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0); // should not pull in data because no \n
+
+        raf.close();
+        file.renameTo(new File("target/log.1"));
+
+        raf = new RandomAccessFile(new File("target/log.txt"), "rw");
+        raf.write("longer than hello\n".getBytes());
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("longer than hello\n");
+    }
+
 
     @Test
     public void testMultipleRolloversAfterHavingReadAllData() throws IOException, InterruptedException {
@@ -659,6 +700,37 @@ public class TestTailFile {
     }
 
     @Test
+    public void testDetectNewFile() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
+        runner.setProperty(TailFile.FILENAME, "log_[0-9]*\\.txt");
+        runner.setProperty(TailFile.RECURSIVE, "false");
+
+        initializeFile("target/log_1.txt", "firstLine\n");
+
+        Runnable task = () -> {
+            try {
+                initializeFile("target/log_2.txt", "newFile\n");
+            } catch (Exception e) {
+                fail();
+            }
+        };
+
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        executor.schedule(task, 2, TimeUnit.SECONDS);
+
+        runner.setRunSchedule(2000);
+        runner.run(3);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("firstLine\n")));
+        assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("newFile\n")));
+
+        runner.shutdown();
+    }
+
+    @Test
     public void testMultipleFilesWithBasedirAndFilenameEL() throws IOException, InterruptedException {
         runner.setVariable("vrBaseDirectory", "target");
         runner.setProperty(TailFile.BASE_DIRECTORY, "${vrBaseDirectory}");
@@ -758,7 +830,6 @@ public class TestTailFile {
     public void testMultipleFilesChangingNameStrategy() throws IOException, InterruptedException {
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE);
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
-        runner.setProperty(TailFile.ROLLING_STRATEGY, TailFile.CHANGING_NAME);
         runner.setProperty(TailFile.BASE_DIRECTORY, "target");
         runner.setProperty(TailFile.FILENAME, ".*app-.*.log");
         runner.setProperty(TailFile.LOOKUP_FREQUENCY, "2s");
@@ -836,9 +907,13 @@ public class TestTailFile {
         runner.clearTransferState();
     }
 
+    private boolean isWindowsEnvironment() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
     @Test
     public void testMigrateFrom100To110() throws IOException {
-
+        assumeFalse(isWindowsEnvironment());
         runner.setProperty(TailFile.FILENAME, "target/existing-log.txt");
 
         final MockStateManager stateManager = runner.getStateManager();
@@ -886,6 +961,7 @@ public class TestTailFile {
 
     @Test
     public void testMigrateFrom100To110FileNotFound() throws IOException {
+        assumeFalse(isWindowsEnvironment());
 
         runner.setProperty(TailFile.FILENAME, "target/not-existing-log.txt");
 
@@ -925,6 +1001,18 @@ public class TestTailFile {
     private void clean() {
         cleanFiles("target");
         cleanFiles("target/testDir");
+    }
+
+    private RandomAccessFile initializeFile(String path, String data) throws IOException {
+        File file = new File(path);
+        if(file.exists()) {
+            file.delete();
+        }
+        assertTrue(file.createNewFile());
+        RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+        randomAccessFile.write(data.getBytes());
+        randomAccessFile.close();
+        return randomAccessFile;
     }
 
 }

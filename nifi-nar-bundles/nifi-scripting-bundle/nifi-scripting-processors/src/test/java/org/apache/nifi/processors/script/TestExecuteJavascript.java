@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.script;
 
+import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -44,7 +45,8 @@ public class TestExecuteJavascript extends BaseScriptTest {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_onTrigger.js");
-        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
+        // Use basic manipulation to validate that EL is working
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/${literal('JAVASCRIPT'):toLower()}");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));

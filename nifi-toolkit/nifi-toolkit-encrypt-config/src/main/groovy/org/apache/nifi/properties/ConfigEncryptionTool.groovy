@@ -17,15 +17,19 @@
 package org.apache.nifi.properties
 
 import groovy.io.GroovyPrintWriter
+import groovy.json.JsonBuilder
 import groovy.xml.XmlUtil
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.HelpFormatter
+import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
+import org.apache.nifi.security.util.crypto.CipherUtility
+import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiProperties
@@ -43,7 +47,9 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.nio.charset.StandardCharsets
+import java.security.InvalidKeyException
 import java.security.KeyException
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.Security
 import java.util.zip.GZIPInputStream
@@ -57,13 +63,19 @@ class ConfigEncryptionTool {
     public String outputNiFiPropertiesPath
     public String loginIdentityProvidersPath
     public String outputLoginIdentityProvidersPath
+    public String authorizersPath
+    public String outputAuthorizersPath
     public String flowXmlPath
     public String outputFlowXmlPath
+    // If this value can be set by the running user, it can point to a manipulated file anywhere
+    private static String secureHashPath = "./secure_hash.key"
 
     private String keyHex
     private String migrationKeyHex
     private String password
     private String migrationPassword
+    private String secureHashKey
+    private String secureHashPassword
 
     // This is the raw value used in nifi.sensitive.props.key
     private String flowPropertiesPassword
@@ -73,45 +85,62 @@ class ConfigEncryptionTool {
 
     private NiFiProperties niFiProperties
     private String loginIdentityProviders
+    private String authorizers
     private String flowXml
 
     private boolean usingPassword = true
     private boolean usingPasswordMigration = true
+    private boolean usingSecureHash = false
     private boolean migration = false
     private boolean isVerbose = false
     private boolean handlingNiFiProperties = false
     private boolean handlingLoginIdentityProviders = false
+    private boolean handlingAuthorizers = false
     private boolean handlingFlowXml = false
     private boolean ignorePropertiesFiles = false
+    private boolean queryingCurrentHashParams = false
+    private boolean translatingCli = false
 
     private static final String HELP_ARG = "help"
     private static final String VERBOSE_ARG = "verbose"
     private static final String BOOTSTRAP_CONF_ARG = "bootstrapConf"
     private static final String NIFI_PROPERTIES_ARG = "niFiProperties"
-    private static final String LOGIN_IDENTITY_PROVIDERS_ARG = "loginIdentityProviders"
     private static final String OUTPUT_NIFI_PROPERTIES_ARG = "outputNiFiProperties"
+    private static final String LOGIN_IDENTITY_PROVIDERS_ARG = "loginIdentityProviders"
     private static final String OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG = "outputLoginIdentityProviders"
+    private static final String AUTHORIZERS_ARG = "authorizers"
+    private static final String OUTPUT_AUTHORIZERS_ARG = "outputAuthorizers"
     private static final String FLOW_XML_ARG = "flowXml"
     private static final String OUTPUT_FLOW_XML_ARG = "outputFlowXml"
     private static final String KEY_ARG = "key"
     private static final String PASSWORD_ARG = "password"
     private static final String KEY_MIGRATION_ARG = "oldKey"
     private static final String PASSWORD_MIGRATION_ARG = "oldPassword"
+    private static final String HASHED_KEY_MIGRATION_ARG = "secureHashKey"
+    private static final String HASHED_PASSWORD_MIGRATION_ARG = "secureHashPassword"
     private static final String USE_KEY_ARG = "useRawKey"
     private static final String MIGRATION_ARG = "migrate"
     private static final String PROPS_KEY_ARG = "propsKey"
     private static final String DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG = "encryptFlowXmlOnly"
     private static final String NEW_FLOW_ALGORITHM_ARG = "newFlowAlgorithm"
     private static final String NEW_FLOW_PROVIDER_ARG = "newFlowProvider"
+    private static final String CURRENT_HASH_PARAMS_ARG = "currentHashParams"
+    private static final String TRANSLATE_CLI_ARG = "translateCli"
+
+    // Static holder to avoid re-generating the options object multiple times in an invocation
+    private static Options staticOptions
 
     // Hard-coded fallback value from {@link org.apache.nifi.encrypt.StringEncryptor}
     private static final String DEFAULT_NIFI_SENSITIVE_PROPS_KEY = "nififtw!"
     private static final int MIN_PASSWORD_LENGTH = 12
 
-    // Strong parameters as of 12 Aug 2016
+    // Strong parameters as of 12 Aug 2016 (for key derivation)
+    // This value can remain an int until best practice specifies a value above 2**32
     private static final int SCRYPT_N = 2**16
     private static final int SCRYPT_R = 8
     private static final int SCRYPT_P = 1
+    static final String CURRENT_SCRYPT_VERSION = "s0"
+    private static final String NIFI_SCRYPT_PATTERN = /^\$\w{2}\$\w{5,}\$[\w\/\=\+]{22,}\$[\w\/\=\+]{43}$/
 
     // Hard-coded values from StandardPBEByteEncryptor which will be removed during refactor of all flow encryption code in NIFI-1465
     private static final int DEFAULT_KDF_ITERATIONS = 1000
@@ -133,14 +162,55 @@ class ConfigEncryptionTool {
             "plain value with the protected value in the same file (or write to a new file if " +
             "specified). It can also be used to migrate already-encrypted values in those " +
             "files or in flow.xml.gz to be encrypted with a new key."
+
     private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.ldap.LdapProvider"
     private static
-    final String LDAP_PROVIDER_REGEX = /<provider>[\s\S]*?<class>\s*org\.apache\.nifi\.ldap\.LdapProvider[\s\S]*?<\/provider>/
+    final String LDAP_PROVIDER_REGEX = /(?s)<provider>(?:(?!<provider>).)*?<class>\s*org\.apache\.nifi\.ldap\.LdapProvider.*?<\/provider>/
+    /* Explanation of LDAP_PROVIDER_REGEX:
+     *   (?s)                             -> single-line mode (i.e., `.` in regex matches newlines)
+     *   <provider>                       -> find occurrence of `<provider>` literally (case-sensitive)
+     *   (?: ... )                        -> group but do not capture submatch
+     *   (?! ... )                        -> negative lookahead
+     *   (?:(?!<provider>).)*?            -> find everything until a new `<provider>` starts. This is for not selecting multiple providers in one match
+     *   <class>                          -> find occurrence of `<class>` literally (case-sensitive)
+     *   \s*                              -> find any whitespace
+     *   org\.apache\.nifi\.ldap\.LdapProvider
+     *                                    -> find occurrence of `org.apache.nifi.ldap.LdapProvider` literally (case-sensitive)
+     *   .*?</provider>                   -> find everything as needed up until and including occurrence of `</provider>`
+     */
+
+    private static final String LDAP_USER_GROUP_PROVIDER_CLASS = "org.apache.nifi.ldap.tenants.LdapUserGroupProvider"
+    private static final String LDAP_USER_GROUP_PROVIDER_REGEX =
+            /(?s)<userGroupProvider>(?:(?!<userGroupProvider>).)*?<class>\s*org\.apache\.nifi\.ldap\.tenants\.LdapUserGroupProvider.*?<\/userGroupProvider>/
+    /* Explanation of LDAP_USER_GROUP_PROVIDER_REGEX:
+     *   (?s)                             -> single-line mode (i.e., `.` in regex matches newlines)
+     *   <userGroupProvider>              -> find occurrence of `<userGroupProvider>` literally (case-sensitive)
+     *   (?: ... )                        -> group but do not capture submatch
+     *   (?! ... )                        -> negative lookahead
+     *   (?:(?!<userGroupProvider>).)*?   -> find everything until a new `<userGroupProvider>` starts. This is for not selecting multiple userGroupProviders in one match
+     *   <class>                          -> find occurrence of `<class>` literally (case-sensitive)
+     *   \s*                              -> find any whitespace
+     *   org\.apache\.nifi\.ldap\.tenants\.LdapUserGroupProvider
+     *                                    -> find occurrence of `org.apache.nifi.ldap.tenants.LdapUserGroupProvider` literally (case-sensitive)
+     *   .*?</userGroupProvider>          -> find everything as needed up until and including occurrence of '</userGroupProvider>'
+     */
+
     private static final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
     private static final String WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX = /enc\{[a-fA-F0-9]+?\}/
 
     private static final String DEFAULT_PROVIDER = BouncyCastleProvider.PROVIDER_NAME
     private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+    private static final int AMBARI_COMPATIBLE_SCRYPT_HASH_LENGTH = 256
+
+    private static final Map<String, String> PROPERTY_KEY_MAP = [
+            "nifi.security.keystore": "keystore",
+            "nifi.security.keystoreType": "keystoreType",
+            "nifi.security.keystorePasswd": "keystorePasswd",
+            "nifi.security.keyPasswd": "keyPasswd",
+            "nifi.security.truststore": "truststore",
+            "nifi.security.truststoreType": "truststoreType",
+            "nifi.security.truststorePasswd": "truststorePasswd",
+    ]
 
     private static String buildHeader(String description = DEFAULT_DESCRIPTION) {
         "${SEP}${description}${SEP * 2}"
@@ -154,52 +224,72 @@ class ConfigEncryptionTool {
     private final String header
 
 
-    public ConfigEncryptionTool() {
+    ConfigEncryptionTool() {
         this(DEFAULT_DESCRIPTION)
     }
 
-    public ConfigEncryptionTool(String description) {
+    ConfigEncryptionTool(String description) {
         this.header = buildHeader(description)
-        this.options = new Options()
-        options.addOption("h", HELP_ARG, false, "Prints this usage message")
-        options.addOption("v", VERBOSE_ARG, false, "Sets verbose mode (default false)")
-        options.addOption("n", NIFI_PROPERTIES_ARG, true, "The nifi.properties file containing unprotected config values (will be overwritten)")
-        options.addOption("l", LOGIN_IDENTITY_PROVIDERS_ARG, true, "The login-identity-providers.xml file containing unprotected config values (will be overwritten)")
-        options.addOption("f", FLOW_XML_ARG, true, "The flow.xml.gz file currently protected with old password (will be overwritten)")
-        options.addOption("b", BOOTSTRAP_CONF_ARG, true, "The bootstrap.conf file to persist master key")
-        options.addOption("o", OUTPUT_NIFI_PROPERTIES_ARG, true, "The destination nifi.properties file containing protected config values (will not modify input nifi.properties)")
-        options.addOption("i", OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG, true, "The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)")
-        options.addOption("g", OUTPUT_FLOW_XML_ARG, true, "The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)")
-        options.addOption("k", KEY_ARG, true, "The raw hexadecimal key to use to encrypt the sensitive properties")
-        options.addOption("e", KEY_MIGRATION_ARG, true, "The old raw hexadecimal key to use during key migration")
-        options.addOption("p", PASSWORD_ARG, true, "The password from which to derive the key to use to encrypt the sensitive properties")
-        options.addOption("w", PASSWORD_MIGRATION_ARG, true, "The old password from which to derive the key during migration")
-        options.addOption("r", USE_KEY_ARG, false, "If provided, the secure console will prompt for the raw key value in hexadecimal form")
-        options.addOption("m", MIGRATION_ARG, false, "If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key")
-        options.addOption("x", DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG, false, "If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified")
-        options.addOption("s", PROPS_KEY_ARG, true, "The password or key to use to encrypt the sensitive processor properties in flow.xml.gz")
-        options.addOption("A", NEW_FLOW_ALGORITHM_ARG, true, "The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz")
-        options.addOption("P", NEW_FLOW_PROVIDER_ARG, true, "The security provider to use to encrypt the sensitive processor properties in flow.xml.gz")
+        this.options = getCliOptions()
     }
 
-    /**
-     * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
-     *
-     * @param errorMessage the optional error message
-     */
-    public void printUsage(String errorMessage) {
+    static Options buildOptions() {
+        Options options = new Options()
+        options.addOption(Option.builder("h").longOpt(HELP_ARG).hasArg(false).desc("Show usage information (this message)").build())
+        options.addOption(Option.builder("v").longOpt(VERBOSE_ARG).hasArg(false).desc("Sets verbose mode (default false)").build())
+        options.addOption(Option.builder("n").longOpt(NIFI_PROPERTIES_ARG).hasArg(true).argName("file").desc("The nifi.properties file containing unprotected config values (will be overwritten unless -o is specified)").build())
+        options.addOption(Option.builder("o").longOpt(OUTPUT_NIFI_PROPERTIES_ARG).hasArg(true).argName("file").desc("The destination nifi.properties file containing protected config values (will not modify input nifi.properties)").build())
+        options.addOption(Option.builder("l").longOpt(LOGIN_IDENTITY_PROVIDERS_ARG).hasArg(true).argName("file").desc("The login-identity-providers.xml file containing unprotected config values (will be overwritten unless -i is specified)").build())
+        options.addOption(Option.builder("i").longOpt(OUTPUT_LOGIN_IDENTITY_PROVIDERS_ARG).hasArg(true).argName("file").desc("The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)").build())
+        options.addOption(Option.builder("a").longOpt(AUTHORIZERS_ARG).hasArg(true).argName("file").desc("The authorizers.xml file containing unprotected config values (will be overwritten unless -u is specified)").build())
+        options.addOption(Option.builder("u").longOpt(OUTPUT_AUTHORIZERS_ARG).hasArg(true).argName("file").desc("The destination authorizers.xml file containing protected config values (will not modify input authorizers.xml)").build())
+        options.addOption(Option.builder("f").longOpt(FLOW_XML_ARG).hasArg(true).argName("file").desc("The flow.xml.gz file currently protected with old password (will be overwritten unless -g is specified)").build())
+        options.addOption(Option.builder("g").longOpt(OUTPUT_FLOW_XML_ARG).hasArg(true).argName("file").desc("The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)").build())
+        options.addOption(Option.builder("b").longOpt(BOOTSTRAP_CONF_ARG).hasArg(true).argName("file").desc("The bootstrap.conf file to persist master key").build())
+        options.addOption(Option.builder("k").longOpt(KEY_ARG).hasArg(true).argName("keyhex").desc("The raw hexadecimal key to use to encrypt the sensitive properties").build())
+        options.addOption(Option.builder("e").longOpt(KEY_MIGRATION_ARG).hasArg(true).argName("keyhex").desc("The old raw hexadecimal key to use during key migration").build())
+        options.addOption(Option.builder("p").longOpt(PASSWORD_ARG).hasArg(true).argName("password").desc("The password from which to derive the key to use to encrypt the sensitive properties").build())
+        options.addOption(Option.builder("w").longOpt(PASSWORD_MIGRATION_ARG).hasArg(true).argName("password").desc("The old password from which to derive the key during migration").build())
+        options.addOption(Option.builder("y").longOpt(HASHED_KEY_MIGRATION_ARG).hasArg(true).argName("hashed_keyhex").desc("The old securely-hashed hexadecimal key to authenticate during key migration (see NiFi Admin Guide)").build())
+        options.addOption(Option.builder("z").longOpt(HASHED_PASSWORD_MIGRATION_ARG).hasArg(true).argName("hashed_password").desc("The old securely-hashed password to authenticate during key migration (see NiFi Admin Guide)").build())
+        options.addOption(Option.builder("r").longOpt(USE_KEY_ARG).hasArg(false).desc("If provided, the secure console will prompt for the raw key value in hexadecimal form").build())
+        options.addOption(Option.builder("m").longOpt(MIGRATION_ARG).hasArg(false).desc("If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key").build())
+        options.addOption(Option.builder("x").longOpt(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG).hasArg(false).desc("If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified").build())
+        options.addOption(Option.builder("s").longOpt(PROPS_KEY_ARG).hasArg(true).argName("password|keyhex").desc("The password or key to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+        options.addOption(Option.builder("A").longOpt(NEW_FLOW_ALGORITHM_ARG).hasArg(true).argName("algorithm").desc("The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+        options.addOption(Option.builder("P").longOpt(NEW_FLOW_PROVIDER_ARG).hasArg(true).argName("algorithm").desc("The security provider to use to encrypt the sensitive processor properties in flow.xml.gz").build())
+        options.addOption(Option.builder().longOpt(CURRENT_HASH_PARAMS_ARG).hasArg(false).desc("Returns the current salt and cost params used to store the hashed key/password").build())
+        options.addOption(Option.builder("c").longOpt(TRANSLATE_CLI_ARG).hasArg(false).desc("Translates the nifi.properties file to a format suitable for the NiFi CLI tool").build())
+        options
+    }
+
+    static Options getCliOptions() {
+        if (!staticOptions) {
+            staticOptions = buildOptions()
+        }
+        return staticOptions
+    }
+
+/**
+ * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
+ *
+ * @param errorMessage the optional error message
+ */
+    void printUsage(String errorMessage) {
         if (errorMessage) {
             System.out.println(errorMessage)
             System.out.println()
         }
         HelpFormatter helpFormatter = new HelpFormatter()
         helpFormatter.setWidth(160)
+        helpFormatter.setOptionComparator(null)
+        // preserve manual ordering of options when printing instead of alphabetical
         helpFormatter.printHelp(ConfigEncryptionTool.class.getCanonicalName(), header, options, FOOTER, true)
     }
 
     protected void printUsageAndThrow(String errorMessage, ExitCode exitCode) throws CommandLineParseException {
-        printUsage(errorMessage);
-        throw new CommandLineParseException(errorMessage, exitCode);
+        printUsage(errorMessage)
+        throw new CommandLineParseException(errorMessage, exitCode)
     }
 
     // TODO: Refactor component steps into methods
@@ -214,12 +304,60 @@ class ConfigEncryptionTool {
 
             isVerbose = commandLine.hasOption(VERBOSE_ARG)
 
+            // If this flag is present, ensure no other options are present and then fail/return
+            if (commandLine.hasOption(CURRENT_HASH_PARAMS_ARG)) {
+                queryingCurrentHashParams = true
+                if (commandLineHasActionFlags(commandLine, [CURRENT_HASH_PARAMS_ARG])) {
+                    printUsageAndThrow("When '--${CURRENT_HASH_PARAMS_ARG}' is specified, only '-h'/'--${HELP_ARG}' and '-v'/'--${VERBOSE_ARG}' are allowed", ExitCode.INVALID_ARGS)
+                } else {
+                    // Otherwise return (avoid unnecessary parsing)
+                    return commandLine
+                }
+            }
+
+            // If this flag is present, ensure no other options are present and then fail/return
+            if (commandLine.hasOption(TRANSLATE_CLI_ARG)) {
+                translatingCli = true
+                if (commandLineHasActionFlags(commandLine, [TRANSLATE_CLI_ARG, BOOTSTRAP_CONF_ARG, NIFI_PROPERTIES_ARG])) {
+                    printUsageAndThrow("When '-c'/'--${TRANSLATE_CLI_ARG}' is specified, only '-h', '-v', and '-n'/'-b' with the relevant files are allowed", ExitCode.INVALID_ARGS)
+                }
+            }
+
             bootstrapConfPath = commandLine.getOptionValue(BOOTSTRAP_CONF_ARG)
+
+            // This needs to occur even if the nifi.properties won't be encrypted
+            if (commandLine.hasOption(NIFI_PROPERTIES_ARG)) {
+                boolean ignoreFlagPresent = commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)
+                if (isVerbose && !ignoreFlagPresent) {
+                    logger.info("Handling encryption of nifi.properties")
+                }
+                niFiPropertiesPath = commandLine.getOptionValue(NIFI_PROPERTIES_ARG)
+                outputNiFiPropertiesPath = commandLine.getOptionValue(OUTPUT_NIFI_PROPERTIES_ARG, niFiPropertiesPath)
+                handlingNiFiProperties = !ignoreFlagPresent
+
+                if (niFiPropertiesPath == outputNiFiPropertiesPath) {
+                    // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
+                    logger.warn("The source nifi.properties and destination nifi.properties are identical [${outputNiFiPropertiesPath}] so the original will be overwritten")
+                }
+            }
+
+            // If translating nifi.properties to CLI format, none of the remaining parsing is necessary
+            if (translatingCli) {
+
+                // If the nifi.properties isn't present, throw an exception
+                // If the nifi.properties is encrypted and the bootstrap.conf isn't present, we will throw an error later when the encryption is detected
+                if (!niFiPropertiesPath) {
+                    printUsageAndThrow("When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)", ExitCode.INVALID_ARGS)
+                }
+
+                return commandLine
+            }
 
             // If this flag is provided, the nifi.properties is necessary to read/write the flow encryption key, but the encryption process will not actually be applied to nifi.properties / login-identity-providers.xml
             if (commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)) {
                 handlingNiFiProperties = false
                 handlingLoginIdentityProviders = false
+                handlingAuthorizers = false
                 ignorePropertiesFiles = true
             } else {
                 if (commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG)) {
@@ -235,21 +373,18 @@ class ConfigEncryptionTool {
                         logger.warn("The source login-identity-providers.xml and destination login-identity-providers.xml are identical [${outputLoginIdentityProvidersPath}] so the original will be overwritten")
                     }
                 }
-            }
+                if (commandLine.hasOption(AUTHORIZERS_ARG)) {
+                    if (isVerbose) {
+                        logger.info("Handling encryption of authorizers.xml")
+                    }
+                    authorizersPath = commandLine.getOptionValue(AUTHORIZERS_ARG)
+                    outputAuthorizersPath = commandLine.getOptionValue(OUTPUT_AUTHORIZERS_ARG, authorizersPath)
+                    handlingAuthorizers = true
 
-            // This needs to occur even if the nifi.properties won't be encrypted
-            if (commandLine.hasOption(NIFI_PROPERTIES_ARG)) {
-                boolean ignoreFlagPresent = commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)
-                if (isVerbose && !ignoreFlagPresent) {
-                    logger.info("Handling encryption of nifi.properties")
-                }
-                niFiPropertiesPath = commandLine.getOptionValue(NIFI_PROPERTIES_ARG)
-                outputNiFiPropertiesPath = commandLine.getOptionValue(OUTPUT_NIFI_PROPERTIES_ARG, niFiPropertiesPath)
-                handlingNiFiProperties = !ignoreFlagPresent
-
-                if (niFiPropertiesPath == outputNiFiPropertiesPath) {
-                    // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
-                    logger.warn("The source nifi.properties and destination nifi.properties are identical [${outputNiFiPropertiesPath}] so the original will be overwritten")
+                    if (authorizersPath == outputAuthorizersPath) {
+                        // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
+                        logger.warn("The source authorizers.xml and destination authorizers.xml are identical [${outputAuthorizersPath}] so the original will be overwritten")
+                    }
                 }
             }
 
@@ -275,23 +410,57 @@ class ConfigEncryptionTool {
             }
 
             if (isVerbose) {
-                logger.info("       bootstrap.conf:               \t${bootstrapConfPath}")
-                logger.info("(src)  nifi.properties:              \t${niFiPropertiesPath}")
-                logger.info("(dest) nifi.properties:              \t${outputNiFiPropertiesPath}")
-                logger.info("(src)  login-identity-providers.xml: \t${loginIdentityProvidersPath}")
-                logger.info("(dest) login-identity-providers.xml: \t${outputLoginIdentityProvidersPath}")
-                logger.info("(src)  flow.xml.gz: \t\t\t\t\t${flowXmlPath}")
-                logger.info("(dest) flow.xml.gz: \t\t\t\t\t${outputFlowXmlPath}")
+                logger.info("       bootstrap.conf:               ${bootstrapConfPath}")
+                logger.info("(src)  nifi.properties:              ${niFiPropertiesPath}")
+                logger.info("(dest) nifi.properties:              ${outputNiFiPropertiesPath}")
+                logger.info("(src)  login-identity-providers.xml: ${loginIdentityProvidersPath}")
+                logger.info("(dest) login-identity-providers.xml: ${outputLoginIdentityProvidersPath}")
+                logger.info("(src)  authorizers.xml:              ${authorizersPath}")
+                logger.info("(dest) authorizers.xml:              ${outputAuthorizersPath}")
+                logger.info("(src)  flow.xml.gz:                  ${flowXmlPath}")
+                logger.info("(dest) flow.xml.gz:                  ${outputFlowXmlPath}")
             }
 
-            if (!commandLine.hasOption(NIFI_PROPERTIES_ARG) && !commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG) && !commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)) {
-                printUsageAndThrow("One or both of '-n'/'--${NIFI_PROPERTIES_ARG}' or '-l'/'--${LOGIN_IDENTITY_PROVIDERS_ARG}' must be provided unless '-x'/--'${DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified", ExitCode.INVALID_ARGS)
+            if (!commandLine.hasOption(NIFI_PROPERTIES_ARG)
+                    && !commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG)
+                    && !commandLine.hasOption(AUTHORIZERS_ARG)
+                    && !commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)
+            ) {
+                printUsageAndThrow("One or more of [" +
+                        "'-n'/'--${NIFI_PROPERTIES_ARG}', " +
+                        "'-l'/'--${LOGIN_IDENTITY_PROVIDERS_ARG}', " +
+                        "'-a'/'--${AUTHORIZERS_ARG}'" +
+                        "] must be provided unless " +
+                        "'-x'/--'${DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified", ExitCode.INVALID_ARGS)
             }
 
             if (commandLine.hasOption(MIGRATION_ARG)) {
                 migration = true
                 if (isVerbose) {
                     logger.info("Key migration mode activated")
+                }
+                if (isSecureHashArgumentPresent(commandLine)) {
+                    logger.info("Secure hash argument present")
+
+                    // Check for old key/password and throw error
+                    if (commandLine.hasOption(KEY_MIGRATION_ARG) || commandLine.hasOption(PASSWORD_MIGRATION_ARG)) {
+                        printUsageAndThrow("If the '-w'/'--${PASSWORD_MIGRATION_ARG}' or '-e'/'--${KEY_MIGRATION_ARG}' arguments are present, '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG}' and '-y'/'--${HASHED_KEY_MIGRATION_ARG}' cannot be used", ExitCode.INVALID_ARGS)
+                    }
+
+                    // Check for both key and password and throw error
+                    if (commandLine.hasOption(HASHED_KEY_MIGRATION_ARG) && commandLine.hasOption(HASHED_PASSWORD_MIGRATION_ARG)) {
+                        printUsageAndThrow("Only one of '-z'/'--${HASHED_PASSWORD_MIGRATION_ARG}' and '-y'/'--${HASHED_KEY_MIGRATION_ARG}' can be used together", ExitCode.INVALID_ARGS)
+                    }
+
+                    // Extract flags to field
+                    if (commandLine.hasOption(HASHED_KEY_MIGRATION_ARG)) {
+                        secureHashKey = commandLine.getOptionValue(HASHED_KEY_MIGRATION_ARG)
+                    } else {
+                        secureHashPassword = commandLine.getOptionValue(HASHED_PASSWORD_MIGRATION_ARG)
+                    }
+
+                    // Set boolean flag to true
+                    usingSecureHash = true
                 }
                 if (commandLine.hasOption(PASSWORD_MIGRATION_ARG)) {
                     usingPasswordMigration = true
@@ -302,7 +471,8 @@ class ConfigEncryptionTool {
                     }
                 } else {
                     migrationKeyHex = commandLine.getOptionValue(KEY_MIGRATION_ARG)
-                    usingPasswordMigration = !migrationKeyHex
+                    // Use the "migration password" value if the migration key hex is absent and the secure hash password/key hex is absent (if either are present, the migration password is not)
+                    usingPasswordMigration = !migrationKeyHex && !usingSecureHash
                 }
             } else {
                 if (commandLine.hasOption(PASSWORD_MIGRATION_ARG) || commandLine.hasOption(KEY_MIGRATION_ARG)) {
@@ -343,14 +513,49 @@ class ConfigEncryptionTool {
     }
 
     /**
-     * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
+     * Returns true if the {@code commandLine} object has flags other than the {@code help} or {@code verbose} flags or any of the acceptable args provided in an optional parameter. This is used to detect incompatible arguments for specific modes.
      *
-     * @param device
-     * @param keyHex
-     * @param password
-     * @param usingPassword
-     * @return
+     * @param commandLine the commandLine object
+     * @param acceptableOptionStrings an optional list of acceptable options that can be present without returning true
+     * @return true if incompatible flags are present
      */
+    boolean commandLineHasActionFlags(CommandLine commandLine, List<String> acceptableOptionStrings = []) {
+        // Resolve the list of Option objects corresponding to "help" and "verbose"
+        final List<Option> ALWAYS_ACCEPTABLE_OPTIONS = resolveOptions([HELP_ARG, VERBOSE_ARG])
+
+        // Resolve the list of Option objects corresponding to the provided "additional acceptable options"
+        List<Option> acceptableOptions = resolveOptions(acceptableOptionStrings)
+
+        // Determine the options submitted to the command line that are not acceptable
+        List<Option> invalidOptions = commandLine.options - (acceptableOptions + ALWAYS_ACCEPTABLE_OPTIONS)
+        if (invalidOptions) {
+            if (isVerbose) {
+                logger.error("In this mode, the following options are invalid: ${invalidOptions}")
+            }
+            return true
+        } else {
+            return false
+        }
+    }
+
+    static List<Option> resolveOptions(List<String> strings) {
+        strings?.collect { String opt ->
+            getCliOptions().options.find { it.opt == opt || it.longOpt == opt }
+        }
+    }
+
+    static boolean isSecureHashArgumentPresent(CommandLine commandLine) {
+        commandLine.hasOption(HASHED_PASSWORD_MIGRATION_ARG) || commandLine.hasOption(HASHED_KEY_MIGRATION_ARG)
+    }
+/**
+ * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
+ *
+ * @param device
+ * @param keyHex
+ * @param password
+ * @param usingPassword
+ * @return
+ */
     private String getKeyInternal(TextDevice device = TextDevices.defaultTextDevice(), String keyHex, String password, boolean usingPassword) {
         if (usingPassword) {
             if (!password) {
@@ -378,10 +583,89 @@ class ConfigEncryptionTool {
     }
 
     private String getMigrationKey() {
-        getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
+        if (usingSecureHash) {
+            // The boolean flag for "key" means the expression should evaluate to true when key is present and password is not
+            String knownHashValue = readSecureHashValueFromFile(secureHashKey && !secureHashPassword)
+            if (checkHashedValue(knownHashValue, getProvidedSecureHashValue())) {
+                // Retrieve the key from bootstrap.conf because the caller only has the hashed version available
+                return readMasterKeyFromBootstrap()
+            } else {
+                throw new InvalidKeyException("The provided hashed key/password is not correct")
+            }
+        } else {
+            return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
+        }
     }
 
-    private String getFlowPassword(TextDevice textDevice = TextDevices.defaultTextDevice()) {
+    private String getProvidedSecureHashValue() {
+        if (usingSecureHash) {
+            return secureHashPassword ?: secureHashKey
+        } else {
+            return ""
+        }
+    }
+
+    private static String readSecureHashValueFromFile(boolean readKey = true) {
+        File secureHashFile = new File(secureHashPath)
+        if (!secureHashFile.canRead()) {
+            throw new IOException("Cannot read from secure hash file")
+        }
+        List<String> lines = secureHashFile.readLines()
+        String linePrefix = readKey ? "secureHashKey" : "secureHashPassword"
+        String relevantLine = lines.find { it.startsWith(linePrefix) }
+        String hashValue = relevantLine?.split("=")?.last()
+        if (!hashValue) {
+            throw new InvalidKeyException("The secure hash of the ${readKey ? "key" : "password"} could not be read from the stored file")
+        } else {
+            return hashValue
+        }
+    }
+
+    /**
+     * Returns true if the hash values are equivalent. Currently performs a *constant-time equality* check on the two values. As the scrypt format does not allow for reversing, two "equivalent" but non-identical hash values cannot be compared for equality.
+     *
+     * Example (byte equivalent):
+     *
+     * KHV: {@code $s0$40801$AAAAAAAAAAAAAAAAAAAAAA$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM}
+     * UHV: {@code $s0$40801$AAAAAAAAAAAAAAAAAAAAAA$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM}
+     * Result: EQUAL
+     *
+     * Example (semantically equivalent):
+     *
+     * KHV: {@code $s0$40801$AAAAAAAAAAAAAAAAAAAAAA$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM}
+     * UHV: {@code $s0$40801$ABCDEFGHIJKLMNOPQRSTUQ$hxU5g0eH6sRkBqcsiApI8jxvKRT+2QMCenV0GToiMQ8}
+     * Result: NOT EQUAL
+     *
+     * Even though both hash values are the result of the input "password", by design the hash values cannot be reversed to a common origin to determine their equality. If the raw input was known, both hashes could be determined to be valid, thus asserting the correctness of the raw input and the functional equivalence of the hash values.
+     *
+     * @param knownHashValue
+     * @param unknownHashValue
+     * @return true if the hash values are present and equal
+     */
+    static boolean checkHashedValue(String knownHashValue, String unknownHashValue) {
+        if (!knownHashValue || !unknownHashValue) {
+            return false
+        }
+
+        // The values should be in scrypt format
+        if (!verifyHashFormat(knownHashValue) || !verifyHashFormat(unknownHashValue)) {
+            return false
+        }
+
+        return MessageDigest.isEqual(knownHashValue.getBytes(StandardCharsets.UTF_8), unknownHashValue.getBytes(StandardCharsets.UTF_8))
+    }
+
+    /**
+     * Returns true if the provided hash is in the valid format for NiFi secured hash storage. NiFi enforces additional constraints over the minimum Scrypt requirements (16+ byte [22+ B64] salt, 32 byte [43 B64] hash).
+     *
+     * @param hash the hash to verify
+     * @return true if the format is acceptable
+     */
+    static boolean verifyHashFormat(String hash) {
+        hash =~ NIFI_SCRYPT_PATTERN
+    }
+
+    private static String getFlowPassword(TextDevice textDevice = TextDevices.defaultTextDevice()) {
         readPasswordFromConsole(textDevice)
     }
 
@@ -393,6 +677,10 @@ class ConfigEncryptionTool {
     private static String readPasswordFromConsole(TextDevice textDevice) {
         textDevice.printf("Enter the password: ")
         new String(textDevice.readPassword())
+    }
+
+    private String readMasterKeyFromBootstrap() {
+        NiFiPropertiesLoader.extractKeyFromBootstrapFile(bootstrapConfPath)
     }
 
     /**
@@ -416,7 +704,7 @@ class ConfigEncryptionTool {
      *
      * @return 128 , [192, 256]
      */
-    public static List<Integer> getValidKeyLengths() {
+    static List<Integer> getValidKeyLengths() {
         Cipher.getMaxAllowedKeyLength("AES") > 128 ? [128, 192, 256] : [128]
     }
 
@@ -457,19 +745,47 @@ class ConfigEncryptionTool {
         File loginIdentityProvidersFile
         if (loginIdentityProvidersPath && (loginIdentityProvidersFile = new File(loginIdentityProvidersPath)).exists()) {
             try {
-                String xmlContent = loginIdentityProvidersFile.text
                 List<String> lines = loginIdentityProvidersFile.readLines()
-                logger.info("Loaded LoginIdentityProviders content (${lines.size()} lines)")
+                String xmlContent = lines.join("\n")
+                logger.info("Loaded login identity providers content (${lines.size()} lines)")
                 String decryptedXmlContent = decryptLoginIdentityProviders(xmlContent, existingKeyHex)
                 return decryptedXmlContent
             } catch (RuntimeException e) {
                 if (isVerbose) {
                     logger.error("Encountered an error", e)
                 }
-                throw new IOException("Cannot load LoginIdentityProviders from [${loginIdentityProvidersPath}]", e)
+                throw new IOException("Cannot load login identity providers from [${loginIdentityProvidersPath}]", e)
             }
         } else {
-            printUsageAndThrow("Cannot load LoginIdentityProviders from [${loginIdentityProvidersPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+            printUsageAndThrow("Cannot load login identity providers from [${loginIdentityProvidersPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+        }
+    }
+
+    /**
+     * Loads the authorizers configuration from the provided file path.
+     *
+     * @param existingKeyHex the key used to encrypt the configs (defaults to the current key)
+     *
+     * @return the file content
+     * @throw IOException if the authorizers.xml file cannot be read
+     */
+    private String loadAuthorizers(String existingKeyHex = keyHex) throws IOException {
+        File authorizersFile
+        if (authorizersPath && (authorizersFile = new File(authorizersPath)).exists()) {
+            try {
+                List<String> lines = authorizersFile.readLines()
+                String xmlContent = lines.join("\n")
+                logger.info("Loaded authorizers content (${lines.size()} lines)")
+                String decryptedXmlContent = decryptAuthorizers(xmlContent, existingKeyHex)
+                return decryptedXmlContent
+            } catch (RuntimeException e) {
+                if (isVerbose) {
+                    logger.error("Encountered an error", e)
+                }
+                throw new IOException("Cannot load authorizers from [${authorizersPath}]", e)
+            }
+        } else {
+            printUsageAndThrow("Cannot load authorizers from [${authorizersPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)
         }
     }
 
@@ -480,8 +796,7 @@ class ConfigEncryptionTool {
      * @throw IOException if the flow.xml.gz file cannot be read
      */
     private String loadFlowXml() throws IOException {
-        File flowXmlFile
-        if (flowXmlPath && (flowXmlFile = new File(flowXmlPath)).exists()) {
+        if (flowXmlPath && (new File(flowXmlPath)).exists()) {
             try {
                 new FileInputStream(flowXmlPath).withCloseable {
                     new GZIPInputStream(it).withCloseable {
@@ -730,6 +1045,45 @@ class ConfigEncryptionTool {
         }
     }
 
+    String decryptAuthorizers(String encryptedXml, String existingKeyHex = keyHex) {
+        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
+
+        try {
+            def doc = new XmlSlurper().parseText(encryptedXml)
+            // Find the provider element by class even if it has been renamed
+            def passwords = doc.userGroupProvider.find {
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
+            }.property.findAll {
+                it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+            }
+
+            if (passwords.isEmpty()) {
+                if (isVerbose) {
+                    logger.info("No encrypted password property elements found in authorizers.xml")
+                }
+                return encryptedXml
+            }
+
+            passwords.each { password ->
+                // TODO: Capture the raw password, and only display it in the log if the decrypted value is different (to avoid possibly printing an incorrectly provided plaintext password)
+                if (isVerbose) {
+                    logger.info("Attempting to decrypt ${password.text()}")
+                }
+                String decryptedValue = sensitivePropertyProvider.unprotect(password.text().trim())
+                password.replaceNode {
+                    property(name: password.@name, encryption: "none", decryptedValue)
+                }
+            }
+
+            // Does not preserve whitespace formatting or comments
+            String updatedXml = XmlUtil.serialize(doc)
+            logger.info("Updated XML content: ${updatedXml}")
+            updatedXml
+        } catch (Exception e) {
+            printUsageAndThrow("Cannot decrypt authorizers XML content", ExitCode.SERVICE_ERROR)
+        }
+    }
+
     String encryptLoginIdentityProviders(String plainXml, String newKeyHex = keyHex) {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
 
@@ -769,6 +1123,48 @@ class ConfigEncryptionTool {
                 logger.error("Encountered exception", e)
             }
             printUsageAndThrow("Cannot encrypt login identity providers XML content", ExitCode.SERVICE_ERROR)
+        }
+    }
+
+    String encryptAuthorizers(String plainXml, String newKeyHex = keyHex) {
+        AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
+
+        // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
+        try {
+            def doc = new XmlSlurper().parseText(plainXml)
+            // Find the provider element by class even if it has been renamed
+            def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
+                    .property.findAll {
+                // Only operate on un-encrypted passwords
+                it.@name =~ "Password" && (it.@encryption == "none" || it.@encryption == "") && it.text()
+            }
+
+            if (passwords.isEmpty()) {
+                if (isVerbose) {
+                    logger.info("No unencrypted password property elements found in authorizers.xml")
+                }
+                return plainXml
+            }
+
+            passwords.each { password ->
+                if (isVerbose) {
+                    logger.info("Attempting to encrypt ${password.name()}")
+                }
+                String encryptedValue = sensitivePropertyProvider.protect(password.text().trim())
+                password.replaceNode {
+                    property(name: password.@name, encryption: sensitivePropertyProvider.identifierKey, encryptedValue)
+                }
+            }
+
+            // Does not preserve whitespace formatting or comments
+            String updatedXml = XmlUtil.serialize(doc)
+            logger.info("Updated XML content: ${updatedXml}")
+            updatedXml
+        } catch (Exception e) {
+            if (isVerbose) {
+                logger.error("Encountered exception", e)
+            }
+            printUsageAndThrow("Cannot encrypt authorizers XML content", ExitCode.SERVICE_ERROR)
         }
     }
 
@@ -907,6 +1303,8 @@ class ConfigEncryptionTool {
                 if (loginIdentityProvidersFile.exists() && loginIdentityProvidersFile.canRead()) {
                     // Instead of just writing the XML content to a file, this method attempts to maintain the structure of the original file and preserves comments
                     updatedXmlContent = serializeLoginIdentityProvidersAndPreserveFormat(loginIdentityProviders, loginIdentityProvidersFile).join("\n")
+                } else {
+                    updatedXmlContent = loginIdentityProviders
                 }
 
                 // Write the updated values back to the file
@@ -918,6 +1316,41 @@ class ConfigEncryptionTool {
             }
         } else {
             throw new IOException("The login-identity-providers.xml file at ${outputLoginIdentityProvidersPath} must be writable by the user running this tool")
+        }
+    }
+
+    /**
+     * Writes the contents of the authorizers configuration file with encrypted values to the output {@code authorizers.xml} file.
+     *
+     * @throw IOException if there is a problem reading or writing the authorizers.xml file
+     */
+    private void writeAuthorizers() throws IOException {
+        if (!outputAuthorizersPath) {
+            throw new IllegalArgumentException("Cannot write encrypted properties to empty authorizers.xml path")
+        }
+
+        File outputAuthorizersFile = new File(outputAuthorizersPath)
+
+        if (isSafeToWrite(outputAuthorizersFile)) {
+            try {
+                String updatedXmlContent
+                File authorizersFile = new File(authorizersPath)
+                if (authorizersFile.exists() && authorizersFile.canRead()) {
+                    // Instead of just writing the XML content to a file, this method attempts to maintain the structure of the original file and preserves comments
+                    updatedXmlContent = serializeAuthorizersAndPreserveFormat(authorizers, authorizersFile).join("\n")
+                } else {
+                    updatedXmlContent = authorizers
+                }
+
+                // Write the updated values back to the file
+                outputAuthorizersFile.text = updatedXmlContent
+            } catch (IOException e) {
+                def msg = "Encountered an exception updating the authorizers.xml file with the encrypted values"
+                logger.error(msg, e)
+                throw e
+            }
+        } else {
+            throw new IOException("The authorizers.xml file at ${outputAuthorizersPath} must be writable by the user running this tool")
         }
     }
 
@@ -953,6 +1386,41 @@ class ConfigEncryptionTool {
             }
         } else {
             throw new IOException("The nifi.properties file at ${outputNiFiPropertiesPath} must be writable by the user running this tool")
+        }
+    }
+
+    /**
+     * Writes the contents of the secure hash configuration file (hashed value of current migration password/key hex) to the output {@code secure_hash.key} file.
+     *
+     * @throw IOException if there is a problem reading or writing the secure_hash.key file
+     */
+    private void writeSecureHash() throws IOException {
+        if (!secureHashPath) {
+            throw new IllegalArgumentException("Cannot write hashed password/key to empty secure_hash.key path")
+        }
+
+        File secureHashFile = new File(secureHashPath)
+
+        if (isSafeToWrite(secureHashFile)) {
+            try {
+                List<String> secureHashFileLines = []
+                // Calculate the secure hash of the current key (and password if provided) using current default values for cost params and random salt
+                String secureHashKey = secureHashKey(keyHex)
+                secureHashFileLines << "secureHashKey=${secureHashKey}"
+                if (password) {
+                    String secureHashPassword = secureHashPassword(password)
+                    secureHashFileLines << "secureHashPassword=${secureHashPassword}"
+                }
+
+                // Write the updated values back to the file
+                secureHashFile.text = secureHashFileLines.join("\n")
+            } catch (IOException e) {
+                def msg = "Encountered an exception updating the secure_hash.key file with the hashed value(s)"
+                logger.error(msg, e)
+                throw e
+            }
+        } else {
+            throw new IOException("The secure_hash.key file at ${secureHashPath} must be writable by the user running this tool")
         }
     }
 
@@ -1016,7 +1484,30 @@ class ConfigEncryptionTool {
                 throw new SAXException("No ldap-provider element found")
             }
         } catch (SAXException e) {
-            logger.error("No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out")
+            logger.error("No provider element with class {} found in XML content; " +
+                    "the file could be empty or the element may be missing or commented out", LDAP_PROVIDER_CLASS)
+            return fileContents.split("\n")
+        }
+    }
+
+    static List<String> serializeAuthorizersAndPreserveFormat(String xmlContent, File originalAuthorizersFile) {
+        // Find the provider element of the new XML in the file contents
+        String fileContents = originalAuthorizersFile.text
+        try {
+            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
+            if (provider) {
+                def serializedProvider = new XmlUtil().serialize(provider)
+                // Remove XML declaration from top
+                serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
+                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, serializedProvider)
+                return fileContents.split("\n")
+            } else {
+                throw new SAXException("No ldap-user-group-provider element found")
+            }
+        } catch (SAXException e) {
+            logger.error("No provider element with class {} found in XML content; " +
+                    "the file could be empty or the element may be missing or commented out", LDAP_USER_GROUP_PROVIDER_CLASS)
             return fileContents.split("\n")
         }
     }
@@ -1043,13 +1534,17 @@ class ConfigEncryptionTool {
         }
 
         // Generate a 128 bit salt
-        byte[] salt = generateScryptSalt()
+        byte[] salt = generateScryptSaltForKeyDerivation()
         int keyLengthInBytes = getValidKeyLengths().max() / 8
         byte[] derivedKeyBytes = SCrypt.generate(password.getBytes(StandardCharsets.UTF_8), salt, SCRYPT_N, SCRYPT_R, SCRYPT_P, keyLengthInBytes)
         Hex.encodeHexString(derivedKeyBytes).toUpperCase()
     }
 
-    private static byte[] generateScryptSalt() {
+    /**
+     * Returns a static "raw" salt (the 128 bits of random data used when generating the hash, not the "complete" {@code $s0$e0101$ABCDEFGHIJKLMNOPQRSTUV} salt format).
+     * @return the raw salt in byte[] form
+     */
+    private static byte[] generateScryptSaltForKeyDerivation() {
 //        byte[] salt = new byte[16]
 //        new SecureRandom().nextBytes(salt)
 //        salt
@@ -1058,6 +1553,32 @@ class ConfigEncryptionTool {
         compatibility concerns
         */
         "NIFI_SCRYPT_SALT".getBytes(StandardCharsets.UTF_8)
+    }
+
+    private static byte[] generateRandomSalt(int bits = 128) {
+        byte[] salt = new byte[bits / 8]
+        new SecureRandom().nextBytes(salt)
+        salt
+    }
+
+    /**
+     * Generates an scrypt salt using the provided parameters and encodes it in the proper format. If a value is not provided, the listed default will be used.
+     *
+     * @param rawSalt the raw 128 bit salt to use (default is to generate a random value)
+     * @param n the CPU/memory cost factor (default is {@value ConfigEncryptionTool#SCRYPT_N})
+     * @param r the blocksize factor (default is {@value ConfigEncryptionTool#SCRYPT_R})
+     * @param p the parallelization factor (default is {@value ConfigEncryptionTool#SCRYPT_P})
+     * @param version the salt version identifier (default is {@value ConfigEncryptionTool#CURRENT_SCRYPT_VERSION})
+     * @return the scrypt-formatted salt (e.g. {@code $s0$e0101$ABCDEFGHIJKLMNOPQRSTUV})
+     */
+    private
+    static String generateScryptSalt(byte[] rawSalt = generateRandomSalt(128), int n = SCRYPT_N, int r = SCRYPT_R, int p = SCRYPT_P, String version = CURRENT_SCRYPT_VERSION) {
+        String formattedSalt = Scrypt.formatSalt(rawSalt, n, r, p)
+        def versionString = "\$${version}\$"
+        if (!formattedSalt.startsWith(versionString)) {
+            formattedSalt = formattedSalt.replaceFirst(/$\w{2}$/, versionString)
+        }
+        return formattedSalt
     }
 
     private String getExistingFlowPassword() {
@@ -1082,12 +1603,79 @@ class ConfigEncryptionTool {
         }
     }
 
+    static String secureHashPassword(String password, String salt = generateScryptSalt()) {
+        // If empty, generate complete salt
+        if (!salt) {
+            salt = generateScryptSalt()
+        }
+
+        // The findAll() drops any empty elements
+        def saltComponents = salt.split('\\$').findAll()
+        if (saltComponents.size() < 3) {
+            throw new IllegalArgumentException("The provided salt was not in valid scrypt format")
+        }
+        if (saltComponents.first() != CURRENT_SCRYPT_VERSION) {
+            throw new IllegalArgumentException("Currently, only scrypt hashes with version ${CURRENT_SCRYPT_VERSION} are supported")
+        }
+
+        // Split the encoded params into N, R, P
+        List<Integer> params = Scrypt.parseParameters(saltComponents[1])
+
+        // Generate the hashed format
+        Scrypt.scrypt(password, Base64.decoder.decode(saltComponents[2]), params[0], params[1], params[2], AMBARI_COMPATIBLE_SCRYPT_HASH_LENGTH)
+    }
+
+    static String secureHashKey(String keyHex, String salt = generateScryptSalt()) {
+        // Lowercase the key hex, then call secureHashPassword() as the algorithm is the same
+        secureHashPassword(keyHex?.toLowerCase(), salt)
+    }
+
+
+    private String getCurrentHashParams() {
+        try {
+            int N
+            int r
+            int p
+            String base64Salt
+
+            try {
+                String secureHash = readSecureHashValueFromFile()
+
+                // The findAll() drops any empty elements
+                def hashComponents = secureHash.split('\\$').findAll()
+                if (hashComponents.size() < 3) {
+                    throw new IllegalArgumentException("The provided secure hash was not in valid scrypt format")
+                }
+                if (hashComponents.first() != CURRENT_SCRYPT_VERSION) {
+                    throw new IllegalArgumentException("Currently, only scrypt hashes with version ${CURRENT_SCRYPT_VERSION} are supported")
+                }
+
+                // Split the encoded params into N, R, P
+                List<Integer> params = Scrypt.parseParameters(hashComponents[1])
+                N = params[0]
+                r = params[1]
+                p = params[2]
+                base64Salt = hashComponents[2]
+            } catch (IOException | InvalidKeyException e) {
+                // These exceptions occur if the file doesn't exist, can't be read, or doesn't have secure hashes populated
+                N = SCRYPT_N
+                r = SCRYPT_R
+                p = SCRYPT_P
+                base64Salt = CipherUtility.encodeBase64NoPadding(generateRandomSalt())
+            }
+            return new JsonBuilder([N: N, r: r, p: p, salt: base64Salt]).toString()
+        } catch (Exception e) {
+            logger.error("Encountered an exception getting current hash parameters: ${e.getLocalizedMessage()}")
+            printUsageAndThrow(e.getLocalizedMessage(), ExitCode.ERROR_READING_CONFIG)
+        }
+    }
+
     /**
      * Runs main tool logic (parsing arguments, reading files, protecting properties, and writing key and properties out to destination files).
      *
      * @param args the command-line arguments
      */
-    public static void main(String[] args) {
+    static void main(String[] args) {
         Security.addProvider(new BouncyCastleProvider())
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
@@ -1095,6 +1683,32 @@ class ConfigEncryptionTool {
         try {
             try {
                 tool.parse(args)
+
+                // Ensure the only content written to STDOUT is the JSON (consumable by other processes)
+                if (tool.queryingCurrentHashParams) {
+                    System.out.println(tool.getCurrentHashParams())
+                    System.exit(ExitCode.SUCCESS.ordinal())
+                }
+
+                // Handle the translate CLI case
+                if (tool.translatingCli) {
+                    if (tool.bootstrapConfPath) {
+                        // Check to see if bootstrap.conf has a master key
+                        tool.keyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
+                    }
+
+                    if (!tool.keyHex) {
+                        logger.info("No master key detected in ${tool.bootstrapConfPath} -- if ${tool.niFiPropertiesPath} is encrypted, the translation will fail")
+                    }
+
+                    // Load the existing properties (decrypting if necessary)
+                    tool.niFiProperties = tool.loadNiFiProperties(tool.keyHex)
+
+                    String cliOutput = tool.translateNiFiPropertiesToCLI()
+
+                    System.out.println(cliOutput)
+                    System.exit(ExitCode.SUCCESS.ordinal())
+                }
 
                 boolean existingNiFiPropertiesAreEncrypted = tool.niFiPropertiesAreEncrypted()
                 if (!tool.ignorePropertiesFiles || (tool.handlingFlowXml && existingNiFiPropertiesAreEncrypted)) {
@@ -1155,6 +1769,15 @@ class ConfigEncryptionTool {
                         tool.printUsageAndThrow("Cannot migrate key if no previous encryption occurred", ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS)
                     }
                     tool.loginIdentityProviders = tool.encryptLoginIdentityProviders(tool.loginIdentityProviders)
+                }
+
+                if (tool.handlingAuthorizers) {
+                    try {
+                        tool.authorizers = tool.loadAuthorizers(existingKeyHex)
+                    } catch (Exception e) {
+                        tool.printUsageAndThrow("Cannot migrate key if no previous encryption occurred", ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS)
+                    }
+                    tool.authorizers = tool.encryptAuthorizers(tool.authorizers)
                 }
 
                 if (tool.handlingFlowXml) {
@@ -1228,6 +1851,9 @@ class ConfigEncryptionTool {
                 synchronized (this) {
                     if (!tool.ignorePropertiesFiles) {
                         tool.writeKeyToBootstrapConf()
+
+                        // Always write the secure hash in case the next invocation needs it
+                        tool.writeSecureHash()
                     }
                     if (tool.handlingFlowXml) {
                         tool.writeFlowXmlToFile(tool.flowXml)
@@ -1237,6 +1863,9 @@ class ConfigEncryptionTool {
                     }
                     if (tool.handlingLoginIdentityProviders) {
                         tool.writeLoginIdentityProviders()
+                    }
+                    if (tool.handlingAuthorizers) {
+                        tool.writeAuthorizers()
                     }
                 }
             } catch (Exception e) {
@@ -1250,5 +1879,28 @@ class ConfigEncryptionTool {
         }
 
         System.exit(ExitCode.SUCCESS.ordinal())
+    }
+
+    String translateNiFiPropertiesToCLI() {
+        // Assemble the baseUrl
+        String baseUrl = determineBaseUrl(niFiProperties)
+
+        // Copy the relevant properties to a Map using the "CLI" keys
+        List<String> cliOutput = ["baseUrl=${baseUrl}"]
+        PROPERTY_KEY_MAP.each { String nfpKey, String cliKey ->
+            cliOutput << "${cliKey}=${niFiProperties.getProperty(nfpKey)}"
+        }
+
+        cliOutput << "proxiedEntity="
+
+        cliOutput.join("\n")
+    }
+
+    static String determineBaseUrl(NiFiProperties niFiProperties) {
+        String protocol = niFiProperties.isHTTPSConfigured() ? "https" : "http"
+        String host = niFiProperties.isHTTPSConfigured() ? niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) : niFiProperties.getProperty(NiFiProperties.WEB_HTTP_HOST)
+        String port = niFiProperties.getConfiguredHttpOrHttpsPort()
+
+        "${protocol}://${host}:${port}"
     }
 }

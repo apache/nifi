@@ -29,13 +29,18 @@ public class TestParseSyslog {
     static final String FAC = "4";
     static final String TIME = "Oct 13 15:43:23";
     static final String HOST = "localhost.home";
+    static final String IPV6SRC = "fe80::216:3300:eeaa:eeaa";
+    static final String IPV4SRC = "8.8.4.4";
     static final String BODY = "some message";
 
     static final String VALID_MESSAGE_RFC3164_0 = "<" + PRI + ">" + TIME + " " + HOST + " " + BODY + "\n";
+    static final String VALID_MESSAGE_RFC3164_1 = "<" + PRI + ">" + TIME + " " + IPV6SRC + " " + BODY + "\n";
+    static final String VALID_MESSAGE_RFC3164_2 = "<" + PRI + ">" + TIME + " " + IPV4SRC + " " + BODY + "\n";
 
     @Test
     public void testSuccessfulParse3164() {
         final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog());
+
         runner.enqueue(VALID_MESSAGE_RFC3164_0.getBytes());
         runner.run();
 
@@ -49,6 +54,37 @@ public class TestParseSyslog {
         mff.assertAttributeEquals(SyslogAttributes.TIMESTAMP.key(), TIME);
     }
 
+    @Test
+    public void testValidIPv6Source() {
+        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog());
+        runner.enqueue(VALID_MESSAGE_RFC3164_1.getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseSyslog.REL_SUCCESS, 1);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseSyslog.REL_SUCCESS).get(0);
+        mff.assertAttributeEquals(SyslogAttributes.BODY.key(), BODY);
+        mff.assertAttributeEquals(SyslogAttributes.FACILITY.key(), FAC);
+        mff.assertAttributeEquals(SyslogAttributes.HOSTNAME.key(), IPV6SRC);
+        mff.assertAttributeEquals(SyslogAttributes.PRIORITY.key(), PRI);
+        mff.assertAttributeEquals(SyslogAttributes.SEVERITY.key(), SEV);
+        mff.assertAttributeEquals(SyslogAttributes.TIMESTAMP.key(), TIME);
+    }
+
+    @Test
+    public void testValidIPv4Source() {
+        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog());
+        runner.enqueue(VALID_MESSAGE_RFC3164_2.getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ParseSyslog.REL_SUCCESS, 1);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseSyslog.REL_SUCCESS).get(0);
+        mff.assertAttributeEquals(SyslogAttributes.BODY.key(), BODY);
+        mff.assertAttributeEquals(SyslogAttributes.FACILITY.key(), FAC);
+        mff.assertAttributeEquals(SyslogAttributes.HOSTNAME.key(), IPV4SRC);
+        mff.assertAttributeEquals(SyslogAttributes.PRIORITY.key(), PRI);
+        mff.assertAttributeEquals(SyslogAttributes.SEVERITY.key(), SEV);
+        mff.assertAttributeEquals(SyslogAttributes.TIMESTAMP.key(), TIME);
+    }
 
     @Test
     public void testInvalidMessage() {

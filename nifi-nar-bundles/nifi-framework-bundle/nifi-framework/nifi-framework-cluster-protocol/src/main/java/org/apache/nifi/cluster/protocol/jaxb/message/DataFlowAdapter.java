@@ -33,6 +33,7 @@ public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, DataFlow> {
             aDf.setFlow(df.getFlow());
             aDf.setSnippets(df.getSnippets());
             aDf.setAuthorizerFingerprint(df.getAuthorizerFingerprint());
+            aDf.setMissingComponents(df.getMissingComponents());
         }
 
         return aDf;
@@ -40,7 +41,7 @@ public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, DataFlow> {
 
     @Override
     public DataFlow unmarshal(final AdaptedDataFlow aDf) {
-        final StandardDataFlow dataFlow = new StandardDataFlow(aDf.getFlow(), aDf.getSnippets(), aDf.getAuthorizerFingerprint());
+        final StandardDataFlow dataFlow = new StandardDataFlow(aDf.getFlow(), aDf.getSnippets(), aDf.getAuthorizerFingerprint(), aDf.getMissingComponents());
         return dataFlow;
     }
 

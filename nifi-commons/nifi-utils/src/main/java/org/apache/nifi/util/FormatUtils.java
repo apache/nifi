@@ -17,9 +17,6 @@
 package org.apache.nifi.util;
 
 import java.text.NumberFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,8 +63,16 @@ public class FormatUtils {
      */
     public static String formatMinutesSeconds(final long sourceDuration, final TimeUnit sourceUnit) {
         final long millis = TimeUnit.MILLISECONDS.convert(sourceDuration, sourceUnit);
-        final SimpleDateFormat formatter = new SimpleDateFormat("mm:ss.SSS", Locale.US);
-        return formatter.format(new Date(millis));
+
+        final long millisInMinute = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
+        final int minutes = (int) (millis / millisInMinute);
+        final long secondsMillisLeft = millis - minutes * millisInMinute;
+
+        final long millisInSecond = TimeUnit.MILLISECONDS.convert(1, TimeUnit.SECONDS);
+        final int seconds = (int) (secondsMillisLeft / millisInSecond);
+        final long millisLeft = secondsMillisLeft - seconds * millisInSecond;
+
+        return pad2Places(minutes) + ":" + pad2Places(seconds) + "." + pad3Places(millisLeft);
     }
 
     /**
@@ -79,15 +84,20 @@ public class FormatUtils {
      */
     public static String formatHoursMinutesSeconds(final long sourceDuration, final TimeUnit sourceUnit) {
         final long millis = TimeUnit.MILLISECONDS.convert(sourceDuration, sourceUnit);
+
         final long millisInHour = TimeUnit.MILLISECONDS.convert(1, TimeUnit.HOURS);
         final int hours = (int) (millis / millisInHour);
-        final long whatsLeft = millis - hours * millisInHour;
+        final long minutesSecondsMillisLeft = millis - hours * millisInHour;
 
-        return pad(hours) + ":" + new SimpleDateFormat("mm:ss.SSS", Locale.US).format(new Date(whatsLeft));
+        return pad2Places(hours) + ":" + formatMinutesSeconds(minutesSecondsMillisLeft, TimeUnit.MILLISECONDS);
     }
 
-    private static String pad(final int val) {
+    private static String pad2Places(final long val) {
         return (val < 10) ? "0" + val : String.valueOf(val);
+    }
+
+    private static String pad3Places(final long val) {
+        return (val < 100) ? "0" + pad2Places(val) : String.valueOf(val);
     }
 
     /**

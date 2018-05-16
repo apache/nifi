@@ -57,6 +57,9 @@ public class HiveUtils {
      */
     public static Validator createMultipleFilesExistValidator() {
         return (subject, input, context) -> {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
             final String[] files = input.split("\\s*,\\s*");
             for (String filename : files) {
                 try {

@@ -16,18 +16,11 @@
  */
 package org.apache.nifi.processors;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -39,18 +32,10 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.StopWatch;
 
@@ -70,6 +55,7 @@ import com.maxmind.geoip2.record.Subdivision;
 @WritesAttributes({
     @WritesAttribute(attribute = "X.geo.lookup.micros", description = "The number of microseconds that the geo lookup took"),
     @WritesAttribute(attribute = "X.geo.city", description = "The city identified for the IP address"),
+    @WritesAttribute(attribute = "X.geo.accuracy", description = "The accuracy radius if provided by the database (in Kilometers)"),
     @WritesAttribute(attribute = "X.geo.latitude", description = "The latitude identified for this IP address"),
     @WritesAttribute(attribute = "X.geo.longitude", description = "The longitude identified for this IP address"),
     @WritesAttribute(attribute = "X.geo.subdivision.N",
@@ -78,81 +64,7 @@ import com.maxmind.geoip2.record.Subdivision;
     @WritesAttribute(attribute = "X.geo.country", description = "The country identified for this IP address"),
     @WritesAttribute(attribute = "X.geo.country.isocode", description = "The ISO Code for the country identified"),
     @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"),})
-public class GeoEnrichIP extends AbstractProcessor {
-
-    public static final PropertyDescriptor GEO_DATABASE_FILE = new PropertyDescriptor.Builder()
-            .name("Geo Database File")
-            .displayName("Geo Database File")
-            .description("Path to Maxmind Geo Enrichment Database File")
-            .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor IP_ADDRESS_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("IP Address Attribute")
-            .displayName("IP Address Attribute")
-            .required(true)
-            .description("The name of an attribute whose value is a dotted decimal IP address for which enrichment should occur")
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .build();
-
-    public static final Relationship REL_FOUND = new Relationship.Builder()
-            .name("found")
-            .description("Where to route flow files after successfully enriching attributes with geo data")
-            .build();
-
-    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
-            .name("not found")
-            .description("Where to route flow files after unsuccessfully enriching attributes because no geo data was found")
-            .build();
-
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> propertyDescriptors;
-    final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>(null);
-
-    @Override
-    public Set<Relationship> getRelationships() {
-        return relationships;
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
-    }
-
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IOException {
-        final String dbFileString = context.getProperty(GEO_DATABASE_FILE).getValue();
-        final File dbFile = new File(dbFileString);
-        final StopWatch stopWatch = new StopWatch(true);
-        final DatabaseReader reader = new DatabaseReader.Builder(dbFile).build();
-        stopWatch.stop();
-        getLogger().info("Completed loading of Maxmind Geo Database.  Elapsed time was {} milliseconds.", new Object[]{stopWatch.getDuration(TimeUnit.MILLISECONDS)});
-        databaseReaderRef.set(reader);
-    }
-
-    @OnStopped
-    public void closeReader() throws IOException {
-        final DatabaseReader reader = databaseReaderRef.get();
-        if (reader != null) {
-            reader.close();
-        }
-    }
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_FOUND);
-        rels.add(REL_NOT_FOUND);
-        this.relationships = Collections.unmodifiableSet(rels);
-
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(GEO_DATABASE_FILE);
-        props.add(IP_ADDRESS_ATTRIBUTE);
-        this.propertyDescriptors = Collections.unmodifiableList(props);
-    }
+public class GeoEnrichIP extends AbstractEnrichIP {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -164,11 +76,14 @@ public class GeoEnrichIP extends AbstractProcessor {
         final DatabaseReader dbReader = databaseReaderRef.get();
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
-        if (StringUtils.isEmpty(ipAttributeName)) { //TODO need to add additional validation - should look like an IPv4 or IPv6 addr for instance
+
+        if (StringUtils.isEmpty(ipAttributeName)) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Unable to find ip address for {}", new Object[]{flowFile});
+            getLogger().warn("FlowFile '{}' attribute '{}' was empty. Routing to failure",
+                    new Object[]{flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName()});
             return;
         }
+
         InetAddress inetAddress = null;
         CityResponse response = null;
 
@@ -176,14 +91,21 @@ public class GeoEnrichIP extends AbstractProcessor {
             inetAddress = InetAddress.getByName(ipAttributeValue);
         } catch (final IOException ioe) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("Could not resolve {} to ip address for {}", new Object[]{ipAttributeValue, flowFile}, ioe);
+            getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
+                            "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
+                            "providing the processor with an invalid IP address ",
+                            new Object[]{ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile}, ioe);
             return;
         }
+
         final StopWatch stopWatch = new StopWatch(true);
         try {
             response = dbReader.city(inetAddress);
             stopWatch.stop();
         } catch (final IOException | GeoIp2Exception ex) {
+            // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
+            // Most name or IP resolutions failure should have been triggered in the try loop above but
+            // environmental conditions may trigger errors during the second resolution as well.
             session.transfer(flowFile, REL_NOT_FOUND);
             getLogger().warn("Failure while trying to find enrichment data for {} due to {}", new Object[]{flowFile, ex}, ex);
             return;
@@ -206,6 +128,11 @@ public class GeoEnrichIP extends AbstractProcessor {
         final Double longitude = response.getLocation().getLongitude();
         if (longitude != null) {
             attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), longitude.toString());
+        }
+
+        final Integer accuracy = response.getLocation().getAccuracyRadius();
+        if (accuracy != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".accuracy").toString(), String.valueOf(accuracy));
         }
 
         int i = 0;

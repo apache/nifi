@@ -74,7 +74,6 @@ public class TestGetCouchbaseKey {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.couchbase.TestGetCouchbaseKey", "debug");
 
         testRunner = TestRunners.newTestRunner(GetCouchbaseKey.class);
-        testRunner.setValidateExpressionUsage(false);
     }
 
     private void setupMockBucket(Bucket bucket) throws InitializationException {
@@ -407,6 +406,7 @@ public class TestGetCouchbaseKey {
         MockFlowFile orgFile = testRunner.getFlowFilesForRelationship(REL_RETRY).get(0);
         orgFile.assertContentEquals(inputFileDataStr);
         orgFile.assertAttributeEquals(Exception.key(), exception.getClass().getName());
+        Assert.assertEquals(true, orgFile.isPenalized());
     }
 
     @Test

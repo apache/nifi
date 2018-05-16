@@ -19,8 +19,10 @@ package org.apache.nifi.processors.standard;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -32,6 +34,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -52,8 +55,8 @@ import org.apache.tika.mime.MimeTypeException;
 
 /**
  * <p>
- * Attempts to detect the MIME Type of a FlowFile by examining its contents. If the MIME Type is determined, it is added to an attribute with the name mime.type. In addition, mime.extension is set if
- * a common file extension is known.
+ * Attempts to detect the MIME Type of a FlowFile by examining its contents. If the MIME Type is determined, it is added
+ * to an attribute with the name mime.type. In addition, mime.extension is set if a common file extension is known.
  * </p>
  *
  * <p>
@@ -78,15 +81,22 @@ import org.apache.tika.mime.MimeTypeException;
         + "If unable to detect the MIME Type, the attribute's value will be set to application/octet-stream")
 public class IdentifyMimeType extends AbstractProcessor {
 
+    public static final PropertyDescriptor USE_FILENAME_IN_DETECTION = new PropertyDescriptor.Builder()
+           .displayName("Use Filename In Detection")
+           .name("use-filename-in-detection")
+           .description("If true will pass the filename to Tika to aid in detection.")
+           .required(true)
+           .allowableValues("true", "false")
+           .defaultValue("true")
+           .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to success")
             .build();
 
-    public static final MediaType FLOWFILE_V1 = new MediaType("application", "flowfile-v1");
-    public static final MediaType FLOWFILE_V3 = new MediaType("application", "flowfile-v3");
-
     private Set<Relationship> relationships;
+    private List<PropertyDescriptor> properties;
 
     private final TikaConfig config;
     private final Detector detector;
@@ -99,6 +109,11 @@ public class IdentifyMimeType extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
+
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(USE_FILENAME_IN_DETECTION);
+        this.properties = Collections.unmodifiableList(properties);
+
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
         this.relationships = Collections.unmodifiableSet(rels);
@@ -107,6 +122,11 @@ public class IdentifyMimeType extends AbstractProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
     }
 
     @Override
@@ -126,8 +146,8 @@ public class IdentifyMimeType extends AbstractProcessor {
                 try (final InputStream in = new BufferedInputStream(stream)) {
                     TikaInputStream tikaStream = TikaInputStream.get(in);
                     Metadata metadata = new Metadata();
-                    // Add filename if it exists
-                    if (filename != null) {
+
+                    if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
                         metadata.add(TikaMetadataKeys.RESOURCE_NAME_KEY, filename);
                     }
                     // Get mime type

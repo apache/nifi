@@ -18,6 +18,7 @@ package org.apache.nifi.controller.state.providers.zookeeper;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
@@ -30,6 +31,7 @@ import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
+import org.apache.nifi.logging.ComponentLog;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,6 +77,15 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             }
 
             @Override
+            public Map<String,String> getAllProperties() {
+                final Map<String,String> propValueMap = new LinkedHashMap<>();
+                for (final Map.Entry<PropertyDescriptor, PropertyValue> entry : getProperties().entrySet()) {
+                    propValueMap.put(entry.getKey().getName(), entry.getValue().getValue());
+                }
+                return propValueMap;
+            }
+
+            @Override
             public PropertyValue getProperty(final PropertyDescriptor property) {
                 final String prop = properties.get(property);
                 return new StandardPropertyValue(prop, null);
@@ -82,6 +93,11 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
             @Override
             public SSLContext getSSLContext() {
+                return null;
+            }
+
+            @Override
+            public ComponentLog getLogger() {
                 return null;
             }
         });

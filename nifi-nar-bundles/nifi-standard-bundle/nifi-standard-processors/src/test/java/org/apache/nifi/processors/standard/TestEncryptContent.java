@@ -16,12 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.security.Security;
+import java.util.Collection;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
-import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.security.util.crypto.CipherUtility;
+import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -33,12 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.security.Security;
-import java.util.Collection;
 
 public class TestEncryptContent {
 

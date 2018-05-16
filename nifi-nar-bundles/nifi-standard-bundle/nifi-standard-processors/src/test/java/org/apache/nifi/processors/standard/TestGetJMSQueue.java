@@ -25,8 +25,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.Revision;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
-import org.slf4j.impl.SimpleLogger;
 
 import javax.jms.BytesMessage;
 import javax.jms.MapMessage;
@@ -35,82 +33,11 @@ import javax.jms.MessageProducer;
 import javax.jms.ObjectMessage;
 import javax.jms.Session;
 import javax.jms.StreamMessage;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.lang.reflect.Field;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestGetJMSQueue {
-
-    @Test
-    public void testSchemelessURI() throws Exception {
-        String expectedErrMsg = "Failed to connect to JMS Server due to javax.jms.JMSException: "
-                + "Could not create Transport. Reason: java.io.IOException: Transport not scheme specified: [localhost]";
-
-        ByteArrayOutputStream bos = this.prepLogOutputStream();
-        GetJMSQueue getJmsQueue = new GetJMSQueue();
-
-        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
-        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "localhost");
-        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-
-        runner.run();
-        assertEquals(0, runner.getFlowFilesForRelationship("success").size());
-        assertTrue(bos.toString("ASCII").contains(expectedErrMsg));
-    }
-
-    @Test
-    public void testPortlessURI() throws Exception {
-        String expectedErrMsg = "Failed to connect to JMS Server due to javax.jms.JMSException: "
-                + "Could not connect to broker URL: tcp://localhost. Reason: java.lang.IllegalArgumentException: port out of range:-1";
-
-        ByteArrayOutputStream bos = this.prepLogOutputStream();
-        GetJMSQueue getJmsQueue = new GetJMSQueue();
-
-        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
-        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL, "tcp://localhost");
-        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-
-        runner.run();
-        assertEquals(0, runner.getFlowFilesForRelationship("success").size());
-        assertTrue(bos.toString("ASCII").contains(expectedErrMsg));
-    }
-
-    @Test
-    public void testCompositeSchemelessPortlessURI() throws Exception {
-        String expectedErrMsg1 = "Failed to connect to [tcp://localhost] after: 2 attempt(s)";
-        String expectedErrMsg2 = "Failed to connect to JMS Server due to javax.jms.JMSException: port out of range:-1";
-
-        ByteArrayOutputStream bos = this.prepLogOutputStream();
-        GetJMSQueue getJmsQueue = new GetJMSQueue();
-        TestRunner runner = TestRunners.newTestRunner(getJmsQueue);
-        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
-        runner.setProperty(JmsProperties.URL,
-                "failover:(tcp://localhost,remotehost)?initialReconnectDelay=1&startupMaxReconnectAttempts=2");
-        runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-
-        runner.run();
-        assertEquals(0, runner.getFlowFilesForRelationship("success").size());
-        assertTrue(bos.toString("ASCII").contains(expectedErrMsg1));
-        assertTrue(bos.toString("ASCII").contains(expectedErrMsg2));
-    }
-
-    private ByteArrayOutputStream prepLogOutputStream() throws Exception {
-        LoggerFactory.getLogger(GetJMSQueue.class);
-        Field field = SimpleLogger.class.getDeclaredField("TARGET_STREAM");
-        field.setAccessible(true);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        field.set(null, new PrintStream(bos));
-        return bos;
-    }
 
     @Test
     public void testSendTextToQueue() throws Exception {

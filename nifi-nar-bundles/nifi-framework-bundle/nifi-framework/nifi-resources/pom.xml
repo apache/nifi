@@ -18,23 +18,24 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
     <description>holds common resources used to build installers</description>
     <properties>
         <!--Wrapper Properties -->
-        <nifi.jvm.heap.mb>512</nifi.jvm.heap.mb>
-        <nifi.jvm.permgen.mb>128</nifi.jvm.permgen.mb>
+        <nifi.jvm.heap.init>512m</nifi.jvm.heap.init>
+        <nifi.jvm.heap.max>512m</nifi.jvm.heap.max>
         <nifi.run.as />
         <!-- nifi.properties: core properties -->
-        <nifi.version>${project.version}</nifi.version>
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
         <nifi.flowcontroller.graceful.shutdown.period>10 sec</nifi.flowcontroller.graceful.shutdown.period>
         <nifi.flowservice.writedelay.interval>500 ms</nifi.flowservice.writedelay.interval>
         <nifi.administrative.yield.duration>30 sec</nifi.administrative.yield.duration>
         <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
+        <nifi.queue.backpressure.count>10000</nifi.queue.backpressure.count>
+        <nifi.queue.backpressure.size>1 GB</nifi.queue.backpressure.size>
 
         <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
         <nifi.flow.configuration.archive.enabled>true</nifi.flow.configuration.archive.enabled>
@@ -53,6 +54,7 @@
         <nifi.state.management.provider.cluster>zk-provider</nifi.state.management.provider.cluster>
 
         <nifi.flowfile.repository.implementation>org.apache.nifi.controller.repository.WriteAheadFlowFileRepository</nifi.flowfile.repository.implementation>
+        <nifi.flowfile.repository.wal.implementation>org.apache.nifi.wali.SequentialAccessWriteAheadLog</nifi.flowfile.repository.wal.implementation>
         <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
         <nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>
         <nifi.flowfile.repository.checkpoint.interval>2 mins</nifi.flowfile.repository.checkpoint.interval>
@@ -65,14 +67,14 @@
         <nifi.swap.out.threads>4</nifi.swap.out.threads>
 
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
-        <nifi.content.claim.max.appendable.size>10 MB</nifi.content.claim.max.appendable.size>
+        <nifi.content.claim.max.appendable.size>1 MB</nifi.content.claim.max.appendable.size>
         <nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
         <nifi.content.repository.archive.max.retention.period>12 hours</nifi.content.repository.archive.max.retention.period>
         <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
         <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
-        <nifi.content.viewer.url>/nifi-content-viewer/</nifi.content.viewer.url>
+        <nifi.content.viewer.url>../nifi-content-viewer/</nifi.content.viewer.url>
 
         <nifi.restore.directory />
         <nifi.ui.banner.text />
@@ -92,6 +94,11 @@
 
         <!-- persistent provenance repository properties -->
         <nifi.provenance.repository.implementation>org.apache.nifi.provenance.PersistentProvenanceRepository</nifi.provenance.repository.implementation>
+        <nifi.provenance.repository.debug.frequency>1_000_000</nifi.provenance.repository.debug.frequency>
+        <nifi.provenance.repository.encryption.key.provider.implementation />
+        <nifi.provenance.repository.encryption.key.provider.location />
+        <nifi.provenance.repository.encryption.key.id />
+        <nifi.provenance.repository.encryption.key />
         <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
         <nifi.provenance.repository.max.storage.time>24 hours</nifi.provenance.repository.max.storage.time>
         <nifi.provenance.repository.max.storage.size>1 GB</nifi.provenance.repository.max.storage.size>
@@ -127,6 +134,9 @@
         <nifi.web.https.network.interface.default />
         <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
         <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
+        <nifi.web.max.header.size>16 KB</nifi.web.max.header.size>
+        <nifi.web.proxy.context.path />
+        <nifi.web.proxy.host />
 
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />
@@ -137,11 +147,25 @@
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
         <nifi.security.needClientAuth />
-        <nifi.security.user.authorizer>file-provider</nifi.security.user.authorizer>
+        <nifi.security.user.authorizer>managed-authorizer</nifi.security.user.authorizer>
         <nifi.security.user.login.identity.provider />
         <nifi.security.x509.principal.extractor />
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
+
+        <!-- nifi.properties: openid connect -->
+        <nifi.security.user.oidc.discovery.url />
+        <nifi.security.user.oidc.connect.timeout>5 secs</nifi.security.user.oidc.connect.timeout>
+        <nifi.security.user.oidc.read.timeout>5 secs</nifi.security.user.oidc.read.timeout>
+        <nifi.security.user.oidc.client.id />
+        <nifi.security.user.oidc.client.secret />
+        <nifi.security.user.oidc.preferred.jwsalgorithm />
+
+        <!-- nifi.properties: apache knox -->
+        <nifi.security.user.knox.url />
+        <nifi.security.user.knox.publicKey />
+        <nifi.security.user.knox.cookieName>hadoop-jwt</nifi.security.user.knox.cookieName>
+        <nifi.security.user.knox.audiences />
 
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
@@ -152,9 +176,11 @@
         <nifi.cluster.node.address />
         <nifi.cluster.node.protocol.port />
         <nifi.cluster.node.protocol.threads>10</nifi.cluster.node.protocol.threads>
+        <nifi.cluster.node.protocol.max.threads>50</nifi.cluster.node.protocol.max.threads>
         <nifi.cluster.node.event.history.size>25</nifi.cluster.node.event.history.size>
         <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
         <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
+        <nifi.cluster.node.max.concurrent.requests>100</nifi.cluster.node.max.concurrent.requests>
         <nifi.cluster.firewall.file />
         <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
         <nifi.cluster.flow.election.max.candidates />
@@ -166,6 +192,9 @@
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
+        <nifi.zookeeper.auth.type />
+        <nifi.zookeeper.kerberos.removeHostFromPrincipal />
+        <nifi.zookeeper.kerberos.removeRealmFromPrincipal />
 
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>
@@ -174,13 +203,6 @@
         <nifi.kerberos.spnego.principal />
         <nifi.kerberos.spnego.keytab.location />
         <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
-
-        <!-- nifi.properties: build info -->
-        <nifi.build.tag>${project.scm.tag}</nifi.build.tag>
-        <nifi.build.timestamp>${maven.build.timestamp}</nifi.build.timestamp>
-        <!-- buildRevision and buildBranch provided by buildnumber-maven-plugin or build-info-read-properties profile -->
-        <nifi.build.branch>${buildBranch}</nifi.build.branch>
-        <nifi.build.revision>${buildRevision}</nifi.build.revision>
     </properties>
     <build>
         <plugins>

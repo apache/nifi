@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>GetSolr</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Usage Example</h2>
+<p>
+    This processor pulls data from Solr collections. For its usage, Solr collections
+    have to fulfil two requirements:
+</p>
+<ul>
+    <li>The documents must include a date field containing the time when they were
+        indexed. Such kind of field can be easily added to documents at indexing time
+        e. g. using Solrs' UpdateRequestProcessor created by
+        'TimestampUpdateProcessorFactory'.</li>
+    <li>The configuration of the Solr index (e. g. schema.xml or managed-schema) must
+        define a uniqueKey field.</li>
+</ul>
+<p>
+    Backwards compatibility to configurations of the GetSolr processor used within releases
+    of NiFi prior to 1.5 can be realized as follows:
+</p>
+<ul>
+    <li>Find the file conf/.getSolr* within the prior NiFi installation.</li>
+    <li>Open the file and copy the timestamp defined for 'LastEndDate'.</li>
+    <li>Insert the timestamp into the field 'Initial Date Filter'.</li>
+</ul>
+<p>
+    Annotation: The value of property 'Solr Query' actually is not added to parameter 'q'
+    but to parameter 'fq' for two reasons:
+</p>
+<ul>
+    <li>Improving performance by leveraging Solrs' filter cache.</li>
+    <li>Scoring is not required for the purpose of this processor as the sorting
+        is fixed to 'DateField asc, IdField asc'</li>
+</ul>
+</body>
+</html>

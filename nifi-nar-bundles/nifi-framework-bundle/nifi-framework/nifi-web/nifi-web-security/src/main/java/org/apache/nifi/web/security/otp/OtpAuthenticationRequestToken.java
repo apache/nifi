@@ -60,7 +60,7 @@ public class OtpAuthenticationRequestToken extends NiFiAuthenticationRequestToke
 
     @Override
     public String toString() {
-        return getName();
+        return "<OTP token>";
     }
 
 }

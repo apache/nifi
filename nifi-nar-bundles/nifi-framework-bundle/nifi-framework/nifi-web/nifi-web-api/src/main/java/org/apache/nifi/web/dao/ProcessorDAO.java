@@ -32,6 +32,13 @@ public interface ProcessorDAO {
     boolean hasProcessor(String id);
 
     /**
+     * Verifies the specified processor can be created.
+     *
+     * @param processorDTO processor
+     */
+    void verifyCreate(ProcessorDTO processorDTO);
+
+    /**
      * Creates a new Processor.
      *
      * @param groupId The group id where this component will be created
@@ -52,9 +59,10 @@ public interface ProcessorDAO {
      * Gets all the Processor transfer objects for this controller.
      *
      * @param groupId group id
+     * @param includeDescendants if processors from descendant groups should be included
      * @return List of all the Processors
      */
-    Set<ProcessorNode> getProcessors(String groupId);
+    Set<ProcessorNode> getProcessors(String groupId, boolean includeDescendants);
 
     /**
      * Verifies the specified processor can be updated.
@@ -62,6 +70,20 @@ public interface ProcessorDAO {
      * @param processorDTO processor
      */
     void verifyUpdate(ProcessorDTO processorDTO);
+
+    /**
+     * Verifies that the specified processor can be terminated at this time
+     *
+     * @param processorId the id of the processor
+     */
+    void verifyTerminate(String processorId);
+
+    /**
+     * Terminates the processor with the given ID
+     *
+     * @param processorId the id of the processor to terminate
+     */
+    void terminate(String processorId);
 
     /**
      * Updates the configuration for the processor using the specified processorDTO.

@@ -23,12 +23,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -45,6 +47,7 @@ import org.apache.nifi.authentication.exception.ProviderDestructionException;
 import org.apache.nifi.authentication.generated.LoginIdentityProviders;
 import org.apache.nifi.authentication.generated.Property;
 import org.apache.nifi.authentication.generated.Provider;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
@@ -52,6 +55,7 @@ import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,9 +141,10 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
                 final Schema schema = schemaFactory.newSchema(LoginIdentityProviders.class.getResource(LOGIN_IDENTITY_PROVIDERS_XSD));
 
                 // attempt to unmarshal
+                XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(loginIdentityProvidersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
-                final JAXBElement<LoginIdentityProviders> element = unmarshaller.unmarshal(new StreamSource(loginIdentityProvidersConfigurationFile), LoginIdentityProviders.class);
+                final JAXBElement<LoginIdentityProviders> element = unmarshaller.unmarshal(xsr, LoginIdentityProviders.class);
                 return element.getValue();
             } catch (SAXException | JAXBException e) {
                 throw new Exception("Unable to load the login identity provider configuration file at: " + loginIdentityProvidersConfigurationFile.getAbsolutePath());
@@ -151,10 +156,18 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
 
     private LoginIdentityProvider createLoginIdentityProvider(final String identifier, final String loginIdentityProviderClassName) throws Exception {
         // get the classloader for the specified login identity provider
-        final ClassLoader loginIdentityProviderClassLoader = ExtensionManager.getClassLoader(loginIdentityProviderClassName);
-        if (loginIdentityProviderClassLoader == null) {
+        final List<Bundle> loginIdentityProviderBundles = ExtensionManager.getBundles(loginIdentityProviderClassName);
+
+        if (loginIdentityProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified login identity provider class '%s' is not known to this nifi.", loginIdentityProviderClassName));
         }
+
+        if (loginIdentityProviderBundles.size() > 1) {
+            throw new Exception(String.format("Multiple bundles found for the specified login identity provider class '%s', only one is allowed.", loginIdentityProviderClassName));
+        }
+
+        final Bundle loginIdentityProviderBundle = loginIdentityProviderBundles.get(0);
+        final ClassLoader loginIdentityProviderClassLoader = loginIdentityProviderBundle.getClassLoader();
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();

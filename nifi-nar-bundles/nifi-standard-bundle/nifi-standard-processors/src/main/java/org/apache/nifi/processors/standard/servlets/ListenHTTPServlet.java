@@ -95,6 +95,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
     private StreamThrottler streamThrottler;
     private String basePath;
+    private int returnCode;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -108,6 +109,7 @@ public class ListenHTTPServlet extends HttpServlet {
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
         this.basePath = (String) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_BASE_PATH);
+        this.returnCode = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_RETURN_CODE);
     }
 
     @Override
@@ -267,6 +269,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.getProvenanceReporter().receive(flowFile, request.getRequestURL().toString(), sourceSystemFlowFileIdentifier, "Remote DN=" + foundSubject, transferMillis);
                 flowFile = session.putAttribute(flowFile, "restlistener.remote.source.host", request.getRemoteHost());
+                flowFile = session.putAttribute(flowFile, "restlistener.request.uri", request.getRequestURI());
                 flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
                 flowFileSet.add(flowFile);
 
@@ -282,7 +285,7 @@ public class ListenHTTPServlet extends HttpServlet {
                     uuid = UUID.randomUUID().toString();
                 }
 
-                final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, System.currentTimeMillis());
+                final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, System.currentTimeMillis(), request.getRemoteHost());
                 FlowFileEntryTimeWrapper previousWrapper;
                 do {
                     previousWrapper = flowFileMap.putIfAbsent(uuid, wrapper);
@@ -301,7 +304,7 @@ public class ListenHTTPServlet extends HttpServlet {
                             new Object[]{flowFileSet, request.getRemoteHost(), request.getRemotePort(), foundSubject, flowFileSet.size(), uuid});
                 }
             } else {
-                response.setStatus(HttpServletResponse.SC_OK);
+                response.setStatus(this.returnCode);
                 logger.info("Received from Remote Host: [{}] Port [{}] SubjectDN [{}]; transferring to 'success' {}",
                         new Object[]{request.getRemoteHost(), request.getRemotePort(), foundSubject, flowFile});
 

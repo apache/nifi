@@ -48,9 +48,10 @@ public interface NotificationService extends ConfigurableComponent {
      * Notifies the configured recipients of some event
      *
      * @param context the context that is relevant for this notification
+     * @param notificationType the notification type
      * @param subject the subject of the message
      * @param message the message to be provided to recipients
      */
-    void notify(NotificationContext context, String subject, String message) throws NotificationFailedException;
+    void notify(NotificationContext context, NotificationType notificationType, String subject, String message) throws NotificationFailedException;
 
 }

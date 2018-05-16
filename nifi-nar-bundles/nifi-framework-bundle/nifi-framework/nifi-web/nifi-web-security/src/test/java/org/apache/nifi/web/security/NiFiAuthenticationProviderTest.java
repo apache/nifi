@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.security;
 
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.security.core.Authentication;
@@ -30,6 +30,7 @@ import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class NiFiAuthenticationProviderTest {
@@ -169,7 +170,7 @@ public class NiFiAuthenticationProviderTest {
     }
 
     private NiFiProperties getNiFiProperties(final Properties properties) {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
         when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
@@ -186,7 +187,7 @@ public class NiFiAuthenticationProviderTest {
          * @param properties the NiFiProperties instance
          */
         public TestableNiFiAuthenticationProvider(NiFiProperties properties) {
-            super(properties);
+            super(properties, mock(Authorizer.class));
         }
 
         @Override

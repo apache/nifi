@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.remote;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
@@ -41,9 +23,10 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
+import org.apache.nifi.authorization.util.UserGroupUtil;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.AbstractPort;
@@ -72,6 +55,24 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static java.util.Objects.requireNonNull;
 
 public class StandardRootGroupPort extends AbstractPort implements RootGroupPort {
 
@@ -116,10 +117,11 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
                 final String groupId = StandardRootGroupPort.this.getProcessGroup().getIdentifier();
+                final String groupName = StandardRootGroupPort.this.getProcessGroup().getName();
                 final String sourceId = StandardRootGroupPort.this.getIdentifier();
                 final String sourceName = StandardRootGroupPort.this.getName();
                 final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, sourceId, componentType, sourceName, category, severity.name(), message));
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, componentType, sourceName, category, severity.name(), message));
             }
         };
 
@@ -362,8 +364,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
         }
 
         final String identity = IdentityMappingUtil.mapIdentity(dn, identityMappings);
-
-        return checkUserAuthorization(new StandardNiFiUser(identity));
+        final Set<String> groups = UserGroupUtil.getUserGroups(authorizer, identity);
+        return checkUserAuthorization(new Builder().identity(identity).groups(groups).build());
     }
 
     @Override
@@ -517,6 +519,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             // before the request expires
             while (!request.isBeingServiced()) {
                 if (request.isExpired()) {
+                    // Remove expired request, so that it won't block new request to be offered.
+                    this.requestQueue.remove(request);
                     throw new SocketTimeoutException("Read timed out");
                 } else {
                     try {
@@ -571,6 +575,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             // before the request expires
             while (!request.isBeingServiced()) {
                 if (request.isExpired()) {
+                    // Remove expired request, so that it won't block new request to be offered.
+                    this.requestQueue.remove(request);
                     throw new SocketTimeoutException("Read timed out");
                 } else {
                     try {

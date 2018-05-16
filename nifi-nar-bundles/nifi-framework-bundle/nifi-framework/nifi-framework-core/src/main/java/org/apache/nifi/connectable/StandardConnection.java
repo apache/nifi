@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,6 +72,7 @@ public final class StandardConnection implements Connection {
     private final StandardFlowFileQueue flowFileQueue;
     private final AtomicInteger labelIndex = new AtomicInteger(1);
     private final AtomicLong zIndex = new AtomicLong(0L);
+    private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final ProcessScheduler scheduler;
     private final int hashCode;
 
@@ -84,7 +86,8 @@ public final class StandardConnection implements Connection {
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
         flowFileQueue = new StandardFlowFileQueue(id, this, builder.flowFileRepository, builder.provenanceRepository, builder.resourceClaimManager,
-                scheduler, builder.swapManager, builder.eventReporter, builder.queueSwapThreshold);
+                scheduler, builder.swapManager, builder.eventReporter, builder.queueSwapThreshold,
+                builder.defaultBackPressureObjectThreshold, builder.defaultBackPressureDataSizeThreshold);
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -268,8 +271,10 @@ public final class StandardConnection implements Connection {
             return;
         }
 
-        if (getSource().isRunning()) {
-            throw new IllegalStateException("Cannot update the relationships for Connection because the source of the Connection is running");
+        try {
+            getSource().verifyCanUpdate();
+        } catch (final IllegalStateException ise) {
+            throw new IllegalStateException("Cannot update the relationships for Connection", ise);
         }
 
         try {
@@ -294,6 +299,10 @@ public final class StandardConnection implements Connection {
 
         if (getFlowFileQueue().getUnacknowledgedQueueSize().getObjectCount() > 0) {
             throw new IllegalStateException("Cannot change destination of Connection because FlowFiles from this Connection are currently held by " + previousDestination);
+        }
+
+        if (newDestination instanceof Funnel && newDestination.equals(source)) {
+            throw new IllegalStateException("Funnels do not support self-looping connections.");
         }
 
         try {
@@ -322,6 +331,11 @@ public final class StandardConnection implements Connection {
     @Override
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
         return flowFileQueue.poll(filter, expiredRecords);
+    }
+
+    @Override
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
+        return flowFileQueue.poll(expiredRecords);
     }
 
     @Override
@@ -378,6 +392,8 @@ public final class StandardConnection implements Connection {
         private ProvenanceEventRepository provenanceRepository;
         private ResourceClaimManager resourceClaimManager;
         private int queueSwapThreshold;
+        private Long defaultBackPressureObjectThreshold;
+        private String defaultBackPressureDataSizeThreshold;
 
         public Builder(final ProcessScheduler scheduler) {
             this.scheduler = scheduler;
@@ -454,6 +470,16 @@ public final class StandardConnection implements Connection {
             return this;
         }
 
+        public Builder defaultBackPressureObjectThreshold(final long defaultBackPressureObjectThreshold) {
+            this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
+            return this;
+        }
+
+        public Builder defaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
+            this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
+            return this;
+        }
+
         public StandardConnection build() {
             if (source == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Source");
@@ -511,6 +537,29 @@ public final class StandardConnection implements Connection {
         if (dest.isRunning()) {
             if (!ConnectableType.FUNNEL.equals(dest.getConnectableType())) {
                 throw new IllegalStateException("Destination of Connection (" + dest.getIdentifier() + ") is running");
+            }
+        }
+    }
+
+    @Override
+    public Optional<String> getVersionedComponentId() {
+        return Optional.ofNullable(versionedComponentId.get());
+    }
+
+    @Override
+    public void setVersionedComponentId(final String versionedComponentId) {
+        boolean updated = false;
+        while (!updated) {
+            final String currentId = this.versionedComponentId.get();
+
+            if (currentId == null) {
+                updated = this.versionedComponentId.compareAndSet(null, versionedComponentId);
+            } else if (currentId.equals(versionedComponentId)) {
+                return;
+            } else if (versionedComponentId == null) {
+                updated = this.versionedComponentId.compareAndSet(currentId, null);
+            } else {
+                throw new IllegalStateException(this + " is already under version control");
             }
         }
     }

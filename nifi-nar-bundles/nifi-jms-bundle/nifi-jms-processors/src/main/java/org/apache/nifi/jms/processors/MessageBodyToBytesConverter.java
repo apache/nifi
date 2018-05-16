@@ -18,6 +18,7 @@ package org.apache.nifi.jms.processors;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
@@ -36,8 +37,22 @@ abstract class MessageBodyToBytesConverter {
      * @return  byte array representing the {@link TextMessage}
      */
     public static byte[] toBytes(TextMessage message) {
+        return MessageBodyToBytesConverter.toBytes(message, null);
+    }
+
+    /**
+     *
+     * @param message instance of {@link TextMessage}
+     * @param charset character set used to interpret the TextMessage
+     * @return  byte array representing the {@link TextMessage}
+     */
+    public static byte[] toBytes(TextMessage message, Charset charset) {
         try {
-            return message.getText().getBytes();
+            if (charset == null) {
+                return message.getText().getBytes();
+            } else {
+                return message.getText().getBytes(charset);
+            }
         } catch (JMSException e) {
             throw new MessageConversionException("Failed to convert BytesMessage to byte[]", e);
         }
@@ -57,22 +72,14 @@ abstract class MessageBodyToBytesConverter {
         }
     }
 
-    /**
-     *
-     */
+
     private static class BytesMessageInputStream extends InputStream {
         private BytesMessage message;
 
-        /**
-         *
-         */
         public BytesMessageInputStream(BytesMessage message) {
             this.message = message;
         }
 
-        /**
-         *
-         */
         @Override
         public int read() throws IOException {
             try {
@@ -82,24 +89,19 @@ abstract class MessageBodyToBytesConverter {
             }
         }
 
-        /**
-         *
-         */
         @Override
         public int read(byte[] buffer, int offset, int length) throws IOException {
             try {
-                if (offset == 0)
+                if (offset == 0) {
                     return this.message.readBytes(buffer, length);
-                else
+                } else {
                     return super.read(buffer, offset, length);
+                }
             } catch (JMSException e) {
                 throw new IOException(e.toString());
             }
         }
 
-        /**
-         *
-         */
         @Override
         public int read(byte[] buffer) throws IOException {
             try {
@@ -110,22 +112,14 @@ abstract class MessageBodyToBytesConverter {
         }
     }
 
-    /**
-     *
-     */
+
     static class MessageConversionException extends RuntimeException {
         private static final long serialVersionUID = -1464448549601643887L;
 
-        /**
-         *
-         */
         public MessageConversionException(String msg) {
             super(msg);
         }
 
-        /**
-         *
-         */
         public MessageConversionException(String msg, Throwable cause) {
             super(msg, cause);
         }

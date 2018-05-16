@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -50,6 +51,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.email.smtp.SmtpConsumer;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.springframework.util.StringUtils;
 import org.subethamail.smtp.MessageContext;
@@ -84,7 +86,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
                     + "NOTE that on Unix derivative operating  systems this port must "
                     + "be higher than 1024 unless NiFi is running as with root user permissions.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -94,7 +96,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The maximum number of simultaneous SMTP connections.")
             .required(true)
             .defaultValue("1")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -104,7 +106,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The maximum time to wait for an action of SMTP client.")
             .defaultValue("60 seconds")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -114,7 +116,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The maximum number of bytes the server will accept.")
             .required(true)
             .defaultValue("20 MB")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Integer.MAX_VALUE))
             .build();
 
@@ -124,7 +126,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, "
                     + "messages will be received over a secure connection.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
 
     static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
@@ -140,7 +142,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             .displayName("SMTP hostname")
             .description("The hostname to be embedded into the banner displayed when an "
                     + "SMTP client connects to the processor TCP port .")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -177,6 +179,7 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             try {
                 final SMTPServer server = prepareServer(context, sessionFactory);
                 server.start();
+                getLogger().debug("Started SMTP Server on port " + server.getPort());
                 smtp = server;
             } catch (final Exception ex) {//have to catch exception due to awkward exception handling in subethasmtp
                 smtp = null;
@@ -190,7 +193,10 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
     public void stop() {
         try {
             smtp.stop();
-        } finally {
+            getLogger().debug("Stopped SMTP server on port " + smtp.getPort());
+        }catch (Exception ex){
+            getLogger().error("Error stopping SMTP server: " + ex.getMessage());
+        }finally {
             smtp = null;
         }
     }

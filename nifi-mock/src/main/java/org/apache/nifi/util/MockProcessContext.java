@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -43,7 +45,6 @@ import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
-import static java.util.Objects.requireNonNull;
 
 public class MockProcessContext extends MockControllerServiceLookup implements SchedulingContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -58,6 +59,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean allowExpressionValidation = true;
     private volatile boolean incomingConnection = true;
     private volatile boolean nonLoopConnection = true;
+    private volatile InputRequirement inputRequirement = null;
     private int maxConcurrentTasks = 1;
 
     private volatile Set<Relationship> connections = new HashSet<>();
@@ -67,7 +69,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private volatile boolean isPrimaryNode;
 
     public MockProcessContext(final ConfigurableComponent component) {
-        this(component, new MockStateManager(component),VariableRegistry.EMPTY_REGISTRY);
+        this(component, new MockStateManager(component), VariableRegistry.EMPTY_REGISTRY);
     }
 
     /**
@@ -79,6 +81,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
      */
     public MockProcessContext(final ConfigurableComponent component, final StateManager stateManager, final VariableRegistry variableRegistry) {
         this.component = Objects.requireNonNull(component);
+        this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
         this.stateManager = stateManager;
         this.variableRegistry = variableRegistry;
     }
@@ -154,7 +157,12 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
 
     public boolean removeProperty(final PropertyDescriptor descriptor) {
         Objects.requireNonNull(descriptor);
-        final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(descriptor.getName());
+        return removeProperty(descriptor.getName());
+    }
+
+    public boolean removeProperty(final String property) {
+        Objects.requireNonNull(property);
+        final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(property);
         String value = null;
 
         if ((value = properties.remove(fullyPopulatedDescriptor)) != null) {
@@ -210,6 +218,15 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
             props.putAll(properties);
             return props;
         }
+    }
+
+    @Override
+    public Map<String, String> getAllProperties() {
+        final Map<String,String> propValueMap = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+            propValueMap.put(entry.getKey().getName(), entry.getValue());
+        }
+        return propValueMap;
     }
 
     /**
@@ -396,4 +413,10 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
         }
         isPrimaryNode = primaryNode;
     }
+
+    @Override
+    public InputRequirement getInputRequirement() {
+        return inputRequirement;
+    }
+
 }

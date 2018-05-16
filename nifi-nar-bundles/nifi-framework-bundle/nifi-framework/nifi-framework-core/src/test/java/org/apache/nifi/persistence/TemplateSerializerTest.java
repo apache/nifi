@@ -16,23 +16,7 @@
  */
 package org.apache.nifi.persistence;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -43,6 +27,22 @@ import org.eclipse.jgit.diff.HistogramDiff;
 import org.eclipse.jgit.diff.RawText;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.junit.Test;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
 
 public class TemplateSerializerTest {
 
@@ -65,11 +65,12 @@ public class TemplateSerializerTest {
         origTemplate.setSnippet(snippet);
         byte[] serTemplate = TemplateSerializer.serialize(origTemplate);
 
-        // Deserialize Template into TemplateDTP
+        // Deserialize Template into TemplateDTO
         ByteArrayInputStream in = new ByteArrayInputStream(serTemplate);
         JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
         Unmarshaller unmarshaller = context.createUnmarshaller();
-        JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(new StreamSource(in), TemplateDTO.class);
+        XMLStreamReader xsr = XmlUtils.createSafeReader(in);
+        JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
         TemplateDTO deserTemplate = templateElement.getValue();
 
         // Modify deserialized template
@@ -98,7 +99,7 @@ public class TemplateSerializerTest {
         diffList.addAll(new HistogramDiff().diff(RawTextComparator.DEFAULT, rt1, rt2));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (DiffFormatter diff = new DiffFormatter(out);) {
+        try (DiffFormatter diff = new DiffFormatter(out)) {
             diff.format(diffList, rt1, rt2);
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(out.toByteArray()), StandardCharsets.UTF_8));
@@ -106,11 +107,11 @@ public class TemplateSerializerTest {
             List<String> changes = reader.lines().peek(System.out::println)
                     .filter(line -> line.startsWith("+") || line.startsWith("-")).collect(Collectors.toList());
 
-            assertEquals("+      <name>Hello-0</name>", changes.get(0));
-            assertEquals("+      <name>Hello-2</name>", changes.get(1));
-            assertEquals("+    <processors>", changes.get(2));
-            assertEquals("+      <type>ProcessorNew.class</type>", changes.get(4));
-            assertEquals("+    </processors>", changes.get(5));
+            assertEquals("+            <name>Hello-0</name>", changes.get(0));
+            assertEquals("+            <name>Hello-2</name>", changes.get(1));
+            assertEquals("+        <processors>", changes.get(2));
+            assertEquals("+            <type>ProcessorNew.class</type>", changes.get(4));
+            assertEquals("+        </processors>", changes.get(5));
         }
     }
 

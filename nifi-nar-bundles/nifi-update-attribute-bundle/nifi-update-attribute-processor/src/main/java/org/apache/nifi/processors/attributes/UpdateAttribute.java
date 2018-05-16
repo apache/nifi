@@ -54,6 +54,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -79,7 +80,7 @@ import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "modification", "update", "delete", "Attribute Expression Language", "state"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language and/or deletes the attributes based on a regular expression")
-@DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,
+@DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @WritesAttribute(attribute = "See additional details", description = "This processor may write or remove zero or more attributes as described in additional details")
 @Stateful(scopes = {Scope.LOCAL}, description = "Gives the option to store values not only on the FlowFile but as stateful variables to be referenced in a recursive manner.")
@@ -151,7 +152,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .description("Regular expression for attributes to be deleted from FlowFiles.  Existing attributes that match will be deleted regardless of whether they are updated by this processor.")
             .required(false)
             .addValidator(DELETE_PROPERTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final String STORE_STATE_NAME = "Store State";
@@ -205,7 +206,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 .name(propertyDescriptorName)
                 .required(false)
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true);
 
         if (stateful) {
@@ -579,8 +580,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         try {
             // evaluate the expression for the given flow file
             return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).asBoolean();
-        } catch (final ProcessException pe) {
-            throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), pe), pe);
+        } catch (final Exception e) {
+            getLogger().error(String.format("Could not evaluate the condition '%s' while processing Flowfile '%s'", condition.getExpression(), flowfile));
+            throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), e), e);
         }
     }
 
@@ -643,8 +645,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         // No point in updating if they will be removed
                         attributesToUpdate.keySet().removeAll(attributesToDelete);
                     }
-                } catch (final ProcessException pe) {
-                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, pe), pe);
+                } catch (final Exception e) {
+                    logger.error(String.format("Unable to delete attribute '%s' while processing FlowFile '%s' .", attribute, flowfile));
+                    throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, e), e);
                 }
             } else {
                 boolean notDeleted = !attributesToDelete.contains(attribute);
@@ -667,8 +670,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         if (notDeleted) {
                             attributesToUpdate.put(attribute, newAttributeValue);
                         }
-                    } catch (final ProcessException pe) {
-                        throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", attribute, pe), pe);
+                        // Capture Exception thrown when evaluating the Expression Language
+                    } catch (final Exception e) {
+                        logger.error(String.format("Could not evaluate the FlowFile '%s' against expression '%s' " +
+                                "defined by DynamicProperty '%s' due to '%s'", flowfile, action.getValue(), attribute, e.getLocalizedMessage()));
+                        throw new ProcessException(String.format("Unable to evaluate new value for attribute '%s': %s.", attribute, e), e);
                     }
                 }
             }

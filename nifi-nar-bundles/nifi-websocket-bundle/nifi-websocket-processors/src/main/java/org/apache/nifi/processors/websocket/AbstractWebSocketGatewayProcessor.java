@@ -147,6 +147,10 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
 
     @OnStopped
     public void onStopped(final ProcessContext context) throws IOException {
+        deregister();
+    }
+
+    private void deregister() {
         if (webSocketService == null) {
             return;
         }
@@ -170,11 +174,14 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             try {
                 registerProcessorToService(context, webSocketService -> onWebSocketServiceReady(webSocketService));
             } catch (IOException|WebSocketConfigurationException e) {
+                // Deregister processor if it failed so that it can retry next onTrigger.
+                deregister();
+                context.yield();
                 throw new ProcessException("Failed to register processor to WebSocket service due to: " + e, e);
             }
         }
 
-        context.yield();//nothing really to do here since threading managed by smtp server sessions
+        context.yield();//nothing really to do here since handling WebSocket messages is done at ControllerService.
     }
 
 

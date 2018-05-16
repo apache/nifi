@@ -31,6 +31,7 @@
 }(this, function ($) {
     var clustered = false;
     var connectedToCluster = false;
+    var connectedStateChanged = false;
 
     var config = {
         urls: {
@@ -54,6 +55,11 @@
                 var clusterSummaryResponse = clusterSummaryResult;
                 var clusterSummary = clusterSummaryResponse.clusterSummary;
 
+                // see if the connected state changes
+                if (connectedToCluster !== clusterSummary.connectedToCluster) {
+                    connectedStateChanged = true;
+                }
+
                 // establish the initial cluster state
                 clustered = clusterSummary.clustered;
                 connectedToCluster = clusterSummary.connectedToCluster;
@@ -76,6 +82,16 @@
          */
         isConnectedToCluster: function () {
             return connectedToCluster === true;
+        },
+
+        /**
+         * Returns whether the connected state has changed since the last time
+         * didConnectedStateChange was invoked.
+         */
+        didConnectedStateChange: function () {
+            var stateChanged = connectedStateChanged;
+            connectedStateChanged = false;
+            return stateChanged;
         }
     };
 }));

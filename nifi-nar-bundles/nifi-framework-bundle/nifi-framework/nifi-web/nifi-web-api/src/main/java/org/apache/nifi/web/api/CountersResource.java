@@ -16,23 +16,15 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
@@ -57,8 +49,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.HashMap;
-import java.util.Map;
 
 
 /**
@@ -71,9 +61,6 @@ import java.util.Map;
 )
 public class CountersResource extends ApplicationResource {
 
-    @Context
-    private ResourceContext resourceContext;
-
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
 
@@ -81,41 +68,10 @@ public class CountersResource extends ApplicationResource {
      * Authorizes access to the flow.
      */
     private void authorizeCounters(final RequestAction action) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getCountersResource())
-                .identity(user.getIdentity())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(action)
-                .userContext(userContext)
-                .explanationSupplier(() -> {
-                    final StringBuilder explanation = new StringBuilder("Unable to ");
-
-                    if (RequestAction.READ.equals(action)) {
-                        explanation.append("view ");
-                    } else {
-                        explanation.append("modify ");
-                    }
-                    explanation.append("counters.");
-
-                    return explanation.toString();
-                })
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        if (!Result.Approved.equals(result.getResult())) {
-            throw new AccessDeniedException(result.getExplanation());
-        }
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable counters = lookup.getCounters();
+            counters.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
+        });
     }
 
     /**
@@ -133,7 +89,7 @@ public class CountersResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = CountersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /counters", type = "")
+                    @Authorization(value = "Read - /counters")
             }
     )
     @ApiResponses(
@@ -204,7 +160,7 @@ public class CountersResource extends ApplicationResource {
         entity.setCounters(countersReport);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -223,7 +179,7 @@ public class CountersResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT,
             response = CounterEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /counters", type = "")
+                    @Authorization(value = "Write - /counters")
             }
     )
     @ApiResponses(
@@ -265,7 +221,7 @@ public class CountersResource extends ApplicationResource {
                     entity.setCounter(counter);
 
                     // generate the response
-                    return clusterContext(generateOkResponse(entity)).build();
+                    return generateOkResponse(entity).build();
                 }
         );
     }

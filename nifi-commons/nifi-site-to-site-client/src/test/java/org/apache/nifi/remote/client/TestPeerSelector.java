@@ -39,6 +39,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -57,6 +58,40 @@ public class TestPeerSelector {
                 .entrySet().stream().collect(toMap(Map.Entry::getKey, e -> {
                     return e.getValue() / hostNameCounts.get(e.getKey());
                 }));
+    }
+
+    @Test
+    public void testFormulateDestinationListForOutputEven() throws IOException {
+        final Set<PeerStatus> collection = new HashSet<>();
+        collection.add(new PeerStatus(new PeerDescription("Node1", 1111, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("Node2", 2222, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("Node3", 3333, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("Node4", 4444, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("Node5", 5555, true), 4096, true));
+
+        PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
+
+        final List<PeerStatus> destinations = peerSelector.formulateDestinationList(collection, TransferDirection.RECEIVE);
+        final Map<String, Integer> selectedCounts = calculateAverageSelectedCount(collection, destinations);
+
+        logger.info("selectedCounts={}", selectedCounts);
+
+        int consecutiveSamePeerCount = 0;
+        PeerStatus previousPeer = null;
+        for (PeerStatus peer : destinations) {
+            if (previousPeer != null && peer.getPeerDescription().equals(previousPeer.getPeerDescription())) {
+                consecutiveSamePeerCount++;
+                // The same peer shouldn't be used consecutively (number of nodes - 1) times or more.
+                if (consecutiveSamePeerCount >= (collection.size() - 1)) {
+                    fail("The same peer is returned consecutively too frequently.");
+                }
+            } else {
+                consecutiveSamePeerCount = 0;
+            }
+            previousPeer = peer;
+        }
+
     }
 
     @Test

@@ -48,6 +48,7 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
     @WritesAttribute(attribute = ListFile.FILE_OWNER_ATTRIBUTE, description = "The numeric owner id of the source file"),
     @WritesAttribute(attribute = ListFile.FILE_GROUP_ATTRIBUTE, description = "The numeric group id of the source file"),
     @WritesAttribute(attribute = ListFile.FILE_PERMISSIONS_ATTRIBUTE, description = "The read/write/execute permissions of the source file"),
+    @WritesAttribute(attribute = ListFile.FILE_SIZE_ATTRIBUTE, description = "The number of bytes in the source file"),
     @WritesAttribute(attribute = ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description = "The timestamp of when the file in the filesystem was" +
                   "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
     @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
@@ -81,6 +82,7 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
         properties.add(SFTPTransfer.DATA_TIMEOUT);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
+        properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
         return properties;
     }
 

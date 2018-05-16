@@ -21,7 +21,7 @@
     
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!--
               For daily rollover, use 'app_%d.log'.
               For hourly rollover, use 'app_%d{yyyy-MM-dd_HH}.log'.
@@ -29,15 +29,13 @@
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
             <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>100MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxFileSize>100MB</maxFileSize>
             <!-- keep 30 log files worth of history -->
             <maxHistory>30</maxHistory>
         </rollingPolicy>
+        <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
-            <immediateFlush>true</immediateFlush>
         </encoder>
     </appender>
     
@@ -88,6 +86,7 @@
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
+    <logger name="org.apache.nifi.processors.standard.LogMessage" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
     
     
@@ -97,6 +96,8 @@
     <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
     <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
     <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
+
+    <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
 
     <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />
     <logger name="org.apache.curator.ConnectionState" level="OFF" />
@@ -111,12 +112,10 @@
     <logger name="org.eclipse.jetty" level="INFO"/>
 
     <!-- Suppress non-error messages due to excessive logging by class or library -->
-    <logger name="com.sun.jersey.spi.container.servlet.WebComponent" level="ERROR"/>
-    <logger name="com.sun.jersey.spi.spring" level="ERROR"/>
     <logger name="org.springframework" level="ERROR"/>
     
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
-    <logger name="com.sun.jersey.spi.inject.Errors" level="ERROR"/>
+    <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
 
     <!--
         Logger for capturing user events. We do not want to propagate these

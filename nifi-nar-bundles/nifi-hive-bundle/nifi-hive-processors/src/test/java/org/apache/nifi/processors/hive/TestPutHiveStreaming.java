@@ -33,10 +33,12 @@ import org.apache.hive.hcatalog.streaming.StreamingConnection;
 import org.apache.hive.hcatalog.streaming.StreamingException;
 import org.apache.hive.hcatalog.streaming.TransactionBatch;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveWriter;
@@ -44,6 +46,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -54,13 +57,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static org.apache.nifi.processors.hive.AbstractHiveQLProcessor.ATTR_OUTPUT_TABLES;
 import static org.apache.nifi.processors.hive.PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR;
+import static org.apache.nifi.processors.hive.PutHiveStreaming.REL_SUCCESS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,6 +82,7 @@ public class TestPutHiveStreaming {
     private KerberosProperties kerberosPropsWithFile;
     private HiveConfigurator hiveConfigurator;
     private HiveConf hiveConf;
+    private UserGroupInformation ugi;
 
     @Before
     public void setUp() throws Exception {
@@ -84,6 +92,7 @@ public class TestPutHiveStreaming {
         System.setProperty("java.security.krb5.realm", "nifi.com");
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
 
+        ugi = null;
         kerberosPropsWithFile = new KerberosProperties(new File("src/test/resources/krb5.conf"));
 
         processor = new MockPutHiveStreaming();
@@ -97,7 +106,6 @@ public class TestPutHiveStreaming {
 
     @Test
     public void testSetup() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.assertNotValid();
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
@@ -108,8 +116,35 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void testUgiGetsCleared() {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        processor.ugi = mock(UserGroupInformation.class);
+        runner.run();
+        assertNull(processor.ugi);
+    }
+
+    @Test
+    public void testUgiGetsSetIfSecure() throws AuthenticationFailedException, IOException {
+        when(hiveConf.get(SecurityUtil.HADOOP_SECURITY_AUTHENTICATION)).thenReturn(SecurityUtil.KERBEROS);
+        ugi = mock(UserGroupInformation.class);
+        when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString())).thenReturn(ugi);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        runner.run();
+    }
+
+    @Test
     public void testSetupBadPartitionColumns() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -121,7 +156,6 @@ public class TestPutHiveStreaming {
 
     @Test(expected = AssertionError.class)
     public void testSetupWithKerberosAuthFailed() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -148,7 +182,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -159,7 +192,9 @@ public class TestPutHiveStreaming {
         runner.run();
 
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
-        assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertEquals("1", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        assertEquals("default.users", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
     }
 
     @Test
@@ -168,7 +203,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         runner.enqueue("I am not an Avro record".getBytes());
         runner.run();
 
@@ -176,12 +210,146 @@ public class TestPutHiveStreaming {
     }
 
     @Test
-    public void onTriggerMultipleRecords() throws Exception {
+    public void onTriggerBadInputRollbackOnFailure() throws Exception {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
-        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
-        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        runner.enqueue("I am not an Avro record".getBytes());
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+
+    @Test
+    public void onTriggerMultipleRecordsSingleTransaction() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "100");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        Map<String, Object> user3 = new HashMap<String, Object>() {
+            {
+                put("name", "Matt");
+                put("favorite_number", 3);
+            }
+        };
+        final List<Map<String, Object>> users = Arrays.asList(user1, user2, user3);
+        runner.enqueue(createAvroRecord(users));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertOutputAvroRecords(users, resultFlowFile);
+    }
+
+    @Test
+    public void onTriggerMultipleRecordsMultipleTransaction() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        Map<String, Object> user3 = new HashMap<String, Object>() {
+            {
+                put("name", "Matt");
+                put("favorite_number", 3);
+            }
+        };
+        final List<Map<String, Object>> users = Arrays.asList(user1, user2, user3);
+        runner.enqueue(createAvroRecord(users));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertOutputAvroRecords(users, resultFlowFile);
+    }
+
+    @Test
+    public void onTriggerMultipleRecordsFailInMiddle() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
+        processor.setGenerateWriteFailure(true, 1);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        Map<String, Object> user3 = new HashMap<String, Object>() {
+            {
+                put("name", "Matt");
+                put("favorite_number", 3);
+            }
+        };
+        Map<String, Object> user4 = new HashMap<String, Object>() {
+            {
+                put("name", "Mike");
+                put("favorite_number", 345);
+            }
+        };
+        final List<Map<String, Object>> users = Arrays.asList(user1, user2, user3, user4);
+        runner.enqueue(createAvroRecord(users));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertOutputAvroRecords(Arrays.asList(user1, user3, user4), resultFlowFile);
+
+        final MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_FAILURE).get(0);
+        assertOutputAvroRecords(Arrays.asList(user2), failedFlowFile);
+    }
+
+    @Test
+    public void onTriggerMultipleRecordsFailInMiddleRollbackOnFailure() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        processor.setGenerateWriteFailure(true, 1);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -201,12 +369,72 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Arrays.asList(user1, user2, user3)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown, because any Hive Transaction is committed yet.");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void onTriggerMultipleRecordsFailInMiddleRollbackOnFailureCommitted() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.RECORDS_PER_TXN, "2");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        // The first two records are committed, then an issue will happen at the 3rd record.
+        processor.setGenerateWriteFailure(true, 2);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        Map<String, Object> user3 = new HashMap<String, Object>() {
+            {
+                put("name", "Matt");
+                put("favorite_number", 3);
+            }
+        };
+        Map<String, Object> user4 = new HashMap<String, Object>() {
+            {
+                put("name", "Mike");
+                put("favorite_number", 345);
+            }
+        };
+        runner.enqueue(createAvroRecord(Arrays.asList(user1, user2, user3, user4)));
+        // ProcessException should NOT be thrown, because a Hive Transaction is already committed.
         runner.run();
 
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
-        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
-        assertNotNull(resultFlowFile);
-        assertEquals("3", resultFlowFile.getAttribute(PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR));
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+
+        // Assert transferred FlowFile.
+        assertOutputAvroRecords(Arrays.asList(user1, user2), runner.getFlowFilesForRelationship(REL_SUCCESS).get(0));
+
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+
+    }
+
+    private void assertOutputAvroRecords(List<Map<String, Object>> expectedRecords, MockFlowFile resultFlowFile) throws IOException {
+        assertEquals(String.valueOf(expectedRecords.size()), resultFlowFile.getAttribute(PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR));
+
         final DataFileStream<GenericRecord> reader = new DataFileStream<>(
                 new ByteArrayInputStream(resultFlowFile.toByteArray()),
                 new GenericDatumReader<GenericRecord>());
@@ -216,29 +444,39 @@ public class TestPutHiveStreaming {
         // Verify that the schema is preserved
         assertTrue(schema.equals(new Schema.Parser().parse(new File("src/test/resources/user.avsc"))));
 
-        // Verify the records are intact. We can't guarantee order so check the total number and non-null fields
-        assertTrue(reader.hasNext());
-        GenericRecord record = reader.next(null);
-        assertNotNull(record.get("name"));
-        assertNotNull(record.get("favorite_number"));
-        assertNull(record.get("favorite_color"));
-        assertNull(record.get("scale"));
-        assertTrue(reader.hasNext());
-        record = reader.next(record);
-        assertTrue(reader.hasNext());
-        reader.next(record);
+        GenericRecord record = null;
+        for (Map<String, Object> expectedRecord : expectedRecords) {
+            assertTrue(reader.hasNext());
+            record = reader.next(record);
+            final String name = record.get("name").toString();
+            final Integer favorite_number = (Integer) record.get("favorite_number");
+            assertNotNull(name);
+            assertNotNull(favorite_number);
+            assertNull(record.get("favorite_color"));
+            assertNull(record.get("scale"));
+
+            assertEquals(expectedRecord.get("name"), name);
+            assertEquals(expectedRecord.get("favorite_number"), favorite_number);
+        }
         assertFalse(reader.hasNext());
     }
 
     @Test
     public void onTriggerWithPartitionColumns() throws Exception {
-        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
-        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
-        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setVariable("metastore", "thrift://localhost:9083");
+        runner.setVariable("database", "default");
+        runner.setVariable("table", "users");
+        runner.setVariable("partitions", "favorite_number, favorite_color");
+
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "${metastore}");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "${database}");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "${table}");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_number, favorite_color");
+        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "${partitions}");
         runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "true");
-        runner.setValidateExpressionUsage(false);
+
+        runner.assertValid();
+
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -251,7 +489,9 @@ public class TestPutHiveStreaming {
         runner.run();
 
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
-        assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertEquals("1", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        assertEquals("default.users", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
     }
@@ -264,7 +504,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_food");
         runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "false");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -282,12 +521,43 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithPartitionColumnsNotInRecordRollbackOnFailure() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_food");
+        runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "false");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+                put("favorite_color", "blue");
+            }
+        };
+
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
     public void onTriggerWithRetireWriters() throws Exception {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -311,7 +581,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.HEARTBEAT_INTERVAL, "1");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -337,7 +606,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -353,13 +621,41 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithConnectFailureRollbackOnFailure() throws Exception {
+        processor.setGenerateConnectFailure(true);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
     public void onTriggerWithInterruptedException() throws Exception {
         processor.setGenerateInterruptedExceptionOnCreateWriter(true);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -373,13 +669,37 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void onTriggerWithInterruptedExceptionRollbackOnFailure() throws Exception {
+        processor.setGenerateInterruptedExceptionOnCreateWriter(true);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
     public void onTriggerWithWriteFailure() throws Exception {
         processor.setGenerateWriteFailure(true);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -396,7 +716,42 @@ public class TestPutHiveStreaming {
         runner.run();
 
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
-        assertEquals("2", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_FAILURE).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_FAILURE).get(0);
+        assertEquals("2", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        assertEquals("default.users", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
+    }
+
+    @Test
+    public void onTriggerWithWriteFailureRollbackOnFailure() throws Exception {
+        processor.setGenerateWriteFailure(true);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        runner.enqueue(createAvroRecord(Arrays.asList(user1, user2)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
     }
 
     @Test
@@ -406,7 +761,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -418,6 +772,34 @@ public class TestPutHiveStreaming {
 
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void onTriggerWithSerializationErrorRollbackOnFailure() throws Exception {
+        processor.setGenerateSerializationError(true);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
     }
 
     @Test
@@ -427,7 +809,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -437,9 +818,38 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 1);
+    }
+
+    @Test
+    public void onTriggerWithCommitFailureRollbackOnFailure() throws Exception {
+        processor.setGenerateCommitFailure(true);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
     }
 
     @Test
@@ -449,7 +859,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -459,9 +868,38 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 1);
+    }
+
+    @Test
+    public void onTriggerWithTransactionFailureRollbackOnFailure() throws Exception {
+        processor.setGenerateTransactionFailure(true);
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
     }
 
     @Test
@@ -471,7 +909,6 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
-        runner.setValidateExpressionUsage(false);
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -484,7 +921,7 @@ public class TestPutHiveStreaming {
 
     @Test
     public void cleanup() throws Exception {
-
+        processor.cleanup();
     }
 
     @Test
@@ -526,10 +963,12 @@ public class TestPutHiveStreaming {
         private boolean generateConnectFailure = false;
         private boolean generateInterruptedExceptionOnCreateWriter = false;
         private boolean generateWriteFailure = false;
+        private Integer generateWriteFailureRecordIndex;
         private boolean generateSerializationError = false;
         private boolean generateCommitFailure = false;
         private boolean generateTransactionFailure = false;
         private boolean generateExceptionOnFlushAndClose = false;
+        private HiveEndPoint hiveEndPoint = mock(HiveEndPoint.class);
 
         @Override
         public KerberosProperties getKerberosProperties() {
@@ -542,7 +981,6 @@ public class TestPutHiveStreaming {
 
         @Override
         public HiveEndPoint makeHiveEndPoint(List<String> partitionValues, HiveOptions hiveOptions) {
-            HiveEndPoint hiveEndPoint = mock(HiveEndPoint.class);
             return hiveEndPoint;
         }
 
@@ -556,7 +994,7 @@ public class TestPutHiveStreaming {
                 throw new InterruptedException();
             }
             MockHiveWriter hiveWriter = new MockHiveWriter(endPoint, options.getTxnsPerBatch(), options.getAutoCreatePartitions(), options.getCallTimeOut(), callTimeoutPool, ugi, hiveConfig);
-            hiveWriter.setGenerateWriteFailure(generateWriteFailure);
+            hiveWriter.setGenerateWriteFailure(generateWriteFailure, generateWriteFailureRecordIndex);
             hiveWriter.setGenerateSerializationError(generateSerializationError);
             hiveWriter.setGenerateCommitFailure(generateCommitFailure);
             hiveWriter.setGenerateTransactionFailure(generateTransactionFailure);
@@ -574,6 +1012,11 @@ public class TestPutHiveStreaming {
 
         public void setGenerateWriteFailure(boolean generateWriteFailure) {
             this.generateWriteFailure = generateWriteFailure;
+        }
+
+        public void setGenerateWriteFailure(boolean generateWriteFailure, int generateWriteFailureRecordIndex) {
+            this.generateWriteFailure = generateWriteFailure;
+            this.generateWriteFailureRecordIndex = generateWriteFailureRecordIndex;
         }
 
         public void setGenerateSerializationError(boolean generateSerializationError) {
@@ -597,10 +1040,13 @@ public class TestPutHiveStreaming {
     private class MockHiveWriter extends HiveWriter {
 
         private boolean generateWriteFailure = false;
+        private Integer generateWriteFailureRecordIndex;
         private boolean generateSerializationError = false;
         private boolean generateCommitFailure = false;
         private boolean generateTransactionFailure = false;
         private boolean generateExceptionOnFlushAndClose = false;
+        private int writeAttemptCount = 0;
+        private int totalRecords = 0;
 
         private HiveEndPoint endPoint;
 
@@ -608,21 +1054,29 @@ public class TestPutHiveStreaming {
                 long callTimeout, ExecutorService callTimeoutPool, UserGroupInformation ugi, HiveConf hiveConf)
                 throws InterruptedException, ConnectFailure {
             super(endPoint, txnsPerBatch, autoCreatePartitions, callTimeout, callTimeoutPool, ugi, hiveConf);
+            assertEquals(TestPutHiveStreaming.this.ugi, ugi);
             this.endPoint = endPoint;
         }
 
         @Override
         public synchronized void write(byte[] record) throws WriteFailure, SerializationError, InterruptedException {
-            if (generateWriteFailure) {
-                throw new HiveWriter.WriteFailure(endPoint, 1L, new Exception());
-            }
-            if (generateSerializationError) {
-                throw new SerializationError("Test Serialization Error", new Exception());
+            try {
+                if (generateWriteFailure
+                        && (generateWriteFailureRecordIndex == null || writeAttemptCount == generateWriteFailureRecordIndex)) {
+                    throw new WriteFailure(endPoint, 1L, new Exception());
+                }
+                if (generateSerializationError) {
+                    throw new SerializationError("Test Serialization Error", new Exception());
+                }
+                totalRecords++;
+            } finally {
+                writeAttemptCount++;
             }
         }
 
-        public void setGenerateWriteFailure(boolean generateWriteFailure) {
+        public void setGenerateWriteFailure(boolean generateWriteFailure, Integer generateWriteFailureRecordIndex) {
             this.generateWriteFailure = generateWriteFailure;
+            this.generateWriteFailureRecordIndex = generateWriteFailureRecordIndex;
         }
 
         public void setGenerateSerializationError(boolean generateSerializationError) {
@@ -715,6 +1169,11 @@ public class TestPutHiveStreaming {
         @Override
         protected void nextTxn(boolean rollToNext) throws StreamingException, InterruptedException, TxnBatchFailure {
             // Empty
+        }
+
+        @Override
+        public int getTotalRecords() {
+            return totalRecords;
         }
     }
 

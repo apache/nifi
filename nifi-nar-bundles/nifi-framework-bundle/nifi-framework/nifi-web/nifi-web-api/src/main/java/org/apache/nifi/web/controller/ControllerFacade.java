@@ -29,28 +29,27 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ContentAvailability;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowController.GroupStatusCounts;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Template;
-import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -64,8 +63,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -79,22 +76,22 @@ import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.scheduling.ExecutionNode;
-import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.search.SearchContext;
-import org.apache.nifi.search.SearchResult;
-import org.apache.nifi.search.Searchable;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.provenance.AttributeDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
@@ -105,10 +102,10 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchableFieldDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageRequestType;
-import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,6 +114,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -130,9 +128,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
@@ -150,6 +148,7 @@ public class ControllerFacade implements Authorizable {
     private NiFiProperties properties;
     private DtoFactory dtoFactory;
     private VariableRegistry variableRegistry;
+    private ControllerSearchService controllerSearchService;
 
     /**
      * Returns the group id that contains the specified processor.
@@ -165,6 +164,10 @@ public class ControllerFacade implements Authorizable {
         } else {
             return processor.getProcessGroup().getIdentifier();
         }
+    }
+
+    public ControllerServiceProvider getControllerServiceProvider() {
+        return flowController;
     }
 
     /**
@@ -196,35 +199,21 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Create a temporary Processor used for extracting PropertyDescriptor's for ControllerService reference authorization.
+     * Gets the cached temporary instance of the component for the given type and bundle.
      *
-     * @param type type of processor
-     * @return processor
-     * @throws ProcessorInstantiationException when unable to instantiate the processor
+     * @param type type of the component
+     * @param bundle the bundle of the component
+     * @return the temporary component
+     * @throws IllegalStateException if no temporary component exists for the given type and bundle
      */
-    public ProcessorNode createTemporaryProcessor(String type) throws ProcessorInstantiationException {
-        return flowController.createProcessor(type, UUID.randomUUID().toString(), false);
-    }
+    public ConfigurableComponent getTemporaryComponent(final String type, final BundleDTO bundle) {
+        final ConfigurableComponent configurableComponent = ExtensionManager.getTempComponent(type, BundleUtils.getBundle(type, bundle));
 
-    /**
-     * Create a temporary ReportingTask used for extracting PropertyDescriptor's for ControllerService reference authorization.
-     *
-     * @param type type of reporting task
-     * @return reporting task
-     * @throws ReportingTaskInstantiationException when unable to instantiate the reporting task
-     */
-    public ReportingTaskNode createTemporaryReportingTask(String type) throws ReportingTaskInstantiationException {
-        return flowController.createReportingTask(type, UUID.randomUUID().toString(), false, false);
-    }
+        if (configurableComponent == null) {
+            throw new IllegalStateException("Unable to obtain temporary component for " + type);
+        }
 
-    /**
-     * Create a temporary ControllerService used for extracting PropertyDescriptor's for ControllerService reference authorization.
-     *
-     * @param type type of controller service
-     * @return controller service
-     */
-    public ControllerServiceNode createTemporaryControllerService(String type) {
-        return flowController.createControllerService(type, UUID.randomUUID().toString(), false);
+        return configurableComponent;
     }
 
     /**
@@ -301,10 +290,12 @@ public class ControllerFacade implements Authorizable {
             throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
         }
 
-        final StatusHistoryDTO statusHistory = flowController.getProcessorStatusHistory(processorId);
+        final boolean authorized = processor.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
+        final StatusHistoryDTO statusHistory = flowController.getProcessorStatusHistory(processorId, authorized);
 
         // if not authorized
-        if (!processor.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
+        if (!authorized) {
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, processorId);
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Processor");
         }
@@ -450,10 +441,13 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the FlowFileProcessor types that this controller supports.
      *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return types
      */
-    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class));
+    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**
@@ -462,7 +456,7 @@ public class ControllerFacade implements Authorizable {
      * @return the FlowFileComparator types that this controller supports
      */
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class));
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class), null, null, null);
     }
 
     /**
@@ -472,10 +466,10 @@ public class ControllerFacade implements Authorizable {
      * @param type type
      * @return whether the specified type implements the specified serviceType
      */
-    private boolean implementsServiceType(final String serviceType, final Class type) {
+    private boolean implementsServiceType(final Class serviceType, final Class type) {
         final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(type);
         for (final Class i : interfaces) {
-            if (ControllerService.class.isAssignableFrom(i) && i.getName().equals(serviceType)) {
+            if (ControllerService.class.isAssignableFrom(i) && serviceType.isAssignableFrom(i)) {
                 return true;
             }
         }
@@ -487,36 +481,62 @@ public class ControllerFacade implements Authorizable {
      * Gets the ControllerService types that this controller supports.
      *
      * @param serviceType type
+     * @param serviceBundleGroup if serviceType specified, the bundle group of the serviceType
+     * @param serviceBundleArtifact if serviceType specified, the bundle artifact of the serviceType
+     * @param serviceBundleVersion if serviceType specified, the bundle version of the serviceType
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return the ControllerService types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
+                                                            final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+
         final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
-        final Set<Class> matchingServiceImplementions;
         if (serviceType != null) {
-            matchingServiceImplementions = new HashSet<>();
+            final BundleCoordinate bundleCoordinate = new BundleCoordinate(serviceBundleGroup, serviceBundleArtifact, serviceBundleVersion);
+            final Bundle csBundle = ExtensionManager.getBundle(bundleCoordinate);
+            if (csBundle == null) {
+                throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+            }
+
+            Class serviceClass = null;
+            final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
+            try {
+                Thread.currentThread().setContextClassLoader(csBundle.getClassLoader());
+                serviceClass = Class.forName(serviceType, false, csBundle.getClassLoader());
+            } catch (final Exception e) {
+                Thread.currentThread().setContextClassLoader(currentContextClassLoader);
+                throw new IllegalArgumentException(String.format("Unable to load %s from bundle %s: %s", serviceType, bundleCoordinate, e), e);
+            }
+
+            final Map<Class, Bundle> matchingServiceImplementations = new HashMap<>();
 
             // check each type and remove those that aren't in the specified ancestry
-            for (final Class type : serviceImplementations) {
-                if (implementsServiceType(serviceType, type)) {
-                    matchingServiceImplementions.add(type);
+            for (final Class csClass : serviceImplementations) {
+                if (implementsServiceType(serviceClass, csClass)) {
+                    matchingServiceImplementations.put(csClass, ExtensionManager.getBundle(csClass.getClassLoader()));
                 }
             }
-        } else {
-            matchingServiceImplementions = serviceImplementations;
-        }
 
-        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions);
+            return dtoFactory.fromDocumentedTypes(matchingServiceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        } else {
+            return dtoFactory.fromDocumentedTypes(serviceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+        }
     }
 
     /**
      * Gets the ReportingTask types that this controller supports.
      *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
      * @return the ReportingTask types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getReportingTaskTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
+    public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**
@@ -551,13 +571,14 @@ public class ControllerFacade implements Authorizable {
      */
     public ControllerStatusDTO getControllerStatus() {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final GroupStatusCounts groupStatusCounts = flowController.getGroupStatusCounts(rootGroup);
 
-        final QueueSize controllerQueueSize = flowController.getTotalFlowFileCount(rootGroup);
         final ControllerStatusDTO controllerStatus = new ControllerStatusDTO();
-        controllerStatus.setActiveThreadCount(flowController.getActiveThreadCount());
-        controllerStatus.setQueued(FormatUtils.formatCount(controllerQueueSize.getObjectCount()) + " / " + FormatUtils.formatDataSize(controllerQueueSize.getByteCount()));
-        controllerStatus.setBytesQueued(controllerQueueSize.getByteCount());
-        controllerStatus.setFlowFilesQueued(controllerQueueSize.getObjectCount());
+        controllerStatus.setActiveThreadCount(groupStatusCounts.getActiveThreadCount());
+        controllerStatus.setTerminatedThreadCount(groupStatusCounts.getTerminatedThreadCount());
+        controllerStatus.setQueued(FormatUtils.formatCount(groupStatusCounts.getQueuedCount()) + " / " + FormatUtils.formatDataSize(groupStatusCounts.getQueuedContentSize()));
+        controllerStatus.setBytesQueued(groupStatusCounts.getQueuedContentSize());
+        controllerStatus.setFlowFilesQueued(groupStatusCounts.getQueuedCount());
 
         final ProcessGroupCounts counts = rootGroup.getCounts();
         controllerStatus.setRunningCount(counts.getRunningCount());
@@ -566,6 +587,11 @@ public class ControllerFacade implements Authorizable {
         controllerStatus.setDisabledCount(counts.getDisabledCount());
         controllerStatus.setActiveRemotePortCount(counts.getActiveRemotePortCount());
         controllerStatus.setInactiveRemotePortCount(counts.getInactiveRemotePortCount());
+        controllerStatus.setUpToDateCount(counts.getUpToDateCount());
+        controllerStatus.setLocallyModifiedCount(counts.getLocallyModifiedCount());
+        controllerStatus.setStaleCount(counts.getStaleCount());
+        controllerStatus.setLocallyModifiedAndStaleCount(counts.getLocallyModifiedAndStaleCount());
+        controllerStatus.setSyncFailureCount(counts.getSyncFailureCount());
 
         return controllerStatus;
     }
@@ -789,7 +815,6 @@ public class ControllerFacade implements Authorizable {
         final List<Resource> resources = new ArrayList<>();
         resources.add(ResourceFactory.getFlowResource());
         resources.add(ResourceFactory.getSystemResource());
-        resources.add(ResourceFactory.getRestrictedComponentsResource());
         resources.add(ResourceFactory.getControllerResource());
         resources.add(ResourceFactory.getCountersResource());
         resources.add(ResourceFactory.getProvenanceResource());
@@ -798,6 +823,10 @@ public class ControllerFacade implements Authorizable {
         resources.add(ResourceFactory.getProxyResource());
         resources.add(ResourceFactory.getResourceResource());
         resources.add(ResourceFactory.getSiteToSiteResource());
+
+        // restricted components
+        resources.add(ResourceFactory.getRestrictedComponentsResource());
+        Arrays.stream(RequiredPermission.values()).forEach(requiredPermission -> resources.add(ResourceFactory.getRestrictedComponentsResource(requiredPermission)));
 
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
@@ -901,6 +930,12 @@ public class ControllerFacade implements Authorizable {
         final List<ProvenanceSearchableFieldDTO> searchableFieldNames = new ArrayList<>();
         final List<SearchableField> fields = provenanceRepository.getSearchableFields();
         for (final SearchableField field : fields) {
+            // we exclude the Event Time because it is always searchable but don't want support querying it this way...
+            // we prefer the user queries using startDate and endDate
+            if (SearchableFields.EventTime.equals(field)) {
+                continue;
+            }
+
             final ProvenanceSearchableFieldDTO searchableField = new ProvenanceSearchableFieldDTO();
             searchableField.setId(field.getIdentifier());
             searchableField.setField(field.getSearchableFieldName());
@@ -1082,12 +1117,12 @@ public class ControllerFacade implements Authorizable {
         final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission result;
 
-        // submit the event
         if (LineageRequestType.FLOWFILE.equals(requestDto.getLineageRequestType())) {
-            // submit uuid
-            if (requestDto.getEventId() == null) {
+            if (requestDto.getUuid() != null) {
+                // submit uuid if it is specified
                 result = provenanceRepository.submitLineageComputation(requestDto.getUuid(), NiFiUserUtils.getNiFiUser());
             } else {
+                // submit the event if the flowfile uuid needs to be looked up
                 result = provenanceRepository.submitLineageComputation(requestDto.getEventId(), NiFiUserUtils.getNiFiUser());
             }
         } else {
@@ -1486,388 +1521,21 @@ public class ControllerFacade implements Authorizable {
      */
     public SearchResultsDTO search(final String search) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-
         final SearchResultsDTO results = new SearchResultsDTO();
-        search(results, search, rootGroup);
+
+        controllerSearchService.search(results, search, rootGroup);
 
         return results;
     }
 
-    private void search(final SearchResultsDTO results, final String search, final ProcessGroup group) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        if (group.isAuthorized(authorizer, RequestAction.READ, user)) {
-            final ComponentSearchResultDTO groupMatch = search(search, group);
-            if (groupMatch != null) {
-                results.getProcessGroupResults().add(groupMatch);
-            }
-        }
-
-        for (final ProcessorNode procNode : group.getProcessors()) {
-            if (procNode.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, procNode);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    results.getProcessorResults().add(match);
-                }
-            }
-        }
-
-        for (final Connection connection : group.getConnections()) {
-            if (connection.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, connection);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    results.getConnectionResults().add(match);
-                }
-            }
-        }
-
-        for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
-            if (remoteGroup.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, remoteGroup);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    results.getRemoteProcessGroupResults().add(match);
-                }
-            }
-        }
-
-        for (final Port port : group.getInputPorts()) {
-            if (port.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, port);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    results.getInputPortResults().add(match);
-                }
-            }
-        }
-
-        for (final Port port : group.getOutputPorts()) {
-            if (port.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, port);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    results.getOutputPortResults().add(match);
-                }
-            }
-        }
-
-        for (final Funnel funnel : group.getFunnels()) {
-            if (funnel.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, funnel);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    results.getFunnelResults().add(match);
-                }
-            }
-        }
-
-        for (final ProcessGroup processGroup : group.getProcessGroups()) {
-            search(results, search, processGroup);
-        }
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final Port port) {
-        final List<String> matches = new ArrayList<>();
-
-        addIfAppropriate(searchStr, port.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, port.getName(), "Name", matches);
-        addIfAppropriate(searchStr, port.getComments(), "Comments", matches);
-
-        // consider scheduled state
-        if (ScheduledState.DISABLED.equals(port.getScheduledState())) {
-            if (StringUtils.containsIgnoreCase("disabled", searchStr)) {
-                matches.add("Run status: Disabled");
-            }
-        } else {
-            if (StringUtils.containsIgnoreCase("invalid", searchStr) && !port.isValid()) {
-                matches.add("Run status: Invalid");
-            } else if (ScheduledState.RUNNING.equals(port.getScheduledState()) && StringUtils.containsIgnoreCase("running", searchStr)) {
-                matches.add("Run status: Running");
-            } else if (ScheduledState.STOPPED.equals(port.getScheduledState()) && StringUtils.containsIgnoreCase("stopped", searchStr)) {
-                matches.add("Run status: Stopped");
-            }
-        }
-
-        if (port instanceof RootGroupPort) {
-            final RootGroupPort rootGroupPort = (RootGroupPort) port;
-
-            // user access controls
-            for (final String userAccessControl : rootGroupPort.getUserAccessControl()) {
-                addIfAppropriate(searchStr, userAccessControl, "User access control", matches);
-            }
-
-            // group access controls
-            for (final String groupAccessControl : rootGroupPort.getGroupAccessControl()) {
-                addIfAppropriate(searchStr, groupAccessControl, "Group access control", matches);
-            }
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(port.getIdentifier());
-        dto.setName(port.getName());
-        dto.setMatches(matches);
-        return dto;
+    public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {
+        flowController.verifyComponentTypesInSnippet(versionedFlow);
     }
 
 
-
-    private ComponentSearchResultDTO search(final String searchStr, final ProcessorNode procNode) {
-        final List<String> matches = new ArrayList<>();
-        final Processor processor = procNode.getProcessor();
-
-        addIfAppropriate(searchStr, procNode.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, procNode.getName(), "Name", matches);
-        addIfAppropriate(searchStr, procNode.getComments(), "Comments", matches);
-
-        // consider scheduling strategy
-        if (SchedulingStrategy.EVENT_DRIVEN.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("event", searchStr)) {
-            matches.add("Scheduling strategy: Event driven");
-        } else if (SchedulingStrategy.TIMER_DRIVEN.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("timer", searchStr)) {
-            matches.add("Scheduling strategy: Timer driven");
-        } else if (SchedulingStrategy.PRIMARY_NODE_ONLY.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("primary", searchStr)) {
-            // PRIMARY_NODE_ONLY has been deprecated as a SchedulingStrategy and replaced by PRIMARY as an ExecutionNode.
-            matches.add("Scheduling strategy: On primary node");
-        }
-
-        // consider execution node
-        if (ExecutionNode.PRIMARY.equals(procNode.getExecutionNode()) && StringUtils.containsIgnoreCase("primary", searchStr)) {
-            matches.add("Execution node: primary");
-        }
-
-        // consider scheduled state
-        if (ScheduledState.DISABLED.equals(procNode.getScheduledState())) {
-            if (StringUtils.containsIgnoreCase("disabled", searchStr)) {
-                matches.add("Run status: Disabled");
-            }
-        } else {
-            if (StringUtils.containsIgnoreCase("invalid", searchStr) && !procNode.isValid()) {
-                matches.add("Run status: Invalid");
-            } else if (ScheduledState.RUNNING.equals(procNode.getScheduledState()) && StringUtils.containsIgnoreCase("running", searchStr)) {
-                matches.add("Run status: Running");
-            } else if (ScheduledState.STOPPED.equals(procNode.getScheduledState()) && StringUtils.containsIgnoreCase("stopped", searchStr)) {
-                matches.add("Run status: Stopped");
-            }
-        }
-
-        for (final Relationship relationship : procNode.getRelationships()) {
-            addIfAppropriate(searchStr, relationship.getName(), "Relationship", matches);
-        }
-
-        // Add both the actual class name and the component type. This allows us to search for 'Ghost'
-        // to search for components that could not be instantiated.
-        addIfAppropriate(searchStr, processor.getClass().getSimpleName(), "Type", matches);
-        addIfAppropriate(searchStr, procNode.getComponentType(), "Type", matches);
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-
-            addIfAppropriate(searchStr, descriptor.getName(), "Property name", matches);
-            addIfAppropriate(searchStr, descriptor.getDescription(), "Property description", matches);
-
-            // never include sensitive properties values in search results
-            if (descriptor.isSensitive()) {
-                continue;
-            }
-
-            String value = entry.getValue();
-
-            // if unset consider default value
-            if (value == null) {
-                value = descriptor.getDefaultValue();
-            }
-
-            // evaluate if the value matches the search criteria
-            if (StringUtils.containsIgnoreCase(value, searchStr)) {
-                matches.add("Property value: " + descriptor.getName() + " - " + value);
-            }
-        }
-
-        // consider searching the processor directly
-        if (processor instanceof Searchable) {
-            final Searchable searchable = (Searchable) processor;
-
-            final SearchContext context = new StandardSearchContext(searchStr, procNode, flowController, variableRegistry);
-
-            // search the processor using the appropriate thread context classloader
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
-                final Collection<SearchResult> searchResults = searchable.search(context);
-                if (CollectionUtils.isNotEmpty(searchResults)) {
-                    for (final SearchResult searchResult : searchResults) {
-                        matches.add(searchResult.getLabel() + ": " + searchResult.getMatch());
-                    }
-                }
-            } catch (final Throwable t) {
-                // log this as error
-            }
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(procNode.getIdentifier());
-        result.setMatches(matches);
-        result.setName(procNode.getName());
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final ProcessGroup group) {
-        final List<String> matches = new ArrayList<>();
-        final ProcessGroup parent = group.getParent();
-        if (parent == null) {
-            return null;
-        }
-
-        addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, group.getName(), "Name", matches);
-        addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(group.getIdentifier());
-        result.setName(group.getName());
-        result.setGroupId(parent.getIdentifier());
-        result.setMatches(matches);
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final Connection connection) {
-        final List<String> matches = new ArrayList<>();
-
-        // search id and name
-        addIfAppropriate(searchStr, connection.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, connection.getName(), "Name", matches);
-
-        // search relationships
-        for (final Relationship relationship : connection.getRelationships()) {
-            addIfAppropriate(searchStr, relationship.getName(), "Relationship", matches);
-        }
-
-        // search prioritizers
-        final FlowFileQueue queue = connection.getFlowFileQueue();
-        for (final FlowFilePrioritizer comparator : queue.getPriorities()) {
-            addIfAppropriate(searchStr, comparator.getClass().getName(), "Prioritizer", matches);
-        }
-
-        // search expiration
-        if (StringUtils.containsIgnoreCase("expires", searchStr) || StringUtils.containsIgnoreCase("expiration", searchStr)) {
-            final int expirationMillis = connection.getFlowFileQueue().getFlowFileExpiration(TimeUnit.MILLISECONDS);
-            if (expirationMillis > 0) {
-                matches.add("FlowFile expiration: " + connection.getFlowFileQueue().getFlowFileExpiration());
-            }
-        }
-
-        // search back pressure
-        if (StringUtils.containsIgnoreCase("back pressure", searchStr) || StringUtils.containsIgnoreCase("pressure", searchStr)) {
-            final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
-            final Double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
-            if (backPressureBytes > 0) {
-                matches.add("Back pressure data size: " + backPressureDataSize);
-            }
-
-            final long backPressureCount = connection.getFlowFileQueue().getBackPressureObjectThreshold();
-            if (backPressureCount > 0) {
-                matches.add("Back pressure count: " + backPressureCount);
-            }
-        }
-
-        // search the source
-        final Connectable source = connection.getSource();
-        addIfAppropriate(searchStr, source.getIdentifier(), "Source id", matches);
-        addIfAppropriate(searchStr, source.getName(), "Source name", matches);
-        addIfAppropriate(searchStr, source.getComments(), "Source comments", matches);
-
-        // search the destination
-        final Connectable destination = connection.getDestination();
-        addIfAppropriate(searchStr, destination.getIdentifier(), "Destination id", matches);
-        addIfAppropriate(searchStr, destination.getName(), "Destination name", matches);
-        addIfAppropriate(searchStr, destination.getComments(), "Destination comments", matches);
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(connection.getIdentifier());
-
-        // determine the name of the search match
-        if (StringUtils.isNotBlank(connection.getName())) {
-            result.setName(connection.getName());
-        } else if (!connection.getRelationships().isEmpty()) {
-            final List<String> relationships = new ArrayList<>(connection.getRelationships().size());
-            for (final Relationship relationship : connection.getRelationships()) {
-                if (StringUtils.isNotBlank(relationship.getName())) {
-                    relationships.add(relationship.getName());
-                }
-            }
-            if (!relationships.isEmpty()) {
-                result.setName(StringUtils.join(relationships, ", "));
-            }
-        }
-
-        // ensure a name is added
-        if (result.getName() == null) {
-            result.setName("From source " + connection.getSource().getName());
-        }
-
-        result.setMatches(matches);
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final RemoteProcessGroup group) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, group.getName(), "Name", matches);
-        addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
-        addIfAppropriate(searchStr, group.getTargetUris(), "URLs", matches);
-
-        // consider the transmission status
-        if ((StringUtils.containsIgnoreCase("transmitting", searchStr) || StringUtils.containsIgnoreCase("transmission enabled", searchStr)) && group.isTransmitting()) {
-            matches.add("Transmission: On");
-        } else if ((StringUtils.containsIgnoreCase("not transmitting", searchStr) || StringUtils.containsIgnoreCase("transmission disabled", searchStr)) && !group.isTransmitting()) {
-            matches.add("Transmission: Off");
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(group.getIdentifier());
-        result.setName(group.getName());
-        result.setMatches(matches);
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final Funnel funnel) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(searchStr, funnel.getIdentifier(), "Id", matches);
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(funnel.getIdentifier());
-        dto.setName(funnel.getName());
-        dto.setMatches(matches);
-        return dto;
-    }
-
-    private void addIfAppropriate(final String searchStr, final String value, final String label, final List<String> matches) {
-        if (StringUtils.containsIgnoreCase(value, searchStr)) {
-            matches.add(label + ": " + value);
-        }
+    public ProcessorDiagnosticsDTO getProcessorDiagnostics(final ProcessorNode processor, final ProcessorStatus processorStatus, final BulletinRepository bulletinRepository,
+            final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+        return dtoFactory.createProcessorDiagnosticsDto(processor, processorStatus, bulletinRepository, flowController, serviceEntityFactory);
     }
 
     /*
@@ -1895,5 +1563,9 @@ public class ControllerFacade implements Authorizable {
 
     public void setVariableRegistry(VariableRegistry variableRegistry) {
         this.variableRegistry = variableRegistry;
+    }
+
+    public void setControllerSearchService(ControllerSearchService controllerSearchService) {
+        this.controllerSearchService = controllerSearchService;
     }
 }

@@ -13,3 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.hbase.HBase_1_1_2_ClientService
+org.apache.nifi.hbase.HBase_1_1_2_ClientMapCacheService
+org.apache.nifi.hbase.HBase_1_1_2_RecordLookupService

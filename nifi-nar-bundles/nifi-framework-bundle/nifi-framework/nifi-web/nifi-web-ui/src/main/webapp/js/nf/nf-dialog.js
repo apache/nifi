@@ -70,7 +70,7 @@
 
             // regardless of whether the dialog is already visible, the new content will be appended
             var content = $('<p></p>').append(options.dialogContent);
-            $('#nf-ok-dialog-content').append(content);
+            $('#nf-ok-dialog-content').append(content).append('</br>');
 
             // update the button model
             $('#nf-ok-dialog').modal('setButtonModel', [{

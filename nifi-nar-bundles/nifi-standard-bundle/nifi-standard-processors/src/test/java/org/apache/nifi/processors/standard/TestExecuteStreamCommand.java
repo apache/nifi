@@ -54,7 +54,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -87,16 +86,18 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        assertEquals(0, flowFiles.get(0).getSize());
-        assertEquals("Error: Unable to access jarfile", flowFiles.get(0).getAttribute("execution.error").substring(0, 31));
+        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
+        controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertEquals(0, flowFile.getSize());
+        assertEquals("Error: Unable to access jarfile", flowFile.getAttribute("execution.error").substring(0, 31));
+        assertTrue(flowFile.isPenalized());
     }
 
     @Test
@@ -114,7 +115,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy10MBytes.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -135,7 +135,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -158,7 +157,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -182,7 +180,6 @@ public class TestExecuteStreamCommand {
         testFile.delete();
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.enqueue(dummy.toPath());
         controller.enqueue(dummy.toPath());
@@ -209,7 +206,6 @@ public class TestExecuteStreamCommand {
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setProperty("NIFI_TEST_1", "testvalue1");
         controller.setProperty("NIFI_TEST_2", "testvalue2");
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -231,7 +227,6 @@ public class TestExecuteStreamCommand {
         File dummy = new File("src/test/resources/hello.txt");
         assertTrue(dummy.exists());
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue("".getBytes());
 
         if(isWindows()) {
@@ -265,7 +260,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -293,7 +287,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue("small test".getBytes());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -303,6 +296,7 @@ public class TestExecuteStreamCommand {
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
+        controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
         MockFlowFile outputFlowFile = flowFiles.get(0);
@@ -331,7 +325,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy10MBytes.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -357,7 +350,6 @@ public class TestExecuteStreamCommand {
         }
 
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue("".getBytes());
         if(isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
@@ -388,8 +380,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
-
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -411,7 +401,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -435,7 +424,6 @@ public class TestExecuteStreamCommand {
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setProperty("NIFI_TEST_1", "testvalue1");
         controller.setProperty("NIFI_TEST_2", "testvalue2");
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -468,6 +456,35 @@ public class TestExecuteStreamCommand {
         controller.assertNotValid();
         controller.setProperty(ExecuteStreamCommand.ARG_DELIMITER, "f");
         controller.assertValid();
+    }
+
+    @Test
+    public void testExecuteJarPutToAttributeBadPath() throws Exception {
+        File exJar = new File("src/test/resources/ExecuteCommand/noSuchFile.jar");
+        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
+        String jarPath = exJar.getAbsolutePath();
+        exJar.setExecutable(true);
+        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.enqueue(dummy.toPath());
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "executeStreamCommand.output");
+        controller.run(1);
+        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
+        controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
+        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+
+        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        MockFlowFile outputFlowFile = flowFiles.get(0);
+        String result = outputFlowFile.getAttribute("executeStreamCommand.output");
+        outputFlowFile.assertContentEquals(dummy);
+        assertTrue(result.isEmpty()); // java -jar with bad path only prints to standard error not standard out
+        assertEquals("1", outputFlowFile.getAttribute("execution.status")); // java -jar with bad path exits with code 1
+        assertEquals("java", outputFlowFile.getAttribute("execution.command"));
+        assertEquals("-jar;", outputFlowFile.getAttribute("execution.command.args").substring(0, 5));
+        String attribute = outputFlowFile.getAttribute("execution.command.args");
+        String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator + "noSuchFile.jar";
+        assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
     }
 
     private static boolean isWindows() {

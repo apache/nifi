@@ -19,7 +19,6 @@ package org.apache.nifi.remote.protocol.socket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.PeerDescriptionModifiable;
+import org.apache.nifi.remote.PeerDescriptionModifier;
 import org.apache.nifi.remote.RemoteResourceFactory;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
@@ -40,13 +42,21 @@ import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ResponseCode;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 
-public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
+public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol implements PeerDescriptionModifiable {
 
     public static final String RESOURCE_NAME = "SocketFlowFileProtocol";
 
     // Version 6 added to support Zero-Master Clustering, which was introduced in NiFi 1.0.0
     private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(6, 5, 4, 3, 2, 1);
+
+    private PeerDescriptionModifier peerDescriptionModifier;
+
+    @Override
+    public void setPeerDescriptionModifier(PeerDescriptionModifier modifier) {
+        peerDescriptionModifier = modifier;
+    }
 
     @Override
     protected HandshakeProperties doHandshake(Peer peer) throws IOException, HandshakeException {
@@ -155,10 +165,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     public void sendPeerList(
             final Peer peer,
             final Optional<ClusterNodeInformation> clusterNodeInfo,
-            final String remoteInputHost,
-            final int remoteInputPort,
-            final int remoteInputHttpPort,
-            final boolean isSiteToSiteSecure) throws IOException {
+            final NodeInformation self) throws IOException {
         if (!handshakeCompleted) {
             throw new IllegalStateException("Handshake has not been completed");
         }
@@ -170,18 +177,12 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
 
-        String remoteInputHostVal = remoteInputHost;
-        if (remoteInputHostVal == null) {
-            remoteInputHostVal = InetAddress.getLocalHost().getHostName();
-        }
         logger.debug("{} Advertising Remote Input host name {}", this, peer);
 
         List<NodeInformation> nodeInfos;
         if (clusterNodeInfo.isPresent()) {
             nodeInfos = new ArrayList<>(clusterNodeInfo.get().getNodeInformation());
         } else {
-            final NodeInformation self = new NodeInformation(remoteInputHostVal, remoteInputPort, remoteInputHttpPort, remoteInputHttpPort,
-                isSiteToSiteSecure, 0);
             nodeInfos = Collections.singletonList(self);
         }
 
@@ -199,9 +200,21 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
                 continue;
             }
 
-            dos.writeUTF(nodeInfo.getSiteToSiteHostname());
-            dos.writeInt(nodeInfo.getSiteToSitePort());
-            dos.writeBoolean(nodeInfo.isSiteToSiteSecure());
+            if (peerDescriptionModifier != null && peerDescriptionModifier.isModificationNeeded(SiteToSiteTransportProtocol.RAW)) {
+                final PeerDescription target = new PeerDescription(nodeInfo.getSiteToSiteHostname(), nodeInfo.getSiteToSitePort(), nodeInfo.isSiteToSiteSecure());
+                final PeerDescription modifiedTarget = peerDescriptionModifier.modify(peer.getDescription(), target,
+                        SiteToSiteTransportProtocol.RAW, PeerDescriptionModifier.RequestType.Peers, new HashMap<>());
+
+                dos.writeUTF(modifiedTarget.getHostname());
+                dos.writeInt(modifiedTarget.getPort());
+                dos.writeBoolean(modifiedTarget.isSecure());
+
+            } else {
+                dos.writeUTF(nodeInfo.getSiteToSiteHostname());
+                dos.writeInt(nodeInfo.getSiteToSitePort());
+                dos.writeBoolean(nodeInfo.isSiteToSiteSecure());
+            }
+
             dos.writeInt(nodeInfo.getTotalFlowFiles());
         }
 

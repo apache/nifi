@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.Map;
 
 /**
  * The details for a process group within this NiFi flow.
@@ -27,6 +29,8 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     private String name;
     private String comments;
+    private Map<String, String> variables;
+    private VersionControlInformationDTO versionControlInformation;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -34,6 +38,12 @@ public class ProcessGroupDTO extends ComponentDTO {
     private Integer disabledCount;
     private Integer activeRemotePortCount;
     private Integer inactiveRemotePortCount;
+
+    private Integer upToDateCount;
+    private Integer locallyModifiedCount;
+    private Integer staleCount;
+    private Integer locallyModifiedAndStaleCount;
+    private Integer syncFailureCount;
 
     private Integer inputPortCount;
     private Integer outputPortCount;
@@ -200,4 +210,70 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
+    @ApiModelProperty("The number of up to date versioned process groups in the process group.")
+    public Integer getUpToDateCount() {
+        return upToDateCount;
+    }
+
+    public void setUpToDateCount(Integer upToDateCount) {
+        this.upToDateCount = upToDateCount;
+    }
+
+    @ApiModelProperty("The number of locally modified versioned process groups in the process group.")
+    public Integer getLocallyModifiedCount() {
+        return locallyModifiedCount;
+    }
+
+    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+        this.locallyModifiedCount = locallyModifiedCount;
+    }
+
+    @ApiModelProperty("The number of stale versioned process groups in the process group.")
+    public Integer getStaleCount() {
+        return staleCount;
+    }
+
+    public void setStaleCount(Integer staleCount) {
+        this.staleCount = staleCount;
+    }
+
+    @ApiModelProperty("The number of locally modified and stale versioned process groups in the process group.")
+    public Integer getLocallyModifiedAndStaleCount() {
+        return locallyModifiedAndStaleCount;
+    }
+
+    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+        this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
+    }
+
+    @ApiModelProperty("The number of versioned process groups in the process group that are unable to sync to a registry.")
+    public Integer getSyncFailureCount() {
+        return syncFailureCount;
+    }
+
+    public void setSyncFailureCount(Integer syncFailureCount) {
+        this.syncFailureCount = syncFailureCount;
+    }
+
+    @ApiModelProperty(value = "The variables that are configured for the Process Group. Note that this map contains only "
+        + "those variables that are defined on this Process Group and not any variables that are defined in the parent "
+        + "Process Group, etc. I.e., this Map will not contain all variables that are accessible by components in this "
+        + "Process Group by rather only the variables that are defined for this Process Group itself.", readOnly = true)
+    public Map<String, String> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(final Map<String, String> variables) {
+        this.variables = variables;
+    }
+
+    @ApiModelProperty("The Version Control information that indicates which Flow Registry, and where in the Flow Registry, "
+        + "this Process Group is tracking to; or null if this Process Group is not under version control")
+    public VersionControlInformationDTO getVersionControlInformation() {
+        return versionControlInformation;
+    }
+
+    public void setVersionControlInformation(final VersionControlInformationDTO versionControlInformation) {
+        this.versionControlInformation = versionControlInformation;
+    }
 }

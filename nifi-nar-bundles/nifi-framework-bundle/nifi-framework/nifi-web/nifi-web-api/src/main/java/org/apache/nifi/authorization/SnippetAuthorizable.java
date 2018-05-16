@@ -36,7 +36,7 @@ public interface SnippetAuthorizable {
      *
      * @return processors
      */
-    Set<ConfigurableComponentAuthorizable> getSelectedProcessors();
+    Set<ComponentAuthorizable> getSelectedProcessors();
 
     /**
      * The authorizables for selected connections. Non null

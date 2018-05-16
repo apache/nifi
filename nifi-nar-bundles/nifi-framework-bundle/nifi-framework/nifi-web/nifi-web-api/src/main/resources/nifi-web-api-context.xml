@@ -52,7 +52,6 @@
         <property name="entityFactory" ref="entityFactory"/>
         <property name="authorizer" ref="authorizer"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
-        <property name="properties" ref="nifiProperties"/>
     </bean>
 
     <!-- snippet utils -->
@@ -61,6 +60,20 @@
         <property name="flowController" ref="flowController"/>
         <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
     </bean>
+    
+    <bean id="clusterComponentLifecycle" class="org.apache.nifi.web.util.ClusterReplicationComponentLifecycle">
+        <property name="clusterCoordinator" ref="clusterCoordinator" />
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="serviceFacade" ref="serviceFacade" />
+        <property name="dtoFactory" ref="dtoFactory" />
+    </bean>
+
+    <bean id="localComponentLifecycle" class="org.apache.nifi.web.util.LocalComponentLifecycle">
+        <property name="serviceFacade" ref="serviceFacade" />
+        <property name="revisionManager" ref="revisionManager" />
+        <property name="dtoFactory" ref="dtoFactory" />
+    </bean>
+
 
     <!-- nifi component dao initialization -->
     <bean id="processGroupDAO" class="org.apache.nifi.web.dao.impl.StandardProcessGroupDAO">
@@ -97,6 +110,7 @@
     <bean id="reportingTaskDAO" class="org.apache.nifi.web.dao.impl.StandardReportingTaskDAO">
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
         <property name="componentStateDAO" ref="componentStateDAO"/>
+        <property name="reloadComponent" ref="flowController" />
     </bean>
     <bean id="componentStateDAO" class="org.apache.nifi.web.dao.impl.StandardComponentStateDAO">
         <property name="stateManagerProvider" ref="stateManagerProvider"/>
@@ -109,8 +123,16 @@
         <property name="flowController" ref="flowController"/>
         <property name="snippetUtils" ref="snippetUtils"/>
     </bean>
+    <bean id="flowRegistryDAO" class="org.apache.nifi.web.dao.impl.FlowRegistryDAO">
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
+    </bean>
     <bean id="policyBasedAuthorizerDAO" class="org.apache.nifi.web.dao.impl.StandardPolicyBasedAuthorizerDAO">
         <constructor-arg ref="authorizer"/>
+    </bean>
+    <bean id="controllerSearchService" class="org.apache.nifi.web.controller.ControllerSearchService">
+        <property name="flowController" ref="flowController"/>
+        <property name="authorizer" ref="authorizer"/>
+        <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
     <bean id="controllerFacade" class="org.apache.nifi.web.controller.ControllerFacade">
         <property name="properties" ref="nifiProperties"/>
@@ -119,6 +141,7 @@
         <property name="authorizer" ref="authorizer"/>
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="variableRegistry" ref="variableRegistry"/>
+        <property name="controllerSearchService" ref="controllerSearchService"/>
     </bean>
     <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
         <property name="controllerFacade" ref="controllerFacade"/>
@@ -165,6 +188,8 @@
         <property name="heartbeatMonitor" ref="heartbeatMonitor" />
         <property name="bulletinRepository" ref="bulletinRepository"/>
         <property name="leaderElectionManager" ref="leaderElectionManager" />
+        <property name="flowRegistryClient" ref="flowRegistryClient" />
+        <property name="registryDAO" ref="flowRegistryDAO" />
     </bean>
     
     <!-- component ui extension configuration context -->
@@ -283,6 +308,18 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer"/>
         <property name="flowController" ref="flowController" />
+        <property name="dtoFactory" ref="dtoFactory" />
+    </bean>
+    <bean id="versionsResource" class="org.apache.nifi.web.api.VersionsResource" scope="singleton">
+        <property name="serviceFacade" ref="serviceFacade" />
+        <property name="properties" ref="nifiProperties"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="flowController" ref="flowController" />
+        <property name="authorizer" ref="authorizer"/>
+        <property name="clusterComponentLifecycle" ref="clusterComponentLifecycle" />
+        <property name="localComponentLifecycle" ref="localComponentLifecycle" />
+        <property name="dtoFactory" ref="dtoFactory" />
     </bean>
     <bean id="processorResource" class="org.apache.nifi.web.api.ProcessorResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -381,6 +418,8 @@
     </bean>
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
+        <property name="oidcService" ref="oidcService"/>
+        <property name="knoxService" ref="knoxService"/>
         <property name="x509AuthenticationProvider" ref="x509AuthenticationProvider"/>
         <property name="certificateExtractor" ref="certificateExtractor"/>
         <property name="principalExtractor" ref="principalExtractor"/>
@@ -409,40 +448,6 @@
         <constructor-arg ref="requestReplicator" />
         <constructor-arg ref="flowController" />
     </bean>
-
-    <!-- configuration for jaxb serialization -->
-    <bean class="org.apache.nifi.web.util.ObjectMapperResolver" scope="singleton"/>
-
-    <!-- exception mapping -->
-    <bean class="org.apache.nifi.web.api.config.AccessDeniedExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.AuthorizationAccessExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.InvalidAuthenticationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.AdministrationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ClusterExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalArgumentExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalClusterResourceRequestExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalClusterStateExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalNodeDeletionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalNodeDisconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalNodeReconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.IllegalStateExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.InvalidRevisionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.JsonMappingExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.JsonParseExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.MutableRequestExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NiFiCoreExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NoConnectedNodesExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NoClusterCoordinatorExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NoResponseFromNodesExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NodeDisconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NodeReconnectionExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ResourceNotFoundExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.NotFoundExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.UnknownNodeExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ValidationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.WebApplicationExceptionMapper" scope="singleton"/>
-    <bean class="org.apache.nifi.web.api.config.ThrowableMapper" scope="singleton"/>
 
     <!-- enable aop -->
     <!-- 

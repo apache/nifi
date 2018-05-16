@@ -33,6 +33,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import kafka.consumer.Consumer;
@@ -43,6 +44,7 @@ import kafka.javaapi.consumer.ConsumerConnector;
 
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
+@Ignore
 public class PutKafkaTest {
 
     private static EmbeddedKafka kafkaLocal;

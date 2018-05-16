@@ -34,9 +34,10 @@ public interface FlowSerializer {
      *
      * @param controller a controller
      * @param os an output stream to write the configuration to
+     * @param stateLookup a lookup that can be used to determine the ScheduledState of a Processor
      *
      * @throws FlowSerializationException if serialization failed
      */
-    void serialize(FlowController controller, OutputStream os) throws FlowSerializationException;
+    void serialize(FlowController controller, OutputStream os, ScheduledStateLookup stateLookup) throws FlowSerializationException;
 
 }

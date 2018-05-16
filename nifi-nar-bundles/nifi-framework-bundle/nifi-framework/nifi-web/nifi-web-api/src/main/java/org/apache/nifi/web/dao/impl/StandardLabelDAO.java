@@ -102,6 +102,7 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
             label.setSize(new Size(labelDTO.getWidth(), labelDTO.getHeight()));
         }
 
+        label.getProcessGroup().onComponentModified();
         return label;
     }
 

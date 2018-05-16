@@ -16,24 +16,7 @@
  */
 package org.apache.nifi.controller.serialization;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -54,13 +37,37 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.VariableDescriptor;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.StringUtils;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Serializes a Flow Controller as XML to an output stream.
@@ -69,7 +76,7 @@ import org.w3c.dom.Node;
  */
 public class StandardFlowSerializer implements FlowSerializer {
 
-    private static final String MAX_ENCODING_VERSION = "1.0";
+    private static final String MAX_ENCODING_VERSION = "1.3";
 
     private final StringEncryptor encryptor;
 
@@ -78,7 +85,7 @@ public class StandardFlowSerializer implements FlowSerializer {
     }
 
     @Override
-    public void serialize(final FlowController controller, final OutputStream os) throws FlowSerializationException {
+    public void serialize(final FlowController controller, final OutputStream os, final ScheduledStateLookup scheduledStateLookup) throws FlowSerializationException {
         try {
             // create a new, empty document
             final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -93,7 +100,12 @@ public class StandardFlowSerializer implements FlowSerializer {
             doc.appendChild(rootNode);
             addTextElement(rootNode, "maxTimerDrivenThreadCount", controller.getMaxTimerDrivenThreadCount());
             addTextElement(rootNode, "maxEventDrivenThreadCount", controller.getMaxEventDrivenThreadCount());
-            addProcessGroup(rootNode, controller.getGroup(controller.getRootGroupId()), "rootGroup");
+
+            final Element registriesElement = doc.createElement("registries");
+            rootNode.appendChild(registriesElement);
+
+            addFlowRegistries(registriesElement, controller.getFlowRegistryClient());
+            addProcessGroup(rootNode, controller.getGroup(controller.getRootGroupId()), "rootGroup", scheduledStateLookup);
 
             // Add root-level controller services
             final Element controllerServicesNode = doc.createElement("controllerServices");
@@ -125,6 +137,26 @@ public class StandardFlowSerializer implements FlowSerializer {
         }
     }
 
+    private void addFlowRegistries(final Element parentElement, final FlowRegistryClient registryClient) {
+        for (final String registryId : registryClient.getRegistryIdentifiers()) {
+            final FlowRegistry flowRegistry = registryClient.getFlowRegistry(registryId);
+
+            final Element registryElement = parentElement.getOwnerDocument().createElement("flowRegistry");
+            parentElement.appendChild(registryElement);
+
+            addStringElement(registryElement, "id", flowRegistry.getIdentifier());
+            addStringElement(registryElement, "name", flowRegistry.getName());
+            addStringElement(registryElement, "url", flowRegistry.getURL());
+            addStringElement(registryElement, "description", flowRegistry.getDescription());
+        }
+    }
+
+    private void addStringElement(final Element parentElement, final String elementName, final String value) {
+        final Element childElement = parentElement.getOwnerDocument().createElement(elementName);
+        childElement.setTextContent(value);
+        parentElement.appendChild(childElement);
+    }
+
     private void addSize(final Element parentElement, final Size size) {
         final Element element = parentElement.getOwnerDocument().createElement("size");
         element.setAttribute("width", String.valueOf(size.getWidth()));
@@ -143,34 +175,48 @@ public class StandardFlowSerializer implements FlowSerializer {
         parentElement.appendChild(element);
     }
 
-    private void addProcessGroup(final Element parentElement, final ProcessGroup group, final String elementName) {
+    private void addProcessGroup(final Element parentElement, final ProcessGroup group, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
         addTextElement(element, "id", group.getIdentifier());
+        addTextElement(element, "versionedComponentId", group.getVersionedComponentId());
         addTextElement(element, "name", group.getName());
         addPosition(element, group.getPosition());
         addTextElement(element, "comment", group.getComments());
 
+        final VersionControlInformation versionControlInfo = group.getVersionControlInformation();
+        if (versionControlInfo != null) {
+            final Element versionControlInfoElement = doc.createElement("versionControlInformation");
+            addTextElement(versionControlInfoElement, "registryId", versionControlInfo.getRegistryIdentifier());
+            addTextElement(versionControlInfoElement, "bucketId", versionControlInfo.getBucketIdentifier());
+            addTextElement(versionControlInfoElement, "bucketName", versionControlInfo.getBucketName());
+            addTextElement(versionControlInfoElement, "flowId", versionControlInfo.getFlowIdentifier());
+            addTextElement(versionControlInfoElement, "flowName", versionControlInfo.getFlowName());
+            addTextElement(versionControlInfoElement, "flowDescription", versionControlInfo.getFlowDescription());
+            addTextElement(versionControlInfoElement, "version", versionControlInfo.getVersion());
+            element.appendChild(versionControlInfoElement);
+        }
+
         for (final ProcessorNode processor : group.getProcessors()) {
-            addProcessor(element, processor);
+            addProcessor(element, processor, scheduledStateLookup);
         }
 
         if (group.isRootGroup()) {
             for (final Port port : group.getInputPorts()) {
-                addRootGroupPort(element, (RootGroupPort) port, "inputPort");
+                addRootGroupPort(element, (RootGroupPort) port, "inputPort", scheduledStateLookup);
             }
 
             for (final Port port : group.getOutputPorts()) {
-                addRootGroupPort(element, (RootGroupPort) port, "outputPort");
+                addRootGroupPort(element, (RootGroupPort) port, "outputPort", scheduledStateLookup);
             }
         } else {
             for (final Port port : group.getInputPorts()) {
-                addPort(element, port, "inputPort");
+                addPort(element, port, "inputPort", scheduledStateLookup);
             }
 
             for (final Port port : group.getOutputPorts()) {
-                addPort(element, port, "outputPort");
+                addPort(element, port, "outputPort", scheduledStateLookup);
             }
         }
 
@@ -183,11 +229,11 @@ public class StandardFlowSerializer implements FlowSerializer {
         }
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            addProcessGroup(element, childGroup, "processGroup");
+            addProcessGroup(element, childGroup, "processGroup", scheduledStateLookup);
         }
 
         for (final RemoteProcessGroup remoteRef : group.getRemoteProcessGroups()) {
-            addRemoteProcessGroup(element, remoteRef);
+            addRemoteProcessGroup(element, remoteRef, scheduledStateLookup);
         }
 
         for (final Connection connection : group.getConnections()) {
@@ -201,6 +247,40 @@ public class StandardFlowSerializer implements FlowSerializer {
         for (final Template template : group.getTemplates()) {
             addTemplate(element, template);
         }
+
+        final VariableRegistry variableRegistry = group.getVariableRegistry();
+        for (final Map.Entry<VariableDescriptor, String> entry : variableRegistry.getVariableMap().entrySet()) {
+            addVariable(element, entry.getKey().getName(), entry.getValue());
+        }
+    }
+
+    private static void addVariable(final Element parentElement, final String variableName, final String variableValue) {
+        final Element variableElement = parentElement.getOwnerDocument().createElement("variable");
+        variableElement.setAttribute("name", variableName);
+        variableElement.setAttribute("value", variableValue);
+        parentElement.appendChild(variableElement);
+    }
+
+    private static void addBundle(final Element parentElement, final BundleCoordinate coordinate) {
+        // group
+        final Element groupElement = parentElement.getOwnerDocument().createElement("group");
+        groupElement.setTextContent(coordinate.getGroup());
+
+        // artifact
+        final Element artifactElement = parentElement.getOwnerDocument().createElement("artifact");
+        artifactElement.setTextContent(coordinate.getId());
+
+        // version
+        final Element versionElement = parentElement.getOwnerDocument().createElement("version");
+        versionElement.setTextContent(coordinate.getVersion());
+
+        // bundle
+        final Element bundleElement = parentElement.getOwnerDocument().createElement("bundle");
+        bundleElement.appendChild(groupElement);
+        bundleElement.appendChild(artifactElement);
+        bundleElement.appendChild(versionElement);
+
+        parentElement.appendChild(bundleElement);
     }
 
     private void addStyle(final Element parentElement, final Map<String, String> style) {
@@ -221,6 +301,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         final Element element = doc.createElement("label");
         parentElement.appendChild(element);
         addTextElement(element, "id", label.getIdentifier());
+        addTextElement(element, "versionedComponentId", label.getVersionedComponentId());
 
         addPosition(element, label.getPosition());
         addSize(element, label.getSize());
@@ -235,14 +316,16 @@ public class StandardFlowSerializer implements FlowSerializer {
         final Element element = doc.createElement("funnel");
         parentElement.appendChild(element);
         addTextElement(element, "id", funnel.getIdentifier());
+        addTextElement(element, "versionedComponentId", funnel.getVersionedComponentId());
         addPosition(element, funnel.getPosition());
     }
 
-    private void addRemoteProcessGroup(final Element parentElement, final RemoteProcessGroup remoteRef) {
+    private void addRemoteProcessGroup(final Element parentElement, final RemoteProcessGroup remoteRef, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement("remoteProcessGroup");
         parentElement.appendChild(element);
         addTextElement(element, "id", remoteRef.getIdentifier());
+        addTextElement(element, "versionedComponentId", remoteRef.getVersionedComponentId());
         addTextElement(element, "name", remoteRef.getName());
         addPosition(element, remoteRef.getPosition());
         addTextElement(element, "comment", remoteRef.getComments());
@@ -261,59 +344,78 @@ public class StandardFlowSerializer implements FlowSerializer {
             final String value = ENC_PREFIX + encryptor.encrypt(remoteRef.getProxyPassword()) + ENC_SUFFIX;
             addTextElement(element, "proxyPassword", value);
         }
+        if (remoteRef.getNetworkInterface() != null) {
+            addTextElement(element, "networkInterface", remoteRef.getNetworkInterface());
+        }
 
         for (final RemoteGroupPort port : remoteRef.getInputPorts()) {
             if (port.hasIncomingConnection()) {
-                addRemoteGroupPort(element, port, "inputPort");
+                addRemoteGroupPort(element, port, "inputPort", scheduledStateLookup);
             }
         }
 
         for (final RemoteGroupPort port : remoteRef.getOutputPorts()) {
             if (!port.getConnections().isEmpty()) {
-                addRemoteGroupPort(element, port, "outputPort");
+                addRemoteGroupPort(element, port, "outputPort", scheduledStateLookup);
             }
         }
 
         parentElement.appendChild(element);
     }
 
-    private void addRemoteGroupPort(final Element parentElement, final RemoteGroupPort port, final String elementName) {
+    private void addRemoteGroupPort(final Element parentElement, final RemoteGroupPort port, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
         addTextElement(element, "id", port.getIdentifier());
+        addTextElement(element, "versionedComponentId", port.getVersionedComponentId());
         addTextElement(element, "name", port.getName());
         addPosition(element, port.getPosition());
         addTextElement(element, "comments", port.getComments());
-        addTextElement(element, "scheduledState", port.getScheduledState().name());
+        addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(port).name());
+        addTextElement(element, "targetId", port.getTargetIdentifier());
         addTextElement(element, "maxConcurrentTasks", port.getMaxConcurrentTasks());
         addTextElement(element, "useCompression", String.valueOf(port.isUseCompression()));
+        final Integer batchCount = port.getBatchCount();
+        if (batchCount != null && batchCount > 0) {
+            addTextElement(element, "batchCount", batchCount);
+        }
+        final String batchSize = port.getBatchSize();
+        if (batchSize != null && batchSize.length() > 0) {
+            addTextElement(element, "batchSize", batchSize);
+        }
+        final String batchDuration = port.getBatchDuration();
+        if (batchDuration != null && batchDuration.length() > 0) {
+            addTextElement(element, "batchDuration", batchDuration);
+        }
 
         parentElement.appendChild(element);
     }
 
-    private void addPort(final Element parentElement, final Port port, final String elementName) {
+    private void addPort(final Element parentElement, final Port port, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
         addTextElement(element, "id", port.getIdentifier());
+        addTextElement(element, "versionedComponentId", port.getVersionedComponentId());
         addTextElement(element, "name", port.getName());
         addPosition(element, port.getPosition());
         addTextElement(element, "comments", port.getComments());
-        addTextElement(element, "scheduledState", port.getScheduledState().name());
+        addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(port).name());
 
         parentElement.appendChild(element);
     }
 
-    private void addRootGroupPort(final Element parentElement, final RootGroupPort port, final String elementName) {
+    private void addRootGroupPort(final Element parentElement, final RootGroupPort port, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
         addTextElement(element, "id", port.getIdentifier());
+        addTextElement(element, "versionedComponentId", port.getVersionedComponentId());
         addTextElement(element, "name", port.getName());
         addPosition(element, port.getPosition());
         addTextElement(element, "comments", port.getComments());
-        addTextElement(element, "scheduledState", port.getScheduledState().name());
+        addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(port).name());
         addTextElement(element, "maxConcurrentTasks", String.valueOf(port.getMaxConcurrentTasks()));
         for (final String user : port.getUserAccessControl()) {
             addTextElement(element, "userAccessControl", user);
@@ -325,11 +427,12 @@ public class StandardFlowSerializer implements FlowSerializer {
         parentElement.appendChild(element);
     }
 
-    private void addProcessor(final Element parentElement, final ProcessorNode processor) {
+    private void addProcessor(final Element parentElement, final ProcessorNode processor, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement("processor");
         parentElement.appendChild(element);
         addTextElement(element, "id", processor.getIdentifier());
+        addTextElement(element, "versionedComponentId", processor.getVersionedComponentId());
         addTextElement(element, "name", processor.getName());
 
         addPosition(element, processor.getPosition());
@@ -337,13 +440,16 @@ public class StandardFlowSerializer implements FlowSerializer {
 
         addTextElement(element, "comment", processor.getComments());
         addTextElement(element, "class", processor.getCanonicalClassName());
+
+        addBundle(element, processor.getBundleCoordinate());
+
         addTextElement(element, "maxConcurrentTasks", processor.getMaxConcurrentTasks());
         addTextElement(element, "schedulingPeriod", processor.getSchedulingPeriod());
         addTextElement(element, "penalizationPeriod", processor.getPenalizationPeriod());
         addTextElement(element, "yieldPeriod", processor.getYieldPeriod());
         addTextElement(element, "bulletinLevel", processor.getBulletinLevel().toString());
         addTextElement(element, "lossTolerant", String.valueOf(processor.isLossTolerant()));
-        addTextElement(element, "scheduledState", processor.getScheduledState().name());
+        addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(processor).name());
         addTextElement(element, "schedulingStrategy", processor.getSchedulingStrategy().name());
         addTextElement(element, "executionNode", processor.getExecutionNode().name());
         addTextElement(element, "runDurationNanos", processor.getRunDuration(TimeUnit.NANOSECONDS));
@@ -388,6 +494,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         final Element element = doc.createElement("connection");
         parentElement.appendChild(element);
         addTextElement(element, "id", connection.getIdentifier());
+        addTextElement(element, "versionedComponentId", connection.getVersionedComponentId());
         addTextElement(element, "name", connection.getName());
 
         final Element bendPointsElement = doc.createElement("bendPoints");
@@ -444,9 +551,12 @@ public class StandardFlowSerializer implements FlowSerializer {
     public void addControllerService(final Element element, final ControllerServiceNode serviceNode) {
         final Element serviceElement = element.getOwnerDocument().createElement("controllerService");
         addTextElement(serviceElement, "id", serviceNode.getIdentifier());
+        addTextElement(serviceElement, "versionedComponentId", serviceNode.getVersionedComponentId());
         addTextElement(serviceElement, "name", serviceNode.getName());
         addTextElement(serviceElement, "comment", serviceNode.getComments());
         addTextElement(serviceElement, "class", serviceNode.getCanonicalClassName());
+
+        addBundle(serviceElement, serviceNode.getBundleCoordinate());
 
         final ControllerServiceState state = serviceNode.getState();
         final boolean enabled = (state == ControllerServiceState.ENABLED || state == ControllerServiceState.ENABLING);
@@ -463,6 +573,9 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(taskElement, "name", taskNode.getName());
         addTextElement(taskElement, "comment", taskNode.getComments());
         addTextElement(taskElement, "class", taskNode.getCanonicalClassName());
+
+        addBundle(taskElement, taskNode.getBundleCoordinate());
+
         addTextElement(taskElement, "schedulingPeriod", taskNode.getSchedulingPeriod());
         addTextElement(taskElement, "scheduledState", taskNode.getScheduledState().name());
         addTextElement(taskElement, "schedulingStrategy", taskNode.getSchedulingStrategy().name());
@@ -479,7 +592,18 @@ public class StandardFlowSerializer implements FlowSerializer {
     private static void addTextElement(final Element element, final String name, final String value) {
         final Document doc = element.getOwnerDocument();
         final Element toAdd = doc.createElement(name);
-        toAdd.setTextContent(value);
+        toAdd.setTextContent(CharacterFilterUtils.filterInvalidXmlCharacters(value)); // value should already be filtered, but just in case ensure there are no invalid xml characters
+        element.appendChild(toAdd);
+    }
+
+    private static void addTextElement(final Element element, final String name, final Optional<String> value) {
+        if (!value.isPresent()) {
+            return;
+        }
+
+        final Document doc = element.getOwnerDocument();
+        final Element toAdd = doc.createElement(name);
+        toAdd.setTextContent(CharacterFilterUtils.filterInvalidXmlCharacters(value.get())); // value should already be filtered, but just in case ensure there are no invalid xml characters
         element.appendChild(toAdd);
     }
 

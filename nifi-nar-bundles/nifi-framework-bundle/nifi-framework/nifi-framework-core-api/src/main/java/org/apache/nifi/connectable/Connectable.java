@@ -18,6 +18,7 @@ package org.apache.nifi.connectable;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessSession;
@@ -32,11 +33,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Represents a connectable component to which or from which data can flow.
  */
-public interface Connectable extends Triggerable, ComponentAuthorizable, Positionable {
+public interface Connectable extends Triggerable, ComponentAuthorizable, Positionable, VersionedComponent {
 
     /**
      * @return the unique identifier for this <code>Connectable</code>
      */
+    @Override
     String getIdentifier();
 
     /**
@@ -233,6 +235,8 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
      */
     void yield();
 
+    void yield(long yieldDuration, TimeUnit timeUnit);
+
     /**
      * @return the time in milliseconds since Epoch at which this Connectable
      * should no longer yield its threads
@@ -244,6 +248,26 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
      * with respect to external systems
      */
     boolean isSideEffectFree();
+
+    default boolean isIsolated() {
+        return false;
+    }
+
+    default boolean isTriggerWhenAnyDestinationAvailable() {
+        return false;
+    }
+
+    default long getRunDuration(TimeUnit timeUnit) {
+        return 0L;
+    }
+
+    default Object getRunnableComponent() {
+        return this;
+    }
+
+    default boolean isSessionBatchingSupported() {
+        return false;
+    }
 
     void verifyCanDelete() throws IllegalStateException;
 

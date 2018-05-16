@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Authorization;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -79,8 +79,9 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Path("{id}/content/input")
     @ApiOperation(
             value = "Gets the input content for a provenance event",
+            response = StreamingOutput.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -161,8 +162,9 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Path("{id}/content/output")
     @ApiOperation(
             value = "Gets the output content for a provenance event",
+            response = StreamingOutput.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -245,7 +247,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Gets a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -300,7 +302,7 @@ public class ProvenanceEventResource extends ApplicationResource {
         entity.setProvenanceEvent(event);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -318,8 +320,8 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Replays content from a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = ""),
-                    @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}", type = "")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}"),
+                    @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -361,6 +363,14 @@ public class ProvenanceEventResource extends ApplicationResource {
 
         // submit the provenance replay request
         final ProvenanceEventDTO event = serviceFacade.submitReplay(replayRequestEntity.getEventId());
+        event.setClusterNodeId(replayRequestEntity.getClusterNodeId());
+
+        // populate the cluster node address
+        final ClusterCoordinator coordinator = getClusterCoordinator();
+        if (coordinator != null) {
+            final NodeIdentifier nodeId = coordinator.getNodeIdentifier(replayRequestEntity.getClusterNodeId());
+            event.setClusterNodeAddress(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+        }
 
         // create a response entity
         final ProvenanceEventEntity entity = new ProvenanceEventEntity();
@@ -368,7 +378,7 @@ public class ProvenanceEventResource extends ApplicationResource {
 
         // generate the response
         URI uri = URI.create(generateResourceUri("provenance-events", event.getId()));
-        return clusterContext(generateCreatedResponse(uri, entity)).build();
+        return generateCreatedResponse(uri, entity).build();
     }
 
     // setters

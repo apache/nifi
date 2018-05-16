@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import com.sun.jersey.api.client.ClientResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.ws.rs.core.Response;
 
 import static org.junit.Assert.assertEquals;
 
@@ -183,19 +184,21 @@ public class ITFlowAccessControl {
      */
     @Test
     public void testGetAction() throws Exception {
-        final String uri = helper.getBaseUrl() + "/flow/history/1";
+        final String uri = helper.getBaseUrl() + "/flow/history/98766";
 
-        ClientResponse response;
+        Response response;
 
-        // the action does not exist... all users should return 403
+        // the action does not exist... should return 404
 
         // read
         response = helper.getReadUser().testGet(uri);
-        assertEquals(403, response.getStatus());
+        assertEquals(404, response.getStatus());
 
         // read/write
         response = helper.getReadWriteUser().testGet(uri);
-        assertEquals(403, response.getStatus());
+        assertEquals(404, response.getStatus());
+
+        // no read access should return 403
 
         // write
         response = helper.getWriteUser().testGet(uri);
@@ -213,11 +216,31 @@ public class ITFlowAccessControl {
      */
     @Test
     public void testGetComponentHistory() throws Exception {
-        testComponentSpecificGetUri(helper.getBaseUrl() + "/flow/history/components/my-component");
+        final String uri = helper.getBaseUrl() + "/flow/history/components/my-component-id";
+
+        // will succeed due to controller level access
+
+        // read
+        Response response = helper.getReadUser().testGet(uri);
+        assertEquals(200, response.getStatus());
+
+        // read/write
+        response = helper.getReadWriteUser().testGet(uri);
+        assertEquals(200, response.getStatus());
+
+        // will be denied because component does not exist and no controller level access
+
+        // write
+        response = helper.getWriteUser().testGet(uri);
+        assertEquals(403, response.getStatus());
+
+        // none
+        response = helper.getNoneUser().testGet(uri);
+        assertEquals(403, response.getStatus());
     }
 
     public void testComponentSpecificGetUri(final String uri) throws Exception {
-        ClientResponse response;
+        Response response;
 
         // read
         response = helper.getReadUser().testGet(uri);
