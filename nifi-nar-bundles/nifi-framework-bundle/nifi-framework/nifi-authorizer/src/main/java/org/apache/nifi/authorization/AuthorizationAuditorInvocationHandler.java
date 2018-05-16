@@ -24,6 +24,15 @@ public class AuthorizationAuditorInvocationHandler implements InvocationHandler 
 
     private final Authorizer authorizer;
     private final AuthorizationAuditor auditor;
+    private static final Method auditAccessAttemptMethod;
+
+    static {
+        try {
+            auditAccessAttemptMethod = AuthorizationAuditor.class.getMethod("auditAccessAttempt", AuthorizationRequest.class, AuthorizationResult.class);
+        } catch (final Exception e) {
+            throw new RuntimeException("Unable to obtain necessary class information for AccessPolicyProvider", e);
+        }
+    }
 
     public AuthorizationAuditorInvocationHandler(final Authorizer authorizer, final AuthorizationAuditor auditor) {
         this.authorizer = authorizer;
@@ -33,7 +42,7 @@ public class AuthorizationAuditorInvocationHandler implements InvocationHandler 
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
         try {
-            if (AuthorizationAuditor.class.getMethod("auditAccessAttempt", AuthorizationRequest.class, AuthorizationResult.class).equals(method)) {
+            if (auditAccessAttemptMethod.equals(method)) {
                 return method.invoke(auditor, args);
             } else {
                 return method.invoke(authorizer, args);

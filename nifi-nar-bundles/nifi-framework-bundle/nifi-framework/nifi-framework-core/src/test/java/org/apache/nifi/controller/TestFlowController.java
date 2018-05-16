@@ -72,9 +72,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -105,7 +107,7 @@ public class TestFlowController {
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
-    private volatile String propsFile = TestFlowController.class.getResource("/flowcontrollertest.nifi.properties").getFile();
+    private volatile String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
 
     @Before
     public void setup() {
@@ -208,7 +210,7 @@ public class TestFlowController {
         assertEquals(rootGroupCs.getProperties(), controllerCs.getProperties());
 
         // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        final Collection<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
         assertNotNull(processorNodes);
         assertEquals(1, processorNodes.size());
 
@@ -261,7 +263,7 @@ public class TestFlowController {
         assertNotNull(rootGroupCs);
 
         // should be one processor
-        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        final Collection<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
         assertNotNull(processorNodes);
         assertEquals(1, processorNodes.size());
 
@@ -652,15 +654,15 @@ public class TestFlowController {
         final String id = "ServiceA" + System.currentTimeMillis();
         final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
         final ControllerServiceNode controllerServiceNode = controller.createControllerService(ServiceA.class.getName(), id, coordinate, null, true);
-        final String originalName = controllerServiceNode.getName();
 
         // the instance class loader shouldn't have any of the resources yet
-        InstanceClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+        URLClassLoader instanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
         assertNotNull(instanceClassLoader);
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource1));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource2));
         assertFalse(containsResource(instanceClassLoader.getURLs(), resource3));
-        assertTrue(instanceClassLoader.getAdditionalResourceUrls().isEmpty());
+        assertTrue(instanceClassLoader instanceof InstanceClassLoader);
+        assertTrue(((InstanceClassLoader) instanceClassLoader).getAdditionalResourceUrls().isEmpty());
 
         controller.reload(controllerServiceNode, ServiceB.class.getName(), coordinate, additionalUrls);
 
@@ -670,7 +672,8 @@ public class TestFlowController {
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource1));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource2));
         assertTrue(containsResource(instanceClassLoader.getURLs(), resource3));
-        assertEquals(3, instanceClassLoader.getAdditionalResourceUrls().size());
+        assertTrue(instanceClassLoader instanceof InstanceClassLoader);
+        assertEquals(3, ((InstanceClassLoader) instanceClassLoader).getAdditionalResourceUrls().size());
     }
 
     @Test

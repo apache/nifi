@@ -27,7 +27,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -259,9 +259,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      * @param referencingComponents components
      */
     private void getUpdateActionsForReferencingComponents(
-            final NiFiUser user, final Collection<Action> actions, final Collection<String> visitedServices, final Set<ConfiguredComponent> referencingComponents) {
+            final NiFiUser user, final Collection<Action> actions, final Collection<String> visitedServices, final Set<ComponentNode> referencingComponents) {
         // consider each component updates
-        for (final ConfiguredComponent component : referencingComponents) {
+        for (final ComponentNode component : referencingComponents) {
             if (component instanceof ProcessorNode) {
                 final ProcessorNode processor = ((ProcessorNode) component);
 

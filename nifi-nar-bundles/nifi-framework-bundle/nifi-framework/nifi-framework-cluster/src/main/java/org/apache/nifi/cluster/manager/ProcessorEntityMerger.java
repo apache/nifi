@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEntity>, ComponentEntityStatusMerger<ProcessorStatusDTO> {
     @Override
@@ -45,6 +46,7 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
+    @Override
     public void mergeComponents(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap) {
         final ProcessorDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, ProcessorDTO> dtoMap = new HashMap<>();
@@ -105,6 +107,11 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
                 PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, propertyDescriptorByNodeId);
             }
         }
+
+        final Set<String> statuses = dtoMap.values().stream()
+            .map(ProcessorDTO::getValidationStatus)
+            .collect(Collectors.toSet());
+        clientDto.setValidationStatus(ErrorMerger.mergeValidationStatus(statuses));
 
         // set the merged the validation errors
         clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));

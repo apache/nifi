@@ -83,13 +83,33 @@ public interface ProcessScheduler {
      */
     void terminateProcessor(ProcessorNode procNode);
 
-    /*
-     * Notifies the schedule that the given processor is being removed so the scheduler may clean up any resources
-     * related to the given processor.
+    /**
+     * Notifies the scheduler that the given Processor has been removed from the flow
      *
-     * @param procNode the processor node being removed
+     * @param procNode the processor being removed
      */
     void onProcessorRemoved(ProcessorNode procNode);
+
+    /**
+     * Notifies the scheduler that the given port has been removed from the flow
+     *
+     * @param port the port being removed
+     */
+    void onPortRemoved(Port port);
+
+    /**
+     * Notifies the scheduler that the given funnel has been removed from the flow
+     *
+     * @param funnel the funnel being removed
+     */
+    void onFunnelRemoved(Funnel funnel);
+
+    /**
+     * Notifies the scheduler that the given reporting task has been removed from the flow
+     *
+     * @param reportingTask the reporting task being removed
+     */
+    void onReportingTaskRemoved(ReportingTaskNode reportingTask);
 
     /**
      * Starts scheduling the given Port to run. If the Port is already scheduled

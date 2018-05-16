@@ -40,6 +40,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -101,7 +102,8 @@ public class StandardControllerServiceProviderIT {
         final ProcessGroup procGroup = new MockProcessGroup(controller);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider, variableRegistry, niFiProperties);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
+            stateManagerProvider, variableRegistry, niFiProperties, new SynchronousValidationTrigger());
 
         // build a graph of controller services with dependencies as such:
         //

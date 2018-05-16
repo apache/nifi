@@ -126,7 +126,10 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             // Occasionally Curator appears to not notify us that we have lost the elected leader role, or does so
             // on a very large delay. So before we kick the node out of the cluster, we want to first check what the
             // ZNode in ZooKeeper says, and ensure that this is the node that is being advertised as the appropriate
-            // destination for heartbeats.
+            // destination for heartbeats. In this case, we will also purge any heartbeats that we may have received,
+            // so that if we are later elected the coordinator, we don't have any stale heartbeats stashed away, which
+            // could lead to immediately disconnecting nodes when this node is elected coordinator.
+            purgeHeartbeats();
             logger.debug("It appears that this node is no longer the actively elected cluster coordinator. Will not request that node disconnect.");
             return;
         }

@@ -29,20 +29,25 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.DisabledServiceValidationResult;
+import org.apache.nifi.components.validation.ValidationState;
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.ExtensionManager;
@@ -53,8 +58,8 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractConfiguredComponent implements ConfigurableComponent, ConfiguredComponent {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractConfiguredComponent.class);
+public abstract class AbstractComponentNode implements ComponentNode {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractComponentNode.class);
 
     private final String id;
     private final ValidationContextFactory validationContextFactory;
@@ -72,11 +77,13 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
     private volatile String additionalResourcesFingerprint;
+    private AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
+    private final ValidationTrigger validationTrigger;
 
-    public AbstractConfiguredComponent(final String id,
+    public AbstractComponentNode(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
                                        final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                                       final ReloadComponent reloadComponent, final boolean isExtensionMissing) {
+        final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
         this.id = id;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
@@ -84,8 +91,9 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
         this.variableRegistry = variableRegistry;
-        this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
+        this.validationTrigger = validationTrigger;
         this.reloadComponent = reloadComponent;
+        this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
     }
 
     @Override
@@ -120,8 +128,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public void setAnnotationData(final String data) {
-        invalidateValidationContext();
         annotationData.set(CharacterFilterUtils.filterInvalidXmlCharacters(data));
+        resetValidationState();
     }
 
     @Override
@@ -189,6 +197,9 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                     }
                 }
             }
+
+            logger.debug("Setting properties to {}; resetting validation state", properties);
+            resetValidationState();
         } finally {
             lock.unlock();
         }
@@ -272,7 +283,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
             if (supported == null || supported.isEmpty()) {
                 return Collections.unmodifiableMap(properties);
@@ -342,11 +353,11 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             return false;
         }
 
-        if (!(obj instanceof ConfiguredComponent)) {
+        if (!(obj instanceof ComponentNode)) {
             return false;
         }
 
-        final ConfiguredComponent other = (ConfiguredComponent) obj;
+        final ComponentNode other = (ComponentNode) obj;
         return id.equals(other.getIdentifier());
     }
 
@@ -358,77 +369,144 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public Collection<ValidationResult> validate(final ValidationContext context) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
-            final Collection<ValidationResult> validationResults = getComponent().validate(context);
+    public final void performValidation() {
+        boolean replaced = false;
+        do {
+            final ValidationState validationState = getValidationState();
 
-            // validate selected controller services implement the API required by the processor
+            final ValidationContext validationContext = getValidationContext();
+            final Collection<ValidationResult> results = new ArrayList<>();
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getIdentifier())) {
+                final Collection<ValidationResult> validationResults = computeValidationErrors(validationContext);
+                results.addAll(validationResults);
 
-            final List<PropertyDescriptor> supportedDescriptors = getComponent().getPropertyDescriptors();
-            if (null != supportedDescriptors) {
-                for (final PropertyDescriptor descriptor : supportedDescriptors) {
-                    if (descriptor.getControllerServiceDefinition() == null) {
-                        // skip properties that aren't for a controller service
-                        continue;
-                    }
-
-                    final String controllerServiceId = context.getProperty(descriptor).getValue();
-                    if (controllerServiceId == null) {
-                        // if the property value is null we should already have a validation error
-                        continue;
-                    }
-
-                    final ControllerServiceNode controllerServiceNode = getControllerServiceProvider().getControllerServiceNode(controllerServiceId);
-                    if (controllerServiceNode == null) {
-                        // if the node was null we should already have a validation error
-                        continue;
-                    }
-
-                    final Class<? extends ControllerService> controllerServiceApiClass = descriptor.getControllerServiceDefinition();
-                    final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
-
-                    final Consumer<String> addValidationError = explanation -> validationResults.add(new ValidationResult.Builder()
-                            .input(controllerServiceId)
-                            .subject(descriptor.getDisplayName())
-                            .valid(false)
-                            .explanation(explanation)
-                            .build());
-
-                    final Bundle controllerServiceApiBundle = ExtensionManager.getBundle(controllerServiceApiClassLoader);
-                    if (controllerServiceApiBundle == null) {
-                        addValidationError.accept(String.format("Unable to find bundle for ControllerService API class %s.", controllerServiceApiClass.getCanonicalName()));
-                        continue;
-                    }
-                    final BundleCoordinate controllerServiceApiCoordinate = controllerServiceApiBundle.getBundleDetails().getCoordinate();
-
-                    final Bundle controllerServiceBundle = ExtensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
-                    if (controllerServiceBundle == null) {
-                        addValidationError.accept(String.format("Unable to find bundle for coordinate %s.", controllerServiceNode.getBundleCoordinate()));
-                        continue;
-                    }
-                    final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
-
-                    final boolean matchesApi = matchesApi(controllerServiceBundle, controllerServiceApiCoordinate);
-
-                    if (!matchesApi) {
-                        final String controllerServiceType = controllerServiceNode.getComponentType();
-                        final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
-
-                        final String explanation = new StringBuilder()
-                                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
-                                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
-                                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
-                                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
-                                .toString();
-
-                        addValidationError.accept(explanation);
-                    }
-
-                }
+                // validate selected controller services implement the API required by the processor
+                final Collection<ValidationResult> referencedServiceValidationResults = validateReferencedControllerServices(validationContext);
+                results.addAll(referencedServiceValidationResults);
             }
 
-            return validationResults;
+            final ValidationStatus status = results.isEmpty() ? ValidationStatus.VALID : ValidationStatus.INVALID;
+            final ValidationState updatedState = new ValidationState(status, results);
+            replaced = replaceValidationState(validationState, updatedState);
+        } while (!replaced);
+    }
+
+    protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
+        Throwable failureCause = null;
+        try {
+            final Collection<ValidationResult> results = getComponent().validate(validationContext);
+            logger.debug("Computed validation errors with Validation Context {}; results = {}", validationContext, results);
+
+            return results;
+        } catch (final ControllerServiceDisabledException e) {
+            getLogger().debug("Failed to perform validation due to " + e, e);
+            return Collections.singleton(
+                new DisabledServiceValidationResult("Component", e.getControllerServiceId(), "performing validation depends on referencing a Controller Service that is currently disabled"));
+        } catch (final Exception e) {
+            // We don't want to log this as an error because we will return a ValidationResult that is
+            // invalid. However, we do want to make the stack trace available if needed, so we log it at
+            // a debug level.
+            getLogger().debug("Failed to perform validation due to " + e, e);
+            failureCause = e;
+        } catch (final Error e) {
+            getLogger().error("Failed to perform validation due to " + e, e);
+            failureCause = e;
         }
+
+        return Collections.singleton(new ValidationResult.Builder()
+            .subject("Component")
+            .valid(false)
+            .explanation("Failed to perform validation due to " + failureCause)
+            .build());
+    }
+
+    protected final Collection<ValidationResult> validateReferencedControllerServices(final ValidationContext validationContext) {
+        final List<PropertyDescriptor> supportedDescriptors = getComponent().getPropertyDescriptors();
+        if (supportedDescriptors == null) {
+            return Collections.emptyList();
+        }
+
+        final Collection<ValidationResult> validationResults = new ArrayList<>();
+        for (final PropertyDescriptor descriptor : supportedDescriptors) {
+            if (descriptor.getControllerServiceDefinition() == null) {
+                // skip properties that aren't for a controller service
+                continue;
+            }
+
+            final String controllerServiceId = validationContext.getProperty(descriptor).getValue();
+            if (controllerServiceId == null) {
+                continue;
+            }
+
+            final ControllerServiceNode controllerServiceNode = getControllerServiceProvider().getControllerServiceNode(controllerServiceId);
+            if (controllerServiceNode == null) {
+                final ValidationResult result = createInvalidResult(controllerServiceId, descriptor.getDisplayName(),
+                    "Invalid Controller Service: " + controllerServiceId + " is not a valid Controller Service Identifier");
+
+                validationResults.add(result);
+                continue;
+            }
+
+            final ValidationResult apiResult = validateControllerServiceApi(descriptor, controllerServiceNode);
+            if (apiResult != null) {
+                validationResults.add(apiResult);
+                continue;
+            }
+
+            if (!controllerServiceNode.isActive()) {
+                validationResults.add(new DisabledServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
+            }
+        }
+
+        return validationResults;
+    }
+
+
+    private ValidationResult validateControllerServiceApi(final PropertyDescriptor descriptor, final ControllerServiceNode controllerServiceNode) {
+        final Class<? extends ControllerService> controllerServiceApiClass = descriptor.getControllerServiceDefinition();
+        final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
+
+        final String serviceId = controllerServiceNode.getIdentifier();
+        final String propertyName = descriptor.getDisplayName();
+
+        final Bundle controllerServiceApiBundle = ExtensionManager.getBundle(controllerServiceApiClassLoader);
+        if (controllerServiceApiBundle == null) {
+            return createInvalidResult(serviceId, propertyName, "Unable to find bundle for ControllerService API class " + controllerServiceApiClass.getCanonicalName());
+        }
+        final BundleCoordinate controllerServiceApiCoordinate = controllerServiceApiBundle.getBundleDetails().getCoordinate();
+
+        final Bundle controllerServiceBundle = ExtensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+        if (controllerServiceBundle == null) {
+            return createInvalidResult(serviceId, propertyName, "Unable to find bundle for coordinate " + controllerServiceNode.getBundleCoordinate());
+        }
+        final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
+
+        final boolean matchesApi = matchesApi(controllerServiceBundle, controllerServiceApiCoordinate);
+
+        if (!matchesApi) {
+            final String controllerServiceType = controllerServiceNode.getComponentType();
+            final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
+
+            final String explanation = new StringBuilder()
+                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
+                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
+                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
+                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
+                .toString();
+
+            return createInvalidResult(serviceId, propertyName, explanation);
+        }
+
+        return null;
+    }
+
+    private ValidationResult createInvalidResult(final String serviceId, final String propertyName, final String explanation) {
+        return new ValidationResult.Builder()
+            .input(serviceId)
+            .subject(propertyName)
+            .valid(false)
+            .explanation(explanation)
+            .build();
     }
 
     /**
@@ -470,67 +548,104 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public final void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        invalidateValidationContext();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
-            getComponent().onPropertyModified(descriptor, oldValue, newValue);
-        }
-    }
-
-    @Override
     public List<PropertyDescriptor> getPropertyDescriptors() {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
             return getComponent().getPropertyDescriptors();
         }
     }
 
-    @Override
-    public boolean isValid() {
-        final Collection<ValidationResult> validationResults = validate(getValidationContext());
 
-        for (final ValidationResult result : validationResults) {
-            if (!result.isValid()) {
-                return false;
-            }
+    private final void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
+            getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
+    }
 
-        return true;
+
+    @Override
+    public ValidationStatus getValidationStatus() {
+        return validationState.get().getStatus();
+    }
+
+    @Override
+    public ValidationStatus getValidationStatus(long timeout, TimeUnit timeUnit) {
+        long millis = timeUnit.toMillis(timeout);
+        final long maxTime = System.currentTimeMillis() + millis;
+
+        synchronized (validationState) {
+            while (getValidationStatus() == ValidationStatus.VALIDATING) {
+                try {
+                    final long waitMillis = Math.max(0, maxTime - System.currentTimeMillis());
+                    if (waitMillis <= 0) {
+                        break;
+                    }
+
+                    validationState.wait(waitMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return getValidationStatus();
+                }
+            }
+
+            return getValidationStatus();
+        }
+    }
+
+    protected ValidationState getValidationState() {
+        return validationState.get();
+    }
+
+    private boolean replaceValidationState(final ValidationState expectedState, final ValidationState newState) {
+        synchronized (validationState) {
+            if (validationState.compareAndSet(expectedState, newState)) {
+                validationState.notifyAll();
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    protected void resetValidationState() {
+        validationContext.set(null);
+        validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
+        validationTrigger.triggerAsync(this);
     }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
-        return getValidationErrors(Collections.<String>emptySet());
+        return getValidationErrors(Collections.emptySet());
     }
 
-    public Collection<ValidationResult> getValidationErrors(final Set<String> serviceIdentifiersNotToValidate) {
-        final List<ValidationResult> results = new ArrayList<>();
-        lock.lock();
-        try {
-            final ValidationContext validationContext;
-            if (serviceIdentifiersNotToValidate == null || serviceIdentifiersNotToValidate.isEmpty()) {
-                validationContext = getValidationContext();
-            } else {
-                validationContext = getValidationContextFactory().newValidationContext(serviceIdentifiersNotToValidate,
-                    getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
-            }
-
-            final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
-                validationResults = getComponent().validate(validationContext);
-            }
-
-            for (final ValidationResult result : validationResults) {
-                if (!result.isValid()) {
-                    results.add(result);
-                }
-            }
-        } catch (final Throwable t) {
-            logger.error("Failed to perform validation of " + this, t);
-            results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t.toString()).valid(false).build());
-        } finally {
-            lock.unlock();
+    protected Collection<ValidationResult> getValidationErrors(final Set<ControllerServiceNode> servicesToIgnore) {
+        final ValidationState validationState = this.validationState.get();
+        if (validationState.getStatus() == ValidationStatus.VALIDATING) {
+            return null;
         }
-        return results;
+
+        final Collection<ValidationResult> validationErrors = validationState.getValidationErrors();
+        if (servicesToIgnore == null || servicesToIgnore.isEmpty()) {
+            return validationErrors;
+        }
+
+        final Set<String> ignoredServiceIds = servicesToIgnore.stream()
+            .map(ControllerServiceNode::getIdentifier)
+            .collect(Collectors.toSet());
+
+        final List<ValidationResult> retainedValidationErrors = new ArrayList<>();
+        for (final ValidationResult result : validationErrors) {
+            if (!(result instanceof DisabledServiceValidationResult)) {
+                retainedValidationErrors.add(result);
+                continue;
+            }
+
+            final String serviceId = ((DisabledServiceValidationResult) result).getControllerServiceIdentifier();
+            if (!ignoredServiceIds.contains(serviceId)) {
+                retainedValidationErrors.add(result);
+            }
+        }
+
+        return retainedValidationErrors;
     }
 
     public abstract void verifyModifiable() throws IllegalStateException;
@@ -556,10 +671,6 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         return this.validationContextFactory;
     }
 
-    protected void invalidateValidationContext() {
-        this.validationContext.set(null);
-    }
-
     protected ValidationContext getValidationContext() {
         while (true) {
             ValidationContext context = this.validationContext.get();
@@ -567,9 +678,19 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                 return context;
             }
 
-            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            // Use a lock here because we want to prevent calls to getProperties() from happening while setProperties() is also happening.
+            final Map<PropertyDescriptor, String> properties;
+            lock.lock();
+            try {
+                properties = getProperties();
+            } finally {
+                lock.unlock();
+            }
+            context = getValidationContextFactory().newValidationContext(properties, getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+
             final boolean updated = validationContext.compareAndSet(null, context);
             if (updated) {
+                logger.debug("Updating validation context to {}", context);
                 return context;
             }
         }

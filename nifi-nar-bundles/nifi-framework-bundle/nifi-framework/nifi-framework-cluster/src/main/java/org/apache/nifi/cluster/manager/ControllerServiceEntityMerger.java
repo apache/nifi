@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.cluster.manager;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -24,11 +30,6 @@ import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 public class ControllerServiceEntityMerger implements ComponentEntityMerger<ControllerServiceEntity> {
 
@@ -111,6 +112,12 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         if (state != null) {
             clientDto.setState(state);
         }
+
+        final Set<String> statuses = dtoMap.values().stream()
+            .map(ControllerServiceDTO::getValidationStatus)
+            .collect(Collectors.toSet());
+
+        clientDto.setValidationStatus(ErrorMerger.mergeValidationStatus(statuses));
 
         // set the merged the validation errors
         clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));

@@ -84,7 +84,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     // thread pool for starting/stopping components
     private final ScheduledExecutorService componentLifeCycleThreadPool;
-    private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processore Lifecycle", true);
+    private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
 
     private final StringEncryptor encryptor;
 
@@ -180,8 +180,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             throw new IllegalStateException("Reporting Task " + taskNode.getName() + " cannot be started because it has " + activeThreadCount + " threads still running");
         }
 
-        if (!taskNode.isValid()) {
-            throw new IllegalStateException("Reporting Task " + taskNode.getName() + " is not in a valid state for the following reasons: " + taskNode.getValidationErrors());
+        switch (taskNode.getValidationStatus()) {
+            case INVALID:
+                throw new IllegalStateException("Reporting Task " + taskNode.getName() + " is not in a valid state for the following reasons: " + taskNode.getValidationErrors());
+            case VALIDATING:
+                throw new IllegalStateException("Reporting Task " + taskNode.getName() + " cannot be scheduled because it is in the process of validating its configuration");
         }
 
         final SchedulingAgent agent = getSchedulingAgent(taskNode.getSchedulingStrategy());
@@ -379,7 +382,22 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public void onProcessorRemoved(final ProcessorNode procNode) {
-        this.lifecycleStates.remove(procNode);
+        lifecycleStates.remove(procNode);
+    }
+
+    @Override
+    public void onPortRemoved(final Port port) {
+        lifecycleStates.remove(port);
+    }
+
+    @Override
+    public void onFunnelRemoved(Funnel funnel) {
+        lifecycleStates.remove(funnel);
+    }
+
+    @Override
+    public void onReportingTaskRemoved(final ReportingTaskNode reportingTask) {
+        lifecycleStates.remove(reportingTask);
     }
 
     @Override

@@ -25,12 +25,13 @@ import java.util.function.Predicate;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
@@ -59,7 +60,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     /**
      * Predicate for starting eligible Processors.
      */
-    Predicate<ProcessorNode> START_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.isValid();
+    Predicate<ProcessorNode> START_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.getValidationStatus() == ValidationStatus.VALID;
 
     /**
      * Predicate for stopping eligible Processors.
@@ -399,7 +400,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return a {@link Collection} of all FlowFileProcessors that are contained
      * within this.
      */
-    Set<ProcessorNode> getProcessors();
+    Collection<ProcessorNode> getProcessors();
 
     /**
      * Returns the FlowFileProcessor with the given ID.
@@ -972,7 +973,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param variableName the name of the variable
      * @return a set of all components that are affected by the variable with the given name
      */
-    Set<ConfiguredComponent> getComponentsAffectedByVariable(String variableName);
+    Set<ComponentNode> getComponentsAffectedByVariable(String variableName);
 
     /**
      * @return the version control information that indicates where this flow is stored in a Flow Registry,

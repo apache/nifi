@@ -69,7 +69,7 @@ class ControllerServiceEntityMergerSpec extends Specification {
                          component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))]))] ||
                 new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
                         bulletins: [],
-                        component: new ControllerServiceDTO(validationErrors: [],
+                        component: new ControllerServiceDTO(validationErrors: [], validationStatus: "VALID",
                                 referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: false, canWrite: false))]))
         // Controller Reference merging for canRead==true
         [(createNodeIdentifier(1)): new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
@@ -83,7 +83,7 @@ class ControllerServiceEntityMergerSpec extends Specification {
                          component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 1, state: ControllerServiceState.ENABLING.name()))]))] ||
                 new ControllerServiceEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true),
                         bulletins: [],
-                        component: new ControllerServiceDTO(validationErrors: [],
+                        component: new ControllerServiceDTO(validationErrors: [], validationStatus: "VALID",
                                 referencingComponents: [new ControllerServiceReferencingComponentEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
                                         component: new ControllerServiceReferencingComponentDTO(activeThreadCount: 3, state: ControllerServiceState.ENABLING.name()))]))
     }
