@@ -27,11 +27,14 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.*;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestAttributesToCSV {
 
@@ -439,6 +442,95 @@ public class TestAttributesToCSV {
         assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("filename")));
         assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("path")));
         assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+    }
+
+    @Test
+    public void testAttrListFromExpCoreNullOffToAttribute() throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
+        testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
+        testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "true");
+        testRunner.setProperty(AttributesToCSV.ATTRIBUTES_LIST, "${myAttribs}");
+        testRunner.setProperty(AttributesToCSV.NULL_VALUE_FOR_EMPTY_STRING, "false");
+
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+
+        ff = session.putAttribute(ff, "beach-name", "Malibu Beach");
+        ff = session.putAttribute(ff, "beach-location", "California, US");
+        ff = session.putAttribute(ff, "beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
+        ff = session.putAttribute(ff, "attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+        ff = session.putAttribute(ff, "myAttribs", "beach-name,beach-location,beach-endorsement");
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS);
+
+        testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
+        testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = flowFilesForRelationship.get(0);
+
+        assertNull(flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
+
+        final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
+
+        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+
+        assertEquals(6, csvAttributesValues.size());
+
+        assertTrue(csvAttributesValues.contains("Malibu Beach"));
+        assertTrue(csvAttributesValues.contains("\"California, US\""));
+        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+
+        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("path")));
+        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+    }
+
+    @Test
+    public void testAttrListFromExpNoCoreNullOffOverrideCoreByAttrListToAttribute() throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
+        testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
+        testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
+        testRunner.setProperty(AttributesToCSV.ATTRIBUTES_LIST, "${myAttribs}");
+        testRunner.setProperty(AttributesToCSV.NULL_VALUE_FOR_EMPTY_STRING, "false");
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+
+        ff = session.putAttribute(ff, "beach-name", "Malibu Beach");
+        ff = session.putAttribute(ff, "beach-location", "California, US");
+        ff = session.putAttribute(ff, "beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
+        ff = session.putAttribute(ff, "attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+        ff = session.putAttribute(ff, "myAttribs", "beach-name,beach-location,beach-endorsement");
+
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS);
+
+        testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
+        testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = flowFilesForRelationship.get(0);
+
+        assertNull(flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
+
+        final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
+
+        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+
+        assertEquals(3, csvAttributesValues.size());
+
+        assertTrue(csvAttributesValues.contains("Malibu Beach"));
+        assertTrue(csvAttributesValues.contains("\"California, US\""));
+        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+
+
+        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("path")));
+        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("uuid")));
     }
 
     private List<String> getStrings(String sdata) {

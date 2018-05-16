@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -38,9 +39,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-
-import java.io.BufferedOutputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -77,13 +75,14 @@ public class AttributesToCSV extends AbstractProcessor {
             .displayName("Attribute List")
             .description("Comma separated list of attributes to be included in the resulting CSV. If this value " +
                     "is left empty then all existing Attributes will be included. This list of attributes is " +
-                    "case sensitive. If an attribute specified in the list is not found it will be emitted " +
+                    "case sensitive and does not support attribute names that contain commas. If an attribute specified in the list is not found it will be emitted " +
                     "to the resulting CSV with an empty string or null depending on the 'Null Value' property. " +
                     "If a core attribute is specified in this list " +
                     "and the 'Include Core Attributes' property is false, the core attribute will be included. The attribute list " +
                     "ALWAYS wins.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
@@ -179,18 +178,16 @@ public class AttributesToCSV extends AbstractProcessor {
             //the user did not give a list of attributes, take all the attributes from the flowfile
             Map<String, String> ffAttributes = ff.getAttributes();
             result = new HashMap<>(ffAttributes.size());
-            for (Map.Entry<String, String> e : ffAttributes.entrySet()) {
-                    result.put(e.getKey(), e.getValue());
-            }
+            result.putAll(ffAttributes);
         }
 
         //now glue on the core attributes if the user wants them.
         if(includeCoreAttributes) {
             for (String coreAttribute : coreAttributes) {
-                String val = ff.getAttribute(coreAttribute);
                 //make sure this coreAttribute is applicable to this flowfile.
+                String val = ff.getAttribute(coreAttribute);
                 if(ff.getAttributes().containsKey(coreAttribute)) {
-                    if (val != null && !val.isEmpty()) {
+                    if (!StringUtils.isEmpty(val)){
                         result.put(coreAttribute, val);
                     } else {
                         if (nullValForEmptyString) {
@@ -232,7 +229,6 @@ public class AttributesToCSV extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         includeCoreAttributes = context.getProperty(INCLUDE_CORE_ATTRIBUTES).asBoolean();
         coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toSet());
-        userSpecifiedAttributes = attributeListStringToSet(context.getProperty(ATTRIBUTES_LIST).getValue());
         destinationContent = OUTPUT_OVERWRITE_CONTENT.equals(context.getProperty(DESTINATION).getValue());
         nullValForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
      }
@@ -244,27 +240,23 @@ public class AttributesToCSV extends AbstractProcessor {
             return;
         }
 
+        userSpecifiedAttributes = attributeListStringToSet(context.getProperty(ATTRIBUTES_LIST).evaluateAttributeExpressions(original).getValue());
+
         final Map<String, String> atrList = buildAttributesMapForFlowFile(original, userSpecifiedAttributes);
 
         //escape attribute values
+        int index = 0;
+        final int atrListSize = atrList.values().size() -1;
         final StringBuilder sb = new StringBuilder();
         for (final String val : atrList.values()) {
             sb.append(StringEscapeUtils.escapeCsv(val));
-            sb.append(OUTPUT_SEPARATOR);
-        }
-
-        //check if the output separator is at the end of the string, if so then remove it
-        if(sb.length() > 0 && sb.lastIndexOf(OUTPUT_SEPARATOR) == sb.length() -1) {
-            //remove last separator
-            sb.deleteCharAt(sb.length() - 1);
+            sb.append(index++ < atrListSize ? OUTPUT_SEPARATOR : "");
         }
 
         try {
             if (destinationContent) {
                 FlowFile conFlowfile = session.write(original, (in, out) -> {
-                    try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                        outputStream.write(sb.toString().getBytes());
-                    }
+                        out.write(sb.toString().getBytes());
                 });
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), OUTPUT_MIME_TYPE);
                 session.transfer(conFlowfile, REL_SUCCESS);
