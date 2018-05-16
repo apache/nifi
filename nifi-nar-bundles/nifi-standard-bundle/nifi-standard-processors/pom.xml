@@ -337,9 +337,6 @@
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-empty-new-lines</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-extra-info</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary1</exclude>
-                        <exclude>src/test/resources/ScanAttribute/dictionary-with-empty-new-lines_meta</exclude>
-                        <exclude>src/test/resources/ScanAttribute/dictionary-with-extra-info_meta</exclude>
-                        <exclude>src/test/resources/ScanAttribute/dictionary1_meta</exclude>
                         <exclude>src/test/resources/TestEncryptContent/text.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
