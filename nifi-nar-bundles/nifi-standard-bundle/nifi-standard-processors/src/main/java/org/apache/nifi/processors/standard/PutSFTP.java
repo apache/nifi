@@ -30,7 +30,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -70,10 +72,12 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
         properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
         properties.add(SFTPTransfer.USE_COMPRESSION);
-        properties.add(SFTPTransfer.PROXY_HOST);
-        properties.add(SFTPTransfer.PROXY_PORT);
-        properties.add(SFTPTransfer.PROXY_USERNAME);
-        properties.add(SFTPTransfer.PROXY_PASSWORD);
+        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
+        properties.add(FTPTransfer.PROXY_TYPE);
+        properties.add(FTPTransfer.PROXY_HOST);
+        properties.add(FTPTransfer.PROXY_PORT);
+        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
         this.properties = Collections.unmodifiableList(properties);
     }
 

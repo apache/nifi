@@ -33,6 +33,7 @@ import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.jcraft.jsch.ProxySOCKS5;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -40,6 +41,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -50,6 +52,8 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.ProxyHTTP;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+
+import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
 public class SFTPTransfer implements FileTransfer {
 
@@ -96,38 +100,6 @@ public class SFTPTransfer implements FileTransfer {
         .defaultValue("true")
         .required(true)
         .build();
-    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("PROXY_HOST")
-            .displayName("Proxy Host")
-            .description("The fully qualified hostname or IP address of the proxy server")
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("PROXY_PORT")
-            .displayName("Proxy Port")
-            .description("The port of the proxy server")
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
-            .name("PROXY_USERNAME")
-            .displayName("Proxy Username")
-            .description("Proxy Username")
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
-    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("PROXY_PASSWORD")
-            .displayName("Proxy Password")
-            .description("Proxy Password")
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .sensitive(true)
-            .build();
-
 
 
     /**
@@ -452,16 +424,24 @@ public class SFTPTransfer implements FileTransfer {
                 ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
                 ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
 
-            if (ctx.getProperty(PROXY_HOST).evaluateAttributeExpressions(flowFile).isSet()) {
-                final ProxyHTTP proxy = new ProxyHTTP(
-                        ctx.getProperty(PROXY_HOST).evaluateAttributeExpressions(flowFile).getValue(),
-                        ctx.getProperty(PROXY_PORT).evaluateAttributeExpressions(flowFile).asInteger()
-                );
-                // Check if Username is set and populate the proxy accordingly
-                if (ctx.getProperty(PROXY_USERNAME).evaluateAttributeExpressions(flowFile).isSet()) {
-                    proxy.setUserPasswd(ctx.getProperty(PROXY_USERNAME).evaluateAttributeExpressions(flowFile).getValue(), ctx.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions(flowFile).getValue());
-                }
-                session.setProxy(proxy);
+            final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
+            switch (proxyConfig.getProxyType()) {
+                case HTTP:
+                    final ProxyHTTP proxyHTTP = new ProxyHTTP(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
+                    // Check if Username is set and populate the proxy accordingly
+                    if (proxyConfig.hasCredential()) {
+                        proxyHTTP.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                    }
+                    session.setProxy(proxyHTTP);
+                    break;
+                case SOCKS:
+                    final ProxySOCKS5 proxySOCKS5 = new ProxySOCKS5(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
+                    if (proxyConfig.hasCredential()) {
+                        proxySOCKS5.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                    }
+                    session.setProxy(proxySOCKS5);
+                    break;
+
             }
 
             final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();

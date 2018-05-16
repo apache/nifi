@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.apache.commons.net.ftp.FTPClient;
@@ -39,6 +40,7 @@ import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPHTTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -89,22 +91,26 @@ public class FTPTransfer implements FileTransfer {
         .name("Proxy Host")
         .description("The fully qualified hostname or IP address of the proxy server")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
         .name("Proxy Port")
         .description("The port of the proxy server")
         .addValidator(StandardValidators.PORT_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder()
         .name("Http Proxy Username")
         .description("Http Proxy Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
         .build();
     public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
         .name("Http Proxy Password")
         .description("Http Proxy Password")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
         .sensitive(true)
         .build();
@@ -523,15 +529,7 @@ public class FTPTransfer implements FileTransfer {
             }
         }
 
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, () -> {
-            final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-            componentProxyConfig.setProxyType(Proxy.Type.valueOf(ctx.getProperty(PROXY_TYPE).getValue()));
-            componentProxyConfig.setProxyServerHost(ctx.getProperty(PROXY_HOST).getValue());
-            componentProxyConfig.setProxyServerPort(ctx.getProperty(PROXY_PORT).asInteger());
-            componentProxyConfig.setProxyUserName(ctx.getProperty(HTTP_PROXY_USERNAME).getValue());
-            componentProxyConfig.setProxyUserPassword(ctx.getProperty(HTTP_PROXY_PASSWORD).getValue());
-            return componentProxyConfig;
-        });
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
 
         final Proxy.Type proxyType = proxyConfig.getProxyType();
         final String proxyHost = proxyConfig.getProxyServerHost();
@@ -639,4 +637,17 @@ public class FTPTransfer implements FileTransfer {
         }
         return number;
     }
+
+    public static Supplier<ProxyConfiguration> createComponentProxyConfigSupplier(final PropertyContext ctx) {
+        return () -> {
+            final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+            componentProxyConfig.setProxyType(Proxy.Type.valueOf(ctx.getProperty(PROXY_TYPE).getValue()));
+            componentProxyConfig.setProxyServerHost(ctx.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue());
+            componentProxyConfig.setProxyServerPort(ctx.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger());
+            componentProxyConfig.setProxyUserName(ctx.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue());
+            componentProxyConfig.setProxyUserPassword(ctx.getProperty(HTTP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue());
+            return componentProxyConfig;
+        };
+    }
+
 }

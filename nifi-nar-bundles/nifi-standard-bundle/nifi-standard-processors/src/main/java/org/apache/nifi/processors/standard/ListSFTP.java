@@ -32,8 +32,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -83,10 +85,12 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.DATA_TIMEOUT);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
         properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
-        properties.add(SFTPTransfer.PROXY_HOST);
-        properties.add(SFTPTransfer.PROXY_PORT);
-        properties.add(SFTPTransfer.PROXY_USERNAME);
-        properties.add(SFTPTransfer.PROXY_PASSWORD);
+        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
+        properties.add(FTPTransfer.PROXY_TYPE);
+        properties.add(FTPTransfer.PROXY_HOST);
+        properties.add(FTPTransfer.PROXY_PORT);
+        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
         return properties;
     }
 
