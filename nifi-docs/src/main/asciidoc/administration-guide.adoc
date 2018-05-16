@@ -1029,19 +1029,22 @@ You can create and apply access policies on both global and component levels.
 Global access policies govern the following system level authorizations:
 
 |===
-|Policy |Privilege |Global Menu Selection
+|Policy |Privilege |Global Menu Selection |Resource Descriptor
 
 |view the UI
 |Allow users to view the UI
 |N/A
+|`/flow`
 
 |access the controller
 |Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster
 |Controller Settings
+|`/controller`
 
 |query provenance
 |Allows users to submit a Provenance Search and request Event Lineage
 |Data Provenance
+|`/provenance`
 
 |access restricted components
 |Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
@@ -1049,30 +1052,37 @@ components may indicate which specific permissions are required. Permissions can
 restrictions or be granted regardless of restrictions. If permission is granted regardless of restrictions,
 the user can create/modify all restricted components.
 |N/A
+|`/restricted-components`
 
 |access all policies
 |Allows users to view/modify the policies for all components
 |Policies
+|`/policies`
 
 |access users/user groups
 |Allows users to view/modify the users and user groups
 |Users
+|`/tenants`
 
 |retrieve site-to-site details
 |Allows other NiFi instances to retrieve Site-To-Site details
 |N/A
+|`/site-to-site`
 
 |view system diagnostics
 |Allows users to view System Diagnostics
 |Summary
+|`/system`
 
 |proxy user requests
 |Allows proxy machines to send requests on the behalf of others
 |N/A
+|`/proxy`
 
 |access counters
 |Allows users to view/modify Counters
 |Counters
+|`/counters`
 |===
 
 [[component-level-access-policies]]
@@ -1081,31 +1091,39 @@ the user can create/modify all restricted components.
 Component level access policies govern the following component level authorizations:
 
 |===
-|Policy |Privilege
+|Policy |Privilege |Resource Descriptor & Action
 
 |view the component
 |Allows users to view component configuration details
+|`resource="/<component-type>/<component-UUID>" action="R"`
 
 |modify the component
 |Allows users to modify component configuration details
+|`resource="/<component-type>/<component-UUID>" action="W"`
 
 |view the data
 |Allows user to view metadata and content for this component through provenance data and flowfile queues in outbound connections
+|`resource="/data/<component-type>/<component-UUID>" action="R"`
 
 |modify the data
 |Allows user to empty flowfile queues in outbound connections and submit replays
+|`resource="/data/<component-type>/<component-UUID>" action="W"`
 
 |view the policies
 |Allows users to view the list of users who can view/modify a component
+|`resource="/policies/<component-type>/<component-UUID>" action="R"`
 
 |modify the policies
 |Allows users to modify the list of users who can view/modify a component
+|`resource="/policies/<component-type>/<component-UUID>" action="W"`
 
 |receive data via site-to-site
 |Allows a port to receive data from NiFi instances
+|`resource="/data-transfer/input-ports/<port-UUID>" action="W"`
 
 |send data via site-to-site
 |Allows a port to send data from NiFi instances
+|`resource="/data-transfer/output-ports/<port-UUID>" action="W"`
 |===
 
 NOTE: You can apply access policies to all component types except connections.  Connection authorizations are inferred by the individual access policies on the source and destination components of the connection, as well as the access policy of the process group containing the components.  This is discussed in more detail in the <<creating-a-connection>> and <<editing-a-connection>> examples below.
