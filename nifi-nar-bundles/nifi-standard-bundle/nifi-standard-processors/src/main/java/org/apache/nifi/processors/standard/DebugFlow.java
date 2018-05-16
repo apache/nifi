@@ -33,6 +33,8 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -41,8 +43,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -200,6 +200,7 @@ public class DebugFlow extends AbstractProcessor {
         .required(true)
         .defaultValue("0 sec")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     static final PropertyDescriptor ON_STOPPED_FAIL = new PropertyDescriptor.Builder()
         .name("Fail When @OnStopped called")
@@ -339,7 +340,7 @@ public class DebugFlow extends AbstractProcessor {
 
     @OnStopped
     public void onStopped(final ProcessContext context) throws InterruptedException {
-        sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS),
+        sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS),
             context.getProperty(IGNORE_INTERRUPTS).asBoolean());
 
         fail(context.getProperty(ON_STOPPED_FAIL).asBoolean(), OnStopped.class);
