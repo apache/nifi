@@ -46,6 +46,8 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 
+import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
+
 @SupportsBatching
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -76,7 +78,7 @@ public class FetchS3Object extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, VERSION_ID,
-                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

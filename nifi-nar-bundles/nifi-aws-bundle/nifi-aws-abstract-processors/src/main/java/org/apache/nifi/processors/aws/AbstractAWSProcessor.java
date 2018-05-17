@@ -28,6 +28,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import java.io.File;
 import java.io.IOException;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,6 +53,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.regions.AWSRegions;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 
 /**
@@ -185,6 +187,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             problems.add(new ValidationResult.Builder().input("Proxy Host Port").valid(false).explanation("Both proxy host and port must be set").build());
         }
 
+        ProxyConfiguration.validateProxyType(validationContext, problems, Proxy.Type.HTTP);
+
         return problems;
     }
 
@@ -209,18 +213,31 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             }
         }
 
-        if (context.getProperty(PROXY_HOST).isSet()) {
-            String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-            config.setProxyHost(proxyHost);
-            Integer proxyPort = context.getProperty(PROXY_HOST_PORT).evaluateAttributeExpressions().asInteger();
-            config.setProxyPort(proxyPort);
-        }
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
+            if (context.getProperty(PROXY_HOST).isSet()) {
+                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+                String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+                Integer proxyPort = context.getProperty(PROXY_HOST_PORT).evaluateAttributeExpressions().asInteger();
+                String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+                String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
+                componentProxyConfig.setProxyServerHost(proxyHost);
+                componentProxyConfig.setProxyServerPort(proxyPort);
+                componentProxyConfig.setProxyUserName(proxyUsername);
+                componentProxyConfig.setProxyUserPassword(proxyPassword);
+                return componentProxyConfig;
+            }
+            return ProxyConfiguration.DIRECT_CONFIGURATION;
+        });
 
-        if (context.getProperty(PROXY_USERNAME).isSet()) {
-            String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
-            config.setProxyUsername(proxyUsername);
-            String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
-            config.setProxyPassword(proxyPassword);
+        if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
+            config.setProxyHost(proxyConfig.getProxyServerHost());
+            config.setProxyPort(proxyConfig.getProxyServerPort());
+
+            if (proxyConfig.hasCredential()) {
+                config.setProxyUsername(proxyConfig.getProxyUserName());
+                config.setProxyPassword(proxyConfig.getProxyUserPassword());
+            }
         }
 
         return config;

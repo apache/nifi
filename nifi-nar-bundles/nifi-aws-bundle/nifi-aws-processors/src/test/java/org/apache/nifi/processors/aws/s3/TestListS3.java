@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -294,7 +295,7 @@ public class TestListS3 {
     public void testGetPropertyDescriptors() throws Exception {
         ListS3 processor = new ListS3();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 17, pd.size());
+        assertEquals("size should be eq", 20, pd.size());
         assertTrue(pd.contains(ListS3.ACCESS_KEY));
         assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(ListS3.BUCKET));
@@ -311,6 +312,7 @@ public class TestListS3 {
         assertTrue(pd.contains(ListS3.PREFIX));
         assertTrue(pd.contains(ListS3.USE_VERSIONS));
         assertTrue(pd.contains(ListS3.MIN_AGE));
+        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
         assertTrue(pd.contains(ListS3.PROXY_HOST));
         assertTrue(pd.contains(ListS3.PROXY_HOST_PORT));
         assertTrue(pd.contains(ListS3.PROXY_USERNAME));
