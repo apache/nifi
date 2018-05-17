@@ -121,7 +121,6 @@ public class TestSyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_X
 
        List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord_1_X.REL_PARSE_FAILURE);
        assertEquals(1, failureFlowFiles.size());
-
     }
 
     /*
@@ -174,7 +173,6 @@ public class TestSyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_X
        for (int idx = 0; idx < records.length; idx++) {
            assertEquals("\"Mary Jane\",\"19\"", records[idx]);
        }
-
     }
 
     /*
@@ -197,7 +195,5 @@ public class TestSyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_X
         assertEquals(expected.toString(), flowFileContents);
 
         results.get(0).assertAttributeEquals(ConsumePulsarRecord_1_X.MSG_COUNT, 50 + "");
-
     }
-
 }

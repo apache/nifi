@@ -75,7 +75,6 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
 
     @Test
     public void testSingleRecordSuccess() throws PulsarClientException {
-
         final String content = "Mary Jane, 32";
 
         runner.enqueue(content);
@@ -87,14 +86,12 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         MockFlowFile result = results.get(0);
 
         result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "1");
-
         verify(mockProducer, times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
 
     }
 
     @Test
     public void testMultipleRecordSuccess() throws PulsarClientException {
-
         StringBuilder sb = new StringBuilder().append("Mary Jane, 32").append("\n")
                                               .append("John Doe, 35").append("\n")
                                               .append("Busta Move, 26").append("\n");
@@ -114,12 +111,10 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         verify(mockProducer, times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
         verify(mockProducer, times(1)).send("\"John Doe\",\"35\"\n".getBytes());
         verify(mockProducer, times(1)).send("\"Busta Move\",\"26\"\n".getBytes());
-
     }
 
     @Test
     public void testBulkRecordSuccess() throws PulsarClientException {
-
         StringBuilder sb = new StringBuilder();
 
         for (int idx = 0; idx < 1000; idx++) {
@@ -139,6 +134,5 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "1000");
 
         verify(mockProducer, times(1000)).send("\"Mary Jane\",\"32\"\n".getBytes());
-
     }
 }

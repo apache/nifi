@@ -110,7 +110,5 @@ public class TestSyncConsumePulsar_1_X extends TestConsumePulsar_1_X {
 
         // Verify that the consumer was closed
         verify(mockConsumer, times(1)).close();
-
     }
-
 }

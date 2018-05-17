@@ -78,8 +78,7 @@ public class MockPulsarClientService extends AbstractControllerService implement
                             Properties props = invocation.getArgumentAt(0, Properties.class);
                             return getProducer(props);
                         }
-                    }
-                    );
+                    });
 
             when(mockConsumerPool.acquire(any(Properties.class))).thenAnswer(
                     new Answer<PulsarConsumer>() {
@@ -88,9 +87,7 @@ public class MockPulsarClientService extends AbstractControllerService implement
                             Properties props = invocation.getArgumentAt(0, Properties.class);
                             return getConsumer(props);
                         }
-                    }
-                    );
-
+                    });
 
             doAnswer(new Answer() {
                    public Object answer(InvocationOnMock invocation){
@@ -101,7 +98,7 @@ public class MockPulsarClientService extends AbstractControllerService implement
                 }).when(mockConsumerPool).evict(any(PulsarConsumer.class));
 
         } catch (InterruptedException ex) {
-
+            ex.printStackTrace();
         }
 
         try {
@@ -112,7 +109,6 @@ public class MockPulsarClientService extends AbstractControllerService implement
                 }
             }))).thenReturn(null);
         } catch (PulsarClientException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
@@ -149,10 +145,8 @@ public class MockPulsarClientService extends AbstractControllerService implement
         return mockProducerPool;
     }
 
-
     @Override
     public ResourcePool<PulsarConsumer> getConsumerPool() {
         return mockConsumerPool;
     }
-
 }

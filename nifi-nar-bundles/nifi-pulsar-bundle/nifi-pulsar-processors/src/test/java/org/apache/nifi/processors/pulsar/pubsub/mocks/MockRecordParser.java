@@ -53,7 +53,6 @@ public class MockRecordParser extends AbstractControllerService implements Recor
         this.failAfterN = failAfterN;
     }
 
-
     public void addSchemaField(final String fieldName, final RecordFieldType type) {
         fields.add(new RecordField(fieldName, type.getDataType()));
     }

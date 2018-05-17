@@ -165,7 +165,6 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
     protected ExecutorService publisherPool;
     protected ExecutorCompletionService<MessageId> publisherService;
 
-
     @OnScheduled
     public void init(ProcessContext context) {
         // We only need this if we are running in Async mode
@@ -177,7 +176,6 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
 
     @OnUnscheduled
     public void shutDown(final ProcessContext context) {
-
        if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
            // Stop all the async publishers
            try {
@@ -196,12 +194,11 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
     }
 
     protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
-
         try {
-              publisherService.submit(new Callable<MessageId>() {
-                 @Override
-                 public MessageId call() throws Exception {
-                   try {
+            publisherService.submit(new Callable<MessageId>() {
+               @Override
+               public MessageId call() throws Exception {
+                 try {
                      return producer.sendAsync(messageContent).handle((msgId, ex) -> {
                        if (msgId != null) {
                            session.putAttribute(flowFile, MSG_COUNT , "1");
@@ -227,24 +224,20 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
           } catch (final RejectedExecutionException ex) {
               // This can happen if the processor is being Unscheduled.
           }
-
       }
 
     protected void handleAsync() {
-
-         try {
-            Future<MessageId> done = null;
-            do {
-               done = publisherService.poll(50, TimeUnit.MILLISECONDS);
-            } while (done != null);
-         } catch (InterruptedException e) {
-            getLogger().error("Trouble publishing messages ", e);
-         }
-
+        try {
+           Future<MessageId> done = null;
+           do {
+              done = publisherService.poll(50, TimeUnit.MILLISECONDS);
+           } while (done != null);
+        } catch (InterruptedException e) {
+           getLogger().error("Trouble publishing messages ", e);
+        }
     }
 
     protected PulsarProducer getWrappedProducer(String topic, ProcessContext context) throws PulsarClientException, IllegalArgumentException {
-
         PulsarProducer producer = getProducerCache(context).get(topic);
 
         if (producer != null)
@@ -258,30 +251,24 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
             if (producer != null) {
                 producers.put(topic, producer);
             }
-
             return producer;
-
         } catch (InterruptedException e) {
             return null;
         }
-
     }
 
     private LRUCache<String, PulsarProducer> getProducerCache(ProcessContext context) {
         if (producers == null) {
-
             ResourcePool<PulsarProducer> pool = context.getProperty(PULSAR_CLIENT_SERVICE)
                     .asControllerService(PulsarClientPool.class)
                     .getProducerPool();
 
             producers = new LRUCache<String, PulsarProducer>(20, pool);
         }
-
         return producers;
     }
 
     private Properties getProducerProperties(ProcessContext context, String topic) {
-
         Properties props = new Properties();
         props.put(PulsarProducerFactory.TOPIC_NAME, topic);
         props.put(PulsarProducerFactory.PRODUCER_CONFIG, getProducerConfig(context));
@@ -289,7 +276,6 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
     }
 
     private ProducerConfiguration getProducerConfig(ProcessContext context) {
-
         if (producerConfig == null) {
             producerConfig = new ProducerConfiguration();
 
@@ -314,8 +300,6 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
             if (context.getProperty(MESSAGE_ROUTING_MODE).isSet())
                 producerConfig.setMessageRoutingMode(MessageRoutingMode.valueOf(context.getProperty(MESSAGE_ROUTING_MODE).getValue()));
         }
-
         return producerConfig;
     }
-
 }

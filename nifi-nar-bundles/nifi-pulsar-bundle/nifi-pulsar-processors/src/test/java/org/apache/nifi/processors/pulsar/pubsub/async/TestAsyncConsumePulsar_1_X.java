@@ -81,7 +81,6 @@ public class TestAsyncConsumePulsar_1_X extends TestConsumePulsar_1_X {
         assertEquals(0, flowFiles.size());
     }
 
-
     @Test
     public void singleMessageTest() throws PulsarClientException {
         this.sendMessages("Mocked Message", "foo", "bar", true, 1);
@@ -114,7 +113,5 @@ public class TestAsyncConsumePulsar_1_X extends TestConsumePulsar_1_X {
 
         // Verify that the consumer was closed
         verify(mockConsumer, times(1)).close();
-
     }
-
 }

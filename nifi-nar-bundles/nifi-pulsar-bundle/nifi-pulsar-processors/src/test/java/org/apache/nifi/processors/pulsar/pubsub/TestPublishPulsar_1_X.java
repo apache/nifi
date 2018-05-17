@@ -65,14 +65,10 @@ public class TestPublishPulsar_1_X extends AbstractPulsarProcessorTest {
                     return true;
                 }
             }))).thenReturn(future);
-
-
         } catch (PulsarClientException e) {
            e.printStackTrace();
         }
-
         runner = TestRunners.newTestRunner(PublishPulsar_1_X.class);
         addPulsarClientService();
     }
-
 }

@@ -27,7 +27,6 @@ public final class RecordBasedConst {
             .displayName("Record Reader")
             .description("The Record Reader to use for incoming FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(false)
             .required(true)
             .build();
 
@@ -36,8 +35,6 @@ public final class RecordBasedConst {
             .displayName("Record Writer")
             .description("The Record Writer to use in order to serialize the data before sending to Pulsar")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(false)
             .required(true)
             .build();
-
 }

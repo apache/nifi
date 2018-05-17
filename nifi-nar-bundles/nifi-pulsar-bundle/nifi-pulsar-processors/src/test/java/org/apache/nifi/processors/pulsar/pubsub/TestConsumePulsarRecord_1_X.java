@@ -111,7 +111,6 @@ public class TestConsumePulsarRecord_1_X {
 
     @Test
     public void validatePropertiesValidation() throws Exception {
-
         // Initially the processor won't be properly configured
         runner.assertNotValid();
 
@@ -133,7 +132,6 @@ public class TestConsumePulsarRecord_1_X {
     }
 
     protected List<MockFlowFile> sendMessages(String msg, String topic, String sub, boolean async, int iterations, int batchSize) throws PulsarClientException {
-
         when(mockMessage.getData()).thenReturn(msg.getBytes());
 
         runner.setProperty(ConsumePulsarRecord_1_X.ASYNC_ENABLED, Boolean.toString(async));
@@ -166,8 +164,6 @@ public class TestConsumePulsarRecord_1_X {
         } else {
             verify(mockConsumer, times(batchSize * iterations)).acknowledge(mockMessage);
         }
-
         return flowFiles;
     }
-
 }
