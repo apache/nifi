@@ -151,57 +151,49 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
 
     private AsyncAcknowledgmentMonitorThread ackMonitor;
 
-
     @OnScheduled
     public void init(ProcessContext context) {
        // We only need this background thread if we are running in Async mode
        if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-             consumerPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
-             consumerService = new ExecutorCompletionService<>(consumerPool);
-
-             ackPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger() + 1);
-             ackService = new ExecutorCompletionService<>(ackPool);
-
-             ackMonitor = new AsyncAcknowledgmentMonitorThread(ackService);
-             ackPool.submit(ackMonitor);
+           consumerPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
+           consumerService = new ExecutorCompletionService<>(consumerPool);
+           ackPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger() + 1);
+           ackService = new ExecutorCompletionService<>(ackPool);
+           ackMonitor = new AsyncAcknowledgmentMonitorThread(ackService);
+           ackPool.submit(ackMonitor);
        }
     }
 
     @OnUnscheduled
     public void shutDown(final ProcessContext context) {
+        if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
+            // Stop all the async consumers
+            try {
+                consumerPool.shutdown();
+                consumerPool.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                getLogger().error("Unable to stop all the Pulsar Consumers", e);
+            }
 
-         if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-             // Stop all the async consumers
-             try {
-                 consumerPool.shutdown();
-                 consumerPool.awaitTermination(10, TimeUnit.SECONDS);
-              } catch (InterruptedException e) {
-                    getLogger().error("Unable to stop all the Pulsar Consumers", e);
-              }
-
-             // Wait for the async acknowledgments to complete.
-             try {
-                  ackPool.shutdown();
-                  ackPool.awaitTermination(10, TimeUnit.SECONDS);
-             } catch (InterruptedException e) {
-                  getLogger().error("Unable to wait for all of the message acknowledgments to be sent", e);
-             }
-         }
-
-         close(context);
+            // Wait for the async acknowledgments to complete.
+            try {
+                ackPool.shutdown();
+                ackPool.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                getLogger().error("Unable to wait for all of the message acknowledgments to be sent", e);
+            }
+        }
+        close(context);
     }
 
     @OnStopped
     public void close(final ProcessContext context) {
-
         getLogger().info("Disconnecting Pulsar Consumer");
         if (consumer != null) {
-
             context.getProperty(PULSAR_CLIENT_SERVICE)
                    .asControllerService(PulsarClientPool.class)
                    .getConsumerPool().evict(consumer);
         }
-
         consumer = null;
     }
 
@@ -211,24 +203,21 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
      * as possible and committing them as FlowFiles
      */
     protected void consumeAsync(ProcessContext context, ProcessSession session) throws PulsarClientException {
-
         Consumer consumer = getWrappedConsumer(context).getConsumer();
 
         try {
-                consumerService.submit(new Callable<Message>() {
-                     @Override
-                     public Message call() throws Exception {
-                         return consumer.receiveAsync().get();
-                     }
-             });
+            consumerService.submit(new Callable<Message>() {
+                 @Override
+                 public Message call() throws Exception {
+                     return consumer.receiveAsync().get();
+                 }
+            });
         } catch (final RejectedExecutionException ex) {
             // This can happen if the processor is being Unscheduled.
         }
-
     }
 
     protected PulsarConsumer getWrappedConsumer(ProcessContext context) throws PulsarClientException {
-
         if (consumer != null)
             return consumer;
 
@@ -236,8 +225,7 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
                  .asControllerService(PulsarClientPool.class);
 
         try {
-               consumer = pulsarClientService.getConsumerPool()
-                            .acquire(getConsumerProperties(context));
+               consumer = pulsarClientService.getConsumerPool().acquire(getConsumerProperties(context));
 
                if (consumer == null || consumer.getConsumer() == null) {
                    throw new PulsarClientException("Unable to create Pulsar Consumer");
@@ -250,7 +238,6 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
     }
 
     protected Properties getConsumerProperties(ProcessContext context) {
-
         Properties props = new Properties();
         props.put(PulsarConsumerFactory.TOPIC_NAME, context.getProperty(TOPIC).getValue());
         props.put(PulsarConsumerFactory.SUBSCRIPTION_NAME, context.getProperty(SUBSCRIPTION).getValue());
@@ -259,22 +246,20 @@ public abstract class AbstractPulsarConsumerProcessor extends AbstractPulsarProc
     }
 
     protected ConsumerConfiguration getConsumerConfig(ProcessContext context) {
-
         if (consumerConfig == null) {
             consumerConfig = new ConsumerConfiguration();
 
             if (context.getProperty(ACK_TIMEOUT).isSet())
                consumerConfig.setAckTimeout(context.getProperty(ACK_TIMEOUT).asLong(), TimeUnit.MILLISECONDS);
-             if (context.getProperty(PRIORITY_LEVEL).isSet())
+            if (context.getProperty(PRIORITY_LEVEL).isSet())
                consumerConfig.setPriorityLevel(context.getProperty(PRIORITY_LEVEL).asInteger());
-             if (context.getProperty(RECEIVER_QUEUE_SIZE).isSet())
+            if (context.getProperty(RECEIVER_QUEUE_SIZE).isSet())
                consumerConfig.setReceiverQueueSize(context.getProperty(RECEIVER_QUEUE_SIZE).asInteger());
-             if (context.getProperty(SUBSCRIPTION_TYPE).isSet())
+            if (context.getProperty(SUBSCRIPTION_TYPE).isSet())
                consumerConfig.setSubscriptionType(SubscriptionType.valueOf(context.getProperty(SUBSCRIPTION_TYPE).getValue()));
         }
 
        return consumerConfig;
-
     }
 
     private class AsyncAcknowledgmentMonitorThread extends Thread {

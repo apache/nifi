@@ -71,7 +71,6 @@ public class TestConsumePulsar_1_X extends AbstractPulsarProcessorTest {
         } catch (PulsarClientException e) {
             e.printStackTrace();
         }
-
         addPulsarClientService();
     }
 
@@ -150,6 +149,5 @@ public class TestConsumePulsar_1_X extends AbstractPulsarProcessorTest {
         } else {
             verify(mockConsumer, times(itertions)).acknowledge(mockMessage);
         }
-
     }
 }

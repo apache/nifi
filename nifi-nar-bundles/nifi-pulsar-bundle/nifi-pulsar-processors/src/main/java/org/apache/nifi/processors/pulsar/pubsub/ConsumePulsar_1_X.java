@@ -82,7 +82,6 @@ public class ConsumePulsar_1_X extends AbstractPulsarConsumerProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
         try {
             if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
                 // Launch consumers
@@ -99,11 +98,9 @@ public class ConsumePulsar_1_X extends AbstractPulsarConsumerProcessor {
             context.yield();
             throw new ProcessException(e);
         }
-
     }
 
     private void handleAsync(ProcessContext context, ProcessSession session) {
-
         try {
             Future<Message> done = consumerService.take();
             Message msg = done.get();
@@ -127,12 +124,10 @@ public class ConsumePulsar_1_X extends AbstractPulsarConsumerProcessor {
         } catch (InterruptedException | ExecutionException | PulsarClientException e) {
             getLogger().error("Trouble consuming messages ", e);
         }
-
     }
 
     @OnStopped
     public void close(final ProcessContext context) {
-
         getLogger().info("Disconnecting Pulsar Consumer");
         if (consumer != null) {
 
@@ -140,7 +135,6 @@ public class ConsumePulsar_1_X extends AbstractPulsarConsumerProcessor {
                 .asControllerService(PulsarClientPool.class)
                 .getConsumerPool().evict(consumer);
         }
-
         consumer = null;
     }
 
@@ -151,7 +145,6 @@ public class ConsumePulsar_1_X extends AbstractPulsarConsumerProcessor {
      * to treat the content of the newly created FlowFiles much more efficiently.
      */
     private void consume(ProcessContext context, ProcessSession session) throws PulsarClientException {
-
         Consumer consumer = getWrappedConsumer(context).getConsumer();
 
         final ComponentLog logger = getLogger();
@@ -159,7 +152,6 @@ public class ConsumePulsar_1_X extends AbstractPulsarConsumerProcessor {
         FlowFile flowFile = null;
 
         try {
-
             msg = consumer.receive();
             final byte[] value = msg.getData();
 
@@ -195,12 +187,9 @@ public class ConsumePulsar_1_X extends AbstractPulsarConsumerProcessor {
                 // We didn't consume any data, so
                 session.commit();
             }
-
         } catch (PulsarClientException e) {
             context.yield();
             session.rollback();
         }
-
     }
-
 }

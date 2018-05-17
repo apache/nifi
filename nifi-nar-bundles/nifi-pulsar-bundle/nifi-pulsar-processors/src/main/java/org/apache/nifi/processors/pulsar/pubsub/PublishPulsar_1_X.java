@@ -87,7 +87,6 @@ public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
         FlowFile flowFile = session.get();
 
         if (flowFile == null) {
@@ -116,7 +115,6 @@ public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
         }
 
         try {
-
             Producer producer = getWrappedProducer(topic, context).getProducer();
 
             if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
@@ -125,17 +123,14 @@ public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
             } else {
                 this.send(producer, session, flowFile, messageContent);
             }
-
         } catch (final PulsarClientException e) {
             logger.error("Failed to connect to Pulsar Server due to {}", new Object[]{e});
             session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
-
     }
 
     private void send(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) throws PulsarClientException {
-
         MessageId msgId = producer.send(messageContent);
 
         if (msgId != null) {
@@ -143,10 +138,8 @@ public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
             session.adjustCounter("Messages Sent", 1, true);
             session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
             session.transfer(flowFile, REL_SUCCESS);
-
         } else {
             session.transfer(flowFile, REL_FAILURE);
         }
-
     }
 }

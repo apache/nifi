@@ -63,7 +63,6 @@ public class TestPublishPulsarRecord_1_X {
 
     @Before
     public void setup() throws InitializationException {
-
         mockClient = mock(PulsarClient.class);
         mockProducer = mock(Producer.class);
 
@@ -88,12 +87,9 @@ public class TestPublishPulsarRecord_1_X {
                     return true;
                 }
             }))).thenReturn(future);
-
-
         } catch (PulsarClientException e) {
            e.printStackTrace();
         }
-
         runner = TestRunners.newTestRunner(PublishPulsarRecord_1_X.class);
 
         final String readerId = "record-reader";
@@ -119,17 +115,14 @@ public class TestPublishPulsarRecord_1_X {
 
     @Test
     public void propertyValidationTest() throws Exception {
-
         // Initially the processor won't be properly configured
         runner.assertNotValid();
-
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.assertValid();
     }
 
     @Test
     public void invalidTopicTest() throws UnsupportedEncodingException, PulsarClientException {
-
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, "${topic}");
 
         final String content = "some content";
@@ -146,7 +139,6 @@ public class TestPublishPulsarRecord_1_X {
 
     @Test
     public void dynamicTopicTest() throws UnsupportedEncodingException, PulsarClientException {
-
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, "${topic}");
 
         final String content = "Mary Jane, 32";
@@ -160,6 +152,4 @@ public class TestPublishPulsarRecord_1_X {
         // Verify that we sent the data to topic-b.
         verify(mockClient, times(1)).createProducer(TOPIC_NAME);
     }
-
-
 }

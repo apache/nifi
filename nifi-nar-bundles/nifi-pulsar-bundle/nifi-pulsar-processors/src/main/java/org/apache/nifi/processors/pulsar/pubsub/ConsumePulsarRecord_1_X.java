@@ -135,7 +135,6 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER)
                 .asControllerService(RecordReaderFactory.class);
 
@@ -162,7 +161,6 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
             context.yield();
             throw new ProcessException(e);
         }
-
     }
 
     /**
@@ -170,7 +168,6 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
      * whichever occurs first.
      */
     private List<Message> consume(ProcessContext context, ProcessSession session) throws PulsarClientException {
-
         final Integer queryTimeout = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
 
         Consumer consumer = getWrappedConsumer(context).getConsumer();
@@ -183,7 +180,6 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
                 && (queryTimeout == 0 || System.currentTimeMillis() - startTime < queryTimeout ) ) {
             messages.add(consumer.receive());
         }
-
         return messages;
     }
 
@@ -223,7 +219,6 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
                 } else {
                    consumer.getConsumer().acknowledge(msg);
                 }
-
                 continue;
             }
 
@@ -287,7 +282,6 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
     }
 
     private Record getFirstRecord(Message msg, RecordReader reader, BiConsumer<Message, Exception> handleParseFailure) {
-
         Record firstRecord = null;
 
         try {
@@ -295,12 +289,10 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
         } catch (IOException | MalformedRecordException ex) {
             handleParseFailure.accept(msg, ex);
         }
-
         return firstRecord;
     }
 
     private RecordReader getRecordReader(Message msg, RecordReaderFactory readerFactory, BiConsumer<Message, Exception> handleParseFailure) {
-
         RecordReader reader = null;
         final byte[] recordBytes = msg.getData() == null ? new byte[0] : msg.getData();
 
@@ -309,9 +301,7 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
         } catch (MalformedRecordException | IOException | SchemaNotFoundException ex) {
             handleParseFailure.accept(msg, ex);
         }
-
         return reader;
-
     }
 
     private RecordSetWriter getRecordWriter(RecordSetWriterFactory writerFactory, RecordSchema srcSchema, OutputStream out) throws SchemaNotFoundException, IOException {
@@ -320,12 +310,10 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
     }
 
     protected List<Message> handleAsync(ProcessContext context, ProcessSession session) {
-
        List<Message> messages = new ArrayList<Message>();
        final Integer queryTimeout = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
 
        try {
-
             Future<Message> done = null;
             do {
                 done = consumerService.poll(queryTimeout, TimeUnit.SECONDS);
@@ -344,8 +332,6 @@ public class ConsumePulsarRecord_1_X extends AbstractPulsarConsumerProcessor {
        } catch (InterruptedException | ExecutionException e) {
            getLogger().error("Trouble consuming messages ", e);
        }
-
        return messages;
-
     }
 }

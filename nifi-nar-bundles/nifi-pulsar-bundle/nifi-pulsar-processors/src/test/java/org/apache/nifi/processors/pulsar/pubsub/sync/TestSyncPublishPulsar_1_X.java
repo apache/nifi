@@ -38,7 +38,6 @@ public class TestSyncPublishPulsar_1_X extends TestPublishPulsar_1_X {
     @SuppressWarnings("unchecked")
     @Test
     public void pulsarClientExceptionTest() throws PulsarClientException, UnsupportedEncodingException {
-
        when(mockProducer.send(Matchers.argThat(new ArgumentMatcher<byte[]>() {
           @Override
           public boolean matches(Object argument) {
@@ -56,7 +55,6 @@ public class TestSyncPublishPulsar_1_X extends TestPublishPulsar_1_X {
 
     @Test
     public void invalidTopicTest() throws UnsupportedEncodingException, PulsarClientException {
-
         runner.setProperty(PublishPulsar_1_X.TOPIC, "${topic}");
 
         final String content = "some content";
@@ -113,17 +111,13 @@ public class TestSyncPublishPulsar_1_X extends TestPublishPulsar_1_X {
         when(mockProducer.getTopic()).thenReturn("my-topic");
         runner.setProperty(PublishPulsar_1_X.TOPIC, "my-topic");
         final String content = "some content";
-
-        // Hack, since runner.run(20, false); doesn't work as advertised
         for (int idx = 0; idx < 20; idx++) {
             runner.enqueue(content.getBytes("UTF-8"));
             runner.run();
             runner.assertAllFlowFilesTransferred(PublishPulsar_1_X.REL_SUCCESS);
 
         }
-
         // Verify that the send method on the producer was called with the expected content
         verify(mockProducer, times(20)).send(content.getBytes());
     }
-
 }

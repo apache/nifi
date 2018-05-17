@@ -133,7 +133,6 @@ public class TestAsyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_
 
     @Test
     public void multipleMessagesGoodAndBadTest() {
-
         // The getBytes method is call 4 times for each message processed.
         when(mockMessage.getData()).thenReturn(
              BAD_MSG.getBytes(), BAD_MSG.getBytes(),
@@ -171,7 +170,6 @@ public class TestAsyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_
         for (int idx = 0; idx < records.length; idx++) {
            assertEquals("\"Mary Jane\",\"19\"", records[idx]);
         }
-
     }
 
     /*
@@ -194,6 +192,5 @@ public class TestAsyncConsumePulsarRecord_1_X extends TestConsumePulsarRecord_1_
        assertEquals(expected.toString(), flowFileContents);
 
        results.get(0).assertAttributeEquals(ConsumePulsarRecord_1_X.MSG_COUNT, 50 + "");
-
     }
 }

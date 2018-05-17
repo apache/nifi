@@ -25,8 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Helper class to monitor the asynchronous submission of a large number
  * of records to Apache Pulsar.
  *
- * @author david
- *
  */
 public class InFlightMessageMonitor {
 
@@ -63,5 +61,4 @@ public class InFlightMessageMonitor {
     public AtomicInteger getFailureCounter() {
         return failureCounter;
     }
-
 }

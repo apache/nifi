@@ -22,8 +22,6 @@ package org.apache.nifi.pulsar.pool;
  * in the event of any exception occurring while interacting with
  * a @PoolableResource
  *
- * @author david
- *
  */
 public interface ResourceExceptionHandler {
 

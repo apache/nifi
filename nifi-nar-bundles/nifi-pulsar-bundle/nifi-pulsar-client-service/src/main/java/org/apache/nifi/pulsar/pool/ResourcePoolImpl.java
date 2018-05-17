@@ -35,7 +35,7 @@ public class ResourcePoolImpl<R extends PoolableResource> implements ResourcePoo
     private final ResourceFactory<R> factory;
 
     public ResourcePoolImpl(ResourceFactory<R> factory, int max_resources) {
-            this(factory, new ResourceExceptionHandlerImpl(), max_resources);
+        this(factory, new ResourceExceptionHandlerImpl(), max_resources);
     }
 
     public ResourcePoolImpl(ResourceFactory<R> factory, ResourceExceptionHandler handler, int max_resources) {
@@ -57,32 +57,28 @@ public class ResourcePoolImpl<R extends PoolableResource> implements ResourcePoo
             if (resource == null) {
                 throw new ResourceCreationException("Unable to create resource");
             }
-
         } catch (Exception e) {
             resourceExceptionHandler.handle(e);
         }
         return resource;
     }
 
-
     /*
      * Shutdown the pool and release the resources
      */
     public void close() {
-
         Iterator<R> itr = pool.iterator();
         while (itr.hasNext()) {
             itr.next().close();
         }
-
     }
 
     public boolean isEmpty() {
-            return (pool.isEmpty());
+       return (pool.isEmpty());
     }
 
     public boolean isFull() {
-        return (pool != null && pool.size() == max_resources);
+      return (pool != null && pool.size() == max_resources);
     }
 
     @Override

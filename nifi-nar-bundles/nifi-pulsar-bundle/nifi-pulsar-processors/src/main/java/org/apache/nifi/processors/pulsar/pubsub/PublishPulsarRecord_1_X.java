@@ -110,7 +110,6 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -143,7 +142,7 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
                 .asControllerService(RecordReaderFactory.class);
 
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER)
-                    .asControllerService(RecordSetWriterFactory.class);
+                .asControllerService(RecordSetWriterFactory.class);
 
         final Map<String, String> attributes = flowFile.getAttributes();
         final AtomicLong messagesSent = new AtomicLong(0L);
@@ -170,11 +169,9 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
         } catch (final SchemaNotFoundException | MalformedRecordException | IOException e) {
             session.transfer(flowFile, REL_FAILURE);
         }
-
     }
 
     private int send(final Producer producer, final RecordSetWriterFactory writerFactory, final RecordSchema schema, final RecordSet recordSet) throws IOException, SchemaNotFoundException {
-
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 
         Record record;
@@ -200,7 +197,6 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 
         Record record;
-
         while ((record = recordSet.next()) != null) {
             baos.reset();
 
@@ -210,7 +206,6 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
             }
             records.add(baos.toByteArray());
         }
-
         return new InFlightMessageMonitor(records);
     }
 
@@ -218,7 +213,6 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
      *
      */
     protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, InFlightMessageMonitor monitor) {
-
         if (monitor == null || monitor.getRecords().isEmpty())
            return;
 
@@ -258,7 +252,6 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
 
     private void handleAsync(InFlightMessageMonitor monitor, ProcessSession session, FlowFile flowFile, String topic) {
        try {
-
            boolean useOriginalForFailures = false;
            monitor.getLatch().await();
 
@@ -286,7 +279,6 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
               session.putAttribute(failureFlowFile, MSG_COUNT, String.valueOf(monitor.getFailureCounter().get()));
               session.transfer(failureFlowFile, REL_FAILURE);
            }
-
         } catch (InterruptedException e) {
           getLogger().error("Pulsar did not receive all async messages", e);
         }

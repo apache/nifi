@@ -199,17 +199,16 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, UnsupportedAuthenticationException {
 
-            createClient(context);
+        createClient(context);
 
-            if (this.client == null) {
-                throw new InitializationException("Unable to create Pulsar Client");
-            }
+        if (this.client == null) {
+            throw new InitializationException("Unable to create Pulsar Client");
+        }
 
-            producers = new ResourcePoolImpl<PulsarProducer>(new PulsarProducerFactory(client), context.getProperty(MAX_PRODUCERS).asInteger());
-            consumers = new ResourcePoolImpl<PulsarConsumer>(new PulsarConsumerFactory(client,
+        producers = new ResourcePoolImpl<PulsarProducer>(new PulsarProducerFactory(client), context.getProperty(MAX_PRODUCERS).asInteger());
+        consumers = new ResourcePoolImpl<PulsarConsumer>(new PulsarConsumerFactory(client,
                 buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).getValue(), getClientConfig(context).isUseTls())),
                 context.getProperty(MAX_CONSUMERS).asInteger());
-
     }
 
     private void createClient(final ConfigurationContext context) throws InitializationException {
@@ -278,15 +277,15 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
             if (sslContextService != null && sslContextService.isTrustStoreConfigured() && sslContextService.isKeyStoreConfigured()) {
-                    clientConfig.setUseTls(true);
-                    clientConfig.setTlsTrustCertsFilePath(sslContextService.getTrustStoreFile());
+                clientConfig.setUseTls(true);
+                clientConfig.setTlsTrustCertsFilePath(sslContextService.getTrustStoreFile());
 
-                    Map<String, String> authParams = new HashMap<>();
+                Map<String, String> authParams = new HashMap<>();
 
-                    // TODO This should be a different value than the TlsTrustCertsFilePath above.
-                    authParams.put("tlsCertFile", sslContextService.getTrustStoreFile());
-                    authParams.put("tlsKeyFile", sslContextService.getKeyStoreFile());
-                    clientConfig.setAuthentication(AuthenticationTls.class.getName(), authParams);
+                // TODO This should be a different value than the TlsTrustCertsFilePath above.
+                authParams.put("tlsCertFile", sslContextService.getTrustStoreFile());
+                authParams.put("tlsKeyFile", sslContextService.getKeyStoreFile());
+                clientConfig.setAuthentication(AuthenticationTls.class.getName(), authParams);
             }
         }
 

@@ -59,7 +59,6 @@ public class TestAsyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_
 
         String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
         assertEquals("\"Mary Jane\",\"32\"", flowFileContents);
-
     }
 
     // Malformed content test, using "some content"
@@ -94,12 +93,10 @@ public class TestAsyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_
         result.assertAttributeEquals(PublishPulsarRecord_1_X.TOPIC_NAME, TOPIC_NAME);
 
         verify(mockProducer, times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
-
     }
 
     @Test
     public void testMultipleRecordSuccess() throws PulsarClientException {
-
         StringBuilder sb = new StringBuilder().append("Mary Jane, 32").append("\n")
                                               .append("John Doe, 35").append("\n")
                                               .append("Busta Move, 26").append("\n");
@@ -122,12 +119,10 @@ public class TestAsyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_
         verify(mockProducer, times(1)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
         verify(mockProducer, times(1)).sendAsync("\"John Doe\",\"35\"\n".getBytes());
         verify(mockProducer, times(1)).sendAsync("\"Busta Move\",\"26\"\n".getBytes());
-
     }
 
     @Test
     public void testBulkRecordSuccess() throws PulsarClientException {
-
         StringBuilder sb = new StringBuilder();
 
         for (int idx = 0; idx < 98634; idx++) {
@@ -149,6 +144,5 @@ public class TestAsyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_
         result.assertAttributeEquals(PublishPulsarRecord_1_X.TOPIC_NAME, TOPIC_NAME);
 
         verify(mockProducer, times(98634)).sendAsync("\"Mary Jane\",\"32\"\n".getBytes());
-
     }
 }

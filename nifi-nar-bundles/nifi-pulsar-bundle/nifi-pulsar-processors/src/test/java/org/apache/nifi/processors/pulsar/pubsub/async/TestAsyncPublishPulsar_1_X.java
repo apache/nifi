@@ -94,6 +94,5 @@ public class TestAsyncPublishPulsar_1_X extends TestPublishPulsar_1_X {
         outFile.assertAttributeEquals(PublishPulsar_1_X.MSG_COUNT, "1");
 
         verify(mockProducer, times(99)).sendAsync(content.getBytes());
-
     }
 }
