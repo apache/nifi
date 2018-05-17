@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.status;
 
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -849,7 +849,7 @@ public class StatusConfigReporterTest {
         when(bulletinRepo.findBulletins(anyObject())).then(bulletinQueryAnswer);
     }
 
-    private void addValidationErrors(ConfiguredComponent connectable) {
+    private void addValidationErrors(ComponentNode connectable) {
         ValidationResult validationResult = new ValidationResult.Builder()
                 .input("input")
                 .subject("subject")
