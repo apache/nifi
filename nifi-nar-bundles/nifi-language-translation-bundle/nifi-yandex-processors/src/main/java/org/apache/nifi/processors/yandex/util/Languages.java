@@ -25,6 +25,7 @@ public class Languages {
     private static final Map<String, String> languageAbbreviationMap = new HashMap<>();
 
     static {
+        languageAbbreviationMap.put("", "blank");
         languageAbbreviationMap.put("ar", "arabic");
         languageAbbreviationMap.put("az", "azerbaijani");
         languageAbbreviationMap.put("be", "belarusian");
