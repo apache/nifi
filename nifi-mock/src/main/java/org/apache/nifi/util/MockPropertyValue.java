@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -209,7 +210,7 @@ public class MockPropertyValue implements PropertyValue {
          * raises an error which makes it not mimick real world behavior.
          */
         if (flowFile == null) {
-            return evaluateAttributeExpressions();
+            return evaluateAttributeExpressions(new HashMap<>());
         }
         return evaluateAttributeExpressions(flowFile, null, null);
     }
