@@ -132,6 +132,8 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>src/test/resources/avro/avro_embed_schema.avro</exclude>
+                        <exclude>src/test/resources/avro/avro_schemaless.avro</exclude>
                         <exclude>src/test/resources/avro/datatypes.avsc</exclude>
                         <exclude>src/test/resources/avro/decimals.avsc</exclude>
                         <exclude>src/test/resources/avro/logical-types.avsc</exclude>
