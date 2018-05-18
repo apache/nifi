@@ -342,7 +342,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         ) {
             Pair<String,SQLException> failure = executeConfigStatements(con, preQueries);
             if (failure != null) {
-                // In case of failure, assigning config query to "hqlStatement"  to follow current error handling 
+                // In case of failure, assigning config query to "hqlStatement"  to follow current error handling
                 hqlStatement = failure.getLeft();
                 flowfile = (fileToProcess == null) ? session.create() : fileToProcess;
                 fileToProcess = null;
