@@ -306,11 +306,10 @@ public class TestListS3 {
         assertTrue(pd.contains(ListS3.SIGNER_OVERRIDE));
         assertTrue(pd.contains(ListS3.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(ListS3.TIMEOUT));
-        assertTrue(pd.contains(ListS3.PROXY_HOST));
-        assertTrue(pd.contains(ListS3.PROXY_HOST_PORT));
         assertTrue(pd.contains(ListS3.DELIMITER));
         assertTrue(pd.contains(ListS3.PREFIX));
         assertTrue(pd.contains(ListS3.USE_VERSIONS));
+        assertTrue(pd.contains(ListS3.LIST_TYPE));
         assertTrue(pd.contains(ListS3.MIN_AGE));
         assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
         assertTrue(pd.contains(ListS3.PROXY_HOST));

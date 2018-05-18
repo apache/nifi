@@ -96,7 +96,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .build();
 
     public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
-            .name("Proxy Username")
+            .name("proxy-user-name")
+            .displayName("Proxy Username")
             .description("Proxy username")
             .expressionLanguageSupported(true)
             .required(false)
@@ -104,7 +105,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .build();
 
     public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Proxy Password")
+            .name("proxy-user-password")
+            .displayName("Proxy Password")
             .description("Proxy password")
             .expressionLanguageSupported(true)
             .required(false)
