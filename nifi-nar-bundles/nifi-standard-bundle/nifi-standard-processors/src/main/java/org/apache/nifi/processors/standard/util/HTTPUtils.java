@@ -27,6 +27,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 
 import java.net.Proxy;
 import java.util.Collection;
@@ -67,6 +68,10 @@ public class HTTPUtils {
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
 
     public static void setProxy(final ProcessContext context, final HttpClientBuilder clientBuilder, final CredentialsProvider credentialsProvider) {
         // Set the proxy if specified
@@ -106,6 +111,6 @@ public class HTTPUtils {
                     .build());
         }
 
-        ProxyConfiguration.validateProxyType(context, results, Proxy.Type.HTTP);
+        ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 }

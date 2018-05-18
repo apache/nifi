@@ -31,6 +31,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -163,6 +164,14 @@ public final class AzureStorageUtils {
         }
 
         return results;
+    }
+
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS);
+
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+        ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
     public static void setProxy(final OperationContext operationContext, final ProcessContext processContext) {

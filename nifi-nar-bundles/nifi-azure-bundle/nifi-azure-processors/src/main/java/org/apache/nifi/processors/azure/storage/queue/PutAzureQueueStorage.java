@@ -34,7 +34,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.proxy.ProxyConfigurationService;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
@@ -72,7 +71,7 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
     private static final List<PropertyDescriptor> properties =  Collections.unmodifiableList(Arrays.asList(
             AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.PROP_SAS_TOKEN, TTL,
-            QUEUE, VISIBILITY_DELAY, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+            QUEUE, VISIBILITY_DELAY, AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -152,6 +151,8 @@ public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
                                                  .build());
             }
         }
+
+        AzureStorageUtils.validateProxySpec(validationContext, problems);
 
         return problems;
     }

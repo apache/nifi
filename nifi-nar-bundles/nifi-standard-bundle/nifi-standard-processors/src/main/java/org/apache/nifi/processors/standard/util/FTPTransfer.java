@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +41,8 @@ import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPHTTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -49,6 +52,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 
 public class FTPTransfer implements FileTransfer {
 
@@ -130,6 +134,10 @@ public class FTPTransfer implements FileTransfer {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
     private final ComponentLog logger;
 
     private final ProcessContext ctx;
@@ -141,6 +149,10 @@ public class FTPTransfer implements FileTransfer {
     public FTPTransfer(final ProcessContext context, final ComponentLog logger) {
         this.ctx = context;
         this.logger = logger;
+    }
+
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+        ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
     @Override

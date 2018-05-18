@@ -129,7 +129,6 @@ import java.util.regex.Pattern;
 
 import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
 import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -294,7 +293,7 @@ public class PostHTTP extends AbstractProcessor {
         properties.add(DATA_TIMEOUT);
         properties.add(ATTRIBUTES_AS_HEADERS_REGEX);
         properties.add(USER_AGENT);
-        properties.add(PROXY_CONFIGURATION_SERVICE);
+        properties.add(HTTPUtils.PROXY_CONFIGURATION_SERVICE);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         properties.add(CONTENT_TYPE);

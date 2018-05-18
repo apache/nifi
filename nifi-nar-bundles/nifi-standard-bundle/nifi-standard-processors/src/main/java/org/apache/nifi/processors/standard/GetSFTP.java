@@ -36,7 +36,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
-import org.apache.nifi.proxy.ProxyConfigurationService;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"sftp", "get", "retrieve", "files", "fetch", "remote", "ingest", "source", "input"})
@@ -83,7 +82,7 @@ public class GetSFTP extends GetFileTransfer {
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
         properties.add(SFTPTransfer.USE_COMPRESSION);
         properties.add(SFTPTransfer.USE_NATURAL_ORDERING);
-        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
+        properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
@@ -109,6 +108,8 @@ public class GetSFTP extends GetFileTransfer {
                     .valid(false)
                     .build());
         }
+
+        SFTPTransfer.validateProxySpec(context, results);
 
         return results;
     }

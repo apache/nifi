@@ -60,6 +60,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -109,7 +110,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
@@ -413,6 +413,10 @@ public final class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             PROP_METHOD,
             PROP_URL,
@@ -566,6 +570,8 @@ public final class InvokeHTTP extends AbstractProcessor {
                 && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
             results.add(new ValidationResult.Builder().subject("SSL Context Service").valid(false).explanation("If Proxy Type is HTTPS, SSL Context Service must be set").build());
         }
+
+        ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
 
         return results;
     }

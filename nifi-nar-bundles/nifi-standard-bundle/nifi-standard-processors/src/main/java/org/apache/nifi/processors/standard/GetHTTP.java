@@ -102,7 +102,6 @@ import org.apache.nifi.util.Tuple;
 
 import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
 import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -260,7 +259,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         properties.add(ACCEPT_CONTENT_TYPE);
         properties.add(FOLLOW_REDIRECTS);
         properties.add(REDIRECT_COOKIE_POLICY);
-        properties.add(PROXY_CONFIGURATION_SERVICE);
+        properties.add(HTTPUtils.PROXY_CONFIGURATION_SERVICE);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);

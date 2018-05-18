@@ -34,7 +34,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
@@ -137,7 +137,10 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
                 .build();
     }
 
-    protected static final List<PropertyDescriptor> COMMON_PROPERTY_DESCRIPTORS;
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+    static final List<PropertyDescriptor> COMMON_PROPERTY_DESCRIPTORS;
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -147,7 +150,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         properties.add(PASSWORD);
         properties.add(CONNECT_TIMEOUT);
         properties.add(RESPONSE_TIMEOUT);
-        properties.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
+        properties.add(PROXY_CONFIGURATION_SERVICE);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         properties.add(PROXY_USERNAME);
@@ -221,6 +224,9 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
                     .subject("Proxy server configuration")
                     .build());
         }
+
+        ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
+
         return results;
     }
 

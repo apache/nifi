@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.proxy;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
@@ -24,35 +25,100 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
+import static org.apache.nifi.proxy.ProxySpec.HTTP;
+import static org.apache.nifi.proxy.ProxySpec.HTTP_AUTH;
+import static org.apache.nifi.proxy.ProxySpec.SOCKS;
+import static org.apache.nifi.proxy.ProxySpec.SOCKS_AUTH;
 
 public class ProxyConfiguration {
 
     public static final ProxyConfiguration DIRECT_CONFIGURATION = new ProxyConfiguration();
+
+    public static PropertyDescriptor createProxyConfigPropertyDescriptor(final boolean hasComponentProxyConfigs, final ProxySpec ... _specs) {
+
+        final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
+
+        final StringBuilder description = new StringBuilder("Specifies the Proxy Configuration Controller Service to proxy network requests.");
+        if (hasComponentProxyConfigs) {
+            description.append(" If set, it supersedes proxy settings configured per component.");
+        }
+        description.append(" Supported proxies: ");
+        description.append(specs.stream().map(ProxySpec::getDisplayName).collect(Collectors.joining(", ")));
+
+        return new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE)
+                .description(description.toString())
+                .build();
+    }
+
+    /**
+     * Remove redundancy. If X_AUTH is supported, then X should be supported, too.
+     * @param _specs original specs
+     * @return sorted unique specs
+     */
+    private static Set<ProxySpec> getUniqueProxySpecs(ProxySpec ... _specs) {
+        final Set<ProxySpec> specs = Arrays.stream(_specs).sorted().collect(Collectors.toSet());
+        if (specs.contains(HTTP_AUTH)) {
+            specs.remove(HTTP);
+        }
+        if (specs.contains(SOCKS_AUTH)) {
+            specs.remove(SOCKS);
+        }
+        return specs;
+    }
 
     /**
      * This method can be used from customValidate method of components using this Controller Service
      * to validate the service is configured with the supported proxy types.
      * @param context the validation context
      * @param results if validation fails, an invalid validation result will be added to this collection
-     * @param supportedProxyTypes specify supported proxy types, DIRECT is always supported
+     * @param _specs specify supported proxy specs
      */
-    public static void validateProxyType(ValidationContext context, Collection<ValidationResult> results, Proxy.Type ... supportedProxyTypes) {
-        if (context.getProperty(PROXY_CONFIGURATION_SERVICE).isSet()) {
-            final ProxyConfigurationService proxyService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
-            final Proxy.Type proxyType = proxyService.getConfiguration().getProxyType();
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results, final ProxySpec ... _specs) {
 
-            if (!proxyType.equals(Proxy.Type.DIRECT)
-                    && Arrays.stream(supportedProxyTypes).noneMatch(supported -> supported.equals(proxyType))) {
+        final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
+        final Set<Proxy.Type> supportedProxyTypes = specs.stream().map(ProxySpec::getProxyType).collect(Collectors.toSet());
+
+        if (!context.getProperty(PROXY_CONFIGURATION_SERVICE).isSet()) {
+            return;
+        }
+
+        final ProxyConfigurationService proxyService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+        final ProxyConfiguration proxyConfiguration = proxyService.getConfiguration();
+        final Proxy.Type proxyType = proxyConfiguration.getProxyType();
+
+        if (proxyType.equals(Proxy.Type.DIRECT)) {
+            return;
+        }
+
+        if (!supportedProxyTypes.contains(proxyType)) {
+            results.add(new ValidationResult.Builder()
+                    .explanation(String.format("Proxy type %s is not supported.", proxyType))
+                    .valid(false)
+                    .subject(PROXY_CONFIGURATION_SERVICE.getDisplayName())
+                    .build());
+
+            // If the proxy type is not supported, no need to do further validation.
+            return;
+        }
+
+        if (proxyConfiguration.hasCredential()) {
+            // If credential is set, check whether the component is capable to use it.
+            if (!specs.contains(Proxy.Type.HTTP.equals(proxyType) ? HTTP_AUTH : SOCKS_AUTH)) {
                 results.add(new ValidationResult.Builder()
-                        .explanation(String.format("Proxy type %s is not supported.", proxyType))
+                        .explanation(String.format("Proxy type %s with Authentication is not supported.", proxyType))
                         .valid(false)
                         .subject(PROXY_CONFIGURATION_SERVICE.getDisplayName())
                         .build());
             }
         }
+
+
     }
 
     /**

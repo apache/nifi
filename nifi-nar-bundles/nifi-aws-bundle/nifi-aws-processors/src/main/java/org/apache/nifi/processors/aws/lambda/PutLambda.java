@@ -52,8 +52,6 @@ import com.amazonaws.services.lambda.model.TooManyRequestsException;
 import com.amazonaws.services.lambda.model.UnsupportedMediaTypeException;
 import com.amazonaws.util.Base64;
 
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
-
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "lambda", "put"})
 @CapabilityDescription("Sends the contents to a specified Amazon Lamba Function. "

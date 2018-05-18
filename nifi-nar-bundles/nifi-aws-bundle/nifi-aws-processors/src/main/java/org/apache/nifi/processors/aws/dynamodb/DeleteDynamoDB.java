@@ -46,8 +46,6 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
-
 @SupportsBatching
 @SeeAlso({GetDynamoDB.class, PutDynamoDB.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)

@@ -24,7 +24,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.proxy.ProxyConfigurationService;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -61,7 +60,7 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
                     AzureStorageUtils.ACCOUNT_NAME,
                     AzureStorageUtils.ACCOUNT_KEY,
                     BLOB,
-                    ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+                    AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
@@ -75,7 +74,9 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return AzureStorageUtils.validateCredentialProperties(validationContext);
+        final Collection<ValidationResult> results = AzureStorageUtils.validateCredentialProperties(validationContext);
+        AzureStorageUtils.validateProxySpec(validationContext, results);
+        return results;
     }
 
     @Override

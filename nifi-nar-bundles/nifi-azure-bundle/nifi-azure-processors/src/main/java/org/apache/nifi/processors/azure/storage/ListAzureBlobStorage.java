@@ -46,7 +46,6 @@ import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
-import org.apache.nifi.proxy.ProxyConfigurationService;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -96,7 +95,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.ACCOUNT_NAME,
             AzureStorageUtils.ACCOUNT_KEY,
             PROP_PREFIX,
-            ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -105,7 +104,9 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return AzureStorageUtils.validateCredentialProperties(validationContext);
+        final Collection<ValidationResult> results = AzureStorageUtils.validateCredentialProperties(validationContext);
+        AzureStorageUtils.validateProxySpec(validationContext, results);
+        return results;
     }
 
     @Override

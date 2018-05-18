@@ -39,8 +39,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
-
 
 @SupportsBatching
 @SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})

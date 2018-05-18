@@ -54,6 +54,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.regions.AWSRegions;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 
 /**
@@ -149,6 +150,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     protected static final String DEFAULT_USER_AGENT = "NiFi";
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
     private static AllowableValue createAllowableValue(final Regions region) {
         return new AllowableValue(region.getName(), AWSRegions.getRegionDisplayName(region.getName()));
     }
@@ -187,7 +191,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             problems.add(new ValidationResult.Builder().input("Proxy Host Port").valid(false).explanation("Both proxy host and port must be set").build());
         }
 
-        ProxyConfiguration.validateProxyType(validationContext, problems, Proxy.Type.HTTP);
+        ProxyConfiguration.validateProxySpec(validationContext, problems, PROXY_SPECS);
 
         return problems;
     }

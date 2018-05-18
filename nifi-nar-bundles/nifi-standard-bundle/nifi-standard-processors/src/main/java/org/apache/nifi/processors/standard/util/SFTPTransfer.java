@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -36,12 +37,15 @@ import java.util.regex.Pattern;
 import com.jcraft.jsch.ProxySOCKS5;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -122,6 +126,10 @@ public class SFTPTransfer implements FileTransfer {
         .defaultValue("false")
         .build();
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS_AUTH};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
     private final ComponentLog logger;
 
     private final ProcessContext ctx;
@@ -138,6 +146,10 @@ public class SFTPTransfer implements FileTransfer {
 
         final PropertyValue disableListing = processContext.getProperty(DISABLE_DIRECTORY_LISTING);
         disableDirectoryListing = disableListing == null ? false : Boolean.TRUE.equals(disableListing.asBoolean());
+    }
+
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+        ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
     @Override
