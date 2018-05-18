@@ -193,6 +193,7 @@
                                         <!-- jquery ui -->
                                         <include>jquery-ui-dist/jquery-ui.min.js</include>
                                         <include>jquery-ui-dist/jquery-ui.min.css</include>
+                                        <include>jquery-ui-dist/images/**/*</include>
                                         <include>jquery-ui-dist/LICENSE.txt</include>
                                         <!-- jquery minicolors -->
                                         <include>jquery-minicolors/jquery.minicolors.min.js</include>
@@ -895,6 +896,7 @@
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
                                 <exclude>src/main/frontend/package.json</exclude>
+                                <exclude>src/main/frontend/package-lock.json</exclude>
                                 <exclude>src/main/webapp/js/jquery/jquery.base64.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
                                 <exclude>src/main/webapp/fonts/**/*</exclude>
