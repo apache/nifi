@@ -3474,6 +3474,7 @@ and can be viewed in the Cluster page. This value indicates how many events to k
 the connection a failure. The default value is `5 secs`.
 |nifi.cluster.node.read.timeout|When communicating with another node in the cluster, specifies how long this node should wait to receive information
 from the remote node before considering the communication with the node a failure. The default value is `5 secs`.
+|nifi.cluster.node.max.concurrent.requests|The maximum number of outstanding web requests that can be replicated to nodes in the cluster. If this number of requests is exceeded, the embedded Jetty server will return a "409: Conflict" response.  This property defaults to `100`.
 |nifi.cluster.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
 to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
 |nifi.cluster.flow.election.max.wait.time|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.
