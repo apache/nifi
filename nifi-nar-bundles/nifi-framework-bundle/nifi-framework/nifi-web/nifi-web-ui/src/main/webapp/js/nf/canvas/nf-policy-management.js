@@ -200,7 +200,7 @@
             },
             _renderGroup: function (ul, match) {
                 var groupLabel = $('<span></span>').text(match.component.identity);
-                var groupContent = $('<a></a>').append('<div class="fa fa-users" style="margin-right: 5px;"></div>').append(groupLabel);
+                var groupContent = $('<a></a>').append('<div class="fa fa-users"></div>').append(groupLabel);
                 return $('<li></li>').data('ui-autocomplete-item', match).append(groupContent).appendTo(ul);
             }
         });
@@ -594,7 +594,7 @@
         var identityFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
             if (dataContext.type === 'group') {
-                markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
+                markup += '<div class="fa fa-users"></div>';
             }
 
             markup += nfCommon.escapeHtml(dataContext.component.identity);
