@@ -309,16 +309,16 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final boolean flowbased = !(context.getProperty(HIVEQL_SELECT_QUERY).isSet());
 
         // Source the SQL
-        String selectQuery;
+        String hqlStatement;
 
         if (context.getProperty(HIVEQL_SELECT_QUERY).isSet()) {
-            selectQuery = context.getProperty(HIVEQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+            hqlStatement = context.getProperty(HIVEQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         } else {
             // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
             // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
             final StringBuilder queryContents = new StringBuilder();
             session.read(fileToProcess, in -> queryContents.append(IOUtils.toString(in, charset)));
-            selectQuery = queryContents.toString();
+            hqlStatement = queryContents.toString();
         }
 
 
@@ -338,13 +338,12 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
-             final Statement st = (flowbased ? con.prepareStatement(selectQuery) : con.createStatement())
+             final Statement st = (flowbased ? con.prepareStatement(hqlStatement) : con.createStatement())
         ) {
             Pair<String,SQLException> failure = executeConfigStatements(con, preQueries);
             if (failure != null) {
-                // In case of failure, assigning config query to "selectQuery" var will allow to avoid major changes in error handling (catch block),
-                // so regression impact will be minimized
-                selectQuery = failure.getLeft();
+                // In case of failure, assigning config query to "hqlStatement"  to follow current error handling 
+                hqlStatement = failure.getLeft();
                 flowfile = (fileToProcess == null) ? session.create() : fileToProcess;
                 fileToProcess = null;
                 throw failure.getRight();
@@ -360,14 +359,14 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
             final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
             try {
-                logger.debug("Executing query {}", new Object[]{selectQuery});
+                logger.debug("Executing query {}", new Object[]{hqlStatement});
                 if (flowbased) {
                     // Hive JDBC Doesn't Support this yet:
                     // ParameterMetaData pmd = ((PreparedStatement)st).getParameterMetaData();
                     // int paramCount = pmd.getParameterCount();
 
                     // Alternate way to determine number of params in SQL.
-                    int paramCount = StringUtils.countMatches(selectQuery, "?");
+                    int paramCount = StringUtils.countMatches(hqlStatement, "?");
 
                     if (paramCount > 0) {
                         setParameters(1, (PreparedStatement) st, paramCount, fileToProcess.getAttributes());
@@ -377,7 +376,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 final ResultSet resultSet;
 
                 try {
-                    resultSet = (flowbased ? ((PreparedStatement) st).executeQuery() : st.executeQuery(selectQuery));
+                    resultSet = (flowbased ? ((PreparedStatement) st).executeQuery() : st.executeQuery(hqlStatement));
                 } catch (SQLException se) {
                     // If an error occurs during the query, a flowfile is expected to be routed to failure, so ensure one here
                     flowfile = (fileToProcess == null) ? session.create() : fileToProcess;
@@ -422,10 +421,10 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
                         try {
                             // Set input/output table names by parsing the query
-                            attributes.putAll(toQueryTableAttributes(findTableNames(selectQuery)));
+                            attributes.putAll(toQueryTableAttributes(findTableNames(hqlStatement)));
                         } catch (Exception e) {
                             // If failed to parse the query, just log a warning message, but continue.
-                            getLogger().warn("Failed to parse query: {} due to {}", new Object[]{selectQuery, e}, e);
+                            getLogger().warn("Failed to parse query: {} due to {}", new Object[]{hqlStatement, e}, e);
                         }
 
                         // Set MIME type on output document and add extension to filename
@@ -485,7 +484,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
             failure = executeConfigStatements(con, postQueries);
             if (failure != null) {
-                selectQuery = failure.getLeft();
+                hqlStatement = failure.getLeft();
                 if (resultSetFlowFiles != null) {
                     resultSetFlowFiles.forEach(ff -> session.remove(ff));
                 }
@@ -499,20 +498,20 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 session.remove(fileToProcess);
             }
         } catch (final ProcessException | SQLException e) {
-            logger.error("Issue processing SQL {} due to {}.", new Object[]{selectQuery, e});
+            logger.error("Issue processing SQL {} due to {}.", new Object[]{hqlStatement, e});
             if (flowfile == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("Unable to execute HiveQL select query {} due to {}. No FlowFile to route to failure",
-                        new Object[]{selectQuery, e});
+                        new Object[]{hqlStatement, e});
                 context.yield();
             } else {
                 if (context.hasIncomingConnection()) {
                     logger.error("Unable to execute HiveQL select query {} for {} due to {}; routing to failure",
-                            new Object[]{selectQuery, flowfile, e});
+                            new Object[]{hqlStatement, flowfile, e});
                     flowfile = session.penalize(flowfile);
                 } else {
                     logger.error("Unable to execute HiveQL select query {} due to {}; routing to failure",
-                            new Object[]{selectQuery, e});
+                            new Object[]{hqlStatement, e});
                     context.yield();
                 }
                 session.transfer(flowfile, REL_FAILURE);
