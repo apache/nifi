@@ -896,6 +896,7 @@
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
                                 <exclude>src/main/frontend/package.json</exclude>
+                                <exclude>src/main/frontend/package-lock.json</exclude>
                                 <exclude>src/main/webapp/js/jquery/jquery.base64.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
                                 <exclude>src/main/webapp/fonts/**/*</exclude>
