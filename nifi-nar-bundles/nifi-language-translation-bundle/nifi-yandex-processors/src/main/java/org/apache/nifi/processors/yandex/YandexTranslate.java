@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.yandex;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -88,9 +89,8 @@ public class YandexTranslate extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor SOURCE_LANGUAGE = new PropertyDescriptor.Builder()
             .name("Input Language")
-            .description("The language of incoming data")
+            .description("The language of incoming data. If no language is set, Yandex will attempt to detect the incoming language automatically.")
             .required(false)
-            .defaultValue("")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new LanguageNameValidator())
             .build();
@@ -214,10 +214,10 @@ public class YandexTranslate extends AbstractProcessor {
         final MultivaluedHashMap entity = new MultivaluedHashMap();
         entity.put("text", text);
         entity.add("key", key);
-        if (sourceLanguage != "") {
-            entity.add("lang", sourceLanguage + "-" + destLanguage);
-        } else {
+        if ((StringUtils.isBlank(sourceLanguage))) {
             entity.add("lang", destLanguage);
+        } else {
+            entity.add("lang", sourceLanguage + "-" + destLanguage);
         }
 
         return builder.buildPost(Entity.form(entity));
@@ -310,6 +310,10 @@ public class YandexTranslate extends AbstractProcessor {
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ((StringUtils.isBlank(input))) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("No Language Input Present").build();
+            }
+
             if (context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Expression Language Present").build();
             }
