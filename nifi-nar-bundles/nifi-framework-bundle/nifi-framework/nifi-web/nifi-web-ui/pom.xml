@@ -193,6 +193,7 @@
                                         <!-- jquery ui -->
                                         <include>jquery-ui-dist/jquery-ui.min.js</include>
                                         <include>jquery-ui-dist/jquery-ui.min.css</include>
+                                        <include>jquery-ui-dist/images/**/*</include>
                                         <include>jquery-ui-dist/LICENSE.txt</include>
                                         <!-- jquery minicolors -->
                                         <include>jquery-minicolors/jquery.minicolors.min.js</include>

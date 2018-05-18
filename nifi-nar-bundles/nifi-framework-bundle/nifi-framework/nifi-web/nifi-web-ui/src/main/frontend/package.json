@@ -3,15 +3,15 @@
   "description": "Apache NiFi 3rd party client side resources.",
   "dependencies": {
     "JSON2": "0.1.0",
-    "angular": "1.5.11",
-    "angular-aria": "1.5.11",
-    "angular-animate": "1.5.11",
-    "angular-messages": "1.5.11",
-    "angular-mocks": "1.5.11",
+    "angular": "1.7.0",
+    "angular-aria": "1.7.0",
+    "angular-animate": "1.7.0",
+    "angular-messages": "1.7.0",
+    "angular-mocks": "1.7.0",
     "angular-resource": "1.5.5",
-    "angular-sanitize": "1.5.11",
-    "angular-route": "1.5.5",
-    "angular-material": "1.0.8",
+    "angular-sanitize": "1.7.0",
+    "angular-route": "1.7.0",
+    "angular-material": "1.1.9",
     "d3": "4.13.0",
     "d3-selection-multi": "1.0.1",
     "jquery-minicolors": "2.1.10",
@@ -24,8 +24,6 @@
     "jsonlint": "1.6.2",
     "qtip2": "3.0.3",
     "slickgrid": "2.3.3"
-  },
-  "scripts": {
   },
   "repository": {
     "type": "git",
