@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +42,8 @@ public class TestSchemaRegistry extends AbstractControllerService implements Sch
 
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
-        return null;
+        return new HashSet<SchemaField>() {{
+            add(SchemaField.SCHEMA_NAME);
+        }};
     }
 }
