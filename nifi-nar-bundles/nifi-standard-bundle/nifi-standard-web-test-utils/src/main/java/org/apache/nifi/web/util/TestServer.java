@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.web.util;
 
 import java.util.Map;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -135,14 +135,14 @@ public class TestServer {
         jetty.destroy();
     }
 
-    private int getPort() {
+    public int getPort() {
         if (!jetty.isStarted()) {
             throw new IllegalStateException("Jetty server not started");
         }
         return ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
     }
 
-    private int getSecurePort() {
+    public int getSecurePort() {
         if (!jetty.isStarted()) {
             throw new IllegalStateException("Jetty server not started");
         }
