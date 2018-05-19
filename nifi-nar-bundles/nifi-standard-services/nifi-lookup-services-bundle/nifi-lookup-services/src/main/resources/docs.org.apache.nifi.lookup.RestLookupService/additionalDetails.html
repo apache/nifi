@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>RestLookupService</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+    <p>This lookup service has the following required keys:</p>
+    <ul>
+        <li>endpoint</li>
+        <li>mime.type</li>
+        <li>request.method; valid values:
+            <ul>
+                <li>delete</li>
+                <li>get</li>
+                <li>post</li>
+                <li>put</li>
+            </ul>
+        </li>
+    </ul>
+    <p>In addition to the required keys, a key "body" can be added which contains a string representing JSON, XML, etc. to be sent with any
+    of those methods except for "get."</p>
+    <p>The record reader is used to consume the response of the REST service call and turn it into one or more records. The record path property
+    is provided to allow for a lookup path to either a nested record or a single point deep in the REST response. Note: a valid schema must be
+    built that encapsulates the REST response accurately in order for this service to work.</p>
+</body>
+</html>
