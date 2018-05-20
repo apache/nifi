@@ -17,6 +17,7 @@
 
 package org.apache.nifi.lookup;
 
+import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -30,6 +31,9 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -46,6 +50,7 @@ import org.apache.nifi.util.StringUtils;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,6 +93,10 @@ public class RestLookupService extends AbstractControllerService implements Look
             .identifiesControllerService(SSLContextService.class)
             .build();
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
     static final String ENDPOINT_KEY = "endpoint";
     static final String MIME_TYPE_KEY = "mime.type";
     static final String BODY_KEY = "request.body";
@@ -99,7 +108,8 @@ public class RestLookupService extends AbstractControllerService implements Look
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
             RECORD_READER,
             RECORD_PATH,
-            SSL_CONTEXT_SERVICE
+            SSL_CONTEXT_SERVICE,
+            PROXY_CONFIGURATION_SERVICE
         ));
     }
 
@@ -107,6 +117,7 @@ public class RestLookupService extends AbstractControllerService implements Look
         return DESCRIPTORS;
     }
 
+    private ProxyConfigurationService proxyConfigurationService;
     private SSLContextService sslContextService;
     private RecordReaderFactory readerFactory;
     private RecordPath recordPath;
@@ -116,8 +127,15 @@ public class RestLookupService extends AbstractControllerService implements Look
     public void onEnabled(final ConfigurationContext context) {
         sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE)
+                .asControllerService(ProxyConfigurationService.class);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
+
+        if (proxyConfigurationService != null) {
+            setProxy(builder);
+        }
+
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(SSLContextService.ClientAuth.WANT);
         if (sslService != null) {
@@ -129,6 +147,23 @@ public class RestLookupService extends AbstractControllerService implements Look
         String path = context.getProperty(RECORD_PATH).isSet() ? context.getProperty(RECORD_PATH).getValue() : null;
         if (!StringUtils.isBlank(path)) {
             recordPath = RecordPath.compile(path);
+        }
+    }
+
+    private void setProxy(OkHttpClient.Builder builder) {
+        ProxyConfiguration config = proxyConfigurationService.getConfiguration();
+        if (!config.getProxyType().equals(Proxy.Type.DIRECT)) {
+            final Proxy proxy = config.createProxy();
+            builder.proxy(proxy);
+
+            if (config.hasCredential()){
+                builder.proxyAuthenticator((route, response) -> {
+                    final String credential= Credentials.basic(config.getProxyUserName(), config.getProxyUserPassword());
+                    return response.request().newBuilder()
+                            .header("Proxy-Authorization", credential)
+                            .build();
+                });
+            }
         }
     }
 
