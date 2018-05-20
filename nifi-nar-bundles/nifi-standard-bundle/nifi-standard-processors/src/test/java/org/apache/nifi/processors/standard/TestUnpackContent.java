@@ -168,6 +168,39 @@ public class TestUnpackContent {
             flowFile.assertContentEquals(path.toFile());
         }
     }
+    @Test
+    public void testInvalidZip() throws IOException {
+        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        unpackRunner.enqueue(dataPath.resolve("invalid_data.zip"));
+        unpackRunner.enqueue(dataPath.resolve("invalid_data.zip"));
+        Map<String, String> attributes = new HashMap<>(1);
+        attributes.put("mime.type", "application/zip");
+        autoUnpackRunner.enqueue(dataPath.resolve("invalid_data.zip"), attributes);
+        autoUnpackRunner.enqueue(dataPath.resolve("invalid_data.zip"), attributes);
+        unpackRunner.run(2);
+        autoUnpackRunner.run(2);
+
+        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 2);
+        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
+        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
+
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 2);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 0);
+
+        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_FAILURE);
+        for (final MockFlowFile flowFile : unpacked) {
+            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+           // final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
+            final Path path = dataPath.resolve(filename);
+            assertTrue(Files.exists(path));
+
+            flowFile.assertContentEquals(path.toFile());
+        }
+    }
 
     @Test
     public void testZipWithFilter() throws IOException {
