@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,8 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -89,6 +92,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
         properties.add(FTPTransfer.LAST_MODIFIED_TIME);
         properties.add(FTPTransfer.PERMISSIONS);
         properties.add(FTPTransfer.USE_COMPRESSION);
+        properties.add(FTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
@@ -162,5 +166,12 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
         }
 
         return cmds;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        FTPTransfer.validateProxySpec(validationContext, results);
+        return results;
     }
 }

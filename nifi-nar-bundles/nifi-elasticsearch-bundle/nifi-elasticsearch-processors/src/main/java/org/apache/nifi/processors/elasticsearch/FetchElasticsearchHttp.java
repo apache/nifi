@@ -147,13 +147,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         _rels.add(REL_NOT_FOUND);
         relationships = Collections.unmodifiableSet(_rels);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ES_URL);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(RESPONSE_TIMEOUT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(DOC_ID);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
@@ -169,9 +163,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.addAll(propertyDescriptors);
-        return properties;
+        return propertyDescriptors;
     }
 
     @OnScheduled

@@ -33,13 +33,14 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
@@ -136,25 +137,26 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
                 .build();
     }
 
-    private static final List<PropertyDescriptor> propertyDescriptors;
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+    static final List<PropertyDescriptor> COMMON_PROPERTY_DESCRIPTORS;
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ES_URL);
+        properties.add(PROP_SSL_CONTEXT_SERVICE);
+        properties.add(USERNAME);
+        properties.add(PASSWORD);
+        properties.add(CONNECT_TIMEOUT);
+        properties.add(RESPONSE_TIMEOUT);
+        properties.add(PROXY_CONFIGURATION_SERVICE);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         properties.add(PROXY_USERNAME);
         properties.add(PROXY_PASSWORD);
-        properties.add(RESPONSE_TIMEOUT);
 
-        propertyDescriptors = Collections.unmodifiableList(properties);
-    }
-
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.addAll(propertyDescriptors);
-        return properties;
+        COMMON_PROPERTY_DESCRIPTORS = Collections.unmodifiableList(properties);
     }
 
     @Override
@@ -164,27 +166,38 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
 
         // Add a proxy if set
-        final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-        final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
-        if (proxyHost != null && proxyPort != null) {
-            final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
+            final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+            final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
+            if (proxyHost != null && proxyPort != null) {
+                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
+                componentProxyConfig.setProxyServerHost(proxyHost);
+                componentProxyConfig.setProxyServerPort(proxyPort);
+                componentProxyConfig.setProxyUserName(context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue());
+                componentProxyConfig.setProxyUserPassword(context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue());
+                return componentProxyConfig;
+            }
+            return ProxyConfiguration.DIRECT_CONFIGURATION;
+        });
+
+        if (!Proxy.Type.DIRECT.equals(proxyConfig.getProxyType())) {
+            final Proxy proxy = proxyConfig.createProxy();
             okHttpClient.proxy(proxy);
+
+            if (proxyConfig.hasCredential()){
+                okHttpClient.proxyAuthenticator(new Authenticator() {
+                    @Override
+                    public Request authenticate(Route route, Response response) throws IOException {
+                        final String credential=Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                        return response.request().newBuilder()
+                                .header("Proxy-Authorization", credential)
+                                .build();
+                    }
+                });
+            }
         }
 
-        final String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
-        final String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
-
-        if (proxyUsername != null && proxyPassword != null){
-            okHttpClient.proxyAuthenticator(new Authenticator() {
-                @Override
-                public Request authenticate(Route route, Response response) throws IOException {
-                    final String credential=Credentials.basic(proxyUsername, proxyPassword);
-                    return response.request().newBuilder()
-                            .header("Proxy-Authorization", credential)
-                            .build();
-                }
-            });
-        }
 
         // Set timeouts
         okHttpClient.connectTimeout((context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
@@ -208,8 +221,12 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .explanation("Proxy Host and Proxy Port must be both set or empty")
+                    .subject("Proxy server configuration")
                     .build());
         }
+
+        ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
+
         return results;
     }
 

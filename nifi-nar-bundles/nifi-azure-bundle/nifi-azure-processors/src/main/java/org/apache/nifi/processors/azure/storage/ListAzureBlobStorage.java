@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageUri;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.BlobProperties;
@@ -93,7 +94,8 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.PROP_SAS_TOKEN,
             AzureStorageUtils.ACCOUNT_NAME,
             AzureStorageUtils.ACCOUNT_KEY,
-            PROP_PREFIX));
+            PROP_PREFIX,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -102,7 +104,9 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return AzureStorageUtils.validateCredentialProperties(validationContext);
+        final Collection<ValidationResult> results = AzureStorageUtils.validateCredentialProperties(validationContext);
+        AzureStorageUtils.validateProxySpec(validationContext, results);
+        return results;
     }
 
     @Override
@@ -162,7 +166,10 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), null);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
-            for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
+            final OperationContext operationContext = new OperationContext();
+            AzureStorageUtils.setProxy(operationContext, context);
+
+            for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, operationContext)) {
                 if (blob instanceof CloudBlob) {
                     CloudBlob cloudBlob = (CloudBlob) blob;
                     BlobProperties properties = cloudBlob.getProperties();

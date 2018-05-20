@@ -182,13 +182,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         _rels.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(_rels);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ES_URL);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(RESPONSE_TIMEOUT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(QUERY);
         descriptors.add(SCROLL_DURATION);
         descriptors.add(PAGE_SIZE);
@@ -207,9 +201,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.addAll(propertyDescriptors);
-        return properties;
+        return propertyDescriptors;
     }
 
     @OnScheduled
