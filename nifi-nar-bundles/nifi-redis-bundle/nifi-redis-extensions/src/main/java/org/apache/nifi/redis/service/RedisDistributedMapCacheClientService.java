@@ -29,6 +29,7 @@ import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.redis.util.RedisAction;
@@ -36,6 +37,7 @@ import org.apache.nifi.util.Tuple;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.types.Expiration;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,6 +46,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Tags({ "redis", "distributed", "cache", "map" })
 @CapabilityDescription("An implementation of DistributedMapCacheClient that uses Redis as the backing cache. This service relies on " +
@@ -59,14 +62,25 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
             .required(true)
             .build();
 
+    public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
+            .name("redis-cache-ttl")
+            .displayName("TTL")
+            .description("Indicates how long the data should exist in Redis. Setting '0 secs' would mean the data would exist forever")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .required(true)
+            .defaultValue("0 secs")
+            .build();
+
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(REDIS_CONNECTION_POOL);
+        props.add(TTL);
         PROPERTY_DESCRIPTORS = Collections.unmodifiableList(props);
     }
 
     private volatile RedisConnectionPool redisConnectionPool;
+    private Long ttl;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -96,6 +110,11 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.redisConnectionPool = context.getProperty(REDIS_CONNECTION_POOL).asControllerService(RedisConnectionPool.class);
+        this.ttl = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS);
+
+        if (ttl == 0) {
+            this.ttl = -1L;
+        }
     }
 
     @OnDisabled
@@ -115,37 +134,15 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return withConnection(redisConnection -> {
             final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            do {
-                // start a watch on the key and retrieve the current value
-                redisConnection.watch(kv.getKey());
-                final byte[] existingValue = redisConnection.get(kv.getKey());
+            final byte[] existingValue = redisConnection.get(kv.getKey());
 
-                // start a transaction and perform the put-if-absent
-                redisConnection.multi();
-                redisConnection.setNX(kv.getKey(), kv.getValue());
+            if (!redisConnection.exists(kv.getKey())) {
+                redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), null);
+            }
 
-                // execute the transaction
-                final List<Object> results = redisConnection.exec();
-
-                // if the results list was empty, then the transaction failed (i.e. key was modified after we started watching), so keep looping to retry
-                // if the results list has results, then the transaction succeeded and it should have the result of the setNX operation
-                if (results.size() > 0) {
-                    final Object firstResult = results.get(0);
-                    if (firstResult instanceof Boolean) {
-                        final Boolean absent = (Boolean) firstResult;
-                        return absent ? null : valueDeserializer.deserialize(existingValue);
-                    } else {
-                        // this shouldn't really happen, but just in case there is a non-boolean result then bounce out of the loop
-                        throw new IOException("Unexpected result from Redis transaction: Expected Boolean result, but got "
-                                + firstResult.getClass().getName() + " with value " + firstResult.toString());
-                    }
-                }
-            } while (isEnabled());
-
-            return null;
+            return (existingValue == null) ? null : valueDeserializer.deserialize(existingValue);
         });
     }
-
 
     @Override
     public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
@@ -159,7 +156,7 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         withConnection(redisConnection -> {
             final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            redisConnection.set(kv.getKey(), kv.getValue());
+            redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), null);
             return null;
         });
     }
