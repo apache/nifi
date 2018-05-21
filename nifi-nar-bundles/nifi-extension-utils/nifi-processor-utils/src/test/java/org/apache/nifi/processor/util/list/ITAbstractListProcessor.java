@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processor.util.list;
 
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
@@ -372,6 +373,43 @@ public class ITAbstractListProcessor {
         // Ensure the original files are now transferred again.
         runner.run();
         runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testResumeListingAfterBecamePrimary() throws Exception {
+        final long initialTimestamp = System.currentTimeMillis();
+
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        proc.addEntity("name", "id", initialTimestamp);
+        proc.addEntity("name", "id2", initialTimestamp);
+
+        // Add entities but these should not be transferred as they are the latest values
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        // after providing a pause in listings, the files should now  transfer
+        Thread.sleep(DEFAULT_SLEEP_MILLIS);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 2);
+        runner.clearTransferState();
+
+        // Emulate reelection process
+        proc.onPrimaryNodeChange(PrimaryNodeState.ELECTED_PRIMARY_NODE);
+
+        // Now a new file enters
+        proc.addEntity("name", "id3", initialTimestamp + 1);;
+
+        // First run skips the execution because determined timestamp is the same as last listing
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        // Now the cluster state has been read, all set to perform next listing
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConcreteListProcessor.REL_SUCCESS, 1);
         runner.clearTransferState();
     }
 
