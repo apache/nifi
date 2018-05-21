@@ -141,6 +141,12 @@
             <artifactId>jetty-servlet</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.burgstaller</groupId>
+            <artifactId>okhttp-digest</artifactId>
+            <version>1.13</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

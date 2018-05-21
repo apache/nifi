@@ -17,6 +17,10 @@
 
 package org.apache.nifi.lookup;
 
+import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
+import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
+import com.burgstaller.okhttp.digest.CachingAuthenticator;
+import com.burgstaller.okhttp.digest.DigestAuthenticator;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -31,6 +35,8 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
@@ -59,7 +65,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @Tags({ "rest", "lookup", "json", "xml", "http" })
 @CapabilityDescription("Use a REST service to enrich records.")
@@ -92,6 +102,31 @@ public class RestLookupService extends AbstractControllerService implements Look
         .required(false)
         .identifiesControllerService(SSLContextService.class)
         .build();
+    public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+        .name("rest-lookup-basic-auth-username")
+        .displayName("Basic Authentication Username")
+        .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+        .required(false)
+        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+        .build();
+
+    public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+        .name("rest-lookup-basic-auth-password")
+        .displayName("Basic Authentication Password")
+        .description("The password to be used by the client to authenticate against the Remote URL.")
+        .required(false)
+        .sensitive(true)
+        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+        .build();
+    public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
+        .name("rest-lookup-digest-auth")
+        .displayName("Use Digest Authentication")
+        .description("Whether to communicate with the website using Digest Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
+                + "for authentication.")
+        .required(false)
+        .defaultValue("false")
+        .allowableValues("true", "false")
+        .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
@@ -109,7 +144,10 @@ public class RestLookupService extends AbstractControllerService implements Look
             RECORD_READER,
             RECORD_PATH,
             SSL_CONTEXT_SERVICE,
-            PROXY_CONFIGURATION_SERVICE
+            PROXY_CONFIGURATION_SERVICE,
+            PROP_BASIC_AUTH_USERNAME,
+            PROP_BASIC_AUTH_PASSWORD,
+            PROP_DIGEST_AUTH
         ));
     }
 
@@ -129,6 +167,8 @@ public class RestLookupService extends AbstractControllerService implements Look
                 .asControllerService(ProxyConfigurationService.class);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
+
+        setAuthenticator(builder, context);
 
         if (proxyConfigurationService != null) {
             setProxy(builder);
@@ -293,7 +333,41 @@ public class RestLookupService extends AbstractControllerService implements Look
             }
         }
 
+        if (!basicUser.isEmpty() && !isDigest) {
+            String credential = Credentials.basic(basicUser, basicPass);
+            request = request.header("Authorization", credential);
+        }
+
         return request.build();
+    }
+
+    private String basicUser;
+    private String basicPass;
+    private boolean isDigest;
+
+    private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ConfigurationContext context) {
+        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        this.basicUser = authUser;
+
+
+        isDigest = context.getProperty(PROP_DIGEST_AUTH).asBoolean();
+        // If the username/password properties are set then check if digest auth is being used
+        if (!authUser.isEmpty() && isDigest) {
+            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+            this.basicPass = authPass;
+
+            /*
+             * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.
+             *
+             * [1] https://github.com/square/okhttp/issues/205#issuecomment-154047052
+             */
+            final Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
+            com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
+            final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
+
+            okHttpClientBuilder.interceptors().add(new AuthenticationCacheInterceptor(authCache));
+            okHttpClientBuilder.authenticator(new CachingAuthenticatorDecorator(digestAuthenticator, authCache));
+        }
     }
 
     @Override

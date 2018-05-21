@@ -4,6 +4,7 @@ import org.apache.avro.Schema
 import org.apache.nifi.avro.AvroTypeUtil
 import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.lookup.rest.SchemaUtil
+import org.apache.nifi.lookup.rest.handlers.BasicAuth
 import org.apache.nifi.lookup.rest.handlers.ComplexJson
 import org.apache.nifi.lookup.rest.handlers.SimpleJson
 import org.apache.nifi.lookup.rest.handlers.SimpleJsonArray
@@ -54,6 +55,49 @@ class RestLookupServiceIT {
         runner.enableControllerService(lookupService)
 
         runner.assertValid()
+    }
+
+    @Test
+    void basicAuth() {
+        runner.disableControllerService(lookupService)
+        runner.setProperty(lookupService, RestLookupService.PROP_BASIC_AUTH_USERNAME, "john.smith")
+        runner.setProperty(lookupService, RestLookupService.PROP_BASIC_AUTH_PASSWORD, "testing1234")
+        runner.enableControllerService(lookupService)
+
+        TestServer server = new TestServer()
+        server.addHandler(new BasicAuth())
+        try {
+            server.startServer()
+            def coordinates = [
+                "schema.name": "simple",
+                "endpoint": server.url + "/simple",
+                "mime.type": "application/json",
+                "request.method": "get"
+            ]
+
+            Optional<Record> response = lookupService.lookup(coordinates)
+            Assert.assertTrue(response.isPresent())
+            def record = response.get()
+            Assert.assertEquals("john.smith", record.getAsString("username"))
+            Assert.assertEquals("testing1234", record.getAsString("password"))
+
+            Throwable t
+            try {
+                runner.disableControllerService(lookupService)
+                runner.setProperty(lookupService, RestLookupService.PROP_BASIC_AUTH_USERNAME, "john.smith2")
+                runner.setProperty(lookupService, RestLookupService.PROP_BASIC_AUTH_PASSWORD, ":wetadfasdfadf")
+                runner.enableControllerService(lookupService)
+
+                lookupService.lookup(coordinates)
+            } catch (Throwable lfe) {
+                t = lfe
+            }
+
+            Assert.assertNotNull(t)
+            Assert.assertTrue(t instanceof LookupFailureException)
+        } finally {
+            server.shutdownServer()
+        }
     }
 
     @Test
