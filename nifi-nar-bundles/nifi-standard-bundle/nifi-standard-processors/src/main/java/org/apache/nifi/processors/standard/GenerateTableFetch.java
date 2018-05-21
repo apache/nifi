@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
@@ -98,8 +99,8 @@ import java.util.stream.IntStream;
         @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition.")
 })
 @DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language",
-                 expressionLanguageScope = ExpressionLanguageScope.NONE, description = "Specifies an initial "
-                         + "max value for max value columns. Properties should be added in the format `initial.maxvalue.{max_value_column}`.")
+        expressionLanguageScope = ExpressionLanguageScope.NONE, description = "Specifies an initial "
+        + "max value for max value columns. Properties should be added in the format `initial.maxvalue.{max_value_column}`.")
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     public static final PropertyDescriptor PARTITION_SIZE = new PropertyDescriptor.Builder()
@@ -113,6 +114,19 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor COLUMN_FOR_VALUE_PARTITIONING = new PropertyDescriptor.Builder()
+            .name("gen-table-column-for-val-partitioning")
+            .displayName("Column for Value Partitioning")
+            .description("The name of a column whose values will be used for partitioning. The default behavior is to use row numbers on the result set for partitioning into "
+                    + "'pages' to be fetched from the database, using an offset/limit strategy. However for certain databases, it can be more efficient under the right circumstances to use "
+                    + "the column values themselves to define the 'pages'. This property should only be used when the default queries are not performing well, when there is no maximum-value "
+                    + "column or a single maximum-value column whose type can be coerced to a long integer (i.e. not date or timestamp), and the column values are evenly distributed and not "
+                    + "sparse, for best performance.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -135,6 +149,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(PARTITION_SIZE);
+        pds.add(COLUMN_FOR_VALUE_PARTITIONING);
         pds.add(WHERE_CLAUSE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -151,7 +166,15 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return super.customValidate(validationContext);
+        List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        final PropertyValue columnForPartitioning = validationContext.getProperty(COLUMN_FOR_VALUE_PARTITIONING);
+        // If no EL is present, ensure it's a single column (i.e. no commas in the property value)
+        if (columnForPartitioning.isSet() && !columnForPartitioning.isExpressionLanguagePresent() && columnForPartitioning.getValue().contains(",")) {
+            results.add(new ValidationResult.Builder().valid(false).explanation(
+                    COLUMN_FOR_VALUE_PARTITIONING.getDisplayName() + " requires a single column name, but a comma was detected").build());
+        }
+
+        return results;
     }
 
     @Override
@@ -195,6 +218,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final String columnForPartitioning = context.getProperty(COLUMN_FOR_VALUE_PARTITIONING).evaluateAttributeExpressions(fileToProcess).getValue();
+        final boolean useColumnValsForPaging = !StringUtils.isEmpty(columnForPartitioning);
         final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions(fileToProcess).getValue();
 
         final StateManager stateManager = context.getStateManager();
@@ -241,20 +266,24 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                     ? new ArrayList<>(0)
                     : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
-            List<String> maxValueClauses = new ArrayList<>(maxValueColumnNameList.size());
+            final int numMaxValueColumns = maxValueColumnNameList.size();
+
+            List<String> maxValueClauses = new ArrayList<>(numMaxValueColumns);
+            Long maxValueForPartitioning = null;
+            Long minValueForPartitioning = null;
 
             String columnsClause = null;
-            List<String> maxValueSelectColumns = new ArrayList<>(maxValueColumnNameList.size() + 1);
+            List<String> maxValueSelectColumns = new ArrayList<>(numMaxValueColumns + 1);
             maxValueSelectColumns.add("COUNT(*)");
 
             // For each maximum-value column, get a WHERE filter and a MAX(column) alias
-            IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
+            IntStream.range(0, numMaxValueColumns).forEach((index) -> {
                 String colName = maxValueColumnNameList.get(index);
 
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                 String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
                 if (!StringUtils.isEmpty(maxValue)) {
-                    if(columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null){
+                    if (columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null) {
                         // This means column type cache is clean after instance reboot. We should re-cache column type
                         super.setup(context, false, finalFileToProcess);
                     }
@@ -263,7 +292,17 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     // Add a condition for the WHERE clause
                     maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                 }
+
             });
+
+            // If we are using a columns' values, get the maximum and minimum values in the context of the aforementioned WHERE clause
+            if (useColumnValsForPaging) {
+                if(columnForPartitioning.contains(",")) {
+                    throw new ProcessException(COLUMN_FOR_VALUE_PARTITIONING.getDisplayName() + " requires a single column name, but a comma was detected");
+                }
+                maxValueSelectColumns.add("MAX(" + columnForPartitioning + ") " + columnForPartitioning);
+                maxValueSelectColumns.add("MIN(" + columnForPartitioning + ") MIN_" + columnForPartitioning);
+            }
 
             if (customWhereClause != null) {
                 // adding the custom WHERE clause (if defined) to the list of existing clauses.
@@ -294,7 +333,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                     // Update the state map with the newly-observed maximum values
                     ResultSetMetaData rsmd = resultSet.getMetaData();
-                    for (int i = 2; i <= rsmd.getColumnCount(); i++) {
+                    int i = 2;
+                    for (; i <= numMaxValueColumns + 1; i++) {
                         //Some JDBC drivers consider the columns name and label to be very different things.
                         // Since this column has been aliased lets check the label first,
                         // if there is no label we'll use the column name.
@@ -318,11 +358,18 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                             if (newMaxValue != null) {
                                 statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
                             }
-                        } catch (ParseException | IOException pie) {
+                        } catch (ParseException | IOException | ClassCastException pice) {
                             // Fail the whole thing here before we start creating flow files and such
-                            throw new ProcessException(pie);
+                            throw new ProcessException(pice);
                         }
-
+                    }
+                    // Process the maximum and minimum values for the partitioning column if necessary
+                    // These are currently required to be Long values, will throw a ClassCastException if they are not
+                    if (useColumnValsForPaging) {
+                        Object o = resultSet.getObject(i);
+                        maxValueForPartitioning = o == null ? null : Long.valueOf(o.toString());
+                        o = resultSet.getObject(i + 1);
+                        minValueForPartitioning = o == null ? null : Long.valueOf(o.toString());
                     }
                 } else {
                     // Something is very wrong here, one row (even if count is zero) should be returned
@@ -330,13 +377,13 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 }
 
                 // for each maximum-value column get a right bounding WHERE condition
-                IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
+                IntStream.range(0, numMaxValueColumns).forEach((index) -> {
                     String colName = maxValueColumnNameList.get(index);
 
                     maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                     String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
                     if (!StringUtils.isEmpty(maxValue)) {
-                        if(columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null){
+                        if (columnTypeMap.isEmpty() || getColumnType(tableName, colName, dbAdapter) == null) {
                             // This means column type cache is clean after instance reboot. We should re-cache column type
                             super.setup(context, false, finalFileToProcess);
                         }
@@ -347,17 +394,30 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     }
                 });
 
-                //Update WHERE list to include new right hand boundaries
-                whereClause = StringUtils.join(maxValueClauses, " AND ");
-
-                final long numberOfFetches = (partitionSize == 0) ? 1 : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
+                final long numberOfFetches;
+                if (useColumnValsForPaging) {
+                    final long valueRangeSize = maxValueForPartitioning == null ? 0 : (maxValueForPartitioning - minValueForPartitioning + 1);
+                    numberOfFetches = (partitionSize == 0) ? 1 : (valueRangeSize / partitionSize) + (valueRangeSize % partitionSize == 0 ? 0 : 1);
+                } else {
+                    numberOfFetches = (partitionSize == 0) ? 1 : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
+                }
 
                 // Generate SQL statements to read "pages" of data
+                Long limit = partitionSize == 0 ? null : (long) partitionSize;
                 for (long i = 0; i < numberOfFetches; i++) {
-                    Long limit = partitionSize == 0 ? null : (long) partitionSize;
-                    Long offset = partitionSize == 0 ? null : i * partitionSize;
+                    // Add a right bounding for the partitioning column if necessary (only on last partition, meaning we don't need the limit)
+                    if ((i == numberOfFetches - 1) && useColumnValsForPaging && (maxValueClauses.isEmpty() || customWhereClause != null)) {
+                        maxValueClauses.add(columnForPartitioning + " <= " + maxValueForPartitioning);
+                        limit = null;
+                    }
+
+                    //Update WHERE list to include new right hand boundaries
+                    whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
+
+                    Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
+
                     final String maxColumnNames = StringUtils.join(maxValueColumnNameList, ", ");
-                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset);
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, maxColumnNames, limit, offset, columnForPartitioning);
                     FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                     sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
                     sqlFlowFile = session.putAttribute(sqlFlowFile, "generatetablefetch.tableName", tableName);
