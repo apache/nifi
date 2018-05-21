@@ -35,6 +35,11 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+        return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
+    }
+
+    @Override
+    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
@@ -51,20 +56,34 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
         if (!StringUtils.isEmpty(whereClause)) {
             query.append(" WHERE ");
             query.append(whereClause);
+            if (!StringUtils.isEmpty(columnForPartitioning)) {
+                query.append(" AND ");
+                query.append(columnForPartitioning);
+                query.append(" >= ");
+                query.append(offset != null ? offset : "0");
+                if (limit != null) {
+                    query.append(" AND ");
+                    query.append(columnForPartitioning);
+                    query.append(" < ");
+                    query.append((offset == null ? 0 : offset) + limit);
+                }
+            }
         }
-        if (!StringUtils.isEmpty(orderByClause)) {
+        if (!StringUtils.isEmpty(orderByClause) && StringUtils.isEmpty(columnForPartitioning)) {
             query.append(" ORDER BY ");
             query.append(orderByClause);
         }
-        if (offset != null && offset > 0) {
-            query.append(" OFFSET ");
-            query.append(offset);
-            query.append(" ROWS");
-        }
-        if (limit != null) {
-            query.append(" FETCH NEXT ");
-            query.append(limit);
-            query.append(" ROWS ONLY");
+        if (StringUtils.isEmpty(columnForPartitioning)) {
+            if (offset != null && offset > 0) {
+                query.append(" OFFSET ");
+                query.append(offset);
+                query.append(" ROWS");
+            }
+            if (limit != null) {
+                query.append(" FETCH NEXT ");
+                query.append(limit);
+                query.append(" ROWS ONLY");
+            }
         }
 
         return query.toString();
