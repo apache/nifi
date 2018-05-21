@@ -61,7 +61,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Tags({ "rest", "lookup", "json", "xml" })
+@Tags({ "rest", "lookup", "json", "xml", "http" })
 @CapabilityDescription("Use a REST service to enrich records.")
 public class RestLookupService extends AbstractControllerService implements LookupService<Record> {
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
