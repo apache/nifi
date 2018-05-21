@@ -118,14 +118,12 @@ public class RestLookupService extends AbstractControllerService implements Look
     }
 
     private ProxyConfigurationService proxyConfigurationService;
-    private SSLContextService sslContextService;
     private RecordReaderFactory readerFactory;
     private RecordPath recordPath;
     private OkHttpClient client;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE)
                 .asControllerService(ProxyConfigurationService.class);
