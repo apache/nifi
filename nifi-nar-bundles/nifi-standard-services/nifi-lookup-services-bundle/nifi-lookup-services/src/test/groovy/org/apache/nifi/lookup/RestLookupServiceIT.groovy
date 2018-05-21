@@ -90,10 +90,10 @@ class RestLookupServiceIT {
         try {
             server.startServer()
             def coordinates = [
-                    "schema.name": "simple",
-                    "endpoint": server.url + "/simple_array",
-                    "mime.type": "application/json",
-                    "request.method": "get"
+                "schema.name": "simple",
+                "endpoint": server.url + "/simple_array",
+                "mime.type": "application/json",
+                "request.method": "get"
             ]
 
             Optional<Record> response = lookupService.lookup(coordinates)
@@ -101,6 +101,37 @@ class RestLookupServiceIT {
             def record = response.get()
             Assert.assertEquals("john.smith", record.getAsString("username"))
             Assert.assertEquals("testing1234", record.getAsString("password"))
+        } finally {
+            server.shutdownServer()
+        }
+    }
+
+    @Test
+    void testHeaders() {
+        runner.disableControllerService(lookupService)
+        runner.setProperty(lookupService, "header.X-USER", "jane.doe")
+        runner.setProperty(lookupService, "header.X-PASS", "testing7890")
+        runner.enableControllerService(lookupService)
+
+        TestServer server = new TestServer()
+        ServletHandler handler = new ServletHandler()
+        handler.addServletWithMapping(SimpleJson.class, "/simple")
+        server.addHandler(handler)
+        try {
+            server.startServer()
+
+            def coordinates = [
+                "schema.name": "simple",
+                "endpoint": server.url + "/simple",
+                "mime.type": "application/json",
+                "request.method": "get"
+            ]
+
+            Optional<Record> response = lookupService.lookup(coordinates)
+            Assert.assertTrue(response.isPresent())
+            def record = response.get()
+            Assert.assertEquals("jane.doe", record.getAsString("username"))
+            Assert.assertEquals("testing7890", record.getAsString("password"))
         } finally {
             server.shutdownServer()
         }

@@ -146,6 +146,21 @@ public class RestLookupService extends AbstractControllerService implements Look
         if (!StringUtils.isBlank(path)) {
             recordPath = RecordPath.compile(path);
         }
+
+        getHeaders(context);
+    }
+
+    private Map<String, String> headers;
+    private void getHeaders(ConfigurationContext context) {
+        headers = new HashMap<>();
+        for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
+            if (descriptor.getName().startsWith("header.")) {
+                headers.put(
+                    descriptor.getDisplayName(),
+                    context.getProperty(descriptor).evaluateAttributeExpressions().getValue()
+                );
+            }
+        }
     }
 
     private void setProxy(OkHttpClient.Builder builder) {
@@ -190,6 +205,21 @@ public class RestLookupService extends AbstractControllerService implements Look
             getLogger().error("Could not execute lookup.", e);
             throw new LookupFailureException(e);
         }
+    }
+
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        if (propertyDescriptorName.startsWith("header")) {
+            String header = propertyDescriptorName.substring(propertyDescriptorName.indexOf(".") + 1, propertyDescriptorName.length());
+            return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .displayName(header)
+                .addValidator(Validator.VALID)
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .build();
+        }
+
+        return null;
     }
 
     protected Response executeRequest(Request request) throws IOException {
@@ -255,6 +285,12 @@ public class RestLookupService extends AbstractControllerService implements Look
             case "put":
                 request = request.put(requestBody);
                 break;
+        }
+
+        if (headers != null) {
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                request = request.addHeader(header.getKey(), header.getValue());
+            }
         }
 
         return request.build();
