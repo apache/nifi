@@ -18,6 +18,7 @@
 package org.apache.nifi.lookup
 
 import okhttp3.*
+import org.apache.nifi.lookup.rest.MockRestLookupService
 import org.apache.nifi.serialization.SimpleRecordSchema
 import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.serialization.record.MockRecordParser

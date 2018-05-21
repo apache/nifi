@@ -85,13 +85,13 @@ public class RestLookupService extends AbstractControllerService implements Look
         .build();
 
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("rest-lookup-ssl-context-service")
-            .displayName("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
-                    + "connections.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
+        .name("rest-lookup-ssl-context-service")
+        .displayName("SSL Context Service")
+        .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
+                + "connections.")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
@@ -184,8 +184,6 @@ public class RestLookupService extends AbstractControllerService implements Look
         try {
             Response response = executeRequest(request);
             InputStream is = response.body().byteStream();
-
-            response.close();
 
             Record record = handleResponse(is, coordinates);
 

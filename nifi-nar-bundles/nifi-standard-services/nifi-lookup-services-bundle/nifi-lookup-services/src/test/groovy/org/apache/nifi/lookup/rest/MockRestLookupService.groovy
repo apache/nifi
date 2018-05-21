@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.lookup
+package org.apache.nifi.lookup.rest
 
 import okhttp3.Request
 import okhttp3.Response
+import org.apache.nifi.lookup.RestLookupService
 
 class MockRestLookupService extends RestLookupService {
     Response response

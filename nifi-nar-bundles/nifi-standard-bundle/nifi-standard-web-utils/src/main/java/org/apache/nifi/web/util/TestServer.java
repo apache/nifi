@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.web.util;
 
 import java.util.Map;
 import org.apache.nifi.ssl.StandardSSLContextService;
