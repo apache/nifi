@@ -130,6 +130,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     @Override
     public void setAnnotationData(final String data) {
         annotationData.set(CharacterFilterUtils.filterInvalidXmlCharacters(data));
+        logger.debug("Resetting Validation State of {} due to setting annotation data", this);
         resetValidationState();
     }
 
@@ -199,7 +200,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 }
             }
 
-            logger.debug("Setting properties to {}; resetting validation state", properties);
+            logger.debug("Resetting Validation State of {} due to setting properties", this);
             resetValidationState();
         } finally {
             lock.unlock();
@@ -613,6 +614,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
         if (isTriggerValidation()) {
             validationTrigger.triggerAsync(this);
+        } else {
+            logger.debug("Reset validation state of {} but will not trigger async validation because trigger has been paused", this);
         }
     }
 
@@ -625,8 +628,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public void resumeValidationTrigger() {
         triggerValidation = true;
 
-        if (getValidationStatus() == ValidationStatus.VALIDATING) {
+        final ValidationStatus validationStatus = getValidationStatus();
+        if (validationStatus == ValidationStatus.VALIDATING) {
+            logger.debug("Resuming Triggering of Validation State for {}; status is VALIDATING so will trigger async validation now", this);
             validationTrigger.triggerAsync(this);
+        } else {
+            logger.debug("Resuming Triggering of Validation State for {}; status is {} so will not trigger async validation now", this, validationStatus);
         }
     }
 
