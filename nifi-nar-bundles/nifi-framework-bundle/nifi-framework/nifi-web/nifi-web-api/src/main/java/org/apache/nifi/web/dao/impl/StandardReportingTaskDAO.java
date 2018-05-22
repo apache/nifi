@@ -313,25 +313,30 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final String comments = reportingTaskDTO.getComments();
         final Map<String, String> properties = reportingTaskDTO.getProperties();
 
-        // ensure scheduling strategy is set first
-        if (isNotNull(schedulingStrategy)) {
-            reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
-        }
+        reportingTask.pauseValidationTrigger(); // avoid triggering validation multiple times
+        try {
+            // ensure scheduling strategy is set first
+            if (isNotNull(schedulingStrategy)) {
+                reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
+            }
 
-        if (isNotNull(name)) {
-            reportingTask.setName(name);
-        }
-        if (isNotNull(schedulingPeriod)) {
-            reportingTask.setSchedulingPeriod(schedulingPeriod);
-        }
-        if (isNotNull(annotationData)) {
-            reportingTask.setAnnotationData(annotationData);
-        }
-        if (isNotNull(comments)) {
-            reportingTask.setComments(comments);
-        }
-        if (isNotNull(properties)) {
-            reportingTask.setProperties(properties);
+            if (isNotNull(name)) {
+                reportingTask.setName(name);
+            }
+            if (isNotNull(schedulingPeriod)) {
+                reportingTask.setSchedulingPeriod(schedulingPeriod);
+            }
+            if (isNotNull(annotationData)) {
+                reportingTask.setAnnotationData(annotationData);
+            }
+            if (isNotNull(comments)) {
+                reportingTask.setComments(comments);
+            }
+            if (isNotNull(properties)) {
+                reportingTask.setProperties(properties);
+            }
+        } finally {
+            reportingTask.resumeValidationTrigger();
         }
     }
 

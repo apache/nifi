@@ -213,8 +213,13 @@ public class ControllerServiceLoader {
 
     private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
-        node.setAnnotationData(dto.getAnnotationData());
-        node.setProperties(dto.getProperties());
+        node.pauseValidationTrigger();
+        try {
+            node.setAnnotationData(dto.getAnnotationData());
+            node.setProperties(dto.getProperties());
+        } finally {
+            node.resumeValidationTrigger();
+        }
     }
 
 }

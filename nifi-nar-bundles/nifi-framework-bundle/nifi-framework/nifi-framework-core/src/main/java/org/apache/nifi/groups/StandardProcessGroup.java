@@ -4043,18 +4043,23 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private void updateControllerService(final ControllerServiceNode service, final VersionedControllerService proposed) {
-        service.setAnnotationData(proposed.getAnnotationData());
-        service.setComments(proposed.getComments());
-        service.setName(proposed.getName());
+        service.pauseValidationTrigger();
+        try {
+            service.setAnnotationData(proposed.getAnnotationData());
+            service.setComments(proposed.getComments());
+            service.setName(proposed.getName());
 
-        final Map<String, String> properties = populatePropertiesMap(service.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
-        service.setProperties(properties, true);
+            final Map<String, String> properties = populatePropertiesMap(service.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
+            service.setProperties(properties, true);
 
-        if (!isEqual(service.getBundleCoordinate(), proposed.getBundle())) {
-            final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
-            final List<PropertyDescriptor> descriptors = new ArrayList<>(service.getProperties().keySet());
-            final Set<URL> additionalUrls = service.getAdditionalClasspathResources(descriptors);
-            flowController.reload(service, proposed.getType(), newBundleCoordinate, additionalUrls);
+            if (!isEqual(service.getBundleCoordinate(), proposed.getBundle())) {
+                final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
+                final List<PropertyDescriptor> descriptors = new ArrayList<>(service.getProperties().keySet());
+                final Set<URL> additionalUrls = service.getAdditionalClasspathResources(descriptors);
+                flowController.reload(service, proposed.getType(), newBundleCoordinate, additionalUrls);
+            }
+        } finally {
+            service.resumeValidationTrigger();
         }
     }
 
@@ -4161,28 +4166,33 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private void updateProcessor(final ProcessorNode processor, final VersionedProcessor proposed) throws ProcessorInstantiationException {
-        processor.setAnnotationData(proposed.getAnnotationData());
-        processor.setBulletinLevel(LogLevel.valueOf(proposed.getBulletinLevel()));
-        processor.setComments(proposed.getComments());
-        processor.setName(proposed.getName());
-        processor.setPenalizationPeriod(proposed.getPenaltyDuration());
+        processor.pauseValidationTrigger();
+        try {
+            processor.setAnnotationData(proposed.getAnnotationData());
+            processor.setBulletinLevel(LogLevel.valueOf(proposed.getBulletinLevel()));
+            processor.setComments(proposed.getComments());
+            processor.setName(proposed.getName());
+            processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
-        final Map<String, String> properties = populatePropertiesMap(processor.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
-        processor.setProperties(properties, true);
-        processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
-        processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
-        processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
-        processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
-        processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
-        processor.setStyle(proposed.getStyle());
-        processor.setYieldPeriod(proposed.getYieldDuration());
-        processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
+            final Map<String, String> properties = populatePropertiesMap(processor.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
+            processor.setProperties(properties, true);
+            processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
+            processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
+            processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
+            processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
+            processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
+            processor.setStyle(proposed.getStyle());
+            processor.setYieldPeriod(proposed.getYieldDuration());
+            processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
 
-        if (!isEqual(processor.getBundleCoordinate(), proposed.getBundle())) {
-            final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
-            final List<PropertyDescriptor> descriptors = new ArrayList<>(processor.getProperties().keySet());
-            final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(descriptors);
-            flowController.reload(processor, proposed.getType(), newBundleCoordinate, additionalUrls);
+            if (!isEqual(processor.getBundleCoordinate(), proposed.getBundle())) {
+                final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
+                final List<PropertyDescriptor> descriptors = new ArrayList<>(processor.getProperties().keySet());
+                final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(descriptors);
+                flowController.reload(processor, proposed.getType(), newBundleCoordinate, additionalUrls);
+            }
+        } finally {
+            processor.resumeValidationTrigger();
         }
     }
 

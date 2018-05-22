@@ -333,17 +333,22 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final String comments = controllerServiceDTO.getComments();
         final Map<String, String> properties = controllerServiceDTO.getProperties();
 
-        if (isNotNull(name)) {
-            controllerService.setName(name);
-        }
-        if (isNotNull(annotationData)) {
-            controllerService.setAnnotationData(annotationData);
-        }
-        if (isNotNull(comments)) {
-            controllerService.setComments(comments);
-        }
-        if (isNotNull(properties)) {
-            controllerService.setProperties(properties);
+        controllerService.pauseValidationTrigger(); // avoid causing validation to be triggered multiple times
+        try {
+            if (isNotNull(name)) {
+                controllerService.setName(name);
+            }
+            if (isNotNull(annotationData)) {
+                controllerService.setAnnotationData(annotationData);
+            }
+            if (isNotNull(comments)) {
+                controllerService.setComments(comments);
+            }
+            if (isNotNull(properties)) {
+                controllerService.setProperties(properties);
+            }
+        } finally {
+            controllerService.resumeValidationTrigger();
         }
     }
 
