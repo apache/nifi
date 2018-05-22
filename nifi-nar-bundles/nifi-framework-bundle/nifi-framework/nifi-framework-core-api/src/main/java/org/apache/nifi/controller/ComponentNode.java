@@ -58,6 +58,39 @@ public interface ComponentNode extends ComponentAuthorizable {
 
     public void setProperties(Map<String, String> properties, boolean allowRemovalOfRequiredProperties);
 
+    /**
+     * <p>
+     * Pause triggering asynchronous validation to occur when the component is updated. Often times, it is necessary
+     * to update several aspects of a component, such as the properties and annotation data, at once. When this occurs,
+     * we don't want to trigger validation for each update, so we can follow the pattern:
+     * </p>
+     *
+     * <pre>
+     * <code>
+     * componentNode.pauseValidationTrigger();
+     * try {
+     *   componentNode.setProperties(properties);
+     *   componentNode.setAnnotationData(annotationData);
+     * } finally {
+     *   componentNode.resumeValidationTrigger();
+     * }
+     * </code>
+     * </pre>
+     *
+     * <p>
+     * When calling this method, it is imperative that {@link #resumeValidationTrigger()} is always called within a {@code finally} block to
+     * ensure that validation occurs.
+     * </p>
+     */
+    void pauseValidationTrigger();
+
+    /**
+     * Resume triggering asynchronous validation to occur when the component is updated. This method is to be used in conjunction
+     * with {@link #pauseValidationTrigger()} as illustrated in its documentation. When this method is called, if the component's Validation Status
+     * is {@link ValidationStatus#VALIDATING}, component validation will immediately be triggered asynchronously.
+     */
+    void resumeValidationTrigger();
+
     public Map<PropertyDescriptor, String> getProperties();
 
     public String getProperty(final PropertyDescriptor property);

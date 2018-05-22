@@ -142,51 +142,56 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             final String bulletinLevel = config.getBulletinLevel();
             final Set<String> undefinedRelationshipsToTerminate = config.getAutoTerminatedRelationships();
 
-            // ensure scheduling strategy is set first
-            if (isNotNull(schedulingStrategy)) {
-                processor.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
-            }
-
-            if (isNotNull(executionNode)) {
-                processor.setExecutionNode(ExecutionNode.valueOf(executionNode));
-            }
-            if (isNotNull(comments)) {
-                processor.setComments(comments);
-            }
-            if (isNotNull(annotationData)) {
-                processor.setAnnotationData(annotationData);
-            }
-            if (isNotNull(maxTasks)) {
-                processor.setMaxConcurrentTasks(maxTasks);
-            }
-            if (isNotNull(schedulingPeriod)) {
-                processor.setScheduldingPeriod(schedulingPeriod);
-            }
-            if (isNotNull(penaltyDuration)) {
-                processor.setPenalizationPeriod(penaltyDuration);
-            }
-            if (isNotNull(yieldDuration)) {
-                processor.setYieldPeriod(yieldDuration);
-            }
-            if (isNotNull(runDurationMillis)) {
-                processor.setRunDuration(runDurationMillis, TimeUnit.MILLISECONDS);
-            }
-            if (isNotNull(bulletinLevel)) {
-                processor.setBulletinLevel(LogLevel.valueOf(bulletinLevel));
-            }
-            if (isNotNull(config.isLossTolerant())) {
-                processor.setLossTolerant(config.isLossTolerant());
-            }
-            if (isNotNull(configProperties)) {
-                processor.setProperties(configProperties);
-            }
-
-            if (isNotNull(undefinedRelationshipsToTerminate)) {
-                final Set<Relationship> relationships = new HashSet<>();
-                for (final String relName : undefinedRelationshipsToTerminate) {
-                    relationships.add(new Relationship.Builder().name(relName).build());
+            processor.pauseValidationTrigger(); // ensure that we don't trigger many validations to occur
+            try {
+                // ensure scheduling strategy is set first
+                if (isNotNull(schedulingStrategy)) {
+                    processor.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
                 }
-                processor.setAutoTerminatedRelationships(relationships);
+
+                if (isNotNull(executionNode)) {
+                    processor.setExecutionNode(ExecutionNode.valueOf(executionNode));
+                }
+                if (isNotNull(comments)) {
+                    processor.setComments(comments);
+                }
+                if (isNotNull(annotationData)) {
+                    processor.setAnnotationData(annotationData);
+                }
+                if (isNotNull(maxTasks)) {
+                    processor.setMaxConcurrentTasks(maxTasks);
+                }
+                if (isNotNull(schedulingPeriod)) {
+                    processor.setScheduldingPeriod(schedulingPeriod);
+                }
+                if (isNotNull(penaltyDuration)) {
+                    processor.setPenalizationPeriod(penaltyDuration);
+                }
+                if (isNotNull(yieldDuration)) {
+                    processor.setYieldPeriod(yieldDuration);
+                }
+                if (isNotNull(runDurationMillis)) {
+                    processor.setRunDuration(runDurationMillis, TimeUnit.MILLISECONDS);
+                }
+                if (isNotNull(bulletinLevel)) {
+                    processor.setBulletinLevel(LogLevel.valueOf(bulletinLevel));
+                }
+                if (isNotNull(config.isLossTolerant())) {
+                    processor.setLossTolerant(config.isLossTolerant());
+                }
+                if (isNotNull(configProperties)) {
+                    processor.setProperties(configProperties);
+                }
+
+                if (isNotNull(undefinedRelationshipsToTerminate)) {
+                    final Set<Relationship> relationships = new HashSet<>();
+                    for (final String relName : undefinedRelationshipsToTerminate) {
+                        relationships.add(new Relationship.Builder().name(relName).build());
+                    }
+                    processor.setAutoTerminatedRelationships(relationships);
+                }
+            } finally {
+                processor.resumeValidationTrigger();
             }
         }
 
