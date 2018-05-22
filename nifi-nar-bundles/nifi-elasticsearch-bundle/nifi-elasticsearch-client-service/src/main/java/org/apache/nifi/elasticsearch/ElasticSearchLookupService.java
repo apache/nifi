@@ -39,6 +39,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -118,7 +119,7 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
             if (coordinates.containsKey("_id")) {
                 record = getById((String)coordinates.get("_id"), schema);
             } else {
-                record = getByQuery((String)coordinates.get("query"), schema);
+                record = getByQuery(coordinates, schema);
             }
 
             return record == null ? Optional.empty() : Optional.of(record);
@@ -149,12 +150,10 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
 
         if (coordinates.containsKey("_id") && !(coordinates.get("_id") instanceof String)) {
             reasons.add("_id was supplied, but it was not a String.");
-        } else if (coordinates.containsKey("query") && !(coordinates.get("query") instanceof String)) {
-            reasons.add("query was supplied, but it was not a String.");
-        } else if (!coordinates.containsKey("_id") && !coordinates.containsKey("query")) {
-            reasons.add("Either \"_id\" or \"query\" must be supplied as keys to lookup(Map)");
-        } else if (coordinates.containsKey("_id") && coordinates.containsKey("query")) {
-            reasons.add("\"_id\" and \"query\" cannot be used at the same time as keys.");
+        }
+
+        if (coordinates.containsKey("_id") && coordinates.size() > 1) {
+            reasons.add("When _id is used, it can be the only key used in the lookup.");
         }
 
         if (reasons.size() > 0) {
@@ -190,15 +189,30 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
         return new MapRecord(toUse, source);
     }
 
-    private Record getByQuery(final String query, RecordSchema recordSchema) throws LookupFailureException {
-        Map<String, Object> parsed;
-        try {
-            parsed = mapper.readValue(query, Map.class);
-            parsed.remove("from");
-            parsed.remove("aggs");
-            parsed.put("size", 1);
+    private Map<String, Object> buildQuery(Map<String, Object> coordinates) {
+        Map<String, Object> query = new HashMap<String, Object>(){{
+            put("bool", new HashMap<String, Object>(){{
+                put("must", coordinates.entrySet().stream()
+                    .map(e -> new HashMap<String, Object>(){{
+                        put("match", new HashMap<String, Object>(){{
+                            put(e.getKey(), e.getValue());
+                        }});
+                    }}).collect(Collectors.toList())
+                );
+            }});
+        }};
 
-            final String json = mapper.writeValueAsString(parsed);
+        Map<String, Object> outter = new HashMap<String, Object>(){{
+            put("size", 1);
+            put("query", query);
+        }};
+
+        return outter;
+    }
+
+    private Record getByQuery(final Map<String, Object> query, RecordSchema recordSchema) throws LookupFailureException {
+        try {
+            final String json = mapper.writeValueAsString(buildQuery(query));
 
             SearchResponse response = clientService.search(json, index, type);
 

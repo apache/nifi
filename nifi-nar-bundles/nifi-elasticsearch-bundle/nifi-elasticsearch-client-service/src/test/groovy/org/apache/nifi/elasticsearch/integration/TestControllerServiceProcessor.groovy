@@ -3,7 +3,7 @@
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
+ * (the "License") you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -15,43 +15,37 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.elasticsearch.integration;
+package org.apache.nifi.elasticsearch.integration
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
-import org.apache.nifi.elasticsearch.ElasticSearchLookupService;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.components.PropertyDescriptor
+import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
+import org.apache.nifi.elasticsearch.ElasticSearchLookupService
+import org.apache.nifi.processor.AbstractProcessor
+import org.apache.nifi.processor.ProcessContext
+import org.apache.nifi.processor.ProcessSession
+import org.apache.nifi.processor.exception.ProcessException
 
-import java.util.ArrayList;
-import java.util.List;
+class TestControllerServiceProcessor extends AbstractProcessor {
 
-public class TestControllerServiceProcessor extends AbstractProcessor {
-
-    static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
             .name("Client Service")
             .description("ElasticSearchClientServiceImpl")
             .identifiesControllerService(ElasticSearchClientServiceImpl.class)
             .required(true)
-            .build();
-    static final PropertyDescriptor LOOKUP_SERVICE = new PropertyDescriptor.Builder()
+            .build()
+    public static final PropertyDescriptor LOOKUP_SERVICE = new PropertyDescriptor.Builder()
             .name("Lookup Service")
             .description("ElasticSearchClientServiceImpl")
             .identifiesControllerService(ElasticSearchLookupService.class)
             .required(false)
-            .build();
+            .build()
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> propDescs = new ArrayList<>();
-        propDescs.add(CLIENT_SERVICE);
-        propDescs.add(LOOKUP_SERVICE);
-        return propDescs;
+        [ CLIENT_SERVICE, LOOKUP_SERVICE ]
     }
 }
