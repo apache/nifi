@@ -134,13 +134,39 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return withConnection(redisConnection -> {
             final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            final byte[] existingValue = redisConnection.get(kv.getKey());
+            do {
+                // start a watch on the key and retrieve the current value
+                redisConnection.watch(kv.getKey());
+                final byte[] existingValue = redisConnection.get(kv.getKey());
 
-            if (!redisConnection.exists(kv.getKey())) {
-                redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), null);
-            }
+                // start a transaction and perform the put-if-absent
+                redisConnection.multi();
+                redisConnection.setNX(kv.getKey(), kv.getValue());
 
-            return (existingValue == null) ? null : valueDeserializer.deserialize(existingValue);
+                // Set the TTL only if the key doesn't exist already
+                if (ttl != -1L && existingValue == null) {
+                    redisConnection.expire(kv.getKey(), ttl);
+                }
+
+                // execute the transaction
+                final List<Object> results = redisConnection.exec();
+
+                // if the results list was empty, then the transaction failed (i.e. key was modified after we started watching), so keep looping to retry
+                // if the results list has results, then the transaction succeeded and it should have the result of the setNX operation
+                if (results.size() > 0) {
+                    final Object firstResult = results.get(0);
+                    if (firstResult instanceof Boolean) {
+                        final Boolean absent = (Boolean) firstResult;
+                        return absent ? null : valueDeserializer.deserialize(existingValue);
+                    } else {
+                        // this shouldn't really happen, but just in case there is a non-boolean result then bounce out of the loop
+                        throw new IOException("Unexpected result from Redis transaction: Expected Boolean result, but got "
+                                + firstResult.getClass().getName() + " with value " + firstResult.toString());
+                    }
+                }
+            } while (isEnabled());
+
+            return null;
         });
     }
 
