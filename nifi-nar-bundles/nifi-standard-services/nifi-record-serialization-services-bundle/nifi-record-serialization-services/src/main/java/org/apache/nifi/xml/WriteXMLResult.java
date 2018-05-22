@@ -359,7 +359,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
                     } else {
                         if (nullSuppression.equals(NullSuppression.NEVER_SUPPRESS) || nullSuppression.equals(NullSuppression.SUPPRESS_MISSING)) {
-                            writeAllTags(tagsToOpen, fieldName);
+                            writeAllTags(tagsToOpen, elementName);
                             writer.writeEndElement();
                             loopHasWritten = true;
                         }
@@ -556,7 +556,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
                 } else {
                     if (nullSuppression.equals(NullSuppression.NEVER_SUPPRESS) || nullSuppression.equals(NullSuppression.SUPPRESS_MISSING)) {
-                        writeAllTags(tagsToOpen, fieldName);
+                        writeAllTags(tagsToOpen, elementName);
                         writer.writeEndElement();
                         loopHasWritten = true;
                     }

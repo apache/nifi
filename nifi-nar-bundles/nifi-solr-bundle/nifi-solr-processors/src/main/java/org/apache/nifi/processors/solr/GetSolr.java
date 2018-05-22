@@ -380,7 +380,7 @@ public class GetSolr extends SolrProcessor {
                             @Override
                             public void process(final OutputStream out) throws IOException {
                                 try {
-                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out);
+                                    final RecordSetWriter writer = writerFactory.createWriter(Collections.emptyMap(), getLogger(), schema, out);
                                     writer.write(recordSet);
                                     writer.flush();
                                     mimeType.append(writer.getMimeType());

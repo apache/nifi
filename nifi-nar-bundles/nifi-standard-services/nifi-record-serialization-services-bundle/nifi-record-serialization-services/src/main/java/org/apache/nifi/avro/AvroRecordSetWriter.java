@@ -79,7 +79,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         "The FlowFile will have the Avro schema embedded into the content, as is typical with Avro");
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema, final OutputStream out) throws IOException {
+    public RecordSetWriter createWriter(final Map<String, String> variables, final ComponentLog logger, final RecordSchema recordSchema, final OutputStream out) throws IOException {
         final String strategyValue = getConfigurationContext().getProperty(getSchemaWriteStrategyDescriptor()).getValue();
         final String compressionFormat = getConfigurationContext().getProperty(COMPRESSION_FORMAT).getValue();
 

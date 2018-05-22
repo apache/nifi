@@ -136,7 +136,7 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
                                 if (tuple == null) {
                                     FlowFile outFlowFile = session.create(original);
                                     final OutputStream out = session.write(outFlowFile);
-                                    recordSetWriter = writerFactory.createWriter(getLogger(), writeSchema, out);
+                                    recordSetWriter = writerFactory.createWriter(originalAttributes, getLogger(), writeSchema, out);
                                     recordSetWriter.beginRecordSet();
 
                                     tuple = new Tuple<>(outFlowFile, recordSetWriter);

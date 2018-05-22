@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Tags({"xml", "resultset", "writer", "serialize", "record", "recordset", "row"})
 @CapabilityDescription("Writes a RecordSet to XML. The records are wrapped by a root tag.")
@@ -85,7 +86,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .description("Specifies the name of the XML root tag wrapping the record set. This property has to be defined if " +
                     "the writer is supposed to write multiple records in a single FlowFile.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
@@ -95,7 +96,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .description("Specifies the name of the XML record tag wrapping the record fields. If this is not set, the writer " +
                     "will use the record name in the schema.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
@@ -113,7 +114,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .displayName("Array Tag Name")
             .description("Name of the tag used by property \"Wrap Elements of Arrays\" to write arrays")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
@@ -122,7 +123,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .description("The Character set to use when writing the data to the FlowFile")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue("UTF-8")
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
@@ -165,7 +166,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(final Map<String, String> variables, final ComponentLog logger, final RecordSchema schema, final OutputStream out) throws SchemaNotFoundException, IOException {
 
         final String nullSuppression = getConfigurationContext().getProperty(SUPPRESS_NULLS).getValue();
         final NullSuppression nullSuppressionEnum;
@@ -180,9 +181,9 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         final boolean prettyPrint = getConfigurationContext().getProperty(PRETTY_PRINT_XML).getValue().equals("true");
 
         final String rootTagName = getConfigurationContext().getProperty(ROOT_TAG_NAME).isSet()
-                ? getConfigurationContext().getProperty(ROOT_TAG_NAME).getValue() : null;
+                ? getConfigurationContext().getProperty(ROOT_TAG_NAME).evaluateAttributeExpressions(variables).getValue() : null;
         final String recordTagName = getConfigurationContext().getProperty(RECORD_TAG_NAME).isSet()
-                ? getConfigurationContext().getProperty(RECORD_TAG_NAME).getValue() : null;
+                ? getConfigurationContext().getProperty(RECORD_TAG_NAME).evaluateAttributeExpressions(variables).getValue() : null;
 
         final String arrayWrapping = getConfigurationContext().getProperty(ARRAY_WRAPPING).getValue();
         final ArrayWrapping arrayWrappingEnum;
@@ -196,12 +197,12 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
         final String arrayTagName;
         if (getConfigurationContext().getProperty(ARRAY_TAG_NAME).isSet()) {
-            arrayTagName = getConfigurationContext().getProperty(ARRAY_TAG_NAME).getValue();
+            arrayTagName = getConfigurationContext().getProperty(ARRAY_TAG_NAME).evaluateAttributeExpressions(variables).getValue();
         } else {
             arrayTagName = null;
         }
 
-        final String charSet = getConfigurationContext().getProperty(CHARACTER_SET).getValue();
+        final String charSet = getConfigurationContext().getProperty(CHARACTER_SET).evaluateAttributeExpressions(variables).getValue();
 
         return new WriteXMLResult(logger, schema, getSchemaAccessWriter(schema),
                 out, prettyPrint, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName, charSet,

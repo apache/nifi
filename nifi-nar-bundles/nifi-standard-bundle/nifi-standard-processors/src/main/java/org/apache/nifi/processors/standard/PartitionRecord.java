@@ -223,7 +223,7 @@ public class PartitionRecord extends AbstractProcessor {
 
                     final OutputStream out = session.write(childFlowFile);
 
-                    writer = writerFactory.createWriter(getLogger(), writeSchema, out);
+                    writer = writerFactory.createWriter(originalAttributes, getLogger(), writeSchema, out);
                     writer.beginRecordSet();
                     writerMap.put(recordValueMap, writer);
                 }

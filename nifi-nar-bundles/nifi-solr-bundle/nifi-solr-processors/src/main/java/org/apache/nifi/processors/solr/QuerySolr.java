@@ -310,6 +310,7 @@ public class QuerySolr extends SolrProcessor {
         final ComponentLog logger = getLogger();
 
         FlowFile flowFileOriginal = session.get();
+        final Map<String,String> originalAttributes;
         FlowFile flowFileResponse;
 
         if (flowFileOriginal == null) {
@@ -317,8 +318,10 @@ public class QuerySolr extends SolrProcessor {
                 return;
             }
             flowFileResponse = session.create();
+            originalAttributes = Collections.emptyMap();
         } else {
             flowFileResponse = session.create(flowFileOriginal);
+            originalAttributes = flowFileOriginal.getAttributes();
         }
 
         final SolrQuery solrQuery = new SolrQuery();
@@ -429,11 +432,11 @@ public class QuerySolr extends SolrProcessor {
                     } else {
                         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).evaluateAttributeExpressions(flowFileResponse)
                                 .asControllerService(RecordSetWriterFactory.class);
-                        final RecordSchema schema = writerFactory.getSchema(flowFileResponse.getAttributes(), null);
+                        final RecordSchema schema = writerFactory.getSchema(originalAttributes, null);
                         final RecordSet recordSet = SolrUtils.solrDocumentsToRecordSet(response.getResults(), schema);
                         final StringBuffer mimeType = new StringBuffer();
                         flowFileResponse = session.write(flowFileResponse, out -> {
-                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
+                            try (final RecordSetWriter writer = writerFactory.createWriter(originalAttributes, getLogger(), schema, out)) {
                                 writer.write(recordSet);
                                 writer.flush();
                                 mimeType.append(writer.getMimeType());

@@ -281,7 +281,7 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
+        public RecordSetWriter createWriter(final Map<String, String> variables, final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
             return new RecordSetWriter() {
 
                 @Override

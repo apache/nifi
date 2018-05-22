@@ -156,7 +156,7 @@ public class SplitRecord extends AbstractProcessor {
                                 final WriteResult writeResult;
 
                                 try (final OutputStream out = session.write(split);
-                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
+                                    final RecordSetWriter writer = writerFactory.createWriter(originalAttributes, getLogger(), schema, out)) {
                                         if (maxRecords == 1) {
                                             final Record record = pushbackSet.next();
                                             writeResult = writer.write(record);

@@ -31,6 +31,8 @@ import org.xmlunit.matchers.CompareMatcher;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertThat;
 
@@ -71,6 +73,37 @@ public class TestXMLRecordSetWriter {
                 "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></array_record></root>";
         String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).get(0)));
+        assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
+    }
+
+    @Test
+    public void testExpressionLanguage() throws IOException, InitializationException {
+        XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        TestRunner runner = setup(writer);
+
+        runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "${attribute.root}");
+        runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "${attribute.record}");
+        runner.setProperty(writer, XMLRecordSetWriter.ARRAY_WRAPPING, XMLRecordSetWriter.USE_PROPERTY_FOR_ELEMENTS);
+        runner.setProperty(writer, XMLRecordSetWriter.ARRAY_TAG_NAME, "${attribute.array}");
+
+        runner.enableControllerService(writer);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.root", "root_node");
+        attributes.put("attribute.record", "record_node");
+        attributes.put("attribute.array", "array_node");
+
+        runner.enqueue("", attributes);
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
+
+        String expected = "<root_node><record_node><array_field><array_node>1</array_node><array_node></array_node><array_node>3</array_node></array_field>" +
+                "<name1>val1</name1><name2></name2></record_node>" +
+                "<record_node><array_field><array_node>1</array_node><array_node></array_node><array_node>3</array_node></array_field>" +
+                "<name1>val1</name1><name2></name2></record_node></root_node>";
+        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).get(0)));
+
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 

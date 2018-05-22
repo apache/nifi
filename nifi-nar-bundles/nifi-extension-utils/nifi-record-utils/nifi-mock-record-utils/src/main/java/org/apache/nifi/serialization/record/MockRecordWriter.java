@@ -59,7 +59,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
+    public RecordSetWriter createWriter(final Map<String, String> variables, final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
         return new RecordSetWriter() {
             private int recordCount = 0;
             private boolean headerWritten = false;

@@ -135,7 +135,7 @@ public class RecordBin {
 
                     this.out = new ByteCountingOutputStream(rawOut);
 
-                    recordWriter = writerFactory.createWriter(logger, record.getSchema(), out);
+                    recordWriter = writerFactory.createWriter(flowFile.getAttributes(), logger, record.getSchema(), out);
                     recordWriter.beginRecordSet();
                 }
 

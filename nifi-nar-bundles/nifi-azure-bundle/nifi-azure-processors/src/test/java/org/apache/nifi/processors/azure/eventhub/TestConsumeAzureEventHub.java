@@ -180,8 +180,8 @@ public class TestConsumeAzureEventHub {
         processor.setWriterFactory(writerFactory);
         final RecordSetWriter writer = mock(RecordSetWriter.class);
         final AtomicReference<OutputStream> outRef = new AtomicReference<>();
-        when(writerFactory.createWriter(any(), any(), any())).thenAnswer(invocation -> {
-            outRef.set(invocation.getArgumentAt(2, OutputStream.class));
+        when(writerFactory.createWriter(anyMap(), any(), any(), any())).thenAnswer(invocation -> {
+            outRef.set(invocation.getArgumentAt(3, OutputStream.class));
             return writer;
         });
         when(writer.write(any(Record.class))).thenAnswer(invocation -> {

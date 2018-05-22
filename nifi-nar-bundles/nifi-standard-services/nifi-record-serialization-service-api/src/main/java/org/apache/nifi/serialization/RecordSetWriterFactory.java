@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.util.Map;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -68,6 +69,7 @@ public interface RecordSetWriterFactory extends ControllerService {
      * Creates a new RecordSetWriter that is capable of writing record contents to an OutputStream.
      * </p>
      *
+     * @param flowFile Expression language is evaluated against the attributes of the FlowFile
      * @param logger the logger to use when logging information. This is passed in, rather than using the logger of the Controller Service
      *            because it allows messages to be logged for the component that is calling this Controller Service.
      * @param schema the schema that will be used for writing records
@@ -76,5 +78,23 @@ public interface RecordSetWriterFactory extends ControllerService {
      * @return a RecordSetWriter that can write record sets to an OutputStream
      * @throws IOException if unable to read from the given InputStream
      */
-    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException;
+    default RecordSetWriter createWriter(FlowFile flowFile, ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException {
+        return createWriter(flowFile.getAttributes(), logger, schema, out);
+    }
+
+    /**
+     * <p>
+     * Creates a new RecordSetWriter that is capable of writing record contents to an OutputStream.
+     * </p>
+     *
+     * @param variables Expression language is evaluated against these variables
+     * @param logger the logger to use when logging information. This is passed in, rather than using the logger of the Controller Service
+     *            because it allows messages to be logged for the component that is calling this Controller Service.
+     * @param schema the schema that will be used for writing records
+     * @param out the OutputStream to write to
+     *
+     * @return a RecordSetWriter that can write record sets to an OutputStream
+     * @throws IOException if unable to read from the given InputStream
+     */
+    RecordSetWriter createWriter(Map<String, String> variables, ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException;
 }
