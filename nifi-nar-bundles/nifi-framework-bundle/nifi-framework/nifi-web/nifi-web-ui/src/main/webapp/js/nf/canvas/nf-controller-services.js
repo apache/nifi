@@ -29,6 +29,7 @@
                 'nf.ErrorHandler',
                 'nf.FilteredDialogCommon',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Common',
                 'nf.ControllerService',
                 'nf.ProcessGroup',
@@ -36,8 +37,8 @@
                 'nf.ComponentState',
                 'nf.ComponentVersion',
                 'nf.ng.Bridge'],
-            function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
-                return (nf.ControllerServices = factory($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge));
+            function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfStorage, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
+                return (nf.ControllerServices = factory($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfStorage, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerServices =
@@ -51,6 +52,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.FilteredDialogCommon'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Common'),
                 require('nf.ControllerService'),
                 require('nf.ProcessGroup'),
@@ -69,6 +71,7 @@
             root.nf.ErrorHandler,
             root.nf.FilteredDialogCommon,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Common,
             root.nf.ControllerService,
             root.nf.ProcessGroup,
@@ -77,7 +80,7 @@
             root.nf.ComponentVersion,
             root.nf.ng.Bridge);
     }
-}(this, function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
+}(this, function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfStorage, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfComponentVersion, nfNgBridge) {
     'use strict';
 
     var dblClick = null;
@@ -301,6 +304,7 @@
                     'version': 0
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'type': controllerServiceType,
                 'bundle': controllerServiceBundle

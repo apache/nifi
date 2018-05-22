@@ -200,6 +200,8 @@ public class VersionsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -288,6 +290,8 @@ public class VersionsResource extends ApplicationResource {
         // Replicate if necessary
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
         // Perform the update
@@ -363,9 +367,18 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response deleteVersionControlRequest(@ApiParam("The request ID.") @PathParam("id") final String requestId) {
+    public Response deleteVersionControlRequest(
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam("The request ID.") @PathParam("id") final String requestId) {
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         synchronized (activeRequestMonitor) {
@@ -455,6 +468,10 @@ public class VersionsResource extends ApplicationResource {
         }
         if (versionedFlowDto.getComments() != null && versionedFlowDto.getComments().length() > 65535) {
             throw new IllegalArgumentException("Comments cannot exceed 65,535 characters");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
         // ensure we're not attempting to version the root group
@@ -671,10 +688,17 @@ public class VersionsResource extends ApplicationResource {
                 value = "If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.",
                 required = false)
         @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
+        @ApiParam(
+                value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                required = false
+        )
+        @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
         @ApiParam("The process group id.") @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), groupId);
@@ -752,6 +776,8 @@ public class VersionsResource extends ApplicationResource {
         // Perform the request
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
         final Revision requestRevision = getRevision(requestEntity.getProcessGroupRevision(), groupId);
@@ -912,8 +938,15 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response deleteUpdateRequest(@ApiParam("The ID of the Update Request") @PathParam("id") final String updateRequestId) {
-        return deleteRequest("update-requests", updateRequestId);
+    public Response deleteUpdateRequest(
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam("The ID of the Update Request") @PathParam("id") final String updateRequestId) {
+
+        return deleteRequest("update-requests", updateRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
 
     @DELETE
@@ -937,14 +970,25 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response deleteRevertRequest(@ApiParam("The ID of the Revert Request") @PathParam("id") final String revertRequestId) {
-        return deleteRequest("revert-requests", revertRequestId);
+    public Response deleteRevertRequest(
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam("The ID of the Revert Request") @PathParam("id") final String revertRequestId) {
+
+        return deleteRequest("revert-requests", revertRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
 
 
-    private Response deleteRequest(final String requestType, final String requestId) {
+    private Response deleteRequest(final String requestType, final String requestId, final boolean disconnectedNodeAcknowledged) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -1044,6 +1088,10 @@ public class VersionsResource extends ApplicationResource {
         }
         if (requestVersionControlInfoDto.getVersion() == null) {
             throw new IllegalArgumentException("The Version of the flow must be supplied.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
         // We will perform the updating of the Versioned Flow in a background thread because it can be a long-running process.
@@ -1234,6 +1282,10 @@ public class VersionsResource extends ApplicationResource {
         }
         if (requestVersionControlInfoDto.getVersion() == null) {
             throw new IllegalArgumentException("The Version of the flow must be supplied.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
         // We will perform the updating of the Versioned Flow in a background thread because it can be a long-running process.

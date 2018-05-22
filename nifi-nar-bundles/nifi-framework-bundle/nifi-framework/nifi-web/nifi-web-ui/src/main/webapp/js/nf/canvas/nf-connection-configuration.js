@@ -24,11 +24,12 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.Connection'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection) {
-                return (nf.ConnectionConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
+                return (nf.ConnectionConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionConfiguration =
@@ -37,6 +38,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.Connection')));
@@ -46,11 +48,12 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.Connection);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfConnection) {
     'use strict';
 
     var nfBirdseye;
@@ -924,6 +927,7 @@
                         'version': 0
                     }
                 }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'name': connectionName,
                     'source': {
@@ -1008,6 +1012,7 @@
             var d = nfConnection.get(connectionId);
             var connectionEntity = {
                 'revision': nfClient.getRevision(d),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'id': connectionId,
                     'name': connectionName,

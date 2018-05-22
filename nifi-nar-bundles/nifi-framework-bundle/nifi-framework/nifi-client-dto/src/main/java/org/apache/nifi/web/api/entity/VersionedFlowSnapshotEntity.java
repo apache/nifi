@@ -29,6 +29,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
     private RevisionDTO processGroupRevision;
     private String registryId;
     private Boolean updateDescendantVersionedFlows;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty("The versioned flow snapshot")
     public VersionedFlowSnapshot getVersionedFlowSnapshot() {
@@ -65,5 +66,16 @@ public class VersionedFlowSnapshotEntity extends Entity {
 
     public void setUpdateDescendantVersionedFlows(Boolean update) {
         this.updateDescendantVersionedFlows = update;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

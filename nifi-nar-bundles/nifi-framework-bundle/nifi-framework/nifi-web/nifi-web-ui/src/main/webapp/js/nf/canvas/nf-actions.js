@@ -24,6 +24,7 @@
                 'nf.CanvasUtils',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.ErrorHandler',
                 'nf.Clipboard',
@@ -56,8 +57,8 @@
                 'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -66,6 +67,7 @@
                 require('nf.CanvasUtils'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.ErrorHandler'),
                 require('nf.Clipboard'),
@@ -104,6 +106,7 @@
             root.nf.CanvasUtils,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.ErrorHandler,
             root.nf.Clipboard,
@@ -137,7 +140,7 @@
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -171,6 +174,8 @@
      * @param {object} entity
      */
     var updateResource = function (uri, entity) {
+        entity['disconnectedNodeAcknowledged'] = nfStorage.isDisconnectionAcknowledged();
+
         return $.ajax({
             type: 'PUT',
             url: uri,
@@ -973,8 +978,9 @@
                     $.ajax({
                         type: 'DELETE',
                         url: selectionData.uri + '?' + $.param({
-                            version: revision.version,
-                            clientId: revision.clientId
+                            'version': revision.version,
+                            'clientId': revision.clientId,
+                            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                         }),
                         dataType: 'json'
                     }).done(function (response) {
@@ -1675,7 +1681,8 @@
                             var createSnippetEntity = {
                                 'name': templateName,
                                 'description': templateDescription,
-                                'snippetId': response.snippet.id
+                                'snippetId': response.snippet.id,
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                             };
 
                             // create the template
@@ -1863,6 +1870,7 @@
                 // build the connection entity
                 var connectionEntity = {
                     'revision': nfClient.getRevision(connection),
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                     'component': {
                         'id': connection.id,
                         'zIndex': zIndex
@@ -1878,7 +1886,7 @@
                     contentType: 'application/json'
                 }).done(function (response) {
                     nfConnection.set(response);
-                });
+                }).fail(nfErrorHandler.handleAjaxError);
             }
         }
     };

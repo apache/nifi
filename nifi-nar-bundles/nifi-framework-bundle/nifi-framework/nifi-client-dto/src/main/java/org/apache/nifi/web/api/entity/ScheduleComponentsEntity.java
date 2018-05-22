@@ -35,6 +35,7 @@ public class ScheduleComponentsEntity extends Entity {
     private String id;
     private String state;
     private Map<String, RevisionDTO> components;
+    private Boolean disconnectedNodeAcknowledged;
 
     /**
      * @return The id of the ProcessGroup
@@ -77,5 +78,16 @@ public class ScheduleComponentsEntity extends Entity {
 
     public void setComponents(Map<String, RevisionDTO> components) {
         this.components = components;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

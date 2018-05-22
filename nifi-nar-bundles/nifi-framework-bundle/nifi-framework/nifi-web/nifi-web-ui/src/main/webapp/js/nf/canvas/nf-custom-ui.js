@@ -23,23 +23,26 @@
             'nf.Common',
             'nf.Shell',
             'nf.Dialog',
-            'nf.Client'], function ($, nfCommon, nfShell, nfDialog, nfClient) {
-            return (nf.CustomUi = factory($, nfCommon, nfShell, nfDialog, nfClient));
+            'nf.Storage',
+            'nf.Client'], function ($, nfCommon, nfShell, nfDialog, nfStorage, nfClient) {
+            return (nf.CustomUi = factory($, nfCommon, nfShell, nfDialog, nfStorage, nfClient));
         });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.CustomUi = factory(require('jquery'),
             require('nf.Common'),
             require('nf.Shell'),
             require('nf.Dialog'),
+            require('nf.Storage'),
             require('nf.Client')));
     } else {
         nf.CustomUi = factory(root.$,
             root.nf.Common,
             root.nf.Shell,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client);
     }
-}(this, function ($, nfCommon, nfShell, nfDialog, nfClient) {
+}(this, function ($, nfCommon, nfShell, nfDialog, nfStorage, nfClient) {
     'use strict';
 
     return {
@@ -63,7 +66,8 @@
                         'id': entity.id,
                         'revision': revision.version,
                         'clientId': revision.clientId,
-                        'editable': editable
+                        'editable': editable,
+                        'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                     };
 
                     // conditionally include the ui extension token

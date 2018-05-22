@@ -44,6 +44,8 @@
 }(this, function ($, Slick, nfCommon, nfClient, nfErrorHandler) {
     'use strict';
 
+    var isDisconnectionAcknowledged = false;
+
     /**
      * Configuration object used to hold a number of configuration items.
      */
@@ -72,11 +74,14 @@
                         var usersGrid = $('#users-table').data('gridInstance');
                         var usersData = usersGrid.getData();
                         var user = usersData.getItemById(userId);
+                        var revision = nfClient.getRevision(user);
 
                         // update the user
                         $.ajax({
                             type: 'DELETE',
-                            url: user.uri + '?' + $.param(nfClient.getRevision(user)),
+                            url: user.uri + '?' + $.param($.extend({
+                                'disconnectedNodeAcknowledged': isDisconnectionAcknowledged
+                            }, revision)),
                             dataType: 'json'
                         }).done(function () {
                             nfUsersTable.loadUsersTable();
@@ -170,6 +175,7 @@
         // build the request entity
         var updatedGroupEntity = {
             'revision': nfClient.getRevision(groupEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': $.extend({}, groupEntity.component, {
                 'users': groupMembers
             })
@@ -208,6 +214,7 @@
         // build the request entity
         var updatedGroupEntity = {
             'revision': nfClient.getRevision(groupEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': $.extend({}, groupEntity.component, {
                 'users': groupMembers
             })
@@ -277,6 +284,7 @@
 
         var updatedUserEntity = {
             'revision': nfClient.getRevision(userEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': {
                 'id': userId,
                 'identity': userIdentity
@@ -370,6 +378,7 @@
 
         var updatedGroupoEntity = {
             'revision': nfClient.getRevision(groupEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': {
                 'id': groupId,
                 'identity': groupIdentity,
@@ -414,7 +423,8 @@
                                     'revision': {
                                         'version': 0
                                     }
-                                })
+                                }),
+                                'disconnectedNodeAcknowledged': isDisconnectionAcknowledged
                             };
 
                             // handle whether it's a user or a group
@@ -1234,7 +1244,9 @@
     };
 
     var nfUsersTable = {
-        init: function (configurableUsersAndGroups) {
+        init: function (configurableUsersAndGroups, disconnectionAcknowledged) {
+            isDisconnectionAcknowledged = disconnectionAcknowledged;
+
             initUserDialog();
             initUserPoliciesDialog();
             initUserPoliciesTable();

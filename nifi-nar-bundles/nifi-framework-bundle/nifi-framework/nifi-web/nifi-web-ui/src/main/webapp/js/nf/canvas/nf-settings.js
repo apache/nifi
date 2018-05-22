@@ -24,6 +24,7 @@
                 'd3',
                 'nf.Client',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Common',
                 'nf.CanvasUtils',
                 'nf.ControllerServices',
@@ -34,8 +35,8 @@
                 'nf.ComponentState',
                 'nf.ComponentVersion',
                 'nf.PolicyManagement'],
-            function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
-                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement));
+            function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
+                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Settings =
@@ -44,6 +45,7 @@
                 require('d3'),
                 require('nf.Client'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Common'),
                 require('nf.CanvasUtils'),
                 require('nf.ControllerServices'),
@@ -60,6 +62,7 @@
             root.d3,
             root.nf.Client,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Common,
             root.nf.CanvasUtils,
             root.nf.ControllerServices,
@@ -71,7 +74,7 @@
             root.nf.ComponentVersion,
             root.nf.PolicyManagement);
     }
-}(this, function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
+}(this, function ($, Slick, d3, nfClient, nfDialog, nfStorage, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfFilteredDialogCommon, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
     'use strict';
 
 
@@ -119,6 +122,7 @@
                     'version': version
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': configuration
         };
 
@@ -435,6 +439,7 @@
                     'version': 0
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'type': reportingTaskType,
                 'bundle': reportingTaskBundle
@@ -483,6 +488,7 @@
                     'version': 0
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'name': $('#registry-name').val(),
                 'uri': $('#registry-location').val(),
@@ -533,6 +539,7 @@
         var registryEntity = registriesData.getItemById(registryId);
         var requestRegistryEntity = {
             'revision': nfClient.getRevision(registryEntity),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': registryId,
                 'name': $('#registry-name').val(),
@@ -1481,8 +1488,9 @@
         $.ajax({
             type: 'DELETE',
             url: registryEntity.uri + '?' + $.param({
-                version: revision.version,
-                clientId: revision.clientId
+                'version': revision.version,
+                'clientId': revision.clientId,
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
             }),
             dataType: 'json'
         }).done(function (response) {

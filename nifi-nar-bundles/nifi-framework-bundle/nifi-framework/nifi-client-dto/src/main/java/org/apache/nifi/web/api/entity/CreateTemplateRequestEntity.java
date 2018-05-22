@@ -29,6 +29,7 @@ public class CreateTemplateRequestEntity extends Entity {
     private String name;
     private String description;
     private String snippetId;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty(
         value = "The name of the template."
@@ -61,5 +62,16 @@ public class CreateTemplateRequestEntity extends Entity {
 
     public void setSnippetId(String snippetId) {
         this.snippetId = snippetId;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

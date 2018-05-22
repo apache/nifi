@@ -21,6 +21,7 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
+                'nf.Storage',
                 'nf.Connection',
                 'nf.Birdseye',
                 'nf.CanvasUtils',
@@ -28,13 +29,14 @@
                 'nf.Dialog',
                 'nf.Client',
                 'nf.ErrorHandler'],
-            function ($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
-                return (nf.Draggable = factory($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler));
+            function ($, d3, nfStorage, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
+                return (nf.Draggable = factory($, d3, nfStorage, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Draggable =
             factory(require('jquery'),
                 require('d3'),
+                require('nf.Storage'),
                 require('nf.Connection'),
                 require('nf.Birdseye'),
                 require('nf.CanvasUtils'),
@@ -45,6 +47,7 @@
     } else {
         nf.Draggable = factory(root.$,
             root.d3,
+            root.nf.Storage,
             root.nf.Connection,
             root.nf.Birdseye,
             root.nf.CanvasUtils,
@@ -53,7 +56,7 @@
             root.nf.Client,
             root.nf.ErrorHandler);
     }
-}(this, function ($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
+}(this, function ($, d3, nfStorage, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
     'use strict';
 
     var nfCanvas;
@@ -264,6 +267,7 @@
             // build the entity
             var entity = {
                 'revision': nfClient.getRevision(d),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'id': d.id,
                     'position': newPosition
@@ -325,6 +329,7 @@
 
             var entity = {
                 'revision': nfClient.getRevision(d),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     id: d.id,
                     bends: newBends

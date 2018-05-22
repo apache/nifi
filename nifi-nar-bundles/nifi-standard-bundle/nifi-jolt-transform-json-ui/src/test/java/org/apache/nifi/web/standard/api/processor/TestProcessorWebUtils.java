@@ -17,20 +17,19 @@
 package org.apache.nifi.web.standard.api.processor;
 
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Response;
-
 import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.HttpServletConfigurationRequestContext;
 import org.apache.nifi.web.HttpServletRequestContext;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
-import org.apache.nifi.web.standard.api.processor.ProcessorWebUtils;
 import org.junit.Test;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -56,7 +55,7 @@ public class TestProcessorWebUtils {
     public void testGetComponentDetailsForProcessorWithSpecificClientRevision(){
         NiFiWebConfigurationContext configurationContext = mock(NiFiWebConfigurationContext.class);
         when(configurationContext.getComponentDetails(any(HttpServletConfigurationRequestContext.class))).thenReturn(new ComponentDetails.Builder().build());
-        ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext,"1",1L, "client1",mock(HttpServletRequest.class));
+        ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext,"1",mock(HttpServletRequest.class));
         assertNotNull(componentDetails);
     }
 

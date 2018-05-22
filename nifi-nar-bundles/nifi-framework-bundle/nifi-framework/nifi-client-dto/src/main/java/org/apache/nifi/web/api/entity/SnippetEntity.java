@@ -28,6 +28,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SnippetEntity extends Entity {
 
     private SnippetDTO snippet;
+    private Boolean disconnectedNodeAcknowledged;
 
     /**
      * The SnippetDTO that is being serialized.
@@ -43,4 +44,14 @@ public class SnippetEntity extends Entity {
         this.snippet = snippet;
     }
 
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
+    }
 }

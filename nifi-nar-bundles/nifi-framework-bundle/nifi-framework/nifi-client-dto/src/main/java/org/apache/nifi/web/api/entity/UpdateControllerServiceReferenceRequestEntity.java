@@ -31,6 +31,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
     private String id;
     private String state;
     private Map<String, RevisionDTO> referencingComponentRevisions;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty(
         value = "The identifier of the Controller Service."
@@ -64,5 +65,16 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
 
     public void setReferencingComponentRevisions(Map<String, RevisionDTO> referencingComponentRevisions) {
         this.referencingComponentRevisions = referencingComponentRevisions;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

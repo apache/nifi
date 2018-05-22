@@ -22,19 +22,21 @@
         define(['jquery',
                 'nf.Client',
                 'nf.Birdseye',
+                'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog'],
-            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
-                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog));
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
+                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.GroupComponent =
             factory(require('jquery'),
                 require('nf.Client'),
                 require('nf.Birdseye'),
+                require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
@@ -44,13 +46,14 @@
         nf.ng.GroupComponent = factory(root.$,
             root.nf.Client,
             root.nf.Birdseye,
+            root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -69,6 +72,7 @@
                         'version': 0
                     }
                 }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'name': groupName,
                     'position': {

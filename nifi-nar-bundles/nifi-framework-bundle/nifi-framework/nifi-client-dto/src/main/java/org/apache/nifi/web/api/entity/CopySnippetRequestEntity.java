@@ -29,6 +29,7 @@ public class CopySnippetRequestEntity extends Entity {
     private String snippetId;
     private Double originX;
     private Double originY;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty(
         value = "The identifier of the snippet."
@@ -61,5 +62,16 @@ public class CopySnippetRequestEntity extends Entity {
 
     public void setOriginY(Double originY) {
         this.originY = originY;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

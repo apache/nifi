@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "createActiveRequestEntity")
 public class CreateActiveRequestEntity extends Entity {
     private String processGroupId;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty("The Process Group ID that this active request will update")
     public String getProcessGroupId() {
@@ -32,5 +33,16 @@ public class CreateActiveRequestEntity extends Entity {
 
     public void setProcessGroupId(String processGroupId) {
         this.processGroupId = processGroupId;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

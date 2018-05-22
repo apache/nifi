@@ -21,7 +21,7 @@ var MainState = function($stateProvider) {
 
     $stateProvider
         .state('main', {
-            url: "/main?id&revision&clientId&editable",
+            url: "/main?id&revision&clientId&editable&disconnectedNodeAcknowledged",
             controller: 'MainController'
         })
 };

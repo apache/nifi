@@ -32,6 +32,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
     private ControllerConfigurationDTO controllerConfiguration;
     private RevisionDTO revision;
     private PermissionsDTO permissions;
+    private Boolean disconnectedNodeAcknowledged;
 
     /**
      * @return revision for this request/response
@@ -83,4 +84,14 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
         this.permissions = permissions;
     }
 
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
+    }
 }
