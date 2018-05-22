@@ -1256,7 +1256,7 @@
 
             // add the description if applicable
             if (nfCommon.isDefinedAndNotNull(prioritizerType.description)) {
-                $('<div class="fa fa-question-circle" style="float: right; margin-right: 5px;""></div>').appendTo(prioritizer).qtip($.extend({
+                $('<div class="fa fa-question-circle"></div>').appendTo(prioritizer).qtip($.extend({
                     content: nfCommon.escapeHtml(prioritizerType.description)
                 }, nfCommon.config.tooltipConfig));
             }

@@ -543,7 +543,7 @@
      */
     function createNodeTableColumnModel() {
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<div title="View Details" class="pointer show-node-details fa fa-info-circle" style="margin-top: 2px;"></div>';
+            return '<div title="View Details" class="pointer show-node-details fa fa-info-circle"></div>';
         };
 
         // define a custom formatter for the run status column
@@ -640,9 +640,9 @@
 
                 // return the appropriate markup
                 if (canConnect) {
-                    return '<div title="Connect" class="pointer prompt-for-connect fa fa-plug" style="margin-top: 2px;"></div><div title="Delete" class="pointer prompt-for-removal fa fa-trash" style="margin-top: 2px;"></div>';
+                    return '<div title="Connect" class="pointer prompt-for-connect fa fa-plug"></div><div title="Delete" class="pointer prompt-for-removal fa fa-trash"></div>';
                 } else if (canDisconnect) {
-                    return '<div title="Disconnect" class="pointer prompt-for-disconnect fa fa-power-off" style="margin-top: 2px;"></div>';
+                    return '<div title="Disconnect" class="pointer prompt-for-disconnect fa fa-power-off"></div>';
                 } else {
                     return '<div style="width: 16px; height: 16px;">&nbsp;</div>';
                 }
@@ -705,7 +705,7 @@
 
     function createJvmTableColumnModel() {
         var gcFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-jvm-gc fa fa-question-circle" style="margin-top: 2px;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+            return '<div class="pointer show-jvm-gc fa fa-question-circle"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
         };
 
         return [
