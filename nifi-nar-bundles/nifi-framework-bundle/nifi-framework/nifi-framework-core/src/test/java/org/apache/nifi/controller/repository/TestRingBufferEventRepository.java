@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
+import org.testng.Assert;
 
 public class TestRingBufferEventRepository {
 
@@ -33,7 +34,7 @@ public class TestRingBufferEventRepository {
         final RingBufferEventRepository repo = new RingBufferEventRepository(5);
         long insertNanos = 0L;
         for (int i = 0; i < 1000000; i++) {
-            final FlowFileEvent event = generateEvent();
+            final FlowFileEvent event = generateEvent("ABC");
 
             final long insertStart = System.nanoTime();
             repo.updateRepository(event);
@@ -49,11 +50,39 @@ public class TestRingBufferEventRepository {
         repo.close();
     }
 
-    private FlowFileEvent generateEvent() {
+    @Test
+    public void testPurge() throws IOException {
+        final FlowFileEventRepository repo = new RingBufferEventRepository(5);
+        String id1 = "component1";
+        String id2 = "component2";
+        repo.updateRepository(generateEvent(id1));
+        repo.updateRepository(generateEvent(id2));
+        RepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis() - 2 * 60000);
+        FlowFileEvent entry = report.getReportEntry(id1);
+        Assert.assertNotNull(entry);
+        entry = report.getReportEntry(id2);
+        Assert.assertNotNull(entry);
+
+        repo.purgeTransferEvents(id1);
+        report = repo.reportTransferEvents(System.currentTimeMillis() - 2 * 60000);
+        entry = report.getReportEntry(id1);
+        Assert.assertNull(entry);
+        entry = report.getReportEntry(id2);
+        Assert.assertNotNull(entry);
+
+        repo.purgeTransferEvents(id2);
+        report = repo.reportTransferEvents(System.currentTimeMillis() - 2 * 60000);
+        entry = report.getReportEntry(id2);
+        Assert.assertNull(entry);
+
+        repo.close();
+    }
+
+    private FlowFileEvent generateEvent(final String id) {
         return new FlowFileEvent() {
             @Override
             public String getComponentIdentifier() {
-                return "ABC";
+                return id;
             }
 
             @Override
