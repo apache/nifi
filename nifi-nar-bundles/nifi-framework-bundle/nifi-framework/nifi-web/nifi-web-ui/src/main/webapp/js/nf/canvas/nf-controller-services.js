@@ -823,9 +823,9 @@
                         aState = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
                     }
                     var bState;
-                    if (a.component.validationStatus === 'VALIDATING') {
+                    if (b.component.validationStatus === 'VALIDATING') {
                         bState = 'Validating';
-                    } else if (a.component.validationStatus === 'INVALID') {
+                    } else if (b.component.validationStatus === 'INVALID') {
                         bState = 'Invalid';
                     } else {
                         bState = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
