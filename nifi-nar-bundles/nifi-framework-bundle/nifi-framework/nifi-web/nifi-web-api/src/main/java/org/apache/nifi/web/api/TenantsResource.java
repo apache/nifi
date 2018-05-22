@@ -171,6 +171,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestUserEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -373,6 +375,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestUserEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserEntity.isDisconnectedNodeAcknowledged());
         }
 
         // Extract the revision
@@ -442,6 +446,11 @@ public class TenantsResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The user id.",
                     required = true
             )
@@ -454,6 +463,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final UserEntity requestUserEntity = new UserEntity();
@@ -560,6 +571,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestUserGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -761,6 +774,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestUserGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUserGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         // Extract the revision
@@ -830,6 +845,11 @@ public class TenantsResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The user group id.",
                     required = true
             )
@@ -842,6 +862,8 @@ public class TenantsResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final UserGroupEntity requestUserGroupEntity = new UserGroupEntity();

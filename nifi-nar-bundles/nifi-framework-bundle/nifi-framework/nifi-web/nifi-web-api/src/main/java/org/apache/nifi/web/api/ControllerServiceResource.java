@@ -503,6 +503,8 @@ public class ControllerServiceResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestUpdateReferenceRequest);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestUpdateReferenceRequest.isDisconnectedNodeAcknowledged());
         }
 
         // convert the referencing revisions
@@ -614,6 +616,8 @@ public class ControllerServiceResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestControllerServiceEntity);
+        }  else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestControllerServiceEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -691,6 +695,11 @@ public class ControllerServiceResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The controller service id.",
                     required = true
             )
@@ -698,6 +707,8 @@ public class ControllerServiceResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final ControllerServiceEntity requestControllerServiceEntity = new ControllerServiceEntity();

@@ -66,6 +66,7 @@
 
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
+            this.clusterConnectionWarning = false;
             this.activeThreadCount = "-";
             this.terminatedThreadCount = "-";
             this.threadCounts = "-";
@@ -407,35 +408,18 @@
              * @param summary
              */
             updateClusterSummary: function (summary) {
-                // see if this node has been (dis)connected
-                if (nfClusterSummary.isConnectedToCluster() !== summary.connectedToCluster) {
-                    if (summary.connectedToCluster) {
-                        nfDialog.showConnectedToClusterMessage();
-                    } else {
-                        nfDialog.showDisconnectedFromClusterMessage();
-                    }
-                }
-
-                var color = '#728E9B';
-
                 // update the connection state
                 if (summary.connectedToCluster) {
-                    if (nfCommon.isDefinedAndNotNull(summary.connectedNodes)) {
-                        var connectedNodes = summary.connectedNodes.split(' / ');
-                        if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
-                            this.clusterConnectionWarning = true;
-                            color = '#BA554A';
-                        }
+                    var connectedNodes = summary.connectedNodes.split(' / ');
+                    if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
+                        this.clusterConnectionWarning = true;
+                    } else {
+                        this.clusterConnectionWarning = false;
                     }
-                    this.connectedNodesCount =
-                        nfCommon.isDefinedAndNotNull(summary.connectedNodes) ? summary.connectedNodes : '-';
+                    this.connectedNodesCount = summary.connectedNodes;
                 } else {
                     this.connectedNodesCount = 'Disconnected';
-                    color = '#BA554A';
                 }
-
-                // update the color
-                $('#connected-nodes-count').closest('div.fa-cubes').css('color', color);
             },
 
             /**
@@ -461,6 +445,19 @@
                     return 'warning';
                 } else if (this.activeThreadCount === 0) {
                     return 'zero';
+                }
+
+                return '';
+            },
+
+            /**
+             * Returns any additional styles to apply to the cluster label.
+             *
+             * @returns {string}
+             */
+            getExtraClusterStyles: function () {
+                if (this.connectedNodesCount === 'Disconnected' || this.clusterConnectionWarning === true) {
+                    return 'warning';
                 }
 
                 return '';

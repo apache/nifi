@@ -172,6 +172,7 @@
                             // build the request entity
                             var requestEntity = {
                                 'revision': nfClient.getRevision(componentEntity),
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                                 'component': {
                                     'id': componentEntity.id,
                                     'bundle': {

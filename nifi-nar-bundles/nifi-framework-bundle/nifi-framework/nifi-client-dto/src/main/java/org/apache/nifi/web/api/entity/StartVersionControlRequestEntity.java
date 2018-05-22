@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class StartVersionControlRequestEntity extends Entity {
     private VersionedFlowDTO versionedFlow;
     private RevisionDTO processGroupRevision;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty("The versioned flow")
     public VersionedFlowDTO getVersionedFlow() {
@@ -44,5 +45,16 @@ public class StartVersionControlRequestEntity extends Entity {
 
     public void setProcessGroupRevision(final RevisionDTO revision) {
         this.processGroupRevision = revision;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

@@ -24,12 +24,13 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Client',
+                'nf.Storage',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.Dialog',
                 'nf.Shell'],
-            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
-                return (nf.PolicyManagement = factory($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell));
+            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfStorage, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
+                return (nf.PolicyManagement = factory($, Slick, nfErrorHandler, nfCommon, nfClient, nfStorage, nfCanvasUtils, nfNgBridge, nfDialog, nfShell));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PolicyManagement =
@@ -38,6 +39,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Client'),
+                require('nf.Storage'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge'),
                 require('nf.Dialog'),
@@ -48,12 +50,13 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Client,
+            root.nf.Storage,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge,
             root.nf.Dialog,
             root.nf.Shell);
     }
-}(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
+}(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfStorage, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
     'use strict';
     
     var config = {
@@ -792,11 +795,14 @@
      */
     var deletePolicy = function () {
         var currentEntity = $('#policy-table').data('policy');
+        var revision = nfClient.getRevision(currentEntity);
         
         if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             $.ajax({
                 type: 'DELETE',
-                url: currentEntity.uri + '?' + $.param(nfClient.getRevision(currentEntity)),
+                url: currentEntity.uri + '?' + $.param($.extend({
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+                }, revision)),
                 dataType: 'json'
             }).done(function () {
                 loadPolicy();
@@ -1236,6 +1242,7 @@
                     'version': 0
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'action': resourceAndAction.action,
                 'resource': resourceAndAction.resource,
@@ -1291,6 +1298,7 @@
         if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             var entity = {
                 'revision': nfClient.getRevision(currentEntity),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'id': currentEntity.id,
                     'users': users,

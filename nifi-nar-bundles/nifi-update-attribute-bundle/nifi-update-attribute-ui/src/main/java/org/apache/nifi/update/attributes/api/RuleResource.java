@@ -135,7 +135,7 @@ public class RuleResource {
 
         // build the web context config
         final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
-                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
+                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId(), requestEntity.isDisconnectedNodeAcknowledged());
 
         // load the criteria
         final Criteria criteria = getCriteria(configurationContext, requestContext);
@@ -212,7 +212,7 @@ public class RuleResource {
 
         // build the request context
         final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
-                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
+                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId(), requestEntity.isDisconnectedNodeAcknowledged());
 
         // load the criteria
         final Criteria criteria = getCriteria(configurationContext, requestContext);
@@ -489,7 +489,7 @@ public class RuleResource {
 
         // build the web context config
         final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
-                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
+                requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId(), requestEntity.isDisconnectedNodeAcknowledged());
 
         // load the criteria
         final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
@@ -553,13 +553,14 @@ public class RuleResource {
             @PathParam("id") final String ruleId,
             @QueryParam("processorId") final String processorId,
             @QueryParam("clientId") final String clientId,
-            @QueryParam("revision") final Long revision) {
+            @QueryParam("revision") final Long revision,
+            @QueryParam("disconnectedNodeAcknowledged") final Boolean isDisconnectionAcknowledged) {
 
         // get the web context
         final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // build the web context config
-        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(processorId, revision, clientId);
+        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(processorId, revision, clientId, isDisconnectionAcknowledged);
 
         // load the criteria and get the rule
         final Criteria criteria = getCriteria(configurationContext, requestContext);
@@ -630,6 +631,8 @@ public class RuleResource {
             configurationContext.updateComponent(requestContext, annotationData, null);
         } catch (final InvalidRevisionException ire) {
             throw new WebApplicationException(ire, invalidRevision(ire.getMessage()));
+        } catch (final IllegalArgumentException iae) {
+            throw new WebApplicationException(iae, badRequest(iae.getMessage()));
         } catch (final Exception e) {
             final String message = String.format("Unable to save UpdateAttribute[id=%s] criteria: %s", requestContext.getId(), e);
             logger.error(message, e);
@@ -646,7 +649,7 @@ public class RuleResource {
         };
     }
 
-    private NiFiWebConfigurationRequestContext getConfigurationRequestContext(final String processorId, final Long revision, final String clientId) {
+    private NiFiWebConfigurationRequestContext getConfigurationRequestContext(final String processorId, final Long revision, final String clientId, final Boolean isDisconnectionAcknowledged) {
         return new HttpServletConfigurationRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override
             public String getId() {
@@ -656,6 +659,11 @@ public class RuleResource {
             @Override
             public Revision getRevision() {
                 return new Revision(revision, clientId, processorId);
+            }
+
+            @Override
+            public boolean isDisconnectionAcknowledged() {
+                return Boolean.TRUE.equals(isDisconnectionAcknowledged);
             }
         };
     }

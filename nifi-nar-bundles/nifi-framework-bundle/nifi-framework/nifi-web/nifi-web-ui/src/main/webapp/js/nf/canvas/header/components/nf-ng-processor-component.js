@@ -23,14 +23,15 @@
                 'Slick',
                 'nf.Client',
                 'nf.Birdseye',
+                'nf.Storage',
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.FilteredDialogCommon',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon) {
-                return (nf.ng.ProcessorComponent = factory($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon));
+            function ($, Slick, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon) {
+                return (nf.ng.ProcessorComponent = factory($, Slick, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.ProcessorComponent =
@@ -38,6 +39,7 @@
                 require('Slick'),
                 require('nf.Client'),
                 require('nf.Birdseye'),
+                require('nf.Storage'),
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
@@ -49,6 +51,7 @@
             root.Slick,
             root.nf.Client,
             root.nf.Birdseye,
+            root.nf.Storage,
             root.nf.Graph,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
@@ -56,7 +59,7 @@
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon) {
+}(this, function ($, Slick, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfFilteredDialogCommon, nfDialog, nfCommon) {
     'use strict';
 
     return function (serviceProvider) {
@@ -248,6 +251,7 @@
                         'version': 0
                     }
                 }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'component': {
                     'type': processorType,
                     'bundle': bundle,

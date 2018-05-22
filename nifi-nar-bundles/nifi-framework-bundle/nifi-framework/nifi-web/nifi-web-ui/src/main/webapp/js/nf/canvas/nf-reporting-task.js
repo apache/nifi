@@ -23,13 +23,14 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.ControllerService',
                 'nf.ControllerServices',
                 'nf.UniversalCapture',
                 'nf.CustomUi'],
-            function ($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
-                return (nf.ReportingTask = factory($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi));
+            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
+                return (nf.ReportingTask = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ReportingTask =
@@ -37,6 +38,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.ControllerService'),
                 require('nf.ControllerServices'),
@@ -47,13 +49,14 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.ControllerService,
             root.nf.ControllerServices,
             root.nf.UniversalCapture,
             root.nf.CustomUi);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
+}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfControllerService, nfControllerServices, nfUniversalCapture, nfCustomUi) {
     'use strict';
 
     var nfSettings;
@@ -243,6 +246,7 @@
     var setRunning = function (reportingTaskEntity, running) {
         var entity = {
             'revision': nfClient.getRevision(reportingTaskEntity),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': reportingTaskEntity.id,
                 'state': running === true ? 'RUNNING' : 'STOPPED'
@@ -306,6 +310,7 @@
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedReportingTask)) {
             updatedReportingTask['revision'] = nfClient.getRevision(reportingTaskEntity);
+            updatedReportingTask['disconnectedNodeAcknowledged'] = nfStorage.isDisconnectionAcknowledged();
 
             // update the selected component
             return $.ajax({
@@ -813,8 +818,9 @@
             $.ajax({
                 type: 'DELETE',
                 url: reportingTaskEntity.uri + '?' + $.param({
-                    version: revision.version,
-                    clientId: revision.clientId
+                    'version': revision.version,
+                    'clientId': revision.clientId,
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                 }),
                 dataType: 'json'
             }).done(function (response) {
