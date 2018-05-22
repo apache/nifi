@@ -79,6 +79,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private volatile String additionalResourcesFingerprint;
     private AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ValidationTrigger validationTrigger;
+    private volatile boolean triggerValidation = true;
 
     public AbstractComponentNode(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
@@ -609,7 +610,28 @@ public abstract class AbstractComponentNode implements ComponentNode {
     protected void resetValidationState() {
         validationContext.set(null);
         validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
-        validationTrigger.triggerAsync(this);
+
+        if (isTriggerValidation()) {
+            validationTrigger.triggerAsync(this);
+        }
+    }
+
+    @Override
+    public void pauseValidationTrigger() {
+        triggerValidation = false;
+    }
+
+    @Override
+    public void resumeValidationTrigger() {
+        triggerValidation = true;
+
+        if (getValidationStatus() == ValidationStatus.VALIDATING) {
+            validationTrigger.triggerAsync(this);
+        }
+    }
+
+    private boolean isTriggerValidation() {
+        return triggerValidation;
     }
 
     @Override
