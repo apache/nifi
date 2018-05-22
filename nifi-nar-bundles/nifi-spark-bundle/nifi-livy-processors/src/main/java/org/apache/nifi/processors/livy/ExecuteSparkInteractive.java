@@ -46,6 +46,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -176,8 +177,8 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
                 context.yield();
                 return;
             }
-        } catch (IOException ioe) {
-            log.error("Error opening spark session, routing flowfile to wait", ioe);
+        } catch (SessionManagerException sme) {
+            log.error("Error opening spark session, routing flowfile to wait", sme);
             session.transfer(flowFile, REL_WAIT);
             context.yield();
             return;
@@ -228,14 +229,15 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
                     session.transfer(flowFile, REL_FAILURE);
                 }
             }
-        } catch (IOException ioe) {
-            log.error("Failure processing flowfile {} due to {}, penalizing and routing to failure", new Object[]{flowFile, ioe.getMessage()}, ioe);
+        } catch (IOException | SessionManagerException e) {
+            log.error("Failure processing flowfile {} due to {}, penalizing and routing to failure", new Object[]{flowFile, e.getMessage()}, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    private JSONObject submitAndHandleJob(String livyUrl, LivySessionService livySessionService, String sessionId, String payload, long statusCheckInterval) throws IOException {
+    private JSONObject submitAndHandleJob(String livyUrl, LivySessionService livySessionService, String sessionId, String payload, long statusCheckInterval)
+        throws IOException, SessionManagerException {
         ComponentLog log = getLogger();
         String statementUrl = livyUrl + "/sessions/" + sessionId + "/statements";
         JSONObject output = null;
@@ -278,8 +280,9 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         return output;
     }
 
-    private JSONObject readJSONObjectFromUrlPOST(String urlString, LivySessionService livySessionService, Map<String, String> headers, String payload) throws IOException, JSONException {
-        HttpClient httpClient = livySessionService.getConnection(urlString);
+    private JSONObject readJSONObjectFromUrlPOST(String urlString, LivySessionService livySessionService, Map<String, String> headers, String payload)
+        throws IOException, JSONException, SessionManagerException {
+        HttpClient httpClient = livySessionService.getConnection();
 
         HttpPost request = new HttpPost(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -297,8 +300,8 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
         return readAllIntoJSONObject(content);
     }
 
-    private JSONObject readJSONObjectFromUrl(String urlString, LivySessionService livySessionService, Map<String, String> headers) throws IOException, JSONException {
-        HttpClient httpClient = livySessionService.getConnection(urlString);
+    private JSONObject readJSONObjectFromUrl(String urlString, LivySessionService livySessionService, Map<String, String> headers) throws IOException, JSONException, SessionManagerException {
+        HttpClient httpClient = livySessionService.getConnection();
 
         HttpGet request = new HttpGet(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {

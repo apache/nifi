@@ -66,6 +66,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
 import org.apache.nifi.hadoop.KerberosKeytabCredentials;
 import org.apache.nifi.hadoop.KerberosKeytabSPNegoAuthSchemeProvider;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
@@ -190,7 +191,7 @@ public class LivySessionController extends AbstractControllerService implements 
     private volatile Thread livySessionManagerThread = null;
     private volatile boolean enabled = true;
     private volatile KerberosCredentialsService credentialsService;
-    private volatile Exception sessionManagerError;
+    private volatile SessionManagerException sessionManagerException;
 
     private List<PropertyDescriptor> properties;
 
@@ -241,10 +242,10 @@ public class LivySessionController extends AbstractControllerService implements 
             while (enabled) {
                 try {
                     manageSessions();
-                    sessionManagerError = null;
+                    sessionManagerException = null;
                 } catch (Exception e) {
                     getLogger().error("Livy Session Manager Thread run into an error, but continues to run", e);
-                    sessionManagerError = e;
+                    sessionManagerException = new SessionManagerException(e);
                 }
                 try {
                     Thread.sleep(sessionManagerStatusInterval);
@@ -272,8 +273,8 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @Override
-    public Map<String, String> getSession() throws IOException {
-        checkSessionManagerError();
+    public Map<String, String> getSession() throws SessionManagerException {
+        checkSessionManagerException();
 
         Map<String, String> sessionMap = new HashMap<>();
         try {
@@ -295,12 +296,13 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @Override
-    public HttpClient getConnection(String urlString) throws IOException {
-        checkSessionManagerError();
-        return openConnection(urlString);
+    public HttpClient getConnection() throws IOException, SessionManagerException {
+        checkSessionManagerException();
+
+        return openConnection();
     }
 
-    private HttpClient openConnection(String urlString) throws IOException {
+    private HttpClient openConnection() throws IOException {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
         if (sslContextService != null) {
@@ -493,7 +495,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     private JSONObject readJSONObjectFromUrlPOST(String urlString, Map<String, String> headers, String payload) throws IOException, JSONException {
-        HttpClient httpClient = openConnection(urlString);
+        HttpClient httpClient = openConnection();
 
         HttpPost request = new HttpPost(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -512,7 +514,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     private JSONObject readJSONFromUrl(String urlString, Map<String, String> headers) throws IOException, JSONException {
-        HttpClient httpClient = openConnection(urlString);
+        HttpClient httpClient = openConnection();
 
         HttpGet request = new HttpGet(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -561,10 +563,10 @@ public class LivySessionController extends AbstractControllerService implements 
         return sslContext;
     }
 
-    private void checkSessionManagerError() throws IOException {
-        Exception exception = sessionManagerError;
+    private void checkSessionManagerException() throws SessionManagerException {
+        SessionManagerException exception = sessionManagerException;
         if (exception != null) {
-            throw new IOException(exception);
+            throw sessionManagerException;
         }
     }
 
