@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public interface VisibilityLabelService {
-    PropertyDescriptor AUTHORIZATIONS = new PropertyDescriptor.Builder()
+class VisibilityLabelUtils {
+    static final PropertyDescriptor AUTHORIZATIONS = new PropertyDescriptor.Builder()
         .name("hb-lu-authorizations")
         .displayName("Authorizations")
         .description("The list of authorization tokens to be used with cell visibility if it is enabled. These will be used to " +
@@ -36,7 +36,7 @@ public interface VisibilityLabelService {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    default List<String> getAuthorizations(ConfigurationContext context) {
+    static List<String> getAuthorizations(ConfigurationContext context) {
         List<String> tokens = new ArrayList<>();
         String authorizationString = context.getProperty(AUTHORIZATIONS).isSet()
                 ? context.getProperty(AUTHORIZATIONS).getValue()
