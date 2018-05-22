@@ -267,7 +267,7 @@ public class UnpackContent extends AbstractProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
             session.getProvenanceReporter().fork(flowFile, unpacked);
             logger.info("Unpacked {} into {} and transferred to success", new Object[]{flowFile, unpacked});
-        } catch (final ProcessException | IllegalArgumentException e) {
+        } catch (final Exception e) {
             logger.error("Unable to unpack {} due to {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             session.remove(unpacked);
