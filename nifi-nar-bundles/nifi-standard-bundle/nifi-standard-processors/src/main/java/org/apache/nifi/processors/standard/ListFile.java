@@ -149,6 +149,14 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor INCLUDE_FILE_ATTRIBUTES = new PropertyDescriptor.Builder()
+        .name("Include File Attributes")
+        .description("Whether or not to include information such as the file's Last Modified Time and Owner as FlowFile Attributes. "
+            + "Depending on the File System being used, gathering this information can be expensive and as a result should be disabled. This is especially true of remote file shares.")
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(true)
+        .build();
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
             .name("Minimum File Age")
@@ -192,6 +200,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     private Set<Relationship> relationships;
     private final AtomicReference<FileFilter> fileFilterRef = new AtomicReference<>();
 
+    private volatile boolean includeFileAttributes;
+
     public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
     public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
     public static final String FILE_LAST_ACCESS_TIME_ATTRIBUTE = "file.lastAccessTime";
@@ -209,6 +219,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         properties.add(DIRECTORY_LOCATION);
         properties.add(FILE_FILTER);
         properties.add(PATH_FILTER);
+        properties.add(INCLUDE_FILE_ATTRIBUTES);
         properties.add(MIN_AGE);
         properties.add(MAX_AGE);
         properties.add(MIN_SIZE);
@@ -235,6 +246,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         fileFilterRef.set(createFileFilter(context));
+        includeFileAttributes = context.getProperty(INCLUDE_FILE_ATTRIBUTES).asBoolean();
     }
 
     @Override
@@ -253,43 +265,47 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final Path absPath = filePath.toAbsolutePath();
         final String absPathString = absPath.getParent().toString() + File.separator;
 
+        final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+
         attributes.put(CoreAttributes.PATH.key(), relativePathString);
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
         attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
+        attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(fileInfo.getSize()));
+        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
 
-        try {
-            FileStore store = Files.getFileStore(filePath);
-            if (store.supportsFileAttributeView("basic")) {
-                try {
-                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                    BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
-                    BasicFileAttributes attrs = view.readAttributes();
-                    attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(attrs.size()));
-                    attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastModifiedTime().toMillis())));
-                    attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
-                    attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
-                } catch (Exception ignore) {
-                } // allow other attributes if these fail
+        if (includeFileAttributes) {
+            try {
+                FileStore store = Files.getFileStore(filePath);
+                if (store.supportsFileAttributeView("basic")) {
+                    try {
+                        BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
+                        BasicFileAttributes attrs = view.readAttributes();
+                        attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
+                        attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
+                    } catch (Exception ignore) {
+                    } // allow other attributes if these fail
+                }
+
+                if (store.supportsFileAttributeView("owner")) {
+                    try {
+                        FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
+                        attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
+                    } catch (Exception ignore) {
+                    } // allow other attributes if these fail
+                }
+
+                if (store.supportsFileAttributeView("posix")) {
+                    try {
+                        PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
+                        attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
+                        attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
+                    } catch (Exception ignore) {
+                    } // allow other attributes if these fail
+                }
+            } catch (IOException ioe) {
+                // well then this FlowFile gets none of these attributes
+                getLogger().warn("Error collecting attributes for file {}, message is {}", new Object[] {absPathString, ioe.getMessage()});
             }
-            if (store.supportsFileAttributeView("owner")) {
-                try {
-                    FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
-                    attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
-                } catch (Exception ignore) {
-                } // allow other attributes if these fail
-            }
-            if (store.supportsFileAttributeView("posix")) {
-                try {
-                    PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
-                    attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
-                    attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
-                } catch (Exception ignore) {
-                } // allow other attributes if these fail
-            }
-        } catch (IOException ioe) {
-            // well then this FlowFile gets none of these attributes
-            getLogger().warn("Error collecting attributes for file {}, message is {}",
-                    new Object[]{absPathString, ioe.getMessage()});
         }
 
         return attributes;
@@ -346,6 +362,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                                 .directory(file.isDirectory())
                                 .filename(file.getName())
                                 .fullPathFileName(file.getAbsolutePath())
+                                .size(file.length())
                                 .lastModifiedTime(file.lastModified())
                                 .build());
                     }
