@@ -17,21 +17,12 @@
 
 package org.apache.nifi.minifi.commons.status.connection;
 
-public class ConnectionStatusBean implements java.io.Serializable {
-    private String name;
+import org.apache.nifi.minifi.commons.status.common.AbstractStatusBean;
+
+public class ConnectionStatusBean extends AbstractStatusBean {
+
     private ConnectionHealth connectionHealth;
     private ConnectionStats connectionStats;
-
-    public ConnectionStatusBean() {
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 
     public ConnectionHealth getConnectionHealth() {
         return connectionHealth;
@@ -73,7 +64,8 @@ public class ConnectionStatusBean implements java.io.Serializable {
     @Override
     public String toString() {
         return "{" +
-                "name='" + name + '\'' +
+                "id='" + getId() + '\'' +
+                "name='" + getName() + '\'' +
                 ", connectionHealth=" + connectionHealth +
                 ", connectionStats=" + connectionStats +
                 '}';

@@ -55,7 +55,8 @@ public class StatusReportPopulator {
 
     public static void addProcessorStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean validationErrors, boolean addStats, boolean addBulletins, boolean populateBulletins) {
         ProcessorStatusBean expectedProcessorStatus = new ProcessorStatusBean();
-        expectedProcessorStatus.setName("UpdateAttributeProcessorId");
+        expectedProcessorStatus.setId("UpdateAttributeProcessorId");
+        expectedProcessorStatus.setName("UpdateAttributeProcessorName");
 
         if (addHealth) {
             ProcessorHealth processorHealth = new ProcessorHealth();
@@ -114,7 +115,8 @@ public class StatusReportPopulator {
 
         ConnectionStatusBean expectedConnectionStatus = new ConnectionStatusBean();
 
-        expectedConnectionStatus.setName("connectionId");
+        expectedConnectionStatus.setId("connectionId");
+        expectedConnectionStatus.setName("connectionName");
         if (addHealth) {
             ConnectionHealth connectionHealth = new ConnectionHealth();
             connectionHealth.setQueuedCount(10);

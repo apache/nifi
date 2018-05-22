@@ -131,7 +131,7 @@ In NiFi there is a lot of information, such as stats and bulletins, that is only
 
 ## FlowStatus Script Query
 
-From the minifi.sh script, you can manually query to get the current status of your  dataflow. The following is an example of a minifi.sh query you might run to view health, stats, and bulletins for the TailFile processor. This query returns information to your command-line.
+From the minifi.sh script, you can manually query to get the current status of your dataflow. The following is an example of a minifi.sh query you might run to view health, stats, and bulletins for the TailFile processor. This query returns information to your command-line.
 
 ```
 minifi.sh flowStatus processor:TailFile:health,stats,bulletins
@@ -202,7 +202,7 @@ This section outlines each option to query the MiNiFi instance for the FlowStatu
 
 ### Processors
 
-To query the processors use the "processor" flag followed by the processor ID to get (or "all") followed by one of the processor options. The processor options are below.
+To query the processors use the "processor" flag followed by the processor ID or name, to get (or "all") followed by one of the processor options. The processor options are below.
 
 Option | Description
 ------ | -----------
@@ -216,7 +216,7 @@ minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 ```
 ### Connections
 
-To query the connections use the "connection" flag followed by the connection ID to get (or "all") followed by one of the connection options. The connection options are below.
+To query the connections use the "connection" flag followed by the connection ID or name, to get (or "all") followed by one of the connection options. The connection options are below.
 
 Option | Description
 ------ | -----------
@@ -230,7 +230,7 @@ minifi.sh flowStatus connection:TailToS2S:health,stats
 
 ### Remote Process Groups
 
-To query the remote process groups (RPG) use the "remoteProcessGroup" flag followed by the RPG ID to get (or "all") followed by one of the remote process group options. The remote process group options are below.
+To query the remote process groups (RPG) use the "remoteProcessGroup" flag followed by the RPG ID or name to get (or "all") followed by one of the remote process group options. The remote process group options are below.
 
 Option | Description
 ------ | -----------

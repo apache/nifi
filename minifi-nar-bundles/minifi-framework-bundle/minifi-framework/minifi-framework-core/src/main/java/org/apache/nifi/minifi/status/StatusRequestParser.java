@@ -73,6 +73,7 @@ public final class StatusRequestParser {
 
     static ProcessorStatusBean parseProcessorStatusRequest(ProcessorStatus inputProcessorStatus, String statusTypes, FlowController flowController, Collection<ValidationResult> validationResults) {
         ProcessorStatusBean processorStatusBean = new ProcessorStatusBean();
+        processorStatusBean.setId(inputProcessorStatus.getId());
         processorStatusBean.setName(inputProcessorStatus.getName());
 
         String[] statusSplits = statusTypes.split(",");
@@ -175,6 +176,7 @@ public final class StatusRequestParser {
 
     static ConnectionStatusBean parseConnectionStatusRequest(ConnectionStatus inputConnectionStatus, String statusTypes, Logger logger) {
         ConnectionStatusBean connectionStatusBean = new ConnectionStatusBean();
+        connectionStatusBean.setId(inputConnectionStatus.getId());
         connectionStatusBean.setName(inputConnectionStatus.getName());
 
         String[] statusSplits = statusTypes.split(",");

@@ -105,6 +105,21 @@ public class StatusConfigReporterTest {
     }
 
     @Test
+    public void individualProcessorStatusHealth() throws Exception {
+        populateProcessor(false, false);
+
+        String statusRequest = "processor:UpdateAttributeProcessorId:health";
+        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+
+        FlowStatusReport expected = new FlowStatusReport();
+        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+
+        addProcessorStatus(expected, true, false, false, false, false);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
     public void processorStatusWithValidationErrors() throws Exception {
         populateProcessor(true, false);
 
@@ -636,7 +651,7 @@ public class StatusConfigReporterTest {
         ConnectionStatus connectionStatus = new ConnectionStatus();
         connectionStatus.setQueuedBytes(100);
         connectionStatus.setId("connectionId");
-        connectionStatus.setName("connectionId");
+        connectionStatus.setName("connectionName");
         connectionStatus.setQueuedCount(10);
         connectionStatus.setInputCount(1);
         connectionStatus.setInputBytes(2);
@@ -657,7 +672,7 @@ public class StatusConfigReporterTest {
         ProcessorStatus processorStatus = new ProcessorStatus();
         processorStatus.setType("org.apache.nifi.processors.attributes.UpdateAttribute");
         processorStatus.setId("UpdateAttributeProcessorId");
-        processorStatus.setName("UpdateAttributeProcessorId");
+        processorStatus.setName("UpdateAttributeProcessorName");
         processorStatus.setRunStatus(RunStatus.Stopped);
         processorStatus.setActiveThreadCount(1);
         processorStatus.setFlowFilesReceived(2);

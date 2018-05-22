@@ -17,27 +17,16 @@
 
 package org.apache.nifi.minifi.commons.status.processor;
 
+import org.apache.nifi.minifi.commons.status.common.AbstractStatusBean;
 import org.apache.nifi.minifi.commons.status.common.BulletinStatus;
 
 import java.util.List;
 
-public class ProcessorStatusBean implements java.io.Serializable {
+public class ProcessorStatusBean extends AbstractStatusBean {
 
-    private String name;
     private ProcessorHealth processorHealth;
     private ProcessorStats processorStats;
     private List<BulletinStatus> bulletinList;
-
-    public ProcessorStatusBean() {
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 
     public ProcessorHealth getProcessorHealth() {
         return processorHealth;
@@ -89,7 +78,8 @@ public class ProcessorStatusBean implements java.io.Serializable {
     @Override
     public String toString() {
         return "{" +
-                "name='" + name + '\'' +
+                "id='" + getId()+ '\'' +
+                "name='" + getName() + '\'' +
                 ", processorHealth=" + processorHealth +
                 ", processorStats=" + processorStats +
                 ", bulletinList=" + bulletinList +
