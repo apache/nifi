@@ -34,7 +34,6 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.distributed.cache.client.Deserializer;
-import java.io.ByteArrayOutputStream;
 import org.apache.nifi.reporting.InitializationException;
 
 import java.nio.charset.StandardCharsets;
@@ -46,12 +45,14 @@ import org.apache.nifi.hbase.put.PutColumn;
 
 import org.apache.nifi.processor.util.StandardValidators;
 
+import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
+
 @Tags({"distributed", "cache", "state", "map", "cluster","hbase"})
 @SeeAlso(classNames = {"org.apache.nifi.hbase.HBase_1_1_2_ClientService"})
 @CapabilityDescription("Provides the ability to use an HBase table as a cache, in place of a DistributedMapCache."
     + " Uses a HBase_1_1_2_ClientService controller to communicate with HBase.")
 
-public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService implements DistributedMapCacheClient, VisibilityLabelService {
+public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService implements DistributedMapCacheClient {
 
     static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("HBase Client Service")
@@ -120,7 +121,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         hBaseColumnFamilyBytes    = hBaseColumnFamily.getBytes(StandardCharsets.UTF_8);
         hBaseColumnQualifierBytes = hBaseColumnQualifier.getBytes(StandardCharsets.UTF_8);
 
-        authorizations = getAuthorizations(context);
+        authorizations = VisibilityLabelUtils.getAuthorizations(context);
     }
 
     private <T> byte[] serialize(final T value, final Serializer<T> serializer) throws IOException {

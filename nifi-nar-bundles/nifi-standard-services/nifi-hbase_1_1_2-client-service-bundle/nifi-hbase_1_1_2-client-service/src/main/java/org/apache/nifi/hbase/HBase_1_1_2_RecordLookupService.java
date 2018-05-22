@@ -51,10 +51,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
+
 @Tags({"hbase", "record", "lookup", "service"})
 @CapabilityDescription("A lookup service that retrieves one or more columns from HBase and returns them as a record. The lookup coordinates " +
         "must contain 'rowKey' which will be the HBase row id.")
-public class HBase_1_1_2_RecordLookupService extends AbstractControllerService implements LookupService<Record>, VisibilityLabelService {
+public class HBase_1_1_2_RecordLookupService extends AbstractControllerService implements LookupService<Record> {
 
     static final String ROW_KEY_KEY = "rowKey";
     private static final Set<String> REQUIRED_KEYS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ROW_KEY_KEY)));
@@ -170,7 +172,7 @@ public class HBase_1_1_2_RecordLookupService extends AbstractControllerService i
         this.tableName = context.getProperty(TABLE_NAME).getValue();
         this.columns = getColumns(context.getProperty(RETURN_COLUMNS).getValue());
         this.charset = Charset.forName(context.getProperty(CHARSET).getValue());
-        this.authorizations = getAuthorizations(context);
+        this.authorizations = VisibilityLabelUtils.getAuthorizations(context);
     }
 
     @OnDisabled
