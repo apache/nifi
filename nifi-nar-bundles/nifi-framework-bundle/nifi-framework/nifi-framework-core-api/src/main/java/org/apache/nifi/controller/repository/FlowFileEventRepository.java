@@ -42,4 +42,12 @@ public interface FlowFileEventRepository extends Closeable {
      * @param cutoffEpochMilliseconds cutoff
      */
     void purgeTransferEvents(long cutoffEpochMilliseconds);
+
+    /**
+     * Causes any flow file events of the given component to be purged from the
+     * repository
+     *
+     * @param componentIdentifier Identifier of the component
+     */
+    void purgeTransferEvents(String componentIdentifier);
 }
