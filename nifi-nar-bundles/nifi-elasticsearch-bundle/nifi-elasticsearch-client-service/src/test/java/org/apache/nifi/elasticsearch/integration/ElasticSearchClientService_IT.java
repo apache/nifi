@@ -17,8 +17,10 @@
 
 package org.apache.nifi.elasticsearch.integration;
 
+import org.apache.nifi.elasticsearch.DeleteOperationResponse;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
+import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -27,14 +29,19 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ElasticSearch5ClientService_IT {
+public class ElasticSearchClientService_IT {
 
     private TestRunner runner;
     private ElasticSearchClientServiceImpl service;
+
+    static final String INDEX = "messages";
+    static final String TYPE  = "message";
 
     @Before
     public void before() throws Exception {
@@ -51,6 +58,26 @@ public class ElasticSearch5ClientService_IT {
             ex.printStackTrace();
             throw ex;
         }
+
+        Map<String, Integer> expected = new HashMap<>();
+        expected.put("one", 1);
+        expected.put("two", 2);
+        expected.put("three", 3);
+        expected.put("four", 4);
+        expected.put("five", 5);
+
+
+        int index = 1;
+        List<IndexOperationRequest> docs = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : expected.entrySet()) {
+            for (int idx = 0; idx < entry.getValue(); idx++) {
+                Map<String, Object> fields = new HashMap<>();
+                fields.put("msg", entry.getKey());
+                IndexOperationRequest ior = new IndexOperationRequest(INDEX, TYPE, String.valueOf(index++), fields);
+                docs.add(ior);
+            }
+        }
+        service.add(docs);
     }
 
     @After
@@ -68,16 +95,16 @@ public class ElasticSearch5ClientService_IT {
                 "\t\"aggs\": {\n" +
                 "\t\t\"term_counts\": {\n" +
                 "\t\t\t\"terms\": {\n" +
-                "\t\t\t\t\"field\": \"msg\",\n" +
+                "\t\t\t\t\"field\": \"msg.keyword\",\n" +
                 "\t\t\t\t\"size\": 5\n" +
                 "\t\t\t}\n" +
                 "\t\t}\n" +
                 "\t}\n" +
                 "}";
-        SearchResponse response = service.search(query, "messages", "message");
+        SearchResponse response = service.search(query, INDEX, TYPE);
         Assert.assertNotNull("Response was null", response);
 
-        Assert.assertEquals("Wrong count", response.getNumberOfHits(), 15);
+        Assert.assertEquals("Wrong count", 15, response.getNumberOfHits());
         Assert.assertFalse("Timed out", response.isTimedOut());
         Assert.assertNotNull("Hits was null", response.getHits());
         Assert.assertEquals("Wrong number of hits", 10, response.getHits().size());
@@ -100,6 +127,39 @@ public class ElasticSearch5ClientService_IT {
             Integer docCount = (Integer)aggRes.get("doc_count");
 
             Assert.assertEquals(String.format("%s did not match", key), expected.get(key), docCount);
+        }
+    }
+
+    @Test
+    public void testDeleteByQuery() throws Exception {
+        String query = "{\"query\":{\"match\":{\"msg\":\"five\"}}}";
+        DeleteOperationResponse response = service.deleteByQuery(query, INDEX, TYPE);
+        Assert.assertNotNull(response);
+        Assert.assertTrue(response.getTook() > 0);
+    }
+
+    @Test
+    public void testDeleteById() throws Exception {
+        final String ID = "1";
+        DeleteOperationResponse response = service.deleteById(INDEX, TYPE, ID);
+        Assert.assertNotNull(response);
+        Assert.assertTrue(response.getTook() > 0);
+        Map<String, Object> doc = service.get(INDEX, TYPE, ID);
+        Assert.assertNull(doc);
+        doc = service.get(INDEX, TYPE, "2");
+        Assert.assertNotNull(doc);
+    }
+
+    @Test
+    public void testGet() throws IOException {
+        Map<String, Object> old = null;
+        for (int index = 1; index <= 15; index++) {
+            String id = String.valueOf(index);
+            Map<String, Object> doc = service.get(INDEX, TYPE, id);
+            Assert.assertNotNull(doc);
+            Assert.assertNotNull(doc.toString() + "\t" + doc.keySet().toString(), doc.get("msg"));
+            Assert.assertFalse(doc == old);
+            old = doc;
         }
     }
 }

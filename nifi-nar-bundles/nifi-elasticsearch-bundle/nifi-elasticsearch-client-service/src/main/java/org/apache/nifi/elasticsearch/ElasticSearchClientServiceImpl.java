@@ -19,6 +19,7 @@ package org.apache.nifi.elasticsearch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -34,9 +35,17 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
+import org.elasticsearch.client.RestHighLevelClient;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -55,6 +64,7 @@ import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +76,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     static final private List<PropertyDescriptor> properties;
 
     private RestClient client;
+    private RestHighLevelClient highLevelClient;
 
     private String url;
     private Charset charset;
@@ -182,18 +193,19 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             .setMaxRetryTimeoutMillis(retryTimeout);
 
         this.client = builder.build();
+        this.highLevelClient = new RestHighLevelClient(client);
     }
 
-    private Response runQuery(String query, String index, String type) throws IOException {
+    private Response runQuery(String endpoint, String query, String index, String type) throws IOException {
         StringBuilder sb = new StringBuilder()
-                .append("/")
-                .append(index);
+            .append("/")
+            .append(index);
         if (type != null && !type.equals("")) {
             sb.append("/")
-                    .append(type);
+            .append(type);
         }
 
-        sb.append("/_search");
+        sb.append(String.format("/%s", endpoint));
 
         HttpEntity queryEntity = new NStringEntity(query, ContentType.APPLICATION_JSON);
 
@@ -216,8 +228,67 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     @Override
+    public IndexOperationResponse add(IndexOperationRequest operation) throws IOException {
+        return add(Arrays.asList(operation));
+    }
+
+    @Override
+    public IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException {
+        BulkRequest bulkRequest = new BulkRequest();
+        for (int index = 0; index < operations.size(); index++) {
+            IndexOperationRequest or = operations.get(index);
+            IndexRequest indexRequest = new IndexRequest(or.getIndex(), or.getType(), or.getId())
+                .source(or.getFields());
+            bulkRequest.add(indexRequest);
+        }
+
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+        BulkResponse response = highLevelClient.bulk(bulkRequest);
+        IndexOperationResponse retVal = new IndexOperationResponse(response.getTookInMillis(), response.getIngestTookInMillis());
+
+        return retVal;
+    }
+
+    @Override
+    public DeleteOperationResponse deleteById(String index, String type, String id) throws IOException {
+        return deleteById(index, type, Arrays.asList(id));
+    }
+
+    @Override
+    public DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException {
+        BulkRequest bulk = new BulkRequest();
+        for (int idx = 0; idx < ids.size(); idx++) {
+            DeleteRequest request = new DeleteRequest(index, type, ids.get(idx));
+            bulk.add(request);
+        }
+        BulkResponse response = highLevelClient.bulk(bulk);
+
+        DeleteOperationResponse dor = new DeleteOperationResponse(response.getTookInMillis());
+
+        return dor;
+    }
+
+    @Override
+    public DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException {
+        long start = System.currentTimeMillis();
+        Response response = runQuery("_delete_by_query", query, index, type);
+        long end   = System.currentTimeMillis();
+        Map<String, Object> parsed = parseResponse(response);
+
+        return new DeleteOperationResponse(end - start);
+    }
+
+    @Override
+    public Map<String, Object> get(String index, String type, String id) throws IOException {
+        GetRequest get = new GetRequest(index, type, id);
+        GetResponse resp = highLevelClient.get(get, new Header[]{});
+        return resp.getSource();
+    }
+
+    @Override
     public SearchResponse search(String query, String index, String type) throws IOException {
-        Response response = runQuery(query, index, type);
+        Response response = runQuery("_search", query, index, type);
         Map<String, Object> parsed = parseResponse(response);
 
         int took = (Integer)parsed.get("took");
