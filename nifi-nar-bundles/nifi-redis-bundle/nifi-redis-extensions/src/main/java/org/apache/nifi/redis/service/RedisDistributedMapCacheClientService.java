@@ -126,7 +126,13 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         return withConnection(redisConnection -> {
             final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            return redisConnection.setNX(kv.getKey(), kv.getValue());
+            boolean set = redisConnection.setNX(kv.getKey(), kv.getValue());
+
+            if (ttl != -1L && set) {
+                redisConnection.expire(kv.getKey(), ttl);
+            }
+
+            return set;
         });
     }
 
