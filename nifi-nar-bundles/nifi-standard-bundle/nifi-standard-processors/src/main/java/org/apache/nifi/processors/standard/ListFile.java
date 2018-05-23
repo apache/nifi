@@ -200,6 +200,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     private Set<Relationship> relationships;
     private final AtomicReference<FileFilter> fileFilterRef = new AtomicReference<>();
 
+    private volatile boolean includeFileAttributes;
+
     public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
     public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
     public static final String FILE_LAST_ACCESS_TIME_ATTRIBUTE = "file.lastAccessTime";
@@ -244,6 +246,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         fileFilterRef.set(createFileFilter(context));
+        includeFileAttributes = context.getProperty(INCLUDE_FILE_ATTRIBUTES).asBoolean();
     }
 
     @Override
@@ -270,7 +273,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(fileInfo.getSize()));
         attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
 
-        if (context.getProperty(INCLUDE_FILE_ATTRIBUTES).asBoolean()) {
+        if (includeFileAttributes) {
             try {
                 FileStore store = Files.getFileStore(filePath);
                 if (store.supportsFileAttributeView("basic")) {
