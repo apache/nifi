@@ -27,6 +27,7 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -80,7 +81,7 @@ public class StandardControllerServiceProviderTest {
             @Override
             public void onComponentRemoved(String componentId) {
             }
-        }, variableRegistry, nifiProperties);
+        }, variableRegistry, nifiProperties, new SynchronousValidationTrigger());
         ControllerServiceNode node = provider.createControllerService(clazz, id, systemBundle.getBundleDetails().getCoordinate(), null, true);
         proxied = node.getProxiedControllerService();
         implementation = node.getControllerServiceImplementation();

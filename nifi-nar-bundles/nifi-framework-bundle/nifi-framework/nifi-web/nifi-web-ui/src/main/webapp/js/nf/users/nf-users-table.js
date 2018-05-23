@@ -783,7 +783,7 @@
         var identityFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
             if (dataContext.type === 'group') {
-                markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
+                markup += '<div class="fa fa-users"></div>';
             }
 
             markup += nfCommon.escapeHtml(dataContext.component.identity);
@@ -810,7 +810,7 @@
 
             // ensure user can modify the user
             if (configurableUsersAndGroups && dataContext.component.configurable === true && nfCommon.canModifyTenants()) {
-                markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
+                markup += '<div title="Edit" class="pointer edit-user fa fa-pencil"></div>';
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
 
@@ -1127,7 +1127,7 @@
                 var groupId = $('<span class="group-id hidden"></span>').text(group.id);
 
                 // icon
-                var groupIcon = $('<div class="fa fa-users nf-checkbox-label" style="margin-top: 6px;"></div>');
+                var groupIcon = $('<div class="fa fa-users nf-checkbox-label"></div>');
 
                 // identity
                 var identity = $('<div class="available-identities nf-checkbox-label"></div>').text(group.component.identity);

@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.SaslPlainServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -44,10 +45,12 @@ import javax.net.SocketFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -257,7 +260,61 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     @OnStopped
     public final void abstractOnStopped() {
+        final HdfsResources resources = hdfsResources.get();
+        if (resources != null) {
+            // Attempt to close the FileSystem
+            final FileSystem fileSystem = resources.getFileSystem();
+            try {
+                interruptStatisticsThread(fileSystem);
+            } catch (Exception e) {
+                getLogger().warn("Error stopping FileSystem statistics thread: " + e.getMessage(), e);
+            } finally {
+                if (fileSystem != null) {
+                    try {
+                        fileSystem.close();
+                    } catch (IOException e) {
+                        getLogger().warn("Error close FileSystem: " + e.getMessage(), e);
+                    }
+                }
+            }
+
+            // Clean-up the static reference to the Configuration instance
+            UserGroupInformation.setConfiguration(new Configuration());
+
+            // Clean-up the reference to the InstanceClassLoader that was put into Configuration
+            final Configuration configuration = resources.getConfiguration();
+            configuration.setClassLoader(null);
+
+            // Need to remove the Provider instance from the JVM's Providers class so that InstanceClassLoader can be GC'd eventually
+            final SaslPlainServer.SecurityProvider saslProvider = new SaslPlainServer.SecurityProvider();
+            Security.removeProvider(saslProvider.getName());
+        }
+
+        // Clear out the reference to the resources
         hdfsResources.set(new HdfsResources(null, null, null));
+    }
+
+    private void interruptStatisticsThread(final FileSystem fileSystem) throws NoSuchFieldException, IllegalAccessException {
+        final Field statsField = FileSystem.class.getDeclaredField("statistics");
+        statsField.setAccessible(true);
+
+        final Object statsObj = statsField.get(fileSystem);
+        if (statsObj != null && statsObj instanceof FileSystem.Statistics) {
+            final FileSystem.Statistics statistics = (FileSystem.Statistics) statsObj;
+
+            final Field statsThreadField = statistics.getClass().getDeclaredField("STATS_DATA_CLEANER");
+            statsThreadField.setAccessible(true);
+
+            final Object statsThreadObj = statsThreadField.get(statistics);
+            if (statsThreadObj != null && statsThreadObj instanceof Thread) {
+                final Thread statsThread = (Thread) statsThreadObj;
+                try {
+                    statsThread.interrupt();
+                } catch (Exception e) {
+                    getLogger().warn("Error interrupting thread: " + e.getMessage(), e);
+                }
+            }
+        }
     }
 
     private static Configuration getConfigurationFromResources(final Configuration config, String configResources) throws IOException {

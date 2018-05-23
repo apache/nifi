@@ -50,7 +50,6 @@ public class TestInvokeGroovy extends BaseScriptTest {
      */
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
@@ -140,7 +139,6 @@ public class TestInvokeGroovy extends BaseScriptTest {
     @Test(expected = AssertionError.class)
     public void testInvokeScriptCausesException() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testInvokeScriptCausesException.groovy")
@@ -158,7 +156,6 @@ public class TestInvokeGroovy extends BaseScriptTest {
      */
     @Test
     public void testScriptRoutesToFailure() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testScriptRoutesToFailure.groovy")
@@ -170,5 +167,16 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.assertAllFlowFilesTransferred("FAILURE", 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("FAILURE");
         assertFalse(result.isEmpty());
+    }
+
+    @Test
+    public void testValidationResultsReset() throws Exception {
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
+
+        runner.assertValid();
+        runner.setProperty("test-attribute", "test");
+        runner.assertValid();
     }
 }

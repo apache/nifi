@@ -148,7 +148,7 @@ should run on. If it is desired that the HTTPS interface be accessible from all 
 admins to configure the application to run only on specific network interfaces, `nifi.web.http.network.interface*` or `nifi.web.https.network.interface*`
 properties can be specified.
 
-NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
+NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset. NiFi only supports running on HTTP *or* HTTPS, not both simultaneously.
 
 Similar to `nifi.security.needClientAuth`, the web server can be configured to require certificate based client authentication for users accessing
 the User Interface. In order to do this it must be configured to not support username/password authentication using  <<ldap_login_identity_provider>> or <<kerberos_login_identity_provider>>. Either of these options
@@ -1029,19 +1029,22 @@ You can create and apply access policies on both global and component levels.
 Global access policies govern the following system level authorizations:
 
 |===
-|Policy |Privilege |Global Menu Selection
+|Policy |Privilege |Global Menu Selection |Resource Descriptor
 
 |view the UI
 |Allow users to view the UI
 |N/A
+|`/flow`
 
 |access the controller
 |Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster
 |Controller Settings
+|`/controller`
 
 |query provenance
 |Allows users to submit a Provenance Search and request Event Lineage
 |Data Provenance
+|`/provenance`
 
 |access restricted components
 |Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
@@ -1049,30 +1052,37 @@ components may indicate which specific permissions are required. Permissions can
 restrictions or be granted regardless of restrictions. If permission is granted regardless of restrictions,
 the user can create/modify all restricted components.
 |N/A
+|`/restricted-components`
 
 |access all policies
 |Allows users to view/modify the policies for all components
 |Policies
+|`/policies`
 
 |access users/user groups
 |Allows users to view/modify the users and user groups
 |Users
+|`/tenants`
 
 |retrieve site-to-site details
 |Allows other NiFi instances to retrieve Site-To-Site details
 |N/A
+|`/site-to-site`
 
 |view system diagnostics
 |Allows users to view System Diagnostics
 |Summary
+|`/system`
 
 |proxy user requests
 |Allows proxy machines to send requests on the behalf of others
 |N/A
+|`/proxy`
 
 |access counters
 |Allows users to view/modify Counters
 |Counters
+|`/counters`
 |===
 
 [[component-level-access-policies]]
@@ -1081,31 +1091,39 @@ the user can create/modify all restricted components.
 Component level access policies govern the following component level authorizations:
 
 |===
-|Policy |Privilege
+|Policy |Privilege |Resource Descriptor & Action
 
 |view the component
 |Allows users to view component configuration details
+|`resource="/<component-type>/<component-UUID>" action="R"`
 
 |modify the component
 |Allows users to modify component configuration details
+|`resource="/<component-type>/<component-UUID>" action="W"`
 
 |view the data
 |Allows user to view metadata and content for this component through provenance data and flowfile queues in outbound connections
+|`resource="/data/<component-type>/<component-UUID>" action="R"`
 
 |modify the data
 |Allows user to empty flowfile queues in outbound connections and submit replays
+|`resource="/data/<component-type>/<component-UUID>" action="W"`
 
 |view the policies
 |Allows users to view the list of users who can view/modify a component
+|`resource="/policies/<component-type>/<component-UUID>" action="R"`
 
 |modify the policies
 |Allows users to modify the list of users who can view/modify a component
+|`resource="/policies/<component-type>/<component-UUID>" action="W"`
 
 |receive data via site-to-site
 |Allows a port to receive data from NiFi instances
+|`resource="/data-transfer/input-ports/<port-UUID>" action="W"`
 
 |send data via site-to-site
 |Allows a port to send data from NiFi instances
+|`resource="/data-transfer/output-ports/<port-UUID>" action="W"`
 |===
 
 NOTE: You can apply access policies to all component types except connections.  Connection authorizations are inferred by the individual access policies on the source and destination components of the connection, as well as the access policy of the process group containing the components.  This is discussed in more detail in the <<creating-a-connection>> and <<editing-a-connection>> examples below.
@@ -1967,8 +1985,8 @@ they must be set the same on every instance in the cluster.
 
 For each Node, the minimum properties to configure are as follows:
 
-* Under the _Web Properties_ section, set either the http or https port that you want the Node to run on.
-  Also, consider whether you need to set the http or https host property.
+* Under the _Web Properties_ section, set either the HTTP or HTTPS port that you want the Node to run on.
+  Also, consider whether you need to set the HTTP or HTTPS host property. All nodes in the cluster should use the same protocol setting.
 * Under the _State Management section_, set the `nifi.state.management.provider.cluster` property
   to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been
   configured in the _state-management.xml_ file. See <<state_providers>> for more information.
@@ -2164,7 +2182,7 @@ In order to secure the communications, we need to ensure that both the client an
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
 If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
-link:https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html^]. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
+https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[Red Hat Customer Portal: Configuring a Kerberos 5 Server]. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
 
 Note, the following procedures for kerberizing an Embedded ZooKeeper server in your NiFi Node and kerberizing a ZooKeeper NiFi client will require that
 Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
@@ -2652,7 +2670,7 @@ documentation of the proxy for guidance for your deployment environment and use 
 
 ** By default, if NiFi is running securely it will only accept HTTP requests with a Host header matching the host[:port] that it is bound to. If NiFi is to accept requests directed to a different
 host[:port] the expected values need to be configured. This may be required when running behind a proxy or in a containerized environment. This is configured in a comma
-separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. localhost:18443, proxyhost:443). IPv6 addressed are accepted. Please refer to
+separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. localhost:18443, proxyhost:443). IPv6 addresses are accepted. Please refer to
 RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
 
 ** NiFi will only accept HTTP requests with a X-ProxyContextPath or X-Forwarded-Context header if the value is whitelisted in the `nifi.web.proxy.context.path` property in
@@ -2733,18 +2751,18 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |*Property*|*Description*
 |nifi.flow.configuration.file*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is `./conf/flow.xml.gz`.
 |nifi.flow.configuration.archive.enabled*|Specifies whether NiFi creates a backup copy of the flow automatically when the flow is updated. The default value is `true`.
-|nifi.flow.configuration.archive.dir*|The location of the archive directory where backup copies of the flow.xml are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default condition, that is "30 days" for max.time and "500 MB" for max.storage. +
+|nifi.flow.configuration.archive.dir*|The location of the archive directory where backup copies of the flow.xml are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for max.time and `500 MB` for max.storage. +
 This cleanup mechanism takes into account only automatically created archived flow.xml files. If there are other files or directories in this archive directory, NiFi will ignore them. Automatically created archives have filename with ISO 8601 format timestamp prefix followed by '_<original-filename>'. That is <year><month><day>T<hour><minute><second>+<timezone offset>_<original filename>. For example, `20160706T160719+0900_flow.xml.gz`. NiFi checks filenames when it cleans archive directory. If you would like to keep a particular archive in this directory without worrying about NiFi deleting it, you can do so by copying it with a different filename pattern.
-|nifi.flow.configuration.archive.max.time*|The lifespan of archived flow.xml files. NiFi will delete expired archive files when it updates flow.xml if this property is specified. Expiration is determined based on current system time and the last modified timestamp of an archived flow.xml. If no archive limitation is specified in nifi.properties, NiFi removes archives older than "30 days".
-|nifi.flow.configuration.archive.max.storage*|The total data size allowed for the archived flow.xml files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in nifi.properties, NiFi uses "500 MB" for this.
+|nifi.flow.configuration.archive.max.time*|The lifespan of archived flow.xml files. NiFi will delete expired archive files when it updates flow.xml if this property is specified. Expiration is determined based on current system time and the last modified timestamp of an archived flow.xml. If no archive limitation is specified in nifi.properties, NiFi removes archives older than `30 days`.
+|nifi.flow.configuration.archive.max.storage*|The total data size allowed for the archived flow.xml files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in nifi.properties, NiFi uses `500 MB` for this.
 |nifi.flow.configuration.archive.max.count*|The number of archive files allowed. NiFi will delete the oldest archive files so that only N latest archives can be kept, if this property is specified.
 |nifi.flowcontroller.autoResumeState|Indicates whether -upon restart- the components on the NiFi graph should return to their last state. The default value is `true`.
 |nifi.flowcontroller.graceful.shutdown.period|Indicates the shutdown period. The default value is `10 secs`.
 |nifi.flowservice.writedelay.interval|When many changes are made to the flow.xml, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is `500 ms`.
 |nifi.administrative.yield.duration|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is `30 secs`.
 |nifi.bored.yield.duration|When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is `10 ms`.
-|nifi.queue.backpressure.count|When drawing a new connection between two components, this is the default value for that connection's back pressure object threshold. The default is 10000 and the value must be an integer.
-|nifi.queue.backpressure.size|When drawing a new connection between two components, this is the default value for that connection's back pressure data size threshold. The default is 1 GB and the value must be a data size including the unit of measure.
+|nifi.queue.backpressure.count|When drawing a new connection between two components, this is the default value for that connection's back pressure object threshold. The default is `10000` and the value must be an integer.
+|nifi.queue.backpressure.size|When drawing a new connection between two components, this is the default value for that connection's back pressure data size threshold. The default is `1 GB` and the value must be a data size including the unit of measure.
 |nifi.authorizer.configuration.file*|This is the location of the file that specifies how authorizers are defined.  The default value is `./conf/authorizers.xml`.
 |nifi.login.identity.provider.configuration.file*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only considered if `nifi.security.user.login.identity.provider` is configured with a provider identifier. The default value is `./conf/login-identity-providers.xml`.
@@ -2851,7 +2869,7 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |====
 |*Property*|*Description*
 |nifi.content.repository.implementation|The Content Repository implementation. The default value is `org.apache.nifi.controller.repository.FileSystemRepository` and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to `org.apache.nifi.controller.repository.VolatileContentRepository`.
-|nifi.content.claim.max.appendable.size|The maximum size for a content claim. The default value is `10 MB`.
+|nifi.content.claim.max.appendable.size|The maximum size for a content claim. The default value is `1 MB`.
 |nifi.content.claim.max.flow.files|The maximum number of FlowFiles to assign to one content claim. The default value is `100`.
 |nifi.content.repository.directory.default*|The location of the Content Repository. The default value is `./content_repository`. +
  +
@@ -3406,13 +3424,27 @@ The following examples demonstrate normalizing DNs from certificates and princip
 ----
 nifi.security.identity.mapping.pattern.dn=^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$
 nifi.security.identity.mapping.value.dn=$1@$2
+nifi.security.identity.mapping.transform.dn=NONE
 nifi.security.identity.mapping.pattern.kerb=^(.*?)/instance@(.*?)$
 nifi.security.identity.mapping.value.kerb=$1@$2
+nifi.security.identity.mapping.transform.kerb=NONE
 ----
 
 The last segment of each property is an identifier used to associate the pattern with the replacement value.  When a user makes a request to NiFi, their identity is checked to see if it matches each of those patterns in lexicographical order.  For the first one that matches, the replacement specified in the `nifi.security.identity.mapping.value.xxxx` property is used. So a login with `CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US` matches the DN mapping pattern above and the DN mapping value `$1@$2` is applied.  The user is normalized to `localhost@Apache NiFi`.
 
-NOTE: These mappings are also applied to the "Initial Admin Identity" and "Cluster Node Identity" properties in the authorizers.xml file (See <<authorizers-setup>>).
+In addition to mapping a transform may be applied. The supported versions are NONE (no transform applied), LOWER (identity lowercased), and UPPER (identity uppercased). If not specified, the default value is NONE.
+
+NOTE: These mappings are also applied to the "Initial Admin Identity", "Cluster Node Identity", and any legacy users in the authorizers.xml file as well as users imported from LDAP (See <<authorizers-setup>>).
+
+Group names can also be mapped. The following example will accept the existing group name but will lowercase it. This may be helpful when used in conjunction with an external authorizer.
+
+----
+nifi.security.group.mapping.pattern.anygroup=^(.*)$
+nifi.security.group.mapping.value.anygroup=$1
+nifi.security.group.mapping.transform.anygroup=LOWER
+----
+
+NOTE: These mappings are applied to any legacy groups referenced in the authorizers.xml as well as groups imported from LDAP.
 
 === Cluster Common Properties
 
@@ -3442,6 +3474,7 @@ and can be viewed in the Cluster page. This value indicates how many events to k
 the connection a failure. The default value is `5 secs`.
 |nifi.cluster.node.read.timeout|When communicating with another node in the cluster, specifies how long this node should wait to receive information
 from the remote node before considering the communication with the node a failure. The default value is `5 secs`.
+|nifi.cluster.node.max.concurrent.requests|The maximum number of outstanding web requests that can be replicated to nodes in the cluster. If this number of requests is exceeded, the embedded Jetty server will return a "409: Conflict" response.  This property defaults to `100`.
 |nifi.cluster.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
 to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
 |nifi.cluster.flow.election.max.wait.time|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.

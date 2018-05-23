@@ -30,6 +30,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+import org.apache.nifi.processors.standard.db.impl.PhoenixDatabaseAdapter;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -46,6 +47,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -260,7 +262,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
 
             final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-            try (final Connection con = dbcpService.getConnection();
+            try (final Connection con = dbcpService.getConnection(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes());
                  final Statement st = con.createStatement()) {
 
                 // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
@@ -484,13 +486,26 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case NVARCHAR:
             case VARCHAR:
             case ROWID:
-            case DATE:
-            case TIME:
                 return "'" + value + "'";
+            case TIME:
+                if (PhoenixDatabaseAdapter.NAME.equals(databaseType)) {
+                    return "time '" + value + "'";
+                }
+            case DATE:
             case TIMESTAMP:
-                if (!StringUtils.isEmpty(databaseType) && databaseType.contains("Oracle")) {
-                    // For backwards compatibility, the type might be TIMESTAMP but the state value is in DATE format. This should be a one-time occurrence as the next maximum value
-                    // should be stored as a full timestamp. Even so, check to see if the value is missing time-of-day information, and use the "date" coercion rather than the
+                // TODO delegate to database adapter the conversion instead of using if in this
+                // class.
+                // TODO (cont) if a new else is added, please refactor the code.
+                // Ideally we should probably have a method on the adapter to get a clause that
+                // coerces a
+                // column to a Timestamp if need be (the generic one can be a no-op)
+                if (!StringUtils.isEmpty(databaseType)
+                        && (databaseType.contains("Oracle") || PhoenixDatabaseAdapter.NAME.equals(databaseType))) {
+                    // For backwards compatibility, the type might be TIMESTAMP but the state value
+                    // is in DATE format. This should be a one-time occurrence as the next maximum
+                    // value
+                    // should be stored as a full timestamp. Even so, check to see if the value is
+                    // missing time-of-day information, and use the "date" coercion rather than the
                     // "timestamp" coercion in that case
                     if (value.matches("\\d{4}-\\d{2}-\\d{2}")) {
                         return "date '" + value + "'";

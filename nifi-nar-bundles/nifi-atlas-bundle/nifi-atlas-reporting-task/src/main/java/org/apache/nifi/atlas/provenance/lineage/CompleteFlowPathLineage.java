@@ -42,7 +42,9 @@ import java.util.zip.CRC32;
 import static org.apache.nifi.atlas.AtlasUtils.toQualifiedName;
 import static org.apache.nifi.atlas.AtlasUtils.toStr;
 import static org.apache.nifi.atlas.AtlasUtils.toTypedQualifiedName;
+import static org.apache.nifi.atlas.NiFiTypes.ATTR_INPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
+import static org.apache.nifi.atlas.NiFiTypes.ATTR_OUTPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_QUEUE;
 import static org.apache.nifi.provenance.ProvenanceEventType.DROP;
@@ -76,8 +78,36 @@ public class CompleteFlowPathLineage extends AbstractLineageStrategy {
             createCompleteFlowPath(nifiFlow, lineagePath, createdFlowPaths);
             for (Tuple<NiFiFlowPath, DataSetRefs> createdFlowPath : createdFlowPaths) {
                 final NiFiFlowPath flowPath = createdFlowPath.getKey();
-                createEntity(toReferenceable(flowPath, nifiFlow));
+                // NOTE 1: FlowPath creation and DataSet references should be reported separately
+                // ------------------------------------------------------------------------------
+                // For example, with following provenance event inputs:
+                //   CREATE(F1), FORK (F1 -> F2, F3), DROP(F1), SEND (F2), SEND(F3), DROP(F2), DROP(F3),
+                // there is no guarantee that DROP(F2) and DROP(F3) are processed within the same cycle.
+                // If DROP(F3) is processed in different cycle, it needs to be added to the existing FlowPath
+                // that contains F1 -> F2, to be F1 -> F2, F3.
+                // Execution cycle 1: Path1 (source of F1 -> ForkA), ForkA_queue (F1 -> F2), Path2 (ForkA -> dest of F2)
+                // Execution cycle 2: Path1 (source of F1 -> ForkB), ForkB_queue (F1 -> F3), Path3 (ForkB -> dest of F3)
+
+                // NOTE 2: Both FlowPath creation and FlowPath update messages are required
+                // ------------------------------------------------------------------------
+                // For the 1st time when a lineage is found, nifi_flow_path and referred DataSets are created.
+                // If we notify these entities by a create 3 entities message (Path1, DataSet1, DataSet2)
+                // followed by 1 partial update message to add lineage (DataSet1 -> Path1 -> DataSet2), then
+                // the update message may arrive at Atlas earlier than the create message gets processed.
+                // If that happens, lineage among these entities will be missed.
+                // But as written in NOTE1, there is a case where existing nifi_flow_paths need to be updated.
+                // Also, we don't know if this is the 1st time or 2nd or later.
+                // So, we need to notify entity creation and also partial update messages.
+
+                // Create flow path entity with DataSet refs.
+                final Referenceable flowPathRef = toReferenceable(flowPath, nifiFlow);
+                final DataSetRefs dataSetRefs = createdFlowPath.getValue();
+                addDataSetRefs(dataSetRefs.getInputs(), flowPathRef, ATTR_INPUTS);
+                addDataSetRefs(dataSetRefs.getOutputs(), flowPathRef, ATTR_OUTPUTS);
+                createEntity(flowPathRef);
+                // Also, sending partial update message to update existing flow_path.
                 addDataSetRefs(nifiFlow, Collections.singleton(flowPath), createdFlowPath.getValue());
+
             }
             createdFlowPaths.clear();
         }

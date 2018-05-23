@@ -214,7 +214,7 @@
             if (nfCommon.canModifyCounters()) {
                 // function for formatting the actions column
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                    return '<div title="Reset Counter" class="pointer reset-counter fa fa-undo" style="margin-top: 2px;"></div>';
+                    return '<div title="Reset Counter" class="pointer reset-counter fa fa-undo"></div>';
                 };
 
                 // add the action column

@@ -40,6 +40,13 @@ public class TestExtractGrok {
     }
 
     @Test
+    public void testExtractGrokWithMissingPattern() throws Exception {
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{FOOLOG}");
+        testRunner.enqueue(GROK_LOG_INPUT);
+        testRunner.assertNotValid();
+    }
+
+    @Test
     public void testExtractGrokWithMatchedContent() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
@@ -59,8 +66,32 @@ public class TestExtractGrok {
     }
 
     @Test
+    public void testExtractGrokKeepEmptyCaptures() throws Exception {
+        String expression = "%{NUMBER}|%{NUMBER}";
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);
+        testRunner.enqueue("-42");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+        matched.assertAttributeEquals("grok.NUMBER","[-42, null]");
+    }
+
+    @Test
+    public void testExtractGrokDoNotKeepEmptyCaptures() throws Exception {
+        String expression = "%{NUMBER}|%{NUMBER}";
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);
+        testRunner.setProperty(ExtractGrok.KEEP_EMPTY_CAPTURES,"false");
+        testRunner.enqueue("-42");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+        matched.assertAttributeEquals("grok.NUMBER","-42");
+    }
+
+
+    @Test
     public void testExtractGrokWithUnMatchedContent() throws IOException {
-        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{ADDRESS}");
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{URI}");
         testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_TEXT_INPUT);
         testRunner.run();

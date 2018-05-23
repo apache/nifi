@@ -172,7 +172,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             attrs.put(queryAttr, query);
         }
 
-        MongoCollection<Document> collection = getCollection(context);
+        MongoCollection<Document> collection = getCollection(context, flowFile);
         MongoCursor<Document> iter = null;
 
         try {

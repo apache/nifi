@@ -85,7 +85,7 @@ public class SchemaAccessUtils {
             .description("Specifies the name of the branch to use when looking up the schema in the Schema Registry property. " +
                     "If the chosen Schema Registry does not support branching, this value will be ignored.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 
@@ -95,7 +95,7 @@ public class SchemaAccessUtils {
             .description("Specifies the version of the schema to lookup in the Schema Registry. " +
                     "If not specified then the latest version of the schema will be retrieved.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
 

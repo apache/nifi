@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 
 public class RecordField {
-    private static final boolean DEFAULT_NULLABLE = true;
+    public static final boolean DEFAULT_NULLABLE = true;
 
     private final String fieldName;
     private final DataType dataType;

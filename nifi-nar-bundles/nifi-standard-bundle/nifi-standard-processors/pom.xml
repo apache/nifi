@@ -66,6 +66,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-proxy-configuration-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
         </dependency>
         <dependency>
@@ -306,8 +310,8 @@
             <artifactId>bval-jsr</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.calcite</groupId>
@@ -444,6 +448,7 @@
                         <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/invalid_data.zip</exclude>
                         <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>

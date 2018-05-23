@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization.util;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.util.IdentityMapping.Transform;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,8 +26,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.nifi.util.NiFiProperties.SECURITY_GROUP_MAPPING_PATTERN_PREFIX;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_GROUP_MAPPING_TRANSFORM_PREFIX;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_GROUP_MAPPING_VALUE_PREFIX;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX;
 
 public class IdentityMappingUtil {
 
@@ -40,33 +49,76 @@ public class IdentityMappingUtil {
      * @return a list of identity mappings
      */
     public static List<IdentityMapping> getIdentityMappings(final NiFiProperties properties) {
+        return getMappings(
+                properties,
+                SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX,
+                SECURITY_IDENTITY_MAPPING_VALUE_PREFIX,
+                SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX,
+                () -> "Identity");
+    }
+
+    /**
+     * Buils the group mappings from NiFiProperties.
+     *
+     * @param properties the NiFiProperties instance
+     * @return a list of group mappings
+     */
+    public static List<IdentityMapping> getGroupMappings(final NiFiProperties properties) {
+        return getMappings(
+                properties,
+                SECURITY_GROUP_MAPPING_PATTERN_PREFIX,
+                SECURITY_GROUP_MAPPING_VALUE_PREFIX,
+                SECURITY_GROUP_MAPPING_TRANSFORM_PREFIX,
+                () -> "Group");
+    }
+
+    private static List<IdentityMapping> getMappings(final NiFiProperties properties, final String patternPrefix,
+            final String valuePrefix, final String transformPrefix, final Supplier<String> getSubject) {
+
         final List<IdentityMapping> mappings = new ArrayList<>();
 
         // go through each property
         for (String propertyName : properties.getPropertyKeys()) {
-            if (StringUtils.startsWith(propertyName, NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX)) {
-                final String key = StringUtils.substringAfter(propertyName, NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX);
+            if (StringUtils.startsWith(propertyName, patternPrefix)) {
+                final String key = StringUtils.substringAfter(propertyName, patternPrefix);
                 final String identityPattern = properties.getProperty(propertyName);
 
                 if (StringUtils.isBlank(identityPattern)) {
-                    LOGGER.warn("Identity Mapping property {} was found, but was empty", new Object[]{propertyName});
+                    LOGGER.warn("{} Mapping property {} was found, but was empty", new Object[] {getSubject.get(), propertyName});
                     continue;
                 }
 
-                final String identityValueProperty = NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + key;
+                final String identityValueProperty = valuePrefix + key;
                 final String identityValue = properties.getProperty(identityValueProperty);
 
                 if (StringUtils.isBlank(identityValue)) {
-                    LOGGER.warn("Identity Mapping property {} was found, but corresponding value {} was not found",
-                            new Object[]{propertyName, identityValueProperty});
+                    LOGGER.warn("{} Mapping property {} was found, but corresponding value {} was not found",
+                            new Object[] {getSubject.get(), propertyName, identityValueProperty});
                     continue;
                 }
 
-                final IdentityMapping identityMapping = new IdentityMapping(key, Pattern.compile(identityPattern), identityValue);
+                final String identityTransformProperty = transformPrefix + key;
+                String rawIdentityTransform = properties.getProperty(identityTransformProperty);
+
+                if (StringUtils.isBlank(rawIdentityTransform)) {
+                    LOGGER.debug("{} Mapping property {} was found, but no transform was present. Using NONE.", new Object[] {getSubject.get(), propertyName});
+                    rawIdentityTransform = Transform.NONE.name();
+                }
+
+                final Transform identityTransform;
+                try {
+                    identityTransform = Transform.valueOf(rawIdentityTransform);
+                } catch (final IllegalArgumentException iae) {
+                    LOGGER.warn("{} Mapping property {} was found, but corresponding transform {} was not valid. Allowed values {}",
+                            new Object[] {getSubject.get(), propertyName, rawIdentityTransform, StringUtils.join(Transform.values(), ", ")});
+                    continue;
+                }
+
+                final IdentityMapping identityMapping = new IdentityMapping(key, Pattern.compile(identityPattern), identityValue, identityTransform);
                 mappings.add(identityMapping);
 
-                LOGGER.debug("Found Identity Mapping with key = {}, pattern = {}, value = {}",
-                        new Object[] {key, identityPattern, identityValue});
+                LOGGER.debug("Found {} Mapping with key = {}, pattern = {}, value = {}, transform = {}",
+                        new Object[] {getSubject.get(), key, identityPattern, identityValue, rawIdentityTransform});
             }
         }
 
@@ -95,7 +147,15 @@ public class IdentityMappingUtil {
             if (m.matches()) {
                 final String pattern = mapping.getPattern().pattern();
                 final String replacementValue = escapeLiteralBackReferences(mapping.getReplacementValue(), m.groupCount());
-                return identity.replaceAll(pattern, replacementValue);
+                final String replacement = identity.replaceAll(pattern, replacementValue);
+
+                if (Transform.UPPER.equals(mapping.getTransform())) {
+                    return replacement.toUpperCase();
+                } else if (Transform.LOWER.equals(mapping.getTransform())) {
+                    return replacement.toLowerCase();
+                } else {
+                    return replacement;
+                }
             }
         }
 

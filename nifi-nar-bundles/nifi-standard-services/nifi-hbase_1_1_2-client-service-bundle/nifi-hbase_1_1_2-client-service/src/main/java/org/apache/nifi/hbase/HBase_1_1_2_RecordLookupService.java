@@ -51,6 +51,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
+
 @Tags({"hbase", "record", "lookup", "service"})
 @CapabilityDescription("A lookup service that retrieves one or more columns from HBase and returns them as a record. The lookup coordinates " +
         "must contain 'rowKey' which will be the HBase row id.")
@@ -98,6 +100,7 @@ public class HBase_1_1_2_RecordLookupService extends AbstractControllerService i
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HBASE_CLIENT_SERVICE);
         props.add(TABLE_NAME);
+        props.add(AUTHORIZATIONS);
         props.add(RETURN_COLUMNS);
         props.add(CHARSET);
         PROPERTIES = Collections.unmodifiableList(props);
@@ -107,6 +110,7 @@ public class HBase_1_1_2_RecordLookupService extends AbstractControllerService i
     private List<Column> columns;
     private Charset charset;
     private HBaseClientService hBaseClientService;
+    private List<String> authorizations;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -127,7 +131,8 @@ public class HBase_1_1_2_RecordLookupService extends AbstractControllerService i
         final byte[] rowKeyBytes = rowKey.getBytes(StandardCharsets.UTF_8);
         try {
             final Map<String, Object> values = new HashMap<>();
-            hBaseClientService.scan(tableName, rowKeyBytes, rowKeyBytes, columns, (byte[] row, ResultCell[] resultCells) ->  {
+
+            hBaseClientService.scan(tableName, rowKeyBytes, rowKeyBytes, columns, authorizations, (byte[] row, ResultCell[] resultCells) ->  {
                 for (final ResultCell cell : resultCells) {
                     final byte[] qualifier = Arrays.copyOfRange(cell.getQualifierArray(), cell.getQualifierOffset(), cell.getQualifierOffset() + cell.getQualifierLength());
                     final byte[] value = Arrays.copyOfRange(cell.getValueArray(), cell.getValueOffset(), cell.getValueOffset() + cell.getValueLength());
@@ -167,6 +172,7 @@ public class HBase_1_1_2_RecordLookupService extends AbstractControllerService i
         this.tableName = context.getProperty(TABLE_NAME).getValue();
         this.columns = getColumns(context.getProperty(RETURN_COLUMNS).getValue());
         this.charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        this.authorizations = VisibilityLabelUtils.getAuthorizations(context);
     }
 
     @OnDisabled

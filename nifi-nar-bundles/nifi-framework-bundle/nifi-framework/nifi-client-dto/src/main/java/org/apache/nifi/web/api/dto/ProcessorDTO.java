@@ -28,6 +28,9 @@ import java.util.Map;
  */
 @XmlType(name = "processor")
 public class ProcessorDTO extends ComponentDTO {
+    public static final String VALID = "VALID";
+    public static final String INVALID = "INVALID";
+    public static final String VALIDATING = "VALIDATING";
 
     private String name;
     private String type;
@@ -50,6 +53,7 @@ public class ProcessorDTO extends ComponentDTO {
     private ProcessorConfigDTO config;
 
     private Collection<String> validationErrors;
+    private String validationStatus;
 
     public ProcessorDTO() {
         super();
@@ -305,6 +309,17 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setValidationErrors(Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
+    }
+
+    @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
+        readOnly = true,
+        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+    public String getValidationStatus() {
+        return validationStatus;
+    }
+
+    public void setValidationStatus(String validationStatus) {
+        this.validationStatus = validationStatus;
     }
 
     /**

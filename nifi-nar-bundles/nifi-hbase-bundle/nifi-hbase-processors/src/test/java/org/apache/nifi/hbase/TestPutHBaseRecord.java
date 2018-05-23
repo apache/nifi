@@ -64,6 +64,8 @@ public class TestPutHBaseRecord {
         }
         runner.enableControllerService(parser);
         runner.setProperty(PutHBaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutHBaseRecord.DEFAULT_VISIBILITY_STRING, "");
+        runner.setProperty(PutHBaseRecord.VISIBILITY_RECORD_PATH, "");
 
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.STRING);

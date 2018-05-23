@@ -16,6 +16,31 @@
  */
 package org.apache.nifi.groups;
 
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -32,6 +57,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -41,8 +67,8 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -118,31 +144,6 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -297,7 +298,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     disabled++;
                 } else if (procNode.isRunning()) {
                     running++;
-                } else if (!procNode.isValid()) {
+                } else if (procNode.getValidationStatus() == ValidationStatus.INVALID) {
                     invalid++;
                 } else {
                     stopped++;
@@ -543,6 +544,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Input Port of this Process Group");
             }
 
+            scheduler.onPortRemoved(port);
             onComponentModified();
 
             flowController.onInputPortRemoved(port);
@@ -618,6 +620,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Output Port of this Process Group");
             }
 
+            scheduler.onPortRemoved(port);
             onComponentModified();
 
             flowController.onOutputPortRemoved(port);
@@ -660,6 +663,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             processGroups.put(Objects.requireNonNull(group).getIdentifier(), group);
             flowController.onProcessGroupAdded(group);
+
+            group.findAllControllerServices().stream().forEach(this::updateControllerServiceReferences);
+            group.findAllProcessors().stream().forEach(this::updateControllerServiceReferences);
+
             onComponentModified();
         } finally {
             writeLock.unlock();
@@ -808,6 +815,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 LOG.warn("Failed to clean up resources for {} due to {}", remoteGroup, e);
             }
 
+            remoteGroup.getInputPorts().stream().forEach(scheduler::onPortRemoved);
+            remoteGroup.getOutputPorts().stream().forEach(scheduler::onPortRemoved);
+
             remoteGroups.remove(remoteGroupId);
             LOG.info("{} removed from flow", remoteProcessGroup);
         } finally {
@@ -829,10 +839,47 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.getVariableRegistry().setParent(getVariableRegistry());
             processors.put(processorId, processor);
             flowController.onProcessorAdded(processor);
+            updateControllerServiceReferences(processor);
             onComponentModified();
         } finally {
             writeLock.unlock();
         }
+    }
+
+    /**
+     * Looks for any property that is configured on the given component that references a Controller Service.
+     * If any exists, and that Controller Service is not accessible from this Process Group, then the given
+     * component will be removed from the service's referencing components.
+     *
+     * @param component the component whose invalid references should be removed
+     */
+    private void updateControllerServiceReferences(final ComponentNode component) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
+            final String serviceId = entry.getValue();
+            if (serviceId == null) {
+                continue;
+            }
+
+            final PropertyDescriptor propertyDescriptor = entry.getKey();
+            final Class<? extends ControllerService> serviceClass = propertyDescriptor.getControllerServiceDefinition();
+
+            if (serviceClass != null) {
+                final boolean validReference = isValidServiceReference(serviceId, serviceClass);
+                final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
+                if (serviceNode != null) {
+                    if (validReference) {
+                        serviceNode.addReference(component);
+                    } else {
+                        serviceNode.removeReference(component);
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isValidServiceReference(final String serviceId, final Class<? extends ControllerService> serviceClass) {
+        final Set<String> validServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceClass, getIdentifier());
+        return validServiceIds.contains(serviceId);
     }
 
     @Override
@@ -873,7 +920,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             processors.remove(id);
             onComponentModified();
 
+            scheduler.onProcessorRemoved(processor);
             flowController.onProcessorRemoved(processor);
+
             LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
 
             final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
@@ -895,6 +944,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             if (removed) {
                 try {
+                    LogRepositoryFactory.removeRepository(processor.getIdentifier());
                     ExtensionManager.removeInstanceClassLoader(id);
                 } catch (Throwable t) {
                 }
@@ -904,10 +954,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Set<ProcessorNode> getProcessors() {
+    public Collection<ProcessorNode> getProcessors() {
         readLock.lock();
         try {
-            return new LinkedHashSet<>(processors.values());
+            return processors.values();
         } finally {
             readLock.unlock();
         }
@@ -2046,6 +2096,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             service.getVariableRegistry().setParent(getVariableRegistry());
             this.controllerServices.put(service.getIdentifier(), service);
             LOG.info("{} added to {}", service, this);
+            updateControllerServiceReferences(service);
             onComponentModified();
         } finally {
             writeLock.unlock();
@@ -2120,7 +2171,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             // and notify the Process Group that a component has been modified. This way, we know to re-calculate
             // whether or not the Process Group has local modifications.
             service.getReferences().getReferencingComponents().stream()
-                .map(ConfiguredComponent::getProcessGroupIdentifier)
+                .map(ComponentNode::getProcessGroupIdentifier)
                 .filter(id -> !id.equals(getIdentifier()))
                 .forEach(groupId -> {
                     final ProcessGroup descendant = findProcessGroup(groupId);
@@ -2620,6 +2671,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void verifyCanStop(Connectable connectable) {
+        final ScheduledState state = connectable.getScheduledState();
+        if (state == ScheduledState.DISABLED) {
+            throw new IllegalStateException("Cannot stop component with id " + connectable + " because it is currently disabled.");
+        }
     }
 
     @Override
@@ -2773,8 +2828,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            for (final String id : snippet.getProcessors().keySet()) {
-                final ProcessorNode processorNode = getProcessor(id);
+            final Set<ProcessorNode> processors = findAllProcessors(snippet);
+            for (final ProcessorNode processorNode : processors) {
                 for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
                     final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
 
@@ -2790,7 +2845,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                             // ensure the configured service is an allowed service if it's still a valid service
                             if (currentControllerServiceIds.contains(serviceId) && !proposedControllerServiceIds.contains(serviceId)) {
-                                throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
+                                throw new IllegalStateException("Cannot perform Move Operation because Processor with ID " + processorNode.getIdentifier()
+                                    + " references a service that is not available in the destination Process Group");
                             }
                         }
                     }
@@ -2799,6 +2855,20 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+    }
+
+    private Set<ProcessorNode> findAllProcessors(final Snippet snippet) {
+        final Set<ProcessorNode> processors = new HashSet<>();
+
+        snippet.getProcessors().keySet().stream()
+            .map(this::getProcessor)
+            .forEach(processors::add);
+
+        for (final String groupId : snippet.getProcessGroups().keySet()) {
+            processors.addAll(getProcessGroup(groupId).findAllProcessors());
+        }
+
+        return processors;
     }
 
     @Override
@@ -2877,8 +2947,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Set<ConfiguredComponent> getComponentsAffectedByVariable(final String variableName) {
-        final Set<ConfiguredComponent> affected = new HashSet<>();
+    public Set<ComponentNode> getComponentsAffectedByVariable(final String variableName) {
+        final Set<ComponentNode> affected = new HashSet<>();
 
         // Determine any Processors that references the variable
         for (final ProcessorNode processor : getProcessors()) {
@@ -2898,7 +2968,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     affected.add(service);
 
                     final ControllerServiceReference reference = service.getReferences();
-                    affected.addAll(reference.findRecursiveReferences(ConfiguredComponent.class));
+                    affected.addAll(reference.findRecursiveReferences(ComponentNode.class));
                 }
             }
         }
@@ -2936,7 +3006,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         return updatedVariableNames;
     }
 
-    private List<VariableImpact> getVariableImpact(final ConfiguredComponent component) {
+    private List<VariableImpact> getVariableImpact(final ComponentNode component) {
         return component.getProperties().keySet().stream()
             .map(descriptor -> {
                 final String configuredVal = component.getProperty(descriptor);
@@ -4405,11 +4475,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .forEach(proc -> proposedProcessors.remove(proc.getVersionedComponentId().get()));
 
             for (final VersionedProcessor processorToAdd : proposedProcessors.values()) {
-                final BundleCoordinate coordinate = toCoordinate(processorToAdd.getBundle());
-                try {
-                    flowController.createProcessor(processorToAdd.getType(), UUID.randomUUID().toString(), coordinate, false);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Unable to create Processor of type " + processorToAdd.getType(), e);
+                final String processorToAddClass = processorToAdd.getType();
+                final BundleCoordinate processorToAddCoordinate = toCoordinate(processorToAdd.getBundle());
+
+                final boolean bundleExists = ExtensionManager.getBundles(processorToAddClass).stream()
+                        .anyMatch(b -> processorToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+
+                if (!bundleExists) {
+                    throw new IllegalArgumentException("Unknown bundle " + processorToAddCoordinate.toString() + " for processor type " + processorToAddClass);
                 }
             }
 
@@ -4422,11 +4495,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .forEach(service -> proposedServices.remove(service.getVersionedComponentId().get()));
 
             for (final VersionedControllerService serviceToAdd : proposedServices.values()) {
-                final BundleCoordinate coordinate = toCoordinate(serviceToAdd.getBundle());
-                try {
-                    flowController.createControllerService(serviceToAdd.getType(), UUID.randomUUID().toString(), coordinate, Collections.emptySet(), false);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Unable to create Controller Service of type " + serviceToAdd.getType(), e);
+                final String serviceToAddClass = serviceToAdd.getType();
+                final BundleCoordinate serviceToAddCoordinate = toCoordinate(serviceToAdd.getBundle());
+
+                final boolean bundleExists = ExtensionManager.getBundles(serviceToAddClass).stream()
+                        .anyMatch(b -> serviceToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+
+                if (!bundleExists) {
+                    throw new IllegalArgumentException("Unknown bundle " + serviceToAddCoordinate.toString() + " for service type " + serviceToAddClass);
                 }
             }
 

@@ -16,6 +16,26 @@
  */
 package org.apache.nifi.controller.serialization;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Optional;
+import java.util.WeakHashMap;
+import java.util.concurrent.TimeUnit;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.ConnectableType;
@@ -51,41 +71,30 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 /**
  * Serializes a Flow Controller as XML to an output stream.
  *
  * NOT THREAD-SAFE.
  */
-public class StandardFlowSerializer implements FlowSerializer {
+public class StandardFlowSerializer implements FlowSerializer<Document> {
 
     private static final String MAX_ENCODING_VERSION = "1.3";
 
     private final StringEncryptor encryptor;
 
+    // Cache of template to DOM Node for that template. This is done because when we serialize templates, we have to first
+    // take the template DTO, then serialize that into a byte[], then parse that byte[] as XML DOM objects. Then we can use that
+    // XML DOM Object in the serialized flow. This is expensive, so we cache these XML DOM objects here. We use a WeakHashMap
+    // because we don't get notified when the template has been removed from the system.
+    private static final Map<Template, Node> templateNodes = new WeakHashMap<>();
+
     public StandardFlowSerializer(final StringEncryptor encryptor) {
         this.encryptor = encryptor;
     }
 
+
     @Override
-    public void serialize(final FlowController controller, final OutputStream os, final ScheduledStateLookup scheduledStateLookup) throws FlowSerializationException {
+    public Document transform(final FlowController controller, final ScheduledStateLookup scheduledStateLookup) throws FlowSerializationException {
         try {
             // create a new, empty document
             final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -120,7 +129,16 @@ public class StandardFlowSerializer implements FlowSerializer {
                 addReportingTask(reportingTasksNode, taskNode, encryptor);
             }
 
-            final DOMSource domSource = new DOMSource(doc);
+            return doc;
+        } catch (final ParserConfigurationException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
+            throw new FlowSerializationException(e);
+        }
+    }
+
+    @Override
+    public void serialize(final Document flowConfiguration, final OutputStream os) throws FlowSerializationException {
+        try {
+            final DOMSource domSource = new DOMSource(flowConfiguration);
             final StreamResult streamResult = new StreamResult(new BufferedOutputStream(os));
 
             // configure the transformer and convert the DOM
@@ -132,7 +150,7 @@ public class StandardFlowSerializer implements FlowSerializer {
             // transform the document to byte stream
             transformer.transform(domSource, streamResult);
 
-        } catch (final ParserConfigurationException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException | TransformerException e) {
+        } catch (final DOMException | TransformerFactoryConfigurationError | IllegalArgumentException | TransformerException e) {
             throw new FlowSerializationException(e);
         }
     }
@@ -607,18 +625,25 @@ public class StandardFlowSerializer implements FlowSerializer {
         element.appendChild(toAdd);
     }
 
-    public static void addTemplate(final Element element, final Template template) {
-        try {
-            final byte[] serialized = TemplateSerializer.serialize(template.getDetails());
 
-            final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-            final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-            final Document document;
-            try (final InputStream in = new ByteArrayInputStream(serialized)) {
-                document = docBuilder.parse(in);
+    public static synchronized void addTemplate(final Element element, final Template template) {
+        try {
+            Node templateNode = templateNodes.get(template);
+            if (templateNode == null) {
+                final byte[] serialized = TemplateSerializer.serialize(template.getDetails());
+
+                final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+                final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+                final Document document;
+                try (final InputStream in = new ByteArrayInputStream(serialized)) {
+                    document = docBuilder.parse(in);
+                }
+
+                templateNode = document.getDocumentElement();
+                templateNodes.put(template, templateNode);
             }
 
-            final Node templateNode = element.getOwnerDocument().importNode(document.getDocumentElement(), true);
+            templateNode = element.getOwnerDocument().importNode(templateNode, true);
             element.appendChild(templateNode);
         } catch (final Exception e) {
             throw new FlowSerializationException(e);

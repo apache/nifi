@@ -59,7 +59,8 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
                     AzureStorageUtils.PROP_SAS_TOKEN,
                     AzureStorageUtils.ACCOUNT_NAME,
                     AzureStorageUtils.ACCOUNT_KEY,
-                    BLOB));
+                    BLOB,
+                    AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
@@ -73,7 +74,9 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return AzureStorageUtils.validateCredentialProperties(validationContext);
+        final Collection<ValidationResult> results = AzureStorageUtils.validateCredentialProperties(validationContext);
+        AzureStorageUtils.validateProxySpec(validationContext, results);
+        return results;
     }
 
     @Override

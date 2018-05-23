@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -110,14 +111,14 @@ public class LogAttribute extends AbstractProcessor {
             .required(false)
             .description("Log prefix appended to the log lines. It helps to distinguish the output of multiple LogAttribute processors.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("character-set")
             .displayName("Character Set")
             .description("The name of the CharacterSet to use")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue(Charset.defaultCharset().name())
             .required(true)

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
@@ -141,7 +142,7 @@ public class TestDeleteS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         DeleteS3Object processor = new DeleteS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 20, pd.size());
+        assertEquals("size should be eq", 23, pd.size());
         assertTrue(pd.contains(processor.ACCESS_KEY));
         assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(processor.BUCKET));
@@ -160,5 +161,10 @@ public class TestDeleteS3Object {
         assertTrue(pd.contains(processor.VERSION_ID));
         assertTrue(pd.contains(processor.WRITE_ACL_LIST));
         assertTrue(pd.contains(processor.WRITE_USER_LIST));
+        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+        assertTrue(pd.contains(processor.PROXY_HOST));
+        assertTrue(pd.contains(processor.PROXY_HOST_PORT));
+        assertTrue(pd.contains(processor.PROXY_USERNAME));
+        assertTrue(pd.contains(processor.PROXY_PASSWORD));
     }
 }

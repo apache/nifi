@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
@@ -58,7 +59,10 @@ public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
             CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
             CloudBlob blob = container.getBlockBlobReference(blobPath);
-            blob.deleteIfExists();
+
+            final OperationContext operationContext = new OperationContext();
+            AzureStorageUtils.setProxy(operationContext, context);
+            blob.deleteIfExists(null, null, null, operationContext);
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);

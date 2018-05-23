@@ -15,10 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.json;
+package org.apache.nifi.util;
 
-public enum NullSuppression {
-    ALWAYS_SUPPRESS,
-    NEVER_SUPPRESS,
-    SUPPRESS_MISSING
+import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.controller.ComponentNode;
+
+public class SynchronousValidationTrigger implements ValidationTrigger {
+
+    @Override
+    public void triggerAsync(ComponentNode component) {
+        trigger(component);
+    }
+
+    @Override
+    public void trigger(ComponentNode component) {
+        component.performValidation();
+    }
+
 }

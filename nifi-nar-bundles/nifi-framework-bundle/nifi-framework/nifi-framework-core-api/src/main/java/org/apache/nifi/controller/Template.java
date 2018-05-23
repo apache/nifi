@@ -44,6 +44,27 @@ public class Template implements ComponentAuthorizable {
         return procGroup == null ? null : procGroup.getIdentifier();
     }
 
+    @Override
+    public int hashCode() {
+        return 41 + 11 * getIdentifier().hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof Template)) {
+            return false;
+        }
+
+        final Template other = (Template) obj;
+        return getIdentifier().equals(other.getIdentifier());
+    }
+
     /**
      * Returns a TemplateDTO object that describes the contents of this Template
      *

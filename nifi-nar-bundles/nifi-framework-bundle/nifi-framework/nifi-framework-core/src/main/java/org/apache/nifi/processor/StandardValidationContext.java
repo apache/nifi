@@ -36,6 +36,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.VariableRegistry;
@@ -47,7 +48,6 @@ public class StandardValidationContext implements ValidationContext {
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final Map<String, Boolean> expressionLanguageSupported;
     private final String annotationData;
-    private final Set<String> serviceIdentifiersToNotValidate;
     private final VariableRegistry variableRegistry;
     private final String groupId;
     private final String componentId;
@@ -68,7 +68,6 @@ public class StandardValidationContext implements ValidationContext {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
-        this.serviceIdentifiersToNotValidate = serviceIdentifiersToNotValidate;
         this.variableRegistry = variableRegistry;
         this.groupId = groupId;
         this.componentId = componentId;
@@ -141,7 +140,13 @@ public class StandardValidationContext implements ValidationContext {
 
     @Override
     public boolean isValidationRequired(final ControllerService service) {
-        return !serviceIdentifiersToNotValidate.contains(service.getIdentifier());
+        // No need to validate services that are already enabled.
+        final ControllerServiceState serviceState = controllerServiceProvider.getControllerServiceNode(service.getIdentifier()).getState();
+        if (serviceState == ControllerServiceState.ENABLED || serviceState == ControllerServiceState.ENABLING) {
+            return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -163,5 +168,10 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public String getProcessGroupIdentifier() {
         return groupId;
+    }
+
+    @Override
+    public String toString() {
+        return "StandardValidationContext[componentId=" + componentId + ", properties=" + properties + "]";
     }
 }

@@ -329,8 +329,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 .build();
     }
 
-    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc) -> {
-        final Connection connection = c.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class).getConnection();
+    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ff) -> {
+        final Connection connection = c.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class)
+                .getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);

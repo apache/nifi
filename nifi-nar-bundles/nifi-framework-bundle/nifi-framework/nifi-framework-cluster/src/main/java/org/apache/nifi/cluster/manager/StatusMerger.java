@@ -415,13 +415,15 @@ public class StatusMerger {
             target.setType(toMerge.getType());
         }
 
-        // if the status to merge is invalid allow it to take precedence. whether the
+        // if the status to merge is validating/invalid allow it to take precedence. whether the
         // processor run status is disabled/stopped/running is part of the flow configuration
-        // and should not differ amongst nodes. however, whether a processor is invalid
+        // and should not differ amongst nodes. however, whether a processor is validating/invalid
         // can be driven by environmental conditions. this check allows any of those to
         // take precedence over the configured run status.
-        if (RunStatus.Invalid.name().equals(toMerge.getRunStatus())) {
-            target.setRunStatus(RunStatus.Invalid.name());
+        if (RunStatus.Validating.toString().equals(toMerge.getRunStatus())) {
+            target.setRunStatus(RunStatus.Validating.toString());
+        } else if (RunStatus.Invalid.toString().equals(toMerge.getRunStatus())) {
+            target.setRunStatus(RunStatus.Invalid.toString());
         }
 
         target.setBytesRead(target.getBytesRead() + toMerge.getBytesRead());
@@ -573,8 +575,8 @@ public class StatusMerger {
 
         // should be unnecessary here since ports run status not should be affected by
         // environmental conditions but doing so in case that changes
-        if (RunStatus.Invalid.name().equals(toMerge.getRunStatus())) {
-            target.setRunStatus(RunStatus.Invalid.name());
+        if (RunStatus.Invalid.toString().equals(toMerge.getRunStatus())) {
+            target.setRunStatus(RunStatus.Invalid.toString());
         }
 
         updatePrettyPrintedFields(target);

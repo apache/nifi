@@ -88,10 +88,7 @@ public abstract class AbstractGCSTest {
                 PROJECT_ID, options.getProjectId());
 
         assertEquals("Retry counts should match",
-                RETRIES.intValue(), options.getRetryParams().getRetryMinAttempts());
-
-        assertEquals("Retry counts should match",
-                RETRIES.intValue(), options.getRetryParams().getRetryMaxAttempts());
+                RETRIES.intValue(), options.getRetrySettings().getMaxAttempts());
 
         assertSame("Credentials should be configured correctly",
                 mockCredentials, options.getCredentials());

@@ -375,7 +375,7 @@
             }
 
             if (!nfCommon.isEmpty(dataContext.controllerServiceApis)) {
-                markup += '<div class="controller-service-apis fa fa-list" title="Compatible Controller Service" style="margin-top: 2px; margin-left: 4px;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+                markup += '<div class="controller-service-apis fa fa-list" title="Compatible Controller Service" style="margin-left: 4px;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
 
             markup += '<div class="clear"></div>';

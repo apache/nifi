@@ -618,7 +618,7 @@
             var markup = '';
 
             if (dataContext.differenceType !== 'Component Removed' && nfCommon.isDefinedAndNotNull(dataContext.processGroupId)) {
-                markup += '<div class="pointer go-to-component fa fa-long-arrow-right" title="Go To" style="margin-top: 2px" ></div>';
+                markup += '<div class="pointer go-to-component fa fa-long-arrow-right" title="Go To"></div>';
             }
 
             return markup;

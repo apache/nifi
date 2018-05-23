@@ -37,8 +37,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-import io.thekraken.grok.api.Grok;
-import io.thekraken.grok.api.Match;
+import io.krakens.grok.api.Grok;
+import io.krakens.grok.api.Match;
 
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
@@ -90,8 +90,7 @@ public class GrokRecordReader implements RecordReader {
             }
 
             final Match match = grok.match(line);
-            match.captures();
-            valueMap = match.toMap();
+            valueMap = match.capture();
         }
 
         if (iterations == 0 && nextLine != null) {
@@ -104,8 +103,7 @@ public class GrokRecordReader implements RecordReader {
         final StringBuilder trailingText = new StringBuilder();
         while ((nextLine = reader.readLine()) != null) {
             final Match nextLineMatch = grok.match(nextLine);
-            nextLineMatch.captures();
-            final Map<String, Object> nextValueMap = nextLineMatch.toMap();
+            final Map<String, Object> nextValueMap = nextLineMatch.capture();
             if (nextValueMap.isEmpty()) {
                 // next line did not match. Check if it indicates a Stack Trace. If so, read until
                 // the stack trace ends. Otherwise, append the next line to the last field in the record.

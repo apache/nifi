@@ -301,7 +301,7 @@
         // define a custom formatter for the more details column
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
             if (dataContext.canRead === true) {
-                return '<div title="View Details" class="pointer show-action-details fa fa-info-circle" style="margin-top: 4px;"></div>';
+                return '<div title="View Details" class="pointer show-action-details fa fa-info-circle"></div>';
             }
             return "";
         };

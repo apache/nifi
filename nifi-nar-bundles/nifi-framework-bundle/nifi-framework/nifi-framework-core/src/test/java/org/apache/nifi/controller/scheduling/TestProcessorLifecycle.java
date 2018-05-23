@@ -16,6 +16,28 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -27,7 +49,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
@@ -56,30 +77,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
-import java.util.function.Supplier;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
 /**
  * Validate Processor's life-cycle operation within the context of
  * {@link FlowController} and {@link StandardProcessScheduler}
@@ -89,7 +86,7 @@ public class TestProcessorLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(TestProcessorLifecycle.class);
     private FlowController fc;
     private Map<String, String> properties = new HashMap<>();
-    private volatile String propsFile = TestProcessorLifecycle.class.getResource("/lifecycletest.nifi.properties").getFile();
+    private volatile String propsFile = "src/test/resources/lifecycletest.nifi.properties";
 
     @Before
     public void before() throws Exception {
@@ -161,6 +158,7 @@ public class TestProcessorLifecycle {
         assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
 
         ProcessScheduler ps = fc.getProcessScheduler();
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.DISABLED == testProcNode.getPhysicalScheduledState());
     }
@@ -185,6 +183,7 @@ public class TestProcessorLifecycle {
         this.noop(testProcessor);
         final ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         ps.startProcessor(testProcNode, true);
         ps.startProcessor(testProcNode, true);
@@ -343,6 +342,7 @@ public class TestProcessorLifecycle {
         this.longRunningOnSchedule(testProcessor, delay);
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 5000L);
 
@@ -377,6 +377,7 @@ public class TestProcessorLifecycle {
         testProcessor.keepFailingOnScheduledTimes = 2;
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 10000L);
         ps.stopProcessor(testProcNode);
@@ -406,6 +407,7 @@ public class TestProcessorLifecycle {
         testProcessor.keepFailingOnScheduledTimes = Integer.MAX_VALUE;
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.stopProcessor(testProcNode);
@@ -431,6 +433,7 @@ public class TestProcessorLifecycle {
         this.blockingInterruptableOnUnschedule(testProcessor);
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.stopProcessor(testProcNode);
@@ -456,6 +459,7 @@ public class TestProcessorLifecycle {
         this.blockingUninterruptableOnUnschedule(testProcessor);
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 3000L);
         ps.stopProcessor(testProcNode);
@@ -483,6 +487,7 @@ public class TestProcessorLifecycle {
         testProcessor.generateExceptionOnTrigger = true;
         ProcessScheduler ps = fc.getProcessScheduler();
 
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
         assertCondition(() -> ScheduledState.RUNNING == testProcNode.getScheduledState(), 2000L);
         ps.disableProcessor(testProcNode);
@@ -564,83 +569,16 @@ public class TestProcessorLifecycle {
         this.noop(testProcessor);
 
         ProcessScheduler ps = fc.getProcessScheduler();
+        testServiceNode.performValidation();
         ps.enableControllerService(testServiceNode);
+
+        testProcNode.performValidation();
         ps.startProcessor(testProcNode, true);
 
         Thread.sleep(500);
         assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
     }
 
-    /**
-     * Test deletion of processor when connected to another
-     *
-     * @throws Exception exception
-     */
-    @Test
-    public void validateProcessorDeletion() throws Exception {
-        final FlowControllerAndSystemBundle fcsb = this.buildFlowControllerForTest();
-        fc = fcsb.getFlowController();
-
-        ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
-        this.setControllerRootGroup(fc, testGroup);
-
-        ProcessorNode testProcNodeA = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate());
-        testProcNodeA.setProperties(properties);
-        testGroup.addProcessor(testProcNodeA);
-
-        ProcessorNode testProcNodeB = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString(),
-                fcsb.getSystemBundle().getBundleDetails().getCoordinate());
-        testProcNodeB.setProperties(properties);
-        testGroup.addProcessor(testProcNodeB);
-
-        Collection<String> relationNames = new ArrayList<>();
-        relationNames.add("relation");
-        Connection connection = fc.createConnection(UUID.randomUUID().toString(), Connection.class.getName(), testProcNodeA, testProcNodeB, relationNames);
-        testGroup.addConnection(connection);
-
-        ProcessScheduler ps = fc.getProcessScheduler();
-        ps.startProcessor(testProcNodeA, true);
-        ps.startProcessor(testProcNodeB, true);
-
-        try {
-            testGroup.removeProcessor(testProcNodeA);
-            fail();
-        } catch (Exception e) {
-            // should throw exception because processor running
-        }
-
-        try {
-            testGroup.removeProcessor(testProcNodeB);
-            fail();
-        } catch (Exception e) {
-            // should throw exception because processor running
-        }
-
-        ps.stopProcessor(testProcNodeB);
-        Thread.sleep(100);
-
-        try {
-            testGroup.removeProcessor(testProcNodeA);
-            fail();
-        } catch (Exception e) {
-            // should throw exception because destination processor running
-        }
-
-        try {
-            testGroup.removeProcessor(testProcNodeB);
-            fail();
-        } catch (Exception e) {
-            // should throw exception because source processor running
-        }
-
-        ps.stopProcessor(testProcNodeA);
-        Thread.sleep(100);
-
-        testGroup.removeProcessor(testProcNodeA);
-        testGroup.removeProcessor(testProcNodeB);
-        testGroup.shutdown();
-    }
 
     /**
      * Scenario where onTrigger() is executed with random delay limited to
@@ -762,11 +700,12 @@ public class TestProcessorLifecycle {
     /**
      */
     public static class TestProcessor extends AbstractProcessor {
+        private static final Runnable NOP = () -> {};
 
-        private Runnable onScheduleCallback;
-        private Runnable onUnscheduleCallback;
-        private Runnable onStopCallback;
-        private Runnable onTriggerCallback;
+        private Runnable onScheduleCallback = NOP;
+        private Runnable onUnscheduleCallback = NOP;
+        private Runnable onStopCallback = NOP;
+        private Runnable onTriggerCallback = NOP;
 
         private boolean generateExceptionOnScheduled;
         private boolean generateExceptionOnTrigger;

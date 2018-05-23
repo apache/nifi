@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.atlas.AtlasUtils.toStr;
 import static org.apache.nifi.atlas.AtlasUtils.toTypedQualifiedName;
-import static org.apache.nifi.atlas.NiFiAtlasHook.NIFI_USER;
+import static org.apache.nifi.atlas.hook.NiFiAtlasHook.NIFI_USER;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_INPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NIFI_FLOW;
@@ -136,7 +136,7 @@ public abstract class AbstractLineageStrategy implements LineageStrategy {
     }
 
     @SuppressWarnings("unchecked")
-    private boolean addDataSetRefs(Set<Referenceable> refsToAdd, Referenceable nifiFlowPath, String targetAttribute) {
+    protected boolean addDataSetRefs(Set<Referenceable> refsToAdd, Referenceable nifiFlowPath, String targetAttribute) {
         if (refsToAdd != null && !refsToAdd.isEmpty()) {
 
             // If nifiFlowPath already has a given dataSetRef, then it needs not to be created.

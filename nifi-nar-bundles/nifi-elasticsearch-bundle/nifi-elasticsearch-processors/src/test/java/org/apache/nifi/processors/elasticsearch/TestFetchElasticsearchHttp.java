@@ -445,4 +445,56 @@ public class TestFetchElasticsearchHttp {
         runner.run(100);
         runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 100);
     }
+
+    @Test
+    @Ignore("Un-authenticated proxy : Comment this out if you want to run against local proxied ES.")
+    public void testFetchElasticsearchBasicBehindProxy() {
+        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
+        runner.setValidateExpressionUsage(true);
+
+        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+
+        runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
+        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3228");
+        runner.setProperty(FetchElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
+
+        runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+
+        runner.enqueue(docExample);
+        runner.run(1, true, true);
+        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
+    }
+
+    @Test
+    @Ignore("Authenticated Proxy : Comment this out if you want to run against local proxied ES.")
+    public void testFetchElasticsearchBasicBehindAuthenticatedProxy() {
+        final TestRunner runner = TestRunners.newTestRunner(new FetchElasticsearchHttp());
+        runner.setValidateExpressionUsage(true);
+
+        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+
+        runner.setProperty(FetchElasticsearchHttp.PROXY_HOST, "localhost");
+        runner.setProperty(FetchElasticsearchHttp.PROXY_PORT, "3328");
+        runner.setProperty(FetchElasticsearchHttp.PROXY_USERNAME, "squid");
+        runner.setProperty(FetchElasticsearchHttp.PROXY_PASSWORD, "changeme");
+        runner.setProperty(FetchElasticsearchHttp.ES_URL, "http://172.18.0.2:9200");
+
+        runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+
+        runner.enqueue(docExample);
+        runner.run(1, true, true);
+        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
+    }
 }

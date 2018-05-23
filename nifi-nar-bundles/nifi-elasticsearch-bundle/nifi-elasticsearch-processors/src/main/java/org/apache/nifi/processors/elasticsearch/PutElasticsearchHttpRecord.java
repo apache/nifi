@@ -189,13 +189,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         _rels.add(REL_RETRY);
         relationships = Collections.unmodifiableSet(_rels);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ES_URL);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(RESPONSE_TIMEOUT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(RECORD_READER);
         descriptors.add(ID_RECORD_PATH);
         descriptors.add(INDEX);

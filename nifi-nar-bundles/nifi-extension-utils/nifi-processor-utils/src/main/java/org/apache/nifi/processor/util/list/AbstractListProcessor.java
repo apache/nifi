@@ -359,6 +359,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         if (this.lastListedLatestEntryTimestampMillis == null || this.lastProcessedLatestEntryTimestampMillis == null || justElectedPrimaryNode) {
             try {
+                boolean noUpdateRequired = false;
                 // Attempt to retrieve state from the state manager if a last listing was not yet established or
                 // if just elected the primary node
                 final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
@@ -374,8 +375,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                         minTimestampToListMillis = Long.parseLong(v);
                         // If our determined timestamp is the same as that of our last listing, skip this execution as there are no updates
                         if (minTimestampToListMillis.equals(this.lastListedLatestEntryTimestampMillis)) {
-                            context.yield();
-                            return;
+                            noUpdateRequired = true;
                         } else {
                             this.lastListedLatestEntryTimestampMillis = minTimestampToListMillis;
                         }
@@ -386,6 +386,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     }
                 }
                 justElectedPrimaryNode = false;
+                if (noUpdateRequired) {
+                    context.yield();
+                    return;
+                }
             } catch (final IOException ioe) {
                 getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
                 context.yield();

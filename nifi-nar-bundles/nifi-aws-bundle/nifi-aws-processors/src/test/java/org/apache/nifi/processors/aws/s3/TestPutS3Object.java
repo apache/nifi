@@ -25,6 +25,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -150,7 +151,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 28, pd.size());
+        assertEquals("size should be eq", 31, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -172,6 +173,11 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
         assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
         assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
+        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+        assertTrue(pd.contains(PutS3Object.PROXY_HOST));
+        assertTrue(pd.contains(PutS3Object.PROXY_HOST_PORT));
+        assertTrue(pd.contains(PutS3Object.PROXY_USERNAME));
+        assertTrue(pd.contains(PutS3Object.PROXY_PASSWORD));
     }
 
 }

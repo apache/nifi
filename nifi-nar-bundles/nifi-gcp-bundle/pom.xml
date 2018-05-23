@@ -26,6 +26,22 @@
     <version>1.7.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <google.cloud.sdk.version>0.47.0-alpha</google.cloud.sdk.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud</artifactId>
+                <version>${google.cloud.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
         <module>nifi-gcp-services-api</module>
         <module>nifi-gcp-services-api-nar</module>

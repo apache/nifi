@@ -34,7 +34,7 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -324,9 +324,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         return FLOW_AUTHORIZABLE;
     }
 
-    private ConfiguredComponent findControllerServiceReferencingComponent(final ControllerServiceReference referencingComponents, final String id) {
-        ConfiguredComponent reference = null;
-        for (final ConfiguredComponent component : referencingComponents.getReferencingComponents()) {
+    private ComponentNode findControllerServiceReferencingComponent(final ControllerServiceReference referencingComponents, final String id) {
+        ComponentNode reference = null;
+        for (final ComponentNode component : referencingComponents.getReferencingComponents()) {
             if (component.getIdentifier().equals(id)) {
                 reference = component;
                 break;
@@ -348,7 +348,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public Authorizable getControllerServiceReferencingComponent(String controllerServiceId, String id) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceReference referencingComponents = controllerService.getReferences();
-        final ConfiguredComponent reference = findControllerServiceReferencingComponent(referencingComponents, id);
+        final ComponentNode reference = findControllerServiceReferencingComponent(referencingComponents, id);
 
         if (reference == null) {
             throw new ResourceNotFoundException("Unable to find referencing component with id " + id);
@@ -483,9 +483,10 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         // if this is a policy or a provenance event resource, there should be another resource type
         if (ResourceType.Policy.equals(resourceType) || ResourceType.Data.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType)) {
             final ResourceType primaryResourceType = resourceType;
+            resourceType = null;
 
             // get the resource type
-            resource = StringUtils.substringAfter(resource, resourceType.getValue());
+            resource = StringUtils.substringAfter(resource, primaryResourceType.getValue());
 
             for (ResourceType type : ResourceType.values()) {
                 if (resource.equals(type.getValue()) || resource.startsWith(type.getValue() + "/")) {
@@ -494,7 +495,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             }
 
             if (resourceType == null) {
-                throw new ResourceNotFoundException("Unrecognized resource: " + resource);
+                throw new ResourceNotFoundException("Unrecognized base resource: " + resource);
             }
 
             // must either be a policy, event, or data transfer

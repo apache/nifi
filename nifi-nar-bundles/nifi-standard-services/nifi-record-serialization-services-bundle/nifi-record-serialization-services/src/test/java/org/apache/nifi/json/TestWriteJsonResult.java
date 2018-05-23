@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNameAsAttribute;
 import org.apache.nifi.serialization.SimpleRecordSchema;

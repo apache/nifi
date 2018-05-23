@@ -397,6 +397,14 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testSchemaNameNotEmpty() throws IOException {
+        Schema schema = new Schema.Parser().parse(getClass().getResourceAsStream("simpleSchema.json"));
+        RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        Assert.assertTrue(recordSchema.getIdentifier().getName().isPresent());
+        Assert.assertEquals(Optional.of("record_name"), recordSchema.getIdentifier().getName());
+    }
+
+    @Test
     public void testStringToBytesConversion() {
         Object o = AvroTypeUtil.convertToAvroObject("Hello", Schema.create(Type.BYTES), StandardCharsets.UTF_16);
         assertTrue(o instanceof ByteBuffer);
