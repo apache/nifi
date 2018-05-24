@@ -111,7 +111,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .displayName("HiveQL Pre-Query")
             .description("HiveQL pre-query to execute. Semicolon-delimited list of queries. "
                     + "Example: 'set tez.queue.name=queue1; set hive.exec.orc.split.strategy=ETL; set hive.exec.reducers.bytes.per.reducer=1073741824'. "
-                    + "Note, the results/outputs of these queries will be suppressed if successful executed.")
+                    + "Note, the results/outputs of these queries will be suppressed if successfully executed.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -130,8 +130,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .name("hive-post-query")
             .displayName("HiveQL Post-Query")
             .description("HiveQL post-query to execute. Semicolon-delimited list of queries. "
-                    + "Example: 'set tez.queue.name=default; set hive.exec.orc.split.strategy=HYBRID; set hive.exec.reducers.bytes.per.reducer=258998272'. "
-                    + "Note, the results/outputs of these queries will be suppressed if successful executed.")
+                    + "Note, the results/outputs of these queries will be suppressed if successfully executed.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
