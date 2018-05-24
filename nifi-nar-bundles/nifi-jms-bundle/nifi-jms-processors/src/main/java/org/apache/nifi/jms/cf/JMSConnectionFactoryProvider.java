@@ -22,13 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
+import javax.jms.ConnectionFactory;
 import javax.net.ssl.SSLContext;
 
-import javax.jms.ConnectionFactory;
-
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -36,6 +32,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -43,7 +42,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,11 +160,6 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                             + context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be connected to '"
                             + context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue() + "'");
                 }
-
-                // will load user provided libraries/resources on the classpath
-                final String clientLibPath = context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue();
-                ClassLoader customClassLoader = ClassLoaderUtils.getCustomClassLoader(clientLibPath, this.getClass().getClassLoader(), null);
-                Thread.currentThread().setContextClassLoader(customClassLoader);
 
                 this.createConnectionFactoryInstance(context);
                 this.setConnectionFactoryProperties(context);
