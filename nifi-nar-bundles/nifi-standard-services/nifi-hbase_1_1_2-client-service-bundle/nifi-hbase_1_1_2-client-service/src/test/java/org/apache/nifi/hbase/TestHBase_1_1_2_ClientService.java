@@ -88,10 +88,15 @@ public class TestHBase_1_1_2_ClientService {
         runner.assertNotValid(service);
         runner.removeControllerService(service);
 
+        runner.setVariable("hadoop-conf-files", "src/test/resources/hbase-site.xml");
+        runner.setVariable("zk-quorum", "localhost");
+        runner.setVariable("zk-client-port", "2181");
+        runner.setVariable("zk-znode", "/hbase");
+
         // conf file with no zk properties should be valid
         service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site.xml");
+        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "${hadoop-conf-files}");
         runner.enableControllerService(service);
 
         runner.assertValid(service);
@@ -100,7 +105,7 @@ public class TestHBase_1_1_2_ClientService {
         // only quorum and no conf file should be invalid
         service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
         runner.enableControllerService(service);
 
         runner.assertNotValid(service);
@@ -109,8 +114,8 @@ public class TestHBase_1_1_2_ClientService {
         // quorum and port, no znode, no conf file, should be invalid
         service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "2181");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "${zk-client-port}");
         runner.enableControllerService(service);
 
         runner.assertNotValid(service);
@@ -119,9 +124,9 @@ public class TestHBase_1_1_2_ClientService {
         // quorum, port, and znode, no conf file, should be valid
         service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
         runner.addControllerService("hbaseClientService", service);
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "localhost");
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "2181");
-        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_ZNODE_PARENT, "/hbase");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_QUORUM, "${zk-quorum}");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_CLIENT_PORT, "${zk-client-port}");
+        runner.setProperty(service, HBase_1_1_2_ClientService.ZOOKEEPER_ZNODE_PARENT, "${zk-znode}");
         runner.enableControllerService(service);
 
         runner.assertValid(service);
