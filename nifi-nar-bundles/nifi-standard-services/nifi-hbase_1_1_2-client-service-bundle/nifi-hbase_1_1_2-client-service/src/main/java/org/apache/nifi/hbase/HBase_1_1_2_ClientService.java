@@ -199,7 +199,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
 
         if (confFileProvided) {
-            final String configFiles = validationContext.getProperty(HADOOP_CONF_FILES).getValue();
+            final String configFiles = validationContext.getProperty(HADOOP_CONF_FILES).evaluateAttributeExpressions().getValue();
             ValidationResources resources = validationResourceHolder.get();
 
             // if no resources in the holder, or if the holder has different resources loaded,
@@ -268,21 +268,21 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     protected Connection createConnection(final ConfigurationContext context) throws IOException, InterruptedException {
-        final String configFiles = context.getProperty(HADOOP_CONF_FILES).getValue();
+        final String configFiles = context.getProperty(HADOOP_CONF_FILES).evaluateAttributeExpressions().getValue();
         final Configuration hbaseConfig = getConfigurationFromFiles(configFiles);
 
         // override with any properties that are provided
         if (context.getProperty(ZOOKEEPER_QUORUM).isSet()) {
-            hbaseConfig.set(HBASE_CONF_ZK_QUORUM, context.getProperty(ZOOKEEPER_QUORUM).getValue());
+            hbaseConfig.set(HBASE_CONF_ZK_QUORUM, context.getProperty(ZOOKEEPER_QUORUM).evaluateAttributeExpressions().getValue());
         }
         if (context.getProperty(ZOOKEEPER_CLIENT_PORT).isSet()) {
-            hbaseConfig.set(HBASE_CONF_ZK_PORT, context.getProperty(ZOOKEEPER_CLIENT_PORT).getValue());
+            hbaseConfig.set(HBASE_CONF_ZK_PORT, context.getProperty(ZOOKEEPER_CLIENT_PORT).evaluateAttributeExpressions().getValue());
         }
         if (context.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet()) {
-            hbaseConfig.set(HBASE_CONF_ZNODE_PARENT, context.getProperty(ZOOKEEPER_ZNODE_PARENT).getValue());
+            hbaseConfig.set(HBASE_CONF_ZNODE_PARENT, context.getProperty(ZOOKEEPER_ZNODE_PARENT).evaluateAttributeExpressions().getValue());
         }
         if (context.getProperty(HBASE_CLIENT_RETRIES).isSet()) {
-            hbaseConfig.set(HBASE_CONF_CLIENT_RETRIES, context.getProperty(HBASE_CLIENT_RETRIES).getValue());
+            hbaseConfig.set(HBASE_CONF_CLIENT_RETRIES, context.getProperty(HBASE_CLIENT_RETRIES).evaluateAttributeExpressions().getValue());
         }
 
         // add any dynamic properties to the HBase configuration
