@@ -32,7 +32,7 @@ ADD sh/docker-entrypoint.sh /opt/sh/docker-entrypoint.sh
 
 # Setup NiFi user
 # Download, validate, and expand Apache NiFi Toolkit binary.
-RUN apk add --update curl \
+RUN apk add --update curl bash jq openssl \
     && rm -rf /var/cache/apk/* \
     && addgroup -g $GID nifi \
     && adduser -D -s /bin/ash -u $UID -G nifi nifi \
