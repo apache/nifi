@@ -483,6 +483,16 @@
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/xxe_from_report.xml</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array-strings.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/two-elements-nested-nested-array-null.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/input/complex-input-json.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/extract-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-address.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

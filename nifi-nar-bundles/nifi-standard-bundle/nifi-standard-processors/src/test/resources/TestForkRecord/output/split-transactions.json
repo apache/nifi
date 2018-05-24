@@ -1,0 +1,181 @@
+[ {
+  "id" : 3,
+  "name" : {
+    "last" : "Smith",
+    "first" : "Jane"
+  },
+  "address" : [ {
+    "id" : "home",
+    "street" : "1 nifi street",
+    "city" : "nifi city"
+  }, {
+    "id" : "work",
+    "street" : "1 nifi avenue",
+    "city" : "apache city"
+  } ],
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : null
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "gas station",
+      "amount" : -45
+    } ]
+  } ]
+}, {
+  "id" : 3,
+  "name" : {
+    "last" : "Smith",
+    "first" : "Jane"
+  },
+  "address" : [ {
+    "id" : "home",
+    "street" : "1 nifi street",
+    "city" : "nifi city"
+  }, {
+    "id" : "work",
+    "street" : "1 nifi avenue",
+    "city" : "apache city"
+  } ],
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : null
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "hair cut",
+      "amount" : -19
+    } ]
+  } ]
+}, {
+  "id" : 4,
+  "name" : {
+    "last" : "Clark",
+    "first" : "Jane"
+  },
+  "address" : [ {
+    "id" : "home",
+    "street" : "10 nifi street",
+    "city" : "nifi city"
+  }, {
+    "id" : "work",
+    "street" : "10 nifi avenue",
+    "city" : "apache city"
+  } ],
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "gift",
+      "amount" : 100
+    } ]
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "nifi tshirt",
+      "amount" : 0
+    }, {
+      "comment" : "theatre",
+      "amount" : -19
+    } ]
+  } ]
+}, {
+  "id" : 4,
+  "name" : {
+    "last" : "Clark",
+    "first" : "Jane"
+  },
+  "address" : [ {
+    "id" : "home",
+    "street" : "10 nifi street",
+    "city" : "nifi city"
+  }, {
+    "id" : "work",
+    "street" : "10 nifi avenue",
+    "city" : "apache city"
+  } ],
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "flights",
+      "amount" : -190
+    } ]
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "nifi tshirt",
+      "amount" : 0
+    }, {
+      "comment" : "theatre",
+      "amount" : -19
+    } ]
+  } ]
+}, {
+  "id" : 4,
+  "name" : {
+    "last" : "Clark",
+    "first" : "Jane"
+  },
+  "address" : [ {
+    "id" : "home",
+    "street" : "10 nifi street",
+    "city" : "nifi city"
+  }, {
+    "id" : "work",
+    "street" : "10 nifi avenue",
+    "city" : "apache city"
+  } ],
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "flights",
+      "amount" : -190
+    } ]
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "nifi tshirt",
+      "amount" : 0
+    } ]
+  } ]
+}, {
+  "id" : 4,
+  "name" : {
+    "last" : "Clark",
+    "first" : "Jane"
+  },
+  "address" : [ {
+    "id" : "home",
+    "street" : "10 nifi street",
+    "city" : "nifi city"
+  }, {
+    "id" : "work",
+    "street" : "10 nifi avenue",
+    "city" : "apache city"
+  } ],
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "flights",
+      "amount" : -190
+    } ]
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "theatre",
+      "amount" : -19
+    } ]
+  } ]
+} ]
