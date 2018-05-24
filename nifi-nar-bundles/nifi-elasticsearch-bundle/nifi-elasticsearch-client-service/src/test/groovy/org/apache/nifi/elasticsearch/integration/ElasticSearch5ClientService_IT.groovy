@@ -17,6 +17,7 @@
 
 package org.apache.nifi.elasticsearch.integration
 
+import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
 import org.apache.nifi.elasticsearch.SearchResponse
@@ -33,6 +34,9 @@ class ElasticSearch5ClientService_IT {
 
     private TestRunner runner
     private ElasticSearchClientServiceImpl service
+
+    static final String INDEX = "messages"
+    static final String TYPE  = "message"
 
     @Before
     void before() throws Exception {
@@ -77,14 +81,14 @@ class ElasticSearch5ClientService_IT {
         SearchResponse response = service.search(query, "messages", "message")
         Assert.assertNotNull("Response was null", response)
 
-        Assert.assertEquals("Wrong count", response.getNumberOfHits(), 15)
+        Assert.assertEquals("Wrong count", 15, response.numberOfHits)
         Assert.assertFalse("Timed out", response.isTimedOut())
         Assert.assertNotNull("Hits was null", response.getHits())
-        Assert.assertEquals("Wrong number of hits", 10, response.getHits().size())
-        Assert.assertNotNull("Aggregations are missing", response.getAggregations())
-        Assert.assertEquals("Aggregation count is wrong", 1, response.getAggregations().size())
+        Assert.assertEquals("Wrong number of hits", 10, response.hits.size())
+        Assert.assertNotNull("Aggregations are missing", response.aggregations)
+        Assert.assertEquals("Aggregation count is wrong", 1, response.aggregations.size())
 
-        Map termCounts = response.getAggregations().get("term_counts")
+        Map termCounts = response.aggregations.get("term_counts")
         Assert.assertNotNull("Term counts was missing", termCounts)
         def buckets = termCounts.get("buckets")
         Assert.assertNotNull("Buckets branch was empty", buckets)
@@ -101,11 +105,43 @@ class ElasticSearch5ClientService_IT {
             def docCount = aggRes["doc_count"]
             Assert.assertEquals("${key} did not match.", expected[key], docCount)
         }
-//        for (Map<String, Object> aggRes : buckets) {
-//            String key = (String)aggRes.get("key")
-//            Integer docCount = (Integer)aggRes.get("doc_count")
-//
-//            Assert.assertEquals(String.format("%s did not match", key), expected.get(key), docCount)
-//        }
+    }
+
+    @Test
+    void testDeleteByQuery() throws Exception {
+        String query = prettyPrint(toJson([
+            query: [
+                match: [
+                    msg: "five"
+                ]
+            ]
+        ]))
+        DeleteOperationResponse response = service.deleteByQuery(query, INDEX, TYPE)
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+    }
+
+    @Test
+    void testDeleteById() throws Exception {
+        final String ID = "1"
+        DeleteOperationResponse response = service.deleteById(INDEX, TYPE, ID)
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+        def doc = service.get(INDEX, TYPE, ID)
+        Assert.assertNull(doc)
+        doc = service.get(INDEX, TYPE, "2")
+        Assert.assertNotNull(doc)
+    }
+
+    @Test
+    void testGet() throws IOException {
+        Map old
+        1.upto(15) { index ->
+            String id = String.valueOf(index)
+            def doc = service.get(INDEX, TYPE, id)
+            Assert.assertNotNull("Doc was null", doc)
+            Assert.assertNotNull("${doc.toString()}\t${doc.keySet().toString()}", doc.get("msg"))
+            old = doc
+        }
     }
 }

@@ -18,10 +18,43 @@
 package org.apache.nifi.elasticsearch.integration
 
 import org.apache.nifi.controller.AbstractControllerService
+import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
+import org.apache.nifi.elasticsearch.IndexOperationRequest
+import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 
 class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
+    @Override
+    IndexOperationResponse add(IndexOperationRequest operation) throws IOException {
+        return null
+    }
+
+    @Override
+    IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deleteById(String index, String type, String id) throws IOException {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException {
+        return null
+    }
+
+    @Override
+    DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException {
+        return null
+    }
+
+    @Override
+    Map<String, Object> get(String index, String type, String id) throws IOException {
+        return null
+    }
+
     @Override
     SearchResponse search(String query, String index, String type) throws IOException {
         List hits = [[
