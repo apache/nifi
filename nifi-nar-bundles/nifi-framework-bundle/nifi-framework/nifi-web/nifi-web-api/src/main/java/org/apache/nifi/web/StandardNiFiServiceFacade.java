@@ -496,6 +496,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyEnableComponents(String processGroupId, ScheduledState state, Set<String> componentIds) {
+        processGroupDAO.verifyEnableComponents(processGroupId, state, componentIds);
+    }
+
+    @Override
     public void verifyActivateControllerServices(final String groupId, final ControllerServiceState state, final Collection<String> serviceIds) {
         processGroupDAO.verifyActivateControllerServices(state, serviceIds);
     }

@@ -131,6 +131,20 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
+    public void verifyEnableComponents(String groupId, ScheduledState state, Set<String> componentIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        for (final String componentId : componentIds) {
+            final Connectable connectable = group.findLocalConnectable(componentId);
+            if (ScheduledState.STOPPED.equals(state)) {
+                connectable.verifyCanEnable();
+            } else if (ScheduledState.DISABLED.equals(state)) {
+                connectable.verifyCanDisable();
+            }
+        }
+    }
+
+    @Override
     public void verifyActivateControllerServices(final ControllerServiceState state, final Collection<String> serviceIds) {
         final Set<ControllerServiceNode> serviceNodes = serviceIds.stream()
             .map(flowController::getControllerServiceNode)

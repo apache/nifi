@@ -686,7 +686,13 @@ public class FlowResource extends ApplicationResource {
                         connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
-                () -> serviceFacade.verifyScheduleComponents(id, state, requestComponentRevisions.keySet()),
+                () -> {
+                    if (STATE_ENABLED.equals(requestScheduleComponentsEntity.getState()) || STATE_DISABLED.equals(requestScheduleComponentsEntity.getState())) {
+                        serviceFacade.verifyEnableComponents(id, state, requestComponentRevisions.keySet());
+                    } else {
+                        serviceFacade.verifyScheduleComponents(id, state, requestComponentRevisions.keySet());
+                    }
+                },
                 (revisions, scheduleComponentsEntity) -> {
 
                     final ScheduledState scheduledState;
