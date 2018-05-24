@@ -98,9 +98,9 @@ public class ForkRecord extends AbstractProcessor {
     private volatile RecordPathCache recordPathCache = new RecordPathCache(25);
 
     static final AllowableValue MODE_EXTRACT = new AllowableValue("extract", "Extract",
-            "Generated records will preserve the input schema and will contain a one-element array");
+        "Generated records will be the elements of the array");
     static final AllowableValue MODE_SPLIT = new AllowableValue("split", "Split",
-            "Generated records will be the elements of the array");
+        "Generated records will preserve the input schema and will contain a one-element array");
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -209,7 +209,7 @@ public class ForkRecord extends AbstractProcessor {
             return;
         }
 
-        final List<RecordPath> recordPaths = new ArrayList<RecordPath>();
+        final List<RecordPath> recordPaths = new ArrayList<>();
         Map<PropertyDescriptor, String> processorProperties = context.getProperties();
         for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
             PropertyDescriptor property = entry.getKey();
