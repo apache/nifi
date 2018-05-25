@@ -107,7 +107,7 @@ public class ProcessorConfigDTO {
      * @return the amount of time that is used when this processor penalizes a flowfile
      */
     @ApiModelProperty(
-            value = "The amout of time that is used when the process penalizes a flowfile."
+            value = "The amount of time that is used when the process penalizes a flowfile."
     )
     public String getPenaltyDuration() {
         return penaltyDuration;

@@ -68,6 +68,8 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract boolean isEventDrivenSupported();
 
+    public abstract boolean isExecutionNodeRestricted();
+
     public abstract Requirement getInputRequirement();
 
     public abstract List<ActiveThreadInfo> getActiveThreads();
