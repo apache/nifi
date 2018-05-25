@@ -121,10 +121,10 @@ public class RecordStats extends AbstractProcessor {
             );
     }
 
-    protected Map<String, String> getStats(FlowFile input, Map<String, RecordPath> paths, ProcessContext context, ProcessSession session) {
-        try (InputStream is = session.read(input)) {
+    protected Map<String, String> getStats(FlowFile flowFile, Map<String, RecordPath> paths, ProcessContext context, ProcessSession session) {
+        try (InputStream is = session.read(flowFile)) {
             RecordReaderFactory factory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-            RecordReader reader = factory.createRecordReader(input, is, getLogger());
+            RecordReader reader = factory.createRecordReader(flowFile, is, getLogger());
 
             Map<String, Integer> retVal = new HashMap<>();
             Record record;
@@ -135,8 +135,7 @@ public class RecordStats extends AbstractProcessor {
                     RecordPathResult result = entry.getValue().evaluate(record);
                     Optional<FieldValue> value = result.getSelectedFields().findFirst();
                     if (value.isPresent() && value.get().getValue() != null) {
-                        FieldValue fieldValue = value.get();
-                        String approxValue = fieldValue.getValue().toString();
+                        String approxValue = value.get().getValue().toString();
                         String key = String.format("%s.%s", entry.getKey(), approxValue);
                         Integer stat = retVal.containsKey(key) ? retVal.get(key) : 0;
                         Integer baseStat = retVal.containsKey(entry.getKey()) ? retVal.get(entry.getKey()) : 0;
