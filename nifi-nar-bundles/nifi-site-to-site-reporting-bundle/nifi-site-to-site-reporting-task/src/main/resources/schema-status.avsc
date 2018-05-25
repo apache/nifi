@@ -11,7 +11,7 @@
 	{ "name" : "actorHostname", "type" : "string"},
 	{ "name" : "componentType", "type" : "string"},
 	{ "name" : "componentName", "type" : "string"},
-	{ "name" : "parentId", "type" : "string"},
+	{ "name" : "parentId", "type" : ["string", "null"]},
 	{ "name" : "platform", "type" : "string"},
 	{ "name" : "application", "type" : "string"},
 	{ "name" : "componentId", "type" : "string"},

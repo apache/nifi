@@ -23,7 +23,7 @@
 
     <body>
     	<p>
-    		The Site-to-Site Bulletin Reporting Task allows the user to publish Status events using the Site To Site protocol. 
+    		The Site-to-Site Status Reporting Task allows the user to publish Status events using the Site To Site protocol. 
     		The component type and name filter regexes form a union: only components matching both regexes will be reported. 
     		However, all process groups are recursively searched for matching components, regardless of whether the process 
     		group matches the component filters.
@@ -50,7 +50,7 @@
 	{ "name" : "actorHostname", "type" : "string"},
 	{ "name" : "componentType", "type" : "string"},
 	{ "name" : "componentName", "type" : "string"},
-	{ "name" : "parentId", "type" : "string"},
+	{ "name" : "parentId", "type" : ["string", "null"]},
 	{ "name" : "platform", "type" : "string"},
 	{ "name" : "application", "type" : "string"},
 	{ "name" : "componentId", "type" : "string"},
