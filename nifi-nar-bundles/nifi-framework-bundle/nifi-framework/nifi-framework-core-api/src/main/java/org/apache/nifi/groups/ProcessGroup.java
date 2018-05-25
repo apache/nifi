@@ -75,7 +75,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     /**
      * Predicate for disabling eligible Processors.
      */
-    Predicate<ProcessorNode> DISABLE_PROCESSORS_FILTER = node -> !node.isRunning();
+    Predicate<ProcessorNode> DISABLE_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState());
 
     /**
      * Predicate for starting eligible Ports.
@@ -95,7 +95,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     /**
      * Predicate for disabling eligible Ports.
      */
-    Predicate<Port> DISABLE_PORTS_FILTER = port -> !port.isRunning();
+    Predicate<Port> DISABLE_PORTS_FILTER = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState());
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be
