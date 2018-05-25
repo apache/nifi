@@ -52,8 +52,6 @@ import java.util.Collections;
 import java.util.Arrays;
 import java.util.ArrayList;
 
-
-
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -64,17 +62,18 @@ import java.util.ArrayList;
         "If the attribute value contains a comma, newline or double quote, then the attribute value will be " +
         "escaped with double quotes.  Any double quote characters in the attribute value are escaped with " +
         "another double quote.")
-@WritesAttribute(attribute = "CSVAttributes", description = "CSV representation of Attributes")
+@WritesAttribute(attribute = "CSVData", description = "CSV representation of Attributes")
 public class AttributesToCSV extends AbstractProcessor {
-    private static final String OUTPUT_ATTRIBUTE_NAME = "CSVAttributes";
+    private static final String DATA_ATTRIBUTE_NAME = "CSVData";
+    private static final String SCHEMA_ATTRIBUTE_NAME = "CSVSchema";
     private static final String OUTPUT_SEPARATOR = ",";
     private static final String OUTPUT_MIME_TYPE = "text/csv";
     private static final String SPLIT_REGEX = OUTPUT_SEPARATOR + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
     static final AllowableValue OUTPUT_OVERWRITE_CONTENT = new AllowableValue("flowfile-content", "flowfile-content", "The resulting CSV string will be placed into the content of the flowfile." +
-            "Existing flowfile context will be overwritten. 'CSVAttributes' will not be written to at all (neither null nor empty string).");
+            "Existing flowfile context will be overwritten. 'CSVData' will not be written to at all (neither null nor empty string).");
     static final AllowableValue OUTPUT_NEW_ATTRIBUTE= new AllowableValue("flowfile-attribute", "flowfile-attribute", "The resulting CSV string will be placed into a new flowfile" +
-            " attribute named 'CSVAttributes'.  The content of the flowfile will not be changed.");
+            " attribute named 'CSVData'.  The content of the flowfile will not be changed.");
 
     public static final PropertyDescriptor ATTRIBUTES_LIST = new PropertyDescriptor.Builder()
             .name("attribute-list")
@@ -106,7 +105,7 @@ public class AttributesToCSV extends AbstractProcessor {
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("destination")
             .displayName("Destination")
-            .description("Control if CSV value is written as a new flowfile attribute 'CSVAttributes' " +
+            .description("Control if CSV value is written as a new flowfile attribute 'CSVData' " +
                     "or written in the flowfile content.")
             .required(true)
             .allowableValues(OUTPUT_NEW_ATTRIBUTE, OUTPUT_OVERWRITE_CONTENT)
@@ -135,7 +134,17 @@ public class AttributesToCSV extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .defaultValue("false")
             .build();
-
+    public static final PropertyDescriptor INCLUDE_SCHEMA = new PropertyDescriptor.Builder()
+            .name("include-schema")
+            .displayName("Include Schema")
+            .description("If true the schema (attribute names) will also be converted to a CSV string which will either be " +
+                    "applied to a new attribute named 'CSVSchema' or applied at the first row in the " +
+                    "content depending on the DESTINATION property setting.")
+            .required(true)
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("false")
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Successfully converted attributes to CSV").build();
@@ -149,6 +158,7 @@ public class AttributesToCSV extends AbstractProcessor {
     private volatile boolean destinationContent;
     private volatile boolean nullValForEmptyString;
     private volatile Pattern pattern;
+    private volatile Boolean includeSchema;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -158,6 +168,7 @@ public class AttributesToCSV extends AbstractProcessor {
         properties.add(DESTINATION);
         properties.add(INCLUDE_CORE_ATTRIBUTES);
         properties.add(NULL_VALUE_FOR_EMPTY_STRING);
+        properties.add(INCLUDE_SCHEMA);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -257,6 +268,7 @@ public class AttributesToCSV extends AbstractProcessor {
         coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toSet());
         destinationContent = OUTPUT_OVERWRITE_CONTENT.getValue().equals(context.getProperty(DESTINATION).getValue());
         nullValForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
+        includeSchema = context.getProperty(INCLUDE_SCHEMA).asBoolean();
      }
 
     @Override
@@ -275,21 +287,36 @@ public class AttributesToCSV extends AbstractProcessor {
         //escape attribute values
         int index = 0;
         final int atrListSize = atrList.values().size() -1;
-        final StringBuilder sb = new StringBuilder();
-        for (final String val : atrList.values()) {
-            sb.append(StringEscapeUtils.escapeCsv(val));
-            sb.append(index++ < atrListSize ? OUTPUT_SEPARATOR : "");
+        final StringBuilder sbValues = new StringBuilder();
+        for (final Map.Entry<String,String> attr : atrList.entrySet()) {
+            sbValues.append(StringEscapeUtils.escapeCsv(attr.getValue()));
+            sbValues.append(index++ < atrListSize ? OUTPUT_SEPARATOR : "");
+        }
+
+        //build the csv header if needed
+        final StringBuilder sbNames = new StringBuilder();
+        if(includeSchema){
+            index = 0;
+            for (final Map.Entry<String,String> attr : atrList.entrySet()) {
+                sbNames.append(StringEscapeUtils.escapeCsv(attr.getKey()));
+                sbNames.append(index++ < atrListSize ? OUTPUT_SEPARATOR : "");
+            }
         }
 
         try {
             if (destinationContent) {
                 FlowFile conFlowfile = session.write(original, (in, out) -> {
-                        out.write(sb.toString().getBytes());
+                        if(includeSchema){
+                            sbNames.append(System.getProperty("line.separator"));
+                            out.write(sbNames.toString().getBytes());
+                        }
+                        out.write(sbValues.toString().getBytes());
                 });
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), OUTPUT_MIME_TYPE);
                 session.transfer(conFlowfile, REL_SUCCESS);
             } else {
-                FlowFile atFlowfile = session.putAttribute(original, OUTPUT_ATTRIBUTE_NAME , sb.toString());
+                FlowFile atFlowfile = session.putAttribute(original, DATA_ATTRIBUTE_NAME , sbValues.toString());
+                if(includeSchema){session.putAttribute(original, SCHEMA_ATTRIBUTE_NAME , sbNames.toString());}
                 session.transfer(atFlowfile, REL_SUCCESS);
             }
         } catch (Exception e) {

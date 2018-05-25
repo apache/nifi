@@ -40,10 +40,11 @@ public class TestAttributesToCSV {
 
     private static final String OUTPUT_NEW_ATTRIBUTE = "flowfile-attribute";
     private static final String OUTPUT_OVERWRITE_CONTENT = "flowfile-content";
-    private static final String OUTPUT_ATTRIBUTE_NAME = "CSVAttributes";
+    private static final String OUTPUT_ATTRIBUTE_NAME = "CSVData";
     private static final String OUTPUT_SEPARATOR = ",";
     private static final String OUTPUT_MIME_TYPE = "text/csv";
     private static final String SPLIT_REGEX = OUTPUT_SEPARATOR + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+    private static final String newline = System.getProperty("line.separator");
 
     @Test
     public void testAttrListNoCoreNullOffNewAttrToAttribute() throws Exception {
@@ -58,12 +59,12 @@ public class TestAttributesToCSV {
         testRunner.run();
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
-                .assertAttributeExists("CSVAttributes");
+                .assertAttributeExists("CSVData");
         testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVAttributes","");
+                .get(0).assertAttributeEquals("CSVData","");
     }
 
     @Test
@@ -81,12 +82,12 @@ public class TestAttributesToCSV {
         testRunner.run();
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
-                .assertAttributeExists("CSVAttributes");
+                .assertAttributeExists("CSVData");
         testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVAttributes","");
+                .get(0).assertAttributeEquals("CSVData","");
     }
 
     @Test
@@ -102,12 +103,12 @@ public class TestAttributesToCSV {
         testRunner.run();
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
-                .assertAttributeExists("CSVAttributes");
+                .assertAttributeExists("CSVData");
         testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVAttributes",",");
+                .get(0).assertAttributeEquals("CSVData",",");
     }
 
     @Test
@@ -123,12 +124,12 @@ public class TestAttributesToCSV {
         testRunner.run();
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
-                .assertAttributeExists("CSVAttributes");
+                .assertAttributeExists("CSVData");
         testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVAttributes","null,null");
+                .get(0).assertAttributeEquals("CSVData","null,null");
     }
 
     @Test
@@ -142,12 +143,12 @@ public class TestAttributesToCSV {
         testRunner.run();
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
-                .assertAttributeExists("CSVAttributes");
+                .assertAttributeExists("CSVData");
         testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVAttributes","");
+                .get(0).assertAttributeEquals("CSVData","");
     }
 
     @Test
@@ -160,12 +161,12 @@ public class TestAttributesToCSV {
         testRunner.run();
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
-                .assertAttributeExists("CSVAttributes");
+                .assertAttributeExists("CSVData");
         testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
 
         testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVAttributes","");
+                .get(0).assertAttributeEquals("CSVData","");
     }
 
 
@@ -317,13 +318,13 @@ public class TestAttributesToCSV {
 
         final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(3, csvAttributesValues.size());
+        assertEquals(3, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
     }
 
@@ -339,7 +340,7 @@ public class TestAttributesToCSV {
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
-            put("attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
         }};
 
         testRunner.enqueue(new byte[0], attrs);
@@ -356,17 +357,17 @@ public class TestAttributesToCSV {
 
         final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(6, csvAttributesValues.size());
+        assertEquals(6, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
     }
 
     @Test
@@ -381,7 +382,7 @@ public class TestAttributesToCSV {
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
-            put("attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
         }};
 
         testRunner.enqueue(new byte[0], attrs);
@@ -398,18 +399,18 @@ public class TestAttributesToCSV {
 
         final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(4, csvAttributesValues.size());
+        assertEquals(4, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
 
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
     }
 
     @Test
@@ -424,7 +425,7 @@ public class TestAttributesToCSV {
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
-            put("attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
             put("myAttribs", "beach-name,beach-location,beach-endorsement");
         }};
 
@@ -443,17 +444,17 @@ public class TestAttributesToCSV {
 
         String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(6, csvAttributesValues.size());
+        assertEquals(6, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
 
         //Test flow file 1 with ATTRIBUTE_LIST populated from expression language containing commas (output should be he same)
         flowFile = flowFilesForRelationship.get(0);
@@ -462,17 +463,17 @@ public class TestAttributesToCSV {
 
         attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(6, csvAttributesValues.size());
+        assertEquals(6, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
 
     }
 
@@ -489,7 +490,7 @@ public class TestAttributesToCSV {
             put("beach,name", "Malibu Beach");
             put("beach,location", "California, US");
             put("beach,endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
-            put("attribute-should-be-eliminated", "This should not be in CSVAttributes!");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
             put("myAttribs", "\"beach,name\",\"beach,location\",\"beach,endorsement\"");
         }};
 
@@ -508,17 +509,17 @@ public class TestAttributesToCSV {
 
         String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(6, csvAttributesValues.size());
+        assertEquals(6, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
 
         //Test flow file 1 with ATTRIBUTE_LIST populated from expression language containing commas (output should be he same)
         flowFile = flowFilesForRelationship.get(0);
@@ -527,17 +528,17 @@ public class TestAttributesToCSV {
 
         attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(6, csvAttributesValues.size());
+        assertEquals(6, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
 
     }
 
@@ -554,7 +555,7 @@ public class TestAttributesToCSV {
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
-            put("attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
             put("myAttribs", "beach-name,beach-location,beach-endorsement");
         }};
 
@@ -572,18 +573,18 @@ public class TestAttributesToCSV {
 
         final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(3, csvAttributesValues.size());
+        assertEquals(3, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
 
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("uuid")));
     }
 
     @Test
@@ -598,7 +599,7 @@ public class TestAttributesToCSV {
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
-            put("attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
             put("myRegEx", "beach-.*");
         }};
 
@@ -616,18 +617,18 @@ public class TestAttributesToCSV {
 
         final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(3, csvAttributesValues.size());
+        assertEquals(3, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
 
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("uuid")));
     }
 
     @Test
@@ -643,7 +644,7 @@ public class TestAttributesToCSV {
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("beach-endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim");
-            put("attribute-should-be-eliminated", "This should not be in CSVAttribute!");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
             put("myRegEx", "beach-.*");
             put("moreInfo1", "A+ Rating");
             put("moreInfo2", "Avg Temp: 61f");
@@ -663,23 +664,87 @@ public class TestAttributesToCSV {
 
         final String attributeData = flowFile.getAttribute(OUTPUT_ATTRIBUTE_NAME);
 
-        Set<String> csvAttributesValues = new HashSet<>(getStrings(attributeData));
+        Set<String> CSVDataValues = new HashSet<>(getStrings(attributeData));
 
-        assertEquals(5, csvAttributesValues.size());
+        assertEquals(5, CSVDataValues.size());
 
-        assertTrue(csvAttributesValues.contains("Malibu Beach"));
-        assertTrue(csvAttributesValues.contains("\"California, US\""));
-        assertTrue(csvAttributesValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
-        assertTrue(csvAttributesValues.contains("A+ Rating"));
-        assertTrue(csvAttributesValues.contains("Avg Temp: 61f"));
+        assertTrue(CSVDataValues.contains("Malibu Beach"));
+        assertTrue(CSVDataValues.contains("\"California, US\""));
+        assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
+        assertTrue(CSVDataValues.contains("A+ Rating"));
+        assertTrue(CSVDataValues.contains("Avg Temp: 61f"));
 
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("filename")));
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("path")));
-        assertTrue(!csvAttributesValues.contains(flowFile.getAttribute("uuid")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("filename")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("path")));
+        assertTrue(!CSVDataValues.contains(flowFile.getAttribute("uuid")));
+    }
+
+
+    @Test
+    public void testSchemaToAttribute() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
+        testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
+        testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
+        testRunner.setProperty(AttributesToCSV.NULL_VALUE_FOR_EMPTY_STRING, "false");
+        testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
+        testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
+
+        Map<String, String> attrs = new HashMap<String, String>(){{
+            put("beach-name", "Malibu Beach");
+            put("beach-location", "California, US");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
+        }};
+
+        testRunner.enqueue(new byte[0], attrs);
+        testRunner.run();
+
+        testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
+                .assertAttributeExists("CSVData");
+        testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0)
+                .assertAttributeExists("CSVSchema");
+        testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
+
+        testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
+                .get(0).assertAttributeEquals("CSVData","Malibu Beach,\"California, US\"");
+        testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
+                .get(0).assertAttributeEquals("CSVSchema","beach-name,beach-location");
+    }
+
+    @Test
+    public void testSchemaToContent() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToCSV());
+        //set the destination of the csv string to be an attribute
+        testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_OVERWRITE_CONTENT);
+        testRunner.setProperty(AttributesToCSV.INCLUDE_CORE_ATTRIBUTES, "false");
+        testRunner.setProperty(AttributesToCSV.NULL_VALUE_FOR_EMPTY_STRING, "false");
+        testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
+        testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
+
+        Map<String, String> attrs = new HashMap<String, String>(){{
+            put("beach-name", "Malibu Beach");
+            put("beach-location", "California, US");
+            put("attribute-should-be-eliminated", "This should not be in CSVData!");
+        }};
+
+        testRunner.enqueue(new byte[0], attrs);
+        testRunner.run();
+
+        testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
+
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS).get(0);
+        flowFile.assertAttributeNotExists("CSVData");
+        flowFile.assertAttributeNotExists("CSVSchema");
+
+        final byte[] contentData = testRunner.getContentAsByteArray(flowFile);
+
+        final String contentDataString = new String(contentData, "UTF-8");
+        assertEquals(contentDataString.split(newline)[0], "beach-name,beach-location");
+        assertEquals(contentDataString.split(newline)[1], "Malibu Beach,\"California, US\"");
     }
 
     private List<String> getStrings(String sdata) {
-        System.out.println(sdata);
         return Splitter.on(Pattern.compile(SPLIT_REGEX)).splitToList(sdata);
     }
 
