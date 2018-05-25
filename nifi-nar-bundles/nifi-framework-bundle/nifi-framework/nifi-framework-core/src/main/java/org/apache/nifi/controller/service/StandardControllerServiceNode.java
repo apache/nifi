@@ -222,6 +222,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         writeLock.lock();
         try {
             this.processGroup = group;
+            LOG.debug("Resetting Validation State of {} due to setting process group", this);
             resetValidationState();
         } finally {
             writeLock.unlock();

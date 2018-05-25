@@ -410,6 +410,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         undefinedRelationshipsToTerminate.set(new HashSet<>(terminate));
+        LOG.debug("Resetting Validation State of {} due to setting auto-terminated relationships", this);
         resetValidationState();
     }
 
@@ -773,6 +774,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 setIncomingConnections(Collections.unmodifiableList(updatedIncoming));
             }
         } finally {
+            LOG.debug("Resetting Validation State of {} due to connection added", this);
             resetValidationState();
         }
     }
@@ -851,6 +853,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
         } finally {
             // need to perform validation in case selected relationships were changed.
+            LOG.debug("Resetting Validation State of {} due to updating connection", this);
             resetValidationState();
         }
     }
@@ -890,11 +893,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     "Cannot remove a connection from a ProcessorNode for which the ProcessorNode is not the Source");
         }
 
+        LOG.debug("Resetting Validation State of {} due to connection removed", this);
         resetValidationState();
     }
 
     private void setIncomingConnections(final List<Connection> incoming) {
         this.incomingConnections.set(incoming);
+        LOG.debug("Resetting Validation State of {} due to setting incoming connections", this);
         resetValidationState();
     }
 
@@ -1147,6 +1152,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void setProcessGroup(final ProcessGroup group) {
         this.processGroup.set(group);
+        LOG.debug("Resetting Validation State of {} due to setting process group", this);
         resetValidationState();
     }
 

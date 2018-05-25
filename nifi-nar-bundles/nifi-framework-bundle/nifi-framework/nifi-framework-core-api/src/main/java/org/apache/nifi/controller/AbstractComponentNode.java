@@ -79,6 +79,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private volatile String additionalResourcesFingerprint;
     private AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ValidationTrigger validationTrigger;
+    private volatile boolean triggerValidation = true;
 
     public AbstractComponentNode(final String id,
                                        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
@@ -129,6 +130,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     @Override
     public void setAnnotationData(final String data) {
         annotationData.set(CharacterFilterUtils.filterInvalidXmlCharacters(data));
+        logger.debug("Resetting Validation State of {} due to setting annotation data", this);
         resetValidationState();
     }
 
@@ -198,7 +200,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 }
             }
 
-            logger.debug("Setting properties to {}; resetting validation state", properties);
+            logger.debug("Resetting Validation State of {} due to setting properties", this);
             resetValidationState();
         } finally {
             lock.unlock();
@@ -609,7 +611,34 @@ public abstract class AbstractComponentNode implements ComponentNode {
     protected void resetValidationState() {
         validationContext.set(null);
         validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
-        validationTrigger.triggerAsync(this);
+
+        if (isTriggerValidation()) {
+            validationTrigger.triggerAsync(this);
+        } else {
+            logger.debug("Reset validation state of {} but will not trigger async validation because trigger has been paused", this);
+        }
+    }
+
+    @Override
+    public void pauseValidationTrigger() {
+        triggerValidation = false;
+    }
+
+    @Override
+    public void resumeValidationTrigger() {
+        triggerValidation = true;
+
+        final ValidationStatus validationStatus = getValidationStatus();
+        if (validationStatus == ValidationStatus.VALIDATING) {
+            logger.debug("Resuming Triggering of Validation State for {}; status is VALIDATING so will trigger async validation now", this);
+            validationTrigger.triggerAsync(this);
+        } else {
+            logger.debug("Resuming Triggering of Validation State for {}; status is {} so will not trigger async validation now", this, validationStatus);
+        }
+    }
+
+    private boolean isTriggerValidation() {
+        return triggerValidation;
     }
 
     @Override

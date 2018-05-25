@@ -21,8 +21,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -41,24 +43,57 @@ public class TestAbstractComponentNode {
 
     @Test(timeout = 5000)
     public void testGetValidationStatusWithTimeout() {
-        final ValidationControlledAbstractComponentNode node = new ValidationControlledAbstractComponentNode();
+        final ValidationControlledAbstractComponentNode node = new ValidationControlledAbstractComponentNode(5000, Mockito.mock(ValidationTrigger.class));
         final ValidationStatus status = node.getValidationStatus(1, TimeUnit.MILLISECONDS);
         assertEquals(ValidationStatus.VALIDATING, status);
     }
 
+    @Test(timeout = 10000)
+    public void testValidationTriggerPaused() throws InterruptedException {
+        final AtomicLong validationCount = new AtomicLong(0L);
+
+        final ValidationControlledAbstractComponentNode node = new ValidationControlledAbstractComponentNode(0, new ValidationTrigger() {
+            @Override
+            public void triggerAsync(ComponentNode component) {
+                validationCount.incrementAndGet();
+            }
+
+            @Override
+            public void trigger(ComponentNode component) {
+                validationCount.incrementAndGet();
+            }
+        });
+
+        node.pauseValidationTrigger();
+        for (int i = 0; i < 1000; i++) {
+            node.setProperties(Collections.emptyMap());
+            assertEquals(0, validationCount.get());
+        }
+        node.resumeValidationTrigger();
+
+        // wait for validation count to be 1 (this is asynchronous so we want to just keep checking).
+        while (validationCount.get() != 1) {
+            Thread.sleep(50L);
+        }
+
+        assertEquals(1L, validationCount.get());
+    }
 
     private static class ValidationControlledAbstractComponentNode extends AbstractComponentNode {
+        private final long pauseMillis;
 
-        public ValidationControlledAbstractComponentNode() {
+        public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger) {
             super("id", Mockito.mock(ValidationContextFactory.class), Mockito.mock(ControllerServiceProvider.class), "unit test component",
                 ValidationControlledAbstractComponentNode.class.getCanonicalName(), Mockito.mock(ComponentVariableRegistry.class), Mockito.mock(ReloadComponent.class),
-                Mockito.mock(ValidationTrigger.class), false);
+                validationTrigger, false);
+
+            this.pauseMillis = pauseMillis;
         }
 
         @Override
         protected Collection<ValidationResult> computeValidationErrors(ValidationContext context) {
             try {
-                Thread.sleep(5000L);
+                Thread.sleep(pauseMillis);
             } catch (final InterruptedException ie) {
             }
 
@@ -76,7 +111,7 @@ public class TestAbstractComponentNode {
 
         @Override
         public ConfigurableComponent getComponent() {
-            return null;
+            return Mockito.mock(ConfigurableComponent.class);
         }
 
         @Override

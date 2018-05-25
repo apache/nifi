@@ -847,7 +847,35 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Perform validation of all components before attempting to start them.
             LOG.debug("Triggering initial validation of all components");
             final long start = System.nanoTime();
-            new TriggerValidationTask(this, validationTrigger).run();
+
+            final ValidationTrigger triggerIfValidating = new ValidationTrigger() {
+                @Override
+                public void triggerAsync(final ComponentNode component) {
+                    final ValidationStatus status = component.getValidationStatus();
+
+                    if (component.getValidationStatus() == ValidationStatus.VALIDATING) {
+                        LOG.debug("Will trigger async validation for {} because its status is VALIDATING", component);
+                        validationTrigger.triggerAsync(component);
+                    } else {
+                        LOG.debug("Will not trigger async validation for {} because its status is {}", component, status);
+                    }
+                }
+
+                @Override
+                public void trigger(final ComponentNode component) {
+                    final ValidationStatus status = component.getValidationStatus();
+
+                    if (component.getValidationStatus() == ValidationStatus.VALIDATING) {
+                        LOG.debug("Will trigger immediate validation for {} because its status is VALIDATING", component);
+                        validationTrigger.trigger(component);
+                    } else {
+                        LOG.debug("Will not trigger immediate validation for {} because its status is {}", component, status);
+                    }
+                }
+            };
+
+            new TriggerValidationTask(this, triggerIfValidating).run();
+
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             LOG.info("Performed initial validation of all components in {} milliseconds", millis);
 
@@ -1231,7 +1259,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }
 
-        validationTrigger.triggerAsync(procNode);
         return procNode;
     }
 
@@ -1312,6 +1339,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
+        LOG.debug("Triggering async validation of {} due to processor reload", existingNode);
         validationTrigger.triggerAsync(existingNode);
     }
 
@@ -1855,26 +1883,33 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             //
             // Instantiate Controller Services
             //
-            for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
-                final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
-                final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, Collections.emptySet(), true);
+            final List<ControllerServiceNode> serviceNodes = new ArrayList<>();
+            try {
+                for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
+                    final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
+                    final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, Collections.emptySet(), true);
+                    serviceNode.pauseValidationTrigger();
+                    serviceNodes.add(serviceNode);
 
-                serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
-                serviceNode.setComments(controllerServiceDTO.getComments());
-                serviceNode.setName(controllerServiceDTO.getName());
-                if (!topLevel) {
-                    serviceNode.setVersionedComponentId(controllerServiceDTO.getVersionedComponentId());
+                    serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
+                    serviceNode.setComments(controllerServiceDTO.getComments());
+                    serviceNode.setName(controllerServiceDTO.getName());
+                    if (!topLevel) {
+                        serviceNode.setVersionedComponentId(controllerServiceDTO.getVersionedComponentId());
+                    }
+
+                    group.addControllerService(serviceNode);
                 }
 
-                group.addControllerService(serviceNode);
-            }
-
-            // configure controller services. We do this after creating all of them in case 1 service
-            // references another service.
-            for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
-                final String serviceId = controllerServiceDTO.getId();
-                final ControllerServiceNode serviceNode = getControllerServiceNode(serviceId);
-                serviceNode.setProperties(controllerServiceDTO.getProperties());
+                // configure controller services. We do this after creating all of them in case 1 service
+                // references another service.
+                for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
+                    final String serviceId = controllerServiceDTO.getId();
+                    final ControllerServiceNode serviceNode = getControllerServiceNode(serviceId);
+                    serviceNode.setProperties(controllerServiceDTO.getProperties());
+                }
+            } finally {
+                serviceNodes.stream().forEach(ControllerServiceNode::resumeValidationTrigger);
             }
 
             //
@@ -1963,61 +1998,66 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             for (final ProcessorDTO processorDTO : dto.getProcessors()) {
                 final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle());
                 final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
+                procNode.pauseValidationTrigger();
 
-                procNode.setPosition(toPosition(processorDTO.getPosition()));
-                procNode.setProcessGroup(group);
-                if (!topLevel) {
-                    procNode.setVersionedComponentId(processorDTO.getVersionedComponentId());
-                }
-
-                final ProcessorConfigDTO config = processorDTO.getConfig();
-                procNode.setComments(config.getComments());
-                if (config.isLossTolerant() != null) {
-                    procNode.setLossTolerant(config.isLossTolerant());
-                }
-                procNode.setName(processorDTO.getName());
-
-                procNode.setYieldPeriod(config.getYieldDuration());
-                procNode.setPenalizationPeriod(config.getPenaltyDuration());
-                procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
-                procNode.setAnnotationData(config.getAnnotationData());
-                procNode.setStyle(processorDTO.getStyle());
-
-                if (config.getRunDurationMillis() != null) {
-                    procNode.setRunDuration(config.getRunDurationMillis(), TimeUnit.MILLISECONDS);
-                }
-
-                if (config.getSchedulingStrategy() != null) {
-                    procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
-                }
-
-                if (config.getExecutionNode() != null) {
-                    procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
-                }
-
-                if (processorDTO.getState().equals(ScheduledState.DISABLED.toString())) {
-                    procNode.disable();
-                }
-
-                // ensure that the scheduling strategy is set prior to these values
-                procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
-                procNode.setScheduldingPeriod(config.getSchedulingPeriod());
-
-                final Set<Relationship> relationships = new HashSet<>();
-                if (processorDTO.getRelationships() != null) {
-                    for (final RelationshipDTO rel : processorDTO.getRelationships()) {
-                        if (rel.isAutoTerminate()) {
-                            relationships.add(procNode.getRelationship(rel.getName()));
-                        }
+                try {
+                    procNode.setPosition(toPosition(processorDTO.getPosition()));
+                    procNode.setProcessGroup(group);
+                    if (!topLevel) {
+                        procNode.setVersionedComponentId(processorDTO.getVersionedComponentId());
                     }
-                    procNode.setAutoTerminatedRelationships(relationships);
-                }
 
-                if (config.getProperties() != null) {
-                    procNode.setProperties(config.getProperties());
-                }
+                    final ProcessorConfigDTO config = processorDTO.getConfig();
+                    procNode.setComments(config.getComments());
+                    if (config.isLossTolerant() != null) {
+                        procNode.setLossTolerant(config.isLossTolerant());
+                    }
+                    procNode.setName(processorDTO.getName());
 
-                group.addProcessor(procNode);
+                    procNode.setYieldPeriod(config.getYieldDuration());
+                    procNode.setPenalizationPeriod(config.getPenaltyDuration());
+                    procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
+                    procNode.setAnnotationData(config.getAnnotationData());
+                    procNode.setStyle(processorDTO.getStyle());
+
+                    if (config.getRunDurationMillis() != null) {
+                        procNode.setRunDuration(config.getRunDurationMillis(), TimeUnit.MILLISECONDS);
+                    }
+
+                    if (config.getSchedulingStrategy() != null) {
+                        procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
+                    }
+
+                    if (config.getExecutionNode() != null) {
+                        procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
+                    }
+
+                    if (processorDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                        procNode.disable();
+                    }
+
+                    // ensure that the scheduling strategy is set prior to these values
+                    procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
+                    procNode.setScheduldingPeriod(config.getSchedulingPeriod());
+
+                    final Set<Relationship> relationships = new HashSet<>();
+                    if (processorDTO.getRelationships() != null) {
+                        for (final RelationshipDTO rel : processorDTO.getRelationships()) {
+                            if (rel.isAutoTerminate()) {
+                                relationships.add(procNode.getRelationship(rel.getName()));
+                            }
+                        }
+                        procNode.setAutoTerminatedRelationships(relationships);
+                    }
+
+                    if (config.getProperties() != null) {
+                        procNode.setProperties(config.getProperties());
+                    }
+
+                    group.addProcessor(procNode);
+                } finally {
+                    procNode.resumeValidationTrigger();
+                }
             }
 
             //
@@ -3530,7 +3570,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
         }
 
-        validationTrigger.triggerAsync(taskNode);
         return taskNode;
     }
 
@@ -3606,6 +3645,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
+        LOG.debug("Triggering async validation of {} due to reporting task reload", existingNode);
         validationTrigger.triggerAsync(existingNode);
     }
 
@@ -3697,7 +3737,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }
 
-        validationTrigger.triggerAsync(serviceNode);
         return serviceNode;
     }
 
@@ -3751,6 +3790,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // need to refresh the properties in case we are changing from ghost component to real component
         existingNode.refreshProperties();
 
+        LOG.debug("Triggering async validation of {} due to controller service reload", existingNode);
         validationTrigger.triggerAsync(existingNode);
     }
 
