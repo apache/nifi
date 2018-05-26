@@ -19,11 +19,12 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -62,7 +63,11 @@ import java.util.ArrayList;
         "If the attribute value contains a comma, newline or double quote, then the attribute value will be " +
         "escaped with double quotes.  Any double quote characters in the attribute value are escaped with " +
         "another double quote.")
-@WritesAttribute(attribute = "CSVData", description = "CSV representation of Attributes")
+@WritesAttributes({
+        @WritesAttribute(attribute = "CSVSchema", description = "CSV representation of the Schema"),
+        @WritesAttribute(attribute = "CSVData", description = "CSV representation of Attributes")
+})
+
 public class AttributesToCSV extends AbstractProcessor {
     private static final String DATA_ATTRIBUTE_NAME = "CSVData";
     private static final String SCHEMA_ATTRIBUTE_NAME = "CSVSchema";
@@ -116,7 +121,8 @@ public class AttributesToCSV extends AbstractProcessor {
             .name("include-core-attributes")
             .displayName("Include Core Attributes")
             .description("Determines if the FlowFile org.apache.nifi.flowfile.attributes.CoreAttributes, which are " +
-                    "contained in every FlowFile, should be included in the final CSV value generated.  The Attribute List property " +
+                    "contained in every FlowFile, should be included in the final CSV value generated.  Core attributes " +
+                    "will be added to the end of the CSVData and CSVSchema strings.  The Attribute List property " +
                     "overrides this setting.")
             .required(true)
             .allowableValues("true", "false")
@@ -316,7 +322,9 @@ public class AttributesToCSV extends AbstractProcessor {
                 session.transfer(conFlowfile, REL_SUCCESS);
             } else {
                 FlowFile atFlowfile = session.putAttribute(original, DATA_ATTRIBUTE_NAME , sbValues.toString());
-                if(includeSchema){session.putAttribute(original, SCHEMA_ATTRIBUTE_NAME , sbNames.toString());}
+                if(includeSchema){
+                    session.putAttribute(original, SCHEMA_ATTRIBUTE_NAME , sbNames.toString());
+                }
                 session.transfer(atFlowfile, REL_SUCCESS);
             }
         } catch (Exception e) {
