@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ACK_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ACK_ID_DESCRIPTION;
@@ -65,7 +66,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.SERIALIZED_
 
 @SeeAlso({PublishGCPubSub.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@Tags({"google", "google-cloud", "pubsub", "consume"})
+@Tags({"google", "google-cloud", "gcp", "message", "pubsub", "consume"})
 @CapabilityDescription("Consumes message from the configured Google Cloud PubSub subscription. If the 'Batch Size' is set, " +
         "the configured number of messages will be pulled in a single request, else only one message will be pulled.")
 @WritesAttributes({
@@ -81,13 +82,15 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
             .name("gcp-pubsub-subscription")
             .displayName("Subscription")
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .description("Subscription name of the Google Cloud Pub/Sub")
+            .description("Name of the Google Cloud Pub/Sub Subscription")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private SubscriberStub subscriber = null;
     private PullRequest pullRequest;
+
+    private AtomicReference<Exception> storedException = new AtomicReference<>();
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
@@ -102,7 +105,8 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         try {
             subscriber = getSubscriber(context);
         } catch (IOException e) {
-            getLogger().error("Failed to create Google Cloud Subscriber due to ", e);
+            storedException.set(e);
+            getLogger().error("Failed to create Google Cloud Subscriber due to {}", new Object[]{e});
         }
     }
 
@@ -129,6 +133,13 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         if (subscriber == null) {
+
+            if (storedException.get() != null) {
+                getLogger().error("Failed to create Google Cloud PubSub subscriber due to {}", new Object[]{storedException.get()});
+            } else {
+                getLogger().error("Google Cloud PubSub Subscriber was not properly created. Yielding the processor...");
+            }
+
             context.yield();
             return;
         }

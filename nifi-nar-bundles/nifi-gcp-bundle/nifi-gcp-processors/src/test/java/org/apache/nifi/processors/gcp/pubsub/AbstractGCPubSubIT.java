@@ -19,8 +19,6 @@ package org.apache.nifi.processors.gcp.pubsub;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,12 +27,10 @@ public class AbstractGCPubSubIT {
 
     protected static final String PROJECT_ID = "my-gcm-client";
     protected static final String CONTROLLER_SERVICE = "GCPCredentialsService";
-
     protected static TestRunner runner;
 
-    @BeforeClass
-    public static void setup() throws InitializationException {
-        final String serviceAccountJsonFilePath = "path/to/the/credentials.json";
+    protected TestRunner setCredentialsCS(TestRunner runner) throws InitializationException {
+        final String serviceAccountJsonFilePath = "path/to/credentials/json";
         final Map<String, String> propertiesMap = new HashMap<>();
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
 
@@ -42,10 +38,10 @@ public class AbstractGCPubSubIT {
         propertiesMap.put("compute-engine-credentials", "false");
         propertiesMap.put("service-account-json-file", serviceAccountJsonFilePath);
 
-        runner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
         runner.addControllerService(CONTROLLER_SERVICE, credentialsControllerService, propertiesMap);
         runner.enableControllerService(credentialsControllerService);
-
         runner.assertValid(credentialsControllerService);
+
+        return runner;
     }
 }

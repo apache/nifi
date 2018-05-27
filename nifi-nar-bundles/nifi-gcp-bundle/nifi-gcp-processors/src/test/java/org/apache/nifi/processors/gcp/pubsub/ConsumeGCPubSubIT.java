@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.gcp.pubsub;
 
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunners;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ACK_ID_ATTRIBUTE;
@@ -24,10 +27,17 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_PUBLISH
 
 public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
 
+    @BeforeClass
+    public static void setup() throws InitializationException {
+        runner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
+    }
+
     @Test
-    public void testSimpleConsume() {
+    public void testSimpleConsume() throws InitializationException {
         final String subscription = "my-sub";
         runner.clearTransferState();
+
+        runner = setCredentialsCS(runner);
 
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
@@ -45,9 +55,11 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
     }
 
     @Test
-    public void testConsumeWithBatchSize() {
+    public void testConsumeWithBatchSize() throws InitializationException {
         final String subscription = "my-sub";
         runner.clearTransferState();
+
+        runner = setCredentialsCS(runner);
 
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
@@ -67,9 +79,11 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
     }
 
     @Test
-    public void testConsumeWithFormattedSubscriptionName() {
+    public void testConsumeWithFormattedSubscriptionName() throws InitializationException {
         final String subscription = "projects/my-gcm-client/subscriptions/my-sub";
         runner.clearTransferState();
+
+        runner = setCredentialsCS(runner);
 
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);

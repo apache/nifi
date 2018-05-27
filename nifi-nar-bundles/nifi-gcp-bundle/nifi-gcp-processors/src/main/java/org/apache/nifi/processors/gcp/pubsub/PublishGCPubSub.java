@@ -19,7 +19,7 @@ package org.apache.nifi.processors.gcp.pubsub;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.FixedCredentialsProvider;
-import com.google.api.gax.core.InstantiatingExecutorProvider;
+import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
@@ -34,6 +34,8 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -45,6 +47,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,6 +57,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_DESCRIPTION;
@@ -62,9 +66,9 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 
 @SeeAlso({ConsumeGCPubSub.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"google", "google-cloud", "pubsub", "publish"})
-@CapabilityDescription("Publishes the content of the incoming flowfile to the configured Google Cloud PubSub topic. The processor supports dynamic properties" +
-        "to be added. If any such dynamic properties are present, they will be sent along with the message in the form of 'attributes'.")
+@Tags({"google", "google-cloud", "gcp", "message", "pubsub", "publish"})
+@CapabilityDescription("Publishes the content of the incoming flowfile to the configured Google Cloud PubSub topic. The processor supports dynamic properties." +
+        " If any dynamic properties are present, they will be sent along with the message in the form of 'attributes'.")
 @DynamicProperty(name = "Attribute name", value = "Value to be set to the attribute",
         description = "Attributes to be set for the outgoing Google Cloud PubSub message", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @WritesAttributes({
@@ -78,15 +82,16 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
             .displayName("Topic Name")
             .description("Name of the Google Cloud PubSub Topic")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor EXECUTOR_COUNT = new PropertyDescriptor.Builder()
-            .name("gcp-pubsub-publish-executor-count")
-            .displayName("Executor Count")
-            .description("Indicates the number of executors the cloud service should use to publish the messages")
-            .required(false)
+    public static final PropertyDescriptor FLOWFILE_FETCH_COUNT = new PropertyDescriptor.Builder()
+            .name("gcp-publish-flowfile-fetch-count")
+            .displayName("FlowFile Fetch Count")
+            .description("Indicates the number of FlowFiles to be pulled in a single run.")
+            .required(true)
+            .defaultValue("15")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -96,14 +101,15 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
             .build();
 
     private Publisher publisher = null;
+    private AtomicReference<Exception> storedException = new AtomicReference<>();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.of(PROJECT_ID,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 TOPIC_NAME,
-                EXECUTOR_COUNT,
-                BATCH_SIZE);
+                BATCH_SIZE,
+                FLOWFILE_FETCH_COUNT);
     }
 
     @Override
@@ -125,59 +131,86 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
         );
     }
 
+    @OnScheduled
+    public void onScheduled(ProcessContext context) {
+        try {
+            publisher = getPublisherBuilder(context).build();
+        } catch (IOException e) {
+            getLogger().error("Failed to create Google Cloud PubSub Publisher due to {}", new Object[]{e});
+            storedException.set(e);
+        }
+    }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final int flowFileCount = context.getProperty(FLOWFILE_FETCH_COUNT).asInteger();
+        final List<FlowFile> flowFiles = session.get(flowFileCount);
 
-        if (flowFile == null) {
+        if (flowFiles.isEmpty() || publisher == null) {
+            if (storedException.get() != null) {
+                getLogger().error("Google Cloud PubSub Publisher was not properly created due to {}", new Object[]{storedException.get()});
+            }
             context.yield();
             return;
         }
 
         final long startNanos = System.nanoTime();
-
-        final Map<String, String> attributes = new HashMap<>();
+        final List<FlowFile> successfulFlowFiles = new ArrayList<>();
+        final String topicName = getTopicName(context).toString();
 
         try {
-            publisher = getPublisherBuilder(context, flowFile).build();
+            for (FlowFile flowFile : flowFiles) {
+                try {
+                    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    session.exportTo(flowFile, baos);
+                    final ByteString flowFileContent = ByteString.copyFromUtf8(baos.toString());
 
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            session.exportTo(flowFile, baos);
-            final ByteString flowFileContent = ByteString.copyFromUtf8(baos.toString());
+                    PubsubMessage message = PubsubMessage.newBuilder().setData(flowFileContent)
+                            .setPublishTime(Timestamp.newBuilder().build())
+                            .putAllAttributes(getDynamicAttributesMap(context, flowFile))
+                            .build();
 
-            PubsubMessage message = PubsubMessage.newBuilder().setData(flowFileContent)
-                    .setPublishTime(Timestamp.newBuilder().build())
-                    .putAllAttributes(getDynamicAttributesMap(context, flowFile))
-                    .build();
+                    ApiFuture<String> messageIdFuture = publisher.publish(message);
 
-            ApiFuture<String> messageIdFuture = publisher.publish(message);
+                    while (messageIdFuture.isDone()) {
+                        Thread.sleep(500L);
+                    }
 
-            while (messageIdFuture.isDone()) {
-                Thread.sleep(1000L);
+                    final String messageId = messageIdFuture.get();
+                    final Map<String, String> attributes = new HashMap<>();
+
+                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageId);
+                    attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
+
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    successfulFlowFiles.add(flowFile);
+                } catch (InterruptedException | ExecutionException e) {
+                    if (e.getCause() instanceof DeadlineExceededException) {
+                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {} but attempting again may succeed " +
+                                        "so routing to retry", new Object[]{topicName, e.getLocalizedMessage()}, e);
+                        session.transfer(flowFile, REL_RETRY);
+                    } else {
+                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}",
+                                new Object[]{topicName, e});
+                        session.transfer(flowFile, REL_FAILURE);
+                        context.yield();
+                    }
+                }
             }
-
-            final String messageId = messageIdFuture.get();
-
-            attributes.put(MESSAGE_ID_ATTRIBUTE, messageId);
-            attributes.put(TOPIC_NAME_ATTRIBUTE, getTopicName(context, flowFile).toString());
-
-            flowFile = session.putAllAttributes(flowFile, attributes);
-        } catch (IOException e) {
-            getLogger().error("Routing to 'failure'. Failed to build the Google Cloud PubSub Publisher due to ", e);
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        } catch (InterruptedException | ExecutionException e) {
-            getLogger().error("Routing to 'retry'. Failed to publish the message to Google PubSub topic due to ", e);
-            session.transfer(flowFile, REL_RETRY);
-            return;
         } finally {
-            shutdownPublisher();
+            if (!successfulFlowFiles.isEmpty()) {
+                session.transfer(successfulFlowFiles, REL_SUCCESS);
+                for (FlowFile flowFile : successfulFlowFiles) {
+                    final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                    session.getProvenanceReporter().send(flowFile, topicName, transmissionMillis);
+                }
+            }
         }
+    }
 
-        final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        session.getProvenanceReporter().send(flowFile, getTopicName(context, flowFile).toString(), transmissionMillis);
-        session.transfer(flowFile, REL_SUCCESS);
+    @OnStopped
+    public void onStopped() {
+        shutdownPublisher();
     }
 
     private void shutdownPublisher() {
@@ -186,12 +219,12 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                 publisher.shutdown();
             }
         } catch (Exception e) {
-            getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Publisher due to ", e);
+            getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Publisher due to {}", new Object[]{e});
         }
     }
 
-    private ProjectTopicName getTopicName(ProcessContext context, FlowFile flowFile) {
-        final String topic = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions(flowFile).getValue();
+    private ProjectTopicName getTopicName(ProcessContext context) {
+        final String topic = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
         final String projectId = context.getProperty(PROJECT_ID).getValue();
 
         if (topic.contains("/")) {
@@ -213,18 +246,9 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
         return attributes;
     }
 
-    private Publisher.Builder getPublisherBuilder(ProcessContext context, FlowFile flowFile) {
-        Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context, flowFile))
+    private Publisher.Builder getPublisherBuilder(ProcessContext context) {
+        Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context))
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)));
-
-        // Setting executor count, if provided
-        if (context.getProperty(EXECUTOR_COUNT).isSet()) {
-            final Integer executorThreadCount = context.getProperty(EXECUTOR_COUNT).asInteger();
-
-            publisherBuilder.setExecutorProvider(InstantiatingExecutorProvider.newBuilder()
-                    .setExecutorThreadCount(executorThreadCount)
-                    .build());
-        }
 
         // Setting batch size, if provided
         if (context.getProperty(BATCH_SIZE).isSet()) {
@@ -235,6 +259,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                     .setIsEnabled(true)
                     .build());
         }
+
         return publisherBuilder;
     }
 }

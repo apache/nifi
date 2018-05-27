@@ -34,7 +34,8 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor {
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("gcp-pubsub-publish-batch-size")
             .displayName("Batch Size")
-            .description("Indicates the number of messages the cloud service should bundle together in a batch")
+            .description("Indicates the number of messages the cloud service should bundle together in a batch. If not set and left empty, only one message " +
+                    "will be used in a batch")
             .required(false)
             .defaultValue("15")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)

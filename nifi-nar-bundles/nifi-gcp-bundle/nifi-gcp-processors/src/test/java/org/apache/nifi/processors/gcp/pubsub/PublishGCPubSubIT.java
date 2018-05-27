@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.gcp.pubsub;
 
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunners;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
@@ -24,13 +26,21 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 
 public class PublishGCPubSubIT extends AbstractGCPubSubIT{
 
+    @BeforeClass
+    public static void setup() throws InitializationException {
+        runner = TestRunners.newTestRunner(PublishGCPubSub.class);
+    }
+
     @Test
     public void testSimplePublish() throws InitializationException {
         final String topic = "my-topic";
 
+        runner = setCredentialsCS(runner);
+
         runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(PublishGCPubSub.TOPIC_NAME, topic);
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(PublishGCPubSub.FLOWFILE_FETCH_COUNT, "1");
 
         runner.assertValid();
 
@@ -43,12 +53,15 @@ public class PublishGCPubSubIT extends AbstractGCPubSubIT{
     }
 
     @Test
-    public void testPublishWithFormattedTopicName() {
+    public void testPublishWithFormattedTopicName() throws InitializationException {
         final String topic = "projects/my-gcm-client/topics/my-topic";
+
+        runner = setCredentialsCS(runner);
 
         runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(PublishGCPubSub.TOPIC_NAME, topic);
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(PublishGCPubSub.FLOWFILE_FETCH_COUNT, "1");
 
         runner.assertValid();
 
