@@ -126,6 +126,12 @@
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
             <version>5.6.8</version>
             <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.vividsolutions</groupId>
+                    <artifactId>jts</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
