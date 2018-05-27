@@ -39,21 +39,26 @@ public class TestExecuteMorphline {
     @Before
     public void init() {
         testRunner = TestRunners.newTestRunner(ExecuteMorphline.class);
-        URL file = ExecuteMorphlineTest.class.getClassLoader().getResource("morphlines.conf");
+        testRunner.setValidateExpressionUsage(false);
+        URL file = TestExecuteMorphline.class.getClassLoader().getResource("morphlines.conf");
         testRunner.setProperty(ExecuteMorphline.MORPHLINES_FILE, file.getPath());
         testRunner.setProperty(ExecuteMorphline.MORPHLINES_ID, "test");
+        // Try to get one of the fields which was parsed; syslog_timestamp in our case
+        testRunner.setProperty(ExecuteMorphline.MORPHLINES_OUTPUT_FIELD, "syslog_timestamp");
     }
 
     @Test
     public void testProcessorSuccess() throws IOException {
-        try (
-                InputStream inputStream = getClass().getResourceAsStream("/good_record.txt")
-        ) {
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put(CoreAttributes.FILENAME.key(), "good_record.txt");
-            testRunner.enqueue(inputStream, attributes);
-            testRunner.run();
+        InputStream inputStream = null;
+        try {
+            inputStream = getClass().getResourceAsStream("/good_record.txt");
+        } catch(Exception e) {
+            System.out.println("ERROR: Good record file does not exist");
         }
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put(CoreAttributes.FILENAME.key(), "good_record.txt");
+        testRunner.enqueue(inputStream, attributes);
+        testRunner.run();
         List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(ExecuteMorphline.REL_SUCCESS);
 
         assertEquals(1, result.size());
@@ -61,14 +66,16 @@ public class TestExecuteMorphline {
 
     @Test
     public void testProcessorFail() throws IOException {
-        try (
-                InputStream inputStream = getClass().getResourceAsStream("/bad_record.txt")
-        ) {
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put(CoreAttributes.FILENAME.key(), "bad_record.txt");
-            testRunner.enqueue(inputStream, attributes);
-            testRunner.run();
+        InputStream inputStream = null;
+        try {
+            inputStream = getClass().getResourceAsStream("/bad_record.txt");
+        } catch(Exception e) {
+            System.out.println("ERROR: Bad record file does not exist");
         }
+        Map<String, String> attributes = new HashMap<String, String>();
+        attributes.put(CoreAttributes.FILENAME.key(), "bad_record.txt");
+        testRunner.enqueue(inputStream, attributes);
+        testRunner.run();
         List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(ExecuteMorphline.REL_FAILURE);
 
         assertEquals(1, result.size());

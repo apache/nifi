@@ -110,6 +110,7 @@ public class ExecuteMorphline extends AbstractProcessor {
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet.<Relationship>builder()
         .add(REL_SUCCESS)
         .add(REL_FAILURE)
+        .add(REL_ORIGINAL)
         .build();
 
     public PropertyValue morphlinesFileProperty;
@@ -187,7 +188,7 @@ public class ExecuteMorphline extends AbstractProcessor {
                         for (Iterator<Record> it = results.iterator(); it.hasNext();) {
                             Record result = it.next();
                             if (result.getFirstValue(morphlinesOutputField) != null) {
-                                String outputValue = it.next().getFirstValue(morphlinesOutputField).toString() + "/n";
+                                String outputValue = result.getFirstValue(morphlinesOutputField).toString() + "\n";
                                 out.write(outputValue.getBytes());
                                 written.incrementAndGet();
                             } else {
@@ -205,7 +206,7 @@ public class ExecuteMorphline extends AbstractProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
                 session.transfer(originalFlowFile, REL_ORIGINAL);
             } else {
-                getLogger().warn(String.format("Morphlines transformations did not march any of the input records for %s Morphlines ID", morphlinesId));
+                getLogger().warn(String.format("Morphlines transformations did not match any of the input records for %s Morphlines ID", morphlinesId));
                 session.transfer(flowFile, REL_ORIGINAL);
                 session.transfer(originalFlowFile, REL_FAILURE);
             }
