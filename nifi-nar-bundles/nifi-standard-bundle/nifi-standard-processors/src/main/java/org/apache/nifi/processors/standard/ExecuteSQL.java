@@ -216,7 +216,7 @@ public class ExecuteSQL extends AbstractProcessor {
         }
 
         int resultCount=0;
-        try (final Connection con = dbcpService.getConnection();
+        try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
             final PreparedStatement st = con.prepareStatement(selectQuery)) {
             st.setQueryTimeout(queryTimeout); // timeout in seconds
 

@@ -635,7 +635,7 @@
 
                 // conditionally include the cluster node id
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-right: 3px;"></div>';
+                    markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage"></div>';
                 }
 
                 // conditionally support going to the component

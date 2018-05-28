@@ -481,7 +481,9 @@ public class ProcessGroupStatus implements Cloneable {
             // and should not differ amongst nodes. however, whether a processor is invalid
             // can be driven by environmental conditions. this check allows any of those to
             // take precedence over the configured run status.
-            if (RunStatus.Invalid.equals(statusToMerge.getRunStatus())) {
+            if (RunStatus.Validating.equals(statusToMerge.getRunStatus())) {
+                merged.setRunStatus(RunStatus.Validating);
+            } else if (RunStatus.Invalid.equals(statusToMerge.getRunStatus())) {
                 merged.setRunStatus(RunStatus.Invalid);
             }
         }

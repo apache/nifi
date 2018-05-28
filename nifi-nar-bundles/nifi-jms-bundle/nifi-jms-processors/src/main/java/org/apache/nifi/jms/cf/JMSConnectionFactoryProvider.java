@@ -22,14 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
-import javax.net.ssl.SSLContext;
-import java.io.File;
-
 import javax.jms.ConnectionFactory;
+import javax.net.ssl.SSLContext;
 
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -37,6 +32,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -78,9 +76,9 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
 
     private volatile ConnectionFactory connectionFactory;
 
-    static final String BROKER = "broker";
-    static final String CF_IMPL = "cf";
-    static final String CF_LIB = "cflib";
+    private static final String BROKER = "broker";
+    private static final String CF_IMPL = "cf";
+    private static final String CF_LIB = "cflib";
 
     public static final PropertyDescriptor CONNECTION_FACTORY_IMPL = new PropertyDescriptor.Builder()
             .name(CF_IMPL)
@@ -97,8 +95,9 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             .description("Path to the directory with additional resources (i.e., JARs, configuration files etc.) to be added "
                     + "to the classpath. Such resources typically represent target MQ client libraries for the "
                     + "ConnectionFactory implementation.")
-            .addValidator(new ClientLibValidator())
+            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
             .required(true)
+            .dynamicallyModifiesClasspath(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -159,13 +158,10 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                 if (logger.isInfoEnabled()) {
                     logger.info("Configuring " + this.getClass().getSimpleName() + " for '"
                             + context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be connected to '"
-                            + BROKER_URI + "'");
+                            + context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue() + "'");
                 }
-                // will load user provided libraries/resources on the classpath
-                Utils.addResourcesToClasspath(context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue());
 
                 this.createConnectionFactoryInstance(context);
-
                 this.setConnectionFactoryProperties(context);
             }
             this.configured = true;
@@ -312,48 +308,13 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * evaluation
      */
     static class NonEmptyBrokerURIValidator implements Validator {
-
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
-            String value = input;
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                value = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }
-            return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, value, context);
+            return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input, context);
         }
     }
 
-    /**
-     *
-     */
-    static class ClientLibValidator implements Validator {
-
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            String libDirPath = context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue();
-            StringBuilder invalidationMessageBuilder = new StringBuilder();
-            if (libDirPath != null) {
-                File file = new File(libDirPath);
-                if (!file.isDirectory()) {
-                    invalidationMessageBuilder
-                            .append("MQ Client library directory path must point to a directory. Was '")
-                            .append(file.getAbsolutePath())
-                            .append("'.");
-                }
-            } else {
-                invalidationMessageBuilder.append("'MQ Client Libraries path' must be provided. \n");
-            }
-            String invalidationMessage = invalidationMessageBuilder.toString();
-            ValidationResult vResult;
-            if (invalidationMessage.length() == 0) {
-                vResult = new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation("Client lib path is valid and points to a directory").valid(true).build();
-            } else {
-                vResult = new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation("Client lib path is invalid. " + invalidationMessage)
-                        .valid(false).build();
-            }
-            return vResult;
-        }
-    }
 }

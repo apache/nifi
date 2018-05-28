@@ -23,9 +23,17 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class AccessPolicyProviderInvocationHandler implements InvocationHandler {
-
+    private static final Method getUserGroupProviderMethod;
     private final AccessPolicyProvider accessPolicyProvider;
     private final ClassLoader classLoader;
+
+    static {
+        try {
+            getUserGroupProviderMethod = AccessPolicyProvider.class.getMethod("getUserGroupProvider");
+        } catch (final Exception e) {
+            throw new RuntimeException("Unable to obtain necessary class information for AccessPolicyProvider", e);
+        }
+    }
 
     public AccessPolicyProviderInvocationHandler(final AccessPolicyProvider accessPolicyProvider, final ClassLoader classLoader) {
         this.accessPolicyProvider = accessPolicyProvider;
@@ -35,7 +43,7 @@ public class AccessPolicyProviderInvocationHandler implements InvocationHandler 
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-            if (AccessPolicyProvider.class.getMethod("getUserGroupProvider").equals(method)) {
+            if (getUserGroupProviderMethod.equals(method)) {
                 final UserGroupProvider userGroupProvider = (UserGroupProvider) method.invoke(accessPolicyProvider, args);
                 if (userGroupProvider == null) {
                     return userGroupProvider;

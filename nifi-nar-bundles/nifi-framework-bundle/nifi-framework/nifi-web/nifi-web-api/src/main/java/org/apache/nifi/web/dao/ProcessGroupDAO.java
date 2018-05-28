@@ -68,8 +68,18 @@ public interface ProcessGroupDAO {
      *
      * @param groupId id
      * @param state scheduled state
+     * @param componentIds component ids
      */
     void verifyScheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
+
+    /**
+     * Verifies the specified process group can be enabled.
+     *
+     * @param groupId id
+     * @param state scheduled state
+     * @param componentIds component ids
+     */
+    void verifyEnableComponents(String groupId, ScheduledState state, Set<String> componentIds);
 
     /**
      * Verifies the specified controller services can be modified

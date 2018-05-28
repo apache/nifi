@@ -56,8 +56,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.atlas.hook.NiFiAtlasHook;
 import org.apache.nifi.atlas.NiFiAtlasClient;
-import org.apache.nifi.atlas.NiFiAtlasHook;
 import org.apache.nifi.atlas.NiFiFlow;
 import org.apache.nifi.atlas.NiFiFlowAnalyzer;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
@@ -260,7 +260,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
 
     static final PropertyDescriptor KAFKA_KERBEROS_SERVICE_NAME = new PropertyDescriptor.Builder()
-            .name("kafka-kerberos-service-name-kafka")
+            .name("kafka-kerberos-service-name")
             .displayName("Kafka Kerberos Service Name")
             .description("The Kerberos principal name that Kafka runs for Atlas notification." +
                     " This can be defined either in Kafka's JAAS config or in Kafka's config." +

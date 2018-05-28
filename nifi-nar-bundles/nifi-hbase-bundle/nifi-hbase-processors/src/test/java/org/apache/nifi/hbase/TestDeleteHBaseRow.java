@@ -19,45 +19,19 @@ package org.apache.nifi.hbase;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-public class TestDeleteHBaseRow {
-    private TestRunner runner;
-    private MockHBaseClientService hBaseClient;
+public class TestDeleteHBaseRow extends DeleteTestBase {
 
     @Before
     public void setup() throws InitializationException {
-        runner = TestRunners.newTestRunner(new DeleteHBaseRow());
-
-        hBaseClient = new MockHBaseClientService();
-        runner.addControllerService("hbaseClient", hBaseClient);
-        runner.enableControllerService(hBaseClient);
-
-        runner.setProperty(DeleteHBaseRow.TABLE_NAME, "nifi");
-        runner.setProperty(DeleteHBaseRow.HBASE_CLIENT_SERVICE, "hbaseClient");
-    }
-
-    List<String> populateTable(int max) {
-        List<String> ids = new ArrayList<>();
-        for (int index = 0; index < max; index++) {
-            String uuid = UUID.randomUUID().toString();
-            ids.add(uuid);
-            Map<String, String> cells = new HashMap<>();
-            cells.put("test", UUID.randomUUID().toString());
-            hBaseClient.addResult(uuid, cells, System.currentTimeMillis());
-        }
-
-        return ids;
+        super.setup(DeleteHBaseRow.class);
     }
 
     @Test

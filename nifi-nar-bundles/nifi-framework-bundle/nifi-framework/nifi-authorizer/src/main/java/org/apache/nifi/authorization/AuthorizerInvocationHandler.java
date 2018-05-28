@@ -24,8 +24,17 @@ import java.lang.reflect.Method;
 
 public class AuthorizerInvocationHandler implements InvocationHandler {
 
+    private static final Method getAccessPolicyProviderMethod;
     private final Authorizer authorizer;
     private final ClassLoader classLoader;
+
+    static {
+        try {
+            getAccessPolicyProviderMethod = ManagedAuthorizer.class.getMethod("getAccessPolicyProvider");
+        } catch (final Exception e) {
+            throw new RuntimeException("Unable to obtain necessary class information for AccessPolicyProvider", e);
+        }
+    }
 
     public AuthorizerInvocationHandler(final Authorizer authorizer, final ClassLoader classLoader) {
         this.authorizer = authorizer;
@@ -35,7 +44,7 @@ public class AuthorizerInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
-            if (ManagedAuthorizer.class.getMethod("getAccessPolicyProvider").equals(method)) {
+            if (getAccessPolicyProviderMethod.equals(method)) {
                 final AccessPolicyProvider accessPolicyProvider = (AccessPolicyProvider) method.invoke(authorizer, args);
                 if (accessPolicyProvider == null) {
                     return accessPolicyProvider;

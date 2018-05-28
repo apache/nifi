@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+org.apache.nifi.hbase.DeleteHBaseCells
 org.apache.nifi.hbase.DeleteHBaseRow
 org.apache.nifi.hbase.GetHBase
 org.apache.nifi.hbase.PutHBaseCell

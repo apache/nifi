@@ -74,6 +74,10 @@ public class ITJettyWebSocketCommunication {
         serverService = new JettyWebSocketServer();
         serverServiceContext = new ControllerServiceTestContext(serverService, "JettyWebSocketServer1");
         serverServiceContext.setCustomValue(JettyWebSocketServer.LISTEN_PORT, String.valueOf(serverPort));
+        serverServiceContext.setCustomValue(JettyWebSocketServer.BASIC_AUTH, "true");
+        serverServiceContext.setCustomValue(JettyWebSocketServer.USERS_PROPERTIES_FILE,
+                getClass().getResource("/users.properties").getPath());
+        serverServiceContext.setCustomValue(JettyWebSocketServer.AUTH_ROLES, "user,test");
 
         customizeServer();
 
@@ -88,6 +92,9 @@ public class ITJettyWebSocketCommunication {
         clientService = new JettyWebSocketClient();
         clientServiceContext = new ControllerServiceTestContext(clientService, "JettyWebSocketClient1");
         clientServiceContext.setCustomValue(JettyWebSocketClient.WS_URI, (isSecure() ? "wss" : "ws") + "://localhost:" + serverPort + serverPath);
+
+        clientServiceContext.setCustomValue(JettyWebSocketClient.USER_NAME, "user2");
+        clientServiceContext.setCustomValue(JettyWebSocketClient.USER_PASSWORD, "password2");
 
         customizeClient();
 

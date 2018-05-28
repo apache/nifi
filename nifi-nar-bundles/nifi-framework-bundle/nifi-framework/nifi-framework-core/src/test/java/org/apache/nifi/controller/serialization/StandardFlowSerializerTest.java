@@ -36,6 +36,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.w3c.dom.Document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -101,7 +102,8 @@ public class StandardFlowSerializerTest {
 
         // serialize the controller
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
-        serializer.serialize(controller, os, ScheduledStateLookup.IDENTITY_LOOKUP);
+        final Document doc = serializer.transform(controller, ScheduledStateLookup.IDENTITY_LOOKUP);
+        serializer.serialize(doc, os);
 
         // verify the results contain the serialized string
         final String serializedFlow = os.toString(StandardCharsets.UTF_8.name());

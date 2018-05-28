@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -38,10 +37,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,7 +59,7 @@ import java.util.Set;
         "ElasticSearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
         "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +
         "from ElasticSearch will be loaded into memory all at once and converted into the resulting flowfiles.")
-public class JsonQueryElasticsearch extends AbstractProcessor {
+public class JsonQueryElasticsearch extends AbstractProcessor implements ElasticSearchRestProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
             .description("All original flowfiles that don't cause an error to occur go to this relationship. " +
                     "This applies even if you select the \"split up hits\" option to send individual hits to the " +
@@ -78,49 +75,6 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
     public static final Relationship REL_AGGREGATIONS = new Relationship.Builder().name("aggregations")
             .description("Aggregations are routed to this relationship.")
             .build();
-
-    public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
-            .name("el-rest-fetch-index")
-            .displayName("Index")
-            .description("The name of the index to read from")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
-            .name("el-rest-type")
-            .displayName("Type")
-            .description("The type of this document (used by Elasticsearch for indexing and searching)")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("el-rest-query")
-            .displayName("Query")
-            .description("A query in JSON syntax, not Lucene syntax. Ex: " +
-                    "{\n" +
-                    "\t\"query\": {\n" +
-                    "\t\t\"match\": {\n" +
-                    "\t\t\t\"name\": \"John Smith\"\n" +
-                    "\t\t}\n" +
-                    "\t}\n" +
-                    "}")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("el-query-attribute")
-            .displayName("Query Attribute")
-            .description("If set, the executed query will be set on each result flowfile in the specified attribute.")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(Validator.VALID)
-            .required(false)
-            .build();
-
     public static final AllowableValue SPLIT_UP_YES = new AllowableValue(
         "splitUp-yes",
         "Yes",
@@ -149,14 +103,6 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
             .defaultValue(SPLIT_UP_HITS_NO.getValue())
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
-
-    public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("el-rest-client-service")
-            .displayName("Client Service")
-            .description("An ElasticSearch client service to use for running queries.")
-            .identifiesControllerService(ElasticSearchClientService.class)
-            .required(true)
             .build();
 
     private static final Set<Relationship> relationships;
@@ -206,21 +152,6 @@ public class JsonQueryElasticsearch extends AbstractProcessor {
 
 
     private final ObjectMapper mapper = new ObjectMapper();
-
-    private String getQuery(FlowFile input, ProcessContext context, ProcessSession session) throws IOException {
-        String retVal = null;
-        if (context.getProperty(QUERY).isSet()) {
-            retVal = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
-        } else if (input != null) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            session.exportTo(input, out);
-            out.close();
-
-            retVal = new String(out.toByteArray());
-        }
-
-        return retVal;
-    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {

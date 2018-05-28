@@ -972,7 +972,6 @@
                 init: function () {
                     var refreshed;
 
-                    var zoomed = false;
                     var panning = false;
 
                     // filters zoom events as programmatically modifying the translate or scale now triggers the handlers
@@ -1022,13 +1021,8 @@
                                 k = d3.event.transform.k;
                             }
 
-                            // if we have zoomed, indicate that we are panning
-                            // to prevent deselection elsewhere
-                            if (zoomed) {
-                                panning = true;
-                            } else {
-                                zoomed = true;
-                            }
+                            // indicate that we are panning to prevent deselection in zoom.end below
+                            panning = true;
 
                             // refresh the canvas
                             refreshed = nfCanvas.View.refresh({
@@ -1069,7 +1063,6 @@
                             }
 
                             panning = false;
-                            zoomed = false;
                         });
 
                     // add the behavior to the canvas and disable dbl click zoom

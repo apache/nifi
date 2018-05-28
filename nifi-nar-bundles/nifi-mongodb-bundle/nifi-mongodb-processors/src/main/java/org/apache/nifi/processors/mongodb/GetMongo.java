@@ -96,7 +96,7 @@ public class GetMongo extends AbstractMongoProcessor {
                 "the flowfile's body. If this field is left blank and a timer is enabled instead of an incoming connection, " +
                 "that will result in a full collection fetch using a \"{}\" query.")
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(DOCUMENT_VALIDATOR)
         .build();
 
@@ -297,7 +297,7 @@ public class GetMongo extends AbstractMongoProcessor {
         configureMapper(jsonTypeSetting);
 
 
-        final MongoCollection<Document> collection = getCollection(context);
+        final MongoCollection<Document> collection = getCollection(context, input);
 
         try {
             final FindIterable<Document> it = query != null ? collection.find(query) : collection.find();
@@ -346,6 +346,7 @@ public class GetMongo extends AbstractMongoProcessor {
                     }
                 } else {
                     while (cursor.hasNext()) {
+                        final FlowFile ffPtr = input;
                         flowFile = session.create();
                         flowFile = session.write(flowFile, out -> {
                             String json;
@@ -354,7 +355,7 @@ public class GetMongo extends AbstractMongoProcessor {
                             } else {
                                 json = cursor.next().toJson();
                             }
-                            out.write(json.getBytes(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue()));
+                            out.write(json.getBytes(context.getProperty(CHARSET).evaluateAttributeExpressions(ffPtr).getValue()));
                         });
                         flowFile = session.putAllAttributes(flowFile, attributes);
 

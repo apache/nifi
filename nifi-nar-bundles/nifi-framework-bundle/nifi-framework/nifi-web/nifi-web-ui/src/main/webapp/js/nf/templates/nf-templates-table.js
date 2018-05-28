@@ -283,18 +283,18 @@
                 var markup = '';
 
                 if (dataContext.permissions.canRead === true) {
-                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px; margin-right: 3px;"></div>';
+                    markup += '<div title="Download" class="pointer export-template icon icon-template-save"></div>';
                 }
 
                 // all DFMs to remove templates
                 if (dataContext.permissions.canWrite === true) {
-                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
+                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash"></div>';
                 }
 
                 // allow policy configuration conditionally if embedded in
                 if (top !== window && nfCommon.canAccessTenants()) {
                     if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isManagedAuthorizer()) {
-                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
                     }
                 }
 

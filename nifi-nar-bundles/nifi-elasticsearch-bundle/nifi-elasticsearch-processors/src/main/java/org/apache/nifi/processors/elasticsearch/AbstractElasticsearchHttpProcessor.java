@@ -18,11 +18,13 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.Route;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -31,17 +33,19 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -82,6 +86,24 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("proxy-username")
+            .displayName("Proxy Username")
+            .description("Proxy Username")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("proxy-password")
+            .displayName("Proxy Password")
+            .description("Proxy Password")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("elasticsearch-http-connect-timeout")
             .displayName("Connection Timeout")
@@ -115,6 +137,28 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
                 .build();
     }
 
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+    static final List<PropertyDescriptor> COMMON_PROPERTY_DESCRIPTORS;
+
+    static {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(ES_URL);
+        properties.add(PROP_SSL_CONTEXT_SERVICE);
+        properties.add(USERNAME);
+        properties.add(PASSWORD);
+        properties.add(CONNECT_TIMEOUT);
+        properties.add(RESPONSE_TIMEOUT);
+        properties.add(PROXY_CONFIGURATION_SERVICE);
+        properties.add(PROXY_HOST);
+        properties.add(PROXY_PORT);
+        properties.add(PROXY_USERNAME);
+        properties.add(PROXY_PASSWORD);
+
+        COMMON_PROPERTY_DESCRIPTORS = Collections.unmodifiableList(properties);
+    }
+
     @Override
     protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
         okHttpClientAtomicReference.set(null);
@@ -122,12 +166,38 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
 
         // Add a proxy if set
-        final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-        final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
-        if (proxyHost != null && proxyPort != null) {
-            final Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
+            final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+            final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
+            if (proxyHost != null && proxyPort != null) {
+                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
+                componentProxyConfig.setProxyServerHost(proxyHost);
+                componentProxyConfig.setProxyServerPort(proxyPort);
+                componentProxyConfig.setProxyUserName(context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue());
+                componentProxyConfig.setProxyUserPassword(context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue());
+                return componentProxyConfig;
+            }
+            return ProxyConfiguration.DIRECT_CONFIGURATION;
+        });
+
+        if (!Proxy.Type.DIRECT.equals(proxyConfig.getProxyType())) {
+            final Proxy proxy = proxyConfig.createProxy();
             okHttpClient.proxy(proxy);
+
+            if (proxyConfig.hasCredential()){
+                okHttpClient.proxyAuthenticator(new Authenticator() {
+                    @Override
+                    public Request authenticate(Route route, Response response) throws IOException {
+                        final String credential=Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                        return response.request().newBuilder()
+                                .header("Proxy-Authorization", credential)
+                                .build();
+                    }
+                });
+            }
         }
+
 
         // Set timeouts
         okHttpClient.connectTimeout((context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
@@ -151,8 +221,12 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .explanation("Proxy Host and Proxy Port must be both set or empty")
+                    .subject("Proxy server configuration")
                     .build());
         }
+
+        ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
+
         return results;
     }
 

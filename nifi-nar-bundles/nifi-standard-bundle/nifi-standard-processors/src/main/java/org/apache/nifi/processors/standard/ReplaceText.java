@@ -45,7 +45,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.NLKBufferedReader;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -236,8 +235,8 @@ public class ReplaceText extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 100));
-        if (flowFiles.isEmpty()) {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
 
@@ -283,22 +282,20 @@ public class ReplaceText extends AbstractProcessor {
                 throw new AssertionError();
         }
 
-        for (FlowFile flowFile : flowFiles) {
-            if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
-                    session.transfer(flowFile, REL_FAILURE);
-                    continue;
-                }
+        if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
+            if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
+                session.transfer(flowFile, REL_FAILURE);
+                return;
             }
-
-            final StopWatch stopWatch = new StopWatch(true);
-
-            flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
-
-            logger.info("Transferred {} to 'success'", new Object[] {flowFile});
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, REL_SUCCESS);
         }
+
+        final StopWatch stopWatch = new StopWatch(true);
+
+        flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
+
+        logger.info("Transferred {} to 'success'", new Object[] {flowFile});
+        session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
 

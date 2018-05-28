@@ -398,12 +398,12 @@
             var markup = '';
 
             if (dataContext.isEditable === true) {
-                markup += '<div title="Delete" class="delete-variable pointer fa fa-trash" style="margin-top: 2px;" ></div>';
+                markup += '<div title="Delete" class="delete-variable pointer fa fa-trash"></div>';
             } else {
                 var currentProcessGroupId = $('#variable-registry-process-group-id').text();
 
                 if (dataContext.processGroupId !== currentProcessGroupId) {
-                    markup += '<div title="Go To" class="go-to-variable pointer fa fa-long-arrow-right" style="margin-top: 2px;" ></div>';
+                    markup += '<div title="Go To" class="go-to-variable pointer fa fa-long-arrow-right"></div>';
                 }
             }
 

@@ -99,6 +99,7 @@ class ConfigEncryptionTool {
     private boolean handlingFlowXml = false
     private boolean ignorePropertiesFiles = false
     private boolean queryingCurrentHashParams = false
+    private boolean translatingCli = false
 
     private static final String HELP_ARG = "help"
     private static final String VERBOSE_ARG = "verbose"
@@ -124,6 +125,7 @@ class ConfigEncryptionTool {
     private static final String NEW_FLOW_ALGORITHM_ARG = "newFlowAlgorithm"
     private static final String NEW_FLOW_PROVIDER_ARG = "newFlowProvider"
     private static final String CURRENT_HASH_PARAMS_ARG = "currentHashParams"
+    private static final String TRANSLATE_CLI_ARG = "translateCli"
 
     // Static holder to avoid re-generating the options object multiple times in an invocation
     private static Options staticOptions
@@ -198,7 +200,17 @@ class ConfigEncryptionTool {
 
     private static final String DEFAULT_PROVIDER = BouncyCastleProvider.PROVIDER_NAME
     private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
-    static private final int AMBARI_COMPATIBLE_SCRYPT_HASH_LENGTH = 256
+    private static final int AMBARI_COMPATIBLE_SCRYPT_HASH_LENGTH = 256
+
+    private static final Map<String, String> PROPERTY_KEY_MAP = [
+            "nifi.security.keystore": "keystore",
+            "nifi.security.keystoreType": "keystoreType",
+            "nifi.security.keystorePasswd": "keystorePasswd",
+            "nifi.security.keyPasswd": "keyPasswd",
+            "nifi.security.truststore": "truststore",
+            "nifi.security.truststoreType": "truststoreType",
+            "nifi.security.truststorePasswd": "truststorePasswd",
+    ]
 
     private static String buildHeader(String description = DEFAULT_DESCRIPTION) {
         "${SEP}${description}${SEP * 2}"
@@ -247,6 +259,7 @@ class ConfigEncryptionTool {
         options.addOption(Option.builder("A").longOpt(NEW_FLOW_ALGORITHM_ARG).hasArg(true).argName("algorithm").desc("The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz").build())
         options.addOption(Option.builder("P").longOpt(NEW_FLOW_PROVIDER_ARG).hasArg(true).argName("algorithm").desc("The security provider to use to encrypt the sensitive processor properties in flow.xml.gz").build())
         options.addOption(Option.builder().longOpt(CURRENT_HASH_PARAMS_ARG).hasArg(false).desc("Returns the current salt and cost params used to store the hashed key/password").build())
+        options.addOption(Option.builder("c").longOpt(TRANSLATE_CLI_ARG).hasArg(false).desc("Translates the nifi.properties file to a format suitable for the NiFi CLI tool").build())
         options
     }
 
@@ -302,7 +315,43 @@ class ConfigEncryptionTool {
                 }
             }
 
+            // If this flag is present, ensure no other options are present and then fail/return
+            if (commandLine.hasOption(TRANSLATE_CLI_ARG)) {
+                translatingCli = true
+                if (commandLineHasActionFlags(commandLine, [TRANSLATE_CLI_ARG, BOOTSTRAP_CONF_ARG, NIFI_PROPERTIES_ARG])) {
+                    printUsageAndThrow("When '-c'/'--${TRANSLATE_CLI_ARG}' is specified, only '-h', '-v', and '-n'/'-b' with the relevant files are allowed", ExitCode.INVALID_ARGS)
+                }
+            }
+
             bootstrapConfPath = commandLine.getOptionValue(BOOTSTRAP_CONF_ARG)
+
+            // This needs to occur even if the nifi.properties won't be encrypted
+            if (commandLine.hasOption(NIFI_PROPERTIES_ARG)) {
+                boolean ignoreFlagPresent = commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)
+                if (isVerbose && !ignoreFlagPresent) {
+                    logger.info("Handling encryption of nifi.properties")
+                }
+                niFiPropertiesPath = commandLine.getOptionValue(NIFI_PROPERTIES_ARG)
+                outputNiFiPropertiesPath = commandLine.getOptionValue(OUTPUT_NIFI_PROPERTIES_ARG, niFiPropertiesPath)
+                handlingNiFiProperties = !ignoreFlagPresent
+
+                if (niFiPropertiesPath == outputNiFiPropertiesPath) {
+                    // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
+                    logger.warn("The source nifi.properties and destination nifi.properties are identical [${outputNiFiPropertiesPath}] so the original will be overwritten")
+                }
+            }
+
+            // If translating nifi.properties to CLI format, none of the remaining parsing is necessary
+            if (translatingCli) {
+
+                // If the nifi.properties isn't present, throw an exception
+                // If the nifi.properties is encrypted and the bootstrap.conf isn't present, we will throw an error later when the encryption is detected
+                if (!niFiPropertiesPath) {
+                    printUsageAndThrow("When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)", ExitCode.INVALID_ARGS)
+                }
+
+                return commandLine
+            }
 
             // If this flag is provided, the nifi.properties is necessary to read/write the flow encryption key, but the encryption process will not actually be applied to nifi.properties / login-identity-providers.xml
             if (commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)) {
@@ -336,22 +385,6 @@ class ConfigEncryptionTool {
                         // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
                         logger.warn("The source authorizers.xml and destination authorizers.xml are identical [${outputAuthorizersPath}] so the original will be overwritten")
                     }
-                }
-            }
-
-            // This needs to occur even if the nifi.properties won't be encrypted
-            if (commandLine.hasOption(NIFI_PROPERTIES_ARG)) {
-                boolean ignoreFlagPresent = commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)
-                if (isVerbose && !ignoreFlagPresent) {
-                    logger.info("Handling encryption of nifi.properties")
-                }
-                niFiPropertiesPath = commandLine.getOptionValue(NIFI_PROPERTIES_ARG)
-                outputNiFiPropertiesPath = commandLine.getOptionValue(OUTPUT_NIFI_PROPERTIES_ARG, niFiPropertiesPath)
-                handlingNiFiProperties = !ignoreFlagPresent
-
-                if (niFiPropertiesPath == outputNiFiPropertiesPath) {
-                    // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
-                    logger.warn("The source nifi.properties and destination nifi.properties are identical [${outputNiFiPropertiesPath}] so the original will be overwritten")
                 }
             }
 
@@ -479,6 +512,13 @@ class ConfigEncryptionTool {
         return commandLine
     }
 
+    /**
+     * Returns true if the {@code commandLine} object has flags other than the {@code help} or {@code verbose} flags or any of the acceptable args provided in an optional parameter. This is used to detect incompatible arguments for specific modes.
+     *
+     * @param commandLine the commandLine object
+     * @param acceptableOptionStrings an optional list of acceptable options that can be present without returning true
+     * @return true if incompatible flags are present
+     */
     boolean commandLineHasActionFlags(CommandLine commandLine, List<String> acceptableOptionStrings = []) {
         // Resolve the list of Option objects corresponding to "help" and "verbose"
         final List<Option> ALWAYS_ACCEPTABLE_OPTIONS = resolveOptions([HELP_ARG, VERBOSE_ARG])
@@ -1650,6 +1690,26 @@ class ConfigEncryptionTool {
                     System.exit(ExitCode.SUCCESS.ordinal())
                 }
 
+                // Handle the translate CLI case
+                if (tool.translatingCli) {
+                    if (tool.bootstrapConfPath) {
+                        // Check to see if bootstrap.conf has a master key
+                        tool.keyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
+                    }
+
+                    if (!tool.keyHex) {
+                        logger.info("No master key detected in ${tool.bootstrapConfPath} -- if ${tool.niFiPropertiesPath} is encrypted, the translation will fail")
+                    }
+
+                    // Load the existing properties (decrypting if necessary)
+                    tool.niFiProperties = tool.loadNiFiProperties(tool.keyHex)
+
+                    String cliOutput = tool.translateNiFiPropertiesToCLI()
+
+                    System.out.println(cliOutput)
+                    System.exit(ExitCode.SUCCESS.ordinal())
+                }
+
                 boolean existingNiFiPropertiesAreEncrypted = tool.niFiPropertiesAreEncrypted()
                 if (!tool.ignorePropertiesFiles || (tool.handlingFlowXml && existingNiFiPropertiesAreEncrypted)) {
                     // If we are handling the flow.xml.gz and nifi.properties is already encrypted, try getting the key from bootstrap.conf rather than the console
@@ -1819,5 +1879,28 @@ class ConfigEncryptionTool {
         }
 
         System.exit(ExitCode.SUCCESS.ordinal())
+    }
+
+    String translateNiFiPropertiesToCLI() {
+        // Assemble the baseUrl
+        String baseUrl = determineBaseUrl(niFiProperties)
+
+        // Copy the relevant properties to a Map using the "CLI" keys
+        List<String> cliOutput = ["baseUrl=${baseUrl}"]
+        PROPERTY_KEY_MAP.each { String nfpKey, String cliKey ->
+            cliOutput << "${cliKey}=${niFiProperties.getProperty(nfpKey)}"
+        }
+
+        cliOutput << "proxiedEntity="
+
+        cliOutput.join("\n")
+    }
+
+    static String determineBaseUrl(NiFiProperties niFiProperties) {
+        String protocol = niFiProperties.isHTTPSConfigured() ? "https" : "http"
+        String host = niFiProperties.isHTTPSConfigured() ? niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST) : niFiProperties.getProperty(NiFiProperties.WEB_HTTP_HOST)
+        String port = niFiProperties.getConfiguredHttpOrHttpsPort()
+
+        "${protocol}://${host}:${port}"
     }
 }

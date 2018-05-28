@@ -17,8 +17,8 @@
 package org.apache.nifi.processors.gcp;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.HttpServiceOptions;
 import com.google.cloud.Service;
+import com.google.cloud.ServiceOptions;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -36,8 +36,7 @@ import java.util.List;
  */
 public abstract class AbstractGCPProcessor<
         CloudService extends Service<CloudServiceOptions>,
-        CloudServiceRpc,
-        CloudServiceOptions extends HttpServiceOptions<CloudService, CloudServiceRpc, CloudServiceOptions>> extends AbstractProcessor {
+        CloudServiceOptions extends ServiceOptions<CloudService, CloudServiceOptions>> extends AbstractProcessor {
 
     public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor
             .Builder().name("gcp-project-id")

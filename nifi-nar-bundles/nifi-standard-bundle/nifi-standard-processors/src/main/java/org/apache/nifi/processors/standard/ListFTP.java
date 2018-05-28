@@ -18,8 +18,10 @@
 package org.apache.nifi.processors.standard;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -29,11 +31,14 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 
+@PrimaryNodeOnly
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"list", "ftp", "remote", "ingest", "source", "input", "files"})
@@ -79,6 +84,7 @@ public class ListFTP extends ListFileTransfer {
         properties.add(FTPTransfer.DATA_TIMEOUT);
         properties.add(FTPTransfer.CONNECTION_MODE);
         properties.add(FTPTransfer.TRANSFER_MODE);
+        properties.add(FTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
@@ -104,5 +110,12 @@ public class ListFTP extends ListFileTransfer {
         // Use cluster scope so that component can be run on Primary Node Only and can still
         // pick up where it left off, even if the Primary Node changes.
         return Scope.CLUSTER;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        FTPTransfer.validateProxySpec(validationContext, results);
+        return results;
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.yandex;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -71,8 +72,8 @@ import java.util.Set;
 @Tags({"yandex", "translate", "translation", "language"})
 @CapabilityDescription("Translates content and attributes from one language to another")
 @WritesAttributes({
-    @WritesAttribute(attribute = "yandex.translate.failure.reason", description = "If the text cannot be translated, this attribute will be set indicating the reason for the failure"),
-    @WritesAttribute(attribute = "language", description = "When the translation succeeds, if the content was translated, this attribute will be set indicating the new language of the content")
+        @WritesAttribute(attribute = "yandex.translate.failure.reason", description = "If the text cannot be translated, this attribute will be set indicating the reason for the failure"),
+        @WritesAttribute(attribute = "language", description = "When the translation succeeds, if the content was translated, this attribute will be set indicating the new language of the content")
 })
 @DynamicProperty(name = "The name of an attribute to set that will contain the translated text of the value",
         value = "The value to translate",
@@ -88,9 +89,8 @@ public class YandexTranslate extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor SOURCE_LANGUAGE = new PropertyDescriptor.Builder()
             .name("Input Language")
-            .description("The language of incoming data")
-            .required(true)
-            .defaultValue("es")
+            .description("The language of incoming data. If no language is set, Yandex will attempt to detect the incoming language automatically.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new LanguageNameValidator())
             .build();
@@ -211,10 +211,14 @@ public class YandexTranslate extends AbstractProcessor {
     protected Invocation prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
         Invocation.Builder builder = client.target(URL).request(MediaType.APPLICATION_JSON);
 
-        final MultivaluedHashMap entity = new MultivaluedHashMap();;
+        final MultivaluedHashMap entity = new MultivaluedHashMap();
         entity.put("text", text);
         entity.add("key", key);
-        entity.add("lang", sourceLanguage + "-" + destLanguage);
+        if ((StringUtils.isBlank(sourceLanguage))) {
+            entity.add("lang", destLanguage);
+        } else {
+            entity.add("lang", sourceLanguage + "-" + destLanguage);
+        }
 
         return builder.buildPost(Entity.form(entity));
     }
@@ -266,7 +270,7 @@ public class YandexTranslate extends AbstractProcessor {
 
         if (response.getStatus() != Response.Status.OK.getStatusCode()) {
             getLogger().error("Failed to translate text using Yandex for {}; response was {}: {}; routing to {}", new Object[]{
-                flowFile, response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName()});
+                    flowFile, response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName()});
             flowFile = session.putAttribute(flowFile, "yandex.translate.failure.reason", response.getStatusInfo().getReasonPhrase());
             session.transfer(flowFile, REL_TRANSLATION_FAILED);
             return;
@@ -306,6 +310,10 @@ public class YandexTranslate extends AbstractProcessor {
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ((StringUtils.isBlank(input))) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("No Language Input Present").build();
+            }
+
             if (context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Expression Language Present").build();
             }

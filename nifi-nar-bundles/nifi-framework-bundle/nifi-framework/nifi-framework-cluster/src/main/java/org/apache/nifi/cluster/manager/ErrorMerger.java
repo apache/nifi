@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -37,7 +38,7 @@ public final class ErrorMerger {
     public static void mergeErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, final NodeIdentifier nodeId, final Collection<String> nodeErrors) {
         if (nodeErrors != null) {
             nodeErrors.stream().forEach(
-                    err -> validationErrorMap.computeIfAbsent(err, k -> new HashSet<NodeIdentifier>())
+                    err -> validationErrorMap.computeIfAbsent(err, k -> new HashSet<>())
                             .add(nodeId));
         }
     }
@@ -62,5 +63,29 @@ public final class ErrorMerger {
             }
         }
         return normalizedErrors;
+    }
+
+    /**
+     * Determines the appropriate Validation Status to use as the aggregate for the given validation statuses
+     *
+     * @param validationStatuses the components' validation statuses
+     * @return {@link ProcessorDTO#INVALID} if any status is invalid, else {@link ProcessorDTO#VALIDATING} if any status is validating, else {@link ProcessorDTO#VALID}
+     */
+    public static <T> String mergeValidationStatus(final Collection<String> validationStatuses) {
+        final boolean anyValidating = validationStatuses.stream()
+            .anyMatch(status -> ProcessorDTO.VALIDATING.equalsIgnoreCase(status));
+
+        if (anyValidating) {
+            return ProcessorDTO.VALIDATING;
+        }
+
+        final boolean anyInvalid = validationStatuses.stream()
+            .anyMatch(status -> ProcessorDTO.INVALID.equalsIgnoreCase(status));
+
+        if (anyInvalid) {
+            return ProcessorDTO.INVALID;
+        }
+
+        return ProcessorDTO.VALID;
     }
 }

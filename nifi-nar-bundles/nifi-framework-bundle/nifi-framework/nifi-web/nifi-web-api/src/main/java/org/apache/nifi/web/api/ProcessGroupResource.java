@@ -3232,7 +3232,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 instantiateTemplateRequestEntity -> {
                     // create the template and generate the json
                     final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(), instantiateTemplateRequestEntity.getOriginY(),
-                            instantiateTemplateRequestEntity.getEncodingVersion(), instantiateTemplateRequestEntity.getSnippet(), getIdGenerationSeed().orElse(null));
+                        instantiateTemplateRequestEntity.getEncodingVersion(), instantiateTemplateRequestEntity.getSnippet(), getIdGenerationSeed().orElse(null));
 
                     final FlowDTO flowSnippet = entity.getFlow();
 

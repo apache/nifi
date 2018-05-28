@@ -43,5 +43,7 @@
         <module>nifi-hwx-schema-registry-bundle</module>
         <module>nifi-kerberos-credentials-service-api</module>
         <module>nifi-kerberos-credentials-service-bundle</module>
+        <module>nifi-proxy-configuration-api</module>
+        <module>nifi-proxy-configuration-bundle</module>
     </modules>
 </project>

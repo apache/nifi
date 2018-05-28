@@ -251,8 +251,10 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
      * As of Apache NiFi 1.5.0, due to changes made to
      * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this class invoking
      * {@link HiveConfigurator#authenticate(Configuration, String, String)}
-     * to authenticate a principal with Kerberos, Hive controller services no longer
-     * attempt relogins explicitly.  For more information, please read the documentation for
+     * to authenticate a principal with Kerberos, Hive controller services no longer use a separate thread to
+     * relogin, and instead call {@link UserGroupInformation#checkTGTAndReloginFromKeytab()} from
+     * {@link HiveConnectionPool#getConnection()}.  The relogin request is performed in a synchronized block to prevent
+     * threads from requesting concurrent relogins.  For more information, please read the documentation for
      * {@link SecurityUtil#loginKerberos(Configuration, String, String)}.
      * <p/>
      * In previous versions of NiFi, a {@link org.apache.nifi.hadoop.KerberosTicketRenewer} was started by
@@ -352,6 +354,15 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     public Connection getConnection() throws ProcessException {
         try {
             if (ugi != null) {
+                synchronized(this) {
+                    /*
+                     * Make sure that only one thread can request that the UGI relogin at a time.  This
+                     * explicit relogin attempt is necessary due to the Hive client/thrift not implicitly handling
+                     * the acquisition of a new TGT after the current one has expired.
+                     * https://issues.apache.org/jira/browse/NIFI-5134
+                     */
+                    ugi.checkTGTAndReloginFromKeytab();
+                }
                 try {
                     return ugi.doAs((PrivilegedExceptionAction<Connection>) () -> dataSource.getConnection());
                 } catch (UndeclaredThrowableException e) {

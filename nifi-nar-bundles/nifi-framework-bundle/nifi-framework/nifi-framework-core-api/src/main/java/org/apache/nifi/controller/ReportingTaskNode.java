@@ -24,7 +24,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public interface ReportingTaskNode extends ConfiguredComponent {
+public interface ReportingTaskNode extends ComponentNode {
 
     void setSchedulingStrategy(SchedulingStrategy schedulingStrategy);
 

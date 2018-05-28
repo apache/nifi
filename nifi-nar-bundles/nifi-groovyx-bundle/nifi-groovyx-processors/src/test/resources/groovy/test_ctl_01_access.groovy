@@ -17,7 +17,7 @@
 
 //just check that it's possible to access controller services
 def ff=session.create()
-def con=CTL.mydbcp.getConnection()
+def con=CTL.mydbcp.getConnection([:])
 assert con instanceof java.sql.Connection
 con.close();
 ff.write('UTF-8', 'OK')

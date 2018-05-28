@@ -128,12 +128,12 @@
         return [{
             text: 'All nodes',
             value: 'ALL',
-            description: 'Processor will be scheduled to run on all nodes'
+            description: 'Processor will be scheduled to run on all nodes',
+            disabled: processor.executionNodeRestricted === true
         }, {
             text: 'Primary node',
             value: 'PRIMARY',
-            description: 'Processor will be scheduled to run only on the primary node',
-            disabled: !nfClusterSummary.isClustered() && processor.config['executionNode'] === 'PRIMARY'
+            description: 'Processor will be scheduled to run only on the primary node'
         }];
     };
 
@@ -741,12 +741,7 @@
                         }
                     });
 
-                    // show the execution node option if we're cluster or we're currently configured to run on the primary node only
-                    if (nfClusterSummary.isClustered() || executionNode === 'PRIMARY') {
-                        $('#execution-node-options').show();
-                    } else {
-                        $('#execution-node-options').hide();
-                    }
+                    $('#execution-node-options').show();
 
                     // initialize the concurrentTasks
                     var defaultConcurrentTasks = processor.config['defaultConcurrentTasks'];

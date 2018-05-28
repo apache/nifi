@@ -22,7 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
@@ -180,7 +180,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             // and notify the Process Group that a component has been modified. This way, we know to re-calculate
             // whether or not the Process Group has local modifications.
             controllerService.getReferences().getReferencingComponents().stream()
-                .map(ConfiguredComponent::getProcessGroupIdentifier)
+                .map(ComponentNode::getProcessGroupIdentifier)
                 .filter(id -> !id.equals(group.getIdentifier()))
                 .forEach(groupId -> {
                     final ProcessGroup descendant = group.findProcessGroup(groupId);
@@ -213,7 +213,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public Set<ConfiguredComponent> updateControllerServiceReferencingComponents(
+    public Set<ComponentNode> updateControllerServiceReferencingComponents(
             final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
@@ -333,17 +333,22 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final String comments = controllerServiceDTO.getComments();
         final Map<String, String> properties = controllerServiceDTO.getProperties();
 
-        if (isNotNull(name)) {
-            controllerService.setName(name);
-        }
-        if (isNotNull(annotationData)) {
-            controllerService.setAnnotationData(annotationData);
-        }
-        if (isNotNull(comments)) {
-            controllerService.setComments(comments);
-        }
-        if (isNotNull(properties)) {
-            controllerService.setProperties(properties);
+        controllerService.pauseValidationTrigger(); // avoid causing validation to be triggered multiple times
+        try {
+            if (isNotNull(name)) {
+                controllerService.setName(name);
+            }
+            if (isNotNull(annotationData)) {
+                controllerService.setAnnotationData(annotationData);
+            }
+            if (isNotNull(comments)) {
+                controllerService.setComments(comments);
+            }
+            if (isNotNull(properties)) {
+                controllerService.setProperties(properties);
+            }
+        } finally {
+            controllerService.resumeValidationTrigger();
         }
     }
 

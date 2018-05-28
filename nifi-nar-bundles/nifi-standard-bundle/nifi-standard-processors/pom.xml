@@ -66,6 +66,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-proxy-configuration-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
         </dependency>
         <dependency>
@@ -306,8 +310,8 @@
             <artifactId>bval-jsr</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.calcite</groupId>
@@ -444,6 +448,7 @@
                         <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/invalid_data.zip</exclude>
                         <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
@@ -478,6 +483,16 @@
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/xxe_from_report.xml</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array-strings.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/two-elements-nested-nested-array-null.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/input/complex-input-json.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/extract-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-address.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

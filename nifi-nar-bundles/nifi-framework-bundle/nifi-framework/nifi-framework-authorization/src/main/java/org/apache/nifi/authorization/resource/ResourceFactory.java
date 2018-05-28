@@ -338,7 +338,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", RESTRICTED_COMPONENTS_RESOURCE.getIdentifier(), requiredPermission.getPermissionIdentifier());
+                return RESTRICTED_COMPONENTS_RESOURCE.getIdentifier() + "/" + requiredPermission.getPermissionIdentifier();
             }
 
             @Override
@@ -374,7 +374,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", ResourceType.DataTransfer.getValue(), resource.getIdentifier());
+                return ResourceType.DataTransfer.getValue() + resource.getIdentifier();
             }
 
             @Override
@@ -409,7 +409,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", POLICY_RESOURCE.getIdentifier(), resource.getIdentifier());
+                return POLICY_RESOURCE.getIdentifier() + resource.getIdentifier();
             }
 
             @Override
@@ -439,7 +439,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", resourceType.getValue(), identifier);
+                return resourceType.getValue() + "/" + identifier;
             }
 
             @Override
@@ -500,7 +500,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", DATA_RESOURCE.getIdentifier(), resource.getIdentifier());
+                return DATA_RESOURCE.getIdentifier() + resource.getIdentifier();
             }
 
             @Override

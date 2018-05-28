@@ -106,11 +106,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 if (rootPath == null) {
                     workingDirPath = null;
                 } else {
-                    File workingDirectory = new File(rootPath);
-                    if (!workingDirectory.getPath().startsWith("/") && !workingDirectory.getPath().startsWith("\\")) {
-                        workingDirectory = new File(transfer.getHomeDirectory(flowFile), workingDirectory.getPath());
-                    }
-                    workingDirPath = workingDirectory.getPath().replace("\\", "/");
+                    workingDirPath = transfer.getAbsolutePath(flowFile, rootPath);
                 }
 
                 final boolean rejectZeroByteFiles = context.getProperty(FileTransfer.REJECT_ZERO_BYTE).asBoolean();

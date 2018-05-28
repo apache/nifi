@@ -58,6 +58,22 @@ public interface FileTransfer extends Closeable {
 
     void ensureDirectoryExists(FlowFile flowFile, File remoteDirectory) throws IOException;
 
+    /**
+     * Compute an absolute file path for the given remote path.
+     * @param flowFile is used to setup file transfer client with its attribute values, to get user home directory
+     * @param remotePath the target remote path
+     * @return The absolute path for the given remote path
+     */
+    default String getAbsolutePath(FlowFile flowFile, String remotePath) throws IOException {
+        final String absoluteRemotePath;
+        if (!remotePath.startsWith("/") && !remotePath.startsWith("\\")) {
+            absoluteRemotePath = new File(getHomeDirectory(flowFile), remotePath).getPath();
+        } else {
+            absoluteRemotePath = remotePath;
+        }
+        return absoluteRemotePath.replace("\\", "/");
+    }
+
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Hostname")
         .description("The fully qualified hostname or IP address of the remote system")

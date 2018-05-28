@@ -37,7 +37,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.label.Label;
@@ -315,7 +315,7 @@ public class NiFiRegistryFlowMapper {
         return versionedService;
     }
 
-    private Map<String, String> mapProperties(final ConfiguredComponent component, final ControllerServiceProvider serviceProvider) {
+    private Map<String, String> mapProperties(final ComponentNode component, final ControllerServiceProvider serviceProvider) {
         final Map<String, String> mapped = new HashMap<>();
 
         component.getProperties().keySet().stream()
@@ -341,7 +341,7 @@ public class NiFiRegistryFlowMapper {
         return mapped;
     }
 
-    private Map<String, VersionedPropertyDescriptor> mapPropertyDescriptors(final ConfiguredComponent component) {
+    private Map<String, VersionedPropertyDescriptor> mapPropertyDescriptors(final ComponentNode component) {
         final Map<String, VersionedPropertyDescriptor> descriptors = new HashMap<>();
         for (final PropertyDescriptor descriptor : component.getProperties().keySet()) {
             final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();

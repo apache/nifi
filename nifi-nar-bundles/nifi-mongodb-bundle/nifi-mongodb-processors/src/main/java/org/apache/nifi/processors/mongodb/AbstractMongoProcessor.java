@@ -267,8 +267,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session,
             Map<String, String> extraAttributes, Relationship rel) throws UnsupportedEncodingException {
-        String charset = parent != null ? context.getProperty(CHARSET).evaluateAttributeExpressions(parent).getValue()
-                : context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
+        String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(parent).getValue();
 
         FlowFile flowFile = parent != null ? session.create(parent) : session.create();
         flowFile = session.importFrom(new ByteArrayInputStream(payload.getBytes(charset)), flowFile);
