@@ -17,14 +17,6 @@
 
 package org.apache.nifi.serialization.record;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -32,6 +24,14 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class MockRecordParser extends AbstractControllerService implements RecordReaderFactory {
     private final List<Object[]> records = new ArrayList<>();
@@ -52,6 +52,10 @@ public class MockRecordParser extends AbstractControllerService implements Recor
 
     public void addSchemaField(final String fieldName, final RecordFieldType type) {
         addSchemaField(fieldName, type, RecordField.DEFAULT_NULLABLE);
+    }
+
+    public void addSchemaField(final String fieldName, final DataType type) {
+        fields.add(new RecordField(fieldName, type, RecordField.DEFAULT_NULLABLE));
     }
 
     public void addSchemaField(final String fieldName, final RecordFieldType type, boolean isNullable) {

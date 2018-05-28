@@ -43,23 +43,25 @@ public class AbstractITInfluxDB {
 
     protected void initInfluxDB() throws InterruptedException, Exception {
         influxDB = InfluxDBFactory.connect(dbUrl,user,password);
-        influxDB.createDatabase(dbName);
+        influxDB.query(new Query("CREATE database " + dbName, dbName));
         int max = 10;
-        while (!influxDB.databaseExists(dbName) && (max-- < 0)) {
+        while (!databaseExists(dbName) && (max-- < 0)) {
             Thread.sleep(5);
         }
-        if ( ! influxDB.databaseExists(dbName) ) {
+        if ( ! databaseExists(dbName) ) {
             throw new Exception("unable to create database " + dbName);
         }
     }
 
     protected void cleanUpDatabase() throws InterruptedException {
-        if ( influxDB.databaseExists(dbName) ) {
+        if ( databaseExists(dbName) ) {
             QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
             checkError(result);
             result = influxDB.query(new Query("DROP measurement testm", dbName));
             checkError(result);
             result = influxDB.query(new Query("DROP measurement chunkedQueryTest", dbName));
+            checkError(result);
+            result = influxDB.query(new Query("DROP measurement testRecordMeasurement", dbName));
             checkError(result);
             result = influxDB.query(new Query("DROP database " + dbName, dbName));
             Thread.sleep(1000);
@@ -88,5 +90,12 @@ public class AbstractITInfluxDB {
         runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_URL, dbUrl);
         runner.setProperty(ExecuteInfluxDBQuery.CHARSET, "UTF-8");
         runner.assertValid();
+    }
+
+    private boolean databaseExists(String dbName) {
+        QueryResult result = influxDB.query(new Query("SHOW databases", dbName));
+        List<List<Object>> databaseNames = result.getResults().get(0).getSeries().get(0).getValues();
+
+        return databaseNames.stream().anyMatch(name -> name.get(0).toString().equals(dbName));
     }
 }

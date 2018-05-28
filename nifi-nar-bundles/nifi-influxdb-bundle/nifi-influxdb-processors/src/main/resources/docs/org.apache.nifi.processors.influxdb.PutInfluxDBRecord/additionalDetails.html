@@ -1,0 +1,102 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>PutInfluxDBRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h2>Description:</h2>
+
+<p>
+    PutInfluxDBRecord processor uses a specified RecordReader to write the content of a FlowFile into InfluxDB database.
+</p>
+
+<h3>Mapping Records to InfluxDB Data Point</h3>
+
+<h4>Measurement</h4>
+<p>
+    The value is determined from the field in the Record Schema.
+    If the field is not found in the schema then is used the value of <i>Measurement property</i>.
+    Any data type is converted into a String type and used as the value.
+</p>
+
+<h4>Tags</h4>
+<p>
+    The name of the field in the Record Schema is used as the key of the Tag. The value of the field is used as the value of the
+    Tag. Any data type is converted into a String type and used as the Tag value
+    (see also <a href="#handling_complex">handling complex types</a>).
+</p>
+
+<h4>Fields</h4>
+<p>
+    The name of the field in the Record Schema is used as the key of the Tag. The value of the field is used as the value of the
+    Tag. The Record Field data type is converted into a <a
+        href="https://docs.influxdata.com/influxdb/latest/write_protocols/line_protocol_tutorial/#data-types">supported
+    InfluxDB types</a>:
+</p>
+<ul>
+    <li>DOUBLE, FLOAT - is converted into InfluxDB Floats</li>
+    <li>LONG, INT, BYTE, SHORT, BIGINT - is converted into InfluxDB Integers</li>
+    <li>BOOLEAN - is converted into InfluxDB Booleans</li>
+    <li>CHAR, STRING - is converted into InfluxDB Strings</li>
+    <li>DATE, TIME, TIMESTAMP - is converted into InfluxDB Integers</li>
+    <li>CHOICE, MAP, ARRAY, RECORD - <a href="#handling_complex">handling complex types</a></li>
+</ul>
+
+<h4>Timestamp</h4>
+<p>
+    The value is determined from the field in the Record Schema.
+    If the field is not found in the schema or field has not defined value the timestamp is not specified for the Data Point.
+    The precision for the supplied time value is determined from the property <i>Timestamp precision</i>.
+</p>
+
+<h3 id="handling_complex">Behavior of handling complex types for Tags and Fields</h3>
+
+<p>
+    The Apache NiFi complex Record fields are handled by different strategy:
+</p>
+<ul>
+    <li><strong>Map</strong> - keys are mapped as keys of Tags or Fields, values are mapped as values of Tags or Fields
+    </li>
+    <li><strong>Choice</strong> - for the value is used the compatible type from Choice definition</li>
+    <li><strong>Array</strong> - based on property the <i>Complex Field Behavior</i></li>
+    <li><strong>Record</strong> - based on property the <i>Complex Field Behavior</i></li>
+</ul>
+
+<h3 id="batching">Batching</h3>
+
+<p>
+    Enabled batching will reduce reliability in the cost of
+    better performance. The PutInfluxDBRecord processor uses batching/buffering implemented in influxdb-java client.
+    Processor can route flow file to the success relation before the batch buffer is flushed into the database. The
+    batch buffer is stored in the system memory, so in the case of power failure or process kill, is content of buffer
+    not written into InfluxDB.
+</p>
+<p>
+    Batching is useful when the flow file contains large number of records. Records are sent
+    into InfluxDB in batching points with preconfigured size.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>InfluxLineProtocolReader</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h2>Description:</h2>
+<p>
+    This Processor parses the <a href="https://docs.influxdata.com/influxdb/latest/write_protocols/line_protocol_tutorial/">InfluxDB Line Protocol</a> data to a record.
+    This is useful for listening data from the Telegraf, InfluxDB or IoT.
+</p>
+<p>
+    The following Apache NiFi Schema is used for the record:
+</p>
+<pre>
+[
+    "measurement" : "STRING",
+    "tags" : "MAP[STRING]",
+    "fields" : "MAP[CHOICE[FLOAT, LONG, BOOLEAN, STRING]]",
+    "timestamp" : "LONG
+]
+</pre>
+<p>
+    Related Apache Avro Schema:
+</p>
+<pre>
+{
+    "type" : "record",
+    "name" : "nifiRecord",
+    "namespace" : "org.apache.nifi",
+    "fields" :
+    [
+        {"name" : "measurement", "type" : "string" },
+        {"name" : "tags", "type" : [ "null", {"type" : "map", "values" : "string"} ]},
+        {"name" : "fields", "type" : {"type" : "map", "values" : [ "float", "long", "boolean", "string" ]}},
+        {"name" : "timestamp", "type" : [ "null", "long" ]}
+    ]
+}
+</pre>
+
+<h3>Telegraf Configuration</h3>
+<p>
+    Telegraf writes all metrics through the
+    <a href="https://github.com/influxdata/telegraf/tree/master/plugins/outputs/socket_writer">socket_writer</a>
+    plugin to the Apache NiFi.
+</p>
+<pre>
+[[outputs.socket_writer]]
+    ## Apache NiFi TCP Record Lister URL
+    address = "tcp://127.0.0.1:8666"
+    data_format = "influx"
+</pre>
+<h4>ListenTCPRecord Processor Configuration</h4>
+<p><img src="listen-tcp-record.png"/></p>
+
+<h3>InfluxDB Subscription Configuration</h3>
+<p>
+    InfluxDB can send all the data it receives to configured
+    <a href="https://docs.influxdata.com/influxdb/latest/query_language/spec/#create-subscription">subscription</a>.
+    The following is a InfluxDB query creates the subscription for the Apache NiFi:
+</p>
+<pre>
+-- Create a SUBSCRIPTION on database 'weather' and retention policy 'autogen'
+CREATE SUBSCRIPTION "apache-nifi" ON "weather"."autogen" DESTINATIONS ALL 'udp://127.0.0.1:8866'
+</pre>
+<h4>ListenUDPRecord Processor Configuration</h4>
+<p><img src="listen-udp-record.png"/></p>
+
+</body>
+</html>

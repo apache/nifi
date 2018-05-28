@@ -149,7 +149,7 @@ public class ITPutInfluxDB extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_FAILURE);
         assertEquals("Value should be equal", 1, flowFiles.size());
-        assertEquals("Value should be equal","{\"error\":\"partial write: unable to parse 'water,country=US,city=nyc,rain=2,humidity=0.7': missing fields dropped=0\"}\n",
+        assertEquals("Value should be equal","partial write: unable to parse 'water,country=US,city=nyc,rain=2,humidity=0.7': missing fields dropped=0",
             flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE));
         QueryResult result = influxDB.query(new Query("select * from water", dbName));
         assertEquals("size should be same", 1, result.getResults().iterator().next().getSeries().size());

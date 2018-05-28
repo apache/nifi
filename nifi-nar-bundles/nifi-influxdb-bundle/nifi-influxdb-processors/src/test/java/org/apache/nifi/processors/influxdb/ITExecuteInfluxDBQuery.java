@@ -271,7 +271,7 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
        assertEquals("Value should be equal", 0, flowFilesSuccess.size());
        List<MockFlowFile> flowFilesFailure = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_FAILURE);
        assertEquals("Value should be equal", 1, flowFilesFailure.size());
-       assertEquals("Value should be equal","{\"error\":\"error parsing query: found EOF, expected identifier at line 1, char 15\"}",
+       assertEquals("Value should be equal","error parsing query: found EOF, expected identifier at line 1, char 15",
            flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE).trim());
        assertEquals("Value should be equal",query, flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY));
     }

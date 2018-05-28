@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.influxdb.PutInfluxDB
 org.apache.nifi.processors.influxdb.ExecuteInfluxDBQuery
+org.apache.nifi.processors.influxdb.PutInfluxDBRecord

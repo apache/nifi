@@ -103,6 +103,8 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .build();
 
     public static final String INFLUX_DB_ERROR_MESSAGE = "influxdb.error.message";
+    public static final String INFLUX_DB_ERROR_MESSAGE_LOG = "Failed procession flow file {} due to {}";
+
     protected AtomicReference<InfluxDB> influxDB = new AtomicReference<>();
     protected long maxRecordsSize;
 
