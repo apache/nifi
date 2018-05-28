@@ -36,7 +36,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor {
             .displayName("Batch Size")
             .description("Indicates the number of messages the cloud service should bundle together in a batch. If not set and left empty, only one message " +
                     "will be used in a batch")
-            .required(false)
+            .required(true)
             .defaultValue("15")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();

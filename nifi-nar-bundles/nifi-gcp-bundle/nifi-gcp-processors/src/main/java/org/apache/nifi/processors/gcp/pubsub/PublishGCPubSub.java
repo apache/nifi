@@ -86,15 +86,6 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor FLOWFILE_FETCH_COUNT = new PropertyDescriptor.Builder()
-            .name("gcp-publish-flowfile-fetch-count")
-            .displayName("FlowFile Fetch Count")
-            .description("Indicates the number of FlowFiles to be pulled in a single run.")
-            .required(true)
-            .defaultValue("15")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
-
     public static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
             .description("FlowFiles are routed to this relationship if the Google Cloud Pub/Sub operation fails but attempting the operation again may succeed.")
@@ -108,8 +99,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
         return ImmutableList.of(PROJECT_ID,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 TOPIC_NAME,
-                BATCH_SIZE,
-                FLOWFILE_FETCH_COUNT);
+                BATCH_SIZE);
     }
 
     @Override
@@ -143,7 +133,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final int flowFileCount = context.getProperty(FLOWFILE_FETCH_COUNT).asInteger();
+        final int flowFileCount = context.getProperty(BATCH_SIZE).asInteger();
         final List<FlowFile> flowFiles = session.get(flowFileCount);
 
         if (flowFiles.isEmpty() || publisher == null) {
@@ -247,19 +237,13 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
     }
 
     private Publisher.Builder getPublisherBuilder(ProcessContext context) {
-        Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context))
-                .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)));
+        final Long batchSize = context.getProperty(BATCH_SIZE).asLong();
 
-        // Setting batch size, if provided
-        if (context.getProperty(BATCH_SIZE).isSet()) {
-            final Long batchSize = context.getProperty(BATCH_SIZE).asLong();
-
-            publisherBuilder.setBatchingSettings(BatchingSettings.newBuilder()
-                    .setElementCountThreshold(batchSize)
-                    .setIsEnabled(true)
-                    .build());
-        }
-
-        return publisherBuilder;
+        return Publisher.newBuilder(getTopicName(context))
+                .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                .setBatchingSettings(BatchingSettings.newBuilder()
+                .setElementCountThreshold(batchSize)
+                .setIsEnabled(true)
+                .build());
     }
 }

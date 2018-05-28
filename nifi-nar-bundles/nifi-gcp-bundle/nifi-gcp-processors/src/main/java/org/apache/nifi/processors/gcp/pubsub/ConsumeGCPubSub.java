@@ -94,7 +94,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        final Integer batchSize = (context.getProperty(BATCH_SIZE).isSet()) ? context.getProperty(BATCH_SIZE).asInteger() : 1;
+        final Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
         pullRequest = PullRequest.newBuilder()
                 .setMaxMessages(batchSize)
