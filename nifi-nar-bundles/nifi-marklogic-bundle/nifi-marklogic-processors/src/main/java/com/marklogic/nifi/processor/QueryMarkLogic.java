@@ -23,8 +23,6 @@ import com.marklogic.client.document.GenericDocumentManager;
 import com.marklogic.client.ext.datamovement.job.SimpleQueryBatcherJob;
 import com.marklogic.client.impl.GenericDocumentImpl;
 import com.marklogic.client.io.BytesHandle;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -50,7 +48,6 @@ import java.util.List;
 import java.util.Set;
 
 @Tags({"MarkLogic", "Get", "Query", "Read"})
-@InputRequirement(Requirement.INPUT_ALLOWED)
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @CapabilityDescription("Creates FlowFiles from batches of documents, matching the given criteria," +
     " retrieved from a MarkLogic server using the MarkLogic Data Movement SDK (DMSDK)")
@@ -73,7 +70,8 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         .required(false)
         .addValidator(Validator.VALID)
         .build();
-
+    // TODO: Queries : Add these as part of the next release.
+/*
     public static final PropertyDescriptor URIS_QUERY = new PropertyDescriptor.Builder()
         .name("URIs query")
         .displayName("URIs query")
@@ -89,7 +87,7 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         .required(false)
         .addValidator(Validator.VALID)
         .build();
-
+*/
     protected static final Relationship SUCCESS = new Relationship.Builder()
         .name("SUCCESS")
         .description("All FlowFiles that are created from documents read from MarkLogic are routed to" +
@@ -104,8 +102,8 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
         list.addAll(properties);
         list.add(CONSISTENT_SNAPSHOT);
         list.add(COLLECTIONS);
-        list.add(URIS_QUERY);
-        list.add(URI_PATTERN);
+    /*  list.add(URIS_QUERY);
+        list.add(URI_PATTERN); */
         properties = Collections.unmodifiableList(list);
         Set<Relationship> set = new HashSet<>();
         set.add(SUCCESS);
@@ -116,12 +114,12 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         Set<ValidationResult> validationResultSet = new HashSet<>();
         String collections = validationContext.getProperty(COLLECTIONS).getValue();
-        String uriPattern = validationContext.getProperty(URI_PATTERN).getValue();
-        String uriQuery = validationContext.getProperty(URIS_QUERY).getValue();
-        if(collections == null && uriPattern == null && uriQuery == null) {
+    /*    String uriPattern = validationContext.getProperty(URI_PATTERN).getValue();
+        String uriQuery = validationContext.getProperty(URIS_QUERY).getValue(); */
+        if(collections == null) { // && uriPattern == null && uriQuery == null) {
             validationResultSet.add(new ValidationResult.Builder().subject("Query").valid(false).explanation("one " +
-                "of the following properties need to be set - " + COLLECTIONS.getDisplayName() + ", "
-                + URI_PATTERN.getDisplayName() + ", or " + URIS_QUERY.getDisplayName()).build());
+                "of the following properties need to be set - " + COLLECTIONS.getDisplayName()).build());
+        //    + ", " + URI_PATTERN.getDisplayName() + ", or " + URIS_QUERY.getDisplayName()).build());
         }
         return validationResultSet;
     }
@@ -138,8 +136,8 @@ public class QueryMarkLogic extends AbstractMarkLogicProcessor {
             job.setWhereCollections(value.split(","));
         }
 
-        job.setWhereUriPattern(context.getProperty(URI_PATTERN).getValue());
-        job.setWhereUrisQuery(context.getProperty(URIS_QUERY).getValue());
+    /*  job.setWhereUriPattern(context.getProperty(URI_PATTERN).getValue());
+        job.setWhereUrisQuery(context.getProperty(URIS_QUERY).getValue()); */
 
         job.addUrisReadyListener(batch -> {
             final ProcessSession session = sessionFactory.createSession();

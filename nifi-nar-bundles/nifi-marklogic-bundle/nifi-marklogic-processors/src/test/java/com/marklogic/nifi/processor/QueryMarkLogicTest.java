@@ -49,20 +49,20 @@ public class QueryMarkLogicTest extends AbstractMarkLogicProcessorTest {
     public void queryJobProperties() {
         processContext.setProperty(QueryMarkLogic.BATCH_SIZE, "35");
         processContext.setProperty(QueryMarkLogic.THREAD_COUNT, "15");
-        processContext.setProperty(QueryMarkLogic.URI_PATTERN,".*nifi.*");
-        processContext.setProperty(QueryMarkLogic.URIS_QUERY,"<cts:and-query/>");
+    /*  processContext.setProperty(QueryMarkLogic.URI_PATTERN,".*nifi.*");
+        processContext.setProperty(QueryMarkLogic.URIS_QUERY,"<cts:and-query/>"); */
 
         processor.onTrigger(processContext, mockProcessSessionFactory);
 
         assertEquals(1, processor.relationships.size());
         int jobBatchSize = processor.job.getBatchSize();
         int jobThreadCount = processor.job.getThreadCount();
-        String uriPattern = processor.job.getWhereUriPattern();
+    /*  String uriPattern = processor.job.getWhereUriPattern();
         String uriQuery = processor.job.getWhereUrisQuery();
+        assertEquals(".*nifi.*", uriPattern);
+        assertEquals("<cts:and-query/>", uriQuery); */
         assertEquals(35, jobBatchSize);
         assertEquals(15, jobThreadCount);
-        assertEquals(".*nifi.*", uriPattern);
-        assertEquals("<cts:and-query/>", uriQuery);
     }
 
 }
