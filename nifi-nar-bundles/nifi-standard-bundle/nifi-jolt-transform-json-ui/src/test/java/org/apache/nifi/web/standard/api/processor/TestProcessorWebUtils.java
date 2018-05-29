@@ -77,17 +77,4 @@ public class TestProcessorWebUtils {
 
     }
 
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testGetRequestContextForProcessorWithSpecificClientRevision() throws NoSuchMethodException, IOException,InvocationTargetException, IllegalAccessException{
-        Method method = ProcessorWebUtils.class.getDeclaredMethod("getRequestContext", String.class, Long.class, String.class, HttpServletRequest.class);
-        method.setAccessible(true);
-        NiFiWebRequestContext requestContext = (NiFiWebRequestContext) method.invoke(null,"1",1L, "client1",mock(HttpServletRequest.class));
-        assertTrue(requestContext instanceof HttpServletConfigurationRequestContext);
-        assertTrue(requestContext.getId().equals("1"));
-        assertTrue(((HttpServletConfigurationRequestContext)requestContext).getRevision().getClientId().equals("client1"));
-        assertTrue(((HttpServletConfigurationRequestContext)requestContext).getRevision().getVersion().equals(1L));
-    }
-
-
 }
