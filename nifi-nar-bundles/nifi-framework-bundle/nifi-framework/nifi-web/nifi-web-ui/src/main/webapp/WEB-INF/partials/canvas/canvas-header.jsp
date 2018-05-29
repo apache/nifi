@@ -93,7 +93,7 @@
                 </div>
             </div>
             <md-menu md-position-mode="target-right target" md-offset="-1 44">
-                <button md-menu-origin id="global-menu-button" ng-click="$mdOpenMenu()">
+                <button md-menu-origin id="global-menu-button" ng-click="$mdMenu.open()">
                     <div class="fa fa-navicon"></div>
                 </button>
                 <md-menu-content id="global-menu-content">

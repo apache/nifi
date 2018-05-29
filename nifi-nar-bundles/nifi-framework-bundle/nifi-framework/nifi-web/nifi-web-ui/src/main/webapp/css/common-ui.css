@@ -109,6 +109,10 @@ body {
     color: #262626;
 }
 
+body.md-default-theme, body, html.md-default-theme, html {
+    background-color: white;
+}
+
 button {
     border-radius: 0;
 }
