@@ -17,22 +17,15 @@
 package org.apache.nifi.processors.pulsar.pubsub;
 
 import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
 import org.apache.nifi.util.StringUtils;
@@ -44,46 +37,11 @@ import org.apache.pulsar.client.api.PulsarClientException;
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Pulsar using the Pulsar 1.X Producer API."
     + "The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line. "
-    + "The complementary NiFi processor for fetching messages is ConsumePulsar_1_X.")
+    + "The complementary NiFi processor for fetching messages is ConsumePulsar.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
         + "FlowFiles that are routed to success.")
-public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
-
-    private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS;
-
-    static {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PULSAR_CLIENT_SERVICE);
-        properties.add(TOPIC);
-        properties.add(ASYNC_ENABLED);
-        properties.add(MAX_ASYNC_REQUESTS);
-        properties.add(BATCHING_ENABLED);
-        properties.add(BATCHING_MAX_MESSAGES);
-        properties.add(BATCH_INTERVAL);
-        properties.add(BLOCK_IF_QUEUE_FULL);
-        properties.add(COMPRESSION_TYPE);
-        properties.add(MESSAGE_ROUTING_MODE);
-        properties.add(PENDING_MAX_MESSAGES);
-
-        PROPERTIES = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
-    }
+public class PublishPulsar extends AbstractPulsarProducerProcessor<byte[]> {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -115,7 +73,7 @@ public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
         }
 
         try {
-            Producer producer = getWrappedProducer(topic, context).getProducer();
+            Producer<byte[]> producer = getProducer(context, topic);
 
             if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
                 this.sendAsync(producer, session, flowFile, messageContent);
@@ -130,7 +88,7 @@ public class PublishPulsar_1_X extends AbstractPulsarProducerProcessor {
         }
     }
 
-    private void send(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) throws PulsarClientException {
+    private void send(Producer<byte[]> producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) throws PulsarClientException {
         MessageId msgId = producer.send(messageContent);
 
         if (msgId != null) {

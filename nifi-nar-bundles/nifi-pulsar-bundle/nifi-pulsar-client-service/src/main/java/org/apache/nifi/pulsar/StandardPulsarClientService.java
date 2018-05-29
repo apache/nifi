@@ -23,28 +23,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.pulsar.pool.PulsarConsumerFactory;
-import org.apache.nifi.pulsar.pool.PulsarProducerFactory;
-import org.apache.nifi.pulsar.pool.ResourcePool;
-import org.apache.nifi.pulsar.pool.ResourcePoolImpl;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.pulsar.client.api.ClientConfiguration;
+import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException.UnsupportedAuthenticationException;
 import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 
-@Tags({ "Pulsar", "Pool", "Client", "Pub/Sub"})
-@CapabilityDescription("Standard ControllerService implementation of PulsarClientService.")
-public class StandardPulsarClientPool extends AbstractControllerService implements PulsarClientPool {
+public class StandardPulsarClientService extends AbstractControllerService implements PulsarClientService {
 
     public static final PropertyDescriptor PULSAR_SERVICE_URL = new PropertyDescriptor
             .Builder().name("PULSAR_SERVICE_URL")
@@ -53,6 +45,16 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor ALLOW_TLS_INSECURE_CONNECTION = new PropertyDescriptor.Builder()
+            .name("Allow TLS insecure conneciton")
+            .displayName("Allow TLS insecure conneciton")
+            .description("Whether the Pulsar client will accept untrusted TLS certificate from broker or not.")
+            .required(false)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue(Boolean.FALSE.toString())
             .build();
 
     public static final PropertyDescriptor CONCURRENT_LOOKUP_REQUESTS = new PropertyDescriptor.Builder()
@@ -86,6 +88,16 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .defaultValue("1")
             .build();
 
+    public static final PropertyDescriptor KEEP_ALIVE_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Keep Alive interval")
+            .displayName("Keep Alive interval")
+            .description("The keep alive interval in seconds for each client-broker-connection. (default: 30).")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("30")
+            .build();
+
     public static final PropertyDescriptor LISTENER_THREADS = new PropertyDescriptor.Builder()
             .name("Listener Threads")
             .description("The number of threads to be used for message listeners (default: 1 thread)")
@@ -93,6 +105,15 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("1")
+            .build();
+
+    public static final PropertyDescriptor MAXIMUM_LOOKUP_REQUESTS = new PropertyDescriptor.Builder()
+            .name("Maximum lookup requests")
+            .description("Number of max lookup-requests allowed on each broker-connection to prevent overload on broker."
+                    + "(default: 50000) It should be bigger than maxConcurrentLookupRequests. ")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("50000")
             .build();
 
     public static final PropertyDescriptor MAXIMUM_REJECTED_REQUESTS = new PropertyDescriptor.Builder()
@@ -125,8 +146,16 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .defaultValue("60")
             .build();
 
+    public static final PropertyDescriptor TLS_TRUST_CERTS_FILE_PATH = new PropertyDescriptor.Builder()
+            .name("TLS Trust Certs File Path")
+            .description("Set the path to the trusted TLS certificate file")
+            .required(false)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final PropertyDescriptor USE_TCP_NO_DELAY = new PropertyDescriptor.Builder()
-            .name("Use TCP nodelay flag")
+            .name("Use TCP no-delay flag")
             .description("Configure whether to use TCP no-delay flag on the connection, to disable Nagle algorithm.\n"
                     + "No-delay features make sure packets are sent out on the network as soon as possible, and it's critical "
                     + "to achieve low latency publishes. On the other hand, sending out a huge number of small packets might "
@@ -137,24 +166,6 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .defaultValue("false")
             .build();
 
-    public static final PropertyDescriptor MAX_PRODUCERS = new PropertyDescriptor
-            .Builder().name("MAX_PRODUCERS")
-            .displayName("Producer Pool Size")
-            .description("The Maximum Number of Pulsar Producers created by this Pulsar Client Pool")
-            .required(true)
-            .defaultValue("10")
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor MAX_CONSUMERS = new PropertyDescriptor
-            .Builder().name("MAX_CONSUMERS")
-            .displayName("Consumer Pool Size")
-            .description("The Maximum Number of Pulsar consumers created by this Pulsar Client Pool")
-            .required(true)
-            .defaultValue("10")
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .build();
-
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl.context.service")
             .displayName("SSL Context Service")
@@ -163,22 +174,21 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
+    private static List<PropertyDescriptor> properties;
     private volatile PulsarClient client;
-
-        private volatile ResourcePoolImpl<PulsarProducer> producers;
-        private volatile ResourcePoolImpl<PulsarConsumer> consumers;
-        private ClientConfiguration clientConfig;
+    private boolean secure = false;
+    private ClientBuilder builder;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(PULSAR_SERVICE_URL);
-        props.add(MAX_CONSUMERS);
-        props.add(MAX_PRODUCERS);
+        props.add(ALLOW_TLS_INSECURE_CONNECTION);
         props.add(CONCURRENT_LOOKUP_REQUESTS);
         props.add(CONNECTIONS_PER_BROKER);
         props.add(IO_THREADS);
+        props.add(KEEP_ALIVE_INTERVAL);
         props.add(LISTENER_THREADS);
+        props.add(MAXIMUM_LOOKUP_REQUESTS);
         props.add(MAXIMUM_REJECTED_REQUESTS);
         props.add(OPERATION_TIMEOUT);
         props.add(STATS_INTERVAL);
@@ -188,39 +198,29 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+       return properties;
     }
 
     /**
      * @param context the configuration context
-     * @throws InitializationException if unable to create a database connection
+     * @throws InitializationException if unable to connect to the Pulsar Broker
      * @throws UnsupportedAuthenticationException if the Broker URL uses a non-supported authentication mechanism
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, UnsupportedAuthenticationException {
-
         createClient(context);
 
         if (this.client == null) {
             throw new InitializationException("Unable to create Pulsar Client");
         }
-
-        producers = new ResourcePoolImpl<PulsarProducer>(new PulsarProducerFactory(client), context.getProperty(MAX_PRODUCERS).asInteger());
-        consumers = new ResourcePoolImpl<PulsarConsumer>(new PulsarConsumerFactory(client,
-                buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).getValue(), getClientConfig(context).isUseTls())),
-                context.getProperty(MAX_CONSUMERS).asInteger());
     }
 
     private void createClient(final ConfigurationContext context) throws InitializationException {
-
         try {
-            this.client = PulsarClient.create(buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).getValue(),
-                        getClientConfig(context).isUseTls()), getClientConfig(context));
-
+            this.client = getClientBuilder(context).build();
         } catch (Exception e) {
             throw new InitializationException("Unable to create Pulsar Client", e);
         }
-
     }
 
     private static String buildPulsarBrokerRootUrl(String uri, boolean tlsEnabled) {
@@ -236,70 +236,73 @@ public class StandardPulsarClientPool extends AbstractControllerService implemen
         return builder.toString();
     }
 
-    private ClientConfiguration getClientConfig(ConfigurationContext context) throws UnsupportedAuthenticationException {
+    private ClientBuilder getClientBuilder(ConfigurationContext context) throws UnsupportedAuthenticationException {
+        if (builder == null) {
+           builder = PulsarClient.builder();
 
-        if (clientConfig == null) {
-            clientConfig = new ClientConfiguration();
+           if (context.getProperty(ALLOW_TLS_INSECURE_CONNECTION).isSet()) {
+             builder = builder.allowTlsInsecureConnection(context.getProperty(ALLOW_TLS_INSECURE_CONNECTION).evaluateAttributeExpressions().asBoolean());
+           }
 
-            if (context.getProperty(CONCURRENT_LOOKUP_REQUESTS).isSet()) {
-                clientConfig.setConcurrentLookupRequest(context.getProperty(CONCURRENT_LOOKUP_REQUESTS).asInteger());
-            }
+           if (context.getProperty(CONCURRENT_LOOKUP_REQUESTS).isSet()) {
+             builder = builder.maxConcurrentLookupRequests(context.getProperty(CONCURRENT_LOOKUP_REQUESTS).asInteger());
+           }
 
-            if (context.getProperty(CONNECTIONS_PER_BROKER).isSet()) {
-                clientConfig.setConnectionsPerBroker(context.getProperty(CONNECTIONS_PER_BROKER).asInteger());
-            }
+           if (context.getProperty(CONNECTIONS_PER_BROKER).isSet()) {
+             builder = builder.connectionsPerBroker(context.getProperty(CONNECTIONS_PER_BROKER).asInteger());
+           }
 
-            if (context.getProperty(IO_THREADS).isSet()) {
-                clientConfig.setIoThreads(context.getProperty(IO_THREADS).asInteger());
-            }
+           if (context.getProperty(IO_THREADS).isSet()) {
+             builder = builder.ioThreads(context.getProperty(IO_THREADS).asInteger());
+           }
 
-            if (context.getProperty(LISTENER_THREADS).isSet()) {
-                clientConfig.setListenerThreads(context.getProperty(LISTENER_THREADS).asInteger());
-            }
+           if (context.getProperty(KEEP_ALIVE_INTERVAL).isSet()) {
+             builder = builder.keepAliveInterval(context.getProperty(KEEP_ALIVE_INTERVAL).evaluateAttributeExpressions().asInteger(), TimeUnit.SECONDS);
+           }
 
-            if (context.getProperty(MAXIMUM_REJECTED_REQUESTS).isSet()) {
-                clientConfig.setMaxNumberOfRejectedRequestPerConnection(context.getProperty(MAXIMUM_REJECTED_REQUESTS).asInteger());
-            }
+           if (context.getProperty(LISTENER_THREADS).isSet()) {
+             builder = builder.listenerThreads(context.getProperty(LISTENER_THREADS).asInteger());
+           }
 
-            if (context.getProperty(OPERATION_TIMEOUT).isSet()) {
-                clientConfig.setOperationTimeout(context.getProperty(OPERATION_TIMEOUT).asInteger(), TimeUnit.SECONDS);
-            }
+           if (context.getProperty(MAXIMUM_LOOKUP_REQUESTS).isSet()) {
+             builder = builder.maxLookupRequests(context.getProperty(MAXIMUM_LOOKUP_REQUESTS).asInteger());
+           }
 
-            if (context.getProperty(STATS_INTERVAL).isSet()) {
-                clientConfig.setStatsInterval(context.getProperty(STATS_INTERVAL).asLong(), TimeUnit.SECONDS);
-            }
+           if (context.getProperty(MAXIMUM_REJECTED_REQUESTS).isSet()) {
+             builder = builder.maxNumberOfRejectedRequestPerConnection(context.getProperty(MAXIMUM_REJECTED_REQUESTS).asInteger());
+           }
 
-            if (context.getProperty(USE_TCP_NO_DELAY).isSet()) {
-                clientConfig.setUseTcpNoDelay(context.getProperty(USE_TCP_NO_DELAY).asBoolean());
-            }
+           if (context.getProperty(OPERATION_TIMEOUT).isSet()) {
+             builder = builder.operationTimeout(context.getProperty(OPERATION_TIMEOUT).asInteger(), TimeUnit.SECONDS);
+           }
 
-            // Configure TLS
-            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+           if (context.getProperty(STATS_INTERVAL).isSet()) {
+             builder = builder.statsInterval(context.getProperty(STATS_INTERVAL).asLong(), TimeUnit.SECONDS);
+           }
 
-            if (sslContextService != null && sslContextService.isTrustStoreConfigured() && sslContextService.isKeyStoreConfigured()) {
-                clientConfig.setUseTls(true);
-                clientConfig.setTlsTrustCertsFilePath(sslContextService.getTrustStoreFile());
+           if (context.getProperty(USE_TCP_NO_DELAY).isSet()) {
+             builder = builder.enableTcpNoDelay(context.getProperty(USE_TCP_NO_DELAY).asBoolean());
+           }
 
-                Map<String, String> authParams = new HashMap<>();
+           // Configure TLS
+           final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
-                // TODO This should be a different value than the TlsTrustCertsFilePath above.
-                authParams.put("tlsCertFile", sslContextService.getTrustStoreFile());
-                authParams.put("tlsKeyFile", sslContextService.getKeyStoreFile());
-                clientConfig.setAuthentication(AuthenticationTls.class.getName(), authParams);
-            }
+           if (sslContextService != null && sslContextService.isTrustStoreConfigured() && sslContextService.isKeyStoreConfigured()) {
+               Map<String, String> authParams = new HashMap<>();
+               authParams.put("tlsCertFile", sslContextService.getTrustStoreFile());
+               authParams.put("tlsKeyFile", sslContextService.getKeyStoreFile());
+
+               builder = builder.enableTls(true).authentication(AuthenticationTls.class.getName(), authParams)
+                                .tlsTrustCertsFilePath(context.getProperty(TLS_TRUST_CERTS_FILE_PATH).evaluateAttributeExpressions().getValue());
+               secure = true;
+           }
+           builder = builder.serviceUrl(buildPulsarBrokerRootUrl(context.getProperty(PULSAR_SERVICE_URL).getValue(), secure));
         }
-
-        return clientConfig;
+        return builder;
     }
 
     @Override
-    public ResourcePool<PulsarProducer> getProducerPool() {
-        return this.producers;
+    public PulsarClient getPulsarClient() {
+      return client;
     }
-
-    @Override
-    public ResourcePool<PulsarConsumer> getConsumerPool() {
-        return this.consumers;
-    }
-
 }

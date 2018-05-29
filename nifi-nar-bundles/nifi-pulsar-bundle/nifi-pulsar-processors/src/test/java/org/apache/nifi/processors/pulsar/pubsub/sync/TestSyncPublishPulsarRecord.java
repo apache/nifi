@@ -24,20 +24,19 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
-import org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord_1_X;
-import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsarRecord_1_X;
+import org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord;
+import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsarRecord;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 
-public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X {
+public class TestSyncPublishPulsarRecord extends TestPublishPulsarRecord {
 
-    @SuppressWarnings("unchecked")
     @Test
     public void pulsarClientExceptionTest() throws PulsarClientException {
-       when(mockProducer.send(Matchers.argThat(new ArgumentMatcher<byte[]>() {
+       when(mockClientService.getMockProducer().send(Matchers.argThat(new ArgumentMatcher<byte[]>() {
             @Override
             public boolean matches(Object argument) {
                 return true;
@@ -50,10 +49,10 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.run();
 
-        verify(mockProducer, times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_FAILURE);
+        verify(mockClientService.getMockProducer(), times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_FAILURE);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_FAILURE);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord.REL_FAILURE);
         assertEquals(1, results.size());
 
         String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
@@ -68,9 +67,9 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         runner.enqueue(content);
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_FAILURE);
 
-        verify(mockProducer, times(0)).send(content.getBytes());
+        verify(mockClientService.getMockProducer(), times(0)).send(content.getBytes());
     }
 
     @Test
@@ -80,13 +79,13 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         runner.enqueue(content);
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_SUCCESS);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord.REL_SUCCESS);
         MockFlowFile result = results.get(0);
 
-        result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "1");
-        verify(mockProducer, times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
+        result.assertAttributeEquals(PublishPulsarRecord.MSG_COUNT, "1");
+        verify(mockClientService.getMockProducer(), times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
 
     }
 
@@ -99,18 +98,18 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         runner.enqueue(sb.toString());
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_SUCCESS);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord.REL_SUCCESS);
         assertEquals(1, results.size());
 
         MockFlowFile result = results.get(0);
         result.assertContentEquals(sb.toString());
-        result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "3");
+        result.assertAttributeEquals(PublishPulsarRecord.MSG_COUNT, "3");
 
-        verify(mockProducer, times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
-        verify(mockProducer, times(1)).send("\"John Doe\",\"35\"\n".getBytes());
-        verify(mockProducer, times(1)).send("\"Busta Move\",\"26\"\n".getBytes());
+        verify(mockClientService.getMockProducer(), times(1)).send("\"Mary Jane\",\"32\"\n".getBytes());
+        verify(mockClientService.getMockProducer(), times(1)).send("\"John Doe\",\"35\"\n".getBytes());
+        verify(mockClientService.getMockProducer(), times(1)).send("\"Busta Move\",\"26\"\n".getBytes());
     }
 
     @Test
@@ -124,15 +123,15 @@ public class TestSyncPublishPulsarRecord_1_X extends TestPublishPulsarRecord_1_X
         runner.enqueue(sb.toString());
         runner.setProperty(AbstractPulsarProducerProcessor.TOPIC, TOPIC_NAME);
         runner.run();
-        runner.assertAllFlowFilesTransferred(PublishPulsarRecord_1_X.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(PublishPulsarRecord.REL_SUCCESS);
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord_1_X.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PublishPulsarRecord.REL_SUCCESS);
         assertEquals(1, results.size());
 
         MockFlowFile result = results.get(0);
         result.assertContentEquals(sb.toString());
-        result.assertAttributeEquals(PublishPulsarRecord_1_X.MSG_COUNT, "1000");
+        result.assertAttributeEquals(PublishPulsarRecord.MSG_COUNT, "1000");
 
-        verify(mockProducer, times(1000)).send("\"Mary Jane\",\"32\"\n".getBytes());
+        verify(mockClientService.getMockProducer(), times(1000)).send("\"Mary Jane\",\"32\"\n".getBytes());
     }
 }
