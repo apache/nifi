@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.lookup;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -79,6 +81,16 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
         .required(true)
         .build();
 
+    public static final PropertyDescriptor CHARSET =
+        new PropertyDescriptor.Builder()
+            .name("Character Set")
+            .description("The Character Encoding that is used to decode the CSV file.")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue("UTF-8")
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor LOOKUP_KEY_COLUMN =
         new PropertyDescriptor.Builder()
             .name("lookup-key-column")
@@ -118,6 +130,8 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
 
     private volatile CSVFormat csvFormat;
 
+    private volatile String charset;
+
     private volatile String lookupKeyColumn;
 
     private volatile String lookupValueColumn;
@@ -137,19 +151,22 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
                 }
 
                 final Map<String, String> properties = new HashMap<>();
-                final FileReader reader = new FileReader(csvFile);
-                final Iterable<CSVRecord> records = csvFormat.withFirstRecordAsHeader().parse(reader);
-                for (final CSVRecord record : records) {
-                    final String key = record.get(lookupKeyColumn);
-                    final String value = record.get(lookupValueColumn);
-                    if (StringUtils.isBlank(key)) {
-                        throw new IllegalStateException("Empty lookup key encountered in: " + csvFile);
-                    } else if (!ignoreDuplicates && properties.containsKey(key)) {
-                        throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
-                    } else if (ignoreDuplicates && properties.containsKey(key)) {
-                        logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
+                try (final InputStream is = new FileInputStream(csvFile)) {
+                    try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
+                        final Iterable<CSVRecord> records = csvFormat.withFirstRecordAsHeader().parse(reader);
+                        for (final CSVRecord record : records) {
+                            final String key = record.get(lookupKeyColumn);
+                            final String value = record.get(lookupValueColumn);
+                            if (StringUtils.isBlank(key)) {
+                                throw new IllegalStateException("Empty lookup key encountered in: " + csvFile);
+                            } else if (!ignoreDuplicates && properties.containsKey(key)) {
+                                throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
+                            } else if (ignoreDuplicates && properties.containsKey(key)) {
+                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
+                            }
+                            properties.put(key, value);
+                        }
                     }
-                    properties.put(key, value);
                 }
 
                 this.cache = new ConcurrentHashMap<>(properties);
@@ -173,6 +190,7 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CSV_FILE);
         properties.add(CSV_FORMAT);
+        properties.add(CHARSET);
         properties.add(LOOKUP_KEY_COLUMN);
         properties.add(LOOKUP_VALUE_COLUMN);
         properties.add(IGNORE_DUPLICATES);
@@ -183,6 +201,7 @@ public class SimpleCsvFileLookupService extends AbstractControllerService implem
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, FileNotFoundException {
         this.csvFile = context.getProperty(CSV_FILE).evaluateAttributeExpressions().getValue();
         this.csvFormat = CSVFormat.Predefined.valueOf(context.getProperty(CSV_FORMAT).getValue()).getFormat();
+        this.charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
         this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
         this.lookupValueColumn = context.getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions().getValue();
         this.ignoreDuplicates = context.getProperty(IGNORE_DUPLICATES).asBoolean();
