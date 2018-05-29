@@ -25,10 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -43,7 +41,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
@@ -58,49 +55,26 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
-import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 
 @Tags({"Apache", "Pulsar", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "1.0"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Pulsar using the Pulsar 1.x client API. "
     + "The contents of the FlowFile are expected to be record-oriented data that can be read by the configured Record Reader. "
-    + "The complementary NiFi processor for fetching messages is ConsumePulsarRecord_1_0.")
+    + "The complementary NiFi processor for fetching messages is ConsumePulsarRecord.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Pulsar for this FlowFile. This attribute is added only to "
         + "FlowFiles that are routed to success.")
-@SeeAlso({PublishPulsar_1_X.class, ConsumePulsar_1_X.class, ConsumePulsarRecord_1_X.class})
-public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
+@SeeAlso({PublishPulsar.class, ConsumePulsar.class, ConsumePulsarRecord.class})
+public class PublishPulsarRecord extends AbstractPulsarProducerProcessor<byte[]> {
 
     private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS;
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PULSAR_CLIENT_SERVICE);
+        properties.addAll(AbstractPulsarProducerProcessor.PROPERTIES);
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
-        properties.add(TOPIC);
-        properties.add(ASYNC_ENABLED);
-        properties.add(MAX_ASYNC_REQUESTS);
-        properties.add(BATCHING_ENABLED);
-        properties.add(BATCHING_MAX_MESSAGES);
-        properties.add(BATCH_INTERVAL);
-        properties.add(BLOCK_IF_QUEUE_FULL);
-        properties.add(COMPRESSION_TYPE);
-        properties.add(MESSAGE_ROUTING_MODE);
-        properties.add(PENDING_MAX_MESSAGES);
-
         PROPERTIES = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
     }
 
     @Override
@@ -152,7 +126,7 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
             final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
             final RecordSet recordSet = reader.createRecordSet();
             final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
-            final Producer producer = getWrappedProducer(topic, context).getProducer();
+            final Producer<byte[]> producer = getProducer(context, topic);
 
             if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
                InFlightMessageMonitor bundle = getInFlightMessages(writerFactory, schema, recordSet);
@@ -171,9 +145,8 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
         }
     }
 
-    private int send(final Producer producer, final RecordSetWriterFactory writerFactory, final RecordSchema schema, final RecordSet recordSet) throws IOException, SchemaNotFoundException {
+    private int send(final Producer<byte[]> producer, final RecordSetWriterFactory writerFactory, final RecordSchema schema, final RecordSet recordSet) throws IOException, SchemaNotFoundException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
-
         Record record;
         int recordCount = 0;
 
@@ -185,10 +158,8 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
                 writer.write(record);
                 writer.flush();
             }
-
             producer.send(baos.toByteArray());
         }
-
         return recordCount;
     }
 
@@ -209,19 +180,15 @@ public class PublishPulsarRecord_1_X extends AbstractPulsarProducerProcessor {
         return new InFlightMessageMonitor(records);
     }
 
-    /* Launches all of the async send requests
-     *
-     */
-    protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, InFlightMessageMonitor monitor) {
+    protected void sendAsync(Producer<byte[]> producer, ProcessSession session, FlowFile flowFile, InFlightMessageMonitor monitor) {
         if (monitor == null || monitor.getRecords().isEmpty())
            return;
 
         for (byte[] record: monitor.getRecords() ) {
            try {
-
-              publisherService.submit(new Callable<MessageId>() {
+              publisherService.submit(new Callable<Object>() {
                 @Override
-                public MessageId call() throws Exception {
+                public Object call() throws Exception {
                   try {
                      return producer.sendAsync(record).handle((msgId, ex) -> {
                          if (msgId != null) {

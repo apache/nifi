@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.processors.pulsar;
 
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -34,20 +38,16 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.pulsar.PulsarClientPool;
-import org.apache.nifi.pulsar.PulsarProducer;
 import org.apache.nifi.pulsar.cache.LRUCache;
-import org.apache.nifi.pulsar.pool.PulsarProducerFactory;
-import org.apache.nifi.pulsar.pool.ResourcePool;
 import org.apache.pulsar.client.api.CompressionType;
-import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageRoutingMode;
 import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.ProducerConfiguration;
+import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode;
 
-public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProcessor {
+public abstract class AbstractPulsarProducerProcessor<T> extends AbstractPulsarProcessor {
 
     public static final String MSG_COUNT = "msg.count";
     public static final String TOPIC_NAME = "topic.name";
@@ -158,16 +158,48 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
             .defaultValue("1000")
             .build();
 
-    protected LRUCache<String, PulsarProducer> producers;
-    protected ProducerConfiguration producerConfig;
+    protected static final List<PropertyDescriptor> PROPERTIES;
+    protected static final Set<Relationship> RELATIONSHIPS;
+
+    static {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(PULSAR_CLIENT_SERVICE);
+        properties.add(TOPIC);
+        properties.add(ASYNC_ENABLED);
+        properties.add(MAX_ASYNC_REQUESTS);
+        properties.add(BATCHING_ENABLED);
+        properties.add(BATCHING_MAX_MESSAGES);
+        properties.add(BATCH_INTERVAL);
+        properties.add(BLOCK_IF_QUEUE_FULL);
+        properties.add(COMPRESSION_TYPE);
+        properties.add(MESSAGE_ROUTING_MODE);
+        properties.add(PENDING_MAX_MESSAGES);
+        PROPERTIES = Collections.unmodifiableList(properties);
+
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
+        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
+
+    protected LRUCache<String, Producer<T>> producers;
 
     // Pool for running multiple publish Async requests
     protected ExecutorService publisherPool;
-    protected ExecutorCompletionService<MessageId> publisherService;
+    protected ExecutorCompletionService<Object> publisherService;
 
     @OnScheduled
     public void init(ProcessContext context) {
-        // We only need this if we are running in Async mode
         if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
             publisherPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
             publisherService = new ExecutorCompletionService<>(publisherPool);
@@ -193,11 +225,12 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
        getProducerCache(context).clear();
     }
 
+    @SuppressWarnings("rawtypes")
     protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
         try {
-            publisherService.submit(new Callable<MessageId>() {
+            publisherService.submit(new Callable<Object>() {
                @Override
-               public MessageId call() throws Exception {
+               public Object call() throws Exception {
                  try {
                      return producer.sendAsync(messageContent).handle((msgId, ex) -> {
                        if (msgId != null) {
@@ -221,14 +254,14 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
                  }
               }
              });
-          } catch (final RejectedExecutionException ex) {
-              // This can happen if the processor is being Unscheduled.
-          }
-      }
+        } catch (final RejectedExecutionException ex) {
+           // This can happen if the processor is being Unscheduled.
+        }
+    }
 
     protected void handleAsync() {
         try {
-           Future<MessageId> done = null;
+           Future<Object> done = null;
            do {
               done = publisherService.poll(50, TimeUnit.MILLISECONDS);
            } while (done != null);
@@ -237,69 +270,59 @@ public abstract class AbstractPulsarProducerProcessor extends AbstractPulsarProc
         }
     }
 
-    protected PulsarProducer getWrappedProducer(String topic, ProcessContext context) throws PulsarClientException, IllegalArgumentException {
-        PulsarProducer producer = getProducerCache(context).get(topic);
-
-        if (producer != null)
-            return producer;
-
-        try {
-            producer = context.getProperty(PULSAR_CLIENT_SERVICE)
-                    .asControllerService(PulsarClientPool.class)
-                    .getProducerPool().acquire(getProducerProperties(context, topic));
-
-            if (producer != null) {
-                producers.put(topic, producer);
-            }
-            return producer;
-        } catch (InterruptedException e) {
-            return null;
-        }
-    }
-
-    private LRUCache<String, PulsarProducer> getProducerCache(ProcessContext context) {
+    private LRUCache<String, Producer<T>> getProducerCache(ProcessContext context) {
         if (producers == null) {
-            ResourcePool<PulsarProducer> pool = context.getProperty(PULSAR_CLIENT_SERVICE)
-                    .asControllerService(PulsarClientPool.class)
-                    .getProducerPool();
-
-            producers = new LRUCache<String, PulsarProducer>(20, pool);
+           producers = new LRUCache<String, Producer<T>>(20);
         }
         return producers;
     }
 
-    private Properties getProducerProperties(ProcessContext context, String topic) {
-        Properties props = new Properties();
-        props.put(PulsarProducerFactory.TOPIC_NAME, topic);
-        props.put(PulsarProducerFactory.PRODUCER_CONFIG, getProducerConfig(context));
-        return props;
+    protected Producer<T> getProducer(ProcessContext context, String topic) throws PulsarClientException {
+        Producer<T> producer = getProducerCache(context).get(topic);
+
+        if (producer != null)
+          return producer;
+
+        producer = getBuilder(context, topic).create();
+
+        if (producer != null) {
+          producers.put(topic, producer);
+        }
+        return producer;
     }
 
-    private ProducerConfiguration getProducerConfig(ProcessContext context) {
-        if (producerConfig == null) {
-            producerConfig = new ProducerConfiguration();
+    private ProducerBuilder<T> getBuilder(ProcessContext context, String topic) {
+        ProducerBuilder<T> builder = (ProducerBuilder<T>) getPulsarClient(context).newProducer();
 
-            if (context.getProperty(BATCHING_ENABLED).isSet())
-                producerConfig.setBatchingEnabled(context.getProperty(BATCHING_ENABLED).asBoolean());
+        builder = builder.topic(topic);
 
-            if (context.getProperty(BATCHING_MAX_MESSAGES).isSet())
-                producerConfig.setBatchingMaxMessages(context.getProperty(BATCHING_MAX_MESSAGES).asInteger());
-
-            if (context.getProperty(BATCH_INTERVAL).isSet())
-                producerConfig.setBatchingMaxPublishDelay(context.getProperty(BATCH_INTERVAL).asLong(), TimeUnit.MILLISECONDS);
-
-            if (context.getProperty(BLOCK_IF_QUEUE_FULL).isSet())
-                producerConfig.setBlockIfQueueFull(context.getProperty(BLOCK_IF_QUEUE_FULL).asBoolean());
-
-            if (context.getProperty(COMPRESSION_TYPE).isSet())
-                producerConfig.setCompressionType(CompressionType.valueOf(context.getProperty(COMPRESSION_TYPE).getValue()));
-
-            if (context.getProperty(PENDING_MAX_MESSAGES).isSet())
-                producerConfig.setMaxPendingMessages(context.getProperty(PENDING_MAX_MESSAGES).asInteger());
-
-            if (context.getProperty(MESSAGE_ROUTING_MODE).isSet())
-                producerConfig.setMessageRoutingMode(MessageRoutingMode.valueOf(context.getProperty(MESSAGE_ROUTING_MODE).getValue()));
+        if (context.getProperty(BATCHING_ENABLED).isSet()) {
+            builder = builder.enableBatching(context.getProperty(BATCHING_ENABLED).asBoolean());
         }
-        return producerConfig;
+
+        if (context.getProperty(BATCHING_MAX_MESSAGES).isSet()) {
+           builder = builder.batchingMaxMessages(context.getProperty(BATCHING_MAX_MESSAGES).asInteger());
+        }
+
+        if (context.getProperty(BATCH_INTERVAL).isSet()) {
+           builder = builder.batchingMaxPublishDelay(context.getProperty(BATCH_INTERVAL).asLong(), TimeUnit.MILLISECONDS);
+        }
+
+        if (context.getProperty(BLOCK_IF_QUEUE_FULL).isSet()) {
+           builder = builder.blockIfQueueFull(context.getProperty(BLOCK_IF_QUEUE_FULL).asBoolean());
+        }
+
+        if (context.getProperty(COMPRESSION_TYPE).isSet()) {
+           builder = builder.compressionType(CompressionType.valueOf(context.getProperty(COMPRESSION_TYPE).getValue()));
+        }
+
+        if (context.getProperty(PENDING_MAX_MESSAGES).isSet()) {
+           builder = builder.maxPendingMessages(context.getProperty(PENDING_MAX_MESSAGES).asInteger());
+        }
+
+        if (context.getProperty(MESSAGE_ROUTING_MODE).isSet()) {
+           builder = builder.messageRoutingMode(MessageRoutingMode.valueOf(context.getProperty(MESSAGE_ROUTING_MODE).getValue()));
+        }
+        return builder;
     }
 }

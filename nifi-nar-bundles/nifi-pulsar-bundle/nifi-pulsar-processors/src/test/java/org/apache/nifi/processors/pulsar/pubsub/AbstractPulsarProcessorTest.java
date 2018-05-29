@@ -20,20 +20,17 @@ import org.apache.nifi.processors.pulsar.AbstractPulsarProcessor;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockPulsarClientService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.mockito.Mock;
 
-public abstract class AbstractPulsarProcessorTest {
+public abstract class AbstractPulsarProcessorTest<T> {
 
     protected TestRunner runner;
 
-    @Mock
-    protected PulsarClient mockClient;
+    protected MockPulsarClientService<T> mockClientService;
 
     protected void addPulsarClientService() throws InitializationException {
-        final MockPulsarClientService pulsarClient = new MockPulsarClientService(mockClient);
-        runner.addControllerService("pulsarClient", pulsarClient);
-        runner.enableControllerService(pulsarClient);
-        runner.setProperty(AbstractPulsarProcessor.PULSAR_CLIENT_SERVICE, "pulsarClient");
+        mockClientService = new MockPulsarClientService<T>();
+        runner.addControllerService("Pulsar Client Service", mockClientService);
+        runner.enableControllerService(mockClientService);
+        runner.setProperty(AbstractPulsarProcessor.PULSAR_CLIENT_SERVICE, "Pulsar Client Service");
     }
 }

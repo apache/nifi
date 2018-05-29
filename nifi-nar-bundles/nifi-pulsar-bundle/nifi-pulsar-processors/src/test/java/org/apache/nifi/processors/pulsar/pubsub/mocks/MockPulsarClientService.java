@@ -16,137 +16,158 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub.mocks;
 
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.pulsar.PulsarClientPool;
-import org.apache.nifi.pulsar.PulsarConsumer;
-import org.apache.nifi.pulsar.PulsarProducer;
-import org.apache.nifi.pulsar.pool.PulsarConsumerFactory;
-import org.apache.nifi.pulsar.pool.PulsarProducerFactory;
-import org.apache.nifi.pulsar.pool.ResourcePool;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.junit.Rule;
-import org.mockito.ArgumentMatcher;
-import org.mockito.Matchers;
-import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-public class MockPulsarClientService extends AbstractControllerService implements PulsarClientPool {
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.pulsar.PulsarClientService;
+import org.apache.pulsar.client.api.CompressionType;
+import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.ConsumerBuilder;
+import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
+import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageRoutingMode;
+import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.ProducerBuilder;
+import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.SubscriptionType;
+import org.mockito.ArgumentMatcher;
+import org.mockito.Matchers;
+import org.mockito.Mock;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+
+public class MockPulsarClientService<T> extends AbstractControllerService implements PulsarClientService {
 
     @Mock
-    PulsarClient mockClient;
+    PulsarClient mockClient = mock(PulsarClient.class);
 
     @Mock
-    ResourcePool<PulsarProducer> mockProducerPool;
+    ProducerBuilder<T> mockProducerBuilder = mock(ProducerBuilder.class);
 
     @Mock
-    ResourcePool<PulsarConsumer> mockConsumerPool;
+    ConsumerBuilder<T> mockConsumerBuilder = mock(ConsumerBuilder.class);
 
     @Mock
-    Producer mockProducer;
+    Producer<T> mockProducer = mock(Producer.class);
 
     @Mock
-    Consumer mockConsumer;
+    Consumer<T> mockConsumer = mock(Consumer.class);
 
-    @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
+    @Mock
+    protected Message<T> mockMessage;
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public MockPulsarClientService(PulsarClient mockClient2) {
-        this.mockClient = mockClient2;
-        mockProducerPool = mock(ResourcePool.class);
-        mockConsumerPool = mock(ResourcePool.class);
-        mockProducer = mock(Producer.class);
-        mockConsumer = mock(Consumer.class);
+    @Mock
+    MessageId mockMessageId = mock(MessageId.class);
+
+    public MockPulsarClientService() {
+        when(mockClient.newProducer()).thenReturn((ProducerBuilder<byte[]>) mockProducerBuilder);
+        when(mockClient.newConsumer()).thenReturn((ConsumerBuilder<byte[]>) mockConsumerBuilder);
+
+        when(mockProducerBuilder.topic(anyString())).thenReturn(mockProducerBuilder);
+        when(mockProducerBuilder.enableBatching(anyBoolean())).thenReturn(mockProducerBuilder);
+        when(mockProducerBuilder.batchingMaxMessages(anyInt())).thenReturn(mockProducerBuilder);
+        when(mockProducerBuilder.batchingMaxPublishDelay(anyLong(), any(TimeUnit.class))).thenReturn(mockProducerBuilder);
+        when(mockProducerBuilder.blockIfQueueFull(anyBoolean())).thenReturn(mockProducerBuilder);
+        when(mockProducerBuilder.compressionType(any(CompressionType.class))).thenReturn(mockProducerBuilder);
+        when(mockProducerBuilder.maxPendingMessages(anyInt())).thenReturn(mockProducerBuilder);
+        when(mockProducerBuilder.messageRoutingMode(any(MessageRoutingMode.class))).thenReturn(mockProducerBuilder);
+
+        when(mockConsumerBuilder.topic(any(String[].class))).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.topic(anyString())).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.subscriptionName(anyString())).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.ackTimeout(anyLong(), any(TimeUnit.class))).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.consumerName(anyString())).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.cryptoFailureAction(any(ConsumerCryptoFailureAction.class))).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.priorityLevel(anyInt())).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.receiverQueueSize(anyInt())).thenReturn(mockConsumerBuilder);
+        when(mockConsumerBuilder.subscriptionType(any(SubscriptionType.class))).thenReturn(mockConsumerBuilder);
 
         try {
-            when(mockProducerPool.acquire(any(Properties.class))).thenAnswer(
-                    new Answer<PulsarProducer>() {
-                        @Override
-                        public PulsarProducer answer(InvocationOnMock invocation) {
-                            Properties props = invocation.getArgumentAt(0, Properties.class);
-                            return getProducer(props);
-                        }
-                    });
+            when(mockConsumerBuilder.subscribe()).thenReturn(mockConsumer);
+            when(mockConsumer.receive()).thenReturn(mockMessage);
 
-            when(mockConsumerPool.acquire(any(Properties.class))).thenAnswer(
-                    new Answer<PulsarConsumer>() {
-                        @Override
-                        public PulsarConsumer answer(InvocationOnMock invocation) {
-                            Properties props = invocation.getArgumentAt(0, Properties.class);
-                            return getConsumer(props);
-                        }
-                    });
+            when(mockProducerBuilder.create()).thenReturn(mockProducer);
+            defineDefaultProducerBehavior();
+        } catch (PulsarClientException e) {
+           e.printStackTrace();
+        }
+    }
 
-            doAnswer(new Answer() {
-                   public Object answer(InvocationOnMock invocation){
-                        PulsarConsumer consumer = invocation.getArgumentAt(0, PulsarConsumer.class);
-                        consumer.close();
-                        return null;
-                    }
-                }).when(mockConsumerPool).evict(any(PulsarConsumer.class));
+    public void setMockMessage(Message<T> msg) {
+        this.mockMessage = msg;
 
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
+        // Configure the consumer behavior
+        try {
+          when(mockConsumer.receive()).thenReturn(mockMessage);
+        } catch (PulsarClientException e) {
+          e.printStackTrace();
         }
 
+        CompletableFuture<Message<T>> future = CompletableFuture.supplyAsync(() -> {
+           return mockMessage;
+        });
+
+        when(mockConsumer.receiveAsync()).thenReturn(future);
+    }
+
+    public Producer<T> getMockProducer() {
+        return mockProducer;
+    }
+
+    public void setMockProducer(Producer<T> mockProducer) {
+       this.mockProducer = mockProducer;
+       defineDefaultProducerBehavior();
+    }
+
+    private void defineDefaultProducerBehavior() {
         try {
-            when(mockProducer.send(Matchers.argThat(new ArgumentMatcher<byte[]>() {
+           when(mockProducer.send(Matchers.argThat(new ArgumentMatcher<T>() {
                 @Override
                 public boolean matches(Object argument) {
                     return true;
                 }
-            }))).thenReturn(null);
+            }))).thenReturn(mockMessageId);
+
+            CompletableFuture<MessageId> future = CompletableFuture.supplyAsync(() -> {
+                return mock(MessageId.class);
+            });
+
+            when(mockProducer.sendAsync(Matchers.argThat(new ArgumentMatcher<T>() {
+                @Override
+                public boolean matches(Object argument) {
+                    return true;
+                }
+            }))).thenReturn(future);
+
         } catch (PulsarClientException e) {
             e.printStackTrace();
         }
     }
 
-    public Producer getMockProducer() {
-        return mockProducer;
+    public Consumer<T> getMockConsumer() {
+      return mockConsumer;
     }
 
-    public PulsarClient getMockClient() {
-        return mockClient;
+    public ProducerBuilder<T> getMockProducerBuilder() {
+      return mockProducerBuilder;
     }
 
-    public PulsarProducer getProducer(Properties props) {
-        String topic = props.getProperty(PulsarProducerFactory.TOPIC_NAME);
-        try {
-            return new PulsarProducer(mockClient.createProducer(topic), topic);
-        } catch (PulsarClientException e) {
-            return null;
-        }
-    }
-
-    public PulsarConsumer getConsumer(Properties props)  {
-        String topic = props.getProperty(PulsarConsumerFactory.TOPIC_NAME);
-        String subscription = props.getProperty(PulsarConsumerFactory.SUBSCRIPTION_NAME);
-        try {
-            return new PulsarConsumer(mockClient.subscribe(topic, subscription), "", topic, subscription);
-        } catch (PulsarClientException e) {
-            return null;
-        }
+    public ConsumerBuilder<T> getMockConsumerBuilder() {
+      return mockConsumerBuilder;
     }
 
     @Override
-    public ResourcePool<PulsarProducer> getProducerPool() {
-        return mockProducerPool;
-    }
-
-    @Override
-    public ResourcePool<PulsarConsumer> getConsumerPool() {
-        return mockConsumerPool;
+    public PulsarClient getPulsarClient() {
+      return mockClient;
     }
 }

@@ -37,7 +37,7 @@ public class TestProcessor extends AbstractProcessor {
         propDescs.add(new PropertyDescriptor.Builder()
                 .name("StandardPulsarClientService test processor")
                 .description("StandardPulsarClientService test processor")
-                .identifiesControllerService(StandardPulsarClientPool.class)
+                .identifiesControllerService(PulsarClientService.class)
                 .required(true)
                 .build());
         return propDescs;

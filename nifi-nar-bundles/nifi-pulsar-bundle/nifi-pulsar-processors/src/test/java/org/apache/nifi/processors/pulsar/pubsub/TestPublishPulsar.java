@@ -14,28 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.pulsar.pool;
+package org.apache.nifi.processors.pulsar.pubsub;
 
-/**
- * Service interface for any object that can be pooled for re-use., which
- * defines methods for closing the object, effectively marking it no longer
- * usable.
- *
- */
-public interface PoolableResource {
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunners;
 
-    /**
-     * Closes the object, marking it as no longer usable.
-     * Typically this is called if interactions with the
-     * object have resulted in some sort of communication error.
-     */
-    public void close();
+import org.apache.pulsar.client.api.Producer;
 
-    /**
-     * Check to see if the object is usable.
-     *
-     * @return true if the close method on this object has been called.
-     */
-    public boolean isClosed();
+import org.junit.Before;
+import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
 
+public class TestPublishPulsar extends AbstractPulsarProcessorTest<byte[]> {
+
+    @Mock
+    protected Producer<byte[]> mockProducer;
+
+    @Before
+    public void init() throws InitializationException {
+        mockProducer = mock(Producer.class);
+        runner = TestRunners.newTestRunner(PublishPulsar.class);
+        addPulsarClientService();
+    }
 }

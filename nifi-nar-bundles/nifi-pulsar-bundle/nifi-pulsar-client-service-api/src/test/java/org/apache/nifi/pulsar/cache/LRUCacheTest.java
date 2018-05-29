@@ -16,36 +16,29 @@
  */
 package org.apache.nifi.pulsar.cache;
 
-import java.util.Properties;
-
-import org.apache.nifi.pulsar.PulsarProducer;
-import org.apache.nifi.pulsar.pool.ResourcePool;
+import org.apache.pulsar.client.api.Producer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class LRUCacheTest {
 
-    @Mock
-    private ResourcePool<PulsarProducer> mockedResourcePool;
+    //@Mock
+    //private ResourcePool<PulsarProducer> mockedResourcePool;
 
     @Mock
-    private PulsarProducer mockedPulsarProducer;
+    private Producer mockedPulsarProducer;
 
     @SuppressWarnings("unchecked")
     @Before
     public void setUp() throws InterruptedException {
-      mockedResourcePool = mock(ResourcePool.class);
-      mockedPulsarProducer = mock(PulsarProducer.class);
-      when(mockedResourcePool.acquire(any(Properties.class))).thenReturn(mockedPulsarProducer);
+     // mockedResourcePool = mock(ResourcePool.class);
+      mockedPulsarProducer = mock(Producer.class);
+     // when(mockedResourcePool.acquire(any(Properties.class))).thenReturn(mockedPulsarProducer);
     }
 
     /**
@@ -53,7 +46,7 @@ public class LRUCacheTest {
      */
     @Test
     public void simpleTest() {
-      LRUCache<String, PulsarProducer> cache = new LRUCache<String, PulsarProducer>(10, mockedResourcePool);
+      LRUCache<String, Producer> cache = new LRUCache<String, Producer>(10);
 
       for (Character i='A'; i<='E'; i++){
          cache.put(i.toString(), mockedPulsarProducer);
@@ -69,7 +62,7 @@ public class LRUCacheTest {
     @Test
     public void evictionTest() {
 
-      LRUCache<String, PulsarProducer> cache = new LRUCache<String, PulsarProducer>(5, mockedResourcePool);
+      LRUCache<String, Producer> cache = new LRUCache<String, Producer>(5);
 
       for (Character i='A'; i<='Z'; i++){
          cache.put(i.toString(), mockedPulsarProducer);
@@ -82,15 +75,12 @@ public class LRUCacheTest {
       for (Character i='V'; i<='Z'; i++){
          assertNotNull( cache.get(i.toString()));
       }
-
-      // Make sure the evict method on the resource pool was called 21 times, once for every item removed.
-      verify(mockedResourcePool, times(21)).evict(mockedPulsarProducer);
     }
 
     @Test
     public void evictionLruTest() {
 
-      LRUCache<String, PulsarProducer> cache = new LRUCache<String, PulsarProducer>(5, mockedResourcePool);
+      LRUCache<String, Producer> cache = new LRUCache<String, Producer>(5);
 
       final Character A = 'A';
 
@@ -110,14 +100,11 @@ public class LRUCacheTest {
       for (Character i='W'; i<='Z'; i++){
          assertNotNull( cache.get(i.toString()));
       }
-
-      // Make sure the evict method on the resource pool was called 21 times, once for every item removed.
-      verify(mockedResourcePool, times(21)).evict(mockedPulsarProducer);
     }
 
     @Test
     public void clearTest() {
-       LRUCache<String, PulsarProducer> cache = new LRUCache<String, PulsarProducer>(26, mockedResourcePool);
+       LRUCache<String, Producer> cache = new LRUCache<String, Producer>(26);
 
        for (Character i='A'; i<='Z'; i++){
           cache.put(i.toString(), mockedPulsarProducer);
@@ -129,8 +116,5 @@ public class LRUCacheTest {
 
        // Make sure all the items were removed
        assertEquals(0, cache.getSize());
-
-       // Make sure all the items were evicted from the underlying resource pool
-       verify(mockedResourcePool, times(26)).evict(mockedPulsarProducer);
     }
 }

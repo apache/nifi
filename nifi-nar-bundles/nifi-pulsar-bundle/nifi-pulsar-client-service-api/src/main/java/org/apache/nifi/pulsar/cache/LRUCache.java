@@ -18,21 +18,17 @@ package org.apache.nifi.pulsar.cache;
 
 import java.util.LinkedHashMap;
 
-import org.apache.nifi.pulsar.pool.PoolableResource;
-import org.apache.nifi.pulsar.pool.ResourcePool;
-
-public class LRUCache<K, V extends PoolableResource> {
+public class LRUCache<K, V> {
 
     private LinkedHashMap<K, V> lruCacheMap;
     private final int capacity;
     private final boolean SORT_BY_ACCESS = true;
     private final float LOAD_FACTOR = 0.75F;
-    private final ResourcePool<V> resourcePool;
+    //private final ResourcePool<V> resourcePool;
 
-    public LRUCache(int capacity, ResourcePool<V> resourcePool){
+    public LRUCache(int capacity){
         this.capacity = capacity;
         this.lruCacheMap = new LinkedHashMap<>(capacity, LOAD_FACTOR, SORT_BY_ACCESS);
-        this.resourcePool = resourcePool;
     }
 
     public V get(K k){
@@ -44,9 +40,7 @@ public class LRUCache<K, V extends PoolableResource> {
             lruCacheMap.remove(k);
         } else if(lruCacheMap.size() >= capacity){
             K victimKey = lruCacheMap.keySet().iterator().next();
-            V victim = lruCacheMap.get(victimKey);
             lruCacheMap.remove(victimKey);
-            resourcePool.evict(victim);
         }
         lruCacheMap.put(k, v);
     }
@@ -56,9 +50,6 @@ public class LRUCache<K, V extends PoolableResource> {
     }
 
     public void clear() {
-        for (V victim :lruCacheMap.values()) {
-           resourcePool.evict(victim);
-        }
         lruCacheMap.clear();
     }
 

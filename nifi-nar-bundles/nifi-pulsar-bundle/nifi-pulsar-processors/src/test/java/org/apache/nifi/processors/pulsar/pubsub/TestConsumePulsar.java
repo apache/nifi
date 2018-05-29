@@ -19,9 +19,7 @@ package org.apache.nifi.processors.pulsar.pubsub;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
-import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -31,7 +29,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyString;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -39,38 +36,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
-public class TestConsumePulsar_1_X extends AbstractPulsarProcessorTest {
-
-    @Mock
-    protected Consumer mockConsumer;
+public class TestConsumePulsar extends AbstractPulsarProcessorTest<byte[]> {
 
     @Mock
-    protected Message mockMessage;
+    protected Message<byte[]> mockMessage;
 
     @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Before
     public void init() throws InitializationException {
-        runner = TestRunners.newTestRunner(ConsumePulsar_1_X.class);
-        mockClient = mock(PulsarClient.class);
-        mockConsumer = mock(Consumer.class);
+        runner = TestRunners.newTestRunner(ConsumePulsar.class);
         mockMessage = mock(Message.class);
-
-        try {
-            when(mockClient.subscribe(anyString(), anyString())).thenReturn(mockConsumer);
-            when(mockConsumer.receive()).thenReturn(mockMessage);
-
-            CompletableFuture<Message> future = CompletableFuture.supplyAsync(() -> {
-                return mockMessage;
-            });
-
-            when(mockConsumer.receiveAsync()).thenReturn(future);
-
-        } catch (PulsarClientException e) {
-            e.printStackTrace();
-        }
         addPulsarClientService();
     }
 
@@ -100,54 +77,52 @@ public class TestConsumePulsar_1_X extends AbstractPulsarProcessorTest {
     @Test
     public void onStoppedTest() throws NoSuchMethodException, SecurityException, PulsarClientException {
         when(mockMessage.getData()).thenReturn("Mocked Message".getBytes());
+        mockClientService.setMockMessage(mockMessage);
 
-        runner.setProperty(ConsumePulsar_1_X.TOPIC, "foo");
-        runner.setProperty(ConsumePulsar_1_X.SUBSCRIPTION, "bar");
+        runner.setProperty(ConsumePulsar.TOPICS, "foo");
+        runner.setProperty(ConsumePulsar.SUBSCRIPTION_NAME, "bar");
         runner.run(10, true);
-        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_X.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
 
         runner.assertQueueEmpty();
 
         // Verify that the receive method on the consumer was called 10 times
-        verify(mockConsumer, times(10)).receive();
+        verify(mockClientService.getMockConsumer(), times(10)).receive();
 
         // Verify that each message was acknowledged
-        verify(mockConsumer, times(10)).acknowledge(mockMessage);
+        verify(mockClientService.getMockConsumer(), times(10)).acknowledge(mockMessage);
 
         // Verify that the consumer was closed
-        verify(mockConsumer, times(1)).close();
+        verify(mockClientService.getMockConsumer(), times(1)).close();
 
     }
 
     protected void sendMessages(String msg, String topic, String sub, boolean async, int itertions) throws PulsarClientException {
 
         when(mockMessage.getData()).thenReturn(msg.getBytes());
+        mockClientService.setMockMessage(mockMessage);
 
-        runner.setProperty(ConsumePulsar_1_X.ASYNC_ENABLED, Boolean.toString(async));
-        runner.setProperty(ConsumePulsar_1_X.TOPIC, topic);
-        runner.setProperty(ConsumePulsar_1_X.SUBSCRIPTION, sub);
+        runner.setProperty(ConsumePulsar.ASYNC_ENABLED, Boolean.toString(async));
+        runner.setProperty(ConsumePulsar.TOPICS, topic);
+        runner.setProperty(ConsumePulsar.SUBSCRIPTION_NAME, sub);
         runner.run(itertions, true);
 
-        runner.assertAllFlowFilesTransferred(ConsumePulsar_1_X.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsar.REL_SUCCESS);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar_1_X.REL_SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
         assertEquals(itertions, flowFiles.size());
 
         for (MockFlowFile ff : flowFiles) {
-                ff.assertContentEquals(msg);
+            ff.assertContentEquals(msg);
         }
 
-        if (async) {
-            verify(mockConsumer, times(itertions)).receiveAsync();
-        } else {
-            verify(mockConsumer, times(itertions)).receive();
-        }
+        verify(mockClientService.getMockConsumer(), times(itertions)).receive();
 
         // Verify that every message was acknowledged
         if (async) {
-            verify(mockConsumer, times(itertions)).acknowledgeAsync(mockMessage);
+            verify(mockClientService.getMockConsumer(), times(itertions)).acknowledgeAsync(mockMessage);
         } else {
-            verify(mockConsumer, times(itertions)).acknowledge(mockMessage);
+            verify(mockClientService.getMockConsumer(), times(itertions)).acknowledge(mockMessage);
         }
     }
 }

@@ -14,25 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.pulsar.pool;
+package org.apache.nifi.pulsar;
 
-import java.util.Properties;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.pulsar.client.api.PulsarClient;
 
-public interface ResourcePool<R extends PoolableResource> {
+@Tags({"Pulsar", "client", "pool"})
+@CapabilityDescription("Provides the ability to create Pulsar Producer / Consumer instances on demand, "
+        + "based on the configuration properties defined")
+public interface PulsarClientService extends ControllerService {
 
-    /**
-     * Acquire a resource from the pool. Creating one if necessary
-     */
-   public R acquire(Properties props) throws InterruptedException;
-
-    /**
-     * Evict the resource from the pool, destroying it.
-     * Call this method is the resource is known to be in an unusable state.
-     */
-    public void evict(R resource);
-
-    /**
-     * Place the resource back into the pool for future use.
-     */
-    public void release(R resource);
+    public PulsarClient getPulsarClient();
 }

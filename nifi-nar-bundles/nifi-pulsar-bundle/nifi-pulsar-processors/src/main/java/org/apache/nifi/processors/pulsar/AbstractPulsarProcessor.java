@@ -19,8 +19,10 @@ package org.apache.nifi.processors.pulsar;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.pulsar.PulsarClientPool;
+import org.apache.nifi.pulsar.PulsarClientService;
+import org.apache.pulsar.client.api.PulsarClient;
 
 public abstract class AbstractPulsarProcessor extends AbstractProcessor {
 
@@ -28,7 +30,7 @@ public abstract class AbstractPulsarProcessor extends AbstractProcessor {
             .name("Pulsar Client Service")
             .description("Specified the Pulsar Client Service that can be used to create Pulsar connections")
             .required(true)
-            .identifiesControllerService(PulsarClientPool.class)
+            .identifiesControllerService(PulsarClientService.class)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -40,4 +42,14 @@ public abstract class AbstractPulsarProcessor extends AbstractProcessor {
             .name("failure")
             .description("Any FlowFile that cannot be sent to Pulsar will be routed to this Relationship")
             .build();
+
+    protected PulsarClient client;
+
+    protected PulsarClient getPulsarClient(ProcessContext context) {
+        if (client == null) {
+           final PulsarClientService clientService = context.getProperty(PULSAR_CLIENT_SERVICE).asControllerService(PulsarClientService.class);
+           client = clientService.getPulsarClient();
+        }
+        return client;
+    }
 }
