@@ -60,7 +60,7 @@ public class TestSiteToSiteStatusReportingTask {
     private ReportingContext context;
 
     public MockSiteToSiteStatusReportingTask initTask(Map<PropertyDescriptor, String> customProperties,
-            ProcessGroupStatus pgStatus) throws InitializationException {
+            ProcessGroupStatus pgStatus) throws InitializationException, IOException {
         final MockSiteToSiteStatusReportingTask task = new MockSiteToSiteStatusReportingTask();
         Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
@@ -337,6 +337,10 @@ public class TestSiteToSiteStatusReportingTask {
     }
 
     private static final class MockSiteToSiteStatusReportingTask extends SiteToSiteStatusReportingTask {
+
+        public MockSiteToSiteStatusReportingTask() throws IOException {
+            super();
+        }
 
         final List<byte[]> dataSent = new ArrayList<>();
 

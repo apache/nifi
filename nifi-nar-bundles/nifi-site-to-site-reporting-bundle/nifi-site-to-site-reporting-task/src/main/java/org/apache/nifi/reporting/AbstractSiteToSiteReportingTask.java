@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.reporting;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import javax.json.JsonArray;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 import javax.net.ssl.SSLContext;
@@ -46,6 +49,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
@@ -208,6 +212,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         properties.add(HTTP_PROXY_PORT);
         properties.add(HTTP_PROXY_USERNAME);
         properties.add(HTTP_PROXY_PASSWORD);
+        properties.add(RECORD_WRITER);
         return properties;
     }
 
@@ -262,6 +267,14 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     // this getter is intended explicitly for testing purposes
     protected SiteToSiteClient getClient() {
         return this.siteToSiteClient;
+    }
+
+    protected void sendData(final ReportingContext context, final Transaction transaction, Map<String, String> attributes, final JsonArray jsonArray) throws IOException {
+        if(context.getProperty(RECORD_WRITER).isSet()) {
+            transaction.send(getData(context, new ByteArrayInputStream(jsonArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
+        } else {
+            transaction.send(jsonArray.toString().getBytes(StandardCharsets.UTF_8), attributes);
+        }
     }
 
     protected byte[] getData(final ReportingContext context, InputStream in, Map<String, String> attributes) {
@@ -387,8 +400,14 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             if (firstObjectConsumed && !array) {
                 return null;
             }
+
+            JsonNode nextNode = getNextJsonNode();
+            if(nextNode == null) {
+                return null;
+            }
+
             try {
-                return convertJsonNodeToRecord(getNextJsonNode(), getSchema(), null, coerceTypes, dropUnknownFields);
+                return convertJsonNodeToRecord(nextNode, getSchema(), null, coerceTypes, dropUnknownFields);
             } catch (final MalformedRecordException mre) {
                 throw mre;
             } catch (final IOException ioe) {

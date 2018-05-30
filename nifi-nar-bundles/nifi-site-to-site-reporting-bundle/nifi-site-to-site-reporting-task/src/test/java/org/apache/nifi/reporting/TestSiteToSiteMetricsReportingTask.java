@@ -17,7 +17,6 @@
 
 package org.apache.nifi.reporting;
 
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -53,7 +52,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
-import org.apache.nifi.util.TestRunner;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +63,6 @@ public class TestSiteToSiteMetricsReportingTask {
 
     private ReportingContext context;
     private ProcessGroupStatus status;
-    private TestRunner runner;
 
     @Before
     public void setup() {

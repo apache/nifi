@@ -17,11 +17,13 @@
 
 package org.apache.nifi.reporting;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -37,8 +39,9 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -75,6 +78,11 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         .build();
 
     private volatile long lastSentBulletinId = -1L;
+
+    public SiteToSiteBulletinReportingTask() throws IOException {
+        final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-bulletins.avsc");
+        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -153,8 +161,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             attributes.put("reporting.task.type", this.getClass().getSimpleName());
             attributes.put("mime.type", "application/json");
 
-            final byte[] data = jsonArray.toString().getBytes(StandardCharsets.UTF_8);
-            transaction.send(data, attributes);
+            sendData(context, transaction, attributes, jsonArray);
             transaction.confirm();
             transaction.complete();
 
