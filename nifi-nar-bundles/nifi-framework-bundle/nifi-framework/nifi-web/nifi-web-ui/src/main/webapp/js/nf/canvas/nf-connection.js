@@ -1524,6 +1524,7 @@
     var save = function (d, connection) {
         var entity = {
             'revision': nfClient.getRevision(d),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': connection
         };
 
@@ -1720,6 +1721,7 @@
 
                             var connectionEntity = {
                                 'revision': nfClient.getRevision(connectionData),
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                                 'component': {
                                     'id': connectionData.id,
                                     'destination': {

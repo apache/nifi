@@ -21,27 +21,30 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
+                'nf.Storage',
                 'nf.Common',
                 'nf.Client',
                 'nf.CanvasUtils'],
-            function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
-                return (nf.Label = factory($, d3, nfCommon, nfClient, nfCanvasUtils));
+            function ($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils) {
+                return (nf.Label = factory($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Label =
             factory(require('jquery'),
                 require('d3'),
+                require('nf.Storage'),
                 require('nf.Common'),
                 require('nf.Client'),
                 require('nf.CanvasUtils')));
     } else {
         nf.Label = factory(root.$,
             root.d3,
+            root.nf.Storage,
             root.nf.Common,
             root.nf.Client,
             root.nf.CanvasUtils);
     }
-}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils) {
     'use strict';
 
     var nfConnectable;
@@ -373,6 +376,7 @@
                     if (different) {
                         var labelEntity = {
                             'revision': nfClient.getRevision(labelData),
+                            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                             'component': {
                                 'id': labelData.id,
                                 'width': labelData.dimensions.width,

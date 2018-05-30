@@ -456,6 +456,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestProcessGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -552,11 +554,27 @@ public class ProcessGroupResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response deleteVariableRegistryUpdateRequest(
-        @ApiParam(value = "The process group id.", required = true) @PathParam("groupId") final String groupId,
-        @ApiParam(value = "The ID of the Variable Registry Update Request", required = true) @PathParam("updateId") final String updateId) {
+        @ApiParam(
+                value = "The process group id.",
+                required = true
+        )
+        @PathParam("groupId") final String groupId,
+        @ApiParam(
+                value = "The ID of the Variable Registry Update Request",
+                required = true)
+        @PathParam("updateId") final String updateId,
+        @ApiParam(
+                value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                required = false
+        )
+        @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged) {
 
         if (groupId == null || updateId == null) {
             throw new IllegalArgumentException("Group ID and Update ID must both be specified.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -627,6 +645,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestVariableRegistryEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestVariableRegistryEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -686,6 +706,10 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestVariableRegistryEntity.getProcessGroupRevision() == null) {
             throw new IllegalArgumentException("Process Group Revision must be specified.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestVariableRegistryEntity.isDisconnectedNodeAcknowledged());
         }
 
         // In order to update variables in a variable registry, we have to perform the following steps:
@@ -1529,6 +1553,11 @@ public class ProcessGroupResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The process group id.",
                     required = true
             )
@@ -1537,6 +1566,8 @@ public class ProcessGroupResource extends ApplicationResource {
         // replicate if cluster manager
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final ProcessGroupEntity requestProcessGroupEntity = new ProcessGroupEntity();
@@ -1683,6 +1714,8 @@ public class ProcessGroupResource extends ApplicationResource {
         // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestProcessGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestProcessGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -1885,6 +1918,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestProcessorEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestProcessorEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2059,6 +2094,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestPortEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestPortEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2207,6 +2244,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestPortEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestPortEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2356,6 +2395,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestFunnelEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestFunnelEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2505,6 +2546,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestLabelEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestLabelEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2661,6 +2704,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestRemoteProcessGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestRemoteProcessGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2864,6 +2909,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestConnectionEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestConnectionEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3035,6 +3082,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestCopySnippetEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestCopySnippetEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3200,6 +3249,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestInstantiateTemplateRequestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestInstantiateTemplateRequestEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3312,6 +3363,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestCreateTemplateRequestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestCreateTemplateRequestEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3382,6 +3435,11 @@ public class ProcessGroupResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @FormDataParam("template") final InputStream in) throws InterruptedException {
 
         // unmarshal the template
@@ -3407,9 +3465,14 @@ public class ProcessGroupResource extends ApplicationResource {
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
 
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
         // build the response entity
         TemplateEntity entity = new TemplateEntity();
         entity.setTemplate(template);
+        entity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
 
         if (isReplicateRequest()) {
             // convert request accordingly
@@ -3476,6 +3539,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestTemplateEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestTemplateEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3582,6 +3647,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestControllerServiceEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestControllerServiceEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(

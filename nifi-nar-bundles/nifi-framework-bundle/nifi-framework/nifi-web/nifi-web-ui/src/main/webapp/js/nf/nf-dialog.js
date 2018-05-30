@@ -156,20 +156,30 @@
         /**
          * Shows a message when disconnected from the cluster.
          */
-        showDisconnectedFromClusterMessage: function () {
+        showDisconnectedFromClusterMessage: function (okHandler) {
             nfDialog.showOkDialog({
                 headerText: 'Cluster Connection',
-                dialogContent: 'This node is currently not connected to the cluster. Any modifications to the data flow made here will not replicate across the cluster.'
+                dialogContent: 'This node is currently not connected to the cluster. Any modifications to the data flow made here will not replicate across the cluster.',
+                okHandler: function () {
+                    if (typeof okHandler === 'function') {
+                        okHandler.call(this);
+                    }
+                }
             });
         },
 
         /**
          * Shows a message when connected to the cluster.
          */
-        showConnectedToClusterMessage: function () {
+        showConnectedToClusterMessage: function (okHandler) {
             nfDialog.showOkDialog({
                 headerText: 'Cluster Connection',
-                dialogContent: 'This node just joined the cluster. Any modifications to the data flow made here will replicate across the cluster.'
+                dialogContent: 'This node just joined the cluster. Any modifications to the data flow made here will replicate across the cluster.',
+                okHandler: function () {
+                    if (typeof okHandler === 'function') {
+                        okHandler.call(this);
+                    }
+                }
             });
         }
     };

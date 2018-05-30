@@ -33,6 +33,7 @@ public class InstantiateTemplateRequestEntity extends Entity {
     private String templateId;
     private String encodingVersion;
     private FlowSnippetDTO snippet;
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty(
             value = "The identifier of the template."
@@ -92,5 +93,16 @@ public class InstantiateTemplateRequestEntity extends Entity {
 
     public void setSnippet(FlowSnippetDTO snippet) {
         this.snippet = snippet;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

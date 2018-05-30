@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class VariableRegistryEntity extends Entity {
     private RevisionDTO processGroupRevision;
     private VariableRegistryDTO variableRegistry;
-
+    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty("The Variable Registry.")
     public VariableRegistryDTO getVariableRegistry() {
@@ -44,5 +44,16 @@ public class VariableRegistryEntity extends Entity {
 
     public void setProcessGroupRevision(RevisionDTO processGroupRevision) {
         this.processGroupRevision = processGroupRevision;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

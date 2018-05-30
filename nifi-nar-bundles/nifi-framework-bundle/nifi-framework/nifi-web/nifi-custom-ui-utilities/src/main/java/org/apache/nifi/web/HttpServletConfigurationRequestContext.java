@@ -27,6 +27,7 @@ public class HttpServletConfigurationRequestContext extends HttpServletRequestCo
     private static final String ID_PARAM = "id";
     private static final String CLIENT_ID_PARAM = "clientId";
     private static final String REVISION_PARAM = "revision";
+    private static final String DISCONNECTION_ACKNOWLEDGED_PARAM = "disconnectedNodeAcknowledged";
 
     private final HttpServletRequest request;
 
@@ -55,4 +56,9 @@ public class HttpServletConfigurationRequestContext extends HttpServletRequestCo
         return new Revision(revision, clientId, componentId);
     }
 
+    @Override
+    public boolean isDisconnectionAcknowledged() {
+        final String disconnectionAcknowledgedVal = request.getParameter(DISCONNECTION_ACKNOWLEDGED_PARAM);
+        return Boolean.valueOf(disconnectionAcknowledgedVal);
+    }
 }

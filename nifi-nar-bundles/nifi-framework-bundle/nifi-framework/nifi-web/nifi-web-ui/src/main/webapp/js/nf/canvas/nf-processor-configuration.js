@@ -23,6 +23,7 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
@@ -31,8 +32,8 @@
                 'nf.CustomUi',
                 'nf.UniversalCapture',
                 'nf.Connection'],
-            function ($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
-                return (nf.ProcessorConfiguration = factory($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection));
+            function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
+                return (nf.ProcessorConfiguration = factory($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorConfiguration =
@@ -40,6 +41,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge'),
@@ -53,6 +55,7 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge,
@@ -62,7 +65,7 @@
             root.nf.UniversalCapture,
             root.nf.Connection);
     }
-}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
+}(this, function ($, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfProcessor, nfClusterSummary, nfCustomUi, nfUniversalCapture, nfConnection) {
     'use strict';
 
     // possible values for a processor's run duration (in millis)
@@ -493,6 +496,7 @@
             // set the revision
             var d = nfProcessor.get(processor.id);
             updatedProcessor['revision'] = nfClient.getRevision(d);
+            updatedProcessor['disconnectedNodeAcknowledged'] = nfStorage.isDisconnectionAcknowledged();
 
             // update the selected component
             return $.ajax({

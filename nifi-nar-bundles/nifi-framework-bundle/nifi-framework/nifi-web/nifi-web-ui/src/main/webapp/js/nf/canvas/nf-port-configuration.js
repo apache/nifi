@@ -24,12 +24,13 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.Port'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
-                return (nf.PortConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
+                return (nf.PortConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfPort));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PortConfiguration =
@@ -38,6 +39,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge'),
@@ -48,12 +50,13 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge,
             root.nf.Port);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
     'use strict';
 
     /**
@@ -98,6 +101,7 @@
                         // build the port entity
                         var portEntity = {
                             'revision': nfClient.getRevision(portData),
+                            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                             'component': port
                         };
 

@@ -224,6 +224,7 @@ var ua = {
                             processorId: ua.getProcessorId(),
                             revision: ua.getRevision(),
                             clientId: ua.getClientId(),
+                            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
                             flowFilePolicy: selectedOption.value
                         };
 
@@ -1028,6 +1029,7 @@ var ua = {
             processorId: ua.getProcessorId(),
             revision: ua.getRevision(),
             clientId: ua.getClientId(),
+            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
             ruleOrder: existingRuleOrder
         };
 
@@ -1234,6 +1236,7 @@ var ua = {
                                         processorId: ua.getProcessorId(),
                                         revision: ua.getRevision(),
                                         clientId: ua.getClientId(),
+                                        disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
                                         verbose: true
                                     })
                                 }).then(function () {
@@ -1311,6 +1314,7 @@ var ua = {
             processorId: ua.getProcessorId(),
             clientId: ua.getClientId(),
             revision: ua.getRevision(),
+            disconnectedNodeAcknowledged: ua.getDisconnectionAcknowledged(),
             rule: rule
         };
 
@@ -1986,6 +1990,15 @@ var ua = {
      */
     getRevision: function () {
         return $('#attribute-updater-revision').text();
+    },
+
+    /**
+     * Gets whether the disconnected node is acknowledged.
+     *
+     * @returns
+     */
+    getDisconnectionAcknowledged: function () {
+        return $('#attribute-updater-disconnected-node-acknowledged').text();
     },
     
     /**

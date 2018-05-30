@@ -29,4 +29,14 @@ public interface NiFiWebConfigurationRequestContext extends NiFiWebRequestContex
      */
     Revision getRevision();
 
+    /**
+     * Returns whether the node disconnection is acknowledged. By acknowledging disconnection, the
+     * user is able to modify the flow on a disconnected node.
+     *
+     * @return whether the disconnection is acknowledged
+     */
+    default boolean isDisconnectionAcknowledged() {
+        return false;
+    }
+
 }
