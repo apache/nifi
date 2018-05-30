@@ -81,7 +81,8 @@ public class TestReplaceText {
     @Test
     public void testWithEscaped$InReplacement() throws IOException {
         final TestRunner runner = getRunner();
-        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
+        //runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a\\$b");
 
         runner.enqueue("a$a,b,c,d");
@@ -89,7 +90,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("a\\$b".getBytes("UTF-8"));
+        out.assertContentEquals("a$b".getBytes("UTF-8"));
     }
 
     @Test
@@ -104,6 +105,21 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         out.assertContentEquals("a$b".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testWithELInReplacement() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "\"([a-z]+)\":\"(\\w+)\"");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"${'$1':toUpper()}\":\"$2\"");
+        //runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"new$1\":\"$2\"");
+        runner.enqueue("{\"name\":\"Smith\",\"middle\":\"nifi\",\"firstname\":\"John\"}");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"NAME\":\"Smith\",\"MIDDLE\":\"nifi\",\"FIRSTNAME\":\"John\"}");
+
     }
 
     @Test
@@ -1074,12 +1090,11 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
+        exception.expect(AssertionError.class);
+        exception.expectMessage("java.lang.IndexOutOfBoundsException: No group 1");
+
         runner.enqueue("testing\n123".getBytes());
         runner.run();
-
-        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("");
     }
 
     @Test
@@ -1097,6 +1112,22 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         out.assertContentEquals("TESTING\n123");
+    }
+
+    @Test
+    public void testResgExWithELAndELSpecialChars() throws Exception {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${'$1':toUpper()}"); // will uppercase group with good Java regex
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+
+        runner.enqueue("testing\n\t\r123".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("TESTING\n\t\r123");
     }
 
     @Test
