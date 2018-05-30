@@ -85,9 +85,11 @@ import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceCollection;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -516,13 +518,10 @@ public class JettyServer implements NiFiServer {
 
     private ContextHandler createDocsWebApp(final String contextPath) {
         try {
-            final ResourceHandler resourceHandler = new ResourceHandler();
-            resourceHandler.setDirectoriesListed(false);
-
             final File docsDir = getDocsDir("docs");
             final Resource docsResource = Resource.newResource(docsDir);
 
-            // load the component documentation working directory
+            // Load the component documentation working directory
             final File componentDocsDirPath = props.getComponentDocumentationWorkingDirectory();
             final File workingDocsDirectory = getWorkingDocsDirectory(componentDocsDirPath);
             final Resource workingDocsResource = Resource.newResource(workingDocsDirectory);
@@ -530,16 +529,26 @@ public class JettyServer implements NiFiServer {
             final File webApiDocsDir = getWebApiDocsDir();
             final Resource webApiDocsResource = Resource.newResource(webApiDocsDir);
 
-            // create resources for both docs locations
+            // Create resources for all docs locations
             final ResourceCollection resources = new ResourceCollection(docsResource, workingDocsResource, webApiDocsResource);
-            resourceHandler.setBaseResource(resources);
 
-            // create the context handler
-            final ContextHandler handler = new ContextHandler(contextPath);
-            handler.setHandler(resourceHandler);
+
+            // The below ServletContext and Servlet API usage was derived from https://stackoverflow.com/a/34277268.
+            // Thanks go to Stack Overflow user Joakim Erdfelt.
+
+            // We create a servlet context handler to encapsulate the static docs resources we want served.
+            ServletContextHandler docsHandler = new ServletContextHandler();
+            docsHandler.setContextPath(contextPath);
+            docsHandler.setBaseResource(resources);
+            docsHandler.addFilter(new FilterHolder(FRAME_OPTIONS_FILTER), "/*", EnumSet.allOf(DispatcherType.class));
+
+            // This default servlet actually serves the static docs resources.
+            ServletHolder defaultServlet = new ServletHolder("default", DefaultServlet.class);
+            defaultServlet.setInitParameter("dirAllowed", "false"); //should this be set to false? org.eclipse.jetty.servlet.Default.dirAllowed = false
+            docsHandler.addServlet(defaultServlet, "/");
 
             logger.info("Loading documents web app with context path set to " + contextPath);
-            return handler;
+            return docsHandler;
         } catch (Exception ex) {
             logger.error("Unhandled Exception in createDocsWebApp: " + ex.getMessage());
             startUpFailure(ex);
@@ -1021,7 +1030,7 @@ public class JettyServer implements NiFiServer {
 
             // set frame options accordingly
             final HttpServletResponse response = (HttpServletResponse) resp;
-            response.addHeader(FRAME_OPTIONS, SAME_ORIGIN);
+            response.setHeader(FRAME_OPTIONS, SAME_ORIGIN);
 
             filterChain.doFilter(req, resp);
         }
