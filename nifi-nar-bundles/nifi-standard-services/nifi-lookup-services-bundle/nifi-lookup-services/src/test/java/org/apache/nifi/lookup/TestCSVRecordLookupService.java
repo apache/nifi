@@ -28,6 +28,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -79,16 +80,10 @@ public class TestCSVRecordLookupService {
         runner.enableControllerService(service);
         runner.assertValid(service);
 
-        final CSVRecordLookupService lookupService =
-                (CSVRecordLookupService) runner.getProcessContext()
-                        .getControllerServiceLookup()
-                        .getControllerService("csv-file-lookup-service");
-
-        assertThat(lookupService, instanceOf(LookupService.class));
-
-        final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
-        assertEquals("this is property \uff11", property1.get().getAsString("value"));
-        assertEquals("2017-04-01", property1.get().getAsString("created_at"));
+        final Optional<Record> property1 = service.lookup(Collections.singletonMap("key", "property.1"));
+        assertThat(property1.isPresent(), is(true));
+        assertThat(property1.get().getAsString("value"), is("this is property \uff11"));
+        assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
     }
 
 

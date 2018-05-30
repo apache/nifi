@@ -27,6 +27,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -78,14 +79,8 @@ public class TestSimpleCsvFileLookupService {
         runner.enableControllerService(service);
         runner.assertValid(service);
 
-        final SimpleCsvFileLookupService lookupService =
-                (SimpleCsvFileLookupService) runner.getProcessContext()
-                        .getControllerServiceLookup()
-                        .getControllerService("csv-file-lookup-service");
-
-        assertThat(lookupService, instanceOf(LookupService.class));
-
-        final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
-        assertEquals(Optional.of("this is property \uff11"), property1);
+        final Optional<String> property1 = service.lookup(Collections.singletonMap("key", "property.1"));
+        assertThat(property1.isPresent(), is(true));
+        assertThat(property1.get(), is("this is property \uff11"));
     }
 }
