@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -208,9 +209,13 @@ public class MockPropertyValue implements PropertyValue {
          * is running, it doesn't care when it's evaluating EL against a null flowfile. However, the testing framework currently
          * raises an error which makes it not mimick real world behavior.
          */
-        if (flowFile == null) {
-            return evaluateAttributeExpressions(null, (Map<String,String>)null);
+        if (flowFile == null && expressionLanguageScope == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
+            return evaluateAttributeExpressions(new HashMap<>());
+        } else if (flowFile == null && expressionLanguageScope == ExpressionLanguageScope.VARIABLE_REGISTRY) {
+            return evaluateAttributeExpressions(); //Added this to get around a similar edge case where the a null flowfile is passed
+                                                    //and the scope is to the registry
         }
+
         return evaluateAttributeExpressions(flowFile, null, null);
     }
 
