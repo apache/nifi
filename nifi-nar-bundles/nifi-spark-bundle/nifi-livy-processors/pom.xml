@@ -86,5 +86,10 @@
             <artifactId>jetty-server</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

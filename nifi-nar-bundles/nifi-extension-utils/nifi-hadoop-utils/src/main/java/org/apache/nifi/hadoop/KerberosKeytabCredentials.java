@@ -14,20 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.api.livy;
+package org.apache.nifi.hadoop;
 
-import java.io.IOException;
-import java.util.Map;
+import org.apache.http.auth.Credentials;
 
-import org.apache.http.client.HttpClient;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
+import javax.security.auth.kerberos.KerberosPrincipal;
+import java.security.Principal;
 
-public interface LivySessionService extends ControllerService {
-    String APPLICATION_JSON = "application/json";
-    String USER = "nifi";
+/**
+ * Crendentials that incorporate a user principal and a keytab file.
+ */
+public class KerberosKeytabCredentials implements Credentials {
 
-    Map<String, String> getSession() throws SessionManagerException;
+    private final KerberosPrincipal userPrincipal;
+    private final String keytab;
 
-    HttpClient getConnection() throws IOException, SessionManagerException;
+    public KerberosKeytabCredentials(String principalName, String keytab) {
+        this.userPrincipal = new KerberosPrincipal(principalName);
+        this.keytab = keytab;
+    }
+
+    @Override
+    public Principal getUserPrincipal() {
+        return userPrincipal;
+    }
+
+    @Override
+    public String getPassword() {
+        return null;
+    }
+
+    public String getKeytab() {
+        return keytab;
+    }
+
 }
