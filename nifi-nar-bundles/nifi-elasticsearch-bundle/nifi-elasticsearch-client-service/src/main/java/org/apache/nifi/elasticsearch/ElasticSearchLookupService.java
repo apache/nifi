@@ -73,15 +73,6 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-
-    public static final PropertyDescriptor RECORD_SCHEMA_NAME = new PropertyDescriptor.Builder()
-        .name("el-lookup-record-schema-name")
-        .displayName("Record Schema Name")
-        .description("If specified, the value will be used to lookup a schema in the configured schema registry.")
-        .required(false)
-        .addValidator(Validator.VALID)
-        .build();
-
     private ElasticSearchClientService clientService;
 
     private String index;
@@ -91,8 +82,8 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class);
-        index = context.getProperty(INDEX).getValue();
-        type  = context.getProperty(TYPE).getValue();
+        index = context.getProperty(INDEX).evaluateAttributeExpressions().getValue();
+        type  = context.getProperty(TYPE).evaluateAttributeExpressions().getValue();
         mapper = new ObjectMapper();
     }
 
@@ -103,7 +94,6 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
         _desc.add(CLIENT_SERVICE);
         _desc.add(INDEX);
         _desc.add(TYPE);
-        _desc.add(RECORD_SCHEMA_NAME);
 
         return Collections.unmodifiableList(_desc);
     }
