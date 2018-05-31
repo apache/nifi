@@ -337,6 +337,7 @@
                         <exclude>src/test/resources/CompressedData/SampleFile.txt</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFileConcat.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/1000bytes.txt</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/1mb.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/test.txt</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-empty-new-lines</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-extra-info</exclude>
