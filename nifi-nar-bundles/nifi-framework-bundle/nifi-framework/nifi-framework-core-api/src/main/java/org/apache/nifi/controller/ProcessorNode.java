@@ -38,12 +38,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class ProcessorNode extends AbstractComponentNode implements Connectable {
-
-    private static final Logger logger = LoggerFactory.getLogger(ProcessorNode.class);
 
     protected final AtomicReference<ScheduledState> scheduledState;
 

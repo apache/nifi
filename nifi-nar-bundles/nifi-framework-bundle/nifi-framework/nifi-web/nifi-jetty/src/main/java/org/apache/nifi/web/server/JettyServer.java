@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
@@ -68,6 +69,7 @@ import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
@@ -680,6 +682,13 @@ public class JettyServer implements NiFiServer {
 
         final List<Connector> serverConnectors = Lists.newArrayList();
 
+        // Calculate Idle Timeout as twice the auto-refresh interval. This ensures that even with some variance in timing,
+        // we are able to avoid closing connections from users' browsers most of the time. This can make a significant difference
+        // in HTTPS connections, as each HTTPS connection that is established must perform the SSL handshake.
+        final String autoRefreshInterval = props.getAutoRefreshInterval();
+        final long autoRefreshMillis = autoRefreshInterval == null ? 30000L : FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.MILLISECONDS);
+        final long idleTimeout = autoRefreshMillis * 2;
+
         // If the interfaces collection is empty or each element is empty
         if (networkInterfaces.isEmpty() || networkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
             final ServerConnector serverConnector = serverConnectorCreator.create(server, configuration);
@@ -689,6 +698,7 @@ public class JettyServer implements NiFiServer {
                 serverConnector.setHost(hostname);
             }
             serverConnector.setPort(port);
+            serverConnector.setIdleTimeout(idleTimeout);
             serverConnectors.add(serverConnector);
         } else {
             // Add connectors for all IPs from network interfaces
@@ -710,6 +720,8 @@ public class JettyServer implements NiFiServer {
                         // Set host and port
                         serverConnector.setHost(inetAddress.getHostAddress());
                         serverConnector.setPort(port);
+                        serverConnector.setIdleTimeout(idleTimeout);
+
                         return serverConnector;
                     }).collect(Collectors.toList())));
         }
