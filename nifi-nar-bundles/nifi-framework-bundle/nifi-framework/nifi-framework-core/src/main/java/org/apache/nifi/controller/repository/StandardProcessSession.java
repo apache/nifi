@@ -2141,14 +2141,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                 currentReadClaim = claim;
 
-                // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
-                // reuse the same InputStream for the next FlowFile
-                final InputStream disableOnClose = new DisableOnCloseInputStream(rawInStream);
-
-                currentReadClaimStream = new ByteCountingInputStream(disableOnClose);
+                currentReadClaimStream = new ByteCountingInputStream(rawInStream);
                 StreamUtils.skip(currentReadClaimStream, offset);
 
-                return currentReadClaimStream;
+                // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
+                // reuse the same InputStream for the next FlowFile
+                final InputStream disableOnClose = new DisableOnCloseInputStream(currentReadClaimStream);
+
+                return disableOnClose;
             } else {
                 claimCache.flush(claim);
                 final InputStream rawInStream = context.getContentRepository().read(claim);

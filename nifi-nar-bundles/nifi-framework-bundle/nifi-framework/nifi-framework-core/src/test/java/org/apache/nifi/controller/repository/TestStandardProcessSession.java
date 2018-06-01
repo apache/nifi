@@ -350,6 +350,25 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testSequentialReads() throws IOException {
+        FlowFile ff1 = session.write(session.create(), out -> out.write(new byte[] {'A', 'B'}));
+        FlowFile ff2 = session.write(session.create(), out -> out.write('C'));
+
+        final byte[] buff1 = new byte[2];
+        try (final InputStream in = session.read(ff1)) {
+            StreamUtils.fillBuffer(in, buff1);
+        }
+
+        final byte[] buff2 = new byte[1];
+        try (final InputStream in = session.read(ff2)) {
+            StreamUtils.fillBuffer(in, buff2);
+        }
+
+        Assert.assertArrayEquals(new byte[] {'A', 'B'}, buff1);
+        Assert.assertArrayEquals(new byte[] {'C'}, buff2);
+    }
+
+    @Test
     public void testCloneOriginalDataLarger() throws IOException {
         final byte[] originalContent = "hello there 12345".getBytes();
         final byte[] replacementContent = "NEW DATA".getBytes();
