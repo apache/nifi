@@ -689,6 +689,7 @@ public class JettyServer implements NiFiServer {
                 serverConnector.setHost(hostname);
             }
             serverConnector.setPort(port);
+            serverConnector.setIdleTimeout(60000);
             serverConnectors.add(serverConnector);
         } else {
             // Add connectors for all IPs from network interfaces
@@ -710,6 +711,8 @@ public class JettyServer implements NiFiServer {
                         // Set host and port
                         serverConnector.setHost(inetAddress.getHostAddress());
                         serverConnector.setPort(port);
+                        serverConnector.setIdleTimeout(60000);
+
                         return serverConnector;
                     }).collect(Collectors.toList())));
         }
