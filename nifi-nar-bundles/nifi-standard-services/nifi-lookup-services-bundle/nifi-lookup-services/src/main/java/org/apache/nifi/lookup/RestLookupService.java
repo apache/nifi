@@ -35,7 +35,6 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -240,8 +239,10 @@ public class RestLookupService extends AbstractControllerService implements Look
 
             Record record = handleResponse(is, coordinates);
 
-            return Optional.of(record);
-        } catch (MalformedRecordException | SchemaNotFoundException | IOException e) {
+            return record != null
+                    ? Optional.of(record)
+                    : Optional.empty();
+        } catch (Exception e) {
             getLogger().error("Could not execute lookup.", e);
             throw new LookupFailureException(e);
         }
@@ -249,7 +250,7 @@ public class RestLookupService extends AbstractControllerService implements Look
 
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         if (propertyDescriptorName.startsWith("header")) {
-            String header = propertyDescriptorName.substring(propertyDescriptorName.indexOf(".") + 1, propertyDescriptorName.length());
+            String header = propertyDescriptorName.substring(propertyDescriptorName.indexOf(".") + 1);
             return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .displayName(header)
@@ -272,36 +273,39 @@ public class RestLookupService extends AbstractControllerService implements Look
                 e -> e.getKey(),
                 e -> e.getValue().toString()
             ));
-        RecordReader reader = readerFactory.createRecordReader(variables, is, getLogger());
-        Record record = reader.nextRecord();
+        try (RecordReader reader = readerFactory.createRecordReader(variables, is, getLogger())) {
 
-        if (recordPath != null) {
-            Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
-            if (fv.isPresent()) {
-                FieldValue fieldValue = fv.get();
-                RecordSchema schema = new SimpleRecordSchema(Arrays.asList(fieldValue.getField()));
-                String[] parts = recordPath.getPath().split("/");
-                String last = parts[parts.length - 1];
+            Record record = reader.nextRecord();
 
-                Record temp;
-                Object value = fieldValue.getValue();
-                if (value instanceof Record) {
-                    temp = (Record)value;
-                } else if (value instanceof Map) {
-                    temp = new MapRecord(schema, (Map<String, Object>)value);
-                } else {
-                    temp = new MapRecord(schema, new HashMap<String, Object>(){{
-                        put(last, value);
-                    }});
+            if (recordPath != null) {
+                Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
+                if (fv.isPresent()) {
+                    FieldValue fieldValue = fv.get();
+                    RecordSchema schema = new SimpleRecordSchema(Arrays.asList(fieldValue.getField()));
+                    String[] parts = recordPath.getPath().split("/");
+                    String last = parts[parts.length - 1];
+
+                    Record temp;
+                    Object value = fieldValue.getValue();
+                    if (value instanceof Record) {
+                        temp = (Record) value;
+                    } else if (value instanceof Map) {
+                        temp = new MapRecord(schema, (Map<String, Object>) value);
+                    } else {
+                        temp = new MapRecord(schema, new HashMap<String, Object>() {{
+                            put(last, value);
+                        }});
+                    }
+
+                    record = temp;
                 }
-
-                record = temp;
             }
+
+            return record;
+        } catch (Exception ex) {
+            is.close();
+            throw new RuntimeException(ex);
         }
-
-        reader.close();
-
-        return record;
     }
 
     private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint) {

@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.nifi.lookup
 
 import org.apache.avro.Schema
@@ -6,6 +23,7 @@ import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.lookup.rest.SchemaUtil
 import org.apache.nifi.lookup.rest.handlers.BasicAuth
 import org.apache.nifi.lookup.rest.handlers.ComplexJson
+import org.apache.nifi.lookup.rest.handlers.NoRecord
 import org.apache.nifi.lookup.rest.handlers.SimpleJson
 import org.apache.nifi.lookup.rest.handlers.SimpleJsonArray
 import org.apache.nifi.schema.access.SchemaAccessUtils
@@ -94,7 +112,7 @@ class RestLookupServiceIT {
             }
 
             Assert.assertNotNull(t)
-            Assert.assertTrue(t instanceof LookupFailureException)
+            Assert.assertTrue(t.getClass().getCanonicalName(), t instanceof LookupFailureException)
         } finally {
             server.shutdownServer()
         }
@@ -120,6 +138,31 @@ class RestLookupServiceIT {
             def record = response.get()
             Assert.assertEquals("john.smith", record.getAsString("username"))
             Assert.assertEquals("testing1234", record.getAsString("password"))
+        } finally {
+            server.shutdownServer()
+        }
+    }
+
+    @Test
+    void noRecord() {
+        TestServer server = new TestServer()
+        ServletHandler handler = new ServletHandler()
+        handler.addServletWithMapping(NoRecord.class, "/simple")
+        server.addHandler(handler)
+        try {
+            server.startServer()
+            def coordinates = [
+                "schema.name": "simple",
+                "endpoint": server.url + "/simple",
+                "mime.type": "application/json",
+                "request.method": "get"
+            ]
+
+            Optional<Record> response = lookupService.lookup(coordinates)
+            Assert.assertTrue(response.isPresent())
+            def record = response.get()
+            Assert.assertNull(record.getAsString("username"))
+            Assert.assertNull(record.getAsString("password"))
         } finally {
             server.shutdownServer()
         }

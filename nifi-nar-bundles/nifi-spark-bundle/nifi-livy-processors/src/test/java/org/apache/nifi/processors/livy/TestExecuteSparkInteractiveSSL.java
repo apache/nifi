@@ -17,11 +17,11 @@
 package org.apache.nifi.processors.livy;
 
 import org.apache.nifi.controller.livy.LivySessionController;
-import org.apache.nifi.processors.standard.TestServer;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.server.Handler;
 import org.junit.After;
 import org.junit.AfterClass;
