@@ -28,6 +28,8 @@ language governing permissions and limitations under the License. -->
                     <excludes combine.children="append">
                         <exclude>src/main/resources/conf/config-client.json</exclude>
                         <exclude>src/main/resources/conf/config-server.json</exclude>
+                        <exclude>docker/tests/tls-toolkit.sh</exclude>
+                        <exclude>docker/tests/exit-codes.sh</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -182,9 +184,42 @@ language governing permissions and limitations under the License. -->
                                     <buildArgs>
                                         <UID>1000</UID>
                                         <GID>1000</GID>
+                                        <NIFI_TOOLKIT_VERSION>${project.version}</NIFI_TOOLKIT_VERSION>
                                     </buildArgs>
                                     <repository>apache/nifi-toolkit</repository>
                                     <tag>${project.version}</tag>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <executions>
+                            <execution>
+                                <id>Docker integration tests - exit codes</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>
+                                        <argument>${project.version}</argument>
+                                    </arguments>
+                                    <executable>${project.basedir}/docker/tests/exit-codes.sh</executable>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>Docker integration tests - tls-toolkit</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>
+                                        <argument>${project.version}</argument>
+                                    </arguments>
+                                    <executable>${project.basedir}/docker/tests/tls-toolkit.sh</executable>
                                 </configuration>
                             </execution>
                         </executions>
