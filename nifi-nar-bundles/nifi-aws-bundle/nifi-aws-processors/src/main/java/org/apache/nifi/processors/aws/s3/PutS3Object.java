@@ -39,6 +39,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.Tag;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -58,6 +62,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.AmazonClientException;
@@ -205,11 +210,21 @@ public class PutS3Object extends AbstractS3Processor {
             .defaultValue(NO_SERVER_SIDE_ENCRYPTION)
             .build();
 
+    public static final PropertyDescriptor OBJECT_TAGS = new PropertyDescriptor.Builder()
+            .name("s3-object-tags")
+            .displayName("Object Tags")
+            .description("Specifies the tag(s) to be set to the outgoing S3 object. Tags have to be specified in a JSON (flat) format. " +
+                    "Ex: {\"Project\" : \"ProjectNeon\", \"Classified\" : \"true\"}")
+            .required(false)
+            .addValidator(JsonValidator.INSTANCE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
-            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE,
-            ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE,
-            SERVER_SIDE_ENCRYPTION, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS, STORAGE_CLASS,
+            REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
+            CANNED_ACL, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL,
+            MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
@@ -415,6 +430,7 @@ public class PutS3Object extends AbstractS3Processor {
          * Then
          */
         try {
+            final FlowFile flowFileCopy = flowFile;
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream rawIn) throws IOException {
@@ -469,6 +485,10 @@ public class PutS3Object extends AbstractS3Processor {
                             final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
                             if (cannedAcl != null) {
                                 request.withCannedAcl(cannedAcl);
+                            }
+
+                            if (context.getProperty(OBJECT_TAGS).isSet()) {
+                                request.setTagging(new ObjectTagging(getObjectTags(context, flowFileCopy)));
                             }
 
                             try {
@@ -562,6 +582,11 @@ public class PutS3Object extends AbstractS3Processor {
                                 if (cannedAcl != null) {
                                     initiateRequest.withCannedACL(cannedAcl);
                                 }
+
+                                if (context.getProperty(OBJECT_TAGS).isSet()) {
+                                    initiateRequest.setTagging(new ObjectTagging(getObjectTags(context, flowFileCopy)));
+                                }
+
                                 try {
                                     final InitiateMultipartUploadResult initiateResult =
                                             s3.initiateMultipartUpload(initiateRequest);
@@ -783,6 +808,25 @@ public class PutS3Object extends AbstractS3Processor {
             getLogger().info("Error trying to abort multipart upload from bucket {} with key {} and ID {}: {}",
                     new Object[]{bucket, uploadKey, uploadId, ace.getMessage()});
         }
+    }
+
+    private List<Tag> getObjectTags(ProcessContext context, FlowFile flowFile) {
+        final String jsonOfTags = context.getProperty(OBJECT_TAGS).evaluateAttributeExpressions(flowFile).getValue();
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final Map<String, String> objectTagsMap;
+        final List<Tag> objectTags = new ArrayList<>();
+
+        try {
+            objectTagsMap = objectMapper.readValue(jsonOfTags, new TypeReference<Map<String, String>>(){});
+
+            for (final Map.Entry<String, String> entry : objectTagsMap.entrySet()) {
+                objectTags.add(new Tag(entry.getKey(), entry.getValue()));
+            }
+        } catch (IOException e) {
+            getLogger().error("Failed to parse the value provided for '{}' due to {}", new Object[]{OBJECT_TAGS.getDisplayName(), e});
+        }
+
+        return objectTags;
     }
 
     protected static class MultipartState implements Serializable {

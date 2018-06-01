@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.util.MockFlowFile;
@@ -24,6 +25,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -140,6 +142,34 @@ public class ITListS3 extends AbstractS3IT {
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "b/c");
+    }
+
+    @Test
+    public void testObjectTagsWritten() {
+        List<Tag> objectTags = new ArrayList<>();
+        objectTags.add(new Tag("dummytag1", "dummyvalue1"));
+        objectTags.add(new Tag("dummytag2", "dummyvalue2"));
+
+        putFileWithObjectTag("fileWithTag", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), objectTags);
+
+        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
+
+        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(ListS3.REGION, REGION);
+        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
+
+        MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
+
+        flowFiles.assertAttributeEquals("filename", "fileWithTag");
+        flowFiles.assertAttributeExists("s3.tag.dummytag1");
+        flowFiles.assertAttributeExists("s3.tag.dummytag2");
+        flowFiles.assertAttributeEquals("s3.tag.dummytag1", "dummyvalue1");
+        flowFiles.assertAttributeEquals("s3.tag.dummytag2", "dummyvalue2");
     }
 
 }
