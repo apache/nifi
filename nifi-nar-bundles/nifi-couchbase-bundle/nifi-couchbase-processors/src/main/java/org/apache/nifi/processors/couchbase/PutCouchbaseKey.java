@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.couchbase.client.java.Bucket;
+import com.couchbase.client.java.document.ByteArrayDocument;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -35,7 +37,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.couchbase.CouchbaseAttributes;
+import org.apache.nifi.couchbase.DocumentType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -47,13 +49,13 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import com.couchbase.client.core.CouchbaseException;
-import com.couchbase.client.deps.io.netty.buffer.ByteBuf;
-import com.couchbase.client.deps.io.netty.buffer.Unpooled;
 import com.couchbase.client.java.PersistTo;
 import com.couchbase.client.java.ReplicateTo;
-import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.Document;
 import com.couchbase.client.java.document.RawJsonDocument;
+
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.DOCUMENT_TYPE;
 
 @Tags({"nosql", "couchbase", "database", "put"})
 @CapabilityDescription("Put a document to Couchbase Server via Key/Value access.")
@@ -73,14 +75,18 @@ import com.couchbase.client.java.document.RawJsonDocument;
 public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
 
 
-    public static final PropertyDescriptor PERSIST_TO = new PropertyDescriptor.Builder().name("Persist To")
+    public static final PropertyDescriptor PERSIST_TO = new PropertyDescriptor.Builder()
+        .name("persist-to")
+        .displayName("Persist To")
         .description("Durability constraint about disk persistence.")
         .required(true)
         .allowableValues(PersistTo.values())
         .defaultValue(PersistTo.NONE.toString())
         .build();
 
-    public static final PropertyDescriptor REPLICATE_TO = new PropertyDescriptor.Builder().name("Replicate To")
+    public static final PropertyDescriptor REPLICATE_TO = new PropertyDescriptor.Builder()
+        .name("replicate-to")
+        .displayName("Replicate To")
         .description("Durability constraint about replication.")
         .required(true)
         .allowableValues(ReplicateTo.values())
@@ -97,9 +103,12 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
 
     @Override
     protected void addSupportedRelationships(Set<Relationship> relationships) {
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_RETRY);
-        relationships.add(REL_FAILURE);
+        relationships.add(new Relationship.Builder().name(REL_SUCCESS.getName())
+                .description("All FlowFiles that are written to Couchbase Server are routed to this relationship.").build());
+        relationships.add(new Relationship.Builder().name(REL_RETRY.getName())
+                .description("All FlowFiles failed to be written to Couchbase Server but can be retried are routed to this relationship.").build());
+        relationships.add(new Relationship.Builder().name(REL_FAILURE.getName())
+                .description("All FlowFiles failed to be written to Couchbase Server and not retry-able are routed to this relationship.").build());
     }
 
     @Override
@@ -132,25 +141,25 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
                     break;
                 }
                 case Binary: {
-                    final ByteBuf buf = Unpooled.copiedBuffer(content);
-                    doc = BinaryDocument.create(docId, buf);
+                    doc = ByteArrayDocument.create(docId, content);
                     break;
                 }
             }
 
             final PersistTo persistTo = PersistTo.valueOf(context.getProperty(PERSIST_TO).getValue());
             final ReplicateTo replicateTo = ReplicateTo.valueOf(context.getProperty(REPLICATE_TO).getValue());
-            doc = openBucket(context).upsert(doc, persistTo, replicateTo);
+            final Bucket bucket = openBucket(context);
+            doc = bucket.upsert(doc, persistTo, replicateTo);
 
             final Map<String, String> updatedAttrs = new HashMap<>();
             updatedAttrs.put(CouchbaseAttributes.Cluster.key(), context.getProperty(COUCHBASE_CLUSTER_SERVICE).getValue());
-            updatedAttrs.put(CouchbaseAttributes.Bucket.key(), context.getProperty(BUCKET_NAME).getValue());
+            updatedAttrs.put(CouchbaseAttributes.Bucket.key(), bucket.name());
             updatedAttrs.put(CouchbaseAttributes.DocId.key(), docId);
             updatedAttrs.put(CouchbaseAttributes.Cas.key(), String.valueOf(doc.cas()));
             updatedAttrs.put(CouchbaseAttributes.Expiry.key(), String.valueOf(doc.expiry()));
 
             flowFile = session.putAllAttributes(flowFile, updatedAttrs);
-            session.getProvenanceReporter().send(flowFile, getTransitUrl(context, docId));
+            session.getProvenanceReporter().send(flowFile, getTransitUrl(bucket, docId));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final CouchbaseException e) {
             String errMsg = String.format("Writing document %s to Couchbase Server using %s failed due to %s", docId, flowFile, e);

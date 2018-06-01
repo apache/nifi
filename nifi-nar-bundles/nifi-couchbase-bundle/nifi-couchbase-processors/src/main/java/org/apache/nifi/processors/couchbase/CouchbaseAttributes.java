@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.couchbase;
+package org.apache.nifi.processors.couchbase;
 
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
 

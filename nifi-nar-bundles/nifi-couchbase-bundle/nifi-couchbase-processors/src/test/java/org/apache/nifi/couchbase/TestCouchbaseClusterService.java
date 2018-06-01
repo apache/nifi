@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.couchbase;
+package org.apache.nifi.couchbase;
 
-import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
-import org.apache.nifi.couchbase.CouchbaseClusterService;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,6 +33,13 @@ public class TestCouchbaseClusterService {
     private static final String SERVICE_ID = "couchbaseClusterService";
     private TestRunner testRunner;
 
+    public static class SampleProcessor extends AbstractProcessor {
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
+        }
+    }
+
     @Before
     public void init() throws Exception {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -39,7 +48,8 @@ public class TestCouchbaseClusterService {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.couchbase.CouchbaseClusterService", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.couchbase.TestCouchbaseClusterService", "debug");
 
-        testRunner = TestRunners.newTestRunner(PutCouchbaseKey.class);
+        testRunner = TestRunners.newTestRunner(SampleProcessor.class);
+        testRunner.setValidateExpressionUsage(false);
     }
 
     @Test
