@@ -28,8 +28,11 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -185,7 +188,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
+        runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
@@ -838,6 +841,35 @@ public class ITPutS3Object extends AbstractS3IT {
 
         uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now+2000, BUCKET_NAME);
         Assert.assertEquals(0, uploadList.getMultipartUploads().size());
+    }
+
+    @Test
+    public void testObjectTags() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(PutS3Object.OBJECT_TAGS_PREFIX, "tagS3");
+        runner.setProperty(PutS3Object.REMOVE_TAG_PREFIX, "true");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "tag-test.txt");
+        attrs.put("tagS3PII", "true");
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+
+        GetObjectTaggingResult result = client.getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, "tag-test.txt"));
+        List<Tag> objectTags = result.getTagSet();
+
+        for (Tag tag : objectTags) {
+            System.out.println("Tag Key : " + tag.getKey() + ", Tag Value : " + tag.getValue());
+        }
+
+        Assert.assertTrue(objectTags.size() == 1);
+        Assert.assertEquals("PII", objectTags.get(0).getKey());
+        Assert.assertEquals("true", objectTags.get(0).getValue());
     }
 
     private class MockAmazonS3Client extends AmazonS3Client {
