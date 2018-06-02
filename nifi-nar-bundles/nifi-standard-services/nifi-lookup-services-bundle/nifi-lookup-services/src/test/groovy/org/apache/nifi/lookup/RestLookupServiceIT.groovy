@@ -26,6 +26,7 @@ import org.apache.nifi.lookup.rest.handlers.ComplexJson
 import org.apache.nifi.lookup.rest.handlers.NoRecord
 import org.apache.nifi.lookup.rest.handlers.SimpleJson
 import org.apache.nifi.lookup.rest.handlers.SimpleJsonArray
+import org.apache.nifi.lookup.rest.handlers.VerbTest
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.serialization.record.Record
@@ -37,6 +38,9 @@ import org.eclipse.jetty.servlet.ServletHandler
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+
+import static groovy.json.JsonOutput.prettyPrint
+import static groovy.json.JsonOutput.toJson
 
 class RestLookupServiceIT {
     static final JsonTreeReader reader
@@ -249,6 +253,51 @@ class RestLookupServiceIT {
             Assert.assertEquals("jane.doe", record.getAsString("username"))
             Assert.assertEquals("testing7890", record.getAsString("password"))
             Assert.assertEquals("jane.doe@company.com", record.getAsString("email"))
+        } finally {
+            server.shutdownServer()
+        }
+    }
+
+    @Test
+    void testOtherVerbs() {
+        TestServer server = new TestServer()
+        ServletHandler handler = new ServletHandler()
+        handler.addServletWithMapping(VerbTest.class, "/simple")
+        server.addHandler(handler)
+        try {
+            runner.disableControllerService(lookupService)
+            runner.setProperty(lookupService, "needs-body", "true")
+            runner.enableControllerService(lookupService)
+            server.startServer()
+
+            def validation = { String verb, boolean addBody ->
+                def coordinates = [
+                    "schema.name"   : "simple",
+                    "endpoint"      : server.url + "/simple",
+                    "mime.type"     : "application/json",
+                    "request.method": verb
+                ]
+
+                if (addBody) {
+                    coordinates["request.body"] = prettyPrint(toJson([ msg: "Hello, world" ]))
+                }
+
+                Optional<Record> response = lookupService.lookup(coordinates)
+                Assert.assertTrue(response.isPresent())
+                def record = response.get()
+                Assert.assertEquals("john.smith", record.getAsString("username"))
+                Assert.assertEquals("testing1234", record.getAsString("password"))
+            }
+
+            ["delete", "post", "put"].each { verb ->
+                validation(verb, true)
+            }
+
+            runner.disableControllerService(lookupService)
+            runner.setProperty(lookupService, "needs-body", "")
+            runner.enableControllerService(lookupService)
+
+            validation("delete", false)
         } finally {
             server.shutdownServer()
         }

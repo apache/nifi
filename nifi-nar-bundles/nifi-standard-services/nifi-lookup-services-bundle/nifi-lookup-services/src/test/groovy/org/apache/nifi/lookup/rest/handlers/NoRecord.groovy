@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 class NoRecord extends HttpServlet {
-    Logger logger = LoggerFactory.getLogger(SimpleJson.class);
+    Logger logger = LoggerFactory.getLogger(NoRecord.class)
     @Override
     void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
