@@ -107,10 +107,10 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
     public static final PropertyDescriptor ACK_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Acknowledgment Timeout")
             .description("Set the timeout (in milliseconds) for unacked messages, truncated to the "
-                    + "nearest millisecond. The timeout needs to be greater than 10 seconds.")
+                    + "nearest millisecond. A value of 0 means there is no timeout. If a non-zero value "
+                    + "is sepcified, then messages that are not acknowledged within the configured"
+                    + " timeout will be replayed.")
             .required(false)
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .defaultValue("10000")
             .build();
 
     public static final PropertyDescriptor CONSUMER_NAME = new PropertyDescriptor.Builder()
@@ -120,21 +120,13 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CRYPTO_FAILURE_ACTION = new PropertyDescriptor.Builder()
-            .name("Crypto Failure Action")
-            .description("Set the consumer action to take when an encrypted message cannot be decrypted ")
-            .required(false)
-            .allowableValues(CONSUME, DISCARD, FAIL)
-            .defaultValue(DISCARD.getValue())
-            .build();
-
     public static final PropertyDescriptor PRIORITY_LEVEL = new PropertyDescriptor.Builder()
             .name("Consumer Priority Level")
             .description("Sets priority level for the shared subscription consumers to which broker "
                     + "gives more priority while dispatching messages. Here, broker follows descending "
                     + "priorities. (eg: 0=max-priority, 1, 2,..) ")
             .required(false)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue("5")
             .build();
 
@@ -162,16 +154,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
             .defaultValue(SHARED.getValue())
             .build();
 
-    public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
-            .name("Max Wait Time")
-            .description("The maximum amount of time allowed for a Pulsar consumer to poll a subscription for data "
-                    + ", zero means there is no limit. Max time less than 1 second will be equal to zero.")
-            .defaultValue("2 seconds")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
     protected static final List<PropertyDescriptor> PROPERTIES;
     protected static final Set<Relationship> RELATIONSHIPS;
 
@@ -188,8 +170,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
         properties.add(PRIORITY_LEVEL);
         properties.add(RECEIVER_QUEUE_SIZE);
         properties.add(SUBSCRIPTION_TYPE);
-        properties.add(MAX_WAIT_TIME);
-        properties.add(CRYPTO_FAILURE_ACTION);
 
         PROPERTIES = Collections.unmodifiableList(properties);
 
@@ -198,14 +178,9 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
         RELATIONSHIPS = Collections.unmodifiableSet(relationships);
     }
 
-    // Reuse the same consumer for a given topic / subscription
     protected Consumer<T> consumer;
-
-    // Pool for running multiple consume Async requests
     protected ExecutorService consumerPool;
     protected ExecutorCompletionService<Message<T>> consumerService;
-
-    // Pool for async acknowledgments. This way we can wait for them all to be completed on shut down
     protected ExecutorService ackPool;
     protected ExecutorCompletionService<Object> ackService;
 
@@ -232,7 +207,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
     @OnUnscheduled
     public void shutDown(final ProcessContext context) {
         if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-            // Stop all the async consumers
             try {
                 consumerPool.shutdown();
                 consumerPool.awaitTermination(10, TimeUnit.SECONDS);
@@ -240,7 +214,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
                 getLogger().error("Unable to stop all the Pulsar Consumers", e);
             }
 
-            // Wait for the async acknowledgments to complete.
             try {
                 ackPool.shutdown();
                 ackPool.awaitTermination(10, TimeUnit.SECONDS);
@@ -265,11 +238,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
         }
     }
 
-    /*
-     * For now let's assume that this processor will be configured to run for a longer
-     * duration than 0 milliseconds. So we will be grabbing as many messages off the topic
-     * as possible and committing them as FlowFiles
-     */
     protected void consumeAsync(ProcessContext context, ProcessSession session) throws PulsarClientException {
         Consumer<T> consumer = getConsumer(context);
 
@@ -278,7 +246,7 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
                return consumer.receive();
             });
         } catch (final RejectedExecutionException ex) {
-            // This can happen if the processor is being Unscheduled.
+            getLogger().error("Unable to consume aany more Pulsar messages", ex);
         }
     }
 
@@ -308,10 +276,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
 
            if (context.getProperty(CONSUMER_NAME).isSet()) {
              builder = builder.consumerName(context.getProperty(CONSUMER_NAME).getValue());
-           }
-
-           if (context.getProperty(CRYPTO_FAILURE_ACTION).isSet()) {
-             builder = builder.cryptoFailureAction(ConsumerCryptoFailureAction.valueOf(context.getProperty(CRYPTO_FAILURE_ACTION).getValue()));
            }
 
            if (context.getProperty(PRIORITY_LEVEL).isSet()) {

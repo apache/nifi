@@ -24,7 +24,6 @@ import java.io.UnsupportedEncodingException;
 
 import org.apache.nifi.processors.pulsar.pubsub.PublishPulsar;
 import org.apache.nifi.processors.pulsar.pubsub.TestPublishPulsar;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Test;
 
@@ -42,15 +41,27 @@ public class TestAsyncPublishPulsar extends TestPublishPulsar {
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar.REL_SUCCESS).get(0);
-        outFile.assertContentEquals(content);
-        outFile.assertAttributeEquals(PublishPulsar.MSG_COUNT, "1");
-
         // Verify that we sent the data to my-topic.
         verify(mockClientService.getMockProducerBuilder(), times(1)).topic("my-topic");
 
         // Verify that the send method on the producer was called with the expected content
-        verify(mockClientService.getMockProducer(), times(1)).sendAsync(content.getBytes());
+        verify(mockClientService.getMockTypedMessageBuilder(), times(1)).value(content.getBytes());
+        verify(mockClientService.getMockTypedMessageBuilder(), times(1)).sendAsync();
+    }
+
+    @Test
+    public void failureTest() throws UnsupportedEncodingException {
+
+        when(mockClientService.getMockTypedMessageBuilder().sendAsync()).thenThrow(PulsarClientException.class);
+        when(mockClientService.getMockProducer().getTopic()).thenReturn("my-topic");
+
+        runner.setProperty(PublishPulsar.TOPIC, "my-topic");
+        runner.setProperty(PublishPulsar.ASYNC_ENABLED, Boolean.TRUE.toString());
+
+        final String content = "some content";
+        runner.enqueue(content.getBytes("UTF-8"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishPulsar.REL_FAILURE);
     }
 
     @Test
@@ -69,12 +80,9 @@ public class TestAsyncPublishPulsar extends TestPublishPulsar {
             runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
         }
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar.REL_SUCCESS).get(0);
-        outFile.assertContentEquals(content);
-        outFile.assertAttributeEquals(PublishPulsar.MSG_COUNT, "1");
-
         // Verify that the send method on the producer was called with the expected content
-        verify(mockClientService.getMockProducer(), times(20)).sendAsync(content.getBytes());
+        verify(mockClientService.getMockTypedMessageBuilder(), times(20)).value(content.getBytes());
+        verify(mockClientService.getMockTypedMessageBuilder(), times(20)).sendAsync();
     }
 
     @Test
@@ -92,10 +100,7 @@ public class TestAsyncPublishPulsar extends TestPublishPulsar {
             runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
         }
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PublishPulsar.REL_SUCCESS).get(0);
-        outFile.assertContentEquals(content);
-        outFile.assertAttributeEquals(PublishPulsar.MSG_COUNT, "1");
-
-        verify(mockClientService.getMockProducer(), times(50)).sendAsync(content.getBytes());
+        verify(mockClientService.getMockTypedMessageBuilder(), times(50)).value(content.getBytes());
+        verify(mockClientService.getMockTypedMessageBuilder(), times(50)).sendAsync();
     }
 }

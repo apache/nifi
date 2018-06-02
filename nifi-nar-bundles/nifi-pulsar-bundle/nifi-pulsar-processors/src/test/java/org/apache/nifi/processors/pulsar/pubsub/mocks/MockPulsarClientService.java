@@ -36,6 +36,7 @@ import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 import org.mockito.Mock;
@@ -64,10 +65,15 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
     Consumer<T> mockConsumer = mock(Consumer.class);
 
     @Mock
+    TypedMessageBuilder<T> mockTypedMessageBuilder = mock(TypedMessageBuilder.class);
+
+    @Mock
     protected Message<T> mockMessage;
 
     @Mock
     MessageId mockMessageId = mock(MessageId.class);
+
+    CompletableFuture<MessageId> future;
 
     public MockPulsarClientService() {
         when(mockClient.newProducer()).thenReturn((ProducerBuilder<byte[]>) mockProducerBuilder);
@@ -138,7 +144,7 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
                 }
             }))).thenReturn(mockMessageId);
 
-            CompletableFuture<MessageId> future = CompletableFuture.supplyAsync(() -> {
+            future = CompletableFuture.supplyAsync(() -> {
                 return mock(MessageId.class);
             });
 
@@ -148,6 +154,10 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
                     return true;
                 }
             }))).thenReturn(future);
+
+            when(mockProducer.newMessage()).thenReturn(mockTypedMessageBuilder);
+            when(mockTypedMessageBuilder.value((T) any(byte[].class))).thenReturn(mockTypedMessageBuilder);
+            when(mockTypedMessageBuilder.sendAsync()).thenReturn(future);
 
         } catch (PulsarClientException e) {
             e.printStackTrace();
@@ -164,6 +174,10 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
 
     public ConsumerBuilder<T> getMockConsumerBuilder() {
       return mockConsumerBuilder;
+    }
+
+    public TypedMessageBuilder<T> getMockTypedMessageBuilder() {
+      return mockTypedMessageBuilder;
     }
 
     @Override

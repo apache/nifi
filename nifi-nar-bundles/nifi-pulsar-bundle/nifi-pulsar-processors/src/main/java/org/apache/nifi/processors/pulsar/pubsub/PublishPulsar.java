@@ -76,10 +76,10 @@ public class PublishPulsar extends AbstractPulsarProducerProcessor<byte[]> {
             Producer<byte[]> producer = getProducer(context, topic);
 
             if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
-                this.sendAsync(producer, session, flowFile, messageContent);
-                this.handleAsync();
+                sendAsync(producer, session, messageContent);
+                session.remove(flowFile);
             } else {
-                this.send(producer, session, flowFile, messageContent);
+                send(producer, session, flowFile, messageContent);
             }
         } catch (final PulsarClientException e) {
             logger.error("Failed to connect to Pulsar Server due to {}", new Object[]{e});
