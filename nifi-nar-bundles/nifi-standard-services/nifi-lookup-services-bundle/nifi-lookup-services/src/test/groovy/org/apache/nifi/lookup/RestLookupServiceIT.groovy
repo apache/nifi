@@ -196,8 +196,8 @@ class RestLookupServiceIT {
     @Test
     void testHeaders() {
         runner.disableControllerService(lookupService)
-        runner.setProperty(lookupService, "header.X-USER", "jane.doe")
-        runner.setProperty(lookupService, "header.X-PASS", "testing7890")
+        runner.setProperty(lookupService, "X-USER", "jane.doe")
+        runner.setProperty(lookupService, "X-PASS", "testing7890")
         runner.enableControllerService(lookupService)
 
         TestServer server = new TestServer()

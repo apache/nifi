@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
 <body>
+    <h2>General</h2>
     <p>This lookup service has the following required keys:</p>
     <ul>
         <li>endpoint</li>
@@ -38,5 +39,8 @@
     <p>The record reader is used to consume the response of the REST service call and turn it into one or more records. The record path property
     is provided to allow for a lookup path to either a nested record or a single point deep in the REST response. Note: a valid schema must be
     built that encapsulates the REST response accurately in order for this service to work.</p>
+    <h2>Headers</h2>
+    <p>Headers are supported using dynamic properties. Just add a dynamic property and the name will be the header name and the value will be the value for the header. Expression language
+    powered by input from the variable registry is supported.</p>
 </body>
 </html>

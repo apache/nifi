@@ -41,6 +41,7 @@ import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
+import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -79,7 +80,6 @@ public class RestLookupService extends AbstractControllerService implements Look
         .description("The record reader to use for loading the payload and handling it as a record set.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .identifiesControllerService(RecordReaderFactory.class)
-        .addValidator(Validator.VALID)
         .required(true)
         .build();
 
@@ -88,6 +88,16 @@ public class RestLookupService extends AbstractControllerService implements Look
         .displayName("Record Path")
         .description("An optional record path that can be used to define where in a record to get the real data to merge " +
                 "into the record set to be enriched. See documentation for examples of when this might be useful.")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .addValidator(new RecordPathValidator())
+        .required(false)
+        .build();
+
+    static final PropertyDescriptor RECORD_PATH_PROPERTY_NAME = new PropertyDescriptor.Builder()
+        .name("rest-lookup-record-path-name")
+        .displayName("Record Path Property Name")
+        .description("An optional name for the property loaded by the record path. This will be the key used for the value " +
+                "when the loaded record is merged into record to be enriched. See docs for more details.")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(Validator.VALID)
         .required(false)
@@ -137,17 +147,24 @@ public class RestLookupService extends AbstractControllerService implements Look
     static final String METHOD_KEY = "request.method";
 
     static final List<PropertyDescriptor> DESCRIPTORS;
+    static final Set<String> KEYS;
 
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
             RECORD_READER,
             RECORD_PATH,
+            RECORD_PATH_PROPERTY_NAME,
             SSL_CONTEXT_SERVICE,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
             PROP_DIGEST_AUTH
         ));
+        Set<String> _keys = new HashSet<>();
+        _keys.add(ENDPOINT_KEY);
+        _keys.add(MIME_TYPE_KEY);
+        _keys.add(METHOD_KEY);
+        KEYS = Collections.unmodifiableSet(_keys);
     }
 
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -158,6 +175,11 @@ public class RestLookupService extends AbstractControllerService implements Look
     private RecordReaderFactory readerFactory;
     private RecordPath recordPath;
     private OkHttpClient client;
+    private Map<String, String> headers;
+    private volatile String recordPathName;
+    private volatile String basicUser;
+    private volatile String basicPass;
+    private volatile boolean isDigest;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -186,14 +208,17 @@ public class RestLookupService extends AbstractControllerService implements Look
             recordPath = RecordPath.compile(path);
         }
 
+        recordPathName = context.getProperty(RECORD_PATH_PROPERTY_NAME).isSet()
+            ? context.getProperty(RECORD_PATH_PROPERTY_NAME).evaluateAttributeExpressions().getValue()
+            : null;
+
         getHeaders(context);
     }
 
-    private Map<String, String> headers;
     private void getHeaders(ConfigurationContext context) {
         headers = new HashMap<>();
         for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
-            if (descriptor.getName().startsWith("header.")) {
+            if (descriptor.isDynamic()) {
                 headers.put(
                     descriptor.getDisplayName(),
                     context.getProperty(descriptor).evaluateAttributeExpressions().getValue()
@@ -239,9 +264,7 @@ public class RestLookupService extends AbstractControllerService implements Look
 
             Record record = handleResponse(is, coordinates);
 
-            return record != null
-                    ? Optional.of(record)
-                    : Optional.empty();
+            return Optional.ofNullable(record);
         } catch (Exception e) {
             getLogger().error("Could not execute lookup.", e);
             throw new LookupFailureException(e);
@@ -249,18 +272,13 @@ public class RestLookupService extends AbstractControllerService implements Look
     }
 
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        if (propertyDescriptorName.startsWith("header")) {
-            String header = propertyDescriptorName.substring(propertyDescriptorName.indexOf(".") + 1);
-            return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .displayName(header)
-                .addValidator(Validator.VALID)
-                .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-                .build();
-        }
-
-        return null;
+        return new PropertyDescriptor.Builder()
+            .name(propertyDescriptorName)
+            .displayName(propertyDescriptorName)
+            .addValidator(Validator.VALID)
+            .dynamic(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
     }
 
     protected Response executeRequest(Request request) throws IOException {
@@ -282,8 +300,6 @@ public class RestLookupService extends AbstractControllerService implements Look
                 if (fv.isPresent()) {
                     FieldValue fieldValue = fv.get();
                     RecordSchema schema = new SimpleRecordSchema(Arrays.asList(fieldValue.getField()));
-                    String[] parts = recordPath.getPath().split("/");
-                    String last = parts[parts.length - 1];
 
                     Record temp;
                     Object value = fieldValue.getValue();
@@ -292,19 +308,21 @@ public class RestLookupService extends AbstractControllerService implements Look
                     } else if (value instanceof Map) {
                         temp = new MapRecord(schema, (Map<String, Object>) value);
                     } else {
-                        temp = new MapRecord(schema, new HashMap<String, Object>() {{
-                            put(last, value);
-                        }});
+                        Map<String, Object> val = new HashMap<>();
+                        val.put(recordPathName, value);
+                        temp = new MapRecord(schema, val);
                     }
 
                     record = temp;
+                } else {
+                    record = null;
                 }
             }
 
             return record;
         } catch (Exception ex) {
             is.close();
-            throw new RuntimeException(ex);
+            throw ex;
         }
     }
 
@@ -345,10 +363,6 @@ public class RestLookupService extends AbstractControllerService implements Look
         return request.build();
     }
 
-    private String basicUser;
-    private String basicPass;
-    private boolean isDigest;
-
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ConfigurationContext context) {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
         this.basicUser = authUser;
@@ -381,10 +395,6 @@ public class RestLookupService extends AbstractControllerService implements Look
 
     @Override
     public Set<String> getRequiredKeys() {
-        return new HashSet<String>(){{
-            add(ENDPOINT_KEY);
-            add(MIME_TYPE_KEY);
-            add(METHOD_KEY);
-        }};
+        return KEYS;
     }
 }
