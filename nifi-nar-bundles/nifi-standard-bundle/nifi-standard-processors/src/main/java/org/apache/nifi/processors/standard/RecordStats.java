@@ -18,6 +18,10 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -44,8 +48,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Tags({ "record", "stats", "metrics" })
+@CapabilityDescription("A processor that can count the number of items in a record set, as well as provide counts based on " +
+        "user-defined criteria on subsets of the record set.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@WritesAttributes({
+    @WritesAttribute(attribute = RecordStats.RECORD_COUNT_ATTR, description = "A count of the records in the record set in the flowfile.")
+})
 public class RecordStats extends AbstractProcessor {
+    static final String RECORD_COUNT_ATTR = "record_count";
+
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("record-stats-reader")
         .displayName("Record Reader")
@@ -149,7 +161,7 @@ public class RecordStats extends AbstractProcessor {
 
                 recordCount++;
             }
-            retVal.put("record_count", recordCount);
+            retVal.put(RECORD_COUNT_ATTR, recordCount);
 
             return retVal.entrySet().stream()
                 .collect(Collectors.toMap(
