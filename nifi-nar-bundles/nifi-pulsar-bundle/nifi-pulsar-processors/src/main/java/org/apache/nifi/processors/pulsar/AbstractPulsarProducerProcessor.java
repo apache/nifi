@@ -221,41 +221,35 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractPulsarP
 
     @OnStopped
     public void cleanUp(final ProcessContext context) {
-       // Close all of the producers and invalidate them, so they get removed from the Resource Pool
        getProducerCache(context).clear();
     }
 
     @SuppressWarnings("rawtypes")
-    protected void sendAsync(Producer producer, ProcessSession session, FlowFile flowFile, byte[] messageContent) {
+    protected void sendAsync(Producer producer, final ProcessSession session, final byte[] messageContent) {
         try {
             publisherService.submit(new Callable<Object>() {
                @Override
                public Object call() throws Exception {
                  try {
-                     return producer.sendAsync(messageContent).handle((msgId, ex) -> {
-                       if (msgId != null) {
-                           session.putAttribute(flowFile, MSG_COUNT , "1");
-                           session.putAttribute(flowFile, TOPIC_NAME, producer.getTopic());
-                           session.adjustCounter("Messages Sent", 1, true);
-                           session.getProvenanceReporter().send(flowFile, "Sent async message to " + producer.getTopic() );
-                           session.transfer(flowFile, REL_SUCCESS);
+                     return producer.newMessage().value(messageContent).sendAsync().handle((msgId, ex) -> {
+                        if (msgId != null) {
                            return msgId;
-                       } else {
-                          FlowFile failureFlowFile = session.create();
-                          session.transfer(failureFlowFile, REL_FAILURE);
-                          return null;
-                       }
+                        } else {
+                           FlowFile flowFile = session.create();
+                           session.transfer(flowFile, REL_FAILURE);
+                           return null;
+                        }
                    }).get();
-
                  } catch (final Throwable t) {
-                   // This traps any exceptions thrown while calling the producer.sendAsync() method.
-                   session.transfer(flowFile, REL_FAILURE);
+                   getLogger().error("Unable to send message to Pulsar asyncronously.", t);
+                   session.transfer(session.create(), REL_FAILURE);
                    return null;
                  }
               }
              });
         } catch (final RejectedExecutionException ex) {
-           // This can happen if the processor is being Unscheduled.
+           getLogger().error("Unable to send message to Pulsar asyncronously, due to RejectedExecutionException: ", ex);
+           session.transfer(session.create(), REL_FAILURE);
         }
     }
 
@@ -280,8 +274,9 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractPulsarP
     protected Producer<T> getProducer(ProcessContext context, String topic) throws PulsarClientException {
         Producer<T> producer = getProducerCache(context).get(topic);
 
-        if (producer != null)
+        if (producer != null) {
           return producer;
+        }
 
         producer = getBuilder(context, topic).create();
 

@@ -130,7 +130,7 @@ public class PublishPulsarRecord extends AbstractPulsarProducerProcessor<byte[]>
 
             if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
                InFlightMessageMonitor bundle = getInFlightMessages(writerFactory, schema, recordSet);
-               this.sendAsync(producer, session, flowFile, bundle);
+               sendAsync(producer, session, flowFile, bundle);
                handleAsync(bundle, session, flowFile, topic);
            } else {
                messagesSent.addAndGet(send(producer, writerFactory, schema, recordSet));

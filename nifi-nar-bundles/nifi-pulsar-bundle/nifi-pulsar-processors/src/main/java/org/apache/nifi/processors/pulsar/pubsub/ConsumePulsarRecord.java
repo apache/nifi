@@ -61,6 +61,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 
 @CapabilityDescription("Consumes messages from Apache Pulsar"
@@ -89,6 +90,16 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
             .defaultValue("1000")
             .build();
 
+    public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
+            .name("Max Wait Time")
+            .description("The maximum amount of time allowed for a Pulsar consumer to poll a subscription for data "
+                    + ", zero means there is no limit. Max time less than 1 second will be equal to zero.")
+            .defaultValue("2 seconds")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse_failure")
             .description("FlowFiles for which the content was not prasable")
@@ -104,6 +115,7 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
         properties.add(BATCH_SIZE);
+        properties.add(MAX_WAIT_TIME);
         PROPERTIES = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -161,9 +173,7 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
         final Integer queryTimeout = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
 
         Consumer<byte[]> consumer = getConsumer(context);
-
         List<Message<byte[]>> messages = new ArrayList<Message<byte[]>>();
-
         long startTime = System.currentTimeMillis();
 
         while ( (messages.size() < context.getProperty(BATCH_SIZE).asInteger())
@@ -173,11 +183,41 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
         return messages;
     }
 
-    private void processMessages(ProcessContext context, ProcessSession session, List<Message<byte[]>> messages, RecordReaderFactory readerFactory,
-        RecordSetWriterFactory writerFactory, boolean async) throws PulsarClientException {
+    /**
+     * Pull messages off of the CompletableFuture's held in the consumerService
+     */
+    protected List<Message<byte[]>> handleAsync(ProcessContext context, ProcessSession session) {
+        List<Message<byte[]>> messages = new ArrayList<Message<byte[]>>();
+        final Integer queryTimeout = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
 
-        if (messages.isEmpty())
+        try {
+             Future<Message<byte[]>> done = null;
+             do {
+                 done = consumerService.poll(queryTimeout, TimeUnit.SECONDS);
+
+                 if (done == null) {
+                    continue;
+                 }
+
+                 Message<byte[]> msg = done.get();
+
+                 if (msg != null) {
+                    messages.add(msg);
+                 }
+             } while (done != null);
+
+        } catch (InterruptedException | ExecutionException e) {
+            getLogger().error("Trouble consuming messages ", e);
+        }
+        return messages;
+     }
+
+    private void processMessages(ProcessContext context, ProcessSession session, List<Message<byte[]>> messages,
+        RecordReaderFactory readerFactory, RecordSetWriterFactory writerFactory, boolean async) throws PulsarClientException {
+
+        if (messages.isEmpty()) {
            return;
+        }
 
         final AtomicLong messagesReceived = new AtomicLong(0L);
 
@@ -198,7 +238,6 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
             Record firstRecord = getFirstRecord(msg, reader, handleParseFailure);
 
             if (firstRecord == null) {
-                // If the message doesn't contain any record, just ack the message
                 if (async) {
                    ackService.submit(new Callable<Object>() {
                       @Override
@@ -299,29 +338,4 @@ public class ConsumePulsarRecord extends AbstractPulsarConsumerProcessor<byte[]>
         return writerFactory.createWriter(getLogger(), writeSchema, out);
     }
 
-    protected List<Message<byte[]>> handleAsync(ProcessContext context, ProcessSession session) {
-       List<Message<byte[]>> messages = new ArrayList<Message<byte[]>>();
-       final Integer queryTimeout = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
-
-       try {
-            Future<Message<byte[]>> done = null;
-            do {
-                done = consumerService.poll(queryTimeout, TimeUnit.SECONDS);
-
-                if (done == null)
-                       // Not much we can do here...
-                   continue;
-
-                Message<byte[]> msg = done.get();
-
-                if (msg != null) {
-                   messages.add(msg);
-                }
-            } while (done != null);
-
-       } catch (InterruptedException | ExecutionException e) {
-           getLogger().error("Trouble consuming messages ", e);
-       }
-       return messages;
-    }
 }

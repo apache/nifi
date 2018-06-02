@@ -45,7 +45,7 @@ public class TestSyncConsumePulsar extends TestConsumePulsar {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsar.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
 
-        verify(mockClientService.getMockConsumer(), times(0)).acknowledge(mockMessage);
+        verify(mockClientService.getMockConsumer(), times(1)).acknowledge(mockMessage);
     }
 
     @SuppressWarnings("unchecked")

@@ -37,9 +37,9 @@ public class TestStandardPulsarClientService {
 
     @Test
     public void invalidServiceUrlTest() throws InitializationException {
-    	final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final PulsarClientService service = new StandardPulsarClientService();
-        
+
         runner.addControllerService("test-bad", service);
         runner.setProperty(service, StandardPulsarClientService.PULSAR_SERVICE_URL, "malfromed_url");
         runner.assertNotValid();
