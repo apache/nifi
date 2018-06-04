@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -60,8 +61,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -142,6 +141,8 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     static {
         final Set<Relationship> _rels = new HashSet<>();
@@ -227,7 +228,10 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         List<FlowFile> flowFilesToTransfer = new LinkedList<>(flowFiles);
 
         final StringBuilder sb = new StringBuilder();
-        final String baseUrl = trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
+        final String baseUrl = context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().trim();
+        if (StringUtils.isEmpty(baseUrl)) {
+            throw new ProcessException("Elasticsearch URL is empty or null, this indicates an invalid Expression (missing variables, e.g.)");
+        }
         HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder().addPathSegment("_bulk");
 
         // Find the user-added properties and set them as query parameters on the URL
@@ -288,42 +292,22 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             session.read(file, in -> {
                 json.append(IOUtils.toString(in, charset).replace("\r\n", " ").replace('\n', ' ').replace('\r', ' '));
             });
-            if (indexOp.equalsIgnoreCase("index")) {
-                sb.append("{\"index\": { \"_index\": \"");
-                sb.append(index);
-                sb.append("\", \"_type\": \"");
-                sb.append(docType);
-                sb.append("\"");
-                if (!StringUtils.isEmpty(id)) {
-                    sb.append(", \"_id\": \"");
-                    sb.append(id);
-                    sb.append("\"");
-                }
-                sb.append("}}\n");
-                sb.append(json);
-                sb.append("\n");
-            } else if (indexOp.equalsIgnoreCase("upsert") || indexOp.equalsIgnoreCase("update")) {
-                sb.append("{\"update\": { \"_index\": \"");
-                sb.append(index);
-                sb.append("\", \"_type\": \"");
-                sb.append(docType);
-                sb.append("\", \"_id\": \"");
-                sb.append(id);
-                sb.append("\" }\n");
-                sb.append("{\"doc\": ");
-                sb.append(json);
-                sb.append(", \"doc_as_upsert\": ");
-                sb.append(indexOp.equalsIgnoreCase("upsert"));
-                sb.append(" }\n");
-            } else if (indexOp.equalsIgnoreCase("delete")) {
-                sb.append("{\"delete\": { \"_index\": \"");
-                sb.append(index);
-                sb.append("\", \"_type\": \"");
-                sb.append(docType);
-                sb.append("\", \"_id\": \"");
-                sb.append(id);
-                sb.append("\" }\n");
+
+            String jsonString = json.toString();
+
+            // Ensure the JSON body is well-formed
+            try {
+                mapper.readTree(jsonString);
+            } catch (IOException e) {
+                logger.error("Flow file content is not valid JSON, penalizing and transferring to failure.",
+                        new Object[]{indexOp, file});
+                flowFilesToTransfer.remove(file);
+                file = session.penalize(file);
+                session.transfer(file, REL_FAILURE);
+                continue;
             }
+
+            buildBulkCommand(sb, index, docType, indexOp, id, jsonString);
         }
         if (!flowFilesToTransfer.isEmpty()) {
             RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"), sb.toString());
@@ -364,10 +348,10 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                                     if (!isSuccess(status)) {
                                         if (errorReason == null) {
                                             // Use "result" if it is present; this happens for status codes like 404 Not Found, which may not have an error/reason
-                                            String reason = itemNode.findPath("//result").asText();
+                                            String reason = itemNode.findPath("result").asText();
                                             if (StringUtils.isEmpty(reason)) {
                                                 // If there was no result, we expect an error with a string description in the "reason" field
-                                                reason = itemNode.findPath("//error/reason").asText();
+                                                reason = itemNode.findPath("reason").asText();
                                             }
                                             errorReason = reason;
                                             logger.error("Failed to process {} due to {}, transferring to failure",

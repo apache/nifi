@@ -553,4 +553,20 @@ public class TestPutElasticsearchHttp {
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
     }
+
+    @Test(expected = AssertionError.class)
+    public void testPutElasticSearchBadHostInEL() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
+
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+    }
 }

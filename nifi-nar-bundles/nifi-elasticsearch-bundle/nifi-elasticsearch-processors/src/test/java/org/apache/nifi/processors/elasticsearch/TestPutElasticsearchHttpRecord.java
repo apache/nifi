@@ -486,6 +486,23 @@ public class TestPutElasticsearchHttpRecord {
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 100);
     }
 
+    @Test(expected = AssertionError.class)
+    public void testPutElasticSearchBadHostInEL() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
+
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.assertValid();
+
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "1");
+        }});
+
+        runner.run();
+    }
+
     private void generateTestData() throws IOException {
 
         final MockRecordParser parser = new MockRecordParser();
