@@ -25,6 +25,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.Route;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -75,6 +76,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .displayName("Proxy Host")
             .description("The fully qualified hostname or IP address of the proxy server")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -83,6 +85,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .displayName("Proxy Port")
             .description("The port of the proxy server")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -275,5 +278,44 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     protected JsonNode parseJsonResponse(InputStream in) throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.readTree(in);
+    }
+
+    protected void buildBulkCommand(StringBuilder sb, String index, String docType, String indexOp, String id, String jsonString) {
+        if (indexOp.equalsIgnoreCase("index")) {
+            sb.append("{\"index\": { \"_index\": \"");
+            sb.append(StringEscapeUtils.escapeJson(index));
+            sb.append("\", \"_type\": \"");
+            sb.append(StringEscapeUtils.escapeJson(docType));
+            sb.append("\"");
+            if (!StringUtils.isEmpty(id)) {
+                sb.append(", \"_id\": \"");
+                sb.append(StringEscapeUtils.escapeJson(id));
+                sb.append("\"");
+            }
+            sb.append("}}\n");
+            sb.append(jsonString);
+            sb.append("\n");
+        } else if (indexOp.equalsIgnoreCase("upsert") || indexOp.equalsIgnoreCase("update")) {
+            sb.append("{\"update\": { \"_index\": \"");
+            sb.append(StringEscapeUtils.escapeJson(index));
+            sb.append("\", \"_type\": \"");
+            sb.append(StringEscapeUtils.escapeJson(docType));
+            sb.append("\", \"_id\": \"");
+            sb.append(StringEscapeUtils.escapeJson(id));
+            sb.append("\" }\n");
+            sb.append("{\"doc\": ");
+            sb.append(jsonString);
+            sb.append(", \"doc_as_upsert\": ");
+            sb.append(indexOp.equalsIgnoreCase("upsert"));
+            sb.append(" }\n");
+        } else if (indexOp.equalsIgnoreCase("delete")) {
+            sb.append("{\"delete\": { \"_index\": \"");
+            sb.append(StringEscapeUtils.escapeJson(index));
+            sb.append("\", \"_type\": \"");
+            sb.append(StringEscapeUtils.escapeJson(docType));
+            sb.append("\", \"_id\": \"");
+            sb.append(StringEscapeUtils.escapeJson(id));
+            sb.append("\" }\n");
+        }
     }
 }
