@@ -157,13 +157,13 @@ public class MongoDBLookupService extends SchemaRegistryService implements Looku
     }
 
     private volatile Document projection;
-    private MongoDBControllerService controllerService;
+    private MongoDBClientService controllerService;
     private String schemaNameProperty;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.lookupValueField = context.getProperty(LOOKUP_VALUE_FIELD).getValue();
-        this.controllerService = context.getProperty(CONTROLLER_SERVICE).asControllerService(MongoDBControllerService.class);
+        this.controllerService = context.getProperty(CONTROLLER_SERVICE).asControllerService(MongoDBClientService.class);
 
         this.schemaNameProperty = context.getProperty(SchemaAccessUtils.SCHEMA_NAME).getValue();
 
