@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import okhttp3.Call;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -44,7 +43,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -148,7 +146,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         queryReference.set(query);
 
         final String useEtagString = (String) properties.getOrDefault(USE_ETAG_KEY, "false");
-        if ("true".equalsIgnoreCase(useEtagString) || "false".equalsIgnoreCase(useEtagString)){
+        if ("true".equalsIgnoreCase(useEtagString) || "false".equalsIgnoreCase(useEtagString)) {
             useEtag = Boolean.parseBoolean(useEtagString);
         } else {
             throw new IllegalArgumentException("Property, " + USE_ETAG_KEY + ", to specify whether to use the ETag header, must either be a value boolean value (\"true\" or \"false\") or left to " +
@@ -156,7 +154,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         }
 
         final String overrideSecurityProperties = (String) properties.getOrDefault(OVERRIDE_SECURITY, "false");
-        if ("true".equalsIgnoreCase(overrideSecurityProperties) || "false".equalsIgnoreCase(overrideSecurityProperties)){
+        if ("true".equalsIgnoreCase(overrideSecurityProperties) || "false".equalsIgnoreCase(overrideSecurityProperties)) {
             overrideSecurity = Boolean.parseBoolean(overrideSecurityProperties);
         } else {
             throw new IllegalArgumentException("Property, " + OVERRIDE_SECURITY + ", to specify whether to override security properties must either be a value boolean value (\"true\" or \"false\")" +
@@ -222,36 +220,31 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
 
     @Override
     public void run() {
-        try {
-            logger.debug("Attempting to pull new config");
-            HttpUrl.Builder builder = new HttpUrl.Builder()
-                    .host(hostReference.get())
-                    .port(portReference.get())
-                    .encodedPath(pathReference.get());
-            String query = queryReference.get();
-            if (!StringUtil.isNullOrEmpty(query)) {
-                builder = builder.encodedQuery(query);
-            }
-            final HttpUrl url = builder
-                    .scheme(connectionScheme)
-                    .build();
+        logger.debug("Attempting to pull new config");
+        HttpUrl.Builder builder = new HttpUrl.Builder()
+                .host(hostReference.get())
+                .port(portReference.get())
+                .encodedPath(pathReference.get());
+        final String query = queryReference.get();
+        if (!StringUtil.isNullOrEmpty(query)) {
+            builder = builder.encodedQuery(query);
+        }
+        final HttpUrl url = builder
+                .scheme(connectionScheme)
+                .build();
 
+        final Request.Builder requestBuilder = new Request.Builder()
+                .get()
+                .url(url);
 
-            final Request.Builder requestBuilder = new Request.Builder()
-                    .get()
-                    .url(url);
+        if (useEtag) {
+            requestBuilder.addHeader("If-None-Match", lastEtag);
+        }
 
-            if (useEtag) {
-                requestBuilder.addHeader("If-None-Match", lastEtag);
-            }
+        final Request request = requestBuilder.build();
 
-            final Request request = requestBuilder.build();
-
-            final OkHttpClient httpClient = httpClientReference.get();
-
-            final Call call = httpClient.newCall(request);
-            final Response response = call.execute();
-
+        ResponseBody body = null;
+        try (Response response = httpClientReference.get().newCall(request).execute()) {
             logger.debug("Response received: {}", response.toString());
 
             int code = response.code();
@@ -264,17 +257,18 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
                 throw new IOException("Got response code " + code + " while trying to pull configuration: " + response.body().string());
             }
 
-            ResponseBody body = response.body();
+            body = response.body();
+
             if (body == null) {
                 logger.warn("No body returned when pulling a new configuration");
                 return;
             }
 
-            ByteBuffer bodyByteBuffer = ByteBuffer.wrap(body.bytes());
+            final ByteBuffer bodyByteBuffer = ByteBuffer.wrap(body.bytes());
             ByteBuffer readOnlyNewConfig = null;
 
             // checking if some parts of the configuration must be preserved
-            if(overrideSecurity) {
+            if (overrideSecurity) {
                 readOnlyNewConfig = bodyByteBuffer.asReadOnlyBuffer();
             } else {
                 logger.debug("Preserving previous security properties...");
