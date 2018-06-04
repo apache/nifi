@@ -60,7 +60,7 @@ public class MongoDBLookupService extends SchemaRegistryService implements Looku
         .displayName("Client Service")
         .description("A MongoDB controller service to use with this lookup service.")
         .required(true)
-        .identifiesControllerService(MongoDBControllerService.class)
+        .identifiesControllerService(MongoDBClientService.class)
         .build();
 
     public static final PropertyDescriptor LOOKUP_VALUE_FIELD = new PropertyDescriptor.Builder()
@@ -189,6 +189,7 @@ public class MongoDBLookupService extends SchemaRegistryService implements Looku
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> _temp = new ArrayList<>();
         _temp.addAll(super.getSupportedPropertyDescriptors());
+        _temp.add(CONTROLLER_SERVICE);
         _temp.add(LOOKUP_VALUE_FIELD);
         _temp.add(PROJECTION);
 
