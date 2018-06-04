@@ -42,5 +42,14 @@
     <h2>Headers</h2>
     <p>Headers are supported using dynamic properties. Just add a dynamic property and the name will be the header name and the value will be the value for the header. Expression language
     powered by input from the variable registry is supported.</p>
+    <h2>Dynamic URLs</h2>
+    <p>The <em>endpoint</em> lookup key can be dynamically configured with Expression Language if the optional key <em>endpoint.template</em> is added to the
+    list of lookup keys. Any non-empty value for that key will work, including hard-coded values.</p>
+    <p>Ex. URL: <em>http://example.com/service/${user.name}/friend/${friend.id}</em>, combined with example record paths:</p>
+    <ul>
+        <li>user.name => "/example/username"</li>
+        <li>friend.id => "/example/first_friend"</li>
+    </ul>
+    <p>Would dynamically produce an endpoint of <em>http://example.com/service/john.smith/friend/12345</em></p>
 </body>
 </html>

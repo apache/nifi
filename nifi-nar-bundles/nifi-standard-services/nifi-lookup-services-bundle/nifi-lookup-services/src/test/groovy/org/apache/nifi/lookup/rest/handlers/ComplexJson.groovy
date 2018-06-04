@@ -35,7 +35,7 @@ class ComplexJson extends HttpServlet {
                         inner: [
                             "username": "jane.doe",
                             "password": "testing7890",
-                            "email": "jane.doe@company.com"
+                            "email": "jane.doe@test-example.com"
                         ]
                     ]
                 ]

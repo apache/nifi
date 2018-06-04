@@ -252,7 +252,7 @@ class RestLookupServiceIT {
             def record = response.get()
             Assert.assertEquals("jane.doe", record.getAsString("username"))
             Assert.assertEquals("testing7890", record.getAsString("password"))
-            Assert.assertEquals("jane.doe@company.com", record.getAsString("email"))
+            Assert.assertEquals("jane.doe@test-example.com", record.getAsString("email"))
         } finally {
             server.shutdownServer()
         }
