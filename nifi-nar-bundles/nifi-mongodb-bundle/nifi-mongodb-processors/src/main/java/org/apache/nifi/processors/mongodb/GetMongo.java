@@ -29,7 +29,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -60,23 +59,6 @@ import java.util.Set;
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB")
 public class GetMongo extends AbstractMongoProcessor {
-    public static final Validator DOCUMENT_VALIDATOR = (subject, value, context) -> {
-        final ValidationResult.Builder builder = new ValidationResult.Builder();
-        builder.subject(subject).input(value);
-
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-            return builder.valid(true).explanation("Contains Expression Language").build();
-        }
-
-        String reason = null;
-        try {
-            Document.parse(value);
-        } catch (final RuntimeException e) {
-            reason = e.getLocalizedMessage();
-        }
-
-        return builder.explanation(reason).valid(reason == null).build();
-    };
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -97,7 +79,7 @@ public class GetMongo extends AbstractMongoProcessor {
                 "that will result in a full collection fetch using a \"{}\" query.")
         .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(DOCUMENT_VALIDATOR)
+        .addValidator(StandardValidators.JSON_VALIDATOR)
         .build();
 
     static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
@@ -105,14 +87,14 @@ public class GetMongo extends AbstractMongoProcessor {
             .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(DOCUMENT_VALIDATOR)
+            .addValidator(StandardValidators.JSON_VALIDATOR)
             .build();
     static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
             .name("Sort")
             .description("The fields by which to sort; must be a valid BSON document")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(DOCUMENT_VALIDATOR)
+            .addValidator(StandardValidators.JSON_VALIDATOR)
             .build();
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
             .name("Limit")
