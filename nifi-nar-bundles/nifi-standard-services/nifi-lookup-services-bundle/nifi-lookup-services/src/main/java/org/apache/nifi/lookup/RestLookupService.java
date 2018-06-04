@@ -32,12 +32,14 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
@@ -148,6 +150,7 @@ public class RestLookupService extends AbstractControllerService implements Look
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
     static final String ENDPOINT_KEY = "endpoint";
+    static final String ENDPOINT_TEMPLATE_KEY = "endpoint.template";
     static final String MIME_TYPE_KEY = "mime.type";
     static final String BODY_KEY = "request.body";
     static final String METHOD_KEY = "request.method";
@@ -252,7 +255,7 @@ public class RestLookupService extends AbstractControllerService implements Look
 
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
-        final String endpoint = (String)coordinates.get(ENDPOINT_KEY);
+        final String endpoint = determineEndpoint(coordinates);
         final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
         final String method   = (String)coordinates.get(METHOD_KEY);
         final String body     = (String)coordinates.get(BODY_KEY);
@@ -274,6 +277,20 @@ public class RestLookupService extends AbstractControllerService implements Look
         } catch (Exception e) {
             getLogger().error("Could not execute lookup.", e);
             throw new LookupFailureException(e);
+        }
+    }
+
+    protected String determineEndpoint(Map<String, Object> coordinates) {
+        if (coordinates.containsKey(ENDPOINT_KEY) && coordinates.containsKey(ENDPOINT_TEMPLATE_KEY)) {
+            Map<String, String> converted = coordinates.entrySet().stream()
+                .collect(Collectors.toMap(
+                    e -> e.getKey(),
+                    e -> e.getValue().toString()
+                ));
+            final PreparedQuery query = Query.prepare((String)coordinates.get(ENDPOINT_KEY));
+            return query.evaluateExpressions(converted, null);
+        } else {
+            return (String)coordinates.get(ENDPOINT_KEY);
         }
     }
 

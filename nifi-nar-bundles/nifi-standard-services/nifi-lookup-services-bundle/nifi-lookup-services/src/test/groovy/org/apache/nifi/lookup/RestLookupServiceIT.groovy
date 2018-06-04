@@ -302,4 +302,32 @@ class RestLookupServiceIT {
             server.shutdownServer()
         }
     }
+
+    @Test
+    void testTemplateMode() {
+        TestServer server = new TestServer()
+        ServletHandler handler = new ServletHandler()
+        handler.addServletWithMapping(SimpleJson.class, "/simple/john.smith/friends/12345")
+        server.addHandler(handler)
+        try {
+            server.startServer()
+            def coordinates = [
+                "schema.name": "simple",
+                "endpoint": server.url + '/simple/${user.name}/friends/${friend.id}',
+                "mime.type": "application/json",
+                "request.method": "get",
+                "user.name": "john.smith",
+                "friend.id": 12345,
+                "endpoint.template": true
+            ]
+
+            Optional<Record> response = lookupService.lookup(coordinates)
+            Assert.assertTrue(response.isPresent())
+            def record = response.get()
+            Assert.assertEquals("john.smith", record.getAsString("username"))
+            Assert.assertEquals("testing1234", record.getAsString("password"))
+        } finally {
+            server.shutdownServer()
+        }
+    }
 }
