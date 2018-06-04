@@ -549,6 +549,12 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hive3-nar</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-site-to-site-reporting-nar</artifactId>
             <version>1.7.0-SNAPSHOT</version>
             <type>nar</type>
@@ -740,6 +746,23 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-atlas-nar</artifactId>
+                    <version>1.7.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-hive3</id>
+            <!-- This profile handles the inclusion of Hive 3 artifacts. The NAR
+            is quite large and makes the resultant binary distribution significantly
+            larger (275+ MB). -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hive3-nar</artifactId>
                     <version>1.7.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>

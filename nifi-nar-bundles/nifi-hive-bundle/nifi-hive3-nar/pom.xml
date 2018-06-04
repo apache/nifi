@@ -22,25 +22,28 @@
         <version>1.7.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-hive-services-api</artifactId>
-    <packaging>jar</packaging>
-
+    <artifactId>nifi-hive3-nar</artifactId>
+    <version>1.7.0-SNAPSHOT</version>
+    <packaging>nar</packaging>
     <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
         <!-- Need to override hadoop.version here, for Hive and hadoop-client transitive dependencies -->
-        <hadoop.version>${hive.hadoop.version}</hadoop.version>
+        <hadoop.version>${hive3.hadoop.version}</hadoop.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
+            <artifactId>nifi-hive-services-api-nar</artifactId>
             <version>1.7.0-SNAPSHOT</version>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-dbcp-service-api</artifactId>
+            <artifactId>nifi-hive3-processors</artifactId>
             <version>1.7.0-SNAPSHOT</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
+
 </project>
