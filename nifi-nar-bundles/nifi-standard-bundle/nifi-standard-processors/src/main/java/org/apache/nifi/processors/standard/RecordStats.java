@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
+import com.google.common.collect.Lists;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -24,7 +25,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -41,8 +42,11 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -62,8 +66,16 @@ public class RecordStats extends AbstractProcessor {
         .name("record-stats-reader")
         .displayName("Record Reader")
         .description("A record reader to use for reading the records.")
-        .addValidator(Validator.VALID)
         .identifiesControllerService(RecordReaderFactory.class)
+        .build();
+
+    static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
+        .name("record-stats-limit")
+        .description("Limit the number of individual stats that are returned for each record path to the top N results.")
+        .required(true)
+        .defaultValue("10")
+        .addValidator(StandardValidators.INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -75,6 +87,22 @@ public class RecordStats extends AbstractProcessor {
         .description("If a flowfile fails to be processed, it goes here.")
         .build();
 
+    private RecordPathCache cache;
+
+    static final Set RELATIONSHIPS;
+    static final List<PropertyDescriptor> PROPERTIES;
+
+    static {
+        Set _rels = new HashSet();
+        _rels.add(REL_SUCCESS);
+        _rels.add(REL_FAILURE);
+        RELATIONSHIPS = Collections.unmodifiableSet(_rels);
+        List<PropertyDescriptor> _temp = new ArrayList<>();
+        _temp.add(RECORD_READER);
+        _temp.add(LIMIT);
+        PROPERTIES = Collections.unmodifiableList(_temp);
+    }
+
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
             .name(propertyDescriptorName)
@@ -84,7 +112,9 @@ public class RecordStats extends AbstractProcessor {
             .build();
     }
 
-    private RecordPathCache cache;
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
 
     @OnScheduled
     public void onEnabled(ProcessContext context) {
@@ -93,10 +123,7 @@ public class RecordStats extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return new HashSet<Relationship>() {{
-            add(REL_SUCCESS);
-            add(REL_FAILURE);
-        }};
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -136,6 +163,7 @@ public class RecordStats extends AbstractProcessor {
     protected Map<String, String> getStats(FlowFile flowFile, Map<String, RecordPath> paths, ProcessContext context, ProcessSession session) {
         try (InputStream is = session.read(flowFile)) {
             RecordReaderFactory factory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+            final Integer limit = context.getProperty(LIMIT).evaluateAttributeExpressions(flowFile).asInteger();
             RecordReader reader = factory.createRecordReader(flowFile, is, getLogger());
 
             Map<String, Integer> retVal = new HashMap<>();
@@ -150,7 +178,7 @@ public class RecordStats extends AbstractProcessor {
                         String approxValue = value.get().getValue().toString();
                         String key = String.format("%s.%s", entry.getKey(), approxValue);
                         Integer stat = retVal.containsKey(key) ? retVal.get(key) : 0;
-                        Integer baseStat = retVal.containsKey(entry.getKey()) ? retVal.get(entry.getKey()) : 0;
+                        Integer baseStat = retVal.getOrDefault(entry.getKey(), 0);
                         stat++;
                         baseStat++;
 
@@ -161,6 +189,9 @@ public class RecordStats extends AbstractProcessor {
 
                 recordCount++;
             }
+
+            retVal = filterBySize(retVal, limit);
+
             retVal.put(RECORD_COUNT_ATTR, recordCount);
 
             return retVal.entrySet().stream()
@@ -172,5 +203,23 @@ public class RecordStats extends AbstractProcessor {
             getLogger().error("Could not read flowfile", e);
             throw new ProcessException(e);
         }
+    }
+
+    protected Map filterBySize(Map<String, Integer> values, Integer limit) {
+        Map<String, Integer> toFilter = values.entrySet().stream()
+            .filter(e -> e.getKey().contains("."))
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+        Map<String, Integer> retVal = values.entrySet().stream()
+            .filter((e -> !e.getKey().contains(".")))
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+
+        List<Map.Entry<String, Integer>> _flat = new ArrayList<>(toFilter.entrySet());
+        _flat.sort(Map.Entry.comparingByValue());
+        _flat = Lists.reverse(_flat);
+        for (int index = 0; index < _flat.size() && index < limit; index++) {
+            retVal.put(_flat.get(index).getKey(), _flat.get(index).getValue());
+        }
+
+        return retVal;
     }
 }

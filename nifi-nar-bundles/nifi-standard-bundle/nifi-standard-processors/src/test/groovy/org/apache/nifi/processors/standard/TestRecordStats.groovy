@@ -85,7 +85,6 @@ class TestRecordStats {
 
     @Test
     void testWithFilters() {
-
         def sports = [ "Soccer", "Soccer", "Soccer", "Football", "Football", "Basketball" ]
         def expectedAttributes = [
             "sport.Soccer": "3",
@@ -96,6 +95,28 @@ class TestRecordStats {
 
         def propz = [
             "sport": "/person/sport[. != 'Football']"
+        ]
+
+        commonTest(propz, sports, expectedAttributes)
+    }
+
+    @Test
+    void testWithSizeLimit() {
+        runner.setProperty(RecordStats.LIMIT, "3")
+        def sports = [ "Soccer", "Soccer", "Soccer", "Football", "Football",
+               "Basketball", "Baseball", "Baseball", "Baseball", "Baseball",
+                "Skiing", "Skiing", "Skiing", "Snowboarding"
+        ]
+        def expectedAttributes = [
+            "sport.Skiing": "3",
+            "sport.Soccer": "3",
+            "sport.Baseball": "4",
+            "sport": String.valueOf(sports.size()),
+            "record_count": String.valueOf(sports.size())
+        ]
+
+        def propz = [
+            "sport": "/person/sport"
         ]
 
         commonTest(propz, sports, expectedAttributes)
