@@ -266,7 +266,7 @@ public class AccessResource extends ApplicationResource {
             }
 
             // redirect to the name page
-            httpServletResponse.sendRedirect("../../../nifi");
+            httpServletResponse.sendRedirect(getNiFiUri());
         } else {
             // remove the oidc request cookie
             removeOidcRequestCookie(httpServletResponse);
@@ -369,7 +369,7 @@ public class AccessResource extends ApplicationResource {
             return;
         }
 
-        httpServletResponse.sendRedirect("../../../nifi");
+        httpServletResponse.sendRedirect(getNiFiUri());
     }
 
     /**
@@ -738,6 +738,12 @@ public class AccessResource extends ApplicationResource {
 
     private String getOidcCallback() {
         return generateResourceUri("access", "oidc", "callback");
+    }
+
+    private String getNiFiUri() {
+        final String nifiApiUrl = generateResourceUri();
+        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl,"/nifi-api");
+        return baseUrl + "/nifi";
     }
 
     private void removeOidcRequestCookie(final HttpServletResponse httpServletResponse) {
