@@ -23,7 +23,6 @@
     <h2>General</h2>
     <p>This lookup service has the following required keys:</p>
     <ul>
-        <li>endpoint</li>
         <li>mime.type</li>
         <li>request.method; valid values:
             <ul>
@@ -43,8 +42,8 @@
     <p>Headers are supported using dynamic properties. Just add a dynamic property and the name will be the header name and the value will be the value for the header. Expression language
     powered by input from the variable registry is supported.</p>
     <h2>Dynamic URLs</h2>
-    <p>The <em>endpoint</em> lookup key can be dynamically configured with Expression Language if the optional key <em>endpoint.template</em> is added to the
-    list of lookup keys. Any non-empty value for that key will work, including hard-coded values.</p>
+    <p>The URL property supports expression language in a non-standard way: through the lookup key/value pairs configured on the processor. The configuration specified by the user will be passed
+    through to the expression language engine for evaluation. Note: flowfile attributes and variable registry settings will be disregarded here for this property.</p>
     <p>Ex. URL: <em>http://example.com/service/${user.name}/friend/${friend.id}</em>, combined with example record paths:</p>
     <ul>
         <li>user.name => "/example/username"</li>
