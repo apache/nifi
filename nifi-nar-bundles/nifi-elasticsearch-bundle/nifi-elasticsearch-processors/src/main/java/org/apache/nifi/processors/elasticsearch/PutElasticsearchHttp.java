@@ -142,6 +142,8 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
+    private static final ObjectMapper mapper = new ObjectMapper();
+
     static {
         final Set<Relationship> _rels = new HashSet<>();
         _rels.add(REL_SUCCESS);
@@ -228,7 +230,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         final StringBuilder sb = new StringBuilder();
         final String baseUrl = context.getProperty(ES_URL).evaluateAttributeExpressions().getValue().trim();
         if (StringUtils.isEmpty(baseUrl)) {
-            throw new ProcessException("Elasticsearch URL is not valid: " + baseUrl);
+            throw new ProcessException("Elasticsearch URL is empty or null, this indicates an invalid Expression (missing variables, e.g.)");
         }
         HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder().addPathSegment("_bulk");
 
@@ -295,7 +297,6 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
             // Ensure the JSON body is well-formed
             try {
-                final ObjectMapper mapper = new ObjectMapper();
                 mapper.readTree(jsonString);
             } catch (IOException e) {
                 logger.error("Flow file content is not valid JSON, penalizing and transferring to failure.",
