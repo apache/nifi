@@ -205,7 +205,7 @@ public class PutElasticsearchHttpRecordIT {
     }
 
     @Test
-    public void testBadIndexName() throws Exception {
+    public void testIllegalIndexName() throws Exception {
         // Undo some stuff from setup()
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "people\"test");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "person");
@@ -225,6 +225,29 @@ public class PutElasticsearchHttpRecordIT {
         runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
         runner.assertTransferCount(PutElasticsearchHttpRecord.REL_RETRY, 0);
         runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testIndexNameWithJsonChar() throws Exception {
+        // Undo some stuff from setup()
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "people}test");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "person");
+        recordReader.addRecord(1, new MapRecord(personSchema, new HashMap<String,Object>() {{
+            put("name", "John Doe");
+            put("age", 48);
+            put("sport", null);
+        }}));
+
+        List<Map<String, String>> attrs = new ArrayList<>();
+        Map<String, String> attr = new HashMap<>();
+        attr.put("doc_id", "1");
+        attrs.add(attr);
+
+        runner.enqueue("");
+        runner.run(1, true, true);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
     }
 
     @Test
