@@ -28,14 +28,13 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,31 +82,13 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         return result;
     }
 
-    public static final Validator AGG_VALIDATOR = (subject, value, context) -> {
-        final ValidationResult.Builder builder = new ValidationResult.Builder();
-        builder.subject(subject).input(value);
-
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-            return builder.valid(true).explanation("Contains Expression Language").build();
-        }
-
-        String reason = null;
-        try {
-            buildAggregationQuery(value);
-        } catch (final RuntimeException | IOException e) {
-            reason = e.getLocalizedMessage();
-        }
-
-        return builder.explanation(reason).valid(reason == null).build();
-    };
-
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("mongo-agg-query")
             .displayName("Query")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .description("The aggregation query to be executed.")
             .required(true)
-            .addValidator(AGG_VALIDATOR)
+            .addValidator(StandardValidators.JSON_VALIDATOR)
             .build();
 
     static {
