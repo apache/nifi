@@ -31,15 +31,16 @@ import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
@@ -82,6 +83,16 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
             "as the header name and the value as the header value.")
 })
 public class RestLookupService extends AbstractControllerService implements LookupService<Record> {
+    static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
+        .name("rest-lookup-url")
+        .displayName("URL")
+        .description("The URL for the REST endpoint. Expression language is evaluated against the lookup key/value pairs, " +
+                "not flowfile attributes or variable registry.")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .required(true)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .build();
+
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("rest-lookup-record-reader")
         .displayName("Record Reader")
@@ -149,8 +160,6 @@ public class RestLookupService extends AbstractControllerService implements Look
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
-    static final String ENDPOINT_KEY = "endpoint";
-    static final String ENDPOINT_TEMPLATE_KEY = "endpoint.template";
     static final String MIME_TYPE_KEY = "mime.type";
     static final String BODY_KEY = "request.body";
     static final String METHOD_KEY = "request.method";
@@ -160,6 +169,7 @@ public class RestLookupService extends AbstractControllerService implements Look
 
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+            URL,
             RECORD_READER,
             RECORD_PATH,
             RECORD_PATH_PROPERTY_NAME,
@@ -170,7 +180,6 @@ public class RestLookupService extends AbstractControllerService implements Look
             PROP_DIGEST_AUTH
         ));
         Set<String> _keys = new HashSet<>();
-        _keys.add(ENDPOINT_KEY);
         _keys.add(MIME_TYPE_KEY);
         _keys.add(METHOD_KEY);
         KEYS = Collections.unmodifiableSet(_keys);
@@ -185,6 +194,7 @@ public class RestLookupService extends AbstractControllerService implements Look
     private RecordPath recordPath;
     private OkHttpClient client;
     private Map<String, String> headers;
+    private volatile PreparedQuery compiledQuery;
     private volatile String recordPathName;
     private volatile String basicUser;
     private volatile String basicPass;
@@ -222,6 +232,13 @@ public class RestLookupService extends AbstractControllerService implements Look
             : null;
 
         getHeaders(context);
+
+        compiledQuery = Query.prepare(context.getProperty(URL).getValue());
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        this.compiledQuery = null;
     }
 
     private void getHeaders(ConfigurationContext context) {
@@ -281,17 +298,12 @@ public class RestLookupService extends AbstractControllerService implements Look
     }
 
     protected String determineEndpoint(Map<String, Object> coordinates) {
-        if (coordinates.containsKey(ENDPOINT_KEY) && coordinates.containsKey(ENDPOINT_TEMPLATE_KEY)) {
-            Map<String, String> converted = coordinates.entrySet().stream()
-                .collect(Collectors.toMap(
-                    e -> e.getKey(),
-                    e -> e.getValue().toString()
-                ));
-            final PreparedQuery query = Query.prepare((String)coordinates.get(ENDPOINT_KEY));
-            return query.evaluateExpressions(converted, null);
-        } else {
-            return (String)coordinates.get(ENDPOINT_KEY);
-        }
+        Map<String, String> converted = coordinates.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> e.getKey(),
+                e -> e.getValue().toString()
+            ));
+        return compiledQuery.evaluateExpressions(converted, null);
     }
 
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {

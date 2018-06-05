@@ -90,9 +90,11 @@ class RestLookupServiceIT {
         server.addHandler(new BasicAuth())
         try {
             server.startServer()
+
+            setEndpoint(server.url, "/simple")
+
             def coordinates = [
                 "schema.name": "simple",
-                "endpoint": server.url + "/simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
@@ -130,9 +132,11 @@ class RestLookupServiceIT {
         server.addHandler(handler)
         try {
             server.startServer()
+
+            setEndpoint(server.url, "/simple")
+
             def coordinates = [
                 "schema.name": "simple",
-                "endpoint": server.url + "/simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
@@ -155,9 +159,11 @@ class RestLookupServiceIT {
         server.addHandler(handler)
         try {
             server.startServer()
+
+            setEndpoint(server.url, "/simple")
+
             def coordinates = [
                 "schema.name": "simple",
-                "endpoint": server.url + "/simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
@@ -180,9 +186,11 @@ class RestLookupServiceIT {
         server.addHandler(handler)
         try {
             server.startServer()
+
+            setEndpoint(server.url, "/simple_array")
+
             def coordinates = [
                 "schema.name": "simple",
-                "endpoint": server.url + "/simple_array",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
@@ -211,9 +219,10 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
+            setEndpoint(server.url, "/simple")
+
             def coordinates = [
                 "schema.name": "simple",
-                "endpoint": server.url + "/simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
@@ -240,9 +249,11 @@ class RestLookupServiceIT {
         server.addHandler(handler)
         try {
             server.startServer()
+
+            setEndpoint(server.url, "/complex")
+
             def coordinates = [
                 "schema.name": "complex",
-                "endpoint": server.url + "/complex",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
@@ -270,10 +281,11 @@ class RestLookupServiceIT {
             runner.enableControllerService(lookupService)
             server.startServer()
 
+            setEndpoint(server.url, "/simple")
+
             def validation = { String verb, boolean addBody ->
                 def coordinates = [
                     "schema.name"   : "simple",
-                    "endpoint"      : server.url + "/simple",
                     "mime.type"     : "application/json",
                     "request.method": verb
                 ]
@@ -311,9 +323,11 @@ class RestLookupServiceIT {
         server.addHandler(handler)
         try {
             server.startServer()
+
+            setEndpoint(server.url, '/simple/${user.name}/friends/${friend.id}')
+
             def coordinates = [
                 "schema.name": "simple",
-                "endpoint": server.url + '/simple/${user.name}/friends/${friend.id}',
                 "mime.type": "application/json",
                 "request.method": "get",
                 "user.name": "john.smith",
@@ -329,5 +343,11 @@ class RestLookupServiceIT {
         } finally {
             server.shutdownServer()
         }
+    }
+
+    void setEndpoint(String serverUrl, String endpoint) {
+        runner.disableControllerService(lookupService)
+        runner.setProperty(lookupService, RestLookupService.URL, serverUrl + endpoint)
+        runner.enableControllerService(lookupService)
     }
 }

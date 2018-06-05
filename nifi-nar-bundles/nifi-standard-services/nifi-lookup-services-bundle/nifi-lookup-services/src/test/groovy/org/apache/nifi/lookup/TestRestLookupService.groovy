@@ -49,6 +49,7 @@ class TestRestLookupService {
         runner.addControllerService("recordReader", recordReader)
         runner.setProperty(lookupService, RestLookupService.RECORD_READER, "recordReader")
         runner.setProperty("Lookup Service", "lookupService")
+        runner.setProperty(lookupService, RestLookupService.URL, "http://localhost:8080")
         runner.enableControllerService(lookupService)
         runner.enableControllerService(recordReader)
         runner.assertValid()
@@ -65,7 +66,7 @@ class TestRestLookupService {
         recordReader.addRecord("Sally Doe", 47, "Curling")
 
         lookupService.response = buildResponse(toJson([ simpleTest: true]), JSON_TYPE)
-        def result = lookupService.lookup(getCoordinates("http://localhost:8080", JSON_TYPE, "get"))
+        def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
         Assert.assertTrue(result.isPresent())
         def record = result.get()
         Assert.assertEquals("John Doe", record.getAsString("name"))
@@ -97,7 +98,7 @@ class TestRestLookupService {
         }}))
 
         lookupService.response = buildResponse(toJson([ simpleTest: true]), JSON_TYPE)
-        def result = lookupService.lookup(getCoordinates("http://localhost:8080", JSON_TYPE, "get"))
+        def result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
         Assert.assertTrue(result.isPresent())
         def record = result.get()
 
@@ -115,16 +116,15 @@ class TestRestLookupService {
         runner.enableControllerService(lookupService)
         runner.assertValid()
 
-        result = lookupService.lookup(getCoordinates("http://localhost:8080", JSON_TYPE, "get"))
+        result = lookupService.lookup(getCoordinates(JSON_TYPE, "get"))
         Assert.assertTrue(result.isPresent())
         record = result.get()
         Assert.assertNotNull(record.getAsString("sport"))
         Assert.assertEquals("Soccer", record.getAsString("sport"))
     }
 
-    private Map<String, Object> getCoordinates(String endpoint, String mimeType, String method) {
+    private Map<String, Object> getCoordinates(String mimeType, String method) {
         def retVal = [:]
-        retVal[RestLookupService.ENDPOINT_KEY] = endpoint
         retVal[RestLookupService.MIME_TYPE_KEY] = mimeType
         retVal[RestLookupService.METHOD_KEY] = method
 
