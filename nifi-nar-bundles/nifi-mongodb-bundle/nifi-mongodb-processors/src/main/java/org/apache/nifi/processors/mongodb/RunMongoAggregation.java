@@ -34,6 +34,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -88,7 +89,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .description("The aggregation query to be executed.")
             .required(true)
-            .addValidator(StandardValidators.JSON_VALIDATOR)
+            .addValidator(new JsonValidator())
             .build();
 
     static {

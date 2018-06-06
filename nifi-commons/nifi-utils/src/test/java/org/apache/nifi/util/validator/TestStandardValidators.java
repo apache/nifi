@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.util.validator;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class TestStandardValidators {
 
@@ -287,43 +287,5 @@ public class TestStandardValidators {
 
         vr = val.validate("foo", "2016-01-01T01:01:01.000Z", vc);
         assertTrue(vr.isValid());
-    }
-
-    @Test
-    public void testJSONObjectValidator() {
-        final Validator validator = StandardValidators.JSON_VALIDATOR;
-        final ValidationContext context = mock(ValidationContext.class);
-        final String DUMMY_JSON_PROPERTY = "JSONProperty";
-        ValidationResult validationResult;
-
-        // Flat JSON
-        validationResult = validator.validate(DUMMY_JSON_PROPERTY,"{\"Name\" : \"Crockford, Douglas\"}", context);
-        assertTrue(validationResult.isValid());
-
-        // Nested JSON
-        validationResult = validator.validate(DUMMY_JSON_PROPERTY, "{ \"Name\" : \"Crockford, Douglas\", \"ContactInfo\": { \"Mobile\" : 0987654321, \"Email\" : \"mrx@xyz.zyx\" } }", context);
-        assertTrue(validationResult.isValid());
-
-        // JSON object with JSON array
-        validationResult = validator.validate(DUMMY_JSON_PROPERTY, "{ \"name\":\"Smith, John\", \"age\":30, \"cars\":[ \"Ford\", \"BMW\", \"Fiat\" ] } ", context);
-        assertTrue(validationResult.isValid());
-
-        // JSON array
-        validationResult = validator.validate(DUMMY_JSON_PROPERTY, "[\"one\", \"two\", \"three\"]", context);
-        assertTrue(validationResult.isValid());
-
-        // JSON Primitives
-        validationResult = validator.validate(DUMMY_JSON_PROPERTY, "bncjbhjfjhj", context);
-        assertTrue(validationResult.isValid());
-
-        // Empty JSON
-        validationResult = validator.validate(DUMMY_JSON_PROPERTY, "{}", context);
-        assertTrue(validationResult.isValid());
-
-        // Invalid JSON
-        validationResult = validator.validate(DUMMY_JSON_PROPERTY, "\"Name\" : \"Smith, John\"", context);
-        assertFalse(validationResult.isValid());
-        assertTrue(validationResult.getExplanation().contains("not a valid JSON representation"));
-
     }
 }
