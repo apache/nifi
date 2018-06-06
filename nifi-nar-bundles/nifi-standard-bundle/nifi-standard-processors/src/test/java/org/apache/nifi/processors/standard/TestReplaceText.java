@@ -79,9 +79,22 @@ public class TestReplaceText {
     }
 
     @Test
+    public void testEscapedEnough$InReplacementCanReturnEscaped$() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a\\\\\\$b");
+
+        runner.enqueue("a$a,b,c,d");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("a\\$b".getBytes("UTF-8"));
+    }
+
+    @Test
     public void testWithEscaped$InReplacement() throws IOException {
         final TestRunner runner = getRunner();
-        //runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^.*$)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a\\$b");
 
