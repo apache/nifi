@@ -26,10 +26,9 @@ import java.util.List;
 import java.util.Map;
 
 public class JsonValidator implements Validator {
-    private ObjectMapper mapper = new ObjectMapper();
-
     @Override
     public ValidationResult validate(String subject, String input, ValidationContext context) {
+        ObjectMapper mapper = new ObjectMapper();
         if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
             return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
         }
