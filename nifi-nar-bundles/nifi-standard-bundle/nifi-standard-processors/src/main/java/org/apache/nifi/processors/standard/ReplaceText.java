@@ -304,12 +304,8 @@ public class ReplaceText extends AbstractProcessor {
 
     // If we find a back reference that is not valid, then we will treat it as a literal string. For example, if we have 3 capturing
     // groups and the Replacement Value has the value is "I owe $8 to him", then we want to treat the $8 as a literal "$8", rather
-    // than attempting to use it as a back reference.
+    // than attempting to use it as a back reference.  We do this even if there are no capture groups.
     private static String escapeLiteralBackReferences(final String unescaped, final int numCapturingGroups) {
-        if (numCapturingGroups == 0) {
-            return unescaped;
-        }
-
         String value = unescaped;
         final Matcher backRefMatcher = unescapedBackReferencePattern.matcher(value); // consider unescaped back references
         while (backRefMatcher.find()) {

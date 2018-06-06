@@ -1116,11 +1116,12 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
-        exception.expect(AssertionError.class);
-        exception.expectMessage("java.lang.IndexOutOfBoundsException: No group 1");
-
         runner.enqueue("testing\n123".getBytes());
         runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("");
     }
 
     @Test
