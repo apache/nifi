@@ -43,6 +43,9 @@ public class ORCHDFSRecordWriter implements HDFSRecordWriter {
     private final Writer orcWriter;
     private final String hiveTableName;
     private final boolean hiveFieldNames;
+    private final List<Schema.Field> recordFields;
+    private final int numRecordFields;
+    private Object[] workingRow;
 
     public ORCHDFSRecordWriter(final Writer orcWriter, final Schema avroSchema, final String hiveTableName, final boolean hiveFieldNames) {
         this.avroSchema = avroSchema;
@@ -50,26 +53,28 @@ public class ORCHDFSRecordWriter implements HDFSRecordWriter {
         this.hiveFieldNames = hiveFieldNames;
         this.orcSchema = NiFiOrcUtils.getOrcField(avroSchema, this.hiveFieldNames);
         this.hiveTableName = hiveTableName;
+        this.recordFields = avroSchema != null ? avroSchema.getFields() : null;
+        this.numRecordFields = recordFields != null ? recordFields.size() : -1;
+        // Reuse row object
+        this.workingRow = numRecordFields > -1 ? new Object[numRecordFields] : null;
     }
 
     @Override
     public void write(final Record record) throws IOException {
-        List<Schema.Field> fields = avroSchema.getFields();
-        if (fields != null) {
-            Object[] row = new Object[fields.size()];
-            for (int i = 0; i < fields.size(); i++) {
-                final Schema.Field field = fields.get(i);
+        if (recordFields != null) {
+            for (int i = 0; i < numRecordFields; i++) {
+                final Schema.Field field = recordFields.get(i);
                 final Schema fieldSchema = field.schema();
                 final String fieldName = field.name();
                 Object o = record.getValue(fieldName);
                 try {
-                    row[i] = NiFiOrcUtils.convertToORCObject(NiFiOrcUtils.getOrcField(fieldSchema, hiveFieldNames), o, hiveFieldNames);
+                    workingRow[i] = NiFiOrcUtils.convertToORCObject(NiFiOrcUtils.getOrcField(fieldSchema, hiveFieldNames), o, hiveFieldNames);
                 } catch (ArrayIndexOutOfBoundsException aioobe) {
                     final String errorMsg = "Index out of bounds for column " + i + ", type " + fieldName + ", and object " + o.toString();
                     throw new IOException(errorMsg, aioobe);
                 }
             }
-            orcWriter.addRow(NiFiOrcUtils.createOrcStruct(orcSchema, row));
+            orcWriter.addRow(NiFiOrcUtils.createOrcStruct(orcSchema, workingRow));
         }
     }
 

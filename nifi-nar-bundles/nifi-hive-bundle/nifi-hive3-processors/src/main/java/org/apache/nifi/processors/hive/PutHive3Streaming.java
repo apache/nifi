@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hive.common.util.ShutdownHookManager;
 import org.apache.hive.streaming.ConnectionError;
 import org.apache.hive.streaming.HiveStreamingConnection;
 import org.apache.hive.streaming.InvalidTable;
@@ -383,7 +385,6 @@ public class PutHive3Streaming extends AbstractProcessor {
         StreamingConnection hiveStreamingConnection = null;
 
         try (final InputStream rawIn = session.read(flowFile)) {
-            long processedRecords = 0L;
             final RecordReader reader;
 
             try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
@@ -397,6 +398,9 @@ public class PutHive3Streaming extends AbstractProcessor {
                 }
 
                 hiveStreamingConnection = makeStreamingConnection(options, reader);
+                // Add shutdown handler with higher priority than FileSystem shutdown hook so that streaming connection gets closed first before
+                // filesystem close (to avoid ClosedChannelException)
+                ShutdownHookManager.addShutdownHook(hiveStreamingConnection::close,  FileSystem.SHUTDOWN_HOOK_PRIORITY + 1);
 
                 // Write records to Hive streaming, then commit and close
                 hiveStreamingConnection.beginTransaction();

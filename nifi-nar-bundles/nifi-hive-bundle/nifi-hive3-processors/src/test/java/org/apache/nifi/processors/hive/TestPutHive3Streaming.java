@@ -74,7 +74,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -181,11 +180,11 @@ public class TestPutHive3Streaming {
                                   final BiFunction<Integer, MockRecordParser, Void> recordGenerator) throws IOException, InitializationException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/array_of_records.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
-        processor.setFields(Arrays.asList(new FieldSchema("outerRecord",
+        processor.setFields(Arrays.asList(new FieldSchema("records",
                 serdeConstants.LIST_TYPE_NAME + "<"
                         + serdeConstants.MAP_TYPE_NAME + "<"
                         + serdeConstants.STRING_TYPE_NAME + ","
-                        +  serdeConstants.INT_TYPE_NAME + ">>", "")));
+                        +  serdeConstants.STRING_TYPE_NAME + ">>", "")));
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
         MockRecordParser readerFactory = new MockRecordParser();
@@ -195,16 +194,16 @@ public class TestPutHive3Streaming {
         }
 
         if (recordGenerator == null) {
-            List<Map<String, Object>> mapList = new ArrayList<>(numUsers);
+            Object[] mapArray = new Object[numUsers];
             for (int i = 0; i < numUsers; i++) {
                 final int x = i;
                 Map<String, Object> map = new HashMap<String, Object>() {{
                     put("name", "name" + x);
                     put("age", x * 5);
                 }};
-                mapList.add(map);
+                mapArray[i] = map;
             }
-            readerFactory.addRecord(mapList);
+            readerFactory.addRecord((Object)mapArray);
         } else {
             recordGenerator.apply(numUsers, readerFactory);
         }
