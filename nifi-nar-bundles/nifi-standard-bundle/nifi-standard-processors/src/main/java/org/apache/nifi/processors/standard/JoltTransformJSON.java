@@ -209,13 +209,15 @@ public class JoltTransformJSON extends AbstractProcessor {
                 }
 
                 final String specValue =  validationContext.getProperty(JOLT_SPEC).getValue();
-                final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue,true);
 
-                if (validationContext.isExpressionLanguagePresent(specValue) && invalidExpressionMsg != null) {
-                    final String customMessage = "The expression language used withing this specification is invalid";
-                    results.add(new ValidationResult.Builder().valid(false)
-                            .explanation(customMessage)
-                            .build());
+                if (validationContext.isExpressionLanguagePresent(specValue)) {
+                    final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue,true);
+                    if (!StringUtils.isEmpty(invalidExpressionMsg)) {
+                        results.add(new ValidationResult.Builder().valid(false)
+                                .subject(JOLT_SPEC.getDisplayName())
+                                .explanation("Invalid Expression Language: " + invalidExpressionMsg)
+                                .build());
+                    }
                 } else {
                     //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
                     Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
