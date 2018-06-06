@@ -585,6 +585,11 @@
                 }
             }
         });
+        variablesGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+            setTimeout(function() {
+                variablesGrid.resizeCanvas();
+            }, 50);
+        });
 
         // wire up the dataview to the grid
         variableData.onRowCountChanged.subscribe(function (e, args) {

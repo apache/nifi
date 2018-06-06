@@ -1492,6 +1492,14 @@
             }
         });
 
+        if (options.readOnly !== true) {
+            propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+                setTimeout(function() {
+                    propertyGrid.resizeCanvas();
+                }, 50);
+            });
+        }
+
         // wire up the dataview to the grid
         propertyData.onRowCountChanged.subscribe(function (e, args) {
             propertyGrid.updateRowCount();
