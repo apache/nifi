@@ -42,7 +42,7 @@ public class EventSumValue {
     private long processingNanos = 0;
     private long aggregateLineageMillis = 0;
     private int invocations = 0;
-    private final Map<String, Long> counters = new HashMap<>();
+    private Map<String, Long> counters;
 
     private final long minuteTimestamp;
     private final long millisecondTimestamp;
@@ -76,6 +76,9 @@ public class EventSumValue {
                 final String counterName = entry.getKey();
                 final Long counterValue = entry.getValue();
 
+                if (counters == null) {
+                    counters = new HashMap<>();
+                }
                 counters.compute(counterName, (key, value) -> value == null ? counterValue : value + counterValue);
             }
         }
@@ -98,34 +101,40 @@ public class EventSumValue {
         event.setFlowFilesSent(flowFilesSent);
         event.setInvocations(invocations);
         event.setProcessingNanos(processingNanos);
-        event.setCounters(Collections.unmodifiableMap(this.counters));
+        event.setCounters(this.counters == null ? Collections.emptyMap() : Collections.unmodifiableMap(this.counters));
         return event;
     }
 
     public synchronized void add(final EventSumValue other) {
-        this.aggregateLineageMillis += other.aggregateLineageMillis;
-        this.bytesRead += other.bytesRead;
-        this.bytesReceived += other.bytesReceived;
-        this.bytesSent += other.bytesSent;
-        this.bytesWritten += other.bytesWritten;
-        this.contentSizeIn += other.contentSizeIn;
-        this.contentSizeOut += other.contentSizeOut;
-        this.contentSizeRemoved += other.contentSizeRemoved;
-        this.flowFilesIn += other.flowFilesIn;
-        this.flowFilesOut += other.flowFilesOut;
-        this.flowFilesReceived += other.flowFilesReceived;
-        this.flowFilesRemoved += other.flowFilesRemoved;
-        this.flowFilesSent += other.flowFilesSent;
-        this.invocations += other.invocations;
-        this.processingNanos += other.processingNanos;
+        synchronized (other) {
+            this.aggregateLineageMillis += other.aggregateLineageMillis;
+            this.bytesRead += other.bytesRead;
+            this.bytesReceived += other.bytesReceived;
+            this.bytesSent += other.bytesSent;
+            this.bytesWritten += other.bytesWritten;
+            this.contentSizeIn += other.contentSizeIn;
+            this.contentSizeOut += other.contentSizeOut;
+            this.contentSizeRemoved += other.contentSizeRemoved;
+            this.flowFilesIn += other.flowFilesIn;
+            this.flowFilesOut += other.flowFilesOut;
+            this.flowFilesReceived += other.flowFilesReceived;
+            this.flowFilesRemoved += other.flowFilesRemoved;
+            this.flowFilesSent += other.flowFilesSent;
+            this.invocations += other.invocations;
+            this.processingNanos += other.processingNanos;
 
-        final Map<String, Long> eventCounters = other.counters;
-        if (eventCounters != null) {
-            for (final Map.Entry<String, Long> entry : eventCounters.entrySet()) {
-                final String counterName = entry.getKey();
-                final Long counterValue = entry.getValue();
+            final Map<String, Long> eventCounters = other.counters;
+            if (eventCounters != null) {
+                if (counters == null) {
+                    counters = new HashMap<>();
+                }
 
-                counters.compute(counterName, (key, value) -> value == null ? counterValue : value + counterValue);
+                for (final Map.Entry<String, Long> entry : eventCounters.entrySet()) {
+                    final String counterName = entry.getKey();
+                    final Long counterValue = entry.getValue();
+
+                    counters.compute(counterName, (key, value) -> value == null ? counterValue : value + counterValue);
+                }
             }
         }
     }
