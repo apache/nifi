@@ -1,0 +1,21 @@
+nifi-marklogic-nar
+Copyright 2018 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) marklogic-client-api (MarkLogic Java Client API)
+    The following NOTICE information applies:
+      marklogic-client-api
+      Copyright 2018 MarkLogic Corporation.
+
+  (ASLv2) ml-javaclient-util (ML Javaclient Utilities)
+      The following NOTICE information applies:
+        ml-javaclient-util
+        Copyright 2018 MarkLogic Corporation.

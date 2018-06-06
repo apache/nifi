@@ -44,11 +44,6 @@
             <version>${marklogicclientapi.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.marklogic</groupId>
-            <artifactId>marklogic-data-movement-components</artifactId>
-            <version>${marklogicdatamovementcomponents.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-marklogic-services-api</artifactId>
             <version>1.7.0-SNAPSHOT</version>

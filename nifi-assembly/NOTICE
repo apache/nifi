@@ -1732,17 +1732,12 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) marklogic-client-api (MarkLogic Java Client API)
     The following NOTICE information applies:
       marklogic-client-api
-      Copyright © 2018 MarkLogic Corporation.
+      Copyright 2018 MarkLogic Corporation.
 
   (ASLv2) ml-javaclient-util (ML Javaclient Utilities)
       The following NOTICE information applies:
         ml-javaclient-util
-        Copyright © 2018 MarkLogic Corporation.
-
-  (ASLv2) marklogic-data-movement-components
-      The following NOTICE information applies:
-        marklogic-data-movement-components
-        Copyright © 2018 MarkLogic Corporation.
+        Copyright 2018 MarkLogic Corporation.
 
 ************************
 Common Development and Distribution License 1.1

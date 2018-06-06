@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-com.marklogic.nifi.controller.DefaultMarkLogicDatabaseClientService
+org.apache.nifi.marklogic.controller.DefaultMarkLogicDatabaseClientService
