@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -1167,10 +1168,10 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
-        exception.expect(AssertionError.class);
-        exception.expectMessage("java.lang.IndexOutOfBoundsException: No group 1");
         runner.enqueue("testing\n123".getBytes());
         runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
     }
 
     @Test
@@ -1228,6 +1229,30 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 3);
         out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(2);
         out.assertContentEquals("WO$1R$2D");
+    }
+
+    /*
+     * A repeated alternation regex such as (A|B)* can lead to StackOverflowError
+     * on large input strings.
+     */
+    @Test
+    public void testForStackOverflow() throws Exception {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "New text");
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "100 MB");
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^(A|B)*$)");
+        runner.assertValid();
+
+        char[] data = new char[1_000_000];
+        Arrays.fill(data, 'A');
+        runner.enqueue(new String(data));
+
+        runner.run();
+
+        // we want the large file to fail, rather than rollback and yield
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
     }
 
     private String translateNewLines(final File file) throws IOException {
