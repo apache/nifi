@@ -290,7 +290,7 @@ public class ReplaceText extends AbstractProcessor {
 
         if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
             if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
-                session.transfer(flowFile, REL_FAILURE);
+                session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
             }
         }
@@ -308,7 +308,7 @@ public class ReplaceText extends AbstractProcessor {
         } catch (Throwable t) {
             // log the type of Throwable but not the stack trace (in case of a long StackOverflowError trace)
             logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, t.toString()});
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
 
