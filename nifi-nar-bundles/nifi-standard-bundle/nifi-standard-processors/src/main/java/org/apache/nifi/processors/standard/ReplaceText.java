@@ -294,7 +294,17 @@ public class ReplaceText extends AbstractProcessor {
 
         final StopWatch stopWatch = new StopWatch(true);
 
-        flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
+        try {
+
+            flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
+
+        } catch (StackOverflowError e) {
+            // Some regular expressions can produce many matches on large input data size using recursive code
+            // do not log the StackOverflowError stack trace
+            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
 
         logger.info("Transferred {} to 'success'", new Object[] {flowFile});
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
