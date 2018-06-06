@@ -534,7 +534,6 @@ public class JettyServer implements NiFiServer {
 
 
             // The below ServletContext and Servlet API usage was derived from https://stackoverflow.com/a/34277268.
-            // Thanks go to Stack Overflow user Joakim Erdfelt.
 
             // We create a servlet context handler to encapsulate the static docs resources we want served.
             ServletContextHandler docsHandler = new ServletContextHandler();
