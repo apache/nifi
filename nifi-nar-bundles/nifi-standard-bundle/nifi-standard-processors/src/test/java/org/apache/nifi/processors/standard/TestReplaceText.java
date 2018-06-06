@@ -108,11 +108,24 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testWithELInReplacement() throws IOException {
+    public void testWithSingleQuotedELInReplacement() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "\"([a-z]+)\":\"(\\w+)\"");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"${'$1':toUpper()}\":\"$2\"");
-        //runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"new$1\":\"$2\"");
+        runner.enqueue("{\"name\":\"Smith\",\"middle\":\"nifi\",\"firstname\":\"John\"}");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"NAME\":\"Smith\",\"MIDDLE\":\"nifi\",\"FIRSTNAME\":\"John\"}");
+
+    }
+
+    @Test
+    public void testWithDoubleQuotedELInReplacement() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "\"([a-z]+)\":\"(\\w+)\"");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "\"${\"$1\":toUpper()}\":\"$2\"");
         runner.enqueue("{\"name\":\"Smith\",\"middle\":\"nifi\",\"firstname\":\"John\"}");
         runner.run();
 

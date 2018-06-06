@@ -80,7 +80,8 @@ import java.util.regex.Pattern;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class ReplaceText extends AbstractProcessor {
 
-    private static Pattern QUOTED_GROUP_REF_PATTERN = Pattern.compile("('\\$\\d+')");
+    private static Pattern QUOTED_GROUP_REF_PATTERN = Pattern.compile("\\$\\{\\s*?'\\$\\d+?'.+?\\}");
+    private static Pattern DOUBLE_QUOTED_GROUP_REF_PATTERN = Pattern.compile("\\$\\{\\s*?\"\\$\\d+?\".+?\\}");
     private static Pattern LITERAL_QUOTED_PATTERN = Pattern.compile("literal\\(('.*?')\\)",Pattern.DOTALL);
 
     // Constants
@@ -683,8 +684,11 @@ public class ReplaceText extends AbstractProcessor {
         }
 
         if (QUOTED_GROUP_REF_PATTERN.matcher(replacementFinal).find()) {
-            // we need to check if it is QUOTE$DQUOTE:  and put literal() in there
-            replacementFinal = replacementFinal.replaceAll("(\\'\\$\\d+\\')", "literal($1)");
+            replacementFinal = replacementFinal.replaceAll("(\\$\\{\\s*?)('\\$\\d+?')(.*\\})", "$1literal($2)$3");
+        }
+
+        if (DOUBLE_QUOTED_GROUP_REF_PATTERN.matcher(replacementFinal).find()) {
+            replacementFinal = replacementFinal.replaceAll("(\\$\\{\\s*?)(\"\\$\\d+?\")(.*\\})", "$1literal($2)$3");
         }
 
         return replacementFinal;
