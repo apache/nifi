@@ -667,9 +667,13 @@
                     // resize grids when appropriate
                     var gridElements = $('*[class*="slickgrid_"]');
                     for (var j = 0, len = gridElements.length; j < len; j++) {
-                        if ($(gridElements[j]).is(':visible')){
-                            setTimeout(function(gridElement){
-                                gridElement.data('gridInstance').resizeCanvas();
+                        if ($(gridElements[j]).is(':visible')) {
+                            setTimeout(function(gridElement) {
+                                var grid = gridElement.data('gridInstance');
+                                var editorLock = grid.getEditorLock();
+                                if (!editorLock.isActive()) {
+                                    grid.resizeCanvas();
+                                }
                             }, 50, $(gridElements[j]));
                         }
                     }

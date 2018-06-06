@@ -91,6 +91,10 @@
     text-align: center;
 }
 
+.slick-header.ui-state-default {
+    background-color: #728E9B;
+}
+
 .slick-header.ui-state-default, .slick-headerrow.ui-state-default {
     font-family: Roboto;
     font-weight: 500;
