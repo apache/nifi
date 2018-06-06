@@ -364,8 +364,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                         .size(file.length())
                         .lastModifiedTime(file.lastModified())
                         .build();
-                    if ((minTimestamp == null || fileInfo.getLastModifiedTime() >= minTimestamp) &&
-                            filter.accept(file, fileInfo)) {
+                    if ((minTimestamp == null || fileInfo.getLastModifiedTime() >= minTimestamp)
+                        && filter.accept(file, fileInfo)) {
                         listing.add(fileInfo);
                     }
                 }
