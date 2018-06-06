@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processor.util;
 
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.util.FormatUtils;
+
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -29,18 +38,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSyntaxException;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.util.FormatUtils;
 
 public class StandardValidators {
 
@@ -482,25 +479,6 @@ public class StandardValidators {
     };
 
     public static final Validator FILE_EXISTS_VALIDATOR = new FileExistsValidator(true);
-
-    /**
-     * {@link Validator} that ensures the value is a valid JSON
-     */
-    public static final Validator JSON_VALIDATOR = (subject, input, context) -> {
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-        }
-
-        try {
-            new Gson().fromJson(input, JsonElement.class);
-        } catch (JsonSyntaxException e) {
-            return new ValidationResult.Builder().subject(subject).input(input).valid(false)
-                    .explanation(subject + " is not a valid JSON representation due to " + e.getLocalizedMessage())
-                    .build();
-        }
-
-        return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-    };
 
     //
     //

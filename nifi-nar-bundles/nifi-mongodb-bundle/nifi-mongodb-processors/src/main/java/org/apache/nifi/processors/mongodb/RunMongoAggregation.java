@@ -19,6 +19,7 @@
 
 package org.apache.nifi.processors.mongodb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
@@ -34,10 +35,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -88,7 +88,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .description("The aggregation query to be executed.")
             .required(true)
-            .addValidator(StandardValidators.JSON_VALIDATOR)
+            .addValidator(JsonValidator.INSTANCE)
             .build();
 
     static {
