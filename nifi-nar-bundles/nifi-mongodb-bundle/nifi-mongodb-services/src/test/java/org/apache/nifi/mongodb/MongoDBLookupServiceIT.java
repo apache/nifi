@@ -66,6 +66,8 @@ public class MongoDBLookupServiceIT {
         runner.addControllerService("registry", registry);
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "");
         runner.setProperty(service, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
+        runner.setProperty(service, service.getPropertyDescriptor(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName()),
+                SchemaAccessUtils.INFER_SCHEMA);
         runner.enableControllerService(registry);
         runner.enableControllerService(controllerService);
         runner.enableControllerService(service);
@@ -174,7 +176,7 @@ public class MongoDBLookupServiceIT {
         Record subRecord = record.getAsRecord("subrecordField", subSchema);
         Assert.assertNotNull(subRecord);
         Assert.assertEquals("test", subRecord.getValue("nestedString"));
-        Assert.assertEquals(new Long(1000), subRecord.getValue("nestedLong"));
+        Assert.assertEquals(new Integer(1000), subRecord.getValue("nestedLong"));
         Assert.assertEquals(list, record.getValue("arrayField"));
 
         Map<String, Object> clean = new HashMap<>();

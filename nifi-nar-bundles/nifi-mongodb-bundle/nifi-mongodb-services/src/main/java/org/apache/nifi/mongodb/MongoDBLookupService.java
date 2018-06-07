@@ -17,34 +17,42 @@
 
 package org.apache.nifi.mongodb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.serialization.SchemaRegistryService;
-import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.StringUtils;
 import org.bson.Document;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.apache.nifi.schema.access.SchemaAccessUtils.INFER_SCHEMA;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 
 @Tags({"mongo", "mongodb", "lookup", "record"})
 @CapabilityDescription(
@@ -54,7 +62,7 @@ import java.util.stream.Collectors;
     "The query is limited to the first result (findOne in the Mongo documentation). If no \"Lookup Value Field\" is specified " +
     "then the entire MongoDB result document minus the _id field will be returned as a record."
 )
-public class MongoDBLookupService extends SchemaRegistryService implements LookupService<Object> {
+public class MongoDBLookupService extends JsonInferenceSchemaRegistryService implements LookupService<Object> {
     public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
         .name("mongo-lookup-client-service")
         .displayName("Client Service")
@@ -102,10 +110,9 @@ public class MongoDBLookupService extends SchemaRegistryService implements Looku
             } else if (!StringUtils.isEmpty(lookupValueField)) {
                 return Optional.ofNullable(result.get(lookupValueField));
             } else {
-                RecordSchema schema = loadSchema(coordinates);
+                RecordSchema schema = loadSchema(coordinates, result);
 
-                RecordSchema toUse = schema != null ? schema : convertSchema(result);
-                return Optional.ofNullable(new MapRecord(toUse, result));
+                return Optional.ofNullable(new MapRecord(schema, result));
             }
         } catch (Exception ex) {
             getLogger().error("Error during lookup {}", new Object[]{ query.toJson() }, ex);
@@ -113,47 +120,19 @@ public class MongoDBLookupService extends SchemaRegistryService implements Looku
         }
     }
 
-    private RecordSchema loadSchema(Map<String, Object> coordinates) {
+    private RecordSchema loadSchema(Map<String, Object> coordinates, Document doc) {
         Map<String, String> variables = coordinates.entrySet().stream()
             .collect(Collectors.toMap(
                 e -> e.getKey(),
                 e -> e.getValue().toString()
             ));
+        ObjectMapper mapper = new ObjectMapper();
         try {
-            return getSchema(variables, null);
+            byte[] bytes = mapper.writeValueAsBytes(doc);
+            return getSchema(variables, new ByteArrayInputStream(bytes), null);
         } catch (Exception ex) {
             return null;
         }
-    }
-
-    private RecordSchema convertSchema(Map<String, Object> result) {
-        List<RecordField> fields = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : result.entrySet()) {
-
-            RecordField field;
-            if (entry.getValue() instanceof Integer) {
-                field = new RecordField(entry.getKey(), RecordFieldType.INT.getDataType());
-            } else if (entry.getValue() instanceof Long) {
-                field = new RecordField(entry.getKey(), RecordFieldType.LONG.getDataType());
-            } else if (entry.getValue() instanceof Boolean) {
-                field = new RecordField(entry.getKey(), RecordFieldType.BOOLEAN.getDataType());
-            } else if (entry.getValue() instanceof Double) {
-                field = new RecordField(entry.getKey(), RecordFieldType.DOUBLE.getDataType());
-            } else if (entry.getValue() instanceof Date) {
-                field = new RecordField(entry.getKey(), RecordFieldType.DATE.getDataType());
-            } else if (entry.getValue() instanceof List) {
-                field = new RecordField(entry.getKey(), RecordFieldType.ARRAY.getDataType());
-            } else if (entry.getValue() instanceof Map) {
-                RecordSchema nestedSchema = convertSchema((Map)entry.getValue());
-                RecordDataType rdt = new RecordDataType(nestedSchema);
-                field = new RecordField(entry.getKey(), rdt);
-            } else {
-                field = new RecordField(entry.getKey(), RecordFieldType.STRING.getDataType());
-            }
-            fields.add(field);
-        }
-
-        return new SimpleRecordSchema(fields);
     }
 
     private volatile Document projection;
@@ -187,8 +166,21 @@ public class MongoDBLookupService extends SchemaRegistryService implements Looku
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        AllowableValue[] strategies = new AllowableValue[] {
+            SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, INFER_SCHEMA
+        };
         List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.addAll(super.getSupportedPropertyDescriptors());
+        _temp.add(new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
+                .allowableValues(strategies)
+                .defaultValue(getDefaultSchemaAccessStrategy().getValue())
+                .build());
+
+        _temp.add(SCHEMA_REGISTRY);
+        _temp.add(SCHEMA_NAME);
+        _temp.add(SCHEMA_VERSION);
+        _temp.add(SCHEMA_BRANCH_NAME);
+        _temp.add(SCHEMA_TEXT);
         _temp.add(CONTROLLER_SERVICE);
         _temp.add(LOOKUP_VALUE_FIELD);
         _temp.add(PROJECTION);
