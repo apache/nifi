@@ -303,6 +303,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -314,6 +315,7 @@ import java.util.stream.Stream;
  */
 public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
+    private static final int VALIDATION_WAIT_MILLIS = 50;
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -660,13 +662,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<ProcessorDTO> snapshot = updateComponent(revision,
                 processorNode,
                 () -> processorDAO.updateProcessor(processorDTO),
-                proc -> dtoFactory.createProcessorDto(proc));
+                proc -> {
+                    awaitValidationCompletion(proc);
+                    return dtoFactory.createProcessorDto(proc);
+                });
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processorNode);
         final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processorNode.getIdentifier()));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processorNode.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createProcessorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, status, bulletinEntities);
+    }
+
+    private void awaitValidationCompletion(final ComponentNode component) {
+        component.getValidationStatus(VALIDATION_WAIT_MILLIS, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -2192,6 +2201,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 controllerService,
                 () -> controllerServiceDAO.updateControllerService(controllerServiceDTO),
                 cs -> {
+                    awaitValidationCompletion(cs);
                     final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(cs);
                     final ControllerServiceReference ref = controllerService.getReferences();
                     final ControllerServiceReferencingComponentsEntity referencingComponentsEntity =
@@ -2582,7 +2592,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<ReportingTaskDTO> snapshot = updateComponent(revision,
                 reportingTask,
                 () -> reportingTaskDAO.updateReportingTask(reportingTaskDTO),
-                rt -> dtoFactory.createReportingTaskDto(rt));
+                rt -> {
+                    awaitValidationCompletion(rt);
+                    return dtoFactory.createReportingTaskDto(rt);
+                });
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(reportingTask);
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(reportingTask.getIdentifier()));
