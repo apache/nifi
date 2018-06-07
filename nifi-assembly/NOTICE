@@ -291,6 +291,11 @@ The following binary components are provided under the Apache Software License v
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
+  (ASLv2) Apache Commons Text
+    The following NOTICE information applies:
+      Apache Commons Text
+      Copyright 2001-2018 The Apache Software Foundation
+
   (ASLv2) Apache Commons Configuration
     The following NOTICE information applies:
       Apache Commons Configuration
