@@ -42,9 +42,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processor.exception.FlowFileHandlingException;
-import org.apache.nifi.processor.exception.MissingFlowFileException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -301,13 +298,9 @@ public class ReplaceText extends AbstractProcessor {
 
             flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
 
-        } catch (FlowFileAccessException | FlowFileHandlingException | IllegalStateException | MissingFlowFileException frameworkException) {
-            // rollback and yield
-            context.yield();
-            throw frameworkException;
-        } catch (Throwable t) {
-            // log the type of Throwable but not the stack trace (in case of a long StackOverflowError trace)
-            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, t.toString()});
+        } catch (StackOverflowError e) {
+            // do not log the StackOverflowError stack trace
+            logger.info("Transferred {} to 'failure' due to {}", new Object[] {flowFile, e.toString()});
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }

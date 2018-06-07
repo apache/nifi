@@ -1168,10 +1168,10 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
 
+        exception.expect(AssertionError.class);
+        exception.expectMessage("java.lang.IndexOutOfBoundsException: No group 1");
         runner.enqueue("testing\n123".getBytes());
         runner.run();
-
-        runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
     }
 
     @Test
@@ -1241,7 +1241,7 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "New text");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
-        runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "100 MB");
+        runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "10 MB");
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^(A|B)*$)");
         runner.assertValid();
 
