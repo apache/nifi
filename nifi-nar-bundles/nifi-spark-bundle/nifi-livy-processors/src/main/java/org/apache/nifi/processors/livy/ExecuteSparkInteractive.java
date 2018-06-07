@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -207,7 +207,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             }
         }
 
-        code = StringEscapeUtils.escapeJavaScript(code);
+        code = StringEscapeUtils.escapeJson(code);
         String payload = "{\"code\":\"" + code + "\"}";
         try {
             final JSONObject result = submitAndHandleJob(livyUrl, livySessionService, sessionId, payload, statusCheckInterval);

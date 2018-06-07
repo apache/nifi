@@ -98,5 +98,10 @@
             <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.3</version>
+        </dependency>
     </dependencies>
 </project>
