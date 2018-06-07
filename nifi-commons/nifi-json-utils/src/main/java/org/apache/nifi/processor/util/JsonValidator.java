@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 public class JsonValidator implements Validator {
-    static final JsonValidator INSTANCE = new JsonValidator();
+    public static final JsonValidator INSTANCE = new JsonValidator();
 
     @Override
     public ValidationResult validate(String subject, String input, ValidationContext context) {
