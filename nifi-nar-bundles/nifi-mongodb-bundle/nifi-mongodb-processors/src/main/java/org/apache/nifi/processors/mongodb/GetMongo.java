@@ -38,6 +38,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
@@ -79,7 +80,7 @@ public class GetMongo extends AbstractMongoProcessor {
                 "that will result in a full collection fetch using a \"{}\" query.")
         .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.JSON_VALIDATOR)
+        .addValidator(JsonValidator.INSTANCE)
         .build();
 
     static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
@@ -87,14 +88,14 @@ public class GetMongo extends AbstractMongoProcessor {
             .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.JSON_VALIDATOR)
+            .addValidator(JsonValidator.INSTANCE)
             .build();
     static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
             .name("Sort")
             .description("The fields by which to sort; must be a valid BSON document")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.JSON_VALIDATOR)
+            .addValidator(JsonValidator.INSTANCE)
             .build();
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
             .name("Limit")

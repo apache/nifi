@@ -39,6 +39,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
@@ -100,7 +101,7 @@ public class PutMongo extends AbstractMongoProcessor {
         .displayName("Update Query")
         .description("Specify a full MongoDB query to be used for the lookup query to do an update/upsert.")
         .required(false)
-        .addValidator(StandardValidators.JSON_VALIDATOR)
+        .addValidator(JsonValidator.INSTANCE)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 

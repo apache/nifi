@@ -18,6 +18,7 @@ package org.apache.nifi.processors.gcp.credentials.factory;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
@@ -83,7 +84,7 @@ public final class CredentialPropertyDescriptors {
             .displayName("Service Account JSON")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
-            .addValidator(StandardValidators.JSON_VALIDATOR)
+            .addValidator(JsonValidator.INSTANCE)
             .description("The raw JSON containing a Service Account keyfile.")
             .sensitive(true)
             .build();
