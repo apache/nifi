@@ -36,7 +36,7 @@ class TestStandardValidators {
 
     @Before
     void setup() {
-        validator = new JsonValidator()
+        validator = JsonValidator.INSTANCE
         context = mock(ValidationContext.class)
     }
 

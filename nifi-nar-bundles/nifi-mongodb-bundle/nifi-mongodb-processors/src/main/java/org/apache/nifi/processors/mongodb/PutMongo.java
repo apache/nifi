@@ -101,7 +101,7 @@ public class PutMongo extends AbstractMongoProcessor {
         .displayName("Update Query")
         .description("Specify a full MongoDB query to be used for the lookup query to do an update/upsert.")
         .required(false)
-        .addValidator(new JsonValidator())
+        .addValidator(JsonValidator.INSTANCE)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 

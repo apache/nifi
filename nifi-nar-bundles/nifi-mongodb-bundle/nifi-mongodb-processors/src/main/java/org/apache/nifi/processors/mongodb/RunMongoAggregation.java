@@ -88,7 +88,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .description("The aggregation query to be executed.")
             .required(true)
-            .addValidator(new JsonValidator())
+            .addValidator(JsonValidator.INSTANCE)
             .build();
 
     static {

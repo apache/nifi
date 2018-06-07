@@ -84,7 +84,7 @@ public final class CredentialPropertyDescriptors {
             .displayName("Service Account JSON")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
-            .addValidator(new JsonValidator())
+            .addValidator(JsonValidator.INSTANCE)
             .description("The raw JSON containing a Service Account keyfile.")
             .sensitive(true)
             .build();

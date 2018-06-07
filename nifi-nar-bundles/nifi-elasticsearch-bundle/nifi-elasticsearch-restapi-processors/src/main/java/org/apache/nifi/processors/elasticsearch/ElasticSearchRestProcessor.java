@@ -56,7 +56,7 @@ public interface ElasticSearchRestProcessor {
                     "If this parameter is not set, the query will be read from the flowfile content.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(new JsonValidator())
+            .addValidator(JsonValidator.INSTANCE)
             .build();
     PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("el-query-attribute")
