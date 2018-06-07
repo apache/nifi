@@ -176,8 +176,6 @@ public class SchemaAccessUtils {
             return new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
         } else if (allowableValue.equalsIgnoreCase(CONFLUENT_ENCODED_SCHEMA.getValue())) {
             return new ConfluentSchemaRegistryStrategy(schemaRegistry);
-        } else if (allowableValue.equalsIgnoreCase(INFER_SCHEMA.getValue())) {
-            return new InferenceSchemaStrategy();
         }
 
         return null;

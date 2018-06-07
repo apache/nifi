@@ -20,9 +20,15 @@ package org.apache.nifi.serialization;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.schema.access.AvroSchemaTextStrategy;
+import org.apache.nifi.schema.access.InferenceSchemaStrategy;
 import org.apache.nifi.schema.access.JsonSchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaNamePropertyStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
@@ -46,6 +52,26 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
     public void onEnabled(ConfigurationContext context) {
         this.storeSchemaAccessStrategy(context);
         this.schemaAccess = context.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
+    }
+
+    @Override
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
+        if (strategy == null) {
+            return null;
+        }
+
+        if (strategy.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue())) {
+            final PropertyValue schemaName = context.getProperty(SCHEMA_NAME);
+            final PropertyValue schemaBranchName = context.getProperty(SCHEMA_BRANCH_NAME);
+            final PropertyValue schemaVersion = context.getProperty(SCHEMA_VERSION);
+            return new SchemaNamePropertyStrategy(schemaRegistry, schemaName, schemaBranchName, schemaVersion);
+        } else if (strategy.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
+            return new AvroSchemaTextStrategy(context.getProperty(SCHEMA_TEXT));
+        } else if (strategy.equalsIgnoreCase(INFER_SCHEMA.getValue())) {
+            return new InferenceSchemaStrategy();
+        }
+
+        return null;
     }
 
     @Override
