@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.events;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.ComponentType;
-
-import java.util.concurrent.atomic.AtomicLong;
 
 public final class BulletinFactory {
 
@@ -77,6 +79,11 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        try {
+            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
         return bulletin;
     }
 
@@ -91,6 +98,11 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        try {
+            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
         return bulletin;
     }
 
@@ -106,6 +118,11 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        try {
+            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
         return bulletin;
     }
 
@@ -115,6 +132,11 @@ public final class BulletinFactory {
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
         bulletin.setSourceType(ComponentType.FLOW_CONTROLLER);
+        try {
+            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
         return bulletin;
     }
 }

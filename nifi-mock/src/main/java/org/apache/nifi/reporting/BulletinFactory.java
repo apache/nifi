@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.reporting;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class BulletinFactory {
@@ -30,6 +32,11 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        try {
+            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
         return bulletin;
     }
 
@@ -43,6 +50,11 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        try {
+            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
         return bulletin;
     }
 
@@ -51,6 +63,11 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        try {
+            bulletin.setNodeAddress(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) {
+            // Do nothing, if the local host is unknown, leave the field empty
+        }
         return bulletin;
     }
 
