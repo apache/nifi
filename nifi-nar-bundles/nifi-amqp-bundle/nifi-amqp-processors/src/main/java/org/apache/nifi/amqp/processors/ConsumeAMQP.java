@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.amqp.processors;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,17 +32,19 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.GetResponse;
 
-@Tags({ "amqp", "rabbit", "get", "message", "receive", "consume" })
+@Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes AMQP Messages from an AMQP Broker using the AMQP 0.9.1 protocol. Each message that is received from the AMQP Broker will be "
     + "emitted as its own FlowFile to the 'success' relationship.")
@@ -65,16 +68,36 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     private static final String ATTRIBUTES_PREFIX = "amqp$";
 
     public static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
-            .name("Queue")
-            .description("The name of the existing AMQP Queue from which messages will be consumed. Usually pre-defined by AMQP administrator. ")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+        .name("Queue")
+        .description("The name of the existing AMQP Queue from which messages will be consumed. Usually pre-defined by AMQP administrator. ")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+    static final PropertyDescriptor AUTO_ACKNOWLEDGE = new PropertyDescriptor.Builder()
+        .name("auto.acknowledge")
+        .displayName("Auto-Acknowledge messages")
+        .description("If true, messages that are received will be auto-acknowledged by the AMQP Broker. "
+            + "This generally will provide better throughput but could result in messages being lost upon restart of NiFi")
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
+        .build();
+    static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+        .name("batch.size")
+        .displayName("Batch Size")
+        .description("The maximum number of messages that should be pulled in a single session. Once this many messages have been received (or once no more messages are readily available), "
+            + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged with the AMQP Broker. Setting this value to a larger number "
+            + "could result in better performance, particularly for very small messages, but can also result in more messages being duplicated upon sudden restart of NiFi.")
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .defaultValue("10")
+        .required(true)
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All FlowFiles that are received from the AMQP queue are routed to this relationship")
-            .build();
+        .name("success")
+        .description("All FlowFiles that are received from the AMQP queue are routed to this relationship")
+        .build();
 
     private static final List<PropertyDescriptor> propertyDescriptors;
     private static final Set<Relationship> relationships;
@@ -82,6 +105,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     static {
         List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(QUEUE);
+        properties.add(AUTO_ACKNOWLEDGE);
+        properties.add(BATCH_SIZE);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -97,21 +122,40 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
      */
     @Override
     protected void processResource(final Connection connection, final AMQPConsumer consumer, final ProcessContext context, final ProcessSession session) {
-        final GetResponse response = consumer.consume();
-        if (response == null) {
-            context.yield();
-            return;
+        GetResponse lastReceived = null;
+
+        for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
+            final GetResponse response = consumer.consume();
+            if (response == null) {
+                if (lastReceived == null) {
+                    // If no messages received, then yield.
+                    context.yield();
+                }
+
+                break;
+            }
+
+            FlowFile flowFile = session.create();
+            flowFile = session.write(flowFile, out -> out.write(response.getBody()));
+
+            final BasicProperties amqpProperties = response.getProps();
+            final Map<String, String> attributes = buildAttributes(amqpProperties);
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
+            session.transfer(flowFile, REL_SUCCESS);
+            lastReceived = response;
         }
 
-        FlowFile flowFile = session.create();
-        flowFile = session.write(flowFile, out -> out.write(response.getBody()));
+        session.commit();
 
-        final BasicProperties amqpProperties = response.getProps();
-        final Map<String, String> attributes = buildAttributes(amqpProperties);
-        flowFile = session.putAllAttributes(flowFile, attributes);
-
-        session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
-        session.transfer(flowFile, REL_SUCCESS);
+        if (lastReceived != null) {
+            try {
+                consumer.acknowledge(lastReceived);
+            } catch (IOException e) {
+                throw new ProcessException("Failed to acknowledge message", e);
+            }
+        }
     }
 
     private Map<String, String> buildAttributes(final BasicProperties properties) {
@@ -142,9 +186,16 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     }
 
     @Override
-    protected AMQPConsumer createAMQPWorker(final ProcessContext context, final Connection connection) {
-        final String queueName = context.getProperty(QUEUE).getValue();
-        return new AMQPConsumer(connection, queueName);
+    protected synchronized AMQPConsumer createAMQPWorker(final ProcessContext context, final Connection connection) {
+        try {
+            final String queueName = context.getProperty(QUEUE).getValue();
+            final boolean autoAcknowledge = context.getProperty(AUTO_ACKNOWLEDGE).asBoolean();
+            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge);
+
+            return amqpConsumer;
+        } catch (final IOException ioe) {
+            throw new ProcessException("Failed to connect to AMQP Broker", ioe);
+        }
     }
 
     @Override

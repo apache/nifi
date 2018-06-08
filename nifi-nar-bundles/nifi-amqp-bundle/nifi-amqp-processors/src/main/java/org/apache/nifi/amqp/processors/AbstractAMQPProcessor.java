@@ -142,6 +142,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
 
     private final BlockingQueue<AMQPResource<T>> resourceQueue = new LinkedBlockingQueue<>();
 
+
     /**
      * Will builds target resource ({@link AMQPPublisher} or {@link AMQPConsumer}) upon first invocation and will delegate to the
      * implementation of {@link #processResource(ProcessContext, ProcessSession)} method for further processing.
