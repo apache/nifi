@@ -65,7 +65,6 @@ import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -82,7 +81,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
     @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
             "as the header name and the value as the header value.")
 })
-public class RestLookupService extends AbstractControllerService implements LookupService<Record> {
+public class RestLookupService extends AbstractControllerService implements RecordLookupService {
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
         .name("rest-lookup-url")
         .displayName("URL")
@@ -135,6 +134,7 @@ public class RestLookupService extends AbstractControllerService implements Look
         .displayName("Basic Authentication Username")
         .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
         .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
         .build();
 
@@ -144,6 +144,7 @@ public class RestLookupService extends AbstractControllerService implements Look
         .description("The password to be used by the client to authenticate against the Remote URL.")
         .required(false)
         .sensitive(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
         .build();
     public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
@@ -167,6 +168,8 @@ public class RestLookupService extends AbstractControllerService implements Look
     static final List<PropertyDescriptor> DESCRIPTORS;
     static final Set<String> KEYS;
 
+    static final List VALID_VERBS = Arrays.asList("delete", "get", "post", "put");
+
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
             URL,
@@ -179,10 +182,7 @@ public class RestLookupService extends AbstractControllerService implements Look
             PROP_BASIC_AUTH_PASSWORD,
             PROP_DIGEST_AUTH
         ));
-        Set<String> _keys = new HashSet<>();
-        _keys.add(MIME_TYPE_KEY);
-        _keys.add(METHOD_KEY);
-        KEYS = Collections.unmodifiableSet(_keys);
+        KEYS = Collections.emptySet();
     }
 
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -274,8 +274,10 @@ public class RestLookupService extends AbstractControllerService implements Look
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         final String endpoint = determineEndpoint(coordinates);
         final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
-        final String method   = (String)coordinates.get(METHOD_KEY);
+        final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim();
         final String body     = (String)coordinates.get(BODY_KEY);
+
+        validateVerb(method);
 
         if (StringUtils.isBlank(body) && (method.equals("post") || method.equals("put"))) {
             throw new LookupFailureException(
@@ -294,6 +296,13 @@ public class RestLookupService extends AbstractControllerService implements Look
         } catch (Exception e) {
             getLogger().error("Could not execute lookup.", e);
             throw new LookupFailureException(e);
+        }
+    }
+
+    protected void validateVerb(String endpoint) throws LookupFailureException {
+        String lc = endpoint.toLowerCase();
+        if (!VALID_VERBS.contains(lc)) {
+            throw new LookupFailureException(String.format("%s is not a supported HTTP verb.", lc));
         }
     }
 
@@ -399,15 +408,15 @@ public class RestLookupService extends AbstractControllerService implements Look
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ConfigurationContext context) {
-        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue());
         this.basicUser = authUser;
 
 
         isDigest = context.getProperty(PROP_DIGEST_AUTH).asBoolean();
+        final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue());
+        this.basicPass = authPass;
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && isDigest) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
-            this.basicPass = authPass;
 
             /*
              * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.

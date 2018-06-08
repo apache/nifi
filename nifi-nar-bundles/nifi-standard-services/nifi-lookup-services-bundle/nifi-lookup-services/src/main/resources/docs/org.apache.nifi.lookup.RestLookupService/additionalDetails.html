@@ -42,7 +42,7 @@
     <p>Headers are supported using dynamic properties. Just add a dynamic property and the name will be the header name and the value will be the value for the header. Expression language
     powered by input from the variable registry is supported.</p>
     <h2>Dynamic URLs</h2>
-    <p>The URL property supports expression language in a non-standard way: through the lookup key/value pairs configured on the processor. The configuration specified by the user will be passed
+    <p>The URL property supports expression language through the lookup key/value pairs configured on the processor. The configuration specified by the user will be passed
     through to the expression language engine for evaluation. Note: flowfile attributes and variable registry settings will be disregarded here for this property.</p>
     <p>Ex. URL: <em>http://example.com/service/${user.name}/friend/${friend.id}</em>, combined with example record paths:</p>
     <ul>
