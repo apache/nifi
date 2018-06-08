@@ -55,7 +55,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final RecordSchema recordSchema;
     private final JsonFactory factory = new JsonFactory();
     private final JsonGenerator generator;
-    private final OutputStream out;
     private final NullSuppression nullSuppression;
     private final OutputGrouping outputGrouping;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
@@ -69,7 +68,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.logger = logger;
         this.recordSchema = recordSchema;
         this.schemaAccess = schemaAccess;
-        this.out = out;
         this.nullSuppression = nullSuppression;
         this.outputGrouping = outputGrouping;
 
@@ -270,14 +268,19 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     }
 
     @SuppressWarnings("unchecked")
-    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType)
-        throws JsonGenerationException, IOException {
+    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType) throws JsonGenerationException, IOException {
         if (value == null) {
             generator.writeNull();
             return;
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
+        if (chosenDataType == null) {
+            logger.debug("Could not find a suitable field type in the CHOICE for field {} and value {}; will use null value", new Object[] {fieldName, value});
+            generator.writeNull();
+            return;
+        }
+
         final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
         if (coercedValue == null) {
             generator.writeNull();
