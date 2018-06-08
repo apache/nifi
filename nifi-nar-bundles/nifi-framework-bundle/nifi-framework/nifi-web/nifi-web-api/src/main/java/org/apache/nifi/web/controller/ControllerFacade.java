@@ -1342,14 +1342,41 @@ public class ControllerFacade implements Authorizable {
         dataAuthorizable.authorize(authorizer, RequestAction.READ, user, eventAttributes);
         dataAuthorizable.authorize(authorizer, RequestAction.WRITE, user, eventAttributes);
     }
-
+    
     private AuthorizationResult checkAuthorizationForData(ProvenanceEventRecord event) {
-        try {
-            authorizeData(event);
-        } catch (AccessDeniedException ade) {
-            return AuthorizationResult.denied("User not authorized for data in provenance event");
+//        try {
+//            authorizeData(event);
+//        } catch (AccessDeniedException ade) {
+//            return AuthorizationResult.denied("User not authorized for data in provenance event");
+//        }
+//        return AuthorizationResult.approved();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Authorizable dataAuthorizable;
+        if (event.isRemotePortType()) {
+            dataAuthorizable = flowController.createRemoteDataAuthorizable(event.getComponentId());
+        } else {
+            dataAuthorizable = flowController.createLocalDataAuthorizable(event.getComponentId());
         }
-        return AuthorizationResult.approved();
+        
+        final Map<String, String> eventAttributes = event.getAttributes();
+        
+        // ensure we can read the data
+        return dataAuthorizable.authorize(authorizer, RequestAction.READ, user, eventAttributes);
+    }
+    
+    private AuthorizationResult checkConnectableAuthorization(final String componentId) {
+        final ProcessGruop rootGroup = flowController.getGroup(getRootGroupId());
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        Connectable connectable = rootGroup.findProcessor(componentId);
+        if (connectable == null) {
+            //if the component id is not a processor then consider a connection
+            connectable = rootGroup.findConnection(componentId).getSource();
+            
+            if (connectable == null) {
+                throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow");
+            }
+        }
+        return connectable.checkAuthorization(authorizer, RequestAction.READ, user);
     }
 
     /**
@@ -1393,18 +1420,17 @@ public class ControllerFacade implements Authorizable {
         // sets the component details if it can find the component still in the flow
         setComponentDetails(dto);
 
-        try {
-            AuthorizationResult result = flowController.checkConnectableAuthorization(event.getComponentId());
+//        try {
+//            AuthorizationResult result = flowController.checkConnectableAuthorization(event.getComponentId());
+        AuthorizationResult result = checkConnectableAuthorization(event.getComponentId());
             if (Result.Denied.equals(result.getResult())) {
-//            if (Boolean.FALSE.equals(result.getResult())) {
-                dto.setComponentType("Processor");
+                dto.setComponentType("Processor"); // is this always a Processor?
                 dto.setComponentName(dto.getComponentId());
                 dto.setEventType("UNKNOWN");
             }
 
 //            authorizeData(event);
-//            NiFiUser user = NiFiUserUtils.getNiFiUser();
-            AuthorizationResult dataResult = checkAuthorizationForData(event); //(authorizer, RequestAction.READ, user, event.getAttributes());
+            final AuthorizationResult dataResult = checkAuthorizationForData(event); //(authorizer, RequestAction.READ, user, event.getAttributes());
 
             // only include all details if not summarizing and approved
             if (!summarize && Result.Approved.equals(dataResult.getResult())) {
@@ -1499,9 +1525,9 @@ public class ControllerFacade implements Authorizable {
                 Collections.sort(childUuids, Collator.getInstance(Locale.US));
                 dto.setChildUuids(childUuids);
             }
-        } catch (AccessDeniedException ade) {
-            logger.debug("User '{}' not authorized to view flowfile content from provenance event {}", new Object[] { NiFiUserUtils.getNiFiUser(), event.getEventId() });
-        }
+//         } catch (AccessDeniedException ade) {
+//             logger.debug("User '{}' not authorized to view flowfile content from provenance event {}", new Object[] { NiFiUserUtils.getNiFiUser(), event.getEventId() });
+//         }
 
         // lineage duration
         if (event.getLineageStartDate() > 0) {
