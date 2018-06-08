@@ -85,16 +85,17 @@ public class TestExecuteSparkInteractive extends ExecuteSparkInteractiveTestBase
 
     @Test
     public void testSparkSession() throws Exception {
-
         addHandler(new LivyAPIHandler());
 
-        runner.enqueue("print \"hello world\"");
+        String code = "print \"hello world\" //'?!<>[]{}()$&*=%;.|_-\\";
+
+        runner.enqueue(code);
         runner.run();
         List<MockFlowFile> waitingFlowfiles = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_WAIT);
         while (!waitingFlowfiles.isEmpty()) {
             Thread.sleep(1000);
             runner.clearTransferState();
-            runner.enqueue("print \"hello world\"");
+            runner.enqueue(code);
             runner.run();
             waitingFlowfiles = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_WAIT);
         }
