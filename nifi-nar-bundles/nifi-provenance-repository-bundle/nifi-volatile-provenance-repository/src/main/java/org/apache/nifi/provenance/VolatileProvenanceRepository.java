@@ -277,7 +277,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         }
 
         final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user); //, event.getAttributes());
     }
 
     private Filter<ProvenanceEventRecord> createFilter(final Query query, final NiFiUser user) {

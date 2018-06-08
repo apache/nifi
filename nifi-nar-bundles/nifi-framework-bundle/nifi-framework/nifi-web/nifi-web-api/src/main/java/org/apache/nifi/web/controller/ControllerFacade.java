@@ -1361,11 +1361,11 @@ public class ControllerFacade implements Authorizable {
         final Map<String, String> eventAttributes = event.getAttributes();
         
         // ensure we can read the data
-        return dataAuthorizable.authorize(authorizer, RequestAction.READ, user, eventAttributes);
+        return dataAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, eventAttributes);
     }
     
     private AuthorizationResult checkConnectableAuthorization(final String componentId) {
-        final ProcessGruop rootGroup = flowController.getGroup(getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getGroup(getRootGroupId());
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         Connectable connectable = rootGroup.findProcessor(componentId);
         if (connectable == null) {

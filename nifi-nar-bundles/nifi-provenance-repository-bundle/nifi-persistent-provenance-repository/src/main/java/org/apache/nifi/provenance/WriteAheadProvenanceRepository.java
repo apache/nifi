@@ -227,7 +227,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         }
 
         final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user); //, event.getAttributes());
     }
 
 
