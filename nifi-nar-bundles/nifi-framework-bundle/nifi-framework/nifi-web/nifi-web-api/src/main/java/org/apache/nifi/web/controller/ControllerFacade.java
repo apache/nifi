@@ -25,6 +25,7 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -1342,6 +1343,15 @@ public class ControllerFacade implements Authorizable {
         dataAuthorizable.authorize(authorizer, RequestAction.WRITE, user, eventAttributes);
     }
 
+    private AuthorizationResult checkAuthorizationForData(ProvenanceEventRecord event) {
+        try {
+            authorizeData(event);
+        } catch (AccessDeniedException ade) {
+            return AuthorizationResult.denied("User not authorized for data in provenance event");
+        }
+        return AuthorizationResult.approved();
+    }
+
     /**
      * Get the provenance event with the specified event id.
      *
@@ -1384,10 +1394,20 @@ public class ControllerFacade implements Authorizable {
         setComponentDetails(dto);
 
         try {
-            authorizeData(event);
+            AuthorizationResult result = flowController.checkConnectableAuthorization(event.getComponentId());
+            if (Result.Denied.equals(result.getResult())) {
+//            if (Boolean.FALSE.equals(result.getResult())) {
+                dto.setComponentType("Processor");
+                dto.setComponentName(dto.getComponentId());
+                dto.setEventType("UNKNOWN");
+            }
 
-            // only include all details if not summarizing
-            if (!summarize) {
+//            authorizeData(event);
+//            NiFiUser user = NiFiUserUtils.getNiFiUser();
+            AuthorizationResult dataResult = checkAuthorizationForData(event); //(authorizer, RequestAction.READ, user, event.getAttributes());
+
+            // only include all details if not summarizing and approved
+            if (!summarize && Result.Approved.equals(dataResult.getResult())) {
                 // convert the attributes
                 final Comparator<AttributeDTO> attributeComparator = new Comparator<AttributeDTO>() {
                     @Override

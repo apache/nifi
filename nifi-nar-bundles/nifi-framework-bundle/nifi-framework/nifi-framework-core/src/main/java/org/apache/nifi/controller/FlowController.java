@@ -27,14 +27,19 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.StandardAuthorizerConfigurationContext;
+import org.apache.nifi.authorization.StandardManagedAuthorizer;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -4918,6 +4923,22 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     @Override
     public List<ProvenanceEventRecord> getProvenanceEvents(final long firstEventId, final int maxRecords) throws IOException {
         return new ArrayList<>(provenanceRepository.getEvents(firstEventId, maxRecords));
+    }
+
+    public AuthorizationResult checkConnectableAuthorization(final String componentId) {
+        final ProcessGroup rootGroup = getGroup(getRootGroupId());
+        NiFiUser user = NiFiUserUtils.getNiFiUser();
+        // check if the component is a processor
+        Connectable connectable = rootGroup.findProcessor(componentId);
+        if (connectable == null) {
+            // if the component id is not a processor then consider a connection
+            connectable = rootGroup.findConnection(componentId).getSource();
+
+            if (connectable == null) {
+                throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
+            }
+        }
+        return connectable.checkAuthorization(authorizer, RequestAction.READ, user);
     }
 
     @Override
