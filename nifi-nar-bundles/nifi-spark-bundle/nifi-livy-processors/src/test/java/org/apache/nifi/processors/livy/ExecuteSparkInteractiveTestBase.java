@@ -19,6 +19,9 @@ package org.apache.nifi.processors.livy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.web.util.TestServer;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
@@ -26,8 +29,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 
-public class ExecuteSparkInteractiveTestBase {
+class ExecuteSparkInteractiveTestBase {
 
     public static class LivyAPIHandler extends AbstractHandler {
 
@@ -69,8 +73,7 @@ public class ExecuteSparkInteractiveTestBase {
             } else if ("POST".equalsIgnoreCase(request.getMethod())) {
                 String requestBody = IOUtils.toString(request.getReader());
                 try {
-                    System.out.println("requestBody: " + requestBody);
-
+                    // validate JSON payload
                     new ObjectMapper().readTree(requestBody);
 
                     responseStatus = 200;
@@ -99,4 +102,23 @@ public class ExecuteSparkInteractiveTestBase {
 
         }
     }
+
+    TestRunner runner;
+
+    void testCode(TestServer server, String code) throws Exception {
+        server.addHandler(new LivyAPIHandler());
+
+        runner.enqueue(code);
+        runner.run();
+        List<MockFlowFile> waitingFlowfiles = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_WAIT);
+        while (!waitingFlowfiles.isEmpty()) {
+          Thread.sleep(1000);
+          runner.clearTransferState();
+          runner.enqueue(code);
+          runner.run();
+          waitingFlowfiles = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_WAIT);
+        }
+        runner.assertTransferCount(ExecuteSparkInteractive.REL_SUCCESS, 1);
+    }
+
 }
