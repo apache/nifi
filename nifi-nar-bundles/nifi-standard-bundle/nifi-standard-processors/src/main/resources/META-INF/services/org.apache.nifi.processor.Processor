@@ -14,6 +14,7 @@
 # limitations under the License.
 org.apache.nifi.processors.standard.AttributesToJSON
 org.apache.nifi.processors.standard.Base64EncodeContent
+org.apache.nifi.processors.standard.CalculateRecordStats
 org.apache.nifi.processors.standard.CompressContent
 org.apache.nifi.processors.standard.ControlRate
 org.apache.nifi.processors.standard.ConvertCharacterSet

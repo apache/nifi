@@ -57,9 +57,13 @@ import java.util.stream.Collectors;
         "user-defined criteria on subsets of the record set.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttributes({
-    @WritesAttribute(attribute = RecordStats.RECORD_COUNT_ATTR, description = "A count of the records in the record set in the flowfile.")
+    @WritesAttribute(attribute = CalculateRecordStats.RECORD_COUNT_ATTR, description = "A count of the records in the record set in the flowfile."),
+    @WritesAttribute(attribute = "recordStats.<User Defined Property Name>.count", description = "A count of the records that contain a value for the user defined property."),
+    @WritesAttribute(attribute = "recordStats.<User Defined Property Name>.<value>.count",
+            description = "Each value discovered for the user defined property will have its own count attribute. " +
+                    "Total number of top N value counts to be added is defined by the limit configuration.")
 })
-public class RecordStats extends AbstractProcessor {
+public class CalculateRecordStats extends AbstractProcessor {
     static final String RECORD_COUNT_ATTR = "record_count";
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -67,6 +71,7 @@ public class RecordStats extends AbstractProcessor {
         .displayName("Record Reader")
         .description("A record reader to use for reading the records.")
         .identifiesControllerService(RecordReaderFactory.class)
+        .required(true)
         .build();
 
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
@@ -109,6 +114,7 @@ public class RecordStats extends AbstractProcessor {
             .displayName(propertyDescriptorName)
             .dynamic(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     }
 
@@ -134,7 +140,7 @@ public class RecordStats extends AbstractProcessor {
         }
 
         try {
-            Map<String, RecordPath> paths = getRecordPaths(context);
+            Map<String, RecordPath> paths = getRecordPaths(context, input);
             Map<String, String> stats = getStats(input, paths, context, session);
 
             input = session.putAllAttributes(input, stats);
@@ -148,13 +154,13 @@ public class RecordStats extends AbstractProcessor {
 
     }
 
-    protected Map<String, RecordPath> getRecordPaths(ProcessContext context) {
+    protected Map<String, RecordPath> getRecordPaths(ProcessContext context, FlowFile flowFile) {
         return context.getProperties().keySet()
-            .stream().filter(p -> p.isDynamic() && !p.getName().contains(RECORD_READER.getName()))
+            .stream().filter(p -> p.isDynamic())
             .collect(Collectors.toMap(
                 e -> e.getName(),
                 e ->  {
-                    String val = context.getProperty(e).getValue();
+                    String val = context.getProperty(e).evaluateAttributeExpressions(flowFile).getValue();
                     return cache.getCompiled(val);
                 })
             );
@@ -170,27 +176,33 @@ public class RecordStats extends AbstractProcessor {
             Record record;
 
             int recordCount = 0;
+            List<String> baseKeys = new ArrayList<>();
             while ((record = reader.nextRecord()) != null) {
                 for (Map.Entry<String, RecordPath> entry : paths.entrySet()) {
                     RecordPathResult result = entry.getValue().evaluate(record);
                     Optional<FieldValue> value = result.getSelectedFields().findFirst();
                     if (value.isPresent() && value.get().getValue() != null) {
                         String approxValue = value.get().getValue().toString();
-                        String key = String.format("%s.%s", entry.getKey(), approxValue);
+                        String baseKey = String.format("recordStats.%s", entry.getKey());
+                        String key = String.format("%s.%s", baseKey, approxValue);
                         Integer stat = retVal.containsKey(key) ? retVal.get(key) : 0;
-                        Integer baseStat = retVal.getOrDefault(entry.getKey(), 0);
+                        Integer baseStat = retVal.getOrDefault(baseKey, 0);
                         stat++;
                         baseStat++;
 
                         retVal.put(key, stat);
-                        retVal.put(entry.getKey(), baseStat);
+                        retVal.put(baseKey, baseStat);
+
+                        if (!baseKeys.contains(baseKey)) {
+                            baseKeys.add(baseKey);
+                        }
                     }
                 }
 
                 recordCount++;
             }
 
-            retVal = filterBySize(retVal, limit);
+            retVal = filterBySize(retVal, limit, baseKeys);
 
             retVal.put(RECORD_COUNT_ATTR, recordCount);
 
@@ -205,12 +217,12 @@ public class RecordStats extends AbstractProcessor {
         }
     }
 
-    protected Map filterBySize(Map<String, Integer> values, Integer limit) {
+    protected Map filterBySize(Map<String, Integer> values, Integer limit, List<String> baseKeys) {
         Map<String, Integer> toFilter = values.entrySet().stream()
-            .filter(e -> e.getKey().contains("."))
+            .filter(e -> !baseKeys.contains(e.getKey()))
             .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
         Map<String, Integer> retVal = values.entrySet().stream()
-            .filter((e -> !e.getKey().contains(".")))
+            .filter((e -> baseKeys.contains(e.getKey())))
             .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 
         List<Map.Entry<String, Integer>> _flat = new ArrayList<>(toFilter.entrySet());

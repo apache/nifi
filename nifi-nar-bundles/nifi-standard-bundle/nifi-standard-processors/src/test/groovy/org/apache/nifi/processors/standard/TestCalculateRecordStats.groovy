@@ -29,17 +29,17 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
-class TestRecordStats {
+class TestCalculateRecordStats {
     TestRunner runner
     MockRecordParser recordParser
     RecordSchema personSchema
 
     @Before
     void setup() {
-        runner = TestRunners.newTestRunner(RecordStats.class)
+        runner = TestRunners.newTestRunner(CalculateRecordStats.class)
         recordParser = new MockRecordParser()
         runner.addControllerService("recordReader", recordParser)
-        runner.setProperty(RecordStats.RECORD_READER, "recordReader")
+        runner.setProperty(CalculateRecordStats.RECORD_READER, "recordReader")
         runner.enableControllerService(recordParser)
         runner.assertValid()
 
@@ -59,10 +59,10 @@ class TestRecordStats {
     void testNoNullOrEmptyRecordFields() {
         def sports = [ "Soccer", "Soccer", "Soccer", "Football", "Football", "Basketball" ]
         def expectedAttributes = [
-            "sport.Soccer": "3",
-            "sport.Football": "2",
-            "sport.Basketball": "1",
-            "sport": "6",
+            "recordStats.sport.Soccer": "3",
+            "recordStats.sport.Football": "2",
+            "recordStats.sport.Basketball": "1",
+            "recordStats.sport": "6",
             "record_count": "6"
         ]
 
@@ -73,10 +73,10 @@ class TestRecordStats {
     void testWithNullFields() {
         def sports = [ "Soccer", null, null, "Football", null, "Basketball" ]
         def expectedAttributes = [
-            "sport.Soccer": "1",
-            "sport.Football": "1",
-            "sport.Basketball": "1",
-            "sport": "3",
+            "recordStats.sport.Soccer": "1",
+            "recordStats.sport.Football": "1",
+            "recordStats.sport.Basketball": "1",
+            "recordStats.sport": "3",
             "record_count": "6"
         ]
 
@@ -87,9 +87,9 @@ class TestRecordStats {
     void testWithFilters() {
         def sports = [ "Soccer", "Soccer", "Soccer", "Football", "Football", "Basketball" ]
         def expectedAttributes = [
-            "sport.Soccer": "3",
-            "sport.Basketball": "1",
-            "sport": "4",
+            "recordStats.sport.Soccer": "3",
+            "recordStats.sport.Basketball": "1",
+            "recordStats.sport": "4",
             "record_count": "6"
         ]
 
@@ -102,16 +102,16 @@ class TestRecordStats {
 
     @Test
     void testWithSizeLimit() {
-        runner.setProperty(RecordStats.LIMIT, "3")
+        runner.setProperty(CalculateRecordStats.LIMIT, "3")
         def sports = [ "Soccer", "Soccer", "Soccer", "Football", "Football",
                "Basketball", "Baseball", "Baseball", "Baseball", "Baseball",
                 "Skiing", "Skiing", "Skiing", "Snowboarding"
         ]
         def expectedAttributes = [
-            "sport.Skiing": "3",
-            "sport.Soccer": "3",
-            "sport.Baseball": "4",
-            "sport": String.valueOf(sports.size()),
+            "recordStats.sport.Skiing": "3",
+            "recordStats.sport.Soccer": "3",
+            "recordStats.sport.Baseball": "4",
+            "recordStats.sport": String.valueOf(sports.size()),
             "record_count": String.valueOf(sports.size())
         ]
 
@@ -126,9 +126,9 @@ class TestRecordStats {
         int index = 1
         sports.each { sport ->
             recordParser.addRecord(index++, new MapRecord(personSchema, [
-                    "name" : "John Doe",
-                    "age"  : 48,
-                    "sport": sport
+                "name" : "John Doe",
+                "age"  : 48,
+                "sport": sport
             ]))
         }
 
@@ -138,13 +138,13 @@ class TestRecordStats {
 
         runner.enqueue("")
         runner.run()
-        runner.assertTransferCount(RecordStats.REL_FAILURE, 0)
-        runner.assertTransferCount(RecordStats.REL_SUCCESS, 1)
+        runner.assertTransferCount(CalculateRecordStats.REL_FAILURE, 0)
+        runner.assertTransferCount(CalculateRecordStats.REL_SUCCESS, 1)
 
-        def flowFiles = runner.getFlowFilesForRelationship(RecordStats.REL_SUCCESS)
+        def flowFiles = runner.getFlowFilesForRelationship(CalculateRecordStats.REL_SUCCESS)
         def ff = flowFiles[0]
         expectedAttributes.each { kv ->
-            Assert.assertNotNull(ff.getAttribute(kv.key))
+            Assert.assertNotNull("Missing ${kv.key}", ff.getAttribute(kv.key))
             Assert.assertEquals(kv.value, ff.getAttribute(kv.key))
         }
     }
