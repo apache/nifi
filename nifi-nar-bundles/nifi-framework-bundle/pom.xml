@@ -27,7 +27,7 @@
         <jersey.version>2.26</jersey.version>
         <spring.version>4.3.10.RELEASE</spring.version>
         <spring.security.version>4.2.4.RELEASE</spring.security.version>    
-        <jackson.version>2.9.4</jackson.version>
+        <jackson.version>2.9.5</jackson.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
