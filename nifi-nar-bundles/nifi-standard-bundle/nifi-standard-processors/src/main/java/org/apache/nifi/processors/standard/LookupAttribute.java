@@ -222,7 +222,8 @@ public class LookupAttribute extends AbstractProcessor {
                 final PropertyValue lookupKeyExpression = e.getValue();
                 final String lookupKey = lookupKeyExpression.evaluateAttributeExpressions(flowFile).getValue();
                 final String attributeName = e.getKey().getName();
-                final Optional<String> attributeValue = lookupService.lookup(Collections.singletonMap(coordinateKey, lookupKey));
+                final Optional<String> attributeValue = lookupService.lookup(Collections.singletonMap(coordinateKey, lookupKey),
+                        flowFile.getAttributes());
                 matched = putAttribute(attributeName, attributeValue, attributes, includeEmptyValues, logger) || matched;
 
                 if (!matched && logger.isDebugEnabled()) {
