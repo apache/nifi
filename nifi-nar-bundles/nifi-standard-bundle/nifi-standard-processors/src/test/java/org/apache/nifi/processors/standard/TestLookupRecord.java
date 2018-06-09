@@ -44,6 +44,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -82,6 +83,34 @@ public class TestLookupRecord {
         recordReader.addRecord("John Doe", 48, null);
         recordReader.addRecord("Jane Doe", 47, null);
         recordReader.addRecord("Jimmy Doe", 14, null);
+    }
+
+    @Test
+    public void testAttributeRegex() {
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("schema.name", "person");
+        attrs.put("something_something", "test");
+
+        runner.setProperty(LookupRecord.ATTRIBUTES_REGEX, "(schema.*|.*_something$)");
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.putAll(attrs);
+
+        lookupService.setRequiredCoordinates(expected);
+
+        lookupService.addValue("John Doe", "Soccer");
+        lookupService.addValue("Jane Doe", "Basketball");
+        lookupService.addValue("Jimmy Doe", "Football");
+
+        runner.enqueue("", attrs);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+
+        out.assertAttributeEquals("record.count", "3");
+        out.assertAttributeEquals("mime.type", "text/plain");
+        out.assertContentEquals("John Doe,48,Soccer\nJane Doe,47,Basketball\nJimmy Doe,14,Football\n");
     }
 
     @Test
@@ -372,6 +401,7 @@ public class TestLookupRecord {
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
         private final Map<String, String> values = new HashMap<>();
+        private Map<String, Object> expectedCoordinates;
 
         public void addValue(final String key, final String value) {
             values.put(key, value);
@@ -380,6 +410,11 @@ public class TestLookupRecord {
         @Override
         public Class<?> getValueType() {
             return String.class;
+        }
+
+        public Optional<String> lookup(final Map<String, Object> coordinates, Map<String, String> context) {
+            enforceRequiredCoordinates(context);
+            return lookup(coordinates);
         }
 
         @Override
@@ -399,6 +434,20 @@ public class TestLookupRecord {
         @Override
         public Set<String> getRequiredKeys() {
             return Collections.singleton("lookup");
+        }
+
+        public void setRequiredCoordinates(Map<String, Object> expectedCoordinates) {
+            this.expectedCoordinates = expectedCoordinates;
+        }
+
+        private void enforceRequiredCoordinates(Map<String, String> context) {
+            if (expectedCoordinates != null) {
+                for (Map.Entry<String, Object> entry : expectedCoordinates.entrySet()) {
+                    Assert.assertTrue(String.format("%s was not in coordinates.", entry.getKey()),
+                            context.containsKey(entry.getKey()));
+                    Assert.assertEquals("Wrong value", entry.getValue(), context.get(entry.getKey()));
+                }
+            }
         }
     }
 

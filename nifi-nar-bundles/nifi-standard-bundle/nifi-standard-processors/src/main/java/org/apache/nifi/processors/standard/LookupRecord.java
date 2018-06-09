@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -51,6 +52,7 @@ import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
@@ -120,6 +122,18 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         .required(false)
         .build();
 
+    public static final PropertyDescriptor ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
+        .name("attributes-regex")
+        .displayName("Attributes Regular Expression")
+        .description("Attributes that match this regular expression will be merged with the lookup key/value pairs specified as dynamic properties. " +
+                "When the same key is found in an attribute and in the dynamic properties, the latter will override the former. If left blank, no " +
+                "attributes will be added.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
+        .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+        .build();
+
     static final PropertyDescriptor RESULT_CONTENTS = new PropertyDescriptor.Builder()
         .name("result-contents")
         .displayName("Record Result Contents")
@@ -176,6 +190,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         properties.addAll(super.getSupportedPropertyDescriptors());
         properties.add(LOOKUP_SERVICE);
         properties.add(RESULT_RECORD_PATH);
+        properties.add(ATTRIBUTES_REGEX);
         properties.add(ROUTING_STRATEGY);
         properties.add(RESULT_CONTENTS);
         return properties;
@@ -255,6 +270,25 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         }
     }
 
+    private Map<String, String> getMatchingFlowfileAttributes(FlowFile input, ProcessContext context) {
+        Map<String, String> retVal = new HashMap<>();
+
+        if (context.getProperty(ATTRIBUTES_REGEX).isSet()) {
+            final String regex = context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions(input).getValue();
+            final Pattern pattern = Pattern.compile(regex);
+            retVal.putAll(input.getAttributes()
+                .entrySet().stream()
+                .filter(e -> pattern.matcher(e.getKey()).matches())
+                .collect(Collectors.toMap(
+                    e -> e.getKey(),
+                    e -> e.getValue()
+                ))
+            );
+        }
+
+        return retVal;
+    }
+
     @Override
     protected Set<Relationship> route(final Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context,
         final Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
@@ -292,7 +326,8 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
         final Optional<?> lookupValueOption;
         try {
-            lookupValueOption = lookupService.lookup(lookupCoordinates);
+            Map<String, String> filteredAttributes = getMatchingFlowfileAttributes(flowFile, context);
+            lookupValueOption = lookupService.lookup(lookupCoordinates, filteredAttributes);
         } catch (final Exception e) {
             throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
         }
