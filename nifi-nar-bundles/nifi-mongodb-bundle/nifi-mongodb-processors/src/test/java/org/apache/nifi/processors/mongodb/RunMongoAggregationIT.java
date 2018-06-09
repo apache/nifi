@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,7 @@ public class RunMongoAggregationIT {
     private TestRunner runner;
     private MongoClient mongoClient;
     private Map<String, Integer> mappings;
+    private Calendar now = Calendar.getInstance();
 
     @Before
     public void setup() {
@@ -68,7 +70,7 @@ public class RunMongoAggregationIT {
 
         for (int x = 0; x < values.length; x++) {
             for (int y = 0; y < x + 2; y++) {
-                Document doc = new Document().append("val", values[x]);
+                Document doc = new Document().append("val", values[x]).append("date", now.getTime());
                 collection.insertOne(doc);
             }
             mappings.put(values[x], x + 2);
@@ -78,7 +80,6 @@ public class RunMongoAggregationIT {
     @After
     public void teardown() {
         runner = null;
-
         mongoClient.getDatabase(DB_NAME).drop();
     }
 
@@ -162,6 +163,37 @@ public class RunMongoAggregationIT {
         runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 0);
         runner.assertTransferCount(RunMongoAggregation.REL_ORIGINAL, 0);
         runner.assertTransferCount(RunMongoAggregation.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testJsonTypes() throws IOException {
+
+        runner.setProperty(RunMongoAggregation.JSON_TYPE, RunMongoAggregation.JSON_STANDARD);
+        runner.setProperty(RunMongoAggregation.QUERY, "[ { \"$project\": { \"myArray\": [ \"$val\", \"$date\" ] } } ]");
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        for (MockFlowFile mockFlowFile : flowFiles) {
+            byte[] raw = runner.getContentAsByteArray(mockFlowFile);
+            Map<String, List<String>> read = mapper.readValue(raw, Map.class);
+            Assert.assertTrue(read.get("myArray").get(1).equalsIgnoreCase( format.format(now.getTime())));
+        }
+
+        runner.clearTransferState();
+
+        runner.setProperty(RunMongoAggregation.JSON_TYPE, RunMongoAggregation.JSON_EXTENDED);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
+        for (MockFlowFile mockFlowFile : flowFiles) {
+            byte[] raw = runner.getContentAsByteArray(mockFlowFile);
+            Map<String, List<Long>> read = mapper.readValue(raw, Map.class);
+            Assert.assertTrue(read.get("myArray").get(1) == now.getTimeInMillis());
+        }
     }
 
     private void evaluateRunner(int original) throws IOException {

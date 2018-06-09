@@ -96,6 +96,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(CHARSET);
         _propertyDescriptors.add(QUERY);
+        _propertyDescriptors.add(JSON_TYPE);
         _propertyDescriptors.add(QUERY_ATTRIBUTE);
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
@@ -120,11 +121,14 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         return propertyDescriptors;
     }
 
-    static String buildBatch(List<Document> batch) {
-        ObjectMapper mapper = new ObjectMapper();
+    private String buildBatch(List<Document> batch, ProcessContext context) {
+
+        final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
+        configureMapper(jsonTypeSetting);
+
         String retVal;
         try {
-            retVal = mapper.writeValueAsString(batch.size() > 1 ? batch : batch.get(0));
+            retVal = objectMapper.writeValueAsString(batch.size() > 1 ? batch : batch.get(0));
         } catch (Exception e) {
             retVal = null;
         }
@@ -167,13 +171,13 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             while (iter.hasNext()) {
                 batch.add(iter.next());
                 if (batch.size() == resultsPerFlowfile) {
-                    writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
+                    writeBatch(buildBatch(batch, context), flowFile, context, session, attrs, REL_RESULTS);
                     batch = new ArrayList<Document>();
                 }
             }
 
             if (batch.size() > 0) {
-                writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
+                writeBatch(buildBatch(batch, context), flowFile, context, session, attrs, REL_RESULTS);
             }
 
             if (flowFile != null) {
