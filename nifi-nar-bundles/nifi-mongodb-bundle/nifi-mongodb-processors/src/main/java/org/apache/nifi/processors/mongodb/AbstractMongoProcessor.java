@@ -18,6 +18,7 @@
  */
 package org.apache.nifi.processors.mongodb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientOptions.Builder;
@@ -29,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -45,6 +47,8 @@ import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +61,13 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     static final String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
     static final String WRITE_CONCERN_MAJORITY = "MAJORITY";
 
+    protected static final String JSON_TYPE_EXTENDED = "Extended";
+    protected static final String JSON_TYPE_STANDARD   = "Standard";
+    protected static final AllowableValue JSON_EXTENDED = new AllowableValue(JSON_TYPE_EXTENDED, "Extended JSON",
+            "Use MongoDB's \"extended JSON\". This is the JSON generated with toJson() on a MongoDB Document from the Java driver");
+    protected static final AllowableValue JSON_STANDARD = new AllowableValue(JSON_TYPE_STANDARD, "Standard JSON",
+            "Generate a JSON document that conforms to typical JSON conventions instead of Mongo-specific conventions.");
+
     protected static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
         .name("Mongo URI")
         .displayName("Mongo URI")
@@ -65,6 +76,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
+
     protected static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
         .name("Mongo Database Name")
         .displayName("Mongo Database Name")
@@ -73,6 +85,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
+
     protected static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
         .name("Mongo Collection Name")
         .description("The name of the collection to use")
@@ -80,6 +93,19 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
+
+    protected static final PropertyDescriptor JSON_TYPE = new PropertyDescriptor.Builder()
+            .allowableValues(JSON_EXTENDED, JSON_STANDARD)
+            .defaultValue(JSON_TYPE_EXTENDED)
+            .displayName("JSON Type")
+            .name("json-type")
+            .description("By default, MongoDB's Java driver returns \"extended JSON\". Some of the features of this variant of JSON" +
+                    " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
+                    " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
         .name("ssl-context-service")
         .displayName("SSL Context Service")
@@ -88,6 +114,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .required(false)
         .identifiesControllerService(SSLContextService.class)
         .build();
+
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
         .name("ssl-client-auth")
         .displayName("Client Auth")
@@ -155,6 +182,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         descriptors.add(CLIENT_AUTH);
     }
 
+    protected ObjectMapper objectMapper;
     protected MongoClient mongoClient;
 
     @OnScheduled
@@ -274,5 +302,15 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         flowFile = session.putAllAttributes(flowFile, extraAttributes);
         session.getProvenanceReporter().receive(flowFile, getURI(context));
         session.transfer(flowFile, rel);
+    }
+
+    protected synchronized void configureMapper(String setting) {
+        objectMapper = new ObjectMapper();
+
+        if (setting.equals(JSON_TYPE_STANDARD)) {
+            objectMapper.registerModule(ObjectIdSerializer.getModule());
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            objectMapper.setDateFormat(df);
+        }
     }
 }

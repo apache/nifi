@@ -45,8 +45,6 @@ import org.bson.json.JsonWriterSettings;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,7 +52,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 
 @Tags({ "mongodb", "read", "get" })
 @InputRequirement(Requirement.INPUT_ALLOWED)
@@ -134,24 +131,6 @@ public class GetMongo extends AbstractMongoProcessor {
             .addValidator(Validator.VALID)
             .build();
 
-    static final String JSON_TYPE_EXTENDED = "Extended";
-    static final String JSON_TYPE_STANDARD   = "Standard";
-    static final AllowableValue JSON_EXTENDED = new AllowableValue(JSON_TYPE_EXTENDED, "Extended JSON",
-            "Use MongoDB's \"extended JSON\". This is the JSON generated with toJson() on a MongoDB Document from the Java driver");
-    static final AllowableValue JSON_STANDARD = new AllowableValue(JSON_TYPE_STANDARD, "Standard JSON",
-            "Generate a JSON document that conforms to typical JSON conventions instead of Mongo-specific conventions.");
-    static final PropertyDescriptor JSON_TYPE = new PropertyDescriptor.Builder()
-            .allowableValues(JSON_EXTENDED, JSON_STANDARD)
-            .defaultValue(JSON_TYPE_EXTENDED)
-            .displayName("JSON Type")
-            .name("json-type")
-            .description("By default, MongoDB's Java driver returns \"extended JSON\". Some of the features of this variant of JSON" +
-                    " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
-                    " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .required(true)
-            .build();
-
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
 
@@ -189,8 +168,6 @@ public class GetMongo extends AbstractMongoProcessor {
         return propertyDescriptors;
     }
 
-    private ObjectMapper mapper;
-
     //Turn a list of Mongo result documents into a String representation of a JSON array
     private String buildBatch(List<Document> documents, String jsonTypeSetting, String prettyPrintSetting) throws IOException {
         StringBuilder builder = new StringBuilder();
@@ -198,7 +175,7 @@ public class GetMongo extends AbstractMongoProcessor {
             Document document = documents.get(index);
             String asJson;
             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
-                asJson = getObjectWriter(mapper, prettyPrintSetting).writeValueAsString(document);
+                asJson = getObjectWriter(objectMapper, prettyPrintSetting).writeValueAsString(document);
             } else {
                 asJson = document.toJson(new JsonWriterSettings(true));
             }
@@ -208,15 +185,6 @@ public class GetMongo extends AbstractMongoProcessor {
         }
 
         return "[" + builder.toString() + "]";
-    }
-
-    private void configureMapper(String setting) {
-        mapper = new ObjectMapper();
-        if (setting.equals(JSON_TYPE_STANDARD)) {
-            mapper.registerModule(ObjectIdSerializer.getModule());
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            mapper.setDateFormat(df);
-        }
     }
 
     private ObjectWriter getObjectWriter(ObjectMapper mapper, String ppSetting) {
@@ -237,7 +205,7 @@ public class GetMongo extends AbstractMongoProcessor {
 
         final ComponentLog logger = getLogger();
 
-        Map<String, String> attributes = new HashMap<String, String>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 
         final Document query;
@@ -334,7 +302,7 @@ public class GetMongo extends AbstractMongoProcessor {
                         flowFile = session.write(flowFile, out -> {
                             String json;
                             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
-                                json = getObjectWriter(mapper, usePrettyPrint).writeValueAsString(cursor.next());
+                                json = getObjectWriter(objectMapper, usePrettyPrint).writeValueAsString(cursor.next());
                             } else {
                                 json = cursor.next().toJson();
                             }
