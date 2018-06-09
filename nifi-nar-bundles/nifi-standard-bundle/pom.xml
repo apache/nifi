@@ -32,7 +32,7 @@
         <module>nifi-standard-utils</module>
     </modules>
     <properties>
-        <jackson.version>2.9.4</jackson.version>        
+        <jackson.version>2.9.5</jackson.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.0</jolt.version>
         <jersey.version>2.26</jersey.version>
