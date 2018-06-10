@@ -159,20 +159,26 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         Document retVal = new Document();
         for (Map.Entry<String, Object> entry : doc.entrySet()) {
             if (entry.getValue() != null && entry.getValue().getClass().isArray()) {
-                List items = new ArrayList();
-                Object[] values = (Object[])entry.getValue();
-                for (int index = 0; index < values.length; index++) {
-                    if (values[index] instanceof Map || values[index] instanceof Document) {
-                        items.add(convertArrays(new Document((Map)values[index])));
-                    } else {
-                        items.add(values[index]);
-                    }
-                }
-                retVal.put(entry.getKey(), items);
+                retVal.put(entry.getKey(), convertArrays((Object[])entry.getValue()));
             } else if (entry.getValue() != null && (entry.getValue() instanceof Map || entry.getValue() instanceof Document)) {
                 retVal.put(entry.getKey(), convertArrays(new Document((Map)entry.getValue())));
             } else {
                 retVal.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return retVal;
+    }
+
+    private List convertArrays(Object[] input) {
+        List retVal = new ArrayList();
+        for (Object o : input) {
+            if (o != null && o.getClass().isArray()) {
+                retVal.add(convertArrays((Object[])o));
+            } else if (o instanceof Map) {
+                retVal.add(convertArrays(new Document((Map)o)));
+            } else {
+                retVal.add(o);
             }
         }
 
