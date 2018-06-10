@@ -121,11 +121,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         return propertyDescriptors;
     }
 
-    private String buildBatch(List<Document> batch, ProcessContext context) {
-
-        final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
-        configureMapper(jsonTypeSetting);
-
+    private String buildBatch(List<Document> batch) {
         String retVal;
         try {
             retVal = objectMapper.writeValueAsString(batch.size() > 1 ? batch : batch.get(0));
@@ -147,12 +143,15 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             }
         }
 
-        String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
-        String queryAttr = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
-        Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
+        final String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
+        final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
+        final Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
+        final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
 
-        Map<String, String> attrs = new HashMap<String, String>();
+        configureMapper(jsonTypeSetting);
+
+        Map<String, String> attrs = new HashMap<>();
         if (queryAttr != null && queryAttr.trim().length() > 0) {
             attrs.put(queryAttr, query);
         }
@@ -166,18 +165,18 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             it.batchSize(batchSize != null ? batchSize : 1);
 
             iter = it.iterator();
-            List<Document> batch = new ArrayList<Document>();
+            List<Document> batch = new ArrayList<>();
 
             while (iter.hasNext()) {
                 batch.add(iter.next());
                 if (batch.size() == resultsPerFlowfile) {
-                    writeBatch(buildBatch(batch, context), flowFile, context, session, attrs, REL_RESULTS);
-                    batch = new ArrayList<Document>();
+                    writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
+                    batch = new ArrayList<>();
                 }
             }
 
             if (batch.size() > 0) {
-                writeBatch(buildBatch(batch, context), flowFile, context, session, attrs, REL_RESULTS);
+                writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
             }
 
             if (flowFile != null) {

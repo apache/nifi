@@ -304,8 +304,9 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         session.transfer(flowFile, rel);
     }
 
-    protected void configureMapper(String setting) {
+    protected synchronized void configureMapper(String setting) {
         objectMapper = new ObjectMapper();
+
         if (setting.equals(JSON_TYPE_STANDARD)) {
             objectMapper.registerModule(ObjectIdSerializer.getModule());
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
