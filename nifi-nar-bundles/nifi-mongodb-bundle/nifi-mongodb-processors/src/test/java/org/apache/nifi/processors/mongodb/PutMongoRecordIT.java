@@ -202,12 +202,10 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     public void testArrayConversion() throws Exception {
         TestRunner runner = init(PutMongoRecord.class);
         MockSchemaRegistry registry = new MockSchemaRegistry();
-        String rawSchema = "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[{\"name\":\"nom\",\"type\":\"string\"," +
-                "\"doc\":\"Type inferred from '\\\"HAMEL\\\"'\"},{\"name\":\"prenom\",\"type\":\"string\",\"doc\":" +
-                "\"Type inferred from '\\\"YVES\\\"'\"},{\"name\":\"tab\",\"type\":{\"type\":\"array\",\"items\":\"string\"}" +
-                ",\"doc\":\"Type inferred from '[\\\"aa\\\",\\\"bb\\\"]'\"}]}";
+        String rawSchema = "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"}," +
+                "{\"name\":\"arrayTest\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}";
         RecordSchema schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(rawSchema));
-        registry.addSchema("yves", schema);
+        registry.addSchema("test", schema);
         JsonTreeReader reader = new JsonTreeReader();
         runner.addControllerService("registry", registry);
         runner.addControllerService("reader", reader);
@@ -218,9 +216,9 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.assertValid();
 
         Map<String, String> attrs = new HashMap<>();
-        attrs.put("schema.name", "yves");
+        attrs.put("schema.name", "test");
 
-        runner.enqueue("{\"nom\":\"HAMEL\",\"prenom\":\"YVES\",\"tab\":[\"aa\",\"bb\"]}", attrs);
+        runner.enqueue("{\"name\":\"John Smith\",\"arrayTest\":[\"a\",\"b\",\"c\"]}", attrs);
         runner.run();
 
         runner.assertTransferCount(PutMongoRecord.REL_FAILURE, 0);
