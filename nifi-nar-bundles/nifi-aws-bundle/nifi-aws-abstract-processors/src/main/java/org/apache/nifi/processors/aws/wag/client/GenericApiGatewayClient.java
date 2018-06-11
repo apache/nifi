@@ -112,13 +112,9 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
             headers = new HashMap<>();
         }
         if (apiKey != null) {
-            final Map<String, String> headersWithApiKey = new HashMap<>();
-            headers.forEach(headersWithApiKey::put);
-            headersWithApiKey.put(API_KEY_HEADER, apiKey);
-            return headersWithApiKey;
-        } else {
-            return headers;
+            headers.put(API_KEY_HEADER, apiKey);
         }
+        return headers;
     }
 
     public URI getEndpoint() {
