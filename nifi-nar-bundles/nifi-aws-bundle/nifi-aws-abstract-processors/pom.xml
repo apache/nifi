@@ -86,5 +86,19 @@
             <artifactId>nifi-proxy-configuration-api</artifactId>
         </dependency>
     </dependencies>
-
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <!-- 3rd party APL 2.0 code brought in, should not have headers -->
+                        <!--https://www.apache.org/legal/src-headers.html#3party-->
+                        <exclude>src/main/java/org/apache/nifi/processors/aws/wag/client/*.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

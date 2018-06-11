@@ -94,7 +94,8 @@ The following binary components are provided under the Apache Software License v
         from the source code management (SCM) system project uses.
 
 
-  (ASLv2) This includes derived works from apigateway-generic-java-sdk project (https://github.com/rpgreen/apigateway-generic-java-sdk):
+  (ASLv2) This includes derived works from apigateway-generic-java-sdk project (https://github.com/rpgreen/apigateway-generic-java-sdk)
+  https://github.com/rpgreen/apigateway-generic-java-sdk/commit/32eea44cc855a530c9b4a28b9f3601a41bc85618 as the point reference:
   The derived work is adapted from
     main/ca/ryangreen/apigateway/generic/
       GenericApiGatewayClient.java
