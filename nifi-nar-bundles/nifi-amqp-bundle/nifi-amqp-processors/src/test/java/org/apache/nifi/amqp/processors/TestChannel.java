@@ -18,9 +18,11 @@ package org.apache.nifi.amqp.processors;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +50,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.ConsumerShutdownSignalCallback;
 import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 import com.rabbitmq.client.Method;
 import com.rabbitmq.client.ReturnCallback;
@@ -61,6 +64,8 @@ import com.rabbitmq.client.ShutdownSignalException;
 class TestChannel implements Channel {
 
     private final ExecutorService executorService;
+    private final Map<String, List<Consumer>> consumerMap = new HashMap<>();
+
     private final Map<String, BlockingQueue<GetResponse>> enqueuedMessages;
     private final Map<String, List<String>> routingKeyToQueueMappings;
     private final Map<String, String> exchangeToRoutingKeyMappings;
@@ -68,6 +73,9 @@ class TestChannel implements Channel {
     private boolean open;
     private boolean corrupted;
     private Connection connection;
+    private long deliveryTag = 0L;
+    private final BitSet acknowledgments = new BitSet();
+    private final BitSet nacks = new BitSet();
 
     public TestChannel(Map<String, String> exchangeToRoutingKeyMappings,
             Map<String, List<String>> routingKeyToQueueMappings) {
@@ -232,7 +240,9 @@ class TestChannel implements Channel {
 
         if (exchange.equals("")){ // default exchange; routingKey corresponds to a queue.
             BlockingQueue<GetResponse> messages = this.getMessageQueue(routingKey);
-            GetResponse response = new GetResponse(null, props, body, messages.size());
+            final Envelope envelope = new Envelope(deliveryTag++, false, exchange, routingKey);
+
+            GetResponse response = new GetResponse(envelope, props, body, messages.size());
             messages.offer(response);
         } else {
             String rKey = this.exchangeToRoutingKeyMappings.get(exchange);
@@ -244,8 +254,16 @@ class TestChannel implements Channel {
                 } else {
                     for (String queueName : queueNames) {
                         BlockingQueue<GetResponse> messages = this.getMessageQueue(queueName);
-                        GetResponse response = new GetResponse(null, props, body, messages.size());
+                        final Envelope envelope = new Envelope(deliveryTag++, false, exchange, routingKey);
+                        GetResponse response = new GetResponse(envelope, props, body, messages.size());
                         messages.offer(response);
+
+                        final List<Consumer> consumers = consumerMap.get(queueName);
+                        if (consumers != null) {
+                            for (final Consumer consumer : consumers) {
+                                consumer.handleDelivery("consumerTag", envelope, props, body);
+                            }
+                        }
                     }
                 }
             } else {
@@ -461,20 +479,25 @@ class TestChannel implements Channel {
 
     @Override
     public void basicAck(long deliveryTag, boolean multiple) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+        acknowledgments.set((int) deliveryTag);
+    }
 
+    public boolean isAck(final int deliveryTag) {
+        return acknowledgments.get(deliveryTag);
     }
 
     @Override
     public void basicNack(long deliveryTag, boolean multiple, boolean requeue) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+        nacks.set((int) deliveryTag);
+    }
 
+    public boolean isNack(final int deliveryTag) {
+        return nacks.get(deliveryTag);
     }
 
     @Override
     public void basicReject(long deliveryTag, boolean requeue) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
-
+        nacks.set((int) deliveryTag);
     }
 
     @Override
@@ -484,7 +507,21 @@ class TestChannel implements Channel {
 
     @Override
     public String basicConsume(String queue, boolean autoAck, Consumer callback) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+        final BlockingQueue<GetResponse> messageQueue = enqueuedMessages.get(queue);
+        if (messageQueue == null) {
+            throw new IOException("Queue is not defined");
+        }
+
+        consumerMap.computeIfAbsent(queue, q -> new ArrayList<>()).add(callback);
+
+        final String consumerTag = UUID.randomUUID().toString();
+
+        GetResponse message;
+        while ((message = messageQueue.poll()) != null) {
+            callback.handleDelivery(consumerTag, message.getEnvelope(), message.getProps(), message.getBody());
+        }
+
+        return consumerTag;
     }
 
     @Override

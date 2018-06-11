@@ -35,6 +35,7 @@ abstract class AMQPWorker implements AutoCloseable {
 
     private final static Logger logger = LoggerFactory.getLogger(AMQPWorker.class);
     private final Channel channel;
+    private boolean closed = false;
 
     /**
      * Creates an instance of this worker initializing it with AMQP
@@ -58,20 +59,21 @@ abstract class AMQPWorker implements AutoCloseable {
         return channel;
     }
 
-    /**
-     * Closes {@link Channel} created when instance of this class was created.
-     */
+
     @Override
     public void close() throws TimeoutException, IOException {
+        if (closed) {
+            return;
+        }
+
         if (logger.isDebugEnabled()) {
             logger.debug("Closing AMQP channel for " + this.channel.getConnection().toString());
         }
+
         this.channel.close();
+        closed = true;
     }
 
-    /**
-     *
-     */
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + ":" + this.channel.getConnection().toString();
@@ -80,10 +82,8 @@ abstract class AMQPWorker implements AutoCloseable {
     /**
      * Validates that a String property has value (not null nor empty)
      *
-     * @param propertyName
-     *            the name of the property
-     * @param value
-     *            the value of the property
+     * @param propertyName the name of the property
+     * @param value the value of the property
      */
     void validateStringProperty(String propertyName, String value) {
         if (value == null || value.trim().length() == 0) {

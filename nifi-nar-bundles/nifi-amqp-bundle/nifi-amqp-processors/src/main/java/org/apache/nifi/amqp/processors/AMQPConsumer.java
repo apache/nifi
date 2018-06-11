@@ -17,13 +17,20 @@
 package org.apache.nifi.amqp.processors;
 
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.nifi.processor.exception.ProcessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 
 /**
@@ -34,12 +41,45 @@ final class AMQPConsumer extends AMQPWorker {
 
     private final static Logger logger = LoggerFactory.getLogger(AMQPConsumer.class);
     private final String queueName;
+    private final BlockingQueue<GetResponse> responseQueue;
+    private final boolean autoAcknowledge;
+    private final Consumer consumer;
 
-    AMQPConsumer(Connection connection, String queueName) {
+    private volatile boolean closed = false;
+
+
+    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge) throws IOException {
         super(connection);
         this.validateStringProperty("queueName", queueName);
         this.queueName = queueName;
+        this.autoAcknowledge = autoAcknowledge;
+        this.responseQueue = new LinkedBlockingQueue<>(10);
+
         logger.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
+
+        final Channel channel = getChannel();
+        consumer = new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) throws IOException {
+                if (!autoAcknowledge && closed) {
+                    channel.basicReject(envelope.getDeliveryTag(), true);
+                    return;
+                }
+
+                try {
+                    responseQueue.put(new GetResponse(envelope, properties, body, Integer.MAX_VALUE));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        };
+
+        channel.basicConsume(queueName, autoAcknowledge, consumer);
+    }
+
+    // Visible for unit tests
+    protected Consumer getConsumer() {
+        return consumer;
     }
 
     /**
@@ -53,12 +93,29 @@ final class AMQPConsumer extends AMQPWorker {
      * @return instance of {@link GetResponse}
      */
     public GetResponse consume() {
-        try {
-            return getChannel().basicGet(this.queueName, true);
-        } catch (IOException e) {
-            logger.error("Failed to receive message from AMQP; " + this + ". Possible reasons: Queue '" + this.queueName
-                    + "' may not have been defined", e);
-            throw new ProcessException(e);
+        return responseQueue.poll();
+    }
+
+    public void acknowledge(final GetResponse response) throws IOException {
+        if (autoAcknowledge) {
+            return;
+        }
+
+        getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
+    }
+
+    @Override
+    public void close() throws TimeoutException, IOException {
+        closed = true;
+
+        GetResponse lastMessage = null;
+        GetResponse response;
+        while ((response = responseQueue.poll()) != null) {
+            lastMessage = response;
+        }
+
+        if (lastMessage != null) {
+            getChannel().basicNack(lastMessage.getEnvelope().getDeliveryTag(), true, true);
         }
     }
 
