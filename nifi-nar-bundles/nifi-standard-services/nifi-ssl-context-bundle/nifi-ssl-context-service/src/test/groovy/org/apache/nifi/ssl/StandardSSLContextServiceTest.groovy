@@ -48,7 +48,6 @@ class StandardSSLContextServiceTest {
 
     private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
     private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
-    private static final String TRUSTSTORE_PATH_WITH_EL = "\${someAttribute}/localhost-ts.jks"
 
     private static final String KEYSTORE_PASSWORD = "localtest"
     private static final String TRUSTSTORE_PASSWORD = "localtest"
@@ -98,60 +97,5 @@ class StandardSSLContextServiceTest {
         // Assert
         final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
         assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") == TRUSTSTORE_PATH
-    }
-
-    @Test
-    void testShouldNotValidateExpressionLanguageInFileValidator() {
-        // Arrange
-        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
-        String controllerServiceId = "ssl-context"
-        final SSLContextService sslContextService = new StandardSSLContextService()
-        runner.addControllerService(controllerServiceId, sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH_WITH_EL)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
-
-        // Act
-        def msg = shouldFail {
-            runner.enableControllerService(sslContextService)
-        }
-
-        // Assert
-        assert msg =~ "invalid because Cannot access file"
-        runner.assertNotValid(sslContextService)
-    }
-
-    @Test
-    void testShouldNotEvaluateExpressionLanguageInFileValidator() {
-        // Arrange
-        final String VALID_TRUSTSTORE_PATH_WITH_EL = "\${literal(''):trim()}${TRUSTSTORE_PATH}"
-
-        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
-        String controllerServiceId = "ssl-context"
-        final SSLContextService sslContextService = new StandardSSLContextService()
-        runner.addControllerService(controllerServiceId, sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, VALID_TRUSTSTORE_PATH_WITH_EL)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
-
-        // The verifySslConfig and customValidate methods correctly do not evaluate EL, but the custom file validator does, so extract it alone and validate
-        Validator fileValidator = StandardSSLContextService.createFileExistsAndReadableValidator()
-        final ValidationContext mockValidationContext = new MockValidationContext(
-                runner.getProcessContext() as MockProcessContext,
-                new MockStateManager(sslContextService),
-                new MockVariableRegistry())
-
-        // Act
-        ValidationResult vr = fileValidator.validate(StandardSSLContextService.TRUSTSTORE.name, VALID_TRUSTSTORE_PATH_WITH_EL, mockValidationContext)
-        logger.info("Custom file validation result: ${vr}")
-
-        // Assert
-        final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
-
-        // If the EL was evaluated, the paths would be identical
-        assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") != TRUSTSTORE_PATH
-
-        // If the EL was evaluated, the path would be valid
-        assert !vr.isValid()
     }
 }

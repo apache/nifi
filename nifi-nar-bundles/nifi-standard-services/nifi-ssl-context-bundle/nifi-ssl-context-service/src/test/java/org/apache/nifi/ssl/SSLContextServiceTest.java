@@ -146,6 +146,33 @@ public class SSLContextServiceTest {
     }
 
     @Test
+    public void testGoodWithEL() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        SSLContextService service = new StandardSSLContextService();
+
+        runner.setVariable("truststore", "src/test/resources/localhost-ts.jks");
+        runner.setVariable("keystore", "src/test/resources/localhost-ks.jks");
+
+        runner.addControllerService("test-good1", service);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "${keystore}");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), "${truststore}");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        runner.enableControllerService(service);
+
+        runner.setProperty("SSL Context Svc ID", "test-good1");
+        runner.assertValid(service);
+        service = (SSLContextService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
+        Assert.assertNotNull(service);
+        SSLContextService sslService = service;
+        sslService.createSSLContext(ClientAuth.REQUIRED);
+        sslService.createSSLContext(ClientAuth.WANT);
+        sslService.createSSLContext(ClientAuth.NONE);
+    }
+
+    @Test
     public void testWithChanges() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         SSLContextService service = new StandardSSLContextService();
