@@ -18,7 +18,7 @@
         <version>1.7.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>dockermaven</artifactId>
+    <artifactId>dockerhub</artifactId>
 
     <profiles>
         <profile>
@@ -39,35 +39,12 @@
                                     <buildArgs>
                                         <UID>1000</UID>
                                         <GID>1000</GID>
-                                        <NIFI_VERSION>${project.version}</NIFI_VERSION>
-                                        <NIFI_BINARY>target/nifi-${nifi.version}-bin.tar.gz</NIFI_BINARY>
+                                        <NIFI_VERSION>1.6.0</NIFI_VERSION>
                                     </buildArgs>
                                     <repository>apache/nifi</repository>
-                                    <tag>${project.version}-dockermaven</tag>
+                                    <!-- Right now we can only test against the latest released NiFi version to check our Dockerfile -->
+                                    <tag>${project.version}-dockerhub</tag>
                                 </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <!-- Copy generated artifact to nifi-docker -->
-                    <plugin>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <version>1.8</version>
-                        <executions>
-                            <execution>
-                                <id>copy-for-docker</id>
-                                <phase>process-sources</phase>
-                                <configuration>
-                                    <target name="copy assembly to nifi-docker for image build">
-                                        <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
-                                            <fileset dir="${project.basedir}/../../nifi-assembly/target" includes="*.tar.gz">
-                                                <include name="*.tar.gz" />
-                                            </fileset>
-                                        </copy>
-                                    </target>
-                                </configuration>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
                             </execution>
                         </executions>
                     </plugin>
@@ -83,10 +60,10 @@
                                 </goals>
                                 <configuration>
                                     <arguments>
-                                        <argument>${project.version}-dockermaven</argument>
-                                        <argument>${project.version}</argument>
+                                        <argument>${project.version}-dockerhub</argument>
+                                        <argument>1.6.0</argument>
                                     </arguments>
-                                    <executable>${project.basedir}/integration-test.sh</executable>
+                                    <executable>${project.basedir}/../dockermaven/integration-test.sh</executable>
                                 </configuration>
                             </execution>
                         </executions>
