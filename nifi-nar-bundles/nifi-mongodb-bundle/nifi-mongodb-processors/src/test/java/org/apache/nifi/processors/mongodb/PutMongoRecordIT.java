@@ -17,12 +17,17 @@
 package org.apache.nifi.processors.mongodb;
 
 
+import org.apache.avro.Schema;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockSchemaRegistry;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -43,6 +48,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -190,5 +196,32 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         // verify 1 doc inserted into the collection
         assertEquals(4, collection.count());
         //assertEquals(doc, collection.find().first());
+    }
+
+    @Test
+    public void testArrayConversion() throws Exception {
+        TestRunner runner = init(PutMongoRecord.class);
+        MockSchemaRegistry registry = new MockSchemaRegistry();
+        String rawSchema = "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"}," +
+                "{\"name\":\"arrayTest\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}";
+        RecordSchema schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(rawSchema));
+        registry.addSchema("test", schema);
+        JsonTreeReader reader = new JsonTreeReader();
+        runner.addControllerService("registry", registry);
+        runner.addControllerService("reader", reader);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
+        runner.setProperty(PutMongoRecord.RECORD_READER_FACTORY, "reader");
+        runner.enableControllerService(registry);
+        runner.enableControllerService(reader);
+        runner.assertValid();
+
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("schema.name", "test");
+
+        runner.enqueue("{\"name\":\"John Smith\",\"arrayTest\":[\"a\",\"b\",\"c\"]}", attrs);
+        runner.run();
+
+        runner.assertTransferCount(PutMongoRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongoRecord.REL_SUCCESS, 1);
     }
 }
