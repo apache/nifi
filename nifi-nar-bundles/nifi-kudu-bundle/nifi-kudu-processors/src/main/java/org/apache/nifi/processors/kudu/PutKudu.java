@@ -125,6 +125,7 @@ public class PutKudu extends AbstractKudu {
                         row.addInt(colIdx, record.getAsInt(colName));
                         break;
                     case INT64:
+                    case UNIXTIME_MICROS:
                         row.addLong(colIdx, record.getAsLong(colName));
                         break;
                     case STRING:

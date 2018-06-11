@@ -330,6 +330,7 @@ public class TestPutKudu {
             new ColumnSchemaBuilder("id", Type.INT64).key(true).build(),
             new ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
             new ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
+            new ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
             new ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
                 new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(9).scale(0).build()
             ).build()));
@@ -338,12 +339,14 @@ public class TestPutKudu {
             new RecordField("id", RecordFieldType.BIGINT.getDataType()),
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.SHORT.getDataType()),
+            new RecordField("updated_at", RecordFieldType.BIGINT.getDataType()),
             new RecordField("score", RecordFieldType.LONG.getDataType())));
 
         Map<String, Object> values = new HashMap<>();
         values.put("id", id);
         values.put("name", name);
         values.put("age", age);
+        values.put("updated_at", System.currentTimeMillis() * 1000);
         values.put("score", 10000L);
         new PutKudu().buildPartialRow(
             kuduSchema,
