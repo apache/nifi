@@ -529,7 +529,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
         for (String confSQL : configQueries) {
             try(final Statement st = con.createStatement()){
-                st.executeQuery(confSQL);
+                st.execute(confSQL);
             } catch (SQLException e) {
                 return Pair.of(confSQL, e);
             }
