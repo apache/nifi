@@ -18,22 +18,37 @@ package org.apache.nifi.amqp.processors;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
-import org.apache.nifi.processor.exception.ProcessException;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.GetResponse;
 
-@Ignore
 public class AMQPConsumerTest {
+
+
+    @Test
+    public void testUnconsumedMessagesNacked() throws TimeoutException, IOException {
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
+        final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
+
+        final TestConnection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true);
+        consumer.getChannel().basicPublish("myExchange", "key1", new BasicProperties(), new byte[0]);
+
+        consumer.close();
+        assertTrue(((TestChannel) consumer.getChannel()).isNack(0));
+    }
 
     @Test(expected = IllegalArgumentException.class)
     public void failOnNullConnection() throws IOException {
@@ -52,7 +67,7 @@ public class AMQPConsumerTest {
         new AMQPConsumer(conn, " ", true);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test(expected = IOException.class)
     public void failOnNonExistingQueue() throws Exception {
         Connection conn = new TestConnection(null, null);
         try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true)) {

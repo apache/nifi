@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
@@ -42,6 +43,7 @@ final class AMQPConsumer extends AMQPWorker {
     private final String queueName;
     private final BlockingQueue<GetResponse> responseQueue;
     private final boolean autoAcknowledge;
+    private final Consumer consumer;
 
     private volatile boolean closed = false;
 
@@ -56,7 +58,7 @@ final class AMQPConsumer extends AMQPWorker {
         logger.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
 
         final Channel channel = getChannel();
-        channel.basicConsume(queueName, autoAcknowledge, new DefaultConsumer(channel) {
+        consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) throws IOException {
                 if (!autoAcknowledge && closed) {
@@ -70,7 +72,14 @@ final class AMQPConsumer extends AMQPWorker {
                     Thread.currentThread().interrupt();
                 }
             }
-        });
+        };
+
+        channel.basicConsume(queueName, autoAcknowledge, consumer);
+    }
+
+    // Visible for unit tests
+    protected Consumer getConsumer() {
+        return consumer;
     }
 
     /**
