@@ -400,7 +400,7 @@ public class PutHive3Streaming extends AbstractProcessor {
                 hiveStreamingConnection = makeStreamingConnection(options, reader);
                 // Add shutdown handler with higher priority than FileSystem shutdown hook so that streaming connection gets closed first before
                 // filesystem close (to avoid ClosedChannelException)
-                ShutdownHookManager.addShutdownHook(hiveStreamingConnection::close,  FileSystem.SHUTDOWN_HOOK_PRIORITY + 1);
+                ShutdownHookManager.addShutdownHook(hiveStreamingConnection::close, FileSystem.SHUTDOWN_HOOK_PRIORITY + 1);
 
                 // Write records to Hive streaming, then commit and close
                 hiveStreamingConnection.beginTransaction();
@@ -425,7 +425,9 @@ public class PutHive3Streaming extends AbstractProcessor {
             }
         } catch (InvalidTable | SerializationError | StreamingIOFailure | IOException e) {
             if (rollbackOnFailure) {
-                abortConnection(hiveStreamingConnection);
+                if (hiveStreamingConnection != null) {
+                    abortConnection(hiveStreamingConnection);
+                }
                 throw new ProcessException(e.getLocalizedMessage(), e);
             } else {
                 Map<String, String> updateAttributes = new HashMap<>();
@@ -445,7 +447,9 @@ public class PutHive3Streaming extends AbstractProcessor {
         } catch (ShouldRetryException e) {
             // This exception is already a result of adjusting an error, so simply transfer the FlowFile to retry. Still need to abort the txn
             getLogger().error(e.getLocalizedMessage(), e);
-            abortConnection(hiveStreamingConnection);
+            if (hiveStreamingConnection != null) {
+                abortConnection(hiveStreamingConnection);
+            }
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_RETRY);
         } catch (StreamingException se) {
@@ -454,7 +458,9 @@ public class PutHive3Streaming extends AbstractProcessor {
             if (cause == null) cause = se;
             // This is a failure on the incoming data, rollback on failure if specified; otherwise route to failure after penalizing (and abort txn in any case)
             if (rollbackOnFailure) {
-                abortConnection(hiveStreamingConnection);
+                if (hiveStreamingConnection != null) {
+                    abortConnection(hiveStreamingConnection);
+                }
                 throw new ProcessException(cause.getLocalizedMessage(), cause);
             } else {
                 flowFile = session.penalize(flowFile);
@@ -465,9 +471,11 @@ public class PutHive3Streaming extends AbstractProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
 
-        } catch (Exception e) {
-            abortConnection(hiveStreamingConnection);
-            throw (e instanceof ProcessException) ? (ProcessException) e : new ProcessException(e);
+        } catch (Throwable t) {
+            if (hiveStreamingConnection != null) {
+                abortConnection(hiveStreamingConnection);
+            }
+            throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
         } finally {
             closeConnection(hiveStreamingConnection);
             // Restore original class loader, might not be necessary but is good practice since the processor task changed it
