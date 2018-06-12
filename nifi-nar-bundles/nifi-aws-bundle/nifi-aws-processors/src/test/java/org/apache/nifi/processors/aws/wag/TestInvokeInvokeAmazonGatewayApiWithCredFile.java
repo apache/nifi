@@ -17,8 +17,8 @@
 package org.apache.nifi.processors.aws.wag;
 
 import java.io.IOException;
-import org.apache.nifi.processors.standard.TestServer;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.TestServer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
