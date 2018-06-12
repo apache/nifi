@@ -31,6 +31,7 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage.RecipientType;
 import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeUtility;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
@@ -142,6 +143,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.TO, "${to}");
         runner.setProperty(PutEmail.BCC, "${bcc}");
         runner.setProperty(PutEmail.CC, "${cc}");
+        runner.setProperty(PutEmail.ATTRIBUTE_NAME_REGEX, "Precedence.*");
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("from", "test@apache.org <NiFi>");
@@ -149,6 +151,8 @@ public class TestPutEmail {
         attributes.put("to", "to@apache.org");
         attributes.put("bcc", "bcc@apache.org");
         attributes.put("cc", "cc@apache.org");
+        attributes.put("Precedence", "bulk");
+        attributes.put("PrecedenceEncodeDecodeTest", "búlk");
         runner.enqueue("Some Text".getBytes(), attributes);
 
         runner.run();
@@ -168,6 +172,8 @@ public class TestPutEmail {
         assertEquals("bcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
         assertEquals(1, message.getRecipients(RecipientType.CC).length);
         assertEquals("cc@apache.org",message.getRecipients(RecipientType.CC)[0].toString());
+        assertEquals("bulk", MimeUtility.decodeText(message.getHeader("Precedence")[0]));
+        assertEquals("búlk", MimeUtility.decodeText(message.getHeader("PrecedenceEncodeDecodeTest")[0]));
     }
 
     @Test
