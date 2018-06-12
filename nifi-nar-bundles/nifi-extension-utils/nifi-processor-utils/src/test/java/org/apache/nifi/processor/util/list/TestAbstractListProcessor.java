@@ -275,7 +275,7 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        protected List<ListableEntity> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
+        protected List<ListableEntity> performListing(ProcessContext context, FlowFile flowFile, Long minTimestamp) throws IOException {
             return Collections.unmodifiableList(entities);
         }
 

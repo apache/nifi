@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.standard.util;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.nifi.processor.util.list.ListableEntity;
 
@@ -32,6 +34,11 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
     private final String permissions;
     private final String owner;
     private final String group;
+    private final Map<String,String> attributes;
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
 
     public String getFileName() {
         return fileName;
@@ -109,6 +116,7 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
         this.permissions = builder.permissions;
         this.owner = builder.owner;
         this.group = builder.group;
+        this.attributes = builder.attributes==null?new HashMap<>():builder.attributes;
     }
 
     public static final class Builder {
@@ -121,6 +129,7 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
         private String permissions;
         private String owner;
         private String group;
+        private Map<String,String> attributes;
 
         public FileInfo build() {
             return new FileInfo(this);
@@ -163,6 +172,12 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
 
         public Builder group(String group) {
             this.group = group;
+            return this;
+        }
+
+
+        public Builder setAttributes(Map<String, String> attributes) {
+            this.attributes = attributes;
             return this;
         }
     }

@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -99,11 +100,11 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
+    protected List<FileInfo> performListing(final ProcessContext context, final FlowFile flowFile, final Long minTimestamp) throws IOException {
         final FileTransfer transfer = getFileTransfer(context);
         final List<FileInfo> listing;
         try {
-            listing = transfer.getListing();
+            listing = transfer.getListing(flowFile);
         } finally {
             IOUtils.closeQuietly(transfer);
         }

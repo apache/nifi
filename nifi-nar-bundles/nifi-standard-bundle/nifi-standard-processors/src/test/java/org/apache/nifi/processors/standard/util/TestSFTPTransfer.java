@@ -27,7 +27,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,12 +47,12 @@ public class TestSFTPTransfer {
 
     private static final Logger logger = LoggerFactory.getLogger(TestSFTPTransfer.class);
 
-    private SFTPTransfer createSftpTransfer(ProcessContext processContext, ChannelSftp channel) {
+    private SFTPTransfer createSftpTransfer(ProcessContext processContext, ChannelSftp sftchannel) {
         final ComponentLog componentLog = mock(ComponentLog.class);
         return new SFTPTransfer(processContext, componentLog) {
             @Override
             protected ChannelSftp getChannel(FlowFile flowFile) throws IOException {
-                return channel;
+                return sftchannel;
             }
         };
     }
@@ -64,8 +63,7 @@ public class TestSFTPTransfer {
         final ChannelSftp channel = mock(ChannelSftp.class);
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
-        sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+        sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
 
         // Dir existence check should be done by stat
         verify(channel).stat(eq("/dir1/dir2/dir3"));
@@ -80,9 +78,8 @@ public class TestSFTPTransfer {
 
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
         try {
-            sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+            sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
             fail("Should fail");
         } catch (IOException e) {
             assertEquals("Failed to determine if remote directory exists at /dir1/dir2/dir3 due to 4: Failure", e.getMessage());
@@ -101,8 +98,7 @@ public class TestSFTPTransfer {
 
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
-        sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+        sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
 
         // Dir existence check should be done by stat
         verify(channel).stat(eq("/dir1/dir2/dir3")); // dir3 was not found
@@ -120,8 +116,7 @@ public class TestSFTPTransfer {
 
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
-        sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+        sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
 
         // Dir existence check should be done by stat
         verify(channel).stat(eq("/dir1/dir2/dir3")); // dir3 was not found
@@ -142,9 +137,8 @@ public class TestSFTPTransfer {
 
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
         try {
-            sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+            sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
             fail("Should fail");
         } catch (IOException e) {
             assertEquals("Failed to create remote directory /dir1/dir2/dir3 due to 4: Failed", e.getMessage());
@@ -164,8 +158,7 @@ public class TestSFTPTransfer {
         final ChannelSftp channel = mock(ChannelSftp.class);
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
-        sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+        sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
 
         // stat should not be called.
         verify(channel, times(0)).stat(eq("/dir1/dir2/dir3"));
@@ -192,8 +185,7 @@ public class TestSFTPTransfer {
 
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
-        sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+        sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
 
         // stat should not be called.
         verify(channel, times(0)).stat(eq("/dir1/dir2/dir3"));
@@ -213,8 +205,7 @@ public class TestSFTPTransfer {
 
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
-        sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+        sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
 
         // stat should not be called.
         verify(channel, times(0)).stat(eq("/dir1/dir2/dir3"));
@@ -231,9 +222,8 @@ public class TestSFTPTransfer {
 
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, channel);
         final MockFlowFile flowFile = new MockFlowFile(0);
-        final File remoteDir = new File("/dir1/dir2/dir3");
         try {
-            sftpTransfer.ensureDirectoryExists(flowFile, remoteDir);
+            sftpTransfer.ensureDirectoryExists(flowFile, "/dir1/dir2/dir3");
             fail("Should fail");
         } catch (IOException e) {
             assertEquals("Could not blindly create remote directory due to Permission denied", e.getMessage());

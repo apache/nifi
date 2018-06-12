@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.stream.io.BufferedInputStream;
+import java.io.BufferedInputStream;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -26,13 +26,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -120,16 +117,13 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     beforePut(flowFile, context, transfer);
                     final FlowFile flowFileToTransfer = flowFile;
                     final AtomicReference<String> fullPathRef = new AtomicReference<>(null);
-                    session.read(flowFile, new InputStreamCallback() {
-                        @Override
-                        public void process(final InputStream in) throws IOException {
-                            try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                                if (workingDirPath != null && context.getProperty(SFTPTransfer.CREATE_DIRECTORY).asBoolean()) {
-                                    transfer.ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
-                                }
-
-                                fullPathRef.set(transfer.put(flowFileToTransfer, workingDirPath, conflictResult.getFileName(), bufferedIn));
+                    session.read(flowFile, in -> {
+                        try (final InputStream bufferedIn = new BufferedInputStream(in)) {
+                            if (workingDirPath != null && context.getProperty(FileTransfer.CREATE_DIRECTORY).asBoolean()) {
+                                transfer.ensureDirectoryExists(flowFileToTransfer, workingDirPath);
                             }
+
+                            fullPathRef.set(transfer.put(flowFileToTransfer, workingDirPath, conflictResult.getFileName(), bufferedIn));
                         }
                     });
                     afterPut(flowFile, context, transfer);
@@ -146,6 +140,10 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     }
                     final String destinationUri = transfer.getProtocolName() + "://" + hostname + fullPathWithSlash;
                     session.getProvenanceReporter().send(flowFile, destinationUri, millis);
+
+                    //filename may have changed due to conflict resolution
+                    flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), conflictResult.getFileName());
+                    flowFile = session.putAttribute(flowFile, CoreAttributes.ABSOLUTE_PATH.key(), fullPathRef.get());
                 }
 
                 if (conflictResult.isPenalize()) {

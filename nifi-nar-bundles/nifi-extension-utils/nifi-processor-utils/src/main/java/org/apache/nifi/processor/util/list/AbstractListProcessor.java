@@ -402,7 +402,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         final long currentRunTimeMillis = System.currentTimeMillis();
         try {
             // track of when this last executed for consideration of the lag nanos
-            entityList = performListing(context, minTimestampToListMillis);
+            entityList = performListing(context, null, minTimestampToListMillis);
         } catch (final IOException e) {
             getLogger().error("Failed to perform listing on remote host due to {}", e);
             context.yield();
@@ -608,7 +608,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * @param minTimestamp the minimum timestamp of entities that should be returned.
      * @return a Listing of entities that have a timestamp >= minTimestamp
      */
-    protected abstract List<T> performListing(final ProcessContext context, final Long minTimestamp) throws IOException;
+    protected abstract List<T> performListing(final ProcessContext context, final FlowFile flowFile, final Long minTimestamp) throws IOException;
 
     /**
      * Determines whether or not the listing must be reset if the value of the given property is changed

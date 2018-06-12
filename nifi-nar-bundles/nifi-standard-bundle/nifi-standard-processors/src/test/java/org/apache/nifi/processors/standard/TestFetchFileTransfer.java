@@ -280,7 +280,12 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public List<FileInfo> getListing() throws IOException {
+                public List<FileInfo> getListing(FlowFile flowFile) throws IOException {
+                    return null;
+                }
+
+                @Override
+                public List<FileInfo> getDirectoryListing(FlowFile flowFile, String path) throws IOException {
                     return null;
                 }
 
@@ -365,7 +370,7 @@ public class TestFetchFileTransfer {
                 }
 
                 @Override
-                public void ensureDirectoryExists(FlowFile flowFile, File remoteDirectory) throws IOException {
+                public void ensureDirectoryExists(FlowFile flowFile, String remoteDirectory) throws IOException {
                     if (!allowCreateDir) {
                         throw new PermissionDeniedException("test permission denied");
                     }
