@@ -1388,7 +1388,7 @@ public class ControllerFacade implements Authorizable {
         if (rootGroup.getIdentifier().equals(componentId)) {
             return rootGroup.checkAuthorization(authorizer, RequestAction.READ, user);
         }
-        Connectable connectable = rootGroup.findLocalConnectable(componentId);
+        Connectable connectable = rootGroup.findProcessor(componentId);
         if (connectable == null) {
             // if the component id is not a processor then consider a connection
             connectable = rootGroup.findConnection(componentId).getSource();
@@ -1535,6 +1535,12 @@ public class ControllerFacade implements Authorizable {
             if (event.getEventDuration() >= 0) {
                 dto.setEventDuration(event.getEventDuration());
             }
+            
+            // lineage duration
+            if (event.getLineageStartDate() > 0) {
+                final long lineageDuration = event.getEventTime() - event.getLineageStartDate();
+                dto.setLineageDuration(lineageDuration);
+            }
 
             // parent uuids
             final List<String> parentUuids = new ArrayList<>(event.getParentUuids());
@@ -1545,12 +1551,6 @@ public class ControllerFacade implements Authorizable {
             final List<String> childUuids = new ArrayList<>(event.getChildUuids());
             Collections.sort(childUuids, Collator.getInstance(Locale.US));
             dto.setChildUuids(childUuids);
-        }
-
-        // lineage duration
-        if (event.getLineageStartDate() > 0) {
-            final long lineageDuration = event.getEventTime() - event.getLineageStartDate();
-            dto.setLineageDuration(lineageDuration);
         }
 
         return dto;
