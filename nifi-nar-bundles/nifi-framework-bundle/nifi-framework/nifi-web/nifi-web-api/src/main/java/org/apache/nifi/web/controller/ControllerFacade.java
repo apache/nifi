@@ -1535,7 +1535,7 @@ public class ControllerFacade implements Authorizable {
             if (event.getEventDuration() >= 0) {
                 dto.setEventDuration(event.getEventDuration());
             }
-            
+
             // lineage duration
             if (event.getLineageStartDate() > 0) {
                 final long lineageDuration = event.getEventTime() - event.getLineageStartDate();
