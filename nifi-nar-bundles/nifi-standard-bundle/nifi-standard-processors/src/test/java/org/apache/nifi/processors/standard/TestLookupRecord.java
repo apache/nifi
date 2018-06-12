@@ -86,12 +86,10 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testAttributeRegex() {
+    public void testFlowfileAttributesPassed() {
         Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "person");
         attrs.put("something_something", "test");
-
-        runner.setProperty(LookupRecord.ATTRIBUTES_REGEX, "(schema.*|.*_something$)");
 
         Map<String, Object> expected = new HashMap<>();
         expected.putAll(attrs);
