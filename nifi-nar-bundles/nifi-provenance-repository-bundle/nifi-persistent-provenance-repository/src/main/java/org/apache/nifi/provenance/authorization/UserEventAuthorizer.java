@@ -51,7 +51,7 @@ public class UserEventAuthorizer implements EventAuthorizer {
             return false;
         }
 
-        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, event.getAttributes());
+        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
         return Result.Approved.equals(result.getResult());
     }
 
@@ -62,6 +62,6 @@ public class UserEventAuthorizer implements EventAuthorizer {
         }
 
         final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 }

@@ -400,7 +400,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
 
         final Authorizable eventAuthorizable = resourceFactory.createProvenanceDataAuthorizable(event.getComponentId());
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user); //, event.getAttributes());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 
     public List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events, final NiFiUser user) {

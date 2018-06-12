@@ -25,7 +25,6 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -1082,7 +1081,10 @@ public class ControllerFacade implements Authorizable {
             if (includeResults || queryResult.isFinished()) {
                 final List<ProvenanceEventDTO> events = new ArrayList<>();
                 for (final ProvenanceEventRecord record : queryResult.getMatchingEvents()) {
-                    events.add(createProvenanceEventDto(record, Boolean.TRUE.equals(summarize)));
+                    final ProvenanceEventDTO dto = createProvenanceEventDto(record, Boolean.TRUE.equals(summarize));
+                    if (dto != null) {
+                        events.add(dto);
+                    }
                 }
                 resultsDto.setProvenanceEvents(events);
             }
@@ -1308,13 +1310,7 @@ public class ControllerFacade implements Authorizable {
 
         final Map<String, String> eventAttributes = event.getAttributes();
 
-        // ensure we can read the data
-        final AuthorizationResult result = dataAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, eventAttributes);
-        if (!Result.Approved.equals(result.getResult())) {
-            return result;
-        }
-
-        // ensure we can write the data
+        // ensure we can write the data; read the data should have been checked already
         return dataAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user, eventAttributes);
     }
 
@@ -1342,14 +1338,8 @@ public class ControllerFacade implements Authorizable {
         dataAuthorizable.authorize(authorizer, RequestAction.READ, user, eventAttributes);
         dataAuthorizable.authorize(authorizer, RequestAction.WRITE, user, eventAttributes);
     }
-    
+
     private AuthorizationResult checkAuthorizationForData(ProvenanceEventRecord event) {
-//        try {
-//            authorizeData(event);
-//        } catch (AccessDeniedException ade) {
-//            return AuthorizationResult.denied("User not authorized for data in provenance event");
-//        }
-//        return AuthorizationResult.approved();
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Authorizable dataAuthorizable;
         if (event.isRemotePortType()) {
@@ -1357,21 +1347,52 @@ public class ControllerFacade implements Authorizable {
         } else {
             dataAuthorizable = flowController.createLocalDataAuthorizable(event.getComponentId());
         }
-        
+
         final Map<String, String> eventAttributes = event.getAttributes();
-        
+
         // ensure we can read the data
         return dataAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, eventAttributes);
     }
-    
+
+    private AuthorizationResult checkAuthorizationForProvenanceData(final ProvenanceEventRecord event) {
+        final ProcessGroup rootGroup = flowController.getGroup(getRootGroupId());
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final String componentId = event.getComponentId();
+        Connectable connectable;
+        String targetId = null;
+        // check if the component is the rootGroup
+        if (getRootGroupId().equals(componentId)) {
+            targetId = componentId;
+        }
+        if (targetId == null) {
+            // check if the component is a processor
+            connectable = rootGroup.findProcessor(componentId);
+            if (connectable == null) {
+                // if the component id is not a processor then consider a connection
+                connectable = rootGroup.findConnection(componentId).getSource();
+
+                if (connectable == null) {
+                    throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow");
+                }
+            }
+            targetId = connectable.getIdentifier();
+        }
+        final Authorizable provenanceDataAuthorizable = flowController.createProvenanceDataAuthorizable(targetId);
+
+        return provenanceDataAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
+    }
+
     private AuthorizationResult checkConnectableAuthorization(final String componentId) {
         final ProcessGroup rootGroup = flowController.getGroup(getRootGroupId());
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        Connectable connectable = rootGroup.findProcessor(componentId);
+        if (rootGroup.getIdentifier().equals(componentId)) {
+            return rootGroup.checkAuthorization(authorizer, RequestAction.READ, user);
+        }
+        Connectable connectable = rootGroup.findLocalConnectable(componentId);
         if (connectable == null) {
-            //if the component id is not a processor then consider a connection
+            // if the component id is not a processor then consider a connection
             connectable = rootGroup.findConnection(componentId).getSource();
-            
+
             if (connectable == null) {
                 throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow");
             }
@@ -1406,6 +1427,11 @@ public class ControllerFacade implements Authorizable {
      * @return event
      */
     private ProvenanceEventDTO createProvenanceEventDto(final ProvenanceEventRecord event, final boolean summarize) {
+        // do not generate DTO if not authorized
+        final AuthorizationResult provenanceResult = checkAuthorizationForProvenanceData(event);
+        if (Result.Denied.equals(provenanceResult.getResult())) {
+            return null;
+        }
         final ProvenanceEventDTO dto = new ProvenanceEventDTO();
         dto.setId(String.valueOf(event.getEventId()));
         dto.setEventId(event.getEventId());
@@ -1420,65 +1446,58 @@ public class ControllerFacade implements Authorizable {
         // sets the component details if it can find the component still in the flow
         setComponentDetails(dto);
 
-//        try {
-//            AuthorizationResult result = flowController.checkConnectableAuthorization(event.getComponentId());
-        AuthorizationResult result = checkConnectableAuthorization(event.getComponentId());
-            if (Result.Denied.equals(result.getResult())) {
-                dto.setComponentType("Processor"); // is this always a Processor?
-                dto.setComponentName(dto.getComponentId());
-                dto.setEventType("UNKNOWN");
+        // only include all details if not summarizing
+        if (!summarize) {
+            // convert the attributes
+            final Comparator<AttributeDTO> attributeComparator = new Comparator<AttributeDTO>() {
+                @Override
+                public int compare(AttributeDTO a1, AttributeDTO a2) {
+                    return Collator.getInstance(Locale.US).compare(a1.getName(), a2.getName());
+                }
+            };
+
+            final SortedSet<AttributeDTO> attributes = new TreeSet<>(attributeComparator);
+
+            final Map<String, String> updatedAttrs = event.getUpdatedAttributes();
+            final Map<String, String> previousAttrs = event.getPreviousAttributes();
+
+            // add previous attributes that haven't been modified.
+            for (final Map.Entry<String, String> entry : previousAttrs.entrySet()) {
+                // don't add any attributes that have been updated; we will do that next
+                if (updatedAttrs.containsKey(entry.getKey())) {
+                    continue;
+                }
+
+                final AttributeDTO attribute = new AttributeDTO();
+                attribute.setName(entry.getKey());
+                attribute.setValue(entry.getValue());
+                attribute.setPreviousValue(entry.getValue());
+                attributes.add(attribute);
             }
 
-//            authorizeData(event);
-            final AuthorizationResult dataResult = checkAuthorizationForData(event); //(authorizer, RequestAction.READ, user, event.getAttributes());
+            // Add all of the update attributes
+            for (final Map.Entry<String, String> entry : updatedAttrs.entrySet()) {
+                final AttributeDTO attribute = new AttributeDTO();
+                attribute.setName(entry.getKey());
+                attribute.setValue(entry.getValue());
+                attribute.setPreviousValue(previousAttrs.get(entry.getKey()));
+                attributes.add(attribute);
+            }
 
-            // only include all details if not summarizing and approved
-            if (!summarize && Result.Approved.equals(dataResult.getResult())) {
-                // convert the attributes
-                final Comparator<AttributeDTO> attributeComparator = new Comparator<AttributeDTO>() {
-                    @Override
-                    public int compare(AttributeDTO a1, AttributeDTO a2) {
-                        return Collator.getInstance(Locale.US).compare(a1.getName(), a2.getName());
-                    }
-                };
+            // additional event details
+            dto.setAlternateIdentifierUri(event.getAlternateIdentifierUri());
+            dto.setTransitUri(event.getTransitUri());
+            dto.setSourceSystemFlowFileId(event.getSourceSystemFlowFileIdentifier());
+            dto.setRelationship(event.getRelationship());
+            dto.setDetails(event.getDetails());
 
-                final SortedSet<AttributeDTO> attributes = new TreeSet<>(attributeComparator);
+            final ContentAvailability contentAvailability = flowController.getContentAvailability(event);
 
-                final Map<String, String> updatedAttrs = event.getUpdatedAttributes();
-                final Map<String, String> previousAttrs = event.getPreviousAttributes();
-
-                // add previous attributes that haven't been modified.
-                for (final Map.Entry<String, String> entry : previousAttrs.entrySet()) {
-                    // don't add any attributes that have been updated; we will do that next
-                    if (updatedAttrs.containsKey(entry.getKey())) {
-                        continue;
-                    }
-
-                    final AttributeDTO attribute = new AttributeDTO();
-                    attribute.setName(entry.getKey());
-                    attribute.setValue(entry.getValue());
-                    attribute.setPreviousValue(entry.getValue());
-                    attributes.add(attribute);
-                }
-
-                // Add all of the update attributes
-                for (final Map.Entry<String, String> entry : updatedAttrs.entrySet()) {
-                    final AttributeDTO attribute = new AttributeDTO();
-                    attribute.setName(entry.getKey());
-                    attribute.setValue(entry.getValue());
-                    attribute.setPreviousValue(previousAttrs.get(entry.getKey()));
-                    attributes.add(attribute);
-                }
-
-                // additional event details
-                dto.setAlternateIdentifierUri(event.getAlternateIdentifierUri());
+            // set flowfile attributes and content only if approved for view the data
+            final AuthorizationResult dataResult = checkAuthorizationForData(event);
+            if (Result.Approved.equals(dataResult.getResult())) {
+                // attributes
                 dto.setAttributes(attributes);
-                dto.setTransitUri(event.getTransitUri());
-                dto.setSourceSystemFlowFileId(event.getSourceSystemFlowFileIdentifier());
-                dto.setRelationship(event.getRelationship());
-                dto.setDetails(event.getDetails());
-
-                final ContentAvailability contentAvailability = flowController.getContentAvailability(event);
 
                 // content
                 dto.setContentEqual(contentAvailability.isContentSame());
@@ -1502,6 +1521,7 @@ public class ControllerFacade implements Authorizable {
                 }
 
                 // determine if authorized for event replay
+                // this authorization is for data write only; ensure data read was approved
                 final AuthorizationResult replayAuthorized = checkAuthorizationForReplay(event);
 
                 // replay
@@ -1509,25 +1529,23 @@ public class ControllerFacade implements Authorizable {
                 dto.setReplayExplanation(contentAvailability.isReplayable()
                         && !Result.Approved.equals(replayAuthorized.getResult()) ? replayAuthorized.getExplanation() : contentAvailability.getReasonNotReplayable());
                 dto.setSourceConnectionIdentifier(event.getSourceQueueIdentifier());
-
-                // event duration
-                if (event.getEventDuration() >= 0) {
-                    dto.setEventDuration(event.getEventDuration());
-                }
-
-                // parent uuids
-                final List<String> parentUuids = new ArrayList<>(event.getParentUuids());
-                Collections.sort(parentUuids, Collator.getInstance(Locale.US));
-                dto.setParentUuids(parentUuids);
-
-                // child uuids
-                final List<String> childUuids = new ArrayList<>(event.getChildUuids());
-                Collections.sort(childUuids, Collator.getInstance(Locale.US));
-                dto.setChildUuids(childUuids);
             }
-//         } catch (AccessDeniedException ade) {
-//             logger.debug("User '{}' not authorized to view flowfile content from provenance event {}", new Object[] { NiFiUserUtils.getNiFiUser(), event.getEventId() });
-//         }
+
+            // event duration
+            if (event.getEventDuration() >= 0) {
+                dto.setEventDuration(event.getEventDuration());
+            }
+
+            // parent uuids
+            final List<String> parentUuids = new ArrayList<>(event.getParentUuids());
+            Collections.sort(parentUuids, Collator.getInstance(Locale.US));
+            dto.setParentUuids(parentUuids);
+
+            // child uuids
+            final List<String> childUuids = new ArrayList<>(event.getChildUuids());
+            Collections.sort(childUuids, Collator.getInstance(Locale.US));
+            dto.setChildUuids(childUuids);
+        }
 
         // lineage duration
         if (event.getLineageStartDate() > 0) {
@@ -1540,18 +1558,29 @@ public class ControllerFacade implements Authorizable {
 
     private void setComponentDetails(final ProvenanceEventDTO dto) {
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final AuthorizationResult componentResult = checkConnectableAuthorization(dto.getComponentId());
 
         final Connectable connectable = root.findLocalConnectable(dto.getComponentId());
         if (connectable != null) {
             dto.setGroupId(connectable.getProcessGroup().getIdentifier());
-            dto.setComponentName(connectable.getName());
+            if (Result.Denied.equals(componentResult.getResult())) {
+                dto.setComponentType("Processor");
+                dto.setComponentName(dto.getComponentId());
+            } else {
+                dto.setComponentName(connectable.getName());
+            }
             return;
         }
 
         final RemoteGroupPort remoteGroupPort = root.findRemoteGroupPort(dto.getComponentId());
         if (remoteGroupPort != null) {
             dto.setGroupId(remoteGroupPort.getProcessGroupIdentifier());
-            dto.setComponentName(remoteGroupPort.getName());
+            if (Result.Denied.equals(componentResult.getResult())) {
+                dto.setComponentType("RemoteGroupPort");
+                dto.setComponentName(dto.getComponentId());
+            } else {
+                dto.setComponentName(remoteGroupPort.getName());
+            }
             return;
         }
 
@@ -1559,14 +1588,17 @@ public class ControllerFacade implements Authorizable {
         if (connection != null) {
             dto.setGroupId(connection.getProcessGroup().getIdentifier());
 
-            String name = connection.getName();
-            final Collection<Relationship> relationships = connection.getRelationships();
-            if (StringUtils.isBlank(name) && CollectionUtils.isNotEmpty(relationships)) {
-                name = StringUtils.join(relationships.stream().map(relationship -> relationship.getName()).collect(Collectors.toSet()), ", ");
+            if (Result.Denied.equals(componentResult.getResult())) {
+                dto.setComponentType("Connection");
+                dto.setComponentName(dto.getComponentId());
+            } else {
+                String name = connection.getName();
+                final Collection<Relationship> relationships = connection.getRelationships();
+                if (StringUtils.isBlank(name) && CollectionUtils.isNotEmpty(relationships)) {
+                    name = StringUtils.join(relationships.stream().map(relationship -> relationship.getName()).collect(Collectors.toSet()), ", ");
+                }
+                dto.setComponentName(name);
             }
-            dto.setComponentName(name);
-
-            return;
         }
     }
 
