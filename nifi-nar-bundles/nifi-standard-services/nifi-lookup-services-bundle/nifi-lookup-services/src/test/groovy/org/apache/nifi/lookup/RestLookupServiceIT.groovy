@@ -48,6 +48,7 @@ class RestLookupServiceIT {
     static final RecordSchema simpleSchema
     static final RecordSchema nestedSchema
 
+    TestServer server
     TestRunner runner
     RestLookupService lookupService
 
@@ -71,27 +72,23 @@ class RestLookupServiceIT {
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
         runner.setProperty(lookupService, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
         runner.setProperty(lookupService, RestLookupService.RECORD_READER, "jsonReader")
+        runner.setProperty(lookupService, RestLookupService.BASE_URL, 'http://localhost:${serverPort}')
         runner.setProperty(TestRestLookupServiceProcessor.CLIENT_SERVICE, "lookupService")
         runner.enableControllerService(registry)
         runner.enableControllerService(reader)
-        runner.enableControllerService(lookupService)
-
-        runner.assertValid()
     }
 
     @Test
     void basicAuth() {
-        runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, RestLookupService.PROP_BASIC_AUTH_USERNAME, "john.smith")
         runner.setProperty(lookupService, RestLookupService.PROP_BASIC_AUTH_PASSWORD, "testing1234")
-        runner.enableControllerService(lookupService)
 
         TestServer server = new TestServer()
         server.addHandler(new BasicAuth())
         try {
             server.startServer()
 
-            setEndpoint(server.url, "/simple")
+            setEndpoint(server.port, "/simple")
 
             def coordinates = [
                 "schema.name": "simple",
@@ -133,7 +130,7 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
-            setEndpoint(server.url, "/simple")
+            setEndpoint(server.port, "/simple")
 
             def coordinates = [
                 "schema.name": "simple",
@@ -160,7 +157,7 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
-            setEndpoint(server.url, "/simple")
+            setEndpoint(server.port, "/simple")
 
             def coordinates = [
                 "schema.name": "simple",
@@ -187,7 +184,7 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
-            setEndpoint(server.url, "/simple_array")
+            setEndpoint(server.port, "/simple_array")
 
             def coordinates = [
                 "schema.name": "simple",
@@ -207,10 +204,8 @@ class RestLookupServiceIT {
 
     @Test
     void testHeaders() {
-        runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, "X-USER", "jane.doe")
         runner.setProperty(lookupService, "X-PASS", "testing7890")
-        runner.enableControllerService(lookupService)
 
         TestServer server = new TestServer()
         ServletHandler handler = new ServletHandler()
@@ -219,7 +214,7 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
-            setEndpoint(server.url, "/simple")
+            setEndpoint(server.port, "/simple")
 
             def coordinates = [
                 "schema.name": "simple",
@@ -239,9 +234,7 @@ class RestLookupServiceIT {
 
     @Test
     void complexJson() {
-        runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, RestLookupService.RECORD_PATH, "/top/middle/inner")
-        runner.enableControllerService(lookupService)
 
         TestServer server = new TestServer()
         ServletHandler handler = new ServletHandler()
@@ -250,7 +243,7 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
-            setEndpoint(server.url, "/complex")
+            setEndpoint(server.port, "/complex")
 
             def coordinates = [
                 "schema.name": "complex",
@@ -276,17 +269,14 @@ class RestLookupServiceIT {
         handler.addServletWithMapping(VerbTest.class, "/simple")
         server.addHandler(handler)
         try {
-            runner.disableControllerService(lookupService)
-            runner.setProperty(lookupService, "needs-body", "true")
-            runner.enableControllerService(lookupService)
             server.startServer()
 
-            setEndpoint(server.url, "/simple")
+            setEndpoint(server.port, "/simple")
 
-            def validation = { String verb, boolean addBody ->
+            def validation = { String verb, boolean addBody, boolean addMimeType, boolean valid ->
                 def coordinates = [
                     "schema.name"   : "simple",
-                    "mime.type"     : "application/json",
+                    "mime.type"     : addMimeType ? "application/json" : null,
                     "request.method": verb
                 ]
 
@@ -294,22 +284,34 @@ class RestLookupServiceIT {
                     coordinates["request.body"] = prettyPrint(toJson([ msg: "Hello, world" ]))
                 }
 
-                Optional<Record> response = lookupService.lookup(coordinates)
-                Assert.assertTrue(response.isPresent())
-                def record = response.get()
-                Assert.assertEquals("john.smith", record.getAsString("username"))
-                Assert.assertEquals("testing1234", record.getAsString("password"))
+                try {
+                    Optional<Record> response = lookupService.lookup(coordinates)
+                    if (!valid) {
+                        Assert.fail("Validation should fail.")
+                    }
+
+                    Assert.assertTrue(response.isPresent())
+                    def record = response.get()
+                    Assert.assertEquals("john.smith", record.getAsString("username"))
+                    Assert.assertEquals("testing1234", record.getAsString("password"))
+
+                } catch (LookupFailureException e) {
+                    if (valid) {
+                        Assert.fail("Validation should be successful.")
+                    }
+                }
             }
 
-            ["delete", "post", "put"].each { verb ->
-                validation(verb, true)
+            // Delete does not require body nor mimeType.
+            validation("delete", false, false, true)
+
+            // Post and Put require body and mimeType.
+            ["post", "put"].each { verb ->
+                validation(verb, false, false, false)
+                validation(verb, true, false, false)
+                validation(verb, true, true, true)
             }
 
-            runner.disableControllerService(lookupService)
-            runner.setProperty(lookupService, "needs-body", "")
-            runner.enableControllerService(lookupService)
-
-            validation("delete", false)
         } finally {
             server.shutdownServer()
         }
@@ -324,7 +326,7 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
-            setEndpoint(server.url, '/simple/${user.name}/friends/${friend.id}')
+            setEndpoint(server.port, '/simple/${user.name}/friends/${friend.id}')
 
             def coordinates = [
                 "schema.name": "simple",
@@ -345,9 +347,12 @@ class RestLookupServiceIT {
         }
     }
 
-    void setEndpoint(String serverUrl, String endpoint) {
-        runner.disableControllerService(lookupService)
-        runner.setProperty(lookupService, RestLookupService.URL, serverUrl + endpoint)
+    void setEndpoint(Integer serverPort, String endpoint) {
+        // Resolve environmental part of the URL via variable registry.
+        runner.setVariable("serverPort", String.valueOf(serverPort))
+        runner.setProperty(lookupService, RestLookupService.URL, endpoint)
         runner.enableControllerService(lookupService)
+
+        runner.assertValid()
     }
 }

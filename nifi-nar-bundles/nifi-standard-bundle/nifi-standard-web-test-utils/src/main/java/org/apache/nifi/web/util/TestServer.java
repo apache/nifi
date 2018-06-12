@@ -135,14 +135,14 @@ public class TestServer {
         jetty.destroy();
     }
 
-    private int getPort() {
+    public int getPort() {
         if (!jetty.isStarted()) {
             throw new IllegalStateException("Jetty server not started");
         }
         return ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
     }
 
-    private int getSecurePort() {
+    public int getSecurePort() {
         if (!jetty.isStarted()) {
             throw new IllegalStateException("Jetty server not started");
         }

@@ -27,6 +27,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -82,6 +83,18 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
             "as the header name and the value as the header value.")
 })
 public class RestLookupService extends AbstractControllerService implements RecordLookupService {
+    static final PropertyDescriptor BASE_URL = new PropertyDescriptor.Builder()
+        .name("rest-lookup-base-url")
+        .displayName("Base URL")
+        .description("The base URL for the REST endpoint. Expression language is evaluated against variable registry." +
+                " This property can be used to resolve environment specific part of the URL." +
+                " The result string is prepended to the 'URL'." +
+                " See 'Additional Details' to see an example.")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .required(false)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .build();
+
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
         .name("rest-lookup-url")
         .displayName("URL")
@@ -108,16 +121,6 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 "into the record set to be enriched. See documentation for examples of when this might be useful.")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(new RecordPathValidator())
-        .required(false)
-        .build();
-
-    static final PropertyDescriptor RECORD_PATH_PROPERTY_NAME = new PropertyDescriptor.Builder()
-        .name("rest-lookup-record-path-name")
-        .displayName("Record Path Property Name")
-        .description("An optional name for the property loaded by the record path. This will be the key used for the value " +
-                "when the loaded record is merged into record to be enriched. See docs for more details.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(Validator.VALID)
         .required(false)
         .build();
 
@@ -172,10 +175,10 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+            BASE_URL,
             URL,
             RECORD_READER,
             RECORD_PATH,
-            RECORD_PATH_PROPERTY_NAME,
             SSL_CONTEXT_SERVICE,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
@@ -195,7 +198,6 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private OkHttpClient client;
     private Map<String, String> headers;
     private volatile PreparedQuery compiledQuery;
-    private volatile String recordPathName;
     private volatile String basicUser;
     private volatile String basicPass;
     private volatile boolean isDigest;
@@ -227,13 +229,12 @@ public class RestLookupService extends AbstractControllerService implements Reco
             recordPath = RecordPath.compile(path);
         }
 
-        recordPathName = context.getProperty(RECORD_PATH_PROPERTY_NAME).isSet()
-            ? context.getProperty(RECORD_PATH_PROPERTY_NAME).evaluateAttributeExpressions().getValue()
-            : null;
-
         getHeaders(context);
 
-        compiledQuery = Query.prepare(context.getProperty(URL).getValue());
+        final String url = context.getProperty(URL).getValue();
+        compiledQuery = context.getProperty(BASE_URL).isSet()
+                ? Query.prepare(context.getProperty(BASE_URL).evaluateAttributeExpressions().getValue() + url)
+                : Query.prepare(url);
     }
 
     @OnDisabled
@@ -274,23 +275,49 @@ public class RestLookupService extends AbstractControllerService implements Reco
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         final String endpoint = determineEndpoint(coordinates);
         final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
-        final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim();
+        final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
         final String body     = (String)coordinates.get(BODY_KEY);
 
         validateVerb(method);
 
-        if (StringUtils.isBlank(body) && (method.equals("post") || method.equals("put"))) {
-            throw new LookupFailureException(
-                String.format("Used HTTP verb %s without specifying the %s key to provide a payload.", method, BODY_KEY)
-            );
+        if (StringUtils.isBlank(body)) {
+            if (method.equals("post") || method.equals("put")) {
+                throw new LookupFailureException(
+                        String.format("Used HTTP verb %s without specifying the %s key to provide a payload.", method, BODY_KEY)
+                );
+            }
+        } else {
+            if (StringUtils.isBlank(mimeType)) {
+                throw new LookupFailureException(
+                        String.format("Request body is specified without its %s.", MIME_TYPE_KEY)
+                );
+            }
         }
 
         Request request = buildRequest(mimeType, method, body, endpoint);
         try {
             Response response = executeRequest(request);
-            InputStream is = response.body().byteStream();
 
-            Record record = handleResponse(is, coordinates);
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Response code {} was returned for coordinate {}",
+                        new Object[]{response.code(), coordinates});
+            }
+
+            final ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                return Optional.empty();
+            }
+
+            InputStream is = responseBody.byteStream();
+
+            // TODO: Need to use 'context' instead of 'coordinates', see NIFI-5287, this map conversion will not be needed.
+            final Map<String, String> context = coordinates.entrySet().stream()
+                    .filter(e -> e.getValue() != null)
+                    .collect(Collectors.toMap(
+                            e -> e.getKey(),
+                            e -> e.getValue().toString()
+                    ));
+            Record record = handleResponse(is, context);
 
             return Optional.ofNullable(record);
         } catch (Exception e) {
@@ -299,15 +326,15 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    protected void validateVerb(String endpoint) throws LookupFailureException {
-        String lc = endpoint.toLowerCase();
-        if (!VALID_VERBS.contains(lc)) {
-            throw new LookupFailureException(String.format("%s is not a supported HTTP verb.", lc));
+    protected void validateVerb(String method) throws LookupFailureException {
+        if (!VALID_VERBS.contains(method)) {
+            throw new LookupFailureException(String.format("%s is not a supported HTTP verb.", method));
         }
     }
 
     protected String determineEndpoint(Map<String, Object> coordinates) {
         Map<String, String> converted = coordinates.entrySet().stream()
+            .filter(e -> e.getValue() != null)
             .collect(Collectors.toMap(
                 e -> e.getKey(),
                 e -> e.getValue().toString()
@@ -329,13 +356,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return client.newCall(request).execute();
     }
 
-    private Record handleResponse(InputStream is, Map<String, Object> coordinates) throws SchemaNotFoundException, MalformedRecordException, IOException {
-        Map<String, String> variables = coordinates.entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey(),
-                e -> e.getValue().toString()
-            ));
-        try (RecordReader reader = readerFactory.createRecordReader(variables, is, getLogger())) {
+    private Record handleResponse(InputStream is, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
+
+        try (RecordReader reader = readerFactory.createRecordReader(context, is, getLogger())) {
 
             Record record = reader.nextRecord();
 
@@ -343,7 +366,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
                 if (fv.isPresent()) {
                     FieldValue fieldValue = fv.get();
-                    RecordSchema schema = new SimpleRecordSchema(Arrays.asList(fieldValue.getField()));
+                    RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(fieldValue.getField()));
 
                     Record temp;
                     Object value = fieldValue.getValue();
@@ -353,7 +376,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                         temp = new MapRecord(schema, (Map<String, Object>) value);
                     } else {
                         Map<String, Object> val = new HashMap<>();
-                        val.put(recordPathName, value);
+                        val.put(fieldValue.getField().getFieldName(), value);
                         temp = new MapRecord(schema, val);
                     }
 
@@ -371,14 +394,14 @@ public class RestLookupService extends AbstractControllerService implements Reco
     }
 
     private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint) {
-        final MediaType mt = MediaType.parse(mimeType);
         RequestBody requestBody = null;
         if (body != null) {
+            final MediaType mt = MediaType.parse(mimeType);
             requestBody = RequestBody.create(mt, body);
         }
         Request.Builder request = new Request.Builder()
                 .url(endpoint);
-        switch(method.toLowerCase()) {
+        switch(method) {
             case "delete":
                 request = body != null ? request.delete(requestBody) : request.delete();
                 break;

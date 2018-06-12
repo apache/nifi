@@ -21,10 +21,9 @@
 </head>
 <body>
     <h2>General</h2>
-    <p>This lookup service has the following required keys:</p>
+    <p>This lookup service has the following optional lookup coordinate keys:</p>
     <ul>
-        <li>mime.type</li>
-        <li>request.method; valid values:
+        <li>request.method; defaults to 'get', valid values:
             <ul>
                 <li>delete</li>
                 <li>get</li>
@@ -32,9 +31,11 @@
                 <li>put</li>
             </ul>
         </li>
+        <li>body; contains a string representing JSON, XML, etc. to be sent with any
+            of those methods except for "get".</li>
+        <li>mime.type; specifies media type of the request body, required when 'body' is passed.</li>
+        <li>*; any other keys can be configured to pass variables to resolve target URLs. See 'Dynamic URLs' section below.</li>
     </ul>
-    <p>In addition to the required keys, a key "body" can be added which contains a string representing JSON, XML, etc. to be sent with any
-    of those methods except for "get."</p>
     <p>The record reader is used to consume the response of the REST service call and turn it into one or more records. The record path property
     is provided to allow for a lookup path to either a nested record or a single point deep in the REST response. Note: a valid schema must be
     built that encapsulates the REST response accurately in order for this service to work.</p>
@@ -50,5 +51,18 @@
         <li>friend.id => "/example/first_friend"</li>
     </ul>
     <p>Would dynamically produce an endpoint of <em>http://example.com/service/john.smith/friend/12345</em></p>
+
+    <h3>Environment specific URLs</h3>
+
+    <p>If target URL has environment specific part, such as server name and port,
+        then 'Base URL' property can be used to resolve it by an expression language with variable registry.
+        This way, the consistent lookup coordinate keys can be used in different environments.</p>
+    <p>Ex. Base URL: <em>http://${apiServerHostname}:${apiServerPort}</em>, combined with example variable registry:</p>
+    <ul>
+        <li>apiServerHostname => "test.example.com"</li>
+        <li>apiServerPort => "8080"</li>
+    </ul>
+    <p>Ex. URL: <em>/service/${user.name}/friend/${friend.id}</em>, combined with the previous example record paths</p>
+    <p>Would dynamically produce an endpoint of <em>http://test.example.com:8080/service/john.smith/friend/12345</em></p>
 </body>
 </html>

@@ -112,7 +112,6 @@ class TestRestLookupService {
 
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, RestLookupService.RECORD_PATH, "/person/sport")
-        runner.setProperty(lookupService, RestLookupService.RECORD_PATH_PROPERTY_NAME, "sport")
         runner.enableControllerService(lookupService)
         runner.assertValid()
 

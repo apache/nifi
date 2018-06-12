@@ -36,7 +36,7 @@ class BasicAuth extends AbstractHandler {
         def headers = []
         request.headerNames.each { headers << it }
 
-        if (!authString || authString != "Basic am9obi5zbWl0aDpudWxs") {
+        if (!authString || authString != "Basic am9obi5zbWl0aDp0ZXN0aW5nMTIzNA==") {
             response.status = 401
             response.setHeader("WWW-Authenticate", "Basic realm=\"Jetty\"")
             response.setHeader("response.phrase", "Unauthorized")
