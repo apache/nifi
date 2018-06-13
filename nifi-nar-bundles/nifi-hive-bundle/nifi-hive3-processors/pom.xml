@@ -22,12 +22,12 @@
         <version>1.7.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-hive-processors</artifactId>
+    <artifactId>nifi-hive3-processors</artifactId>
     <packaging>jar</packaging>
 
     <properties>
         <!-- Need to override hadoop.version here, for Hive and hadoop-client transitive dependencies -->
-        <hadoop.version>${hive.hadoop.version}</hadoop.version>
+        <hadoop.version>${hive3.hadoop.version}</hadoop.version>
     </properties>
 
     <dependencies>
@@ -55,24 +55,37 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hadoop-record-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-jdbc</artifactId>
-            <version>${hive.version}</version>
+            <version>${hive3.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>org.json</groupId>
-                    <artifactId>json</artifactId>
+                        <groupId>org.json</groupId>
+                        <artifactId>json</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.hive.hcatalog</groupId>
-            <artifactId>hive-hcatalog-streaming</artifactId>
-            <version>${hive.version}</version>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-streaming</artifactId>
+            <version>${hive3.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -83,7 +96,7 @@
         <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
-            <version>${hive.version}</version>
+            <version>${hive3.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -105,6 +118,12 @@
             <groupId>com.github.stephenc.findbugs</groupId>
             <artifactId>findbugs-annotations</artifactId>
             <version>1.3.9-1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock-record-utils</artifactId>
+            <version>1.7.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

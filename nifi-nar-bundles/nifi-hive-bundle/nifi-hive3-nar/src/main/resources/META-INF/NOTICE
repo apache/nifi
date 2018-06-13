@@ -1,0 +1,349 @@
+nifi-hive-nar
+Copyright 2014-2017 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
+  Copyright 2015 The Apache Software Foundation
+  The derived work is adapted from
+    org/apache/storm/hive/common/HiveWriter.java
+    org/apache/storm/hive/common/HiveOptions.java
+  and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
+  Copyright 2008-2016 The Apache Software Foundation
+  The derived work is adapted from
+    release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+  and can be found in the org.apache.hadoop.hive.ql.io.orc package
+  The derived work is adapted from
+      branch-3.0/streaming/src/java/org/apache/hive/streaming/StrictJsonWriter.java
+    and can be found in the org.apache.hive.streaming.HiveRecordWriter class
+  The derived work is adapted from
+      branch-3.0/serde/src/java/org/apache/hadoop/hive/serde2/JsonSerDe.java
+    and can be found in the org.apache.hive.streaming.NiFiRecordSerDe class
+
+===========================================
+Apache Software License v2
+===========================================
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache Ant
+    The following NOTICE information applies:
+      Apache Ant
+      Copyright 1999-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Codec
+      The following NOTICE information applies:
+        Apache Commons Codec
+        Copyright 2002-2014 The Apache Software Foundation
+
+        src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+        contains test data from http://aspell.net/test/orig/batch0.tab.
+        Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+        ===============================================================================
+
+        The content of package org.apache.commons.codec.language.bm has been translated
+        from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+        with permission from the original authors.
+        Original source copyright:
+        Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons DBCP
+    The following NOTICE information applies:
+      Apache Commons DBCP
+      Copyright 2001-2015 The Apache Software Foundation.
+
+  (ASLv2) Apache Commons EL
+    The following NOTICE information applies:
+      Apache Commons EL
+      Copyright 1999-2016 The Apache Software Foundation
+
+      EL-8 patch - Copyright 2004-2007 Jamie Taylor
+      http://issues.apache.org/jira/browse/EL-8
+
+  (ASLv2) Apache HttpComponents
+      The following NOTICE information applies:
+        Apache HttpComponents Client
+        Copyright 1999-2016 The Apache Software Foundation
+        Apache HttpComponents Core - HttpCore
+        Copyright 2006-2009 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Logging
+    The following NOTICE information applies:
+      Apache Commons Logging
+      Copyright 2003-2014 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Pool
+    The following NOTICE information applies:
+      Apache Commons Pool
+      Copyright 1999-2009 The Apache Software Foundation.
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Hive
+    The following NOTICE information applies:
+      Apache Hive
+      Copyright 2008-2015 The Apache Software Foundation
+
+      This product includes software developed by The Apache Software
+      Foundation (http://www.apache.org/).
+
+      This product includes Jersey (https://jersey.java.net/)
+      Copyright (c) 2010-2014 Oracle and/or its affiliates.
+
+      This project includes software copyrighted by Microsoft Corporation and
+      licensed under the Apache License, Version 2.0.
+
+      This project includes software copyrighted by Dell SecureWorks and
+      licensed under the Apache License, Version 2.0.
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      # Jackson JSON processor
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+      ## Licensing
+
+      Jackson core and extension components may licensed under different licenses.
+      To find the details that apply to this artifact see the accompanying LICENSE file.
+      For more information, including possible other licensing options, contact
+      FasterXML.com (http://fasterxml.com).
+
+       ## Credits
+
+       A list of contributors may be found from CREDITS file, which is included
+       in some artifacts (usually source distributions); but is always available
+       from the source code management (SCM) system project uses.
+
+  (ASLv2) BoneCP
+    The following NOTICE information applies:
+       BoneCP
+       Copyright 2010 Wallace Wadge
+
+  (ASLv2) Apache Hadoop
+    The following NOTICE information applies:
+      The binary distribution of this product bundles binaries of
+      org.iq80.leveldb:leveldb-api (https://github.com/dain/leveldb), which has the
+      following notices:
+      * Copyright 2011 Dain Sundstrom <dain@iq80.com>
+      * Copyright 2011 FuseSource Corp. http://fusesource.com
+
+      The binary distribution of this product bundles binaries of
+      org.fusesource.hawtjni:hawtjni-runtime (https://github.com/fusesource/hawtjni),
+      which has the following notices:
+      * This product includes software developed by FuseSource Corp.
+        http://fusesource.com
+      * This product includes software developed at
+        Progress Software Corporation and/or its  subsidiaries or affiliates.
+      * This product includes software developed by IBM Corporation and others.
+
+  (ASLv2) Apache HBase
+    The following NOTICE information applies:
+      Apache HBase
+      Copyright 2007-2015 The Apache Software Foundation
+
+      --
+      This product incorporates portions of the 'Hadoop' project
+
+      Copyright 2007-2009 The Apache Software Foundation
+
+      Licensed under the Apache License v2.0
+      --
+      Our Orca logo we got here: http://www.vectorfree.com/jumping-orca
+      It is licensed Creative Commons Attribution 3.0.
+      See https://creativecommons.org/licenses/by/3.0/us/
+      We changed the logo by stripping the colored background, inverting
+      it and then rotating it some.
+
+      Later we found that vectorfree.com image is not properly licensed.
+      The original is owned by vectorportal.com. The original was
+      relicensed so we could use it as Creative Commons Attribution 3.0.
+      The license is bundled with the download available here:
+      http://www.vectorportal.com/subcategory/205/KILLER-WHALE-FREE-VECTOR.eps/ifile/9136/detailtest.asp
+      --
+      This product includes portions of the Bootstrap project v3.0.0
+
+      Copyright 2013 Twitter, Inc.
+
+      Licensed under the Apache License v2.0
+
+      This product uses the Glyphicons Halflings icon set.
+
+      http://glyphicons.com/
+
+      Copyright Jan Kovařík
+
+      Licensed under the Apache License v2.0 as a part of the Bootstrap project.
+
+      --
+      This product includes portions of the Guava project v14, specifically
+      'hbase-common/src/main/java/org/apache/hadoop/hbase/io/LimitInputStream.java'
+
+      Copyright (C) 2007 The Guava Authors
+
+      Licensed under the Apache License, Version 2.0
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+  (ASLv2) Apache Curator
+    The following NOTICE information applies:
+      Apache Curator
+      Copyright 2013-2014 The Apache Software Foundation
+
+  (ASLv2) Apache Derby
+    The following NOTICE information applies:
+      Apache Derby
+      Copyright 2004-2014 Apache, Apache DB, Apache Derby, Apache Torque, Apache JDO, Apache DDLUtils,
+      the Derby hat logo, the Apache JDO logo, and the Apache feather logo are trademarks of The Apache Software Foundation.
+
+  (ASLv2) Apache DS
+    The following NOTICE information applies:
+      ApacheDS
+      Copyright 2003-2015 The Apache Software Foundation
+
+  (ASLv2) Apache Geronimo
+    The following NOTICE information applies:
+      Apache Geronimo
+      Copyright 2003-2008 The Apache Software Foundation
+
+  (ASLv2) HTrace Core
+    The following NOTICE information applies:
+      In addition, this product includes software dependencies. See
+      the accompanying LICENSE.txt for a listing of dependencies
+      that are NOT Apache licensed (with pointers to their licensing)
+
+      Apache HTrace includes an Apache Thrift connector to Zipkin. Zipkin
+      is a distributed tracing system that is Apache 2.0 Licensed.
+      Copyright 2012 Twitter, Inc.
+
+  (ASLv2) Jettison
+    The following NOTICE information applies:
+       Copyright 2006 Envoi Solutions LLC
+
+  (ASLv2) Jetty
+    The following NOTICE information applies:
+       Jetty Web Container
+       Copyright 1995-2017 Mort Bay Consulting Pty Ltd.
+
+  (ASLv2) Apache log4j
+    The following NOTICE information applies:
+      Apache log4j
+      Copyright 2007 The Apache Software Foundation
+
+  (ASLv2) Parquet MR
+    The following NOTICE information applies:
+      Parquet MR
+      Copyright 2012 Twitter, Inc.
+
+      This project includes code from https://github.com/lemire/JavaFastPFOR
+      parquet-column/src/main/java/parquet/column/values/bitpacking/LemireBitPacking.java
+      Apache License Version 2.0 http://www.apache.org/licenses/.
+      (c) Daniel Lemire, http://lemire.me/en/
+
+  (ASLv2) Apache Thrift
+    The following NOTICE information applies:
+      Apache Thrift
+      Copyright 2006-2010 The Apache Software Foundation.
+
+  (ASLv2) Apache Twill
+    The following NOTICE information applies:
+      Apache Twill
+      Copyright 2013-2016 The Apache Software Foundation
+
+  (ASLv2) Dropwizard Metrics
+    The following NOTICE information applies:
+      Metrics
+      Copyright 2010-2013 Coda Hale and Yammer, Inc.
+
+      This product includes code derived from the JSR-166 project (ThreadLocalRandom, Striped64,
+      LongAdder), which was released with the following comments:
+
+          Written by Doug Lea with assistance from members of JCP JSR-166
+          Expert Group and released to the public domain, as explained at
+          http://creativecommons.org/publicdomain/zero/1.0/
+
+  (ASLv2) Joda Time
+      The following NOTICE information applies:
+        This product includes software developed by
+        Joda.org (http://www.joda.org/).
+
+  (ASLv2) The Netty Project
+      The following NOTICE information applies:
+        The Netty Project
+        Copyright 2011 The Netty Project
+
+  (ASLv2) Apache Tomcat
+      The following NOTICE information applies:
+        Apache Tomcat
+        Copyright 2007 The Apache Software Foundation
+
+          Java Management Extensions (JMX) support is provided by
+          the MX4J package, which is open source software.  The
+          original software and related information is available
+          at http://mx4j.sourceforge.net.
+
+          Java compilation software for JSP pages is provided by Eclipse,
+          which is open source software.  The orginal software and
+          related infomation is available at
+          http://www.eclipse.org.
+
+  (ASLv2) Apache ZooKeeper
+     The following NOTICE information applies:
+       Apache ZooKeeper
+       Copyright 2009-2012 The Apache Software Foundation
+
+  (ASLv2) Google GSON
+     The following NOTICE information applies:
+       Copyright 2008 Google Inc.
+
+  (ASLv2) JPam
+    The following NOTICE information applies:
+      Copyright 2003-2006 Greg Luck
+
+  ************************
+  Common Development and Distribution License 1.1
+  ************************
+
+  The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.9 - https://jersey.java.net)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.9 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-json (com.sun.jersey:jersey-json:jar:1.9 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.9 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) jersey-guice (com.sun.jersey.contribs:jersey-guice:jar:1.9 - https://jersey.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
+      (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
+
+
+  ************************
+  Common Development and Distribution License 1.0
+  ************************
+
+    The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
+
+      (CDDL 1.0) JavaServlet(TM) Specification (javax.servlet:servlet-api:jar:2.5 - no url available)
+      (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
+      (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
+      (CDDL 1.0) JavaServer Pages(TM) API (javax.servlet.jsp:jsp-api:jar:2.1 - http://jsp.java.net)
+
+  *****************
+  Public Domain
+  *****************
+
+  The following binary components are provided to the 'Public Domain'.  See project link for details.
+
+      (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)
