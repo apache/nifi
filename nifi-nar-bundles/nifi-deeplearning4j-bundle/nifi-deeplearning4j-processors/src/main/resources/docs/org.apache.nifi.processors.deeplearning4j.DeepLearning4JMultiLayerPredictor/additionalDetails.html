@@ -16,7 +16,7 @@
 -->
 <head>
 <meta charset="utf-8" />
-<title>Deeplearning4JPredictor</title>
+<title>DeepLearning4JMultiLayerPredictor</title>
 <link rel="stylesheet" href="../../../../../css/component-usage.css"
 	type="text/css" />
 </head>
@@ -26,9 +26,9 @@
 	<h2>Usage Information</h2>
 
 	<p>
-		DeepLearning4JPredictor processor produces predictions by applying the
+		DeepLearning4JMultiLayerPredictor processor produces predictions by applying the
 		provided <a href="http://github.com/deeplearning4j" target="_blank">deeplearning4j</a>
-		model to the FlowFile contents.
+		MultiLayerNetwork model to the FlowFile contents.
 	</p>
 
 	<p>The processor can perform:
@@ -38,15 +38,7 @@
 	</ul>
 	based on the model used.
 
-	<p>The processors has the following properties:
-	<ul>
-		<li>a deeplearning4j classification or regression model (required)</li>
-		<li>record dimensions (required)</li>
-		<li>field separator (default comma)</li>
-		<li>record separator (default new line character)</li>
-		<li>character set for FlowFile message body (default UTF8)</li>
-	</ul>
-	<p>It then applies the model to the FlowFile contents to produce
+	<p>The processors applies the model to the FlowFile contents to produce
 		the prediction result.</p>
 	<p>The FlowFile content can contain a single row for a single input
 		record or multiple rows (separated by record separator) for multiple

@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -31,6 +32,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import com.google.gson.Gson;
@@ -50,8 +52,8 @@ import java.util.stream.Collectors;
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"deeplearning4j", "dl4j", "predict", "classification", "regression", "deep", "learning", "neural", "network"})
-@CapabilityDescription("The DeepLearning4JPredictor predicts one or more value(s) based on provided deeplearning4j (https://github.com/deeplearning4j) model and the content of a FlowFile. "
+@Tags({"deeplearning4j", "dl4j", "multilayer", "predict", "classification", "regression", "deep", "learning", "neural", "network"})
+@CapabilityDescription("The DeepLearning4JMultiLayerPredictor predicts one or more value(s) based on provided deeplearning4j (https://github.com/deeplearning4j) model and the content of a FlowFile. "
     + "The processor supports both classification and regression by extracting the record from the FlowFile body and applying the model. "
     + "The processor supports batch by allowing multiple records to be passed in the FlowFile body with each record separated by the 'Record Separator' property. "
     + "Each record can contain multiple fields with each field separated by the 'Field Separator' property."
@@ -60,7 +62,7 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = AbstractDeepLearning4JProcessor.DEEPLEARNING4J_ERROR_MESSAGE, description = "Deeplearning4J error message"),
     @WritesAttribute(attribute = AbstractDeepLearning4JProcessor.DEEPLEARNING4J_OUTPUT_SHAPE, description = "Deeplearning4J output shape"),
     })
-public class DeepLearning4JPredictor extends AbstractDeepLearning4JProcessor {
+public class DeepLearning4JMultiLayerPredictor extends AbstractDeepLearning4JProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Successful DeepLearning4j results are routed to this relationship").build();
@@ -69,6 +71,14 @@ public class DeepLearning4JPredictor extends AbstractDeepLearning4JProcessor {
             .description("Failed DeepLearning4j results are routed to this relationship").build();
 
     protected final Gson gson = new Gson();
+
+    protected MultiLayerNetwork model = null;
+
+    @OnStopped
+    public void close() {
+        getLogger().info("Closing");
+        model = null;
+    }
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
@@ -94,6 +104,20 @@ public class DeepLearning4JPredictor extends AbstractDeepLearning4JProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propertyDescriptors;
+    }
+
+    protected synchronized MultiLayerNetwork getModel(ProcessContext context) throws IOException {
+        if ( model == null ) {
+            String modelFile = context.getProperty(MODEL_FILE).evaluateAttributeExpressions().getValue();
+            getLogger().debug("Loading model from {}", new Object[] {modelFile});
+
+            long start = System.currentTimeMillis();
+            model = ModelSerializer.restoreMultiLayerNetwork(modelFile,false);
+            long end = System.currentTimeMillis();
+
+            getLogger().info("Time to load model " + (end-start) +  " ms");
+        }
+        return (MultiLayerNetwork)model;
     }
 
     @Override

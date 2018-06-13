@@ -56,7 +56,7 @@ import org.junit.Test;
 /**
  * This test case builds a regression model based on deeplearning4j examples.
  */
-public class TestDeepLearning4JProcessorRegression {
+public class TestDeepLearning4JMultiLayerPredictorRegression {
 
     private static File regressionModelFile;
     private static int regressionInputNumber;
@@ -113,9 +113,9 @@ public class TestDeepLearning4JProcessorRegression {
 
     @Before
     public void setUp() throws IOException {
-        runner = TestRunners.newTestRunner(DeepLearning4JPredictor.class);
-        runner.setProperty(DeepLearning4JPredictor.RECORD_DIMENSIONS,"1,1");
-        runner.setProperty(DeepLearning4JPredictor.MODEL_FILE,regressionModelFile.getAbsolutePath());
+        runner = TestRunners.newTestRunner(DeepLearning4JMultiLayerPredictor.class);
+        runner.setProperty(DeepLearning4JMultiLayerPredictor.RECORD_DIMENSIONS,"1,1");
+        runner.setProperty(DeepLearning4JMultiLayerPredictor.MODEL_FILE,regressionModelFile.getAbsolutePath());
         runner.assertValid();
     }
 
@@ -128,11 +128,11 @@ public class TestDeepLearning4JProcessorRegression {
     public void testMatchWithParamsPi() {
         runner.enqueue("3.14");
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(DeepLearning4JPredictor.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeepLearning4JPredictor.REL_SUCCESS);
-        assertNull(flowFiles.get(0).getAttribute(DeepLearning4JPredictor.DEEPLEARNING4J_ERROR_MESSAGE));
+        runner.assertAllFlowFilesTransferred(DeepLearning4JMultiLayerPredictor.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeepLearning4JMultiLayerPredictor.REL_SUCCESS);
+        assertNull(flowFiles.get(0).getAttribute(DeepLearning4JMultiLayerPredictor.DEEPLEARNING4J_ERROR_MESSAGE));
 
-        String shapeString = flowFiles.get(0).getAttribute(DeepLearning4JPredictor.DEEPLEARNING4J_OUTPUT_SHAPE);
+        String shapeString = flowFiles.get(0).getAttribute(DeepLearning4JMultiLayerPredictor.DEEPLEARNING4J_OUTPUT_SHAPE);
         Integer [] shape = gson.fromJson(new StringReader(shapeString), Integer[].class);
         assertEquals("size of shape should be equal", 1, shape.length);
         assertEquals("shape should be equal", (Integer)1, shape[0]);
@@ -146,11 +146,11 @@ public class TestDeepLearning4JProcessorRegression {
     public void testMatchWithParamsPiBy2() {
         runner.enqueue("1.57");
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(DeepLearning4JPredictor.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeepLearning4JPredictor.REL_SUCCESS);
-        assertNull(flowFiles.get(0).getAttribute(DeepLearning4JPredictor.DEEPLEARNING4J_ERROR_MESSAGE));
+        runner.assertAllFlowFilesTransferred(DeepLearning4JMultiLayerPredictor.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeepLearning4JMultiLayerPredictor.REL_SUCCESS);
+        assertNull(flowFiles.get(0).getAttribute(DeepLearning4JMultiLayerPredictor.DEEPLEARNING4J_ERROR_MESSAGE));
 
-        String shapeString = flowFiles.get(0).getAttribute(DeepLearning4JPredictor.DEEPLEARNING4J_OUTPUT_SHAPE);
+        String shapeString = flowFiles.get(0).getAttribute(DeepLearning4JMultiLayerPredictor.DEEPLEARNING4J_OUTPUT_SHAPE);
         Integer [] shape = gson.fromJson(new StringReader(shapeString), Integer[].class);
         assertEquals("size of shape should be equal", 1, shape.length);
         assertEquals("shape should be equal", (Integer)1, shape[0]);
@@ -164,17 +164,17 @@ public class TestDeepLearning4JProcessorRegression {
     @Test
     public void testMatchWith2ParamsPiAndPiBy2() {
         runner.enqueue("3.14," + System.lineSeparator() + "1.57");
-        runner.setProperty(DeepLearning4JPredictor.RECORD_DIMENSIONS,"1,1");
+        runner.setProperty(DeepLearning4JMultiLayerPredictor.RECORD_DIMENSIONS,"1,1");
         runner.run(1,true,true);
-        runner.assertAllFlowFilesTransferred(DeepLearning4JPredictor.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeepLearning4JPredictor.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(DeepLearning4JMultiLayerPredictor.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeepLearning4JMultiLayerPredictor.REL_SUCCESS);
 
-        String shapeString = flowFiles.get(0).getAttribute(DeepLearning4JPredictor.DEEPLEARNING4J_OUTPUT_SHAPE);
+        String shapeString = flowFiles.get(0).getAttribute(DeepLearning4JMultiLayerPredictor.DEEPLEARNING4J_OUTPUT_SHAPE);
         Integer [] shape = gson.fromJson(new StringReader(shapeString), Integer[].class);
         assertEquals("size of shape should be equal", 1, shape.length);
         assertEquals("shape should be equal", (Integer)1, shape[0]);
 
-        assertNull(flowFiles.get(0).getAttribute(DeepLearning4JPredictor.DEEPLEARNING4J_ERROR_MESSAGE));
+        assertNull(flowFiles.get(0).getAttribute(DeepLearning4JMultiLayerPredictor.DEEPLEARNING4J_ERROR_MESSAGE));
         String result = new String(flowFiles.get(0).toByteArray());
         Double[][] value = gson.fromJson(new StringReader(result),Double[][].class);
         assertEquals("size should be same", 2, value.length);

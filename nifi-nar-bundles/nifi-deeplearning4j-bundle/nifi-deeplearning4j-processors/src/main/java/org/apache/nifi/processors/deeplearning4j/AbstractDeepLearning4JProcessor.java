@@ -15,15 +15,10 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.deeplearning4j;
-import java.io.IOException;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
-import org.deeplearning4j.util.ModelSerializer;
 
 /**
  * Base class for deeplearning4j processors
@@ -82,25 +77,4 @@ public abstract class AbstractDeepLearning4JProcessor extends AbstractProcessor 
 
     public static final String DEEPLEARNING4J_OUTPUT_SHAPE = "deeplearning4j.output.shape";
 
-    protected MultiLayerNetwork model = null;
-
-    protected synchronized MultiLayerNetwork getModel(ProcessContext context) throws IOException {
-        if ( model == null ) {
-            String modelFile = context.getProperty(MODEL_FILE).evaluateAttributeExpressions().getValue();
-            getLogger().debug("Loading model from {}", new Object[] {modelFile});
-
-            long start = System.currentTimeMillis();
-            model = ModelSerializer.restoreMultiLayerNetwork(modelFile,false);
-            long end = System.currentTimeMillis();
-
-            getLogger().info("Time to load model " + (end-start) +  " ms");
-        }
-        return model;
-    }
-
-    @OnStopped
-    public void close() {
-        getLogger().info("Closing");
-        model = null;
-    }
 }
