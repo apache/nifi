@@ -91,19 +91,18 @@ public class TestDistributedMapCacheLookupService {
 
         @Override
         public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            throw new IOException("not implemented");
+            throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
                 final Deserializer<V> valueDeserializer) throws IOException {
-            throw new IOException("not implemented");
+            throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
         public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
-            throw new IOException("not implemented");
+            throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
@@ -114,17 +113,17 @@ public class TestDistributedMapCacheLookupService {
 
         @Override
         public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
-            throw new IOException("not implemented");
+            throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
         public long removeByPattern(String regex) throws IOException {
-            throw new IOException("not implemented");
+            throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
         public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            throw new IOException("not implemented");
+            throw new UnsupportedOperationException("not implemented");
         }
     }
 

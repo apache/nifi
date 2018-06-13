@@ -19,8 +19,10 @@ package org.apache.nifi.lookup;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,15 +42,26 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 @Tags({"lookup", "enrich", "key", "value", "map", "cache", "distributed"})
 @CapabilityDescription("Allows to choose a distributed map cache client to retrieve the value associated to a key. "
     + "The coordinates that are passed to the lookup must contain the key 'key'.")
 public class DistributedMapCacheLookupService extends AbstractControllerService implements StringLookupService {
+
+    private static final List<Charset> STANDARD_CHARSETS = Arrays.asList(
+            StandardCharsets.UTF_8,
+            StandardCharsets.US_ASCII,
+            StandardCharsets.ISO_8859_1,
+            StandardCharsets.UTF_16,
+            StandardCharsets.UTF_16LE,
+            StandardCharsets.UTF_16BE);
+
     private static final String KEY = "key";
     private static final Set<String> REQUIRED_KEYS = Stream.of(KEY).collect(Collectors.toSet());
 
     private volatile DistributedMapCacheClient cache;
+    private volatile static Charset charset;
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Deserializer<String> valueDeserializer = new StringDeserializer();
 
@@ -60,6 +73,19 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
             .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
 
+    public static final PropertyDescriptor CHARACTER_ENCODING = new PropertyDescriptor.Builder()
+            .name("character-encoding")
+            .displayName("Character Encoding")
+            .description("Specifies a character encoding to use.")
+            .required(true)
+            .allowableValues(getStandardCharsetNames())
+            .defaultValue(StandardCharsets.UTF_8.displayName())
+            .build();
+
+    private static Set<String> getStandardCharsetNames() {
+        return STANDARD_CHARSETS.stream().map(c -> c.displayName()).collect(Collectors.toSet());
+    }
+
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
@@ -67,19 +93,21 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
             .required(false)
             .dynamic(true)
             .addValidator(Validator.VALID)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     }
 
     @OnEnabled
     public void cacheConfiguredValues(final ConfigurationContext context) {
         cache = context.getProperty(PROP_DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
+        charset = Charset.forName(context.getProperty(CHARACTER_ENCODING).getValue());
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PROP_DISTRIBUTED_CACHE_SERVICE);
+        descriptors.add(CHARACTER_ENCODING);
         return descriptors;
     }
 
@@ -113,14 +141,14 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
             if (input == null || input.length == 0) {
                 return null;
             }
-            return new String(input, 0, input.length, StandardCharsets.UTF_8);
+            return new String(input, 0, input.length, charset);
         }
     }
 
     public static class StringSerializer implements Serializer<String> {
         @Override
         public void serialize(final String value, final OutputStream out) throws SerializationException, IOException {
-            out.write(value.getBytes(StandardCharsets.UTF_8));
+            out.write(value.getBytes(charset));
         }
     }
 
