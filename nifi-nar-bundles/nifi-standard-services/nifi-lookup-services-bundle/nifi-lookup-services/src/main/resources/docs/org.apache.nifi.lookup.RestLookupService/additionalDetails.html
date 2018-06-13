@@ -43,26 +43,23 @@
     <p>Headers are supported using dynamic properties. Just add a dynamic property and the name will be the header name and the value will be the value for the header. Expression language
     powered by input from the variable registry is supported.</p>
     <h2>Dynamic URLs</h2>
-    <p>The URL property supports expression language through the lookup key/value pairs configured on the processor. The configuration specified by the user will be passed
-    through to the expression language engine for evaluation. Note: flowfile attributes and variable registry settings will be disregarded here for this property.</p>
-    <p>Ex. URL: <em>http://example.com/service/${user.name}/friend/${friend.id}</em>, combined with example record paths:</p>
+    <p>The URL property supports expression language through the lookup key/value pairs configured on the component using this lookup service (e.g. LookupRecord processor). The configuration specified by the user will be passed
+    through to the expression language engine for evaluation. Note: flowfile attributes will be disregarded here for this property.</p>
+    <p>Ex. URL: <em>http://example.com/service/${user.name}/friend/${friend.id}</em>, combined with example record paths at LookupRecord processor:</p>
     <ul>
         <li>user.name => "/example/username"</li>
         <li>friend.id => "/example/first_friend"</li>
     </ul>
     <p>Would dynamically produce an endpoint of <em>http://example.com/service/john.smith/friend/12345</em></p>
 
-    <h3>Environment specific URLs</h3>
+    <h3>Using Variable Registry with URLs</h3>
 
-    <p>If target URL has environment specific part, such as server name and port,
-        then 'Base URL' property can be used to resolve it by an expression language with variable registry.
-        This way, the consistent lookup coordinate keys can be used in different environments.</p>
-    <p>Ex. Base URL: <em>http://${apiServerHostname}:${apiServerPort}</em>, combined with example variable registry:</p>
+    <p>In addition to the lookup key/value pairs, Variable Registry can be referred from expression languages configured at the URL property.</p>
+    <p>Ex. URL: <em>http://${apiServerHostname}:${apiServerPort}/service/${user.name}/friend/${friend.id}</em>, combined with the previous example record paths, and variable registry:</p>
     <ul>
         <li>apiServerHostname => "test.example.com"</li>
         <li>apiServerPort => "8080"</li>
     </ul>
-    <p>Ex. URL: <em>/service/${user.name}/friend/${friend.id}</em>, combined with the previous example record paths</p>
     <p>Would dynamically produce an endpoint of <em>http://test.example.com:8080/service/john.smith/friend/12345</em></p>
 </body>
 </html>

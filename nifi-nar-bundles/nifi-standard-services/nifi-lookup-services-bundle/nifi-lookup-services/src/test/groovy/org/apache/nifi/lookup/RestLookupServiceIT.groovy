@@ -72,7 +72,6 @@ class RestLookupServiceIT {
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
         runner.setProperty(lookupService, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
         runner.setProperty(lookupService, RestLookupService.RECORD_READER, "jsonReader")
-        runner.setProperty(lookupService, RestLookupService.BASE_URL, 'http://localhost:${serverPort}')
         runner.setProperty(TestRestLookupServiceProcessor.CLIENT_SERVICE, "lookupService")
         runner.enableControllerService(registry)
         runner.enableControllerService(reader)
@@ -350,7 +349,7 @@ class RestLookupServiceIT {
     void setEndpoint(Integer serverPort, String endpoint) {
         // Resolve environmental part of the URL via variable registry.
         runner.setVariable("serverPort", String.valueOf(serverPort))
-        runner.setProperty(lookupService, RestLookupService.URL, endpoint)
+        runner.setProperty(lookupService, RestLookupService.URL, "http://localhost:${serverPort}" + endpoint)
         runner.enableControllerService(lookupService)
 
         runner.assertValid()

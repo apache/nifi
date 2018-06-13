@@ -34,9 +34,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.attribute.expression.language.PreparedQuery;
-import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -83,24 +82,12 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
             "as the header name and the value as the header value.")
 })
 public class RestLookupService extends AbstractControllerService implements RecordLookupService {
-    static final PropertyDescriptor BASE_URL = new PropertyDescriptor.Builder()
-        .name("rest-lookup-base-url")
-        .displayName("Base URL")
-        .description("The base URL for the REST endpoint. Expression language is evaluated against variable registry." +
-                " This property can be used to resolve environment specific part of the URL." +
-                " The result string is prepended to the 'URL'." +
-                " See 'Additional Details' to see an example.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .required(false)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .build();
-
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
         .name("rest-lookup-url")
         .displayName("URL")
         .description("The URL for the REST endpoint. Expression language is evaluated against the lookup key/value pairs, " +
-                "not flowfile attributes or variable registry.")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+                "not flowfile attributes.")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
@@ -175,7 +162,6 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-            BASE_URL,
             URL,
             RECORD_READER,
             RECORD_PATH,
@@ -197,7 +183,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile RecordPath recordPath;
     private volatile OkHttpClient client;
     private volatile Map<String, String> headers;
-    private volatile PreparedQuery compiledQuery;
+    private volatile PropertyValue urlTemplate;
     private volatile String basicUser;
     private volatile String basicPass;
     private volatile boolean isDigest;
@@ -231,16 +217,13 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
         buildHeaders(context);
 
-        final String url = context.getProperty(URL).getValue();
-        compiledQuery = context.getProperty(BASE_URL).isSet()
-                ? Query.prepare(context.getProperty(BASE_URL).evaluateAttributeExpressions().getValue() + url)
-                : Query.prepare(url);
+        urlTemplate = context.getProperty(URL);
     }
 
     @OnDisabled
     public void onDisabled() {
         this.recordPath = null;
-        this.compiledQuery = null;
+        this.urlTemplate = null;
     }
 
     private void buildHeaders(ConfigurationContext context) {
@@ -340,7 +323,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 e -> e.getKey(),
                 e -> e.getValue().toString()
             ));
-        return compiledQuery.evaluateExpressions(converted, null);
+        return urlTemplate.evaluateAttributeExpressions(converted).getValue();
     }
 
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
