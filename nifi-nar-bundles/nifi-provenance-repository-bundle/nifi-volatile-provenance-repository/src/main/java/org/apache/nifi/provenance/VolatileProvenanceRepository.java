@@ -267,7 +267,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
             return false;
         }
 
-        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, event.getAttributes());
+        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
         return Result.Approved.equals(result.getResult());
     }
 
