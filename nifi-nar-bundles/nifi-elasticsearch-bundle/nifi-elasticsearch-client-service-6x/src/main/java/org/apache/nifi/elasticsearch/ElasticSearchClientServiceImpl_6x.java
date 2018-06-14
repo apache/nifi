@@ -72,9 +72,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Tags({ "elastic", "search", "5x"})
-@CapabilityDescription("ElasticSearch client controller service intended for use with ElasticSearch 5.x.")
-public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
+@Tags({ "elastic", "search", "6x"})
+@CapabilityDescription("Provides an ElasticSearch client service that targets 6.X")
+public class ElasticSearchClientServiceImpl_6x extends AbstractControllerService implements ElasticSearchClientService {
     private ObjectMapper mapper = new ObjectMapper();
 
     static final private List<PropertyDescriptor> properties;
@@ -197,7 +197,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             .setMaxRetryTimeoutMillis(retryTimeout);
 
         this.client = builder.build();
-        this.highLevelClient = new RestHighLevelClient(client);
+        this.highLevelClient = new RestHighLevelClient(builder);
     }
 
     private Response runQuery(String endpoint, String query, String index, String type) throws IOException {
@@ -249,7 +249,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
         BulkResponse response = highLevelClient.bulk(bulkRequest);
-        IndexOperationResponse retVal = new IndexOperationResponse(response.getTookInMillis(), response.getIngestTookInMillis());
+        IndexOperationResponse retVal = new IndexOperationResponse(response.getTook().getMillis(), response.getIngestTookInMillis());
 
         return retVal;
     }
@@ -268,7 +268,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
         BulkResponse response = highLevelClient.bulk(bulk);
 
-        DeleteOperationResponse dor = new DeleteOperationResponse(response.getTookInMillis());
+        DeleteOperationResponse dor = new DeleteOperationResponse(response.getTook().getMillis());
 
         return dor;
     }

@@ -27,6 +27,8 @@ language governing permissions and limitations under the License. -->
         <module>nifi-elasticsearch-client-service-api-nar</module> 
         <module>nifi-elasticsearch-client-service</module>
         <module>nifi-elasticsearch-client-service-nar</module>
+        <module>nifi-elasticsearch-client-service-6x</module>
+        <module>nifi-elasticsearch-client-service-6x-nar</module>
         <module>nifi-elasticsearch-nar</module>
         <module>nifi-elasticsearch-processors</module>
         <module>nifi-elasticsearch-5-nar</module>
