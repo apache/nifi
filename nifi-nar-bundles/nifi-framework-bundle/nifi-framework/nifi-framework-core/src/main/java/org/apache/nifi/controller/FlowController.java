@@ -32,6 +32,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
+import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.Bundle;
@@ -4961,6 +4962,38 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         } else {
             // authorizable for remote group ports should be the remote process group
             authorizable = new DataAuthorizable(remoteGroupPort.getRemoteProcessGroup());
+        }
+
+        return authorizable;
+    }
+
+    @Override
+    public Authorizable createProvenanceDataAuthorizable(String componentId) {
+        final String rootGroupId = getRootGroupId();
+
+        // Provenance Events are generated only by connectable components, with the exception of DOWNLOAD events,
+        // which have the root process group's identifier assigned as the component ID, and DROP events, which
+        // could have the connection identifier assigned as the component ID. So, we check if the component ID
+        // is set to the root group and otherwise assume that the ID is that of a connectable or connection.
+        final ProvenanceDataAuthorizable authorizable;
+        if (rootGroupId.equals(componentId)) {
+            authorizable = new ProvenanceDataAuthorizable(getRootGroup());
+        } else {
+            // check if the component is a connectable, this should be the case most often
+            final Connectable connectable = getRootGroup().findLocalConnectable(componentId);
+            if (connectable == null) {
+                // if the component id is not a connectable then consider a connection
+                final Connection connection = getRootGroup().findConnection(componentId);
+
+                if (connection == null) {
+                    throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
+                } else {
+                    // authorizable for connection data is associated with the source connectable
+                    authorizable = new ProvenanceDataAuthorizable(connection.getSource());
+                }
+            } else {
+                authorizable = new ProvenanceDataAuthorizable(connectable);
+            }
         }
 
         return authorizable;

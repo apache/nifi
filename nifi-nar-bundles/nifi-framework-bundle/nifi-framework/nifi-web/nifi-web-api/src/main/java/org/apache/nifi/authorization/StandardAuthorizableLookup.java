@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.resource.ProvenanceDataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
@@ -480,8 +481,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             throw new ResourceNotFoundException("Unrecognized resource: " + resource);
         }
 
-        // if this is a policy or a provenance event resource, there should be another resource type
-        if (ResourceType.Policy.equals(resourceType) || ResourceType.Data.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType)) {
+        // if this is a policy, data or a provenance event resource, there should be another resource type
+        if (ResourceType.Policy.equals(resourceType) || ResourceType.Data.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType) || ResourceType.ProvenanceData.equals(resourceType)) {
             final ResourceType primaryResourceType = resourceType;
             resourceType = null;
 
@@ -503,6 +504,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 return new AccessPolicyAuthorizable(getAccessPolicy(resourceType, resource));
             } else if (ResourceType.Data.equals(primaryResourceType)) {
                 return new DataAuthorizable(getAccessPolicy(resourceType, resource));
+            } else if (ResourceType.ProvenanceData.equals(primaryResourceType)) {
+                return new ProvenanceDataAuthorizable(getAccessPolicy(resourceType, resource));
             } else {
                 return new DataTransferAuthorizable(getAccessPolicy(resourceType, resource));
             }
