@@ -36,11 +36,11 @@ public interface LookupService<T> extends ControllerService {
     Optional<T> lookup(Map<String, Object> coordinates) throws LookupFailureException;
 
     /**
-     * Looks up a value that corresponds to the given map, coordinates. FlowFile attributes will also be passed into the
-     * map labeled context.
+     * Looks up a value that corresponds to the given map, coordinates. Additional contextual information will also be passed into the
+     * map labeled context from sources such as flowfile attributes.
      *
      * @param coordinates a Map of key/value pairs that indicate the information that should be looked up
-     * @param context a Map of FlowFile attributes
+     * @param context a Map of additional information
      * @return a value that corresponds to the given coordinates
      * @throws LookupFailureException if unable to lookup a value for the given coordinates
      */

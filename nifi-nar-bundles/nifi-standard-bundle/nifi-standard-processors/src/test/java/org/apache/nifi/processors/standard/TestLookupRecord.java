@@ -94,7 +94,7 @@ public class TestLookupRecord {
         Map<String, Object> expected = new HashMap<>();
         expected.putAll(attrs);
 
-        lookupService.setRequiredCoordinates(expected);
+        lookupService.setExpectedContext(expected);
 
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jane Doe", "Basketball");
@@ -399,7 +399,7 @@ public class TestLookupRecord {
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
         private final Map<String, String> values = new HashMap<>();
-        private Map<String, Object> expectedCoordinates;
+        private Map<String, Object> expectedContext;
 
         public void addValue(final String key, final String value) {
             values.put(key, value);
@@ -411,7 +411,7 @@ public class TestLookupRecord {
         }
 
         public Optional<String> lookup(final Map<String, Object> coordinates, Map<String, String> context) {
-            enforceRequiredCoordinates(context);
+            validateContext(context);
             return lookup(coordinates);
         }
 
@@ -434,13 +434,13 @@ public class TestLookupRecord {
             return Collections.singleton("lookup");
         }
 
-        public void setRequiredCoordinates(Map<String, Object> expectedCoordinates) {
-            this.expectedCoordinates = expectedCoordinates;
+        public void setExpectedContext(Map<String, Object> expectedContext) {
+            this.expectedContext = expectedContext;
         }
 
-        private void enforceRequiredCoordinates(Map<String, String> context) {
-            if (expectedCoordinates != null) {
-                for (Map.Entry<String, Object> entry : expectedCoordinates.entrySet()) {
+        private void validateContext(Map<String, String> context) {
+            if (expectedContext != null) {
+                for (Map.Entry<String, Object> entry : expectedContext.entrySet()) {
                     Assert.assertTrue(String.format("%s was not in coordinates.", entry.getKey()),
                             context.containsKey(entry.getKey()));
                     Assert.assertEquals("Wrong value", entry.getValue(), context.get(entry.getKey()));
