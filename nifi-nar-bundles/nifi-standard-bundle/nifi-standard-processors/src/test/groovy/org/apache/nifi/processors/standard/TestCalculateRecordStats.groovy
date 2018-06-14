@@ -63,7 +63,7 @@ class TestCalculateRecordStats {
             "recordStats.sport.Football": "2",
             "recordStats.sport.Basketball": "1",
             "recordStats.sport": "6",
-            "record_count": "6"
+            "record.count": "6"
         ]
 
         commonTest([ "sport": "/person/sport"], sports, expectedAttributes)
@@ -77,7 +77,7 @@ class TestCalculateRecordStats {
             "recordStats.sport.Football": "1",
             "recordStats.sport.Basketball": "1",
             "recordStats.sport": "3",
-            "record_count": "6"
+            "record.count": "6"
         ]
 
         commonTest([ "sport": "/person/sport"], sports, expectedAttributes)
@@ -90,7 +90,7 @@ class TestCalculateRecordStats {
             "recordStats.sport.Soccer": "3",
             "recordStats.sport.Basketball": "1",
             "recordStats.sport": "4",
-            "record_count": "6"
+            "record.count": "6"
         ]
 
         def propz = [
@@ -112,7 +112,7 @@ class TestCalculateRecordStats {
             "recordStats.sport.Soccer": "3",
             "recordStats.sport.Baseball": "4",
             "recordStats.sport": String.valueOf(sports.size()),
-            "record_count": String.valueOf(sports.size())
+            "record.count": String.valueOf(sports.size())
         ]
 
         def propz = [

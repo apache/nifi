@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
                     "Total number of top N value counts to be added is defined by the limit configuration.")
 })
 public class CalculateRecordStats extends AbstractProcessor {
-    static final String RECORD_COUNT_ATTR = "record_count";
+    static final String RECORD_COUNT_ATTR = "record.count";
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("record-stats-reader")
