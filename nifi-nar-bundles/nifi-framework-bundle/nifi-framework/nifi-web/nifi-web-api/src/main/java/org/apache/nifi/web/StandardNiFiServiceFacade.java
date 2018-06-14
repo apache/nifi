@@ -1595,7 +1595,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 revision,
                 processorDTO,
                 () -> processorDAO.createProcessor(groupId, processorDTO),
-                processor -> dtoFactory.createProcessorDto(processor));
+                processor -> {
+                    awaitValidationCompletion(processor);
+                    return dtoFactory.createProcessorDto(processor);
+                });
 
         final ProcessorNode processor = processorDAO.getProcessor(processorDTO.getId());
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processor);
@@ -2163,24 +2166,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final RevisionUpdate<ControllerServiceDTO> snapshot;
         if (groupId == null) {
-                // update revision through revision manager
-                snapshot = revisionManager.updateRevision(claim, user, () -> {
-                    // Unfortunately, we can not use the createComponent() method here because createComponent() wants to obtain the read lock
-                    // on the group. The Controller Service may or may not have a Process Group (it won't if it's controller-scoped).
-                    final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
-                    final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(controllerService);
+            // update revision through revision manager
+            snapshot = revisionManager.updateRevision(claim, user, () -> {
+                // Unfortunately, we can not use the createComponent() method here because createComponent() wants to obtain the read lock
+                // on the group. The Controller Service may or may not have a Process Group (it won't if it's controller-scoped).
+                final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
+                controllerFacade.save();
 
-                    controllerFacade.save();
+                awaitValidationCompletion(controllerService);
+                final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(controllerService);
 
-                    final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
-                    return new StandardRevisionUpdate<>(dto, lastMod);
-                });
+                final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+                return new StandardRevisionUpdate<>(dto, lastMod);
+            });
         } else {
             snapshot = revisionManager.updateRevision(claim, user, () -> {
                 final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
-                final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(controllerService);
-
                 controllerFacade.save();
+
+                awaitValidationCompletion(controllerService);
+                final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(controllerService);
 
                 final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
                 return new StandardRevisionUpdate<>(dto, lastMod);
@@ -2573,6 +2578,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // save the update
             controllerFacade.save();
+            awaitValidationCompletion(reportingTask);
 
             final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTask);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
