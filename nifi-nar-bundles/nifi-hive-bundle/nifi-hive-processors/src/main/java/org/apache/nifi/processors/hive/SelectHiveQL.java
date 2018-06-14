@@ -407,7 +407,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
                         flowfile = session.putAllAttributes(flowfile, attributes);
 
-                        logger.info("{} contains {} Avro records; transferring to 'success'",
+                        logger.info("{} contains {} " + outputFormat + " records; transferring to 'success'",
                                 new Object[]{flowfile, nrOfRows.get()});
 
                         if (context.hasIncomingConnection()) {
