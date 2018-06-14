@@ -123,11 +123,23 @@ public class MongoDBLookupServiceIT {
 
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("username", "john.smith");
-        criteria.put("schema.name", "user");
-        Optional result = service.lookup(criteria);
+        Map<String, String> context = new HashMap<>();
+        context.put("schema.name", "user");
+        Optional result = service.lookup(criteria, context);
         Assert.assertTrue(result.isPresent());
         Assert.assertNotNull(result.get());
         MapRecord record = (MapRecord)result.get();
+
+        Assert.assertEquals("john.smith", record.getAsString("username"));
+        Assert.assertEquals("testing1234", record.getAsString("password"));
+
+        /*
+         * Test falling back on schema detection if a user doesn't specify the context argument
+         */
+        result = service.lookup(criteria);
+        Assert.assertTrue(result.isPresent());
+        Assert.assertNotNull(result.get());
+        record = (MapRecord)result.get();
 
         Assert.assertEquals("john.smith", record.getAsString("username"));
         Assert.assertEquals("testing1234", record.getAsString("password"));

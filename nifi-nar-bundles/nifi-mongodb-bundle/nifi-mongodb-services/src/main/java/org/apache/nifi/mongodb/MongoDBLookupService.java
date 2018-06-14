@@ -38,6 +38,7 @@ import org.bson.Document;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,6 +91,15 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
 
     @Override
     public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+        /*
+         * Unless the user hard-coded schema.name or schema.text into the schema access options, this is going
+         * to force schema detection.
+         */
+        return lookup(coordinates, new HashMap<>());
+    }
+
+    @Override
+    public Optional<Object> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
         Map<String, Object> clean = coordinates.entrySet().stream()
             .filter(e -> !schemaNameProperty.equals(String.format("${%s}", e.getKey())))
             .collect(Collectors.toMap(
@@ -110,7 +120,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
             } else if (!StringUtils.isEmpty(lookupValueField)) {
                 return Optional.ofNullable(result.get(lookupValueField));
             } else {
-                RecordSchema schema = loadSchema(coordinates, result);
+                RecordSchema schema = loadSchema(context, result);
 
                 return Optional.ofNullable(new MapRecord(schema, result));
             }
@@ -120,16 +130,11 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         }
     }
 
-    private RecordSchema loadSchema(Map<String, Object> coordinates, Document doc) {
-        Map<String, String> variables = coordinates.entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey(),
-                e -> e.getValue().toString()
-            ));
+    private RecordSchema loadSchema(Map<String, String> context, Document doc) {
         ObjectMapper mapper = new ObjectMapper();
         try {
             byte[] bytes = mapper.writeValueAsBytes(doc);
-            return getSchema(variables, new ByteArrayInputStream(bytes), null);
+            return getSchema(context, new ByteArrayInputStream(bytes), null);
         } catch (Exception ex) {
             return null;
         }
