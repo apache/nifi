@@ -188,7 +188,7 @@ public class MongoDBLookupServiceIT {
         Record subRecord = record.getAsRecord("subrecordField", subSchema);
         Assert.assertNotNull(subRecord);
         Assert.assertEquals("test", subRecord.getValue("nestedString"));
-        Assert.assertEquals(new Integer(1000), subRecord.getValue("nestedLong"));
+        Assert.assertEquals(new Long(1000), subRecord.getValue("nestedLong"));
         Assert.assertEquals(list, record.getValue("arrayField"));
 
         Map<String, Object> clean = new HashMap<>();

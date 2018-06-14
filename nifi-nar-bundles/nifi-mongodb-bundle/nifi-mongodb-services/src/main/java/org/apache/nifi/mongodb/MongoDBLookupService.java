@@ -17,7 +17,6 @@
 
 package org.apache.nifi.mongodb;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -35,7 +34,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
 import org.bson.Document;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -131,10 +129,8 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
     }
 
     private RecordSchema loadSchema(Map<String, String> context, Document doc) {
-        ObjectMapper mapper = new ObjectMapper();
         try {
-            byte[] bytes = mapper.writeValueAsBytes(doc);
-            return getSchema(context, new ByteArrayInputStream(bytes), null);
+            return getSchema(context, doc, null);
         } catch (Exception ex) {
             return null;
         }
@@ -157,6 +153,8 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         if (!StringUtils.isBlank(configuredProjection)) {
             projection = Document.parse(configuredProjection);
         }
+
+        super.onEnabled(context);
     }
 
     @Override
