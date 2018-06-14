@@ -41,8 +41,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.Tag;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -53,6 +51,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -62,7 +61,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.AmazonClientException;
@@ -210,19 +208,30 @@ public class PutS3Object extends AbstractS3Processor {
             .defaultValue(NO_SERVER_SIDE_ENCRYPTION)
             .build();
 
-    public static final PropertyDescriptor OBJECT_TAGS = new PropertyDescriptor.Builder()
-            .name("s3-object-tags")
-            .displayName("Object Tags")
-            .description("Specifies the tag(s) to be set to the outgoing S3 object. Tags have to be specified in a JSON (flat) format. " +
-                    "Ex: {\"Project\" : \"ProjectNeon\", \"Classified\" : \"true\"}")
+    public static final PropertyDescriptor OBJECT_TAGS_PREFIX = new PropertyDescriptor.Builder()
+            .name("s3-object-tags-prefix")
+            .displayName("Object Tags Prefix")
+            .description("Specifies the prefix which would be scanned against the incoming FlowFile's attributes and the matching attribute's " +
+                    "name and value would be considered as the outgoing S3 object's Tag name and Tag value respectively. For Ex: If the " +
+                    "incoming FlowFile carries the attributes tagS3country, tagS3PII, the tag prefix to be specified would be 'tagS3'")
             .required(false)
-            .addValidator(JsonValidator.INSTANCE)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor REMOVE_TAG_PREFIX = new PropertyDescriptor.Builder()
+            .name("s3-object-remove-tags-prefix")
+            .displayName("Remove Tag Prefix")
+            .description("If set to 'True', the value provided for '" + OBJECT_TAGS_PREFIX.getDisplayName() + "' will be removed from " +
+                    "the attribute(s) and then considered as the Tag name. For ex: If the incoming FlowFile carries the attributes tagS3country, " +
+                    "tagS3PII and the prefix is set to 'tagS3' then the corresponding tag values would be 'country' and 'PII'")
+            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .defaultValue("false")
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS, STORAGE_CLASS,
-            REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
+        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS_PREFIX, REMOVE_TAG_PREFIX,
+            STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
             CANNED_ACL, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL,
             MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
@@ -487,7 +496,7 @@ public class PutS3Object extends AbstractS3Processor {
                                 request.withCannedAcl(cannedAcl);
                             }
 
-                            if (context.getProperty(OBJECT_TAGS).isSet()) {
+                            if (context.getProperty(OBJECT_TAGS_PREFIX).isSet()) {
                                 request.setTagging(new ObjectTagging(getObjectTags(context, flowFileCopy)));
                             }
 
@@ -583,7 +592,7 @@ public class PutS3Object extends AbstractS3Processor {
                                     initiateRequest.withCannedACL(cannedAcl);
                                 }
 
-                                if (context.getProperty(OBJECT_TAGS).isSet()) {
+                                if (context.getProperty(OBJECT_TAGS_PREFIX).isSet()) {
                                     initiateRequest.setTagging(new ObjectTagging(getObjectTags(context, flowFileCopy)));
                                 }
 
@@ -811,20 +820,21 @@ public class PutS3Object extends AbstractS3Processor {
     }
 
     private List<Tag> getObjectTags(ProcessContext context, FlowFile flowFile) {
-        final String jsonOfTags = context.getProperty(OBJECT_TAGS).evaluateAttributeExpressions(flowFile).getValue();
-        final ObjectMapper objectMapper = new ObjectMapper();
-        final Map<String, String> objectTagsMap;
+        final String prefix = context.getProperty(OBJECT_TAGS_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
         final List<Tag> objectTags = new ArrayList<>();
+        final Map<String, String> attributesMap = flowFile.getAttributes();
 
-        try {
-            objectTagsMap = objectMapper.readValue(jsonOfTags, new TypeReference<Map<String, String>>(){});
+        attributesMap.entrySet().stream().sequential()
+                .filter(attribute -> attribute.getKey().startsWith(prefix))
+                .forEach(attribute -> {
+                    String tagKey = attribute.getKey();
+                    String tagValue = attribute.getValue();
 
-            for (final Map.Entry<String, String> entry : objectTagsMap.entrySet()) {
-                objectTags.add(new Tag(entry.getKey(), entry.getValue()));
-            }
-        } catch (IOException e) {
-            getLogger().error("Failed to parse the value provided for '{}' due to {}", new Object[]{OBJECT_TAGS.getDisplayName(), e});
-        }
+                    if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
+                        tagKey = tagKey.replace(prefix, "");
+                    }
+                    objectTags.add(new Tag(tagKey, tagValue));
+                });
 
         return objectTags;
     }

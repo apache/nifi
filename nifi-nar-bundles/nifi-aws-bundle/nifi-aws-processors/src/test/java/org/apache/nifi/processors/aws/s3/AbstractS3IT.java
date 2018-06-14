@@ -62,7 +62,7 @@ public abstract class AbstractS3IT {
     // when bucket is rapidly added/deleted and consistency propagation causes this error.
     // (Should not be necessary if REGION remains static, but added to prevent future frustration.)
     // [see http://stackoverflow.com/questions/13898057/aws-error-message-a-conflicting-conditional-operation-is-currently-in-progress]
-    protected final static String BUCKET_NAME = "test-bucket-00000000-0000-0000-0000-123456789021-" + REGION;
+    protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis() + "-" + REGION;
 
     // Static so multiple Tests can use same client
     protected static AmazonS3Client client;

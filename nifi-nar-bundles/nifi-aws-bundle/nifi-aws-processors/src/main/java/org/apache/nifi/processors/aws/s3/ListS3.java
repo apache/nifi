@@ -89,9 +89,6 @@ import com.amazonaws.services.s3.model.ListObjectsV2Result;
 @SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
 public class ListS3 extends AbstractS3Processor {
 
-    private static final AllowableValue WRITE_OBJECT_TAGS_TO_FF = new AllowableValue("true", "True");
-    private static final AllowableValue DO_NOT_WRITE_OBJECT_TAGS = new AllowableValue("false", "False");
-
     public static final PropertyDescriptor DELIMITER = new PropertyDescriptor.Builder()
             .name("delimiter")
             .displayName("Delimiter")
@@ -147,10 +144,10 @@ public class ListS3 extends AbstractS3Processor {
     public static final PropertyDescriptor WRITE_OBJECT_TAGS = new PropertyDescriptor.Builder()
             .name("write-s3-object-tags")
             .displayName("Write Object Tags")
-            .description("If set to 'True', the tags associated to the S3 object will be written as flowfile attributes")
+            .description("If set to 'True', the tags associated with the S3 object will be written as FlowFile attributes")
             .required(true)
-            .allowableValues(WRITE_OBJECT_TAGS_TO_FF, DO_NOT_WRITE_OBJECT_TAGS)
-            .defaultValue(WRITE_OBJECT_TAGS_TO_FF.getValue())
+            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .defaultValue("false")
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(

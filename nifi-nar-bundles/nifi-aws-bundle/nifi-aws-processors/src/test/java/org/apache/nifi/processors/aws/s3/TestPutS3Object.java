@@ -134,18 +134,20 @@ public class TestPutS3Object {
 
     @Test
     public void testObjectTags() {
-        runner.setProperty(PutS3Object.OBJECT_TAGS, "{\"dummytag\" : \"dummyvalue\"}");
+        runner.setProperty(PutS3Object.OBJECT_TAGS_PREFIX, "tagS3");
+        runner.setProperty(PutS3Object.REMOVE_TAG_PREFIX, "false");
         testBase();
 
         ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
         PutObjectRequest request = captureRequest.getValue();
 
-        final List<Tag> tagSet = request.getTagging().getTagSet();
+        List<Tag> tagSet = request.getTagging().getTagSet();
 
         assertEquals(1, tagSet.size());
-        assertEquals("dummytag", tagSet.get(0).getKey());
-        assertEquals("dummyvalue", tagSet.get(0).getValue());
+        assertEquals("tagS3PII", tagSet.get(0).getKey());
+        assertEquals("true", tagSet.get(0).getValue());
+
     }
 
     private void testBase() {
@@ -154,6 +156,7 @@ public class TestPutS3Object {
 
         final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("filename", "testfile.txt");
+        ffAttributes.put("tagS3PII", "true");
         runner.enqueue("Test Content", ffAttributes);
 
         PutObjectResult putObjectResult = Mockito.spy(PutObjectResult.class);
@@ -177,7 +180,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 32, pd.size());
+        assertEquals("size should be eq", 33, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -204,7 +207,8 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.PROXY_HOST_PORT));
         assertTrue(pd.contains(PutS3Object.PROXY_USERNAME));
         assertTrue(pd.contains(PutS3Object.PROXY_PASSWORD));
-        assertTrue(pd.contains(PutS3Object.OBJECT_TAGS));
+        assertTrue(pd.contains(PutS3Object.OBJECT_TAGS_PREFIX));
+        assertTrue(pd.contains(PutS3Object.REMOVE_TAG_PREFIX));
     }
 
 }

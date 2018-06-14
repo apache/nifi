@@ -66,7 +66,7 @@ public class ITListS3 extends AbstractS3IT {
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
+        runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.enableControllerService(serviceImpl);
         runner.assertValid(serviceImpl);
 
@@ -150,11 +150,12 @@ public class ITListS3 extends AbstractS3IT {
         objectTags.add(new Tag("dummytag1", "dummyvalue1"));
         objectTags.add(new Tag("dummytag2", "dummyvalue2"));
 
-        putFileWithObjectTag("fileWithTag", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), objectTags);
+        putFileWithObjectTag("b/fileWithTag", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), objectTags);
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
         runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(ListS3.PREFIX, "b/");
         runner.setProperty(ListS3.REGION, REGION);
         runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
         runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
@@ -165,7 +166,7 @@ public class ITListS3 extends AbstractS3IT {
 
         MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
 
-        flowFiles.assertAttributeEquals("filename", "fileWithTag");
+        flowFiles.assertAttributeEquals("filename", "b/fileWithTag");
         flowFiles.assertAttributeExists("s3.tag.dummytag1");
         flowFiles.assertAttributeExists("s3.tag.dummytag2");
         flowFiles.assertAttributeEquals("s3.tag.dummytag1", "dummyvalue1");

@@ -849,10 +849,12 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutS3Object.REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
-        runner.setProperty(PutS3Object.OBJECT_TAGS, "{\"dummytag\" : \"dummyvalue\"}");
+        runner.setProperty(PutS3Object.OBJECT_TAGS_PREFIX, "tagS3");
+        runner.setProperty(PutS3Object.REMOVE_TAG_PREFIX, "true");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "tag-test.txt");
+        attrs.put("tagS3PII", "true");
         runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
 
         runner.run();
@@ -866,8 +868,8 @@ public class ITPutS3Object extends AbstractS3IT {
         }
 
         Assert.assertTrue(objectTags.size() == 1);
-        Assert.assertEquals("dummytag", objectTags.get(0).getKey());
-        Assert.assertEquals("dummyvalue", objectTags.get(0).getValue());
+        Assert.assertEquals("PII", objectTags.get(0).getKey());
+        Assert.assertEquals("true", objectTags.get(0).getValue());
     }
 
     private class MockAmazonS3Client extends AmazonS3Client {
