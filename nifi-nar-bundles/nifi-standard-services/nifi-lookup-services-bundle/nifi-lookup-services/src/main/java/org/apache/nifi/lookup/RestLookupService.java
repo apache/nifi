@@ -77,7 +77,7 @@ import java.util.stream.Collectors;
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @Tags({ "rest", "lookup", "json", "xml", "http" })
-@CapabilityDescription("Use a REST service to enrich records.")
+@CapabilityDescription("Use a REST service to look up values.")
 @DynamicProperties({
     @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
             "as the header name and the value as the header value.")
@@ -192,11 +192,11 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return DESCRIPTORS;
     }
 
-    private ProxyConfigurationService proxyConfigurationService;
-    private RecordReaderFactory readerFactory;
-    private RecordPath recordPath;
-    private OkHttpClient client;
-    private Map<String, String> headers;
+    private volatile ProxyConfigurationService proxyConfigurationService;
+    private volatile RecordReaderFactory readerFactory;
+    private volatile RecordPath recordPath;
+    private volatile OkHttpClient client;
+    private volatile Map<String, String> headers;
     private volatile PreparedQuery compiledQuery;
     private volatile String basicUser;
     private volatile String basicPass;
@@ -229,7 +229,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             recordPath = RecordPath.compile(path);
         }
 
-        getHeaders(context);
+        buildHeaders(context);
 
         final String url = context.getProperty(URL).getValue();
         compiledQuery = context.getProperty(BASE_URL).isSet()
@@ -239,10 +239,11 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     @OnDisabled
     public void onDisabled() {
+        this.recordPath = null;
         this.compiledQuery = null;
     }
 
-    private void getHeaders(ConfigurationContext context) {
+    private void buildHeaders(ConfigurationContext context) {
         headers = new HashMap<>();
         for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {

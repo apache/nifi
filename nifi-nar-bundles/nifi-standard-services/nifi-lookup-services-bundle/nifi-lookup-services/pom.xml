@@ -160,6 +160,8 @@
                   <artifactId>apache-rat-plugin</artifactId>
                   <configuration>
                       <excludes combine.children="append">
+                          <exclude>src/test/resources/complex.avsc</exclude>
+                          <exclude>src/test/resources/simple.avsc</exclude>
                           <exclude>src/test/resources/test.csv</exclude>
                           <exclude>src/test/resources/test_Windows-31J.csv</exclude>
                           <exclude>src/test/resources/test.properties</exclude>
