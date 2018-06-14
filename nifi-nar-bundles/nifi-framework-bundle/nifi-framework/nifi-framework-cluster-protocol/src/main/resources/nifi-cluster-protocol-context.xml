@@ -27,17 +27,17 @@
             <util:constant static-field="org.apache.nifi.cluster.protocol.jaxb.message.JaxbProtocolUtils.JAXB_CONTEXT"/>
         </constructor-arg>
     </bean>
-    
+
     <!-- socket configuration -->
     <bean id="protocolSocketConfiguration" class="org.apache.nifi.cluster.protocol.spring.SocketConfigurationFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    
+
     <!-- server socket configuration -->
     <bean id="protocolServerSocketConfiguration" class="org.apache.nifi.cluster.protocol.spring.ServerSocketConfigurationFactoryBean">
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    
+
     <!-- cluster manager protocol sender -->
     <bean id="clusterCoordinationProtocolSender" class="org.apache.nifi.cluster.protocol.impl.StandardClusterCoordinationProtocolSender">
         <constructor-arg ref="protocolSocketConfiguration"/>
@@ -49,13 +49,13 @@
             <bean factory-bean="nifiProperties" factory-method="getClusterNodeConnectionTimeout"/>
         </property>
     </bean>
-    
+
     <!-- cluster manager sender/listener -->
     <bean id="clusterCoordinationProtocolSenderListener" class="org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener">
         <constructor-arg ref="clusterCoordinationProtocolSender"/>
         <constructor-arg ref="protocolListener"/>
     </bean>
-    
+
     <!-- node protocol sender -->
     <!--
     <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.CuratorNodeProtocolSender">
@@ -69,7 +69,7 @@
         <constructor-arg ref="protocolContext"/>
         <constructor-arg ref="leaderElectionManager"/>
     </bean>
-    
+
     <!-- protocol listener -->
     <bean id="protocolListener" class="org.apache.nifi.cluster.protocol.impl.SocketProtocolListener">
         <constructor-arg index="0">
@@ -81,7 +81,7 @@
         <constructor-arg ref="protocolServerSocketConfiguration" index="2"/>
         <constructor-arg ref="protocolContext" index="3"/>
     </bean>
-    
+
     <!-- node sender/listener -->
     <bean id="nodeProtocolSenderListener" class="org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener">
         <constructor-arg ref="nodeProtocolSender"/>

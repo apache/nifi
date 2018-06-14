@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.cluster.coordination.node;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
@@ -47,8 +29,12 @@ import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.state.MockStateMap;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
@@ -58,11 +44,33 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
+
 public class TestNodeClusterCoordinator {
 
     private NodeClusterCoordinator coordinator;
     private ClusterCoordinationProtocolSenderListener senderListener;
     private List<NodeConnectionStatus> nodeStatuses;
+    private StateManagerProvider stateManagerProvider;
 
     private NiFiProperties createProperties() {
         final Map<String,String> addProps = new HashMap<>();
@@ -76,12 +84,18 @@ public class TestNodeClusterCoordinator {
 
         senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         nodeStatuses = Collections.synchronizedList(new ArrayList<>());
+        stateManagerProvider = Mockito.mock(StateManagerProvider.class);
+
+        final StateManager stateManager = Mockito.mock(StateManager.class);
+        when(stateManager.getState(any(Scope.class))).thenReturn(new MockStateMap(Collections.emptyMap(), 1));
+        when(stateManagerProvider.getStateManager(anyString())).thenReturn(stateManager);
+
 
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
-        coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties(), null) {
+        coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties(), null, stateManagerProvider) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
                 nodeStatuses.add(updatedStatus);
@@ -90,7 +104,7 @@ public class TestNodeClusterCoordinator {
 
         final FlowService flowService = Mockito.mock(FlowService.class);
         final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50], new HashSet<>());
-        Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
+        when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
     }
 
@@ -130,14 +144,14 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    public void testTryAgainIfNoFlowServiceSet() {
+    public void testTryAgainIfNoFlowServiceSet() throws IOException {
         final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
-                null, revisionManager, createProperties(), null) {
+                null, revisionManager, createProperties(), null, stateManagerProvider) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
@@ -150,7 +164,7 @@ public class TestNodeClusterCoordinator {
 
         coordinator.setConnected(true);
 
-        final ProtocolMessage protocolResponse = coordinator.handle(requestMsg);
+        final ProtocolMessage protocolResponse = coordinator.handle(requestMsg, Collections.emptySet());
         assertNotNull(protocolResponse);
         assertTrue(protocolResponse instanceof ConnectionResponseMessage);
 
@@ -164,7 +178,7 @@ public class TestNodeClusterCoordinator {
         final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         final AtomicReference<ReconnectionRequestMessage> requestRef = new AtomicReference<>();
 
-        Mockito.when(senderListener.requestReconnection(Mockito.any(ReconnectionRequestMessage.class))).thenAnswer(new Answer<Object>() {
+        when(senderListener.requestReconnection(any(ReconnectionRequestMessage.class))).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 final ReconnectionRequestMessage msg = invocation.getArgumentAt(0, ReconnectionRequestMessage.class);
@@ -175,10 +189,10 @@ public class TestNodeClusterCoordinator {
 
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
-                null, revisionManager, createProperties(), null) {
+                null, revisionManager, createProperties(), null, stateManagerProvider) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
@@ -186,7 +200,7 @@ public class TestNodeClusterCoordinator {
 
         final FlowService flowService = Mockito.mock(FlowService.class);
         final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50], new HashSet<>());
-        Mockito.when(flowService.createDataFlowFromController()).thenReturn(dataFlow);
+        when(flowService.createDataFlowFromController()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
         coordinator.setConnected(true);
 
@@ -232,7 +246,7 @@ public class TestNodeClusterCoordinator {
     @Test(timeout = 5000)
     public void testStatusChangesReplicated() throws InterruptedException, IOException {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
         // Create a connection request message and send to the coordinator
         final NodeIdentifier requestedNodeId = createNodeId(1);
@@ -397,7 +411,7 @@ public class TestNodeClusterCoordinator {
         final NodeStatusChangeMessage msg = new NodeStatusChangeMessage();
         msg.setNodeId(nodeId1);
         msg.setNodeConnectionStatus(oldStatus);
-        coordinator.handle(msg);
+        coordinator.handle(msg, Collections.emptySet());
 
         // Ensure that no status change message was send
         Thread.sleep(1000);
@@ -413,7 +427,7 @@ public class TestNodeClusterCoordinator {
         final ConnectionRequestMessage crm = new ConnectionRequestMessage();
         crm.setConnectionRequest(connectionRequest);
 
-        final ProtocolMessage response = coordinator.handle(crm);
+        final ProtocolMessage response = coordinator.handle(crm, Collections.emptySet());
         assertNotNull(response);
         assertTrue(response instanceof ConnectionResponseMessage);
         final ConnectionResponseMessage responseMessage = (ConnectionResponseMessage) response;
@@ -424,7 +438,7 @@ public class TestNodeClusterCoordinator {
         final ConnectionRequestMessage crm2 = new ConnectionRequestMessage();
         crm2.setConnectionRequest(conRequest2);
 
-        final ProtocolMessage conflictingResponse = coordinator.handle(crm2);
+        final ProtocolMessage conflictingResponse = coordinator.handle(crm2, Collections.emptySet());
         assertNotNull(conflictingResponse);
         assertTrue(conflictingResponse instanceof ConnectionResponseMessage);
         final ConnectionResponseMessage conflictingResponseMessage = (ConnectionResponseMessage) conflictingResponse;
@@ -446,7 +460,7 @@ public class TestNodeClusterCoordinator {
         final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0], new HashSet<>()));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
-        return coordinator.handle(requestMsg);
+        return coordinator.handle(requestMsg, Collections.emptySet());
     }
 
 

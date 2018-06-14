@@ -27,6 +27,9 @@ import java.util.Set;
  */
 @XmlType(name = "connection")
 public class ConnectionDTO extends ComponentDTO {
+    public static final String LOAD_BALANCE_NOT_CONFIGURED = "LOAD_BALANCE_NOT_CONFIGURED";
+    public static final String LOAD_BALANCE_INACTIVE = "LOAD_BALANCE_INACTIVE";
+    public static final String LOAD_BALANCE_ACTIVE = "LOAD_BALANCE_ACTIVE";
 
     private ConnectableDTO source;
     private ConnectableDTO destination;
@@ -41,6 +44,11 @@ public class ConnectionDTO extends ComponentDTO {
     private String flowFileExpiration;
     private List<String> prioritizers;
     private List<PositionDTO> bends;
+
+    private String loadBalanceStrategy;
+    private String loadBalancePartitionAttribute;
+    private String loadBalanceCompression;
+    private String loadBalanceStatus;
 
     /**
      * The source of this connection.
@@ -229,6 +237,47 @@ public class ConnectionDTO extends ComponentDTO {
 
     public void setPrioritizers(List<String> prioritizers) {
         this.prioritizers = prioritizers;
+    }
+
+    @ApiModelProperty(value = "How to load balance the data in this Connection across the nodes in the cluster.",
+        allowableValues = "DO_NOT_LOAD_BALANCE, PARTITION_BY_ATTRIBUTE, ROUND_ROBIN, SINGLE_NODE")
+    public String getLoadBalanceStrategy() {
+        return loadBalanceStrategy;
+    }
+
+    public void setLoadBalanceStrategy(String loadBalanceStrategy) {
+        this.loadBalanceStrategy = loadBalanceStrategy;
+    }
+
+    @ApiModelProperty(value = "The FlowFile Attribute to use for determining which node a FlowFile will go to if the Load Balancing Strategy is set to PARTITION_BY_ATTRIBUTE")
+    public String getLoadBalancePartitionAttribute() {
+        return loadBalancePartitionAttribute;
+    }
+
+    public void setLoadBalancePartitionAttribute(String partitionAttribute) {
+        this.loadBalancePartitionAttribute = partitionAttribute;
+    }
+
+    @ApiModelProperty(value = "Whether or not data should be compressed when being transferred between nodes in the cluster.",
+        allowableValues = "DO_NOT_COMPRESS, COMPRESS_ATTRIBUTES_ONLY, COMPRESS_ATTRIBUTES_AND_CONTENT")
+    public String getLoadBalanceCompression() {
+        return loadBalanceCompression;
+    }
+
+    public void setLoadBalanceCompression(String compression) {
+        this.loadBalanceCompression = compression;
+    }
+
+    @ApiModelProperty(value = "The current status of the Connection's Load Balancing Activities. Status can indicate that Load Balancing is not configured for the connection, that Load Balancing " +
+        "is configured but inactive (not currently transferring data to another node), or that Load Balancing is configured and actively transferring data to another node.",
+        allowableValues = LOAD_BALANCE_NOT_CONFIGURED + ", " + LOAD_BALANCE_INACTIVE + ", " + LOAD_BALANCE_ACTIVE,
+        readOnly = true)
+    public String getLoadBalanceStatus() {
+        return loadBalanceStatus;
+    }
+
+    public void setLoadBalanceStatus(String status) {
+        this.loadBalanceStatus = status;
     }
 
     @Override

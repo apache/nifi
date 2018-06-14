@@ -17,19 +17,6 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -72,6 +59,19 @@ import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 public class NiFiRegistryFlowMapper {
@@ -246,6 +246,10 @@ public class NiFiRegistryFlowMapper {
         versionedConnection.setPrioritizers(queue.getPriorities().stream().map(p -> p.getClass().getName()).collect(Collectors.toList()));
         versionedConnection.setSelectedRelationships(connection.getRelationships().stream().map(Relationship::getName).collect(Collectors.toSet()));
         versionedConnection.setzIndex(connection.getZIndex());
+
+        final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
+        versionedConnection.setLoadBalanceStrategy(flowFileQueue.getLoadBalanceStrategy().name());
+        versionedConnection.setPartitioningAttribute(flowFileQueue.getPartitioningAttribute());
 
         versionedConnection.setBends(connection.getBendPoints().stream()
             .map(this::mapPosition)

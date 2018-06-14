@@ -482,6 +482,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 LOG.debug(timingInfo.toString());
             }
         } catch (final Exception e) {
+            LOG.error("Failed to commit session {}. Will roll back.", e, this);
+
             try {
                 // if we fail to commit the session, we need to roll back
                 // the checkpoints as well because none of the checkpoints
@@ -1164,11 +1166,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void acknowledgeRecords() {
-        for (final Map.Entry<FlowFileQueue, Set<FlowFileRecord>> entry : unacknowledgedFlowFiles.entrySet()) {
-            LOG.trace("Acknowledging {} for {}", entry.getValue(), entry.getKey());
+        final Iterator<Map.Entry<FlowFileQueue, Set<FlowFileRecord>>> itr = unacknowledgedFlowFiles.entrySet().iterator();
+        while (itr.hasNext()) {
+            final Map.Entry<FlowFileQueue, Set<FlowFileRecord>> entry = itr.next();
+            itr.remove();
+
             entry.getKey().acknowledge(entry.getValue());
         }
-        unacknowledgedFlowFiles.clear();
     }
 
     @Override

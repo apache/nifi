@@ -23,10 +23,10 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <nifi.registry.version>0.2.0</nifi.registry.version>
+        <nifi.registry.version>0.3.0</nifi.registry.version>
         <jersey.version>2.26</jersey.version>
         <spring.version>4.3.10.RELEASE</spring.version>
-        <spring.security.version>4.2.4.RELEASE</spring.security.version>    
+        <spring.security.version>4.2.4.RELEASE</spring.security.version>
         <jackson.version>2.9.7</jackson.version>
     </properties>
     <modules>
@@ -265,8 +265,8 @@
                 <artifactId>quartz</artifactId>
                 <version>2.2.1</version>
                 <exclusions>
-                    <!-- | Exclude the quartz 2.2.1 bundled version of c3p0 
-                    because it is lgpl licensed | We also don't use the JDBC related features 
+                    <!-- | Exclude the quartz 2.2.1 bundled version of c3p0
+                    because it is lgpl licensed | We also don't use the JDBC related features
                     of quartz for which the dependency would matter -->
                     <exclusion>
                         <groupId>c3p0</groupId>
@@ -288,7 +288,7 @@
                 <groupId>javax.mail</groupId>
                 <artifactId>mail</artifactId>
                 <version>1.4.7</version>
-            </dependency>         
+            </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
@@ -521,7 +521,7 @@
                 <artifactId>spring-core</artifactId>
                 <version>${spring.version}</version>
                 <exclusions>
-                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used 
+                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used
                     in dependencies section -->
                     <exclusion>
                         <groupId>commons-logging</groupId>

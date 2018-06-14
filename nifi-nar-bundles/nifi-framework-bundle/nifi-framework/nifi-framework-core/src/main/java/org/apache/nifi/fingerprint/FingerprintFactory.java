@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.fingerprint;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Stream;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -56,6 +37,24 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Stream;
 
 /**
  * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -605,6 +604,10 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "destinationType"));
 
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "name"));
+
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "loadBalanceStrategy"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "partitioningAttribute"));
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "loadBalanceCompression"));
 
         // relationships
         final NodeList relationshipElems = DomUtils.getChildNodesByTagName(connectionElem, "relationship");

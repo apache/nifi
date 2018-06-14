@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -45,6 +35,17 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Uses Apache ZooKeeper to advertise the address to send heartbeats to, and
@@ -134,7 +135,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     }
 
     @Override
-    public ProtocolMessage handle(final ProtocolMessage msg) throws ProtocolException {
+    public ProtocolMessage handle(final ProtocolMessage msg, Set<String> nodeIds) throws ProtocolException {
         switch (msg.getType()) {
             case HEARTBEAT:
                 return handleHeartbeat((HeartbeatMessage) msg);

@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.controller.serialization;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -48,11 +40,20 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class FlowFromDOMFactory {
     private static final Logger logger = LoggerFactory.getLogger(FlowFromDOMFactory.class);
@@ -294,6 +295,10 @@ public class FlowFromDOMFactory {
             prioritizerClasses.add(prioritizerElement.getTextContent().trim());
         }
         dto.setPrioritizers(prioritizerClasses);
+
+        dto.setLoadBalanceStrategy(getString(element, "loadBalanceStrategy"));
+        dto.setLoadBalancePartitionAttribute(getString(element, "partitioningAttribute"));
+        dto.setLoadBalanceCompression(getString(element, "loadBalanceCompression"));
 
         return dto;
     }

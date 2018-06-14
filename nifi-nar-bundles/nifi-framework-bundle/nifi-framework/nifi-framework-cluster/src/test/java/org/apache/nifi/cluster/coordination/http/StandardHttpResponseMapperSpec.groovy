@@ -64,7 +64,8 @@ class StandardHttpResponseMapperSpec extends Specification {
             int n = it.node
             def response = Mock(Response)
             mockToRequestEntity.put response, it
-            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, response, 500L, requestId)
+            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, response, 500L,
+                    requestId)
         } as Set
 
         when:
@@ -102,7 +103,8 @@ class StandardHttpResponseMapperSpec extends Specification {
             ++n
             def response = Mock(Response)
             mockToRequestEntity.put response, it
-            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, response, 500L, requestId)
+            new NodeResponse(new NodeIdentifier("cluster-node-$n", 'addr', n, 'sktaddr', n * 10, 'sktaddr', n * 11, 'stsaddr', n * 100, n * 1000, false, null), "get", requestUri, response, 500L,
+                    requestId)
         } as Set
 
         when:
