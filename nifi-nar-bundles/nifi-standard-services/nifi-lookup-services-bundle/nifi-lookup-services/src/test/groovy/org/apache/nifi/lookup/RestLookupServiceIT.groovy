@@ -90,12 +90,13 @@ class RestLookupServiceIT {
             setEndpoint(server.port, "/simple")
 
             def coordinates = [
-                "schema.name": "simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
 
-            Optional<Record> response = lookupService.lookup(coordinates)
+            def context = [ "schema.name": "simple" ]
+
+            Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
             def record = response.get()
             Assert.assertEquals("john.smith", record.getAsString("username"))
@@ -132,12 +133,13 @@ class RestLookupServiceIT {
             setEndpoint(server.port, "/simple")
 
             def coordinates = [
-                "schema.name": "simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
 
-            Optional<Record> response = lookupService.lookup(coordinates)
+            def context = [ "schema.name": "simple" ]
+
+            Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
             def record = response.get()
             Assert.assertEquals("john.smith", record.getAsString("username"))
@@ -159,12 +161,13 @@ class RestLookupServiceIT {
             setEndpoint(server.port, "/simple")
 
             def coordinates = [
-                "schema.name": "simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
 
-            Optional<Record> response = lookupService.lookup(coordinates)
+            def context = [ "schema.name": "simple" ]
+
+            Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
             def record = response.get()
             Assert.assertNull(record.getAsString("username"))
@@ -186,12 +189,13 @@ class RestLookupServiceIT {
             setEndpoint(server.port, "/simple_array")
 
             def coordinates = [
-                "schema.name": "simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
 
-            Optional<Record> response = lookupService.lookup(coordinates)
+            def context = [ "schema.name": "simple" ]
+
+            Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
             def record = response.get()
             Assert.assertEquals("john.smith", record.getAsString("username"))
@@ -216,12 +220,13 @@ class RestLookupServiceIT {
             setEndpoint(server.port, "/simple")
 
             def coordinates = [
-                "schema.name": "simple",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
 
-            Optional<Record> response = lookupService.lookup(coordinates)
+            def context = [ "schema.name": "simple" ]
+
+            Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
             def record = response.get()
             Assert.assertEquals("jane.doe", record.getAsString("username"))
@@ -245,12 +250,13 @@ class RestLookupServiceIT {
             setEndpoint(server.port, "/complex")
 
             def coordinates = [
-                "schema.name": "complex",
                 "mime.type": "application/json",
                 "request.method": "get"
             ]
 
-            Optional<Record> response = lookupService.lookup(coordinates)
+            def context = [ "schema.name": "complex" ]
+
+            Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
             def record = response.get()
             Assert.assertEquals("jane.doe", record.getAsString("username"))
@@ -274,17 +280,18 @@ class RestLookupServiceIT {
 
             def validation = { String verb, boolean addBody, boolean addMimeType, boolean valid ->
                 def coordinates = [
-                    "schema.name"   : "simple",
                     "mime.type"     : addMimeType ? "application/json" : null,
                     "request.method": verb
                 ]
+
+                def context = [ "schema.name": "simple" ]
 
                 if (addBody) {
                     coordinates["request.body"] = prettyPrint(toJson([ msg: "Hello, world" ]))
                 }
 
                 try {
-                    Optional<Record> response = lookupService.lookup(coordinates)
+                    Optional<Record> response = lookupService.lookup(coordinates, context)
                     if (!valid) {
                         Assert.fail("Validation should fail.")
                     }
@@ -328,7 +335,6 @@ class RestLookupServiceIT {
             setEndpoint(server.port, '/simple/${user.name}/friends/${friend.id}')
 
             def coordinates = [
-                "schema.name": "simple",
                 "mime.type": "application/json",
                 "request.method": "get",
                 "user.name": "john.smith",
@@ -336,7 +342,9 @@ class RestLookupServiceIT {
                 "endpoint.template": true
             ]
 
-            Optional<Record> response = lookupService.lookup(coordinates)
+            def context = [ "schema.name": "simple" ]
+
+            Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
             def record = response.get()
             Assert.assertEquals("john.smith", record.getAsString("username"))

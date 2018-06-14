@@ -255,8 +255,14 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
+
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+        return lookup(coordinates, null);
+    }
+
+    @Override
+    public Optional<Record> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
         final String endpoint = determineEndpoint(coordinates);
         final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
         final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
@@ -293,14 +299,6 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
 
             InputStream is = responseBody.byteStream();
-
-            // TODO: Need to use 'context' instead of 'coordinates', see NIFI-5287, this map conversion will not be needed.
-            final Map<String, String> context = coordinates.entrySet().stream()
-                    .filter(e -> e.getValue() != null)
-                    .collect(Collectors.toMap(
-                            e -> e.getKey(),
-                            e -> e.getValue().toString()
-                    ));
             Record record = handleResponse(is, context);
 
             return Optional.ofNullable(record);
