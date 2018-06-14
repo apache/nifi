@@ -183,6 +183,13 @@
         <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
         <nifi.cluster.flow.election.max.candidates />
 
+        <!-- nifi.properties: cluster load balance properties -->
+        <nifi.cluster.load.balance.host></nifi.cluster.load.balance.host>
+        <nifi.cluster.load.balance.port>7430</nifi.cluster.load.balance.port>
+        <nifi.cluster.load.balance.connections.per.node>4</nifi.cluster.load.balance.connections.per.node>
+        <nifi.cluster.load.balance.max.thread.count>8</nifi.cluster.load.balance.max.thread.count>
+        <nifi.cluster.load.balance.comms.timeout>30 sec</nifi.cluster.load.balance.comms.timeout>
+
         <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
 
         <!--  nifi.properties: zookeeper properties -->

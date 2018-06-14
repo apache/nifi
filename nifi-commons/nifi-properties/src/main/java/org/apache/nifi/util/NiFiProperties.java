@@ -202,6 +202,13 @@ public abstract class NiFiProperties {
     public static final String FLOW_ELECTION_MAX_WAIT_TIME = "nifi.cluster.flow.election.max.wait.time";
     public static final String FLOW_ELECTION_MAX_CANDIDATES = "nifi.cluster.flow.election.max.candidates";
 
+    // cluster load balance properties
+    public static final String LOAD_BALANCE_ADDRESS = "nifi.cluster.load.balance.address";
+    public static final String LOAD_BALANCE_PORT = "nifi.cluster.load.balance.port";
+    public static final String LOAD_BALANCE_CONNECTIONS_PER_NODE = "nifi.cluster.load.balance.connections.per.node";
+    public static final String LOAD_BALANCE_MAX_THREAD_COUNT = "nifi.cluster.load.balance.max.thread.count";
+    public static final String LOAD_BALANCE_COMMS_TIMEOUT = "nifi.cluster.load.balance.comms.timeout";
+
     // zookeeper properties
     public static final String ZOOKEEPER_CONNECT_STRING = "nifi.zookeeper.connect.string";
     public static final String ZOOKEEPER_CONNECT_TIMEOUT = "nifi.zookeeper.connect.timeout";
@@ -284,6 +291,13 @@ public abstract class NiFiProperties {
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_MAX_THREADS = 50;
     public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "15 secs";
     public static final String DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME = "5 mins";
+
+    // cluster load balance defaults
+    public static final int DEFAULT_LOAD_BALANCE_PORT = 6342;
+    public static final int DEFAULT_LOAD_BALANCE_CONNECTIONS_PER_NODE = 4;
+    public static final int DEFAULT_LOAD_BALANCE_MAX_THREAD_COUNT = 8;
+    public static final String DEFAULT_LOAD_BALANCE_COMMS_TIMEOUT = "30 sec";
+
 
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
@@ -731,6 +745,23 @@ public abstract class NiFiProperties {
             return InetSocketAddress.createUnresolved(socketAddress, socketPort);
         } catch (Exception ex) {
             throw new RuntimeException("Invalid node protocol address/port due to: " + ex, ex);
+        }
+    }
+
+    public InetSocketAddress getClusterLoadBalanceAddress() {
+        try {
+            String address = getProperty(LOAD_BALANCE_ADDRESS);
+            if (StringUtils.isBlank(address)) {
+                address = getProperty(CLUSTER_NODE_ADDRESS);
+            }
+            if (StringUtils.isBlank(address)) {
+                address = "localhost";
+            }
+
+            final int port = getIntegerProperty(LOAD_BALANCE_PORT, DEFAULT_LOAD_BALANCE_PORT);
+            return InetSocketAddress.createUnresolved(address, port);
+        } catch (final Exception e) {
+            throw new RuntimeException("Invalid load balance address/port due to: " + e, e);
         }
     }
 

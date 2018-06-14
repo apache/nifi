@@ -42,6 +42,9 @@ public class ConnectionDTO extends ComponentDTO {
     private List<String> prioritizers;
     private List<PositionDTO> bends;
 
+    private String loadBalanceStrategy;
+    private String loadBalancePartitionAttribute;
+
     /**
      * The source of this connection.
      *
@@ -229,6 +232,24 @@ public class ConnectionDTO extends ComponentDTO {
 
     public void setPrioritizers(List<String> prioritizers) {
         this.prioritizers = prioritizers;
+    }
+
+    @ApiModelProperty(value = "How to load balance the data in this Connection across the nodes in the cluster.", allowableValues = "DO_NOT_LOAD_BALANCE, PARTITION_BY_ATTRIBUTE, ROUND_ROBIN")
+    public String getLoadBalanceStrategy() {
+        return loadBalanceStrategy;
+    }
+
+    public void setLoadBalanceStrategy(String loadBalanceStrategy) {
+        this.loadBalanceStrategy = loadBalanceStrategy;
+    }
+
+    @ApiModelProperty(value = "The FlowFile Attribute to use for determining which node a FlowFile will go to if the Load Balancing Strategy is set to PARTITION_BY_ATTRIBUTE")
+    public String getLoadBalancePartitionAttribute() {
+        return loadBalancePartitionAttribute;
+    }
+
+    public void setLoadBalancePartitionAttribute(String partitionAttribute) {
+        this.loadBalancePartitionAttribute = partitionAttribute;
     }
 
     @Override

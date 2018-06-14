@@ -76,8 +76,22 @@ import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
+import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueueFactory;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.StandardFlowFileQueue;
+import org.apache.nifi.controller.queue.clustered.ContentRepositoryFlowFileAccess;
+import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
+import org.apache.nifi.controller.queue.clustered.SocketLoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlowFileCodec;
+import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClient;
+import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientRegistry;
+import org.apache.nifi.controller.queue.clustered.client.async.nio.NioAsyncLoadBalanceClientTask;
+import org.apache.nifi.controller.queue.clustered.server.ConnectionLoadBalanceServer;
+import org.apache.nifi.controller.queue.clustered.server.LoadBalanceProtocol;
+import org.apache.nifi.controller.queue.clustered.server.StandardLoadBalanceProtocol;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
@@ -243,6 +257,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -323,6 +338,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final ConcurrentMap<String, ReportingTaskNode> reportingTasks = new ConcurrentHashMap<>();
     private final VariableRegistry variableRegistry;
     private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
+
+    private final ConnectionLoadBalanceServer loadBalanceServer;
+    private final NioAsyncLoadBalanceClientRegistry loadBalanceClientRegistry = new NioAsyncLoadBalanceClientRegistry();
+    private final FlowEngine loadBalanceClientThreadPool;
+    private final Set<NioAsyncLoadBalanceClientTask> loadBalanceClientTasks = new HashSet<>();
 
     private final ConcurrentMap<String, ProcessorNode> allProcessors = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ProcessGroup> allProcessGroups = new ConcurrentHashMap<>();
@@ -673,8 +693,30 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             leaderElectionManager.start();
             heartbeatMonitor.start();
+
+            final InetSocketAddress loadBalanceAddress = nifiProperties.getClusterLoadBalanceAddress();
+            if (loadBalanceAddress == null) {
+                loadBalanceServer = null;
+            } else {
+                // TODO: Make connection timeout millis configurable
+                final int connectionTimeoutMillis = 30000;
+                final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepository, provenanceRepository, this);
+                loadBalanceServer = new ConnectionLoadBalanceServer(loadBalanceAddress.getHostName(), loadBalanceAddress.getPort(), sslContext, timerDrivenEngineRef.get(), loadBalanceProtocol,
+                        connectionTimeoutMillis);
+            }
+
+            final int loadBalanceClientThreadCount = nifiProperties.getIntegerProperty(NiFiProperties.LOAD_BALANCE_MAX_THREAD_COUNT, NiFiProperties.DEFAULT_LOAD_BALANCE_MAX_THREAD_COUNT);
+            loadBalanceClientThreadPool = new FlowEngine(loadBalanceClientThreadCount, "Load-Balanced Client", true);
+
+            for (int i=0; i < loadBalanceClientThreadCount; i++) {
+                final NioAsyncLoadBalanceClientTask clientTask = new NioAsyncLoadBalanceClientTask(loadBalanceClientRegistry, clusterCoordinator);
+                loadBalanceClientTasks.add(clientTask);
+                loadBalanceClientThreadPool.submit(clientTask);
+            }
         } else {
             heartbeater = null;
+            loadBalanceServer = null;
+            loadBalanceClientThreadPool = null;
         }
     }
 
@@ -773,6 +815,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             for (final RemoteSiteListener listener : externalSiteListeners) {
                 listener.start();
+            }
+
+            if (loadBalanceServer != null) {
+                loadBalanceServer.start();
             }
 
             notifyComponentsConfigurationRestored();
@@ -940,6 +986,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 startConnectablesAfterInitialization.clear();
                 startRemoteGroupPortsAfterInitialization.clear();
             }
+
+            for (final Connection connection : getRootGroup().findAllConnections()) {
+                connection.getFlowFileQueue().startLoadBalancing();
+            }
         } finally {
             writeLock.unlock("onFlowInitialized");
         }
@@ -1040,20 +1090,35 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             swapManager.initialize(initializationContext);
         }
 
-        return builder.id(requireNonNull(id).intern())
+        final FlowFileQueueFactory flowFileQueueFactory = new FlowFileQueueFactory() {
+            @Override
+            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ConnectionEventListener eventListener) {
+                final FlowFileQueue flowFileQueue;
+
+                if (clusterCoordinator == null) {
+                    flowFileQueue = new StandardFlowFileQueue(id, eventListener, flowFileRepository, provenanceRepository, resourceClaimManager, processScheduler, swapManager,
+                            eventReporter, nifiProperties.getQueueSwapThreshold(), nifiProperties.getDefaultBackPressureObjectThreshold(), nifiProperties.getDefaultBackPressureDataSizeThreshold());
+                } else {
+                    flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, eventListener, processScheduler, flowFileRepository, provenanceRepository, contentRepository, resourceClaimManager,
+                            clusterCoordinator, loadBalanceClientRegistry, swapManager, nifiProperties.getQueueSwapThreshold(), eventReporter);
+
+                    flowFileQueue.setBackPressureObjectThreshold(nifiProperties.getDefaultBackPressureObjectThreshold());
+                    flowFileQueue.setBackPressureDataSizeThreshold(nifiProperties.getDefaultBackPressureDataSizeThreshold());
+                }
+
+                return flowFileQueue;
+            }
+        };
+
+        final Connection connection = builder.id(requireNonNull(id).intern())
                 .name(name == null ? null : name.intern())
                 .relationships(relationships)
                 .source(requireNonNull(source))
                 .destination(destination)
-                .swapManager(swapManager)
-                .queueSwapThreshold(nifiProperties.getQueueSwapThreshold())
-                .defaultBackPressureObjectThreshold(nifiProperties.getDefaultBackPressureObjectThreshold())
-                .defaultBackPressureDataSizeThreshold(nifiProperties.getDefaultBackPressureDataSizeThreshold())
-                .eventReporter(eventReporter)
-                .resourceClaimManager(resourceClaimManager)
-                .flowFileRepository(flowFileRepository)
-                .provenanceRepository(provenanceRepository)
+                .flowFileQueueFactory(flowFileQueueFactory)
                 .build();
+
+        return connection;
     }
 
     /**
@@ -1561,6 +1626,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 zooKeeperStateServer.shutdown();
             }
 
+            if (loadBalanceClientThreadPool != null) {
+                loadBalanceClientThreadPool.shutdownNow();
+            }
+            loadBalanceClientTasks.forEach(NioAsyncLoadBalanceClientTask::stop);
+
             // Trigger any processors' methods marked with @OnShutdown to be called
             getRootGroup().shutdown();
 
@@ -1605,6 +1675,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             for (final RemoteSiteListener listener : externalSiteListeners) {
                 listener.stop();
             }
+
+            if (loadBalanceServer != null) {
+                loadBalanceServer.stop();
+            }
+
+            stopLoadBalanceClients();
 
             if (processScheduler != null) {
                 processScheduler.shutdown();
@@ -4344,9 +4420,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     leaderElectionManager.start();
                     stateManagerProvider.enableClusterProvider();
 
+                    // TODO: Need to ensure that if a new node is added, that we create the appropriate number of clients for that node!!
+
+                    registerLoadBalanceClients();
+                    startLoadBalanceClients();
+
                     heartbeat();
                 } else {
                     stateManagerProvider.disableClusterProvider();
+                    stopLoadBalanceClients();
 
                     setPrimary(false);
                 }
@@ -4368,6 +4450,40 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             writeLock.unlock("setClustered");
         }
     }
+
+
+    private void registerLoadBalanceClients() {
+        final Set<NodeIdentifier> nodeIdsToRegister = clusterCoordinator.getNodeIdentifiers();
+        final Set<NodeIdentifier> registeredNodeIds = loadBalanceClientRegistry.getRegisteredNodeIdentifiers();
+        nodeIdsToRegister.removeAll(registeredNodeIds);
+
+        final String timeoutValue = nifiProperties.getProperty(NiFiProperties.LOAD_BALANCE_COMMS_TIMEOUT, NiFiProperties.DEFAULT_LOAD_BALANCE_COMMS_TIMEOUT);
+        final int timeoutMillis = (int) FormatUtils.getTimeDuration(timeoutValue, TimeUnit.MILLISECONDS);
+        final FlowFileContentAccess flowFileContentAccess = new ContentRepositoryFlowFileAccess(contentRepository);
+
+        final int connectionsPerNode = nifiProperties.getIntegerProperty(NiFiProperties.LOAD_BALANCE_CONNECTIONS_PER_NODE, NiFiProperties.DEFAULT_LOAD_BALANCE_CONNECTIONS_PER_NODE);
+
+        for (final NodeIdentifier nodeId : nodeIdsToRegister) {
+            for (int i=0; i < connectionsPerNode; i++) {
+                registerLoadBalanceClient(nodeId, timeoutMillis, flowFileContentAccess);
+            }
+        }
+    }
+
+    private NioAsyncLoadBalanceClient registerLoadBalanceClient(final NodeIdentifier nodeId, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess) {
+        final NioAsyncLoadBalanceClient client = new NioAsyncLoadBalanceClient(nodeId, sslContext, timeoutMillis, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec());
+        loadBalanceClientRegistry.addClient(client);
+        return client;
+    }
+
+    private void startLoadBalanceClients() {
+        loadBalanceClientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::start);
+    }
+
+    private void stopLoadBalanceClients() {
+        loadBalanceClientRegistry.getAllClients().forEach(NioAsyncLoadBalanceClient::stop);
+    }
+
 
     /**
      * @return true if this instance is the primary node in the cluster; false

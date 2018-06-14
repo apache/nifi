@@ -63,9 +63,19 @@ public class NodeIdentifier {
     private final String socketAddress;
 
     /**
-     * the port to use use for sending requests to the node's internal interface
+     * the port to use for sending requests to the node's internal interface
      */
     private final int socketPort;
+
+    /**
+     * The IP or hostname to use for sending FlowFiles when load balancing a connection
+     */
+    private final String loadBalanceAddress;
+
+    /**
+     * the port to use for sending FlowFiles when load balancing a connection
+     */
+    private final int loadBalancePort;
 
     /**
      * the IP or hostname that external clients should use to communicate with this node via Site-to-Site
@@ -92,11 +102,16 @@ public class NodeIdentifier {
     private final String nodeDn;
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
-        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null);
+                          final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
+        this(id, apiAddress, apiPort, socketAddress, socketPort, socketAddress, 6342, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null);
     }
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String loadBalanceAddress, final int loadBalancePort,
+        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
+        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null);
+    }
+
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String loadBalanceAddress, final int loadBalancePort,
         final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, final String dn) {
 
         if (StringUtils.isBlank(id)) {
@@ -109,6 +124,7 @@ public class NodeIdentifier {
 
         validatePort(apiPort);
         validatePort(socketPort);
+        validatePort(loadBalancePort);
         if (siteToSitePort != null) {
             validatePort(siteToSitePort);
         }
@@ -118,6 +134,8 @@ public class NodeIdentifier {
         this.apiPort = apiPort;
         this.socketAddress = socketAddress;
         this.socketPort = socketPort;
+        this.loadBalanceAddress = loadBalanceAddress;
+        this.loadBalancePort = loadBalancePort;
         this.nodeDn = dn;
         this.siteToSiteAddress = siteToSiteAddress == null ? apiAddress : siteToSiteAddress;
         this.siteToSitePort = siteToSitePort;
@@ -134,6 +152,8 @@ public class NodeIdentifier {
         this.apiPort = 0;
         this.socketAddress = null;
         this.socketPort = 0;
+        this.loadBalanceAddress = null;
+        this.loadBalancePort = 0;
         this.nodeDn = null;
         this.siteToSiteAddress = null;
         this.siteToSitePort = null;
@@ -163,6 +183,14 @@ public class NodeIdentifier {
 
     public int getSocketPort() {
         return socketPort;
+    }
+
+    public String getLoadBalanceAddress() {
+        return loadBalanceAddress;
+    }
+
+    public int getLoadBalancePort() {
+        return loadBalancePort;
     }
 
     private void validatePort(final int port) {
@@ -233,6 +261,12 @@ public class NodeIdentifier {
             return false;
         }
         if (this.socketPort != other.socketPort) {
+            return false;
+        }
+        if (!this.loadBalanceAddress.equals(other.loadBalanceAddress)) {
+            return false;
+        }
+        if (this.loadBalancePort != other.loadBalancePort) {
             return false;
         }
 

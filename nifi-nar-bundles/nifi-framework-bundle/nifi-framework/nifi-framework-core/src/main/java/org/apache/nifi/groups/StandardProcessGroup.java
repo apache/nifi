@@ -473,6 +473,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             rpg.shutdown();
         }
 
+        for (final Connection connection : procGroup.getConnections()) {
+            connection.getFlowFileQueue().stopLoadBalancing();
+        }
+
         // Recursively shutdown child groups.
         for (final ProcessGroup group : procGroup.getProcessGroups()) {
             shutdown(group);
@@ -1112,6 +1116,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             connectionToRemove.verifyCanDelete();
 
+            connectionToRemove.getFlowFileQueue().stopLoadBalancing();
+            
             final Connectable source = connectionToRemove.getSource();
             final Connectable dest = connectionToRemove.getDestination();
 

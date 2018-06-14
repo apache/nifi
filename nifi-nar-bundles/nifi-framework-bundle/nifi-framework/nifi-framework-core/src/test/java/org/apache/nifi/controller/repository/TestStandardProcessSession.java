@@ -63,8 +63,9 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.StandardFlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.NopConnectionEventListener;
+import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -207,7 +208,7 @@ public class TestStandardProcessSession {
         final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
-        final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null,
+        final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", new NopConnectionEventListener(), flowFileRepo, provenanceRepo, null,
                 processScheduler, swapManager, null, 10000, 0L, "0 B");
         return Mockito.spy(actualQueue);
     }
@@ -1515,7 +1516,7 @@ public class TestStandardProcessSession {
 
         final FlowFile originalFlowFile = session.get();
         assertTrue(flowFileQueue.isActiveQueueEmpty());
-        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(1, flowFileQueue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
 
         final FlowFile modified = session.write(originalFlowFile, new OutputStreamCallback() {
             @Override
@@ -1538,7 +1539,7 @@ public class TestStandardProcessSession {
 
         assertFalse(flowFileQueue.isActiveQueueEmpty());
         assertEquals(1, flowFileQueue.size().getObjectCount());
-        assertEquals(0, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(0, flowFileQueue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
     }
 
     @Test
@@ -1552,7 +1553,7 @@ public class TestStandardProcessSession {
 
         final FlowFile originalFlowFile = session.get();
         assertTrue(flowFileQueue.isActiveQueueEmpty());
-        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(1, flowFileQueue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
 
         final FlowFile modified = session.write(originalFlowFile, new OutputStreamCallback() {
             @Override
@@ -1569,7 +1570,7 @@ public class TestStandardProcessSession {
         session.rollback();
         assertTrue(flowFileQueue.isActiveQueueEmpty());
         assertEquals(0, flowFileQueue.size().getObjectCount());
-        assertEquals(0, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(0, flowFileQueue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
 
         session.rollback();
 
@@ -1578,7 +1579,7 @@ public class TestStandardProcessSession {
 
         final FlowFile originalRound2 = session.get();
         assertTrue(flowFileQueue.isActiveQueueEmpty());
-        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(1, flowFileQueue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
 
         final FlowFile modifiedRound2 = session.write(originalRound2, new OutputStreamCallback() {
             @Override
@@ -1591,13 +1592,13 @@ public class TestStandardProcessSession {
 
         session.checkpoint();
         assertTrue(flowFileQueue.isActiveQueueEmpty());
-        assertEquals(1, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(1, flowFileQueue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
 
         session.commit();
 
         // FlowFile transferred back to queue
         assertEquals(1, flowFileQueue.size().getObjectCount());
-        assertEquals(0, flowFileQueue.getUnacknowledgedQueueSize().getObjectCount());
+        assertEquals(0, flowFileQueue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
         assertFalse(flowFileQueue.isActiveQueueEmpty());
     }
 

@@ -32,9 +32,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.util.Connectables;
 
-/**
- *
- */
 public class RepositoryContext {
 
     private final Connectable connectable;

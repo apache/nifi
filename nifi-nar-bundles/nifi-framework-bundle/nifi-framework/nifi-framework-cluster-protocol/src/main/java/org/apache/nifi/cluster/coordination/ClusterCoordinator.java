@@ -17,11 +17,6 @@
 
 package org.apache.nifi.cluster.coordination;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -30,6 +25,11 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * <p>
@@ -244,4 +244,16 @@ public interface ClusterCoordinator {
      * @throws IOException thrown when it failed to communicate with the cluster coordinator.
      */
     Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException;
+
+    /**
+     * Registers the given event listener so that it is notified whenever a cluster topology event occurs
+     * @param eventListener the event listener to notify
+     */
+    void registerEventListener(ClusterTopologyEventListener eventListener);
+
+    /**
+     * Stops notifying the given listener when cluster topology events occurs
+     * @param eventListener the event listener to stop notifying
+     */
+    void unregisterEventListener(ClusterTopologyEventListener eventListener);
 }

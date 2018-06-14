@@ -218,7 +218,7 @@ public class TestPopularVoteFlowElection {
     }
 
     private NodeIdentifier createNodeId(final int index) {
-        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9000 + index, "localhost", 9000 + index, "localhost", 9000 + index, 9000 + index, true);
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9000 + index, "localhost", 9000 + index, "localhost", 9000 + index, "localhost", 9000 + index, 9000 + index, true);
     }
 
     private DataFlow createDataFlow(final byte[] flow) {

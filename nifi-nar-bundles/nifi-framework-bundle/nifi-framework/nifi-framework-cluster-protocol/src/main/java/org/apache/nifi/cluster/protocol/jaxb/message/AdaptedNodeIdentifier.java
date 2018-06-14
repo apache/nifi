@@ -25,6 +25,8 @@ public class AdaptedNodeIdentifier {
     private int apiPort;
     private String socketAddress;
     private int socketPort;
+    private String loadBalanceAddress;
+    private int loadBalancePort;
     private String siteToSiteAddress;
     private Integer siteToSitePort;
     private Integer siteToSiteHttpApiPort;
@@ -72,6 +74,22 @@ public class AdaptedNodeIdentifier {
 
     public void setSocketPort(int socketPort) {
         this.socketPort = socketPort;
+    }
+
+    public String getLoadBalanceAddress() {
+        return loadBalanceAddress;
+    }
+
+    public void setLoadBalanceAddress(final String loadBalanceAddress) {
+        this.loadBalanceAddress = loadBalanceAddress;
+    }
+
+    public int getLoadBalancePort() {
+        return loadBalancePort;
+    }
+
+    public void setLoadBalancePort(final int loadBalancePort) {
+        this.loadBalancePort = loadBalancePort;
     }
 
     public String getSiteToSiteAddress() {

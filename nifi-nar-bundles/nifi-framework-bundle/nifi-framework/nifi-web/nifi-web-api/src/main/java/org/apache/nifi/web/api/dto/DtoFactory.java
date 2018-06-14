@@ -88,6 +88,7 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -698,6 +699,9 @@ public final class DtoFactory {
                 dto.getAvailableRelationships().add(availableRelationship.getName());
             }
         }
+
+        dto.setLoadBalancePartitionAttribute(connection.getFlowFileQueue().getPartitioningAttribute());
+        dto.setLoadBalanceStrategy(connection.getFlowFileQueue().getLoadBalanceStrategy().name());
 
         return dto;
     }
@@ -3339,26 +3343,28 @@ public final class DtoFactory {
         final ConnectionDiagnosticsDTO dto = new ConnectionDiagnosticsDTO();
         dto.setConnection(createConnectionDto(connection));
 
+        final QueueDiagnostics queueDiagnostics = connection.getFlowFileQueue().getQueueDiagnostics();
+
         final FlowFileQueue queue = connection.getFlowFileQueue();
         final QueueSize totalSize = queue.size();
         dto.setTotalByteCount(totalSize.getByteCount());
         dto.setTotalFlowFileCount(totalSize.getObjectCount());
 
-        final QueueSize activeSize = queue.getActiveQueueSize();
+        final QueueSize activeSize = queueDiagnostics.getActiveQueueSize();
         dto.setActiveQueueByteCount(activeSize.getByteCount());
         dto.setActiveQueueFlowFileCount(activeSize.getObjectCount());
 
-        final QueueSize inFlightSize = queue.getUnacknowledgedQueueSize();
+        final QueueSize inFlightSize = queueDiagnostics.getUnacknowledgedQueueSize();
         dto.setInFlightByteCount(inFlightSize.getByteCount());
         dto.setInFlightFlowFileCount(inFlightSize.getObjectCount());
 
-        final QueueSize swapSize = queue.getSwapQueueSize();
+        final QueueSize swapSize = queueDiagnostics.getSwapQueueSize();
         dto.setSwapByteCount(swapSize.getByteCount());
         dto.setSwapFlowFileCount(swapSize.getObjectCount());
 
-        dto.setSwapFiles(queue.getSwapFileCount());
-        dto.setAllActiveQueueFlowFilesPenalized(queue.isAllActiveFlowFilesPenalized());
-        dto.setAnyActiveQueueFlowFilesPenalized(queue.isAnyActiveFlowFilePenalized());
+        dto.setSwapFiles(queueDiagnostics.getSwapFileCount());
+        dto.setAllActiveQueueFlowFilesPenalized(queueDiagnostics.isAllActiveFlowFilesPenalized());
+        dto.setAnyActiveQueueFlowFilesPenalized(queueDiagnostics.isAnyActiveFlowFilePenalized());
 
         return dto;
     }
