@@ -109,7 +109,9 @@ public class ValidateRecord extends AbstractProcessor {
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
         .name("record-writer")
         .displayName("Record Writer")
-        .description("Specifies the Controller Service to use for writing out the records")
+        .description("Specifies the Controller Service to use for writing out the records. "
+            + "Regardless of the Controller Service schema access configuration, "
+            + "the schema that is used to validate record is used to write the valid results.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
@@ -117,7 +119,8 @@ public class ValidateRecord extends AbstractProcessor {
         .name("invalid-record-writer")
         .displayName("Record Writer for Invalid Records")
         .description("If specified, this Controller Service will be used to write out any records that are invalid. "
-            + "If not specified, the writer specified by the \"Record Writer\" property will be used. This is useful, for example, when the configured "
+            + "If not specified, the writer specified by the \"Record Writer\" property will be used with the schema used to read the input records. "
+            + "This is useful, for example, when the configured "
             + "Record Writer cannot write data that does not adhere to its schema (as is the case with Avro) or when it is desirable to keep invalid records "
             + "in their original format while converting valid records to another format.")
         .identifiesControllerService(RecordSetWriterFactory.class)
@@ -161,7 +164,7 @@ public class ValidateRecord extends AbstractProcessor {
         .displayName("Allow Extra Fields")
         .description("If the incoming data has fields that are not present in the schema, this property determines whether or not the Record is valid. "
             + "If true, the Record is still valid. If false, the Record will be invalid due to the extra fields.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
@@ -172,7 +175,7 @@ public class ValidateRecord extends AbstractProcessor {
         .description("If the incoming data has a Record where a field is not of the correct type, this property determine whether how to handle the Record. "
             + "If true, the Record will still be considered invalid. If false, the Record will be considered valid and the field will be coerced into the "
             + "correct type (if possible, according to the type coercion supported by the Record Writer).")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
@@ -292,7 +295,8 @@ public class ValidateRecord extends AbstractProcessor {
                             validFlowFile = session.create(flowFile);
                         }
 
-                        validWriter = writer = createIfNecessary(validWriter, validRecordWriterFactory, session, validFlowFile, record.getSchema());
+                        validWriter = writer = createIfNecessary(validWriter, validRecordWriterFactory, session, validFlowFile, validationSchema);
+
                     } else {
                         invalidCount++;
                         logValidationErrors(flowFile, recordCount, result);
@@ -435,13 +439,13 @@ public class ValidateRecord extends AbstractProcessor {
     }
 
     private RecordSetWriter createIfNecessary(final RecordSetWriter writer, final RecordSetWriterFactory factory, final ProcessSession session,
-        final FlowFile flowFile, final RecordSchema inputSchema) throws SchemaNotFoundException, IOException {
+        final FlowFile flowFile, final RecordSchema outputSchema) throws SchemaNotFoundException, IOException {
         if (writer != null) {
             return writer;
         }
 
         final OutputStream out = session.write(flowFile);
-        final RecordSetWriter created = factory.createWriter(getLogger(), inputSchema, out);
+        final RecordSetWriter created = factory.createWriter(getLogger(), outputSchema, out);
         created.beginRecordSet();
         return created;
     }
