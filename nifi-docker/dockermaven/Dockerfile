@@ -29,7 +29,10 @@ ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
+ADD sh/ /opt/nifi/scripts/
+
 ADD $NIFI_BINARY $NIFI_BASE_DIR
+
 # Setup NiFi user and create necessary directories
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
@@ -53,6 +56,5 @@ EXPOSE 8080 8443 10000
 
 WORKDIR ${NIFI_HOME}
 
-# Startup NiFi
-ENTRYPOINT ["bin/nifi.sh"]
-CMD ["run"]
+# Apply configuration and start NiFi
+CMD ${NIFI_BASE_DIR}/scripts/start.sh
