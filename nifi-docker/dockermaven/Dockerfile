@@ -29,7 +29,7 @@ ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
-ADD sh/ /opt/nifi/scripts/
+ADD sh/ ${NIFI_BASE_DIR}/scripts/
 
 ADD $NIFI_BINARY $NIFI_BASE_DIR
 
@@ -57,4 +57,12 @@ EXPOSE 8080 8443 10000
 WORKDIR ${NIFI_HOME}
 
 # Apply configuration and start NiFi
-CMD ${NIFI_BASE_DIR}/scripts/start.sh
+#
+# We need to use the exec form to avoid running our command in a subshell and omitting signals,
+# thus being unable to shut down gracefully:
+# https://docs.docker.com/engine/reference/builder/#entrypoint
+#
+# Also we need to use relative path, because the exec form does not invoke a command shell,
+# thus normal shell processing does not happen:
+# https://docs.docker.com/engine/reference/builder/#exec-form-entrypoint-example
+ENTRYPOINT ["../scripts/start.sh"]
