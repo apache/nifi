@@ -99,6 +99,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>src/test/resources/simple.avsc</exclude>
                         <exclude>src/test/resources/test.csv</exclude>
                         <exclude>src/test/resources/test.properties</exclude>
                         <exclude>src/test/resources/test.xml</exclude>

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.mongodb;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
@@ -143,6 +144,30 @@ public class MongoDBLookupServiceIT {
 
         Assert.assertEquals("john.smith", record.getAsString("username"));
         Assert.assertEquals("testing1234", record.getAsString("password"));
+    }
+
+    @Test
+    public void testSchemaTextStrategy() throws Exception {
+        byte[] contents = IOUtils.toByteArray(getClass().getResourceAsStream("/simple.avsc"));
+
+        runner.disableControllerService(service);
+        runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "");
+        runner.setProperty(service, MongoDBLookupService.PROJECTION, "{ \"_id\": 0 }");
+        runner.setProperty(service, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(service, SchemaAccessUtils.SCHEMA_TEXT, "${schema.text}");
+        runner.enableControllerService(service);
+        runner.assertValid();
+
+        controllerService.insert(new Document().append("msg", "Testing1234"));
+
+        Map<String, Object> criteria = new HashMap<>();
+        criteria.put("msg", "Testing1234");
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("schema.text", new String(contents));
+
+        Optional results = service.lookup(criteria, attrs);
+        Assert.assertNotNull(results);
+        Assert.assertTrue(results.isPresent());
     }
 
     @Test
