@@ -46,7 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ElasticSearchLookupService extends SchemaRegistryService implements LookupService {
+public class ElasticSearchLookupService extends SchemaRegistryService implements LookupService<Record> {
     public static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("el-rest-client-service")
         .displayName("Client Service")
@@ -98,12 +98,17 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
     }
 
     @Override
-    public Optional lookup(Map coordinates) throws LookupFailureException {
+    public Optional<Record> lookup(Map coordinates) throws LookupFailureException {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<Record> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
         validateCoordinates(coordinates);
 
         try {
             Record record;
-            RecordSchema schema = getSchemaFromCoordinates(coordinates);
+            RecordSchema schema = getSchema(context, null);
             if (coordinates.containsKey("_id")) {
                 record = getById((String)coordinates.get("_id"), schema);
             } else {
@@ -111,7 +116,7 @@ public class ElasticSearchLookupService extends SchemaRegistryService implements
             }
 
             return record == null ? Optional.empty() : Optional.of(record);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             getLogger().error("Error during lookup.", ex);
             throw new LookupFailureException(ex);
         }
