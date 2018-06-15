@@ -912,11 +912,8 @@ class ConfigEncryptionTool {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
-            logger.info("Substituting complex XML properties in authorizers.xml before decrypting")
-            Map substitutions = [:]
             def filename = "authorizers.xml"
-            String substitutedXml = substituteXmlProperties(encryptedXml, substitutions, filename)
-            def doc = getXmlSlurper().parseText(substitutedXml)
+            def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
@@ -928,7 +925,6 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("No encrypted password property elements found in ${filename}")
                 }
-                // Return the original input, not the substituted XML
                 return encryptedXml
             }
 
@@ -947,9 +943,6 @@ class ConfigEncryptionTool {
             String updatedXml = XmlUtil.serialize(doc)
             if (isVerbose) {
                 logger.info("Updated XML content: ${updatedXml}")
-            }
-            if (!substitutions.isEmpty()) {
-                updatedXml = repopulateXmlProperties(updatedXml, substitutions, filename)
             }
             updatedXml
         } catch (Exception e) {
@@ -1004,11 +997,8 @@ class ConfigEncryptionTool {
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
-            logger.info("Substituting complex XML properties in authorizers.xml before encrypting")
-            Map substitutions = [:]
             def filename = "authorizers.xml"
-            String substitutedXml = substituteXmlProperties(plainXml, substitutions, filename)
-            def doc = getXmlSlurper().parseText(substitutedXml)
+            def doc = getXmlSlurper().parseText(plainXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
                     .property.findAll {
@@ -1020,7 +1010,6 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("No unencrypted password property elements found in ${filename}")
                 }
-                // Return the original input, not the substituted XML
                 return plainXml
             }
 
@@ -1039,10 +1028,6 @@ class ConfigEncryptionTool {
             if (isVerbose) {
                 logger.info("Updated XML content: ${updatedXml}")
             }
-            if (!substitutions.isEmpty()) {
-                updatedXml = repopulateXmlProperties(updatedXml, substitutions, filename)
-            }
-
             updatedXml
         } catch (Exception e) {
             if (isVerbose) {
