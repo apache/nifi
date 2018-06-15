@@ -46,7 +46,7 @@ import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBA
  */
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
-    public static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor DOC_ID = new PropertyDescriptor.Builder()
         .name("document-id")
         .displayName("Document Id")
         .description("A static, fixed Couchbase document id, or an expression to construct the Couchbase document id.")
@@ -55,15 +55,10 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         .build();
 
 
-    public static final Relationship.Builder RELB_SUCCESS = new Relationship.Builder().name("success");
-    public static final Relationship.Builder RELB_ORIGINAL = new Relationship.Builder().name("original");
-    public static final Relationship.Builder RELB_RETRY = new Relationship.Builder().name("retry");
-    public static final Relationship.Builder RELB_FAILURE = new Relationship.Builder().name("failure");
-
-    public static final Relationship REL_ORIGINAL = RELB_ORIGINAL.build();
-    public static final Relationship REL_SUCCESS = RELB_SUCCESS.build();
-    public static final Relationship REL_RETRY = RELB_RETRY.build();
-    public static final Relationship REL_FAILURE = RELB_FAILURE.build();
+    static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").build();
+    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
+    static final Relationship REL_RETRY = new Relationship.Builder().name("retry").build();
+    static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").build();
 
     private List<PropertyDescriptor> descriptors;
 

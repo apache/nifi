@@ -103,11 +103,11 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
 
     @Override
     protected void addSupportedRelationships(Set<Relationship> relationships) {
-        relationships.add(RELB_SUCCESS
+        relationships.add(new Relationship.Builder().name(REL_SUCCESS.getName())
                 .description("All FlowFiles that are written to Couchbase Server are routed to this relationship.").build());
-        relationships.add(RELB_RETRY
+        relationships.add(new Relationship.Builder().name(REL_RETRY.getName())
                 .description("All FlowFiles failed to be written to Couchbase Server but can be retried are routed to this relationship.").build());
-        relationships.add(RELB_FAILURE
+        relationships.add(new Relationship.Builder().name(REL_FAILURE.getName())
                 .description("All FlowFiles failed to be written to Couchbase Server and not retry-able are routed to this relationship.").build());
     }
 

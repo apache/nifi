@@ -99,15 +99,15 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
 
     @Override
     protected void addSupportedRelationships(final Set<Relationship> relationships) {
-        relationships.add(RELB_ORIGINAL
+        relationships.add(new Relationship.Builder().name(REL_ORIGINAL.getName())
                 .description("The original input FlowFile is routed to this relationship" +
                         " when the value is retrieved from Couchbase Server and routed to 'success'.").build());
-        relationships.add(RELB_SUCCESS
+        relationships.add(new Relationship.Builder().name(REL_SUCCESS.getName())
                 .description("Values retrieved from Couchbase Server are written as outgoing FlowFiles content" +
                         " or put into an attribute of the incoming FlowFile and routed to this relationship.").build());
-        relationships.add(RELB_RETRY
+        relationships.add(new Relationship.Builder().name(REL_RETRY.getName())
                 .description("All FlowFiles failed to fetch from Couchbase Server but can be retried are routed to this relationship.").build());
-        relationships.add(RELB_FAILURE
+        relationships.add(new Relationship.Builder().name(REL_FAILURE.getName())
                 .description("All FlowFiles failed to fetch from Couchbase Server and not retry-able are routed to this relationship.").build());
     }
 
