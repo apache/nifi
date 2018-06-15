@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
@@ -292,16 +293,44 @@ public class TestListS3 {
     }
 
     @Test
+    public void testWriteObjectTags() {
+        runner.setProperty(ListS3.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
+
+        Date lastModified = new Date();
+        ObjectListing objectListing = new ObjectListing();
+        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
+        objectSummary1.setBucketName("test-bucket");
+        objectSummary1.setKey("a");
+        objectSummary1.setLastModified(lastModified);
+        objectListing.getObjectSummaries().add(objectSummary1);
+
+        Mockito.when(mockS3Client.listObjects(Mockito.any(ListObjectsRequest.class))).thenReturn(objectListing);
+
+        runner.run();
+
+        ArgumentCaptor<GetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(GetObjectTaggingRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).getObjectTagging(captureRequest.capture());
+        GetObjectTaggingRequest request = captureRequest.getValue();
+
+        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("a", request.getKey());
+        Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
+    }
+
+    @Test
     public void testGetPropertyDescriptors() throws Exception {
         ListS3 processor = new ListS3();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 20, pd.size());
+        assertEquals("size should be eq", 21, pd.size());
         assertTrue(pd.contains(ListS3.ACCESS_KEY));
         assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(ListS3.BUCKET));
         assertTrue(pd.contains(ListS3.CREDENTIALS_FILE));
         assertTrue(pd.contains(ListS3.ENDPOINT_OVERRIDE));
         assertTrue(pd.contains(ListS3.REGION));
+        assertTrue(pd.contains(ListS3.WRITE_OBJECT_TAGS));
         assertTrue(pd.contains(ListS3.SECRET_KEY));
         assertTrue(pd.contains(ListS3.SIGNER_OVERRIDE));
         assertTrue(pd.contains(ListS3.SSL_CONTEXT_SERVICE));
