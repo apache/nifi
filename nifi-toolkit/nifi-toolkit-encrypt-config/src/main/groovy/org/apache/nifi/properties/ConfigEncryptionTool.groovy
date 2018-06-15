@@ -253,11 +253,11 @@ class ConfigEncryptionTool {
         return staticOptions
     }
 
-/**
- * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
- *
- * @param errorMessage the optional error message
- */
+    /**
+     * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
+     *
+     * @param errorMessage the optional error message
+     */
     void printUsage(String errorMessage) {
         if (errorMessage) {
             System.out.println(errorMessage)
@@ -493,15 +493,15 @@ class ConfigEncryptionTool {
         }
     }
 
-/**
- * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
- *
- * @param device
- * @param keyHex
- * @param password
- * @param usingPassword
- * @return
- */
+    /**
+     * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
+     *
+     * @param device
+     * @param keyHex
+     * @param password
+     * @param usingPassword
+     * @return
+     */
     private String getKeyInternal(TextDevice device = TextDevices.defaultTextDevice(), String keyHex, String password, boolean usingPassword) {
         if (usingPassword) {
             if (!password) {
@@ -876,7 +876,7 @@ class ConfigEncryptionTool {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
-            def doc = new XmlSlurper().parseText(encryptedXml)
+            def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }.property.findAll {
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
@@ -916,7 +916,7 @@ class ConfigEncryptionTool {
             Map substitutions = [:]
             def filename = "authorizers.xml"
             String substitutedXml = substituteXmlProperties(encryptedXml, substitutions, filename)
-            def doc = new XmlSlurper().parseText(substitutedXml)
+            def doc = getXmlSlurper().parseText(substitutedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
@@ -962,7 +962,7 @@ class ConfigEncryptionTool {
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
-            def doc = new XmlSlurper().parseText(plainXml)
+            def doc = getXmlSlurper().parseText(plainXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
                     .property.findAll {
@@ -1008,7 +1008,7 @@ class ConfigEncryptionTool {
             Map substitutions = [:]
             def filename = "authorizers.xml"
             String substitutedXml = substituteXmlProperties(plainXml, substitutions, filename)
-            def doc = new XmlSlurper().parseText(substitutedXml)
+            def doc = getXmlSlurper().parseText(substitutedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
                     .property.findAll {
@@ -1134,7 +1134,7 @@ class ConfigEncryptionTool {
 
         try {
             // Scan the XML content for the known "complex" values
-            def doc = new XmlSlurper().parseText(inputXML)
+            def doc = getXmlSlurper().parseText(inputXML)
             // Find the provider element by class even if it has been renamed
             def complexXmlProperties = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
@@ -1223,7 +1223,7 @@ class ConfigEncryptionTool {
 
         try {
             // Scan the XML content for the known "complex" values
-            def doc = new XmlSlurper().parseText(inputXML)
+            def doc = getXmlSlurper().parseText(inputXML)
             // Find the provider element by class even if it has been renamed
             def complexXmlProperties = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
@@ -1540,7 +1540,7 @@ class ConfigEncryptionTool {
         // Find the provider element of the new XML in the file contents
         String fileContents = originalLoginIdentityProvidersFile.text
         try {
-            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def parsedXml = getXmlSlurper().parseText(xmlContent)
             def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = serializeXMLFragment(provider)
@@ -1560,7 +1560,7 @@ class ConfigEncryptionTool {
         // Find the provider element of the new XML in the file contents
         String fileContents = originalAuthorizersFile.text
         try {
-            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def parsedXml = getXmlSlurper().parseText(xmlContent)
             def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = serializeXMLFragment(provider)
@@ -1639,6 +1639,17 @@ class ConfigEncryptionTool {
         } else {
             return false
         }
+    }
+
+    /**
+     * Returns an {@link XmlSlurper} which is configured to maintain ignorable whitespace.
+     *
+     * @return a configured XmlSlurper
+     */
+    static XmlSlurper getXmlSlurper() {
+        XmlSlurper xs = new XmlSlurper()
+        xs.setKeepIgnorableWhitespace(true)
+        xs
     }
 
     /**
