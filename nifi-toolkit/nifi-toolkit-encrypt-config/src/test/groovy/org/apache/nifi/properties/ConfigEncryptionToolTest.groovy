@@ -648,8 +648,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Arrange
         Map<String, String> keyValues = [
                 (KEY_HEX)                         : KEY_HEX,
-                "   ${KEY_HEX}   "                : KEY_HEX,
-                "xxx${KEY_HEX}zzz"                : KEY_HEX,
+                ("   ${KEY_HEX}   " as String)    : KEY_HEX,
+                ("xxx${KEY_HEX}zzz" as String)    : KEY_HEX,
                 ((["0123", "4567"] * 4).join("-")): "01234567" * 4,
                 ((["89ab", "cdef"] * 4).join(" ")): "89ABCDEF" * 4,
                 (KEY_HEX.toLowerCase())           : KEY_HEX,
@@ -5057,115 +5057,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
             assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
         }
-    }
-
-    @Test
-    void testShouldSubstituteXmlProperties() {
-        // Arrange
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        tool.isVerbose = true
-
-        final String COMPLEX_USF = "(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))"
-
-        String sampleXML = """
-<xml>
-    <userGroupProvider>
-        <identifier>ldap-user-group-provider</identifier>
-        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
-        
-        <property name="User Search Base">user_search_base</property>
-        <property name="User Object Class">user_object_class</property>
-        <property name="User Search Scope">user_search_scope</property>
-        <property name="User Search Filter">(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))</property>
-        <property name="User Identity Attribute">user_identity_attribute</property>
-        <property name="User Group Name Attribute">user_group_name_attribute</property>
-        <property name="User Group Name Attribute - Referenced Group Attribute">user_group_name_attribute_referenced_group_attribute</property>
-        <property name="Something Not To Replace">something_not_to_replace</property>
-        <property name="Something Not To Replace With Special Characters">something_not_to_replace_with_special_characters_*()\$</property>
-    </userGroupProvider>
-</xml>
-"""
-        logger.info("Sample XML: \n${sampleXML}")
-        Map<String, String> substitutions = [:]
-
-        // Act
-        String replacedXML = tool.substituteXmlProperties(sampleXML, substitutions)
-        logger.info("Replaced XML: \n${replacedXML}")
-        logger.info("Substitutions: ${substitutions}")
-
-        // Assert
-        assert substitutions.size() == 1
-        def usf = substitutions.entrySet().first()
-        assert usf.key =~ /user_search_filter_\d+/
-        assert usf.value == COMPLEX_USF
-
-        // The updated XML has an attribute added and the substitution token in the value
-        String reconstitutedXML = replacedXML
-                .replace(usf.key, COMPLEX_USF)
-                .replace(" substitution=\"complex_xml\"", '')
-
-        assert compareXMLFragments(sampleXML, reconstitutedXML)
-    }
-
-    @Test
-    void testShouldRepopulateXmlProperties() {
-        // Arrange
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        tool.isVerbose = true
-
-        final String COMPLEX_USF = "(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))"
-
-        String substitutionKey = "user_search_filter_100"
-
-        String sampleXML = """
-<xml>
-    <userGroupProvider>
-        <identifier>ldap-user-group-provider</identifier>
-        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
-        
-        <property name="User Search Base">user_search_base</property>
-        <property name="User Object Class">user_object_class</property>
-        <property name="User Search Scope">user_search_scope</property>
-        <property name="User Search Filter" substitution="complex_xml">user_search_filter_100</property>
-        <property name="User Identity Attribute">user_identity_attribute</property>
-        <property name="User Group Name Attribute">user_group_name_attribute</property>
-        <property name="User Group Name Attribute - Referenced Group Attribute">user_group_name_attribute_referenced_group_attribute</property>
-        <property name="Something Not To Replace">something_not_to_replace</property>
-        <property name="Something Not To Replace With Special Characters">something_not_to_replace_with_special_characters_*()\$</property>
-    </userGroupProvider>
-</xml>
-"""
-
-        final String expectedXML = """
-<xml>
-    <userGroupProvider>
-        <identifier>ldap-user-group-provider</identifier>
-        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
-        
-        <property name="User Search Base">user_search_base</property>
-        <property name="User Object Class">user_object_class</property>
-        <property name="User Search Scope">user_search_scope</property>
-        <property name="User Search Filter">(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))</property>
-        <property name="User Identity Attribute">user_identity_attribute</property>
-        <property name="User Group Name Attribute">user_group_name_attribute</property>
-        <property name="User Group Name Attribute - Referenced Group Attribute">user_group_name_attribute_referenced_group_attribute</property>
-        <property name="Something Not To Replace">something_not_to_replace</property>
-        <property name="Something Not To Replace With Special Characters">something_not_to_replace_with_special_characters_*()\$</property>
-    </userGroupProvider>
-</xml>
-"""
-
-        logger.info("Expected XML: \n${expectedXML}")
-        logger.info("Sample XML: \n${sampleXML}")
-        Map<String, String> substitutions = [(substitutionKey): COMPLEX_USF]
-        logger.info("Substitutions: ${substitutions}")
-
-        // Act
-        String repopulatedXML = tool.repopulateXmlProperties(sampleXML, substitutions)
-        logger.info("Repopulated XML: \n${repopulatedXML}")
-
-        // Assert
-        assert compareXMLFragments(expectedXML, repopulatedXML)
     }
 
     static boolean compareXMLFragments(String expectedXML, String actualXML) {
