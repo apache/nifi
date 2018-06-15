@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.activation.DataHandler;
 import javax.mail.Authenticator;
@@ -44,6 +46,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimeUtility;
 import javax.mail.internet.PreencodedMimeBodyPart;
 import javax.mail.util.ByteArrayDataSource;
 
@@ -55,6 +58,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -141,6 +145,15 @@ public class PutEmail extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("NiFi")
+            .build();
+    public static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new PropertyDescriptor.Builder()
+            .name("attribute-name-regex")
+            .displayName("Attributes to Send as Headers (Regex)")
+            .description("A Regular Expression that is matched against all FlowFile attribute names. "
+                + "Any attribute whose name matches the regex will be added to the Email messages as a Header. "
+                + "If not specified, no FlowFile attributes will be added as headers.")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .required(false)
             .build();
     public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
             .name("Content Type")
@@ -256,6 +269,7 @@ public class PutEmail extends AbstractProcessor {
         properties.add(SMTP_TLS);
         properties.add(SMTP_SOCKET_FACTORY);
         properties.add(HEADER_XMAILER);
+        properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(CONTENT_TYPE);
         properties.add(FROM);
         properties.add(TO);
@@ -299,6 +313,13 @@ public class PutEmail extends AbstractProcessor {
         return errors;
     }
 
+    private volatile Pattern attributeNamePattern = null;
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        final String attributeNameRegex = context.getProperty(ATTRIBUTE_NAME_REGEX).getValue();
+        this.attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final FlowFile flowFile = session.get();
@@ -319,6 +340,17 @@ public class PutEmail extends AbstractProcessor {
             message.setRecipients(RecipientType.CC, toInetAddresses(context, flowFile, CC));
             message.setRecipients(RecipientType.BCC, toInetAddresses(context, flowFile, BCC));
 
+            if (attributeNamePattern != null) {
+                for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
+                    if (attributeNamePattern.matcher(entry.getKey()).matches()) {
+                        try {
+                            message.setHeader(entry.getKey(), MimeUtility.encodeText(entry.getValue()));
+                        } catch (UnsupportedEncodingException e){
+                            logger.warn("Unable to add header value {} due to encoding exception", new Object[]{entry.getValue()});
+                        }
+                    }
+                }
+            }
             message.setHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue());
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
 
