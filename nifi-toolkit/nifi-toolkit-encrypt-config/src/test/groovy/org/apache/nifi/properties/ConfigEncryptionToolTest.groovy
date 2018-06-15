@@ -2459,6 +2459,33 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleComplexProperty() {
+        // Arrange
+        String providersPath = "src/test/resources/login-identity-providers-populated-complex-filter.xml"
+        File providersFile = new File(providersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-providers.xml")
+        workingFile.delete()
+        Files.copy(providersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeLoginIdentityProvidersAndPreserveFormat(lines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert compareXMLFragments(lines.join("\n"), serializedLines.join("\n"))
+    }
+
+    @Test
     void testWriteLoginIdentityProvidersShouldHandleUnreadableFile() {
         // Arrange
         String providersPath = "src/test/resources/login-identity-providers-populated.xml"

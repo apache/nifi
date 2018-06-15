@@ -1544,7 +1544,7 @@ class ConfigEncryptionTool {
             def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = serializeXMLFragment(provider)
-                fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
+                fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, Matcher.quoteReplacement(serializedProvider))
                 return fileContents.split("\n")
             } else {
                 throw new SAXException("No ldap-provider element found")
