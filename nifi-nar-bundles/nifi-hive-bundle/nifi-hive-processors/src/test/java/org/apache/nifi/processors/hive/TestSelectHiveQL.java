@@ -66,6 +66,8 @@ public class TestSelectHiveQL {
 
     private static final Logger LOGGER;
     private final static String MAX_ROWS_KEY = "maxRows";
+    private final int NUM_OF_ROWS = 100;
+
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -199,6 +201,51 @@ public class TestSelectHiveQL {
     }
 
     @Test
+    public void invokeOnTriggerExceptionInPreQieriesNoIncomingFlows()
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+
+        doOnTrigger(QUERY_WITHOUT_EL, false, CSV,
+                "select 'no exception' from persons; select exception from persons",
+                null);
+
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void invokeOnTriggerExceptionInPreQieriesWithIncomingFlows()
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+
+        doOnTrigger(QUERY_WITHOUT_EL, true, CSV,
+                "select 'no exception' from persons; select exception from persons",
+                null);
+
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void invokeOnTriggerExceptionInPostQieriesNoIncomingFlows()
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+
+        doOnTrigger(QUERY_WITHOUT_EL, false, CSV,
+                null,
+                "select 'no exception' from persons; select exception from persons");
+
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void invokeOnTriggerExceptionInPostQieriesWithIncomingFlows()
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+
+        doOnTrigger(QUERY_WITHOUT_EL, true, CSV,
+                null,
+                "select 'no exception' from persons; select exception from persons");
+
+        // with incoming connections, it should be rolled back
+        runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testWithBadSQL() throws SQLException {
         final String BAD_SQL = "create table TEST_NO_ROWS (id integer)";
 
@@ -235,45 +282,45 @@ public class TestSelectHiveQL {
         invokeOnTrigger(QUERY_WITHOUT_EL, false, AVRO);
     }
 
+    @Test
+    public void invokeOnTriggerWithValidPreQieries()
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        invokeOnTrigger(QUERY_WITHOUT_EL, false, CSV,
+                "select '1' from persons; select '2' from persons", //should not be 'select'. But Derby driver doesn't support "set param=val" format.
+                null);
+    }
+
+    @Test
+    public void invokeOnTriggerWithValidPostQieries()
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        invokeOnTrigger(QUERY_WITHOUT_EL, false, CSV,
+                null,
+                    //should not be 'select'. But Derby driver doesn't support "set param=val" format,
+                    //so just providing any "compilable" query.
+                " select '4' from persons; \nselect '5' from persons");
+    }
+
+    @Test
+    public void invokeOnTriggerWithValidPrePostQieries()
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        invokeOnTrigger(QUERY_WITHOUT_EL, false, CSV,
+                    //should not be 'select'. But Derby driver doesn't support "set param=val" format,
+                    //so just providing any "compilable" query.
+                "select '1' from persons; select '2' from persons",
+                " select '4' from persons; \nselect '5' from persons");
+    }
+
+
     public void invokeOnTrigger(final String query, final boolean incomingFlowFile, String outputFormat)
             throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        invokeOnTrigger(query, incomingFlowFile, outputFormat, null, null);
+    }
 
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
+    public void invokeOnTrigger(final String query, final boolean incomingFlowFile, String outputFormat,
+            String preQueries, String postQueries)
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
-        // load test data to database
-        final Connection con = ((HiveDBCPService) runner.getControllerService("dbcp")).getConnection();
-        final Statement stmt = con.createStatement();
-        try {
-            stmt.execute("drop table persons");
-        } catch (final SQLException sqle) {
-            // Nothing to do here, the table didn't exist
-        }
-
-        stmt.execute("create table persons (id integer, name varchar(100), code integer)");
-        Random rng = new Random(53496);
-        final int nrOfRows = 100;
-        stmt.executeUpdate("insert into persons values (1, 'Joe Smith', " + rng.nextInt(469947) + ")");
-        for (int i = 2; i < nrOfRows; i++) {
-            stmt.executeUpdate("insert into persons values (" + i + ", 'Someone Else', " + rng.nextInt(469947) + ")");
-        }
-        stmt.executeUpdate("insert into persons values (" + nrOfRows + ", 'Last Person', NULL)");
-
-        LOGGER.info("test data loaded");
-
-        runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, query);
-        runner.setProperty(HIVEQL_OUTPUT_FORMAT, outputFormat);
-
-        if (incomingFlowFile) {
-            // incoming FlowFile content is not used, but attributes are used
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("person.id", "10");
-            runner.enqueue("Hello".getBytes(), attributes);
-        }
-
-        runner.setIncomingConnection(incomingFlowFile);
-        runner.run();
+        TestRunner runner = doOnTrigger(query, incomingFlowFile, outputFormat, preQueries, postQueries);
         runner.assertAllFlowFilesTransferred(SelectHiveQL.REL_SUCCESS, 1);
 
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(SelectHiveQL.REL_SUCCESS);
@@ -306,7 +353,7 @@ public class TestSelectHiveQL {
             while ((line = br.readLine()) != null) {
                 recordsFromStream++;
                 String[] values = line.split(",");
-                if (recordsFromStream < (nrOfRows - 10)) {
+                if (recordsFromStream < (NUM_OF_ROWS - 10)) {
                     assertEquals(3, values.length);
                     assertTrue(values[1].startsWith("\""));
                     assertTrue(values[1].endsWith("\""));
@@ -315,9 +362,58 @@ public class TestSelectHiveQL {
                 }
             }
         }
-        assertEquals(nrOfRows - 10, recordsFromStream);
+        assertEquals(NUM_OF_ROWS - 10, recordsFromStream);
         assertEquals(recordsFromStream, Integer.parseInt(flowFile.getAttribute(SelectHiveQL.RESULT_ROW_COUNT)));
         flowFile.assertAttributeEquals(AbstractHiveQLProcessor.ATTR_INPUT_TABLES, "persons");
+    }
+
+    public TestRunner doOnTrigger(final String query, final boolean incomingFlowFile, String outputFormat,
+            String preQueries, String postQueries)
+            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((HiveDBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Statement stmt = con.createStatement();
+        try {
+            stmt.execute("drop table persons");
+        } catch (final SQLException sqle) {
+            // Nothing to do here, the table didn't exist
+        }
+
+        stmt.execute("create table persons (id integer, name varchar(100), code integer)");
+        Random rng = new Random(53496);
+        stmt.executeUpdate("insert into persons values (1, 'Joe Smith', " + rng.nextInt(469947) + ")");
+        for (int i = 2; i < NUM_OF_ROWS; i++) {
+            stmt.executeUpdate("insert into persons values (" + i + ", 'Someone Else', " + rng.nextInt(469947) + ")");
+        }
+        stmt.executeUpdate("insert into persons values (" + NUM_OF_ROWS + ", 'Last Person', NULL)");
+
+        LOGGER.info("test data loaded");
+
+        runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, query);
+        runner.setProperty(HIVEQL_OUTPUT_FORMAT, outputFormat);
+        if (preQueries != null) {
+            runner.setProperty(SelectHiveQL.HIVEQL_PRE_QUERY, preQueries);
+        }
+        if (postQueries != null) {
+            runner.setProperty(SelectHiveQL.HIVEQL_POST_QUERY, postQueries);
+        }
+
+        if (incomingFlowFile) {
+            // incoming FlowFile content is not used, but attributes are used
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put("person.id", "10");
+            runner.enqueue("Hello".getBytes(), attributes);
+        }
+
+        runner.setIncomingConnection(incomingFlowFile);
+        runner.run();
+
+        return runner;
     }
 
     @Test
@@ -556,5 +652,4 @@ public class TestSelectHiveQL {
             return "jdbc:derby:" + DB_LOCATION + ";create=true";
         }
     }
-
 }
