@@ -43,6 +43,10 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.xmlunit.builder.DiffBuilder
+import org.xmlunit.diff.DefaultNodeMatcher
+import org.xmlunit.diff.Diff
+import org.xmlunit.diff.ElementSelectors
 
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
@@ -3200,6 +3204,33 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testSerializeAuthorizersAndPreserveFormatShouldHandleComplexProperty() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-complex-filter.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeAuthorizersAndPreserveFormat(lines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert compareXMLFragments(lines.join("\n"), serializedLines.join("\n"))
+    }
+
+    @Test
     void testShouldPerformFullOperationForAuthorizers() {
         // Arrange
         exit.expectSystemExitWithStatus(0)
@@ -3324,6 +3355,87 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
 //                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll { it.@encryption }
+
+                def encryptedValues = updatedParsedXml.userGroupProvider.find {
+                    it.identifier == 'ldap-user-group-provider'
+                }.property.findAll {
+                    it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+                }
+
+                encryptedValues.each {
+                    assert spp.unprotect(it.text()) == PASSWORD
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputAuthorizersFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        })
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldPerformFullOperationForAuthorizersWithComplexUserSearchFilter() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
+
+        File inputAuthorizersFile = new File("src/test/resources/authorizers-populated-complex-filter.xml")
+        File outputAuthorizersFile = new File("target/tmp/tmp-authorizers.xml")
+        outputAuthorizersFile.delete()
+
+        String originalXmlContent = inputAuthorizersFile.text
+        logger.info("Original XML content: ${originalXmlContent}")
+
+        String[] args = ["-a", inputAuthorizersFile.path, "-b", bootstrapFile.path, "-u", outputAuthorizersFile.path, "-k", KEY_HEX, "-v"]
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            void checkAssertion() {
+                final String updatedXmlContent = outputAuthorizersFile.text
+                logger.info("Updated XML content: ${updatedXmlContent}")
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                assert originalParsedXml != updatedParsedXml
+                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
+                    it.@encryption
+                }
 
                 def encryptedValues = updatedParsedXml.userGroupProvider.find {
                     it.identifier == 'ldap-user-group-provider'
@@ -4918,6 +5030,128 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
             assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
         }
+    }
+
+    @Test
+    void testShouldSubstituteXmlProperties() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        final String COMPLEX_USF = "(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))"
+
+        String sampleXML = """
+<xml>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        
+        <property name="User Search Base">user_search_base</property>
+        <property name="User Object Class">user_object_class</property>
+        <property name="User Search Scope">user_search_scope</property>
+        <property name="User Search Filter">(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))</property>
+        <property name="User Identity Attribute">user_identity_attribute</property>
+        <property name="User Group Name Attribute">user_group_name_attribute</property>
+        <property name="User Group Name Attribute - Referenced Group Attribute">user_group_name_attribute_referenced_group_attribute</property>
+        <property name="Something Not To Replace">something_not_to_replace</property>
+        <property name="Something Not To Replace With Special Characters">something_not_to_replace_with_special_characters_*()\$</property>
+    </userGroupProvider>
+</xml>
+"""
+        logger.info("Sample XML: \n${sampleXML}")
+        Map<String, String> substitutions = [:]
+
+        // Act
+        String replacedXML = tool.substituteXmlProperties(sampleXML, substitutions)
+        logger.info("Replaced XML: \n${replacedXML}")
+        logger.info("Substitutions: ${substitutions}")
+
+        // Assert
+        assert substitutions.size() == 1
+        def usf = substitutions.entrySet().first()
+        assert usf.key =~ /user_search_filter_\d+/
+        assert usf.value == COMPLEX_USF
+
+        // The updated XML has an attribute added and the substitution token in the value
+        String reconstitutedXML = replacedXML
+                .replace(usf.key, COMPLEX_USF)
+                .replace(" substitution=\"complex_xml\"", '')
+
+        assert compareXMLFragments(sampleXML, reconstitutedXML)
+    }
+
+    @Test
+    void testShouldRepopulateXmlProperties() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        final String COMPLEX_USF = "(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))"
+
+        String substitutionKey = "user_search_filter_100"
+
+        String sampleXML = """
+<xml>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        
+        <property name="User Search Base">user_search_base</property>
+        <property name="User Object Class">user_object_class</property>
+        <property name="User Search Scope">user_search_scope</property>
+        <property name="User Search Filter" substitution="complex_xml">user_search_filter_100</property>
+        <property name="User Identity Attribute">user_identity_attribute</property>
+        <property name="User Group Name Attribute">user_group_name_attribute</property>
+        <property name="User Group Name Attribute - Referenced Group Attribute">user_group_name_attribute_referenced_group_attribute</property>
+        <property name="Something Not To Replace">something_not_to_replace</property>
+        <property name="Something Not To Replace With Special Characters">something_not_to_replace_with_special_characters_*()\$</property>
+    </userGroupProvider>
+</xml>
+"""
+
+        final String expectedXML = """
+<xml>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        
+        <property name="User Search Base">user_search_base</property>
+        <property name="User Object Class">user_object_class</property>
+        <property name="User Search Scope">user_search_scope</property>
+        <property name="User Search Filter">(&amp; (objectCategory=Person)(sAMAccountName=*)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(sAMAccountName=\$*)))</property>
+        <property name="User Identity Attribute">user_identity_attribute</property>
+        <property name="User Group Name Attribute">user_group_name_attribute</property>
+        <property name="User Group Name Attribute - Referenced Group Attribute">user_group_name_attribute_referenced_group_attribute</property>
+        <property name="Something Not To Replace">something_not_to_replace</property>
+        <property name="Something Not To Replace With Special Characters">something_not_to_replace_with_special_characters_*()\$</property>
+    </userGroupProvider>
+</xml>
+"""
+
+        logger.info("Expected XML: \n${expectedXML}")
+        logger.info("Sample XML: \n${sampleXML}")
+        Map<String, String> substitutions = [(substitutionKey): COMPLEX_USF]
+        logger.info("Substitutions: ${substitutions}")
+
+        // Act
+        String repopulatedXML = tool.repopulateXmlProperties(sampleXML, substitutions)
+        logger.info("Repopulated XML: \n${repopulatedXML}")
+
+        // Assert
+        assert compareXMLFragments(expectedXML, repopulatedXML)
+    }
+
+    static boolean compareXMLFragments(String expectedXML, String actualXML) {
+        Diff diffSimilar = DiffBuilder.compare(expectedXML).withTest(actualXML)
+                .withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byName))
+                .ignoreWhitespace().checkForSimilar().build()
+        def allDifferences = diffSimilar.getDifferences()
+        if (diffSimilar.hasDifferences()) {
+            allDifferences.each { diff ->
+                logger.info("Difference: ${diff.toString()}")
+            }
+        }
+        !diffSimilar.hasDifferences()
     }
 
 // TODO: Test with 128/256-bit available

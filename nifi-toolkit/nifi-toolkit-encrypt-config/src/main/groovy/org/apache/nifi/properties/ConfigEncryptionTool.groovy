@@ -17,6 +17,7 @@
 package org.apache.nifi.properties
 
 import groovy.io.GroovyPrintWriter
+import groovy.util.slurpersupport.GPathResult
 import groovy.xml.XmlUtil
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
@@ -47,6 +48,7 @@ import java.nio.charset.StandardCharsets
 import java.security.KeyException
 import java.security.SecureRandom
 import java.security.Security
+import java.util.regex.Matcher
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
@@ -187,12 +189,12 @@ class ConfigEncryptionTool {
     private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
 
     private static final Map<String, String> PROPERTY_KEY_MAP = [
-            "nifi.security.keystore": "keystore",
-            "nifi.security.keystoreType": "keystoreType",
-            "nifi.security.keystorePasswd": "keystorePasswd",
-            "nifi.security.keyPasswd": "keyPasswd",
-            "nifi.security.truststore": "truststore",
-            "nifi.security.truststoreType": "truststoreType",
+            "nifi.security.keystore"        : "keystore",
+            "nifi.security.keystoreType"    : "keystoreType",
+            "nifi.security.keystorePasswd"  : "keystorePasswd",
+            "nifi.security.keyPasswd"       : "keyPasswd",
+            "nifi.security.truststore"      : "truststore",
+            "nifi.security.truststoreType"  : "truststoreType",
             "nifi.security.truststorePasswd": "truststorePasswd",
     ]
 
@@ -527,7 +529,7 @@ class ConfigEncryptionTool {
     }
 
     private String getMigrationKey() {
-            return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
+        return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
     }
 
     private static String getFlowPassword(TextDevice textDevice = TextDevices.defaultTextDevice()) {
@@ -910,7 +912,11 @@ class ConfigEncryptionTool {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
-            def doc = new XmlSlurper().parseText(encryptedXml)
+            logger.info("Substituting complex XML properties in authorizers.xml before decrypting")
+            Map substitutions = [:]
+            def filename = "authorizers.xml"
+            String substitutedXml = substituteXmlProperties(encryptedXml, substitutions, filename)
+            def doc = new XmlSlurper().parseText(substitutedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
@@ -920,8 +926,9 @@ class ConfigEncryptionTool {
 
             if (passwords.isEmpty()) {
                 if (isVerbose) {
-                    logger.info("No encrypted password property elements found in authorizers.xml")
+                    logger.info("No encrypted password property elements found in ${filename}")
                 }
+                // Return the original input, not the substituted XML
                 return encryptedXml
             }
 
@@ -938,7 +945,12 @@ class ConfigEncryptionTool {
 
             // Does not preserve whitespace formatting or comments
             String updatedXml = XmlUtil.serialize(doc)
-            logger.info("Updated XML content: ${updatedXml}")
+            if (isVerbose) {
+                logger.info("Updated XML content: ${updatedXml}")
+            }
+            if (!substitutions.isEmpty()) {
+                updatedXml = repopulateXmlProperties(updatedXml, substitutions, filename)
+            }
             updatedXml
         } catch (Exception e) {
             printUsageAndThrow("Cannot decrypt authorizers XML content", ExitCode.SERVICE_ERROR)
@@ -992,7 +1004,11 @@ class ConfigEncryptionTool {
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
-            def doc = new XmlSlurper().parseText(plainXml)
+            logger.info("Substituting complex XML properties in authorizers.xml before encrypting")
+            Map substitutions = [:]
+            def filename = "authorizers.xml"
+            String substitutedXml = substituteXmlProperties(plainXml, substitutions, filename)
+            def doc = new XmlSlurper().parseText(substitutedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
                     .property.findAll {
@@ -1002,8 +1018,9 @@ class ConfigEncryptionTool {
 
             if (passwords.isEmpty()) {
                 if (isVerbose) {
-                    logger.info("No unencrypted password property elements found in authorizers.xml")
+                    logger.info("No unencrypted password property elements found in ${filename}")
                 }
+                // Return the original input, not the substituted XML
                 return plainXml
             }
 
@@ -1019,7 +1036,13 @@ class ConfigEncryptionTool {
 
             // Does not preserve whitespace formatting or comments
             String updatedXml = XmlUtil.serialize(doc)
-            logger.info("Updated XML content: ${updatedXml}")
+            if (isVerbose) {
+                logger.info("Updated XML content: ${updatedXml}")
+            }
+            if (!substitutions.isEmpty()) {
+                updatedXml = repopulateXmlProperties(updatedXml, substitutions, filename)
+            }
+
             updatedXml
         } catch (Exception e) {
             if (isVerbose) {
@@ -1086,6 +1109,225 @@ class ConfigEncryptionTool {
         logger.info("Final result: ${mergedProperties.size()} keys including ${ProtectedNiFiProperties.countProtectedProperties(mergedProperties)} protected keys")
 
         mergedProperties
+    }
+
+    String substituteXmlProperties(
+            final String inputXML, Map<String, String> substitutions, String filename = "authorizers.xml") {
+        if (substitutions == null || !substitutions.isEmpty()) {
+            throw new IllegalArgumentException("The empty substitutions map must exist to receive tokens")
+        }
+
+        final List<String> COMPLEX_PROPERTY_NAMES = ["User Search Base",
+                                                     "User Object Class",
+                                                     "User Search Scope",
+                                                     "User Search Filter",
+                                                     "User Identity Attribute",
+                                                     "User Group Name Attribute",
+                                                     "User Group Name Attribute - Referenced Group Attribute",
+                                                     "Group Search Base",
+                                                     "Group Object Class",
+                                                     "Group Search Scope",
+                                                     "Group Search Filter",
+                                                     "Group Name Attribute",
+                                                     "Group Member Attribute",
+                                                     "Group Member Attribute - Referenced User Attribute"]
+
+        try {
+            // Scan the XML content for the known "complex" values
+            def doc = new XmlSlurper().parseText(inputXML)
+            // Find the provider element by class even if it has been renamed
+            def complexXmlProperties = doc.userGroupProvider.find {
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
+            }
+            .property.findAll {
+                // Only operate on properties that are potentially complex
+                COMPLEX_PROPERTY_NAMES.contains(it.@name) && it.text()
+            }
+
+            if (complexXmlProperties.isEmpty()) {
+                if (isVerbose) {
+                    logger.info("No complex property elements found in ${filename}")
+                }
+                return inputXML
+            }
+
+            complexXmlProperties.each { prop ->
+                // Get the value of the property
+                String propValue = XmlUtil.escapeXml(prop.text())
+                boolean isComplex = isXMLPropertyComplex(propValue)
+                if (isVerbose) {
+                    logger.info("Evaluating substitution for ${prop.@name}")
+                    logger.info("Value: ${propValue}")
+                    logger.info("Complex: ${isComplex}")
+                }
+
+                // If it is "complex"
+                if (isComplex) {
+                    String key = generateXMLPropertyKey(prop.@name as String)
+                    while (substitutions.containsKey(key)) {
+                        if (isVerbose) {
+                            logger.warn("Substitutions for ${filename} already contained ${key}; regenerating...")
+                        }
+                        key = generateXMLPropertyKey(prop.@name as String, System.currentTimeMillis().toString())
+                    }
+
+                    // Store it in the hashmap with a substitution key
+                    substitutions[key] = propValue
+                    // Replace it in the XML with the key
+                    prop.replaceNode {
+                        property(name: prop.@name, substitution: "complex_xml", key)
+                    }
+                }
+            }
+
+            if (isVerbose) {
+                logger.info("Updated ${substitutions.size()} properties: ${substitutions.keySet().join(", ")}")
+            }
+
+            // Does not preserve whitespace formatting or comments
+            String updatedXml = serializeXMLFragment(doc)
+            logger.info("Updated XML content: ${updatedXml}")
+            // Return the updated XML
+            updatedXml
+        } catch (Exception e) {
+            if (isVerbose) {
+                logger.error("Encountered exception", e)
+            }
+            printUsageAndThrow("Cannot substitute complex properties in ${filename} XML content", ExitCode.SERVICE_ERROR)
+        }
+    }
+
+    String repopulateXmlProperties(
+            final String inputXML, Map<String, String> substitutions, String filename = "authorizers.xml") {
+        if (substitutions == null || substitutions.isEmpty()) {
+            if (isVerbose) {
+                logger.debug("No complex substitutions on ${filename}")
+            }
+            return inputXML
+        }
+
+        final List<String> COMPLEX_PROPERTY_NAMES = ["User Search Base",
+                                                     "User Object Class",
+                                                     "User Search Scope",
+                                                     "User Search Filter",
+                                                     "User Identity Attribute",
+                                                     "User Group Name Attribute",
+                                                     "User Group Name Attribute - Referenced Group Attribute",
+                                                     "Group Search Base",
+                                                     "Group Object Class",
+                                                     "Group Search Scope",
+                                                     "Group Search Filter",
+                                                     "Group Name Attribute",
+                                                     "Group Member Attribute",
+                                                     "Group Member Attribute - Referenced User Attribute"]
+
+        try {
+            // Scan the XML content for the known "complex" values
+            def doc = new XmlSlurper().parseText(inputXML)
+            // Find the provider element by class even if it has been renamed
+            def complexXmlProperties = doc.userGroupProvider.find {
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
+            }
+            .property.findAll {
+                // Only operate on properties that have been substituted
+                COMPLEX_PROPERTY_NAMES.contains(it.@name) && it.@substitution == "complex_xml"
+            }
+
+            // TODO: May not need because substitutions would be empty
+            if (complexXmlProperties.isEmpty()) {
+                if (isVerbose) {
+                    logger.info("No complex property elements found in ${filename}")
+                }
+                return inputXML
+            }
+
+            complexXmlProperties.each { prop ->
+                // Get the value of the property
+                String substitutionKey = XmlUtil.escapeXml(prop.text())
+                if (isVerbose) {
+                    logger.info("Evaluating substitution for ${prop.@name}")
+                    logger.info("Substitution key: ${substitutionKey}")
+                    logger.info("Substitution mode: ${prop.@substitution}")
+                }
+
+                // If it is in the substitutions map
+                if (substitutions.containsKey(substitutionKey)) {
+                    // Retrieve the value
+                    def replacementValue = substitutions[substitutionKey]
+                    // Replace it in the XML (and remove the substitution attribute)
+                    prop.replaceNode {
+                        // The XML is auto-escaped when injected here, so if it is already escaped in the map, it becomes double escaped (i.e. &amp;amp;)
+                        property(name: prop.@name, unescapeXml(replacementValue))
+                    }
+                }
+            }
+
+            if (isVerbose) {
+                logger.info("Updated ${substitutions.size()} properties: ${substitutions.keySet().join(", ")}")
+            }
+
+            // Does not preserve whitespace formatting or comments
+            String updatedXml = serializeXMLFragment(doc)
+            logger.info("Updated XML content: ${updatedXml}")
+            // Return the updated XML
+            updatedXml
+        } catch (Exception e) {
+            if (isVerbose) {
+                logger.error("Encountered exception", e)
+            }
+            printUsageAndThrow("Cannot repopulate complex properties in ${filename} XML content", ExitCode.SERVICE_ERROR)
+        }
+    }
+
+    static String unescapeXml(String escapedXml) {
+        org.apache.commons.text.StringEscapeUtils.unescapeXml(escapedXml)
+    }
+
+    /**
+     * Returns the XML fragment serialized from the {@code GPathResult} without the leading XML declaration.
+     *
+     * @param gPathResult the XML node
+     * @return serialized XML without an inserted header declaration
+     */
+    static String serializeXMLFragment(GPathResult gPathResult) {
+        XmlUtil.serialize(gPathResult).replaceFirst(XML_DECLARATION_REGEX, '')
+    }
+
+    /**
+     * Returns true if the property value is "complex" (i.e. may cause regex group conflicts if interpreted).
+     *
+     * @param value the XML property value
+     * @return true if the value is complex
+     */
+    private static boolean isXMLPropertyComplex(String value) {
+        return value =~ /[$&\(\)!\*]/
+    }
+
+    /**
+     * Returns a key identifier which can be used as a substitution token in the XML and as a lookup key in the substitution hashmap. The timestamp can be overridden to enforce consistent values across a pass, or left as default to use the current system time.
+     *
+     * @param key the XML property name
+     * @param timestamp the current time in milliseconds ({@code System.currentTimeMillis ( )} by default)
+     * @return a safe key
+     */
+    private static String generateXMLPropertyKey(String key, String timestamp = System.currentTimeMillis().toString()) {
+        String snakeKey = snakeCase(key)
+        "${snakeKey}_${timestamp}"
+    }
+
+    /**
+     * Transforms human-formatted or camelcase strings to snakecase.
+     *
+     * Ex:
+     *
+     * {@code User Search Filter} -> {@code user_search_filter}
+     * {@code UserSearchFilter}   -> {@code user_search_filter}
+     *
+     * @param key the input string
+     * @return the snaked string
+     */
+    private static String snakeCase(String key) {
+        key.replaceAll(/([A-Z])/, /_$1/).toLowerCase().replaceAll(/^_/, '').replaceAll(/\s/, '')
     }
 
     /**
@@ -1301,9 +1543,7 @@ class ConfigEncryptionTool {
             def parsedXml = new XmlSlurper().parseText(xmlContent)
             def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
             if (provider) {
-                def serializedProvider = new XmlUtil().serialize(provider)
-                // Remove XML declaration from top
-                serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
+                def serializedProvider = serializeXMLFragment(provider)
                 fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
                 return fileContents.split("\n")
             } else {
@@ -1323,10 +1563,8 @@ class ConfigEncryptionTool {
             def parsedXml = new XmlSlurper().parseText(xmlContent)
             def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
             if (provider) {
-                def serializedProvider = new XmlUtil().serialize(provider)
-                // Remove XML declaration from top
-                serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
-                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, serializedProvider)
+                def serializedProvider = serializeXMLFragment(provider)
+                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, Matcher.quoteReplacement(serializedProvider))
                 return fileContents.split("\n")
             } else {
                 throw new SAXException("No ldap-user-group-provider element found")
