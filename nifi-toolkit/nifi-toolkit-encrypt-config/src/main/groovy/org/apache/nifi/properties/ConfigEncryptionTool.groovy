@@ -17,6 +17,7 @@
 package org.apache.nifi.properties
 
 import groovy.io.GroovyPrintWriter
+import groovy.util.slurpersupport.GPathResult
 import groovy.xml.XmlUtil
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
@@ -47,6 +48,7 @@ import java.nio.charset.StandardCharsets
 import java.security.KeyException
 import java.security.SecureRandom
 import java.security.Security
+import java.util.regex.Matcher
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
@@ -187,12 +189,12 @@ class ConfigEncryptionTool {
     private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
 
     private static final Map<String, String> PROPERTY_KEY_MAP = [
-            "nifi.security.keystore": "keystore",
-            "nifi.security.keystoreType": "keystoreType",
-            "nifi.security.keystorePasswd": "keystorePasswd",
-            "nifi.security.keyPasswd": "keyPasswd",
-            "nifi.security.truststore": "truststore",
-            "nifi.security.truststoreType": "truststoreType",
+            "nifi.security.keystore"        : "keystore",
+            "nifi.security.keystoreType"    : "keystoreType",
+            "nifi.security.keystorePasswd"  : "keystorePasswd",
+            "nifi.security.keyPasswd"       : "keyPasswd",
+            "nifi.security.truststore"      : "truststore",
+            "nifi.security.truststoreType"  : "truststoreType",
             "nifi.security.truststorePasswd": "truststorePasswd",
     ]
 
@@ -251,11 +253,11 @@ class ConfigEncryptionTool {
         return staticOptions
     }
 
-/**
- * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
- *
- * @param errorMessage the optional error message
- */
+    /**
+     * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
+     *
+     * @param errorMessage the optional error message
+     */
     void printUsage(String errorMessage) {
         if (errorMessage) {
             System.out.println(errorMessage)
@@ -491,15 +493,15 @@ class ConfigEncryptionTool {
         }
     }
 
-/**
- * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
- *
- * @param device
- * @param keyHex
- * @param password
- * @param usingPassword
- * @return
- */
+    /**
+     * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
+     *
+     * @param device
+     * @param keyHex
+     * @param password
+     * @param usingPassword
+     * @return
+     */
     private String getKeyInternal(TextDevice device = TextDevices.defaultTextDevice(), String keyHex, String password, boolean usingPassword) {
         if (usingPassword) {
             if (!password) {
@@ -527,7 +529,7 @@ class ConfigEncryptionTool {
     }
 
     private String getMigrationKey() {
-            return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
+        return getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
     }
 
     private static String getFlowPassword(TextDevice textDevice = TextDevices.defaultTextDevice()) {
@@ -874,7 +876,7 @@ class ConfigEncryptionTool {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
-            def doc = new XmlSlurper().parseText(encryptedXml)
+            def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }.property.findAll {
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
@@ -910,7 +912,8 @@ class ConfigEncryptionTool {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
-            def doc = new XmlSlurper().parseText(encryptedXml)
+            def filename = "authorizers.xml"
+            def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
@@ -920,7 +923,7 @@ class ConfigEncryptionTool {
 
             if (passwords.isEmpty()) {
                 if (isVerbose) {
-                    logger.info("No encrypted password property elements found in authorizers.xml")
+                    logger.info("No encrypted password property elements found in ${filename}")
                 }
                 return encryptedXml
             }
@@ -938,7 +941,9 @@ class ConfigEncryptionTool {
 
             // Does not preserve whitespace formatting or comments
             String updatedXml = XmlUtil.serialize(doc)
-            logger.info("Updated XML content: ${updatedXml}")
+            if (isVerbose) {
+                logger.info("Updated XML content: ${updatedXml}")
+            }
             updatedXml
         } catch (Exception e) {
             printUsageAndThrow("Cannot decrypt authorizers XML content", ExitCode.SERVICE_ERROR)
@@ -950,7 +955,7 @@ class ConfigEncryptionTool {
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
-            def doc = new XmlSlurper().parseText(plainXml)
+            def doc = getXmlSlurper().parseText(plainXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
                     .property.findAll {
@@ -992,7 +997,8 @@ class ConfigEncryptionTool {
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
-            def doc = new XmlSlurper().parseText(plainXml)
+            def filename = "authorizers.xml"
+            def doc = getXmlSlurper().parseText(plainXml)
             // Find the provider element by class even if it has been renamed
             def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
                     .property.findAll {
@@ -1002,7 +1008,7 @@ class ConfigEncryptionTool {
 
             if (passwords.isEmpty()) {
                 if (isVerbose) {
-                    logger.info("No unencrypted password property elements found in authorizers.xml")
+                    logger.info("No unencrypted password property elements found in ${filename}")
                 }
                 return plainXml
             }
@@ -1019,7 +1025,9 @@ class ConfigEncryptionTool {
 
             // Does not preserve whitespace formatting or comments
             String updatedXml = XmlUtil.serialize(doc)
-            logger.info("Updated XML content: ${updatedXml}")
+            if (isVerbose) {
+                logger.info("Updated XML content: ${updatedXml}")
+            }
             updatedXml
         } catch (Exception e) {
             if (isVerbose) {
@@ -1086,6 +1094,16 @@ class ConfigEncryptionTool {
         logger.info("Final result: ${mergedProperties.size()} keys including ${ProtectedNiFiProperties.countProtectedProperties(mergedProperties)} protected keys")
 
         mergedProperties
+    }
+
+    /**
+     * Returns the XML fragment serialized from the {@code GPathResult} without the leading XML declaration.
+     *
+     * @param gPathResult the XML node
+     * @return serialized XML without an inserted header declaration
+     */
+    static String serializeXMLFragment(GPathResult gPathResult) {
+        XmlUtil.serialize(gPathResult).replaceFirst(XML_DECLARATION_REGEX, '')
     }
 
     /**
@@ -1298,13 +1316,11 @@ class ConfigEncryptionTool {
         // Find the provider element of the new XML in the file contents
         String fileContents = originalLoginIdentityProvidersFile.text
         try {
-            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def parsedXml = getXmlSlurper().parseText(xmlContent)
             def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
             if (provider) {
-                def serializedProvider = new XmlUtil().serialize(provider)
-                // Remove XML declaration from top
-                serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
-                fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
+                def serializedProvider = serializeXMLFragment(provider)
+                fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, Matcher.quoteReplacement(serializedProvider))
                 return fileContents.split("\n")
             } else {
                 throw new SAXException("No ldap-provider element found")
@@ -1320,13 +1336,11 @@ class ConfigEncryptionTool {
         // Find the provider element of the new XML in the file contents
         String fileContents = originalAuthorizersFile.text
         try {
-            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def parsedXml = getXmlSlurper().parseText(xmlContent)
             def provider = parsedXml.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
             if (provider) {
-                def serializedProvider = new XmlUtil().serialize(provider)
-                // Remove XML declaration from top
-                serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
-                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, serializedProvider)
+                def serializedProvider = serializeXMLFragment(provider)
+                fileContents = fileContents.replaceFirst(LDAP_USER_GROUP_PROVIDER_REGEX, Matcher.quoteReplacement(serializedProvider))
                 return fileContents.split("\n")
             } else {
                 throw new SAXException("No ldap-user-group-provider element found")
@@ -1401,6 +1415,17 @@ class ConfigEncryptionTool {
         } else {
             return false
         }
+    }
+
+    /**
+     * Returns an {@link XmlSlurper} which is configured to maintain ignorable whitespace.
+     *
+     * @return a configured XmlSlurper
+     */
+    static XmlSlurper getXmlSlurper() {
+        XmlSlurper xs = new XmlSlurper()
+        xs.setKeepIgnorableWhitespace(true)
+        xs
     }
 
     /**
