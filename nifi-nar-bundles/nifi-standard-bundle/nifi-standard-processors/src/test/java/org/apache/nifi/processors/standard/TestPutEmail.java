@@ -137,7 +137,7 @@ public class TestPutEmail {
     public void testOutgoingMessageWithOptionalProperties() throws Exception {
         // verifies that optional attributes are set on the outgoing Message correctly
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNíFiNonASCII");
         runner.setProperty(PutEmail.FROM, "${from}");
         runner.setProperty(PutEmail.MESSAGE, "${message}");
         runner.setProperty(PutEmail.TO, "${to}");
@@ -164,7 +164,7 @@ public class TestPutEmail {
         assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
         Message message = processor.getMessages().get(0);
         assertEquals("\"test@apache.org\" <NiFi>", message.getFrom()[0].toString());
-        assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
+        assertEquals("X-Mailer Header", "TestingNíFiNonASCII", MimeUtility.decodeText(message.getHeader("X-Mailer")[0]));
         assertEquals("the message body", message.getContent());
         assertEquals(1, message.getRecipients(RecipientType.TO).length);
         assertEquals("to@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
