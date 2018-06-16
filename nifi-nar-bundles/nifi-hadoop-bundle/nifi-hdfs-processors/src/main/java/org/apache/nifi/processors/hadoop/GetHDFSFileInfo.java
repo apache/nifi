@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -38,8 +37,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -48,10 +45,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -60,8 +56,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Groupping;
 
-@TriggerSerially
-@TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"hadoop", "HDFS", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files and directories from HDFS. "
@@ -90,11 +84,13 @@ import org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Gro
             + "3 for the group, and 3 for other users. For example rw-rw-r--"),
     @WritesAttribute(attribute="hdfs.status", description="The status contains comma separated list of file/dir paths, which couldn't be listed/accessed. "
             + "Status won't be set if no errors occured."),
-    @WritesAttribute(attribute="hdfs.full.tree", description="When destination is 'attribute', will be populated with full tree of HDFS directory in JSON format.")
+    @WritesAttribute(attribute="hdfs.full.tree", description="When destination is 'attribute', will be populated with full tree of HDFS directory in JSON format."
+            + "WARNING: In case when scan finds thousands or millions of objects, having huge values in attribute could impact flow file repo and GC/heap usage. "
+            + "Use content destination for such cases")
 })
 @SeeAlso({ListHDFS.class, GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class GetHDFSFileInfo extends AbstractHadoopProcessor {
-    static final long LISTING_LAG_NANOS = TimeUnit.MILLISECONDS.toNanos(100L);
+    public static final String APPLICATION_JSON = "application/json";
     public static final PropertyDescriptor FULL_PATH = new PropertyDescriptor.Builder()
             .displayName("Full path")
             .name("gethdfsfileinfo-full-path")
@@ -121,7 +117,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .description("Regex. Only directories whose names match the given regular expression will be picked up. If not provided, any filter would be apply (performance considerations).")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
@@ -130,7 +126,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .description("Regex. Only files whose names match the given regular expression will be picked up. If not provided, any filter would be apply (performance considerations).")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .build();
 
     public static final PropertyDescriptor FILE_EXCLUDE_FILTER = new PropertyDescriptor.Builder()
@@ -139,7 +135,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .description("Regex. Files whose names match the given regular expression will not be picked up. If not provided, any filter won't be apply (performance considerations).")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .build();
 
     public static final PropertyDescriptor IGNORE_DOTTED_DIRS = new PropertyDescriptor.Builder()
@@ -183,7 +179,9 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue("gethdfsfileinfo-dest-attr", "Attributes",
-            "Details of given HDFS object will be stored in attributes of flowfile");
+            "Details of given HDFS object will be stored in attributes of flowfile. "
+            + "WARNING: In case when scan finds thousands or millions of objects, having huge values in attribute could impact flow file repo and GC/heap usage. "
+            + "Use content destination for such cases.");
 
     static final AllowableValue DESTINATION_CONTENT = new AllowableValue("gethdfsfileinfo-dest-content", "Content",
             "Details of given HDFS object will be stored in a content in JSON format");
@@ -251,11 +249,6 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        return super.customValidate(context);
-    }
-
-    @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         // drop request details to rebuild it
@@ -281,34 +274,29 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             ff = session.create();
             scheduledFF = true;
         }
-        try {
-            if (req == null) {
-                //rebuild the request details based on
-                req = buildRequestDetails(context, session, ff);
-            }else {
-                //avoid rebuilding req object's patterns in order to have better performance
-                req = updateRequestDetails(context, session, ff);
-            }
-        }catch(Exception e) {
-            getLogger().error("Invalid properties: ", e);
-            if (scheduledFF) {
-                session.remove(ff);
-                context.yield();
-            }else {
-                ff = session.penalize(ff);
-                session.rollback();
-            }
-            return;
+
+        if (req == null) {
+            //rebuild the request details based on
+            req = buildRequestDetails(context, session, ff);
+        }else {
+            //avoid rebuilding req object's patterns in order to have better performance
+            req = updateRequestDetails(context, session, ff);
         }
+
         try {
             final FileSystem hdfs = getFileSystem();
             UserGroupInformation ugi = getUserGroupInformation();
             HDFSObjectInfoDetails res = walkHDFSTree(context, session, ff, hdfs, ugi, req, null, false);
             if (res == null) {
+                ff = session.putAttribute(ff, "hdfs.status", "Path not found: " + req.fullPath);
                 session.transfer(ff, REL_NOT_FOUND);
                 return;
             }
-            session.transfer(ff, REL_ORIGINAL);
+            if (!scheduledFF) {
+                session.transfer(ff, REL_ORIGINAL);
+            }else {
+                session.remove(ff);
+            }
         } catch (final IOException | IllegalArgumentException e) {
             getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {e});
             ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
@@ -446,6 +434,12 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return null;
         }
         FlowFile ff = session.create(origFF);
+
+        //if destination type is content - always add mime type
+        if (req.isDestContent) {
+            ff = session.putAttribute(ff, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
+        }
+
         //won't combine conditions for similar actions for better readability and maintenance.
         if (o.isFile() && isRoot &&  req.isDestContent) {
             ff = session.write(ff, (out) ->  out.write(o.toJsonString().getBytes()));

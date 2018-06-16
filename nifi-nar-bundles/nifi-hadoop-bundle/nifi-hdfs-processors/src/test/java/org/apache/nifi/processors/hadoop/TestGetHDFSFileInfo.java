@@ -105,7 +105,7 @@ public class TestGetHDFSFileInfo {
 
         runner.run();
 
-        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 1);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
@@ -116,7 +116,7 @@ public class TestGetHDFSFileInfo {
 
         setFileSystemBasicTree(proc.fileSystem);
 
-        runner.setIncomingConnection(false);
+        runner.setIncomingConnection(true);
         runner.setProperty(GetHDFSFileInfo.FULL_PATH, "${literal('/some/home/mydir'):substring(0,16)}");
         runner.setProperty(GetHDFSFileInfo.DIR_FILTER, "${literal('_^(dir.*)$_'):substring(1,10)}");
         runner.setProperty(GetHDFSFileInfo.FILE_FILTER, "${literal('_^(.*)$_'):substring(1,7)}");
@@ -125,6 +125,7 @@ public class TestGetHDFSFileInfo {
         runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_DIRS, "true");
         runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_FILES, "true");
         runner.setProperty(GetHDFSFileInfo.DESTINATION, GetHDFSFileInfo.DESTINATION_CONTENT);
+        runner.enqueue("foo", new HashMap<String,String>());
 
         runner.run();
 
@@ -205,7 +206,7 @@ public class TestGetHDFSFileInfo {
 
         runner.run();
 
-        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 6);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
@@ -227,7 +228,7 @@ public class TestGetHDFSFileInfo {
 
         runner.run();
 
-        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 1);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
@@ -270,7 +271,7 @@ public class TestGetHDFSFileInfo {
 
         runner.run();
 
-        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 1);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
@@ -291,7 +292,7 @@ public class TestGetHDFSFileInfo {
 
         runner.run();
 
-        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 1);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
@@ -329,7 +330,7 @@ public class TestGetHDFSFileInfo {
 
         runner.run();
 
-        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 7);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
@@ -449,7 +450,7 @@ public class TestGetHDFSFileInfo {
 
         runner.run();
 
-        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 5);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
