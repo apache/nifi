@@ -320,6 +320,15 @@ public class PutEmail extends AbstractProcessor {
         this.attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
     }
 
+    private void setMessageHeader(final String header, final String value, final Message message) throws MessagingException {
+        final ComponentLog logger = getLogger();
+        try {
+            message.setHeader(header, MimeUtility.encodeText(value));
+        } catch (UnsupportedEncodingException e){
+            logger.warn("Unable to add header {} with value {} due to encoding exception", new Object[]{header, value});
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final FlowFile flowFile = session.get();
@@ -343,15 +352,11 @@ public class PutEmail extends AbstractProcessor {
             if (attributeNamePattern != null) {
                 for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
                     if (attributeNamePattern.matcher(entry.getKey()).matches()) {
-                        try {
-                            message.setHeader(entry.getKey(), MimeUtility.encodeText(entry.getValue()));
-                        } catch (UnsupportedEncodingException e){
-                            logger.warn("Unable to add header value {} due to encoding exception", new Object[]{entry.getValue()});
-                        }
+                        this.setMessageHeader(entry.getKey(), entry.getValue(), message);
                     }
                 }
             }
-            message.setHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue());
+            this.setMessageHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue(), message);
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
 
             String messageText = getMessage(flowFile, context, session);
