@@ -53,10 +53,9 @@ public class ListFlowVersions extends AbstractNiFiRegistryCommand<VersionedFlowS
     public VersionedFlowSnapshotMetadataResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws ParseException, IOException, NiFiRegistryException {
         final String flow = getRequiredArg(properties, CommandOption.FLOW_ID);
-        final String bucket = getBucketId(client, flow);
 
         final FlowSnapshotClient snapshotClient = client.getFlowSnapshotClient();
-        final List<VersionedFlowSnapshotMetadata> snapshotMetadata = snapshotClient.getSnapshotMetadata(bucket, flow);
+        final List<VersionedFlowSnapshotMetadata> snapshotMetadata = snapshotClient.getSnapshotMetadata(flow);
         return new VersionedFlowSnapshotMetadataResult(getResultType(properties), snapshotMetadata);
     }
 

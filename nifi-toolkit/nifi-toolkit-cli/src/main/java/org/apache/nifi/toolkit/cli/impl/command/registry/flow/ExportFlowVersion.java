@@ -53,15 +53,12 @@ public class ExportFlowVersion extends AbstractNiFiRegistryCommand<VersionedFlow
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final Integer version = getIntArg(properties, CommandOption.FLOW_VERSION);
 
-        // determine the bucket for the provided flow id
-        final String bucketId = getBucketId(client, flowId);
-
         // if no version was provided then export the latest, otherwise use specific version
         final VersionedFlowSnapshot versionedFlowSnapshot;
         if (version == null) {
-            versionedFlowSnapshot = client.getFlowSnapshotClient().getLatest(bucketId, flowId);
+            versionedFlowSnapshot = client.getFlowSnapshotClient().getLatest(flowId);
         } else {
-            versionedFlowSnapshot = client.getFlowSnapshotClient().get(bucketId, flowId, version);
+            versionedFlowSnapshot = client.getFlowSnapshotClient().get(flowId, version);
         }
 
         versionedFlowSnapshot.setFlow(null);

@@ -18,7 +18,6 @@ package org.apache.nifi.toolkit.cli.impl.command.registry;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -33,7 +32,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -71,28 +69,10 @@ public abstract class AbstractNiFiRegistryCommand<R extends Result> extends Abst
     public abstract R doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException;
 
-    /*
-     * NOTE: This will bring back every item in the registry. We should create an end-point on the registry side
-     * to retrieve a flow by id and remove this later.
-     */
-    protected String getBucketId(final NiFiRegistryClient client, final String flowId) throws IOException, NiFiRegistryException {
-        final List<BucketItem> items = client.getItemsClient().getAll();
-
-        final Optional<BucketItem> matchingItem = items.stream()
-                .filter(i ->  i.getIdentifier().equals(flowId))
-                .findFirst();
-
-        if (!matchingItem.isPresent()) {
-            throw new NiFiRegistryException("Versioned flow does not exist with id " + flowId);
-        }
-
-        return matchingItem.get().getBucketIdentifier();
-    }
-
-    protected List<Integer> getVersions(final NiFiRegistryClient client, final String bucketId, final String flowId)
+    protected List<Integer> getVersions(final NiFiRegistryClient client, final String flowId)
             throws NiFiRegistryException, IOException {
         final FlowSnapshotClient srcSnapshotClient = client.getFlowSnapshotClient();
-        final List<VersionedFlowSnapshotMetadata> srcVersionMetadata = srcSnapshotClient.getSnapshotMetadata(bucketId, flowId);
+        final List<VersionedFlowSnapshotMetadata> srcVersionMetadata = srcSnapshotClient.getSnapshotMetadata(flowId);
         return srcVersionMetadata.stream().map(s -> s.getVersion()).collect(Collectors.toList());
     }
 

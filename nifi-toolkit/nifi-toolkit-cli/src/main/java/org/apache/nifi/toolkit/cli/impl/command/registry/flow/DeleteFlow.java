@@ -21,6 +21,7 @@ import org.apache.nifi.registry.client.FlowClient;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
@@ -58,16 +59,16 @@ public class DeleteFlow extends AbstractNiFiRegistryCommand<OkResult> {
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final boolean forceDelete = properties.containsKey(CommandOption.FORCE.getLongName());
 
-        final String bucketId = getBucketId(client, flowId);
+        final FlowClient flowClient = client.getFlowClient();
+        final VersionedFlow versionedFlow = flowClient.get(flowId);
 
         final FlowSnapshotClient flowSnapshotClient = client.getFlowSnapshotClient();
-        final List<VersionedFlowSnapshotMetadata> snapshotMetadata = flowSnapshotClient.getSnapshotMetadata(bucketId, flowId);
+        final List<VersionedFlowSnapshotMetadata> snapshotMetadata = flowSnapshotClient.getSnapshotMetadata(flowId);
 
         if (snapshotMetadata != null && snapshotMetadata.size() > 0 && !forceDelete) {
             throw new NiFiRegistryException("Flow has versions, use --" + CommandOption.FORCE.getLongName() + " to delete");
         } else {
-            final FlowClient flowClient = client.getFlowClient();
-            flowClient.delete(bucketId, flowId);
+            flowClient.delete(versionedFlow.getBucketIdentifier(), versionedFlow.getIdentifier());
             return new OkResult(getContext().isInteractive());
         }
     }
