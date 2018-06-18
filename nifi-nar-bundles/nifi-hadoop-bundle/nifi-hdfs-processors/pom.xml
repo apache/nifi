@@ -95,6 +95,13 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/testdata/.dotfile</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-mydir.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRunWithPermissionsExceptionContent.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir1.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir2.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupAllToAttributes.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir2.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
