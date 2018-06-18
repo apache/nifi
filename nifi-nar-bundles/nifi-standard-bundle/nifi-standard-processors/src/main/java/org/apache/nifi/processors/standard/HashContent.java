@@ -28,13 +28,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -50,12 +50,15 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
+@Deprecated
+@DeprecationNotice(classNames = {"org.apache.nifi.processors.standard.CryptographicHashContent"}, reason = "This processor is deprecated and may be removed in future releases.")
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hash", "content", "MD5", "SHA-1", "SHA-256"})
 @CapabilityDescription("Calculates a hash value for the Content of a FlowFile and puts that hash value on the FlowFile as an attribute whose name "
-        + "is determined by the <Hash Attribute Name> property")
+        + "is determined by the <Hash Attribute Name> property. "
+        + "This processor did not provide a consistent offering of hash algorithms, and is now deprecated. For modern cryptographic hashing capabilities, see \"CryptographicHashContent\". ")
 @WritesAttribute(attribute = "<Hash Attribute Name>", description = "This Processor adds an attribute whose value is the result of Hashing the "
         + "existing FlowFile content. The name of this attribute is specified by the <Hash Attribute Name> property")
 public class HashContent extends AbstractProcessor {
@@ -141,7 +144,7 @@ public class HashContent extends AbstractProcessor {
                         final byte[] hash = digest.digest();
                         final StringBuilder strb = new StringBuilder(hash.length * 2);
                         for (int i = 0; i < hash.length; i++) {
-                            strb.append(Integer.toHexString((hash[i] & 0xFF) | 0x100).substring(1, 3));
+                            strb.append(Integer.toHexString((hash[i] & 0xFF) | 0x100), 1, 3);
                         }
 
                         hashValueHolder.set(strb.toString());
