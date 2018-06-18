@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 import org.apache.commons.cli.ParseException;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.Context;
@@ -71,11 +72,28 @@ public class SyncFlowVersions extends AbstractNiFiRegistryCommand<StringResult> 
 
         final NiFiRegistryClient srcClient = getSourceClient(client, srcPropsValue);
 
-        final String srcBucketId = getBucketId(srcClient, srcFlowId);
-        final String destBucketId = getBucketId(client, destFlowId);
+        // ensure source flow exists
 
-        final List<Integer> srcVersions = getVersions(srcClient, srcBucketId, srcFlowId);
-        final List<Integer> destVersions = getVersions(client, destBucketId, destFlowId);
+        final VersionedFlow srcFlow;
+        try {
+            srcFlow = srcClient.getFlowClient().get(srcFlowId);
+        } catch (Exception e) {
+            throw new NiFiRegistryException("Error retrieving source flow : " + e.getMessage(), e);
+        }
+
+        // ensure destination flow exists
+
+        final VersionedFlow destFlow;
+        try {
+            destFlow = client.getFlowClient().get(destFlowId);
+        } catch (Exception e) {
+            throw new NiFiRegistryException("Error retrieving destination flow : " + e.getMessage(), e);
+        }
+
+        // get version list for source and dest
+
+        final List<Integer> srcVersions = getVersions(srcClient, srcFlow.getIdentifier());
+        final List<Integer> destVersions = getVersions(client, destFlow.getIdentifier());
 
         if (destVersions.size() > srcVersions.size()) {
             throw new NiFiRegistryException("Destination flow has more versions than source flow");
@@ -95,12 +113,12 @@ public class SyncFlowVersions extends AbstractNiFiRegistryCommand<StringResult> 
         Collections.sort(srcVersions);
 
         for (final Integer srcVersion : srcVersions) {
-            final VersionedFlowSnapshot srcFlowSnapshot = srcClient.getFlowSnapshotClient().get(srcBucketId, srcFlowId, srcVersion);
+            final VersionedFlowSnapshot srcFlowSnapshot = srcClient.getFlowSnapshotClient().get(srcFlowId, srcVersion);
             srcFlowSnapshot.setFlow(null);
             srcFlowSnapshot.setBucket(null);
 
             final VersionedFlowSnapshotMetadata destMetadata = new VersionedFlowSnapshotMetadata();
-            destMetadata.setBucketIdentifier(destBucketId);
+            destMetadata.setBucketIdentifier(destFlow.getBucketIdentifier());
             destMetadata.setFlowIdentifier(destFlowId);
             destMetadata.setVersion(srcVersion);
             destMetadata.setComments(srcFlowSnapshot.getSnapshotMetadata().getComments());

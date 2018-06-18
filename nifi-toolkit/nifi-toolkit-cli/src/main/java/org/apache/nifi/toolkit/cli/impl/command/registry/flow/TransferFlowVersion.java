@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 import org.apache.commons.cli.ParseException;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.Context;
@@ -74,25 +75,31 @@ public class TransferFlowVersion extends AbstractNiFiRegistryCommand<StringResul
 
         final NiFiRegistryClient srcClient = getSourceClient(client, srcPropsValue);
 
-        // determine the bucket ids of the source and dest flows
-        final String srcBucketId = getBucketId(srcClient, srcFlowId);
-        final String destBucketId = getBucketId(client, destFlowId);
-
         // get the snapshot of the source flow, either the version specified or the latest
         final VersionedFlowSnapshot srcSnapshot;
         if (srcFlowVersion == null) {
-            srcSnapshot = srcClient.getFlowSnapshotClient().getLatest(srcBucketId, srcFlowId);
+            srcSnapshot = srcClient.getFlowSnapshotClient().getLatest(srcFlowId);
         } else {
-            srcSnapshot = srcClient.getFlowSnapshotClient().get(srcBucketId, srcFlowId, srcFlowVersion);
+            srcSnapshot = srcClient.getFlowSnapshotClient().get(srcFlowId, srcFlowVersion);
+        }
+
+        final Integer srcSnapshotFlowVersion = srcSnapshot.getSnapshotMetadata().getVersion();
+
+        // get the destination flow
+        final VersionedFlow destFlow;
+        try {
+            destFlow = client.getFlowClient().get(destFlowId);
+        } catch (Exception e) {
+            throw new NiFiRegistryException("Error retrieving destination flow : " + e.getMessage(), e);
         }
 
         // determine the next version number for the destination flow
-        final List<Integer> destVersions = getVersions(client, destBucketId, destFlowId);
+        final List<Integer> destVersions = getVersions(client, destFlow.getIdentifier());
         final Integer destFlowVersion = destVersions.isEmpty() ? 1 : destVersions.get(0) + 1;
 
         // create the new metadata for the destination snapshot
         final VersionedFlowSnapshotMetadata destMetadata = new VersionedFlowSnapshotMetadata();
-        destMetadata.setBucketIdentifier(destBucketId);
+        destMetadata.setBucketIdentifier(destFlow.getBucketIdentifier());
         destMetadata.setFlowIdentifier(destFlowId);
         destMetadata.setVersion(destFlowVersion);
         destMetadata.setComments(srcSnapshot.getSnapshotMetadata().getComments());
@@ -107,7 +114,7 @@ public class TransferFlowVersion extends AbstractNiFiRegistryCommand<StringResul
 
         if (getContext().isInteractive()) {
             println();
-            println("Transferred version " + srcSnapshot.getSnapshotMetadata().getVersion()
+            println("Transferred version " + srcSnapshotFlowVersion
                     + " of source flow to version " + destFlowVersion + " of destination flow");
         }
 
