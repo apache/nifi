@@ -98,7 +98,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
     }
 
     @OnEnabled
-    public void cacheConfiguredValues(final ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         cache = context.getProperty(PROP_DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
         charset = Charset.forName(context.getProperty(CHARACTER_ENCODING).getValue());
     }
