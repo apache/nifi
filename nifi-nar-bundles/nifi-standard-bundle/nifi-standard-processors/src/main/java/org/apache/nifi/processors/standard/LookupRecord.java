@@ -17,18 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -60,6 +48,18 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.Tuple;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @EventDriven
@@ -292,7 +292,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
         final Optional<?> lookupValueOption;
         try {
-            lookupValueOption = lookupService.lookup(lookupCoordinates);
+            lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
         } catch (final Exception e) {
             throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
         }

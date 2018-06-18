@@ -18,16 +18,16 @@ package org.apache.nifi.processors.couchbase;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import com.couchbase.client.deps.io.netty.buffer.ByteBuf;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -36,8 +36,12 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.couchbase.CouchbaseAttributes;
+import org.apache.nifi.couchbase.CouchbaseUtils;
+import org.apache.nifi.couchbase.DocumentType;
+import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -45,6 +49,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import com.couchbase.client.core.CouchbaseException;
@@ -53,6 +58,10 @@ import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.Document;
 import com.couchbase.client.java.document.RawJsonDocument;
 import com.couchbase.client.java.error.DocumentDoesNotExistException;
+
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
+import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.DOCUMENT_TYPE;
 
 @Tags({"nosql", "couchbase", "database", "get"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -70,18 +79,49 @@ import com.couchbase.client.java.error.DocumentDoesNotExistException;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
 
+    public static final PropertyDescriptor PUT_VALUE_TO_ATTRIBUTE = new PropertyDescriptor.Builder()
+        .name("put-to-attribute")
+        .displayName("Put Value to Attribute")
+        .description("If set, the retrieved value will be put into an attribute of the FlowFile instead of a the content of the FlowFile." +
+                " The attribute key to put to is determined by evaluating value of this property.")
+        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
+
+    private volatile boolean putToAttribute = false;
+
     @Override
     protected void addSupportedProperties(final List<PropertyDescriptor> descriptors) {
         descriptors.add(DOCUMENT_TYPE);
         descriptors.add(DOC_ID);
+        descriptors.add(PUT_VALUE_TO_ATTRIBUTE);
     }
 
     @Override
     protected void addSupportedRelationships(final Set<Relationship> relationships) {
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_RETRY);
-        relationships.add(REL_FAILURE);
+        relationships.add(new Relationship.Builder().name(REL_ORIGINAL.getName())
+                .description("The original input FlowFile is routed to this relationship" +
+                        " when the value is retrieved from Couchbase Server and routed to 'success'.").build());
+        relationships.add(new Relationship.Builder().name(REL_SUCCESS.getName())
+                .description("Values retrieved from Couchbase Server are written as outgoing FlowFiles content" +
+                        " or put into an attribute of the incoming FlowFile and routed to this relationship.").build());
+        relationships.add(new Relationship.Builder().name(REL_RETRY.getName())
+                .description("All FlowFiles failed to fetch from Couchbase Server but can be retried are routed to this relationship.").build());
+        relationships.add(new Relationship.Builder().name(REL_FAILURE.getName())
+                .description("All FlowFiles failed to fetch from Couchbase Server and not retry-able are routed to this relationship.").build());
+    }
+
+    @Override
+    protected Set<Relationship> filterRelationships(Set<Relationship> rels) {
+        // If destination is attribute, then success == original.
+        return rels.stream().filter(rel -> !REL_ORIGINAL.equals(rel) || !putToAttribute).collect(Collectors.toSet());
+    }
+
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if (PUT_VALUE_TO_ATTRIBUTE.equals(descriptor)) {
+            putToAttribute = !isEmpty(newValue);
+        }
     }
 
     @Override
@@ -107,72 +147,84 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
             docId = new String(content, StandardCharsets.UTF_8);
         }
 
-        if (StringUtils.isEmpty(docId)) {
+        if (isEmpty(docId)) {
             throw new ProcessException("Please check 'Document Id' setting. Couldn't get document id from " + inFile);
         }
 
+        String putTargetAttr = null;
+        if (context.getProperty(PUT_VALUE_TO_ATTRIBUTE).isSet()) {
+            putTargetAttr = context.getProperty(PUT_VALUE_TO_ATTRIBUTE).evaluateAttributeExpressions(inFile).getValue();
+            if (isEmpty(putTargetAttr)) {
+                inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), "InvalidPutTargetAttributeName");
+                session.transfer(inFile, REL_FAILURE);
+                return;
+            }
+        }
+
         try {
-            final Document<?> doc;
-            final byte[] content;
             final Bucket bucket = openBucket(context);
             final DocumentType documentType = DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
+            Document<?> doc = null;
+            // A function to write a document into outgoing FlowFile content.
+            OutputStreamCallback outputStreamCallback = null;
+            final Map<String, String> updatedAttrs = new HashMap<>();
 
             switch (documentType) {
                 case Json: {
                     RawJsonDocument document = bucket.get(docId, RawJsonDocument.class);
-                    if (document == null) {
-                        doc = null;
-                        content = null;
-                    } else {
-                        content = document.content().getBytes(StandardCharsets.UTF_8);
+                    if (document != null) {
+                        outputStreamCallback = out -> {
+                            final byte[] content = document.content().getBytes(StandardCharsets.UTF_8);
+                            out.write(content);
+                            updatedAttrs.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+                        };
                         doc = document;
                     }
                     break;
                 }
                 case Binary: {
                     BinaryDocument document = bucket.get(docId, BinaryDocument.class);
-                    if (document == null) {
-                        doc = null;
-                        content = null;
-                    } else {
-                        content = document.content().array();
+                    if (document != null) {
+                        outputStreamCallback = out -> {
+                            // Write to OutputStream without copying any to heap.
+                            final ByteBuf byteBuf = document.content();
+                            byteBuf.getBytes(byteBuf.readerIndex(), out, byteBuf.readableBytes());
+                            byteBuf.release();
+                        };
                         doc = document;
                     }
                     break;
                 }
-                default: {
-                    doc = null;
-                    content = null;
-                }
             }
 
             if (doc == null) {
-                logger.error("Document {} was not found in {}; routing {} to failure", new Object[] {docId, getTransitUrl(context, docId), inFile});
+                logger.warn("Document {} was not found in {}; routing {} to failure", new Object[] {docId, getTransitUrl(bucket, docId), inFile});
                 inFile = session.putAttribute(inFile, CouchbaseAttributes.Exception.key(), DocumentDoesNotExistException.class.getName());
                 session.transfer(inFile, REL_FAILURE);
                 return;
             }
 
-            FlowFile outFile = session.create(inFile);
-            outFile = session.write(outFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    out.write(content);
-                }
-            });
+            FlowFile outFile;
+            if (putToAttribute) {
+                outFile = inFile;
+                updatedAttrs.put(putTargetAttr, CouchbaseUtils.getStringContent(doc.content()));
+            } else {
+                outFile = session.create(inFile);
+                outFile = session.write(outFile, outputStreamCallback);
+                session.transfer(inFile, REL_ORIGINAL);
+            }
 
-            final Map<String, String> updatedAttrs = new HashMap<>();
             updatedAttrs.put(CouchbaseAttributes.Cluster.key(), context.getProperty(COUCHBASE_CLUSTER_SERVICE).getValue());
-            updatedAttrs.put(CouchbaseAttributes.Bucket.key(), context.getProperty(BUCKET_NAME).getValue());
+            updatedAttrs.put(CouchbaseAttributes.Bucket.key(), bucket.name());
             updatedAttrs.put(CouchbaseAttributes.DocId.key(), docId);
             updatedAttrs.put(CouchbaseAttributes.Cas.key(), String.valueOf(doc.cas()));
             updatedAttrs.put(CouchbaseAttributes.Expiry.key(), String.valueOf(doc.expiry()));
             outFile = session.putAllAttributes(outFile, updatedAttrs);
 
             final long fetchMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(outFile, getTransitUrl(context, docId), fetchMillis);
+            session.getProvenanceReporter().fetch(outFile, getTransitUrl(bucket, docId), fetchMillis);
             session.transfer(outFile, REL_SUCCESS);
-            session.transfer(inFile, REL_ORIGINAL);
+
         } catch (final CouchbaseException e) {
             String errMsg = String.format("Getting document %s from Couchbase Server using %s failed due to %s", docId, inFile, e);
             handleCouchbaseException(context, session, logger, inFile, e, errMsg);

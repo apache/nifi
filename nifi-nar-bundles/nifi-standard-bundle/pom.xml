@@ -30,6 +30,7 @@
         <module>nifi-standard-nar</module>
         <module>nifi-jolt-transform-json-ui</module>
         <module>nifi-standard-utils</module>
+        <module>nifi-standard-web-test-utils</module>
     </modules>
     <properties>
         <jackson.version>2.9.5</jackson.version>

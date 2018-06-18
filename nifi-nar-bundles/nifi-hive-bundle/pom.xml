@@ -26,63 +26,22 @@
     <version>1.7.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <properties>
-        <!-- Need to override hadoop.version here, for Hive and hadoop-client transitive dependencies -->
-        <hive.hadoop.version>2.6.2</hive.hadoop.version>
-        <hadoop.version>${hive.hadoop.version}</hadoop.version>
-    </properties>
-
     <modules>
         <module>nifi-hive-services-api</module>
         <module>nifi-hive-services-api-nar</module>
         <module>nifi-hive-processors</module>
         <module>nifi-hive-nar</module>
+        <module>nifi-hive3-processors</module>
+        <module>nifi-hive3-nar</module>
     </modules>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-common</artifactId>
-                <version>${hadoop.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-hdfs</artifactId>
-                <version>${hadoop.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-yarn-api</artifactId>
-                <version>${hadoop.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-mapreduce-client-core</artifactId>
-                <version>${hadoop.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-annotations</artifactId>
-                <version>${hadoop.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-client</artifactId>
-                <version>${hadoop.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-auth</artifactId>
-                <version>${hadoop.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.avro</groupId>
-                <artifactId>avro</artifactId>
-                <version>1.7.7</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <properties>
+        <hive.version>1.2.1</hive.version>
+        <hive.hadoop.version>2.6.2</hive.hadoop.version>
+        <hive3.version>3.0.0</hive3.version>
+        <hive3.hadoop.version>3.0.0</hive3.hadoop.version>
+        <orc.version>1.4.3</orc.version>
+    </properties>
 
     <build>
         <plugins>

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.lookup.LookupFailureException;
+import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.lookup.SimpleKeyValueLookupService;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.reporting.InitializationException;
@@ -31,6 +33,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
@@ -140,6 +143,27 @@ public class TestLookupAttribute {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testLookupServicePassFlowfileAttributes() throws InitializationException {
+        final LookupService service = new TestService();
+
+        final TestRunner runner = TestRunners.newTestRunner(new LookupAttribute());
+        runner.addControllerService("simple-key-value-lookup-service", service);
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        runner.setProperty(LookupAttribute.LOOKUP_SERVICE, "simple-key-value-lookup-service");
+        runner.setProperty(LookupAttribute.INCLUDE_EMPTY_VALUES, "false");
+        runner.setProperty("baz", "${attr1}");
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("user_defined", "key4");
+
+        runner.enqueue("some content".getBytes(), attributes);
+        runner.run(1, false);
+        runner.assertAllFlowFilesTransferred(LookupAttribute.REL_MATCHED, 1);
+    }
+
     private static class InvalidLookupService extends AbstractControllerService implements StringLookupService {
       @Override
       public Optional<String> lookup(Map<String, Object> coordinates) {
@@ -155,4 +179,32 @@ public class TestLookupAttribute {
       }
     }
 
+    static class TestService extends AbstractControllerService implements StringLookupService {
+        @Override
+        public Optional<String> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+            Assert.assertNotNull(coordinates);
+            Assert.assertNotNull(context);
+            Assert.assertEquals(1, coordinates.size());
+            Assert.assertTrue(context.containsKey("user_defined"));
+
+            return Optional.of("Test!");
+        }
+
+        @Override
+        public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+            return Optional.empty();
+        }
+
+        @Override
+        public Class<?> getValueType() {
+            return String.class;
+        }
+
+        @Override
+        public Set<String> getRequiredKeys() {
+            Set set = new HashSet();
+            set.add("key");
+            return set;
+        }
+    }
 }

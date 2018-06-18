@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Optional;
-import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -81,12 +80,6 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
     private static final String MAX_ENCODING_VERSION = "1.3";
 
     private final StringEncryptor encryptor;
-
-    // Cache of template to DOM Node for that template. This is done because when we serialize templates, we have to first
-    // take the template DTO, then serialize that into a byte[], then parse that byte[] as XML DOM objects. Then we can use that
-    // XML DOM Object in the serialized flow. This is expensive, so we cache these XML DOM objects here. We use a WeakHashMap
-    // because we don't get notified when the template has been removed from the system.
-    private static final Map<Template, Node> templateNodes = new WeakHashMap<>();
 
     public StandardFlowSerializer(final StringEncryptor encryptor) {
         this.encryptor = encryptor;
@@ -625,25 +618,18 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         element.appendChild(toAdd);
     }
 
-
-    public static synchronized void addTemplate(final Element element, final Template template) {
+    public static void addTemplate(final Element element, final Template template) {
         try {
-            Node templateNode = templateNodes.get(template);
-            if (templateNode == null) {
-                final byte[] serialized = TemplateSerializer.serialize(template.getDetails());
+            final byte[] serialized = TemplateSerializer.serialize(template.getDetails());
 
-                final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-                final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-                final Document document;
-                try (final InputStream in = new ByteArrayInputStream(serialized)) {
-                    document = docBuilder.parse(in);
-                }
-
-                templateNode = document.getDocumentElement();
-                templateNodes.put(template, templateNode);
+            final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+            final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+            final Document document;
+            try (final InputStream in = new ByteArrayInputStream(serialized)) {
+                document = docBuilder.parse(in);
             }
 
-            templateNode = element.getOwnerDocument().importNode(templateNode, true);
+            final Node templateNode = element.getOwnerDocument().importNode(document.getDocumentElement(), true);
             element.appendChild(templateNode);
         } catch (final Exception e) {
             throw new FlowSerializationException(e);

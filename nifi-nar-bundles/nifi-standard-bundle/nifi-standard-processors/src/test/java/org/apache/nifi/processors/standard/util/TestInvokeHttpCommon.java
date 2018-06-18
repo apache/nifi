@@ -19,11 +19,11 @@ package org.apache.nifi.processors.standard.util;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.standard.InvokeHTTP;
-import org.apache.nifi.processors.standard.TestServer;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.DefaultIdentityService;
 import org.eclipse.jetty.security.HashLoginService;

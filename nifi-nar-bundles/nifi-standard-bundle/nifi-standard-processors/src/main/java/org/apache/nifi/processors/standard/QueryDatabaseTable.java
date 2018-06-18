@@ -367,6 +367,16 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     if (maxFragments > 0 && fragmentIndex >= maxFragments) {
                         break;
                     }
+
+                    // If we aren't splitting up the data into flow files or fragments, then the result set has been entirely fetched so don't loop back around
+                    if (maxFragments == 0 && maxRowsPerFlowFile == 0) {
+                        break;
+                    }
+
+                    // If we are splitting up the data into flow files, don't loop back around if we've gotten all results
+                    if(maxRowsPerFlowFile > 0 && nrOfRows.get() < maxRowsPerFlowFile) {
+                        break;
+                    }
                 }
 
                 // Even though the maximum value and total count are known at this point, to maintain consistent behavior if Output Batch Size is set, do not store the attributes

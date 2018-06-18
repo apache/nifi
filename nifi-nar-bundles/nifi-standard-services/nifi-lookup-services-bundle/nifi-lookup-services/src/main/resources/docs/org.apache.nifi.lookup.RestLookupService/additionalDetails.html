@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>RestLookupService</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+    <h2>General</h2>
+    <p>This lookup service has the following optional lookup coordinate keys:</p>
+    <ul>
+        <li>request.method; defaults to 'get', valid values:
+            <ul>
+                <li>delete</li>
+                <li>get</li>
+                <li>post</li>
+                <li>put</li>
+            </ul>
+        </li>
+        <li>body; contains a string representing JSON, XML, etc. to be sent with any
+            of those methods except for "get".</li>
+        <li>mime.type; specifies media type of the request body, required when 'body' is passed.</li>
+        <li>*; any other keys can be configured to pass variables to resolve target URLs. See 'Dynamic URLs' section below.</li>
+    </ul>
+    <p>The record reader is used to consume the response of the REST service call and turn it into one or more records. The record path property
+    is provided to allow for a lookup path to either a nested record or a single point deep in the REST response. Note: a valid schema must be
+    built that encapsulates the REST response accurately in order for this service to work.</p>
+    <h2>Headers</h2>
+    <p>Headers are supported using dynamic properties. Just add a dynamic property and the name will be the header name and the value will be the value for the header. Expression language
+    powered by input from the variable registry is supported.</p>
+    <h2>Dynamic URLs</h2>
+    <p>The URL property supports expression language through the lookup key/value pairs configured on the component using this lookup service (e.g. LookupRecord processor). The configuration specified by the user will be passed
+    through to the expression language engine for evaluation. Note: flowfile attributes will be disregarded here for this property.</p>
+    <p>Ex. URL: <em>http://example.com/service/${user.name}/friend/${friend.id}</em>, combined with example record paths at LookupRecord processor:</p>
+    <ul>
+        <li>user.name => "/example/username"</li>
+        <li>friend.id => "/example/first_friend"</li>
+    </ul>
+    <p>Would dynamically produce an endpoint of <em>http://example.com/service/john.smith/friend/12345</em></p>
+
+    <h3>Using Variable Registry with URLs</h3>
+
+    <p>In addition to the lookup key/value pairs, Variable Registry can be referred from expression languages configured at the URL property.</p>
+    <p>Ex. URL: <em>http://${apiServerHostname}:${apiServerPort}/service/${user.name}/friend/${friend.id}</em>, combined with the previous example record paths, and variable registry:</p>
+    <ul>
+        <li>apiServerHostname => "test.example.com"</li>
+        <li>apiServerPort => "8080"</li>
+    </ul>
+    <p>Would dynamically produce an endpoint of <em>http://test.example.com:8080/service/john.smith/friend/12345</em></p>
+</body>
+</html>
