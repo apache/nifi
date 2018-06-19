@@ -62,7 +62,7 @@ public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
                 currentRow = filterColumns(recordParser.nextRecord());
                 break;
             } catch (final Exception e) {
-                throw new ProcessException("Failed to read next record in stream for " + flowFile, e);
+                throw new ProcessException("Failed to read next record in stream for " + flowFile + " due to " + e.getMessage(), e);
             }
         }
 
