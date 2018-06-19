@@ -71,6 +71,33 @@ public class TestQueryRecord {
     }
 
     @Test
+    public void testStreamClosedWhenBadData() throws InitializationException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.failAfter(0);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("age", RecordFieldType.INT);
+        parser.addRecord("Tom", 49);
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select name, age from FLOWFILE WHERE name <> ''");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(QueryRecord.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testSimple() throws InitializationException, IOException, SQLException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);

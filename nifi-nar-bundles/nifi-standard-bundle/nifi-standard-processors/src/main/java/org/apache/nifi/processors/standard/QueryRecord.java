@@ -467,7 +467,13 @@ public class QueryRecord extends AbstractProcessor {
         final FlowFileTable<?, ?> table = cachedStatement.getTable();
         table.setFlowFile(session, flowFile);
 
-        final ResultSet rs = stmt.executeQuery();
+        final ResultSet rs;
+        try {
+            rs = stmt.executeQuery();
+        } catch (final Throwable t) {
+            table.close();
+            throw t;
+        }
 
         return new QueryResult() {
             @Override
@@ -516,11 +522,18 @@ public class QueryRecord extends AbstractProcessor {
             rootSchema.setCacheEnabled(false);
 
             statement = connection.createStatement();
-            resultSet = statement.executeQuery(sql);
+
+            try {
+                resultSet = statement.executeQuery(sql);
+            } catch (final Throwable t) {
+                flowFileTable.close();
+                throw t;
+            }
 
             final ResultSet rs = resultSet;
             final Statement stmt = statement;
             final Connection conn = connection;
+
             return new QueryResult() {
                 @Override
                 public void close() throws IOException {
