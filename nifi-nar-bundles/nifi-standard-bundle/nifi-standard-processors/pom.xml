@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.7.0</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -27,17 +27,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -50,7 +50,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -111,7 +111,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -156,12 +156,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-socket-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-load-distribution-service-api</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -190,12 +190,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -218,13 +218,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -240,25 +240,25 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-prioritizers</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-services</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -291,7 +291,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
@@ -324,7 +324,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-web-test-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.7.0</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-expression-language</artifactId>
     <packaging>jar</packaging>
@@ -61,12 +61,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>

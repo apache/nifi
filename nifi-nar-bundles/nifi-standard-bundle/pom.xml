@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.7.0</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -43,24 +43,24 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>1.7.0</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>1.7.0</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-content-viewer</artifactId>
                 <type>war</type>
-                <version>1.7.0</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jolt-transform-json-ui</artifactId>
                 <type>war</type>
-                <version>1.7.0</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>
