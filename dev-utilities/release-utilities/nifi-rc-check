@@ -157,7 +157,7 @@ echo sha256sum: $(shasum -a512 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
 echo Remote sha256sum: $(curl -s ${NIFI_ASSEMBLY_SHA512})
 
 echo "Unpacking Assemblies"
-if ! unzip ${LOCAL_ASSEMBLY}; then
+if ! unzip -q ${LOCAL_ASSEMBLY}; then
   echo "[ERROR] failed to unpack Nifi Assembly"
   exit 1
 fi
