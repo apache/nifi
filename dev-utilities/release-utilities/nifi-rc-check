@@ -144,17 +144,41 @@ if ! gpg --verify ./"nifi-$NIFI_VERSION-source-release.zip.asc" "nifi-$NIFI_VERS
   exit 1
 fi
 
+LOCAL_SHA1="$(sha1sum ${LOCAL_ASSEMBLY} | cut -d' ' -f1)";
+REMOTE_SHA1="$(curl -s ${NIFI_ASSEMBLY_SHA1})"
 echo "Verifying Nifi Assembly SHA1"
-echo sha1sum: $(sha1sum ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
-echo Remote sha1sum: $(curl -s ${NIFI_ASSEMBLY_SHA1})
+if [ "${LOCAL_SHA1}" = "${REMOTE_SHA1}" ]; then
+    echo "SHA-1 match"
+else
+    echo "SHA-1 does not match"
+    echo sha1sum: "${LOCAL_SHA1}"
+    echo Remote sha1sum: "${REMOTE_SHA1}"
+    exit 1
+fi
 
+LOCAL_SHA256=$(shasum -a256 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+REMOTE_SHA256=$(curl -s ${NIFI_ASSEMBLY_SHA256})
 echo "Verifying Nifi Assembly SHA256"
-echo sha256sum: $(shasum -a256 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
-echo Remote sha256sum: $(curl -s ${NIFI_ASSEMBLY_SHA256})
+if [ "${LOCAL_SHA256}" = "${REMOTE_SHA256}" ]; then
+    echo "SHA-256 match"
+else
+    echo "SHA-256 does not match"
+    echo sha256sum: $(shasum -a256 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+    echo Remote sha256sum: $(curl -s ${NIFI_ASSEMBLY_SHA256})
+    exit 1
+fi
 
+LOCAL_SHA512=$(shasum -a512 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+REMOTE_SHA512=$(curl -s ${NIFI_ASSEMBLY_SHA512})
 echo "Verifying Nifi Assembly SHA512"
-echo sha256sum: $(shasum -a512 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
-echo Remote sha256sum: $(curl -s ${NIFI_ASSEMBLY_SHA512})
+if [ "${LOCAL_SHA512}" = "${REMOTE_SHA512}" ]; then
+    echo "SHA-512 match"
+else
+    echo "SHA-512 does not match"
+    echo sha256sum: $(shasum -a512 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
+    echo Remote sha256sum: $(curl -s ${NIFI_ASSEMBLY_SHA512})
+    exit 1
+fi
 
 echo "Unpacking Assemblies"
 if ! unzip -q ${LOCAL_ASSEMBLY}; then
