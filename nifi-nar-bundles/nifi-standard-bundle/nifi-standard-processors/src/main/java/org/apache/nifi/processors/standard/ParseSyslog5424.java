@@ -59,7 +59,7 @@ import java.util.Set;
 @Tags({"logs", "syslog", "syslog5424", "attributes", "system", "event", "message"})
 @CapabilityDescription("Attempts to parse the contents of a well formed Syslog message in accordance to RFC5424 " +
         "format and adds attributes to the FlowFile for each of the parts of the Syslog message, including Structured Data." +
-        "Structured Data will be written to attributes as on attribute per item id + parameter "+
+        "Structured Data will be written to attributes as one attribute per item id + parameter "+
         "see https://tools.ietf.org/html/rfc5424." +
         "Note: ParseSyslog5424 follows the specification more closely than ParseSyslog.  If your Syslog producer " +
         "does not follow the spec closely, with regards to using '-' for missing header entries for example, those logs " +
@@ -111,7 +111,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a Syslog message will be to this Relationship.")
         .build();
 
-    private StrictSyslog5424Parser parser;
+    private volatile StrictSyslog5424Parser parser;
 
 
     @Override

@@ -29,15 +29,12 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Parses a Syslog message from a ByteBuffer into a SyslogEvent instance.
- *
- * The Syslog regular expressions below were adapted from the Apache Flume project for RFC3164 logs.
+ * Parses a Syslog message from a ByteBuffer into a Syslog5424Event instance.
  * For 5424 we use simple-syslog-5424 since it parsers out structured data.
  */
 public class StrictSyslog5424Parser {
     private Charset charset;
     private com.github.palindromicity.syslog.SyslogParser parser;
-    KeyProvider keyProvider = new DefaultKeyProvider();
 
     public StrictSyslog5424Parser() {
         this(StandardCharsets.UTF_8, NilPolicy.NULL);
