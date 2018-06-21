@@ -327,6 +327,10 @@
             <version>1.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.palindromicity</groupId>
+            <artifactId>simple-syslog-5424</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
