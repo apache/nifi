@@ -41,6 +41,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.syslog.StrictSyslog5424Parser;
 import org.apache.nifi.processors.standard.syslog.Syslog5424Event;
+import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
@@ -49,6 +50,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -102,6 +104,17 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .defaultValue(NULL.getValue())
         .build();
 
+    public static final PropertyDescriptor INCLUDE_BODY_IN_ATTRIBUTES = new PropertyDescriptor.Builder()
+        .name("include_policy")
+        .displayName("Include Message Body in Attributes")
+        .description("If true, then the Syslog Message body will be included in the attributes.")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues("true","false")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .required(false)
+        .defaultValue("true")
+        .build();
+
     static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
         .description("Any FlowFile that could not be parsed as a Syslog message will be transferred to this Relationship without any attributes being added")
@@ -119,6 +132,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>(2);
         properties.add(CHARSET);
         properties.add(NIL_POLICY);
+        properties.add(INCLUDE_BODY_IN_ATTRIBUTES);
         return properties;
     }
 
@@ -139,6 +153,11 @@ public class ParseSyslog5424 extends AbstractProcessor {
 
         final String charsetName = context.getProperty(CHARSET).getValue();
         final String nilPolicyString = context.getProperty(NIL_POLICY).getValue();
+        boolean includeBody = true;
+
+        if (context.getProperty(INCLUDE_BODY_IN_ATTRIBUTES).isSet()) {
+           includeBody = context.getProperty(INCLUDE_BODY_IN_ATTRIBUTES).asBoolean();
+        }
 
         // If the parser already exists and uses the same charset, it does not need to be re-initialized
         if (parser == null || !parser.getCharsetName().equals(charsetName)) {
@@ -153,22 +172,25 @@ public class ParseSyslog5424 extends AbstractProcessor {
             }
         });
 
-        final Syslog5424Event event;
+        final Syslog5424Event syslogEvent;
         try {
-            event = parser.parseEvent(buffer, null);
+            syslogEvent = parser.parseEvent(buffer, null);
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to parse {} as a Syslog message due to {}; routing to failure", new Object[] {flowFile, pe});
+            getLogger().error("Failed to parse {} as a Syslog 5424  message due to {}; routing to failure", new Object[] {flowFile, pe});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        if (event == null || !event.isValid()) {
+        if (syslogEvent == null || !syslogEvent.isValid()) {
             getLogger().error("Failed to parse {} as a Syslog message: it does not conform to any of the RFC formats supported; routing to failure", new Object[] {flowFile});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-
-        flowFile = session.putAllAttributes(flowFile, event.getFieldMap());
+        Map<String,String> attributeMap = syslogEvent.getFieldMap();
+        if (!includeBody) {
+            attributeMap.remove(SyslogAttributes.BODY.key());
+        }
+        flowFile = session.putAllAttributes(flowFile, attributeMap);
         session.transfer(flowFile, REL_SUCCESS);
     }
 }
