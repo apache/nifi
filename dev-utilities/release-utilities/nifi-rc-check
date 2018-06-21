@@ -21,10 +21,11 @@ function help {
   echo " "
   echo "usage: ${0}"
   echo "    -v/--version=<version>   The version of the Nifi release. [Required]"
+  echo "    -c/--candidate=<RC#>      Defines the Release Candidate. [Required]"
   echo "    -h/--help                Usage information."
   echo " "
   echo "example: "
-  echo "    nifi-rc-check --version=1.6.0"
+  echo "    nifi-rc-check --version=1.6.0 --candidate=RC2"
   echo " "
 }
 
@@ -47,6 +48,17 @@ for i in "$@"; do
     #
     -v=*|--version=*)
     VERSION="${i#*=}"
+    shift # past argument=value
+    ;;
+
+    #
+    # RC: Defines the RC# to use
+    #
+    #   -c=RC2
+    #   --candidate=RC2
+    #
+    -c=*|--candidate=*)
+    CANDIDATE="${i#*=}"
     shift # past argument=value
     ;;
 
@@ -82,7 +94,25 @@ else
   exit 1
 fi
 
-echo "Apache Nifi Version $NIFI_VERSION"
+if [ -z "$CANDIDATE" ]; then
+	echo "Missing -c/--candidate which is required"
+	exit 1
+fi
+
+if [[ "$CANDIDATE" =~ ^RC[0-9]+ ]]; then
+  RC=$(echo "$CANDIDATE" | tr '[:upper:]' '[:lower:]')
+  UPPER_RC=$(echo "$CANDIDATE" | tr '[:lower:]' '[:upper:]')
+elif [[ "$CANDIDATE" =~ ^[0-9]+ ]]; then
+  RC=rc"$CANDIDATE"
+  UPPER_RC=RC"$CANDIDATE"
+else
+  echo "[ERROR] invalid RC, valid is RC# or just #"
+  exit 1
+fi
+
+echo "Apache Nifi Version $NIFI_VERSION $UPPER_RC"
+
+NIFI_REL_RC="$NIFI_NAME_LOWER-$NIFI_VERSION-$UPPER_RC"
 
 NIFI_RC_DIST="$NIFI_DEV_DIST$NIFI_NAME_LOWER-$NIFI_VERSION/"
 echo "Apache Nifi RC Distribution Root is $NIFI_RC_DIST"
@@ -147,7 +177,7 @@ fi
 LOCAL_SHA1="$(sha1sum ${LOCAL_ASSEMBLY} | cut -d' ' -f1)";
 REMOTE_SHA1="$(curl -s ${NIFI_ASSEMBLY_SHA1})"
 echo "Verifying Nifi Assembly SHA1"
-if [ "${LOCAL_SHA1}" = "${REMOTE_SHA1}" ]; then
+if [ "${LOCAL_SHA1}" = "${REMOTE_SHA1}" ] ; then
     echo "SHA-1 match"
 else
     echo "SHA-1 does not match"
@@ -159,7 +189,7 @@ fi
 LOCAL_SHA256=$(shasum -a256 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
 REMOTE_SHA256=$(curl -s ${NIFI_ASSEMBLY_SHA256})
 echo "Verifying Nifi Assembly SHA256"
-if [ "${LOCAL_SHA256}" = "${REMOTE_SHA256}" ]; then
+if [ "${LOCAL_SHA256}" = "${REMOTE_SHA256}" ] ; then
     echo "SHA-256 match"
 else
     echo "SHA-256 does not match"
@@ -171,7 +201,7 @@ fi
 LOCAL_SHA512=$(shasum -a512 ${LOCAL_ASSEMBLY} | cut -d' ' -f1);
 REMOTE_SHA512=$(curl -s ${NIFI_ASSEMBLY_SHA512})
 echo "Verifying Nifi Assembly SHA512"
-if [ "${LOCAL_SHA512}" = "${REMOTE_SHA512}" ]; then
+if  [ "${LOCAL_SHA512}" = "${REMOTE_SHA512}" ] ; then
     echo "SHA-512 match"
 else
     echo "SHA-512 does not match"
@@ -185,3 +215,36 @@ if ! unzip -q ${LOCAL_ASSEMBLY}; then
   echo "[ERROR] failed to unpack Nifi Assembly"
   exit 1
 fi
+
+echo "Retrieving remote Nifi repository"
+if ! git clone https://git-wip-us.apache.org/repos/asf/nifi.git; then
+  echo "[ERROR] failed git clone https://git-wip-us.apache.org/repos/asf/nifi.git"
+  exit 1
+fi
+
+echo "Getting the commit hash for ${UPPER_RC}"
+#git ls-remote --tags --refs https://github.com/apache/nifi.git | grep nifi-1.7.0-RC1 | cut -f1
+COMMIT_HASH=$(git ls-remote --tags --refs https://github.com/apache/nifi.git | grep "${NIFI_REL_RC}" | cut -f1);
+
+echo ""
+echo ""
+echo "Commit Hash for ${NIFI_REL_RC} is ${COMMIT_HASH}"
+echo ""
+echo ""
+
+echo "Checking out the correct tag"
+if ! git -C nifi checkout "${COMMIT_HASH}" ; then
+  echo "[ERROR] failed git -C nifi checkout ${COMMIT_HASH}"
+  exit 1
+fi
+
+echo "Checking for differences between downloaded rc sources and git"
+
+DIFF=$(diff --brief -r nifi-1.7.0 nifi | grep -v DEPENDENCIES | grep -v .git* | grep -v project.basedir);
+
+if [ ! -z "${DIFF}" ] ; then
+  echo  "[ERROR] There are differences!"
+  echo "${DIFF}"
+  exit 1
+fi
+
