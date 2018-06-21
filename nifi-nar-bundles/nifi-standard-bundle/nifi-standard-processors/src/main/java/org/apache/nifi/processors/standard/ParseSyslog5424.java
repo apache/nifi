@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -144,6 +145,12 @@ public class ParseSyslog5424 extends AbstractProcessor {
         return relationships;
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        final String charsetName = context.getProperty(CHARSET).getValue();
+        final String nilPolicyString = context.getProperty(NIL_POLICY).getValue();
+        parser = new StrictSyslog5424Parser(Charset.forName(charsetName),NilPolicy.valueOf(nilPolicyString));
+    }
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -151,17 +158,10 @@ public class ParseSyslog5424 extends AbstractProcessor {
             return;
         }
 
-        final String charsetName = context.getProperty(CHARSET).getValue();
-        final String nilPolicyString = context.getProperty(NIL_POLICY).getValue();
         boolean includeBody = true;
 
         if (context.getProperty(INCLUDE_BODY_IN_ATTRIBUTES).isSet()) {
            includeBody = context.getProperty(INCLUDE_BODY_IN_ATTRIBUTES).asBoolean();
-        }
-
-        // If the parser already exists and uses the same charset, it does not need to be re-initialized
-        if (parser == null || !parser.getCharsetName().equals(charsetName)) {
-            parser = new StrictSyslog5424Parser(Charset.forName(charsetName),NilPolicy.valueOf(nilPolicyString));
         }
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];
