@@ -18,7 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import com.github.palindromicity.syslog.NilPolicy;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -73,7 +73,7 @@ public class TestParseSyslog5424 {
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS,1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        Assert.assertNotNull(results.get(0).getAttribute(SyslogAttributes.BODY.key()));
+        Assert.assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
@@ -85,7 +85,7 @@ public class TestParseSyslog5424 {
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS,1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        Assert.assertNotNull(results.get(0).getAttribute(SyslogAttributes.BODY.key()));
+        Assert.assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
@@ -97,6 +97,6 @@ public class TestParseSyslog5424 {
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS,1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        Assert.assertNull(results.get(0).getAttribute(SyslogAttributes.BODY.key()));
+        Assert.assertNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 }

@@ -39,8 +39,8 @@ import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.DatagramChannelSender;
 import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
-import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.StopWatch;
 
 import javax.net.ssl.SSLContext;

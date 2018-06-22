@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.syslog;
 
-import com.github.palindromicity.syslog.NilPolicy;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.syslog.StrictSyslog5424Parser;
-import org.apache.nifi.processors.standard.syslog.Syslog5424Attributes;
-import org.apache.nifi.processors.standard.syslog.Syslog5424Event;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
+import org.apache.nifi.syslog.attributes.Syslog5424Attributes;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
+import org.apache.nifi.syslog.events.Syslog5424Event;
+import org.apache.nifi.syslog.keyproviders.SyslogPrefixedKeyProvider;
+import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
+import org.apache.nifi.syslog.utils.NifiStructuredDataPolicy;
+import org.apache.nifi.syslog.utils.NilHandlingPolicy;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,9 +40,9 @@ public abstract class BaseStrictSyslog5424ParserTest {
     private static final String NIL_VALUE = "-";
     private StrictSyslog5424Parser parser;
 
-    protected abstract NilPolicy getPolicy();
+    protected abstract NilHandlingPolicy getPolicy();
 
-    protected void validateForPolicy(String expected, String actual) {
+    protected void validateForPolicy(String expected, Object actual) {
         switch (getPolicy()) {
             case DASH:
                 Assert.assertEquals(actual, NIL_VALUE);
@@ -55,7 +56,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
 
     @Before
     public void setup() {
-        parser = new StrictSyslog5424Parser(CHARSET, getPolicy());
+        parser = new StrictSyslog5424Parser(CHARSET, getPolicy(), NifiStructuredDataPolicy.FLATTEN, new SyslogPrefixedKeyProvider());
     }
 
     @Test
@@ -82,25 +83,25 @@ public abstract class BaseStrictSyslog5424ParserTest {
         Assert.assertNotNull(event);
         Assert.assertTrue(event.isValid());
         Assert.assertFalse(event.getFieldMap().isEmpty());
-        Map<String,String> fieldMap = event.getFieldMap();
-        Assert.assertEquals(pri, fieldMap.get(SyslogAttributes.PRIORITY.key()));
-        Assert.assertEquals("2", fieldMap.get(SyslogAttributes.SEVERITY.key()));
-        Assert.assertEquals("4", fieldMap.get(SyslogAttributes.FACILITY.key()));
-        Assert.assertEquals(version, fieldMap.get(SyslogAttributes.VERSION.key()));
-        Assert.assertEquals(stamp, fieldMap.get(SyslogAttributes.TIMESTAMP.key()));
-        Assert.assertEquals(host, fieldMap.get(SyslogAttributes.HOSTNAME.key()));
-        Assert.assertEquals(appName, fieldMap.get(Syslog5424Attributes.APP_NAME.key()));
-        validateForPolicy(procId, fieldMap.get(Syslog5424Attributes.PROCID.key()));
-        Assert.assertEquals(msgId, fieldMap.get(Syslog5424Attributes.MESSAGEID.key()));
+        Map<String, Object> fieldMap = event.getFieldMap();
+        Assert.assertEquals(pri, fieldMap.get(SyslogAttributes.SYSLOG_PRIORITY.key()));
+        Assert.assertEquals("2", fieldMap.get(SyslogAttributes.SYSLOG_SEVERITY.key()));
+        Assert.assertEquals("4", fieldMap.get(SyslogAttributes.SYSLOG_FACILITY.key()));
+        Assert.assertEquals(version, fieldMap.get(SyslogAttributes.SYSLOG_VERSION.key()));
+        Assert.assertEquals(stamp, fieldMap.get(SyslogAttributes.SYSLOG_TIMESTAMP.key()));
+        Assert.assertEquals(host, fieldMap.get(SyslogAttributes.SYSLOG_HOSTNAME.key()));
+        Assert.assertEquals(appName, fieldMap.get(Syslog5424Attributes.SYSLOG_APP_NAME.key()));
+        validateForPolicy(procId, fieldMap.get(Syslog5424Attributes.SYSLOG_PROCID.key()));
+        Assert.assertEquals(msgId, fieldMap.get(Syslog5424Attributes.SYSLOG_MESSAGEID.key()));
 
-        Pattern structuredPattern = new StrictSyslog5424Parser.NifiKeyProvider().getStructuredElementIdParamNamePattern();
-        fieldMap.forEach((key,value) -> {
-            if (!StringUtils.isBlank(value)) {
-                Assert.assertFalse(structuredPattern.matcher(value).matches());
+        Pattern structuredPattern = new SyslogPrefixedKeyProvider().getStructuredElementIdParamNamePattern();
+        fieldMap.forEach((key, value) -> {
+            if (value != null) {
+                Assert.assertFalse(structuredPattern.matcher(key).matches());
             }
         });
 
-        Assert.assertEquals(body, fieldMap.get(SyslogAttributes.BODY.key()));
+        Assert.assertEquals(body, fieldMap.get(SyslogAttributes.SYSLOG_BODY.key()));
         Assert.assertEquals(message, event.getFullMessage());
         Assert.assertNull(event.getSender());
     }
@@ -132,7 +133,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
     @Test
     public void testTrailingNewLine() {
         final String message = "<34>1 2003-10-11T22:14:15.003Z mymachine.example.com su - " +
-        "ID47 - BOM'su root' failed for lonvick on /dev/pts/8\n";
+                "ID47 - BOM'su root' failed for lonvick on /dev/pts/8\n";
 
         final byte[] bytes = message.getBytes(CHARSET);
         final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);

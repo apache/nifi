@@ -17,21 +17,32 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
+        <artifactId>nifi-extension-utils</artifactId>
         <version>1.8.0-SNAPSHOT</version>
     </parent>
-    <packaging>pom</packaging>
-    <artifactId>nifi-extension-utils</artifactId>
-    <description>
-        This module contains reusable utilities related to extensions that can be shared across NARs.
-    </description>
-
-    <modules>
-        <module>nifi-record-utils</module>
-        <module>nifi-hadoop-utils</module>
-        <module>nifi-processor-utils</module>
-        <module>nifi-reporting-utils</module>
-        <module>nifi-syslog-utils</module>
-    </modules>
-
+    <artifactId>nifi-syslog-utils</artifactId>
+    <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.palindromicity</groupId>
+            <artifactId>simple-syslog-5424</artifactId>
+            <version>0.0.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

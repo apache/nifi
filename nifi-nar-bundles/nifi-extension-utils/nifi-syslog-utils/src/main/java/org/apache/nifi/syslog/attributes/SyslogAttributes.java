@@ -14,25 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.syslog;
+package org.apache.nifi.syslog.attributes;
 
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
 
 /**
  * FlowFile Attributes for each Syslog message.
  */
-public enum Syslog5424Attributes implements FlowFileAttributeKey {
+public enum SyslogAttributes implements FlowFileAttributeKey {
 
-    APP_NAME("syslog.appName"),
-    PROCID("syslog.procid"),
-    MESSAGEID("syslog.messageid"),
-    STRUCTURED_BASE("syslog.structuredData"),
-    STRUCTURED_ELEMENT_ID_FMT("syslog.structuredData.%s"),
-    STRUCTURED_ELEMENT_ID_PNAME_FMT("syslog.structuredData.%s.%s"),
-    STRUCTURED_ELEMENT_ID_PNAME_PATTERN("syslog.structuredData\\.(.*)\\.(.*)$");
+    SYSLOG_PRIORITY("syslog.priority"),
+    SYSLOG_SEVERITY("syslog.severity"),
+    SYSLOG_FACILITY("syslog.facility"),
+    SYSLOG_VERSION("syslog.version"),
+    SYSLOG_TIMESTAMP("syslog.timestamp"),
+    SYSLOG_HOSTNAME("syslog.hostname"),
+    SYSLOG_SENDER("syslog.sender"),
+    SYSLOG_BODY("syslog.body"),
+    SYSLOG_VALID("syslog.valid"),
+    SYSLOG_PROTOCOL("syslog.protocol"),
+    SYSLOG_PORT("syslog.port"),
+
+    PRIORITY("priority"),
+    SEVERITY("severity"),
+    FACILITY("facility"),
+    VERSION("version"),
+    TIMESTAMP("timestamp"),
+    HOSTNAME("hostname"),
+    SENDER("sender"),
+    BODY("body"),
+    VALID("valid"),
+    PROTOCOL("protocol"),
+    PORT("port");
+
     private String key;
 
-    Syslog5424Attributes(String key) {
+    SyslogAttributes(String key) {
         this.key = key;
     }
 

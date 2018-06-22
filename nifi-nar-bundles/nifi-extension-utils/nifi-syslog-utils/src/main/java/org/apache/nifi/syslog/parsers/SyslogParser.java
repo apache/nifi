@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.syslog;
+package org.apache.nifi.syslog.parsers;
+
+import org.apache.nifi.syslog.events.SyslogEvent;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
