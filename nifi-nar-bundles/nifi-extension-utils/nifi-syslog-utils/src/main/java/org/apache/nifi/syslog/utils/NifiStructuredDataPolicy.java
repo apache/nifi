@@ -14,12 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
 
-import com.github.palindromicity.syslog.NilPolicy;
+package org.apache.nifi.syslog.utils;
 
-public class StrictSyslog5424ParserNullPolicyTest extends BaseStrictSyslog5424ParserTest {
-    protected NilPolicy getPolicy() {
-        return NilPolicy.NULL;
-    }
+/**
+ * Policy for handling Structured Data
+ * must match the simple-syslog-5424 StructuredDataPolicy
+ */
+public enum NifiStructuredDataPolicy {
+    /**
+     * The Structured Data will be flattened per the KeyProvider provided values.
+     */
+    FLATTEN,
+    /**
+     * The Structued Data will be returned as a Map field named structuredData.
+     * Each map entry will have the value of the Structured Data ID, and a value
+     * of a map of each element param name and value
+     */
+    MAP_OF_MAPS
 }

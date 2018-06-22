@@ -14,30 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.syslog;
+package org.apache.nifi.syslog.attributes;
 
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
 
 /**
  * FlowFile Attributes for each Syslog message.
  */
-public enum SyslogAttributes implements FlowFileAttributeKey {
+public enum Syslog5424Attributes implements FlowFileAttributeKey {
 
-    PRIORITY("syslog.priority"),
-    SEVERITY("syslog.severity"),
-    FACILITY("syslog.facility"),
-    VERSION("syslog.version"),
-    TIMESTAMP("syslog.timestamp"),
-    HOSTNAME("syslog.hostname"),
-    SENDER("syslog.sender"),
-    BODY("syslog.body"),
-    VALID("syslog.valid"),
-    PROTOCOL("syslog.protocol"),
-    PORT("syslog.port");
-
+    SYSLOG_APP_NAME("syslog.appName"),
+    SYSLOG_PROCID("syslog.procid"),
+    SYSLOG_MESSAGEID("syslog.messageid"),
+    SYSLOG_STRUCTURED_BASE("syslog.structuredData"),
+    SYSLOG_STRUCTURED_ELEMENT_ID_FMT("syslog.structuredData.%s"),
+    SYSLOG_STRUCTURED_ELEMENT_ID_PNAME_FMT("syslog.structuredData.%s.%s"),
+    SYSLOG_STRUCTURED_ELEMENT_ID_PNAME_PATTERN("syslog.structuredData\\.(.*)\\.(.*)$"),
+    APP_NAME("appName"),
+    PROCID("procid"),
+    MESSAGEID("messageid"),
+    STRUCTURED_BASE("structuredData"),
+    STRUCTURED_ELEMENT_ID_FMT("structuredData.%s"),
+    STRUCTURED_ELEMENT_ID_PNAME_FMT("structuredData.%s.%s"),
+    STRUCTURED_ELEMENT_ID_PNAME_PATTERN("structuredData\\.(.*)\\.(.*)$");
     private String key;
 
-    SyslogAttributes(String key) {
+    Syslog5424Attributes(String key) {
         this.key = key;
     }
 

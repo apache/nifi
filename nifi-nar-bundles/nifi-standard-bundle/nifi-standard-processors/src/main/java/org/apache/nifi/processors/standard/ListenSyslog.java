@@ -48,12 +48,12 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandlerFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
-import org.apache.nifi.processors.standard.syslog.SyslogEvent;
-import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
+import org.apache.nifi.syslog.events.SyslogEvent;
+import org.apache.nifi.syslog.parsers.SyslogParser;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -419,8 +419,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final String protocol = context.getProperty(PROTOCOL).getValue();
 
         final Map<String, String> defaultAttributes = new HashMap<>(4);
-        defaultAttributes.put(SyslogAttributes.PROTOCOL.key(), protocol);
-        defaultAttributes.put(SyslogAttributes.PORT.key(), port);
+        defaultAttributes.put(SyslogAttributes.SYSLOG_PROTOCOL.key(), protocol);
+        defaultAttributes.put(SyslogAttributes.SYSLOG_PORT.key(), port);
         defaultAttributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
 
 
@@ -461,7 +461,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                     FlowFile invalidFlowFile = session.create();
                     invalidFlowFile = session.putAllAttributes(invalidFlowFile, defaultAttributes);
                     if (sender != null) {
-                        invalidFlowFile = session.putAttribute(invalidFlowFile, SyslogAttributes.SENDER.key(), sender);
+                        invalidFlowFile = session.putAttribute(invalidFlowFile, SyslogAttributes.SYSLOG_SENDER.key(), sender);
                     }
 
                     try {
@@ -486,14 +486,14 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 getLogger().trace(event.getFullMessage());
 
                 final Map<String, String> attributes = new HashMap<>(numAttributes);
-                attributes.put(SyslogAttributes.PRIORITY.key(), event.getPriority());
-                attributes.put(SyslogAttributes.SEVERITY.key(), event.getSeverity());
-                attributes.put(SyslogAttributes.FACILITY.key(), event.getFacility());
-                attributes.put(SyslogAttributes.VERSION.key(), event.getVersion());
-                attributes.put(SyslogAttributes.TIMESTAMP.key(), event.getTimeStamp());
-                attributes.put(SyslogAttributes.HOSTNAME.key(), event.getHostName());
-                attributes.put(SyslogAttributes.BODY.key(), event.getMsgBody());
-                attributes.put(SyslogAttributes.VALID.key(), String.valueOf(event.isValid()));
+                attributes.put(SyslogAttributes.SYSLOG_PRIORITY.key(), event.getPriority());
+                attributes.put(SyslogAttributes.SYSLOG_SEVERITY.key(), event.getSeverity());
+                attributes.put(SyslogAttributes.SYSLOG_FACILITY.key(), event.getFacility());
+                attributes.put(SyslogAttributes.SYSLOG_VERSION.key(), event.getVersion());
+                attributes.put(SyslogAttributes.SYSLOG_TIMESTAMP.key(), event.getTimeStamp());
+                attributes.put(SyslogAttributes.SYSLOG_HOSTNAME.key(), event.getHostName());
+                attributes.put(SyslogAttributes.SYSLOG_BODY.key(), event.getMsgBody());
+                attributes.put(SyslogAttributes.SYSLOG_VALID.key(), String.valueOf(event.isValid()));
 
                 flowFile = session.putAllAttributes(flowFile, attributes);
             }
@@ -536,7 +536,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             final Map<String, String> newAttributes = new HashMap<>(defaultAttributes.size() + 1);
             newAttributes.putAll(defaultAttributes);
-            newAttributes.put(SyslogAttributes.SENDER.key(), sender);
+            newAttributes.put(SyslogAttributes.SYSLOG_SENDER.key(), sender);
             flowFile = session.putAllAttributes(flowFile, newAttributes);
 
             getLogger().debug("Transferring {} to success", new Object[] {flowFile});

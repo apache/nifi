@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.syslog;
 
-import org.apache.nifi.processors.standard.syslog.SyslogEvent;
-import org.apache.nifi.processors.standard.syslog.SyslogParser;
+import org.apache.nifi.syslog.events.SyslogEvent;
+import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

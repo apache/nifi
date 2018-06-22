@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.syslog;
 
-import com.github.palindromicity.syslog.NilPolicy;
 
-public class StrictSyslog5424ParserDashPolicyTest extends BaseStrictSyslog5424ParserTest {
-    protected NilPolicy getPolicy() {
-        return NilPolicy.DASH;
+import org.apache.nifi.syslog.utils.NilHandlingPolicy;
+
+public class StrictSyslog5424ParserNullPolicyTest extends BaseStrictSyslog5424ParserTest {
+    protected NilHandlingPolicy getPolicy() {
+        return NilHandlingPolicy.NULL;
     }
 }

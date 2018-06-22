@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import com.github.palindromicity.syslog.NilPolicy;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -40,15 +39,19 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.syslog.StrictSyslog5424Parser;
-import org.apache.nifi.processors.standard.syslog.Syslog5424Event;
-import org.apache.nifi.processors.standard.syslog.SyslogAttributes;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.syslog.keyproviders.SyslogPrefixedKeyProvider;
+import org.apache.nifi.syslog.utils.NifiStructuredDataPolicy;
+import org.apache.nifi.syslog.utils.NilHandlingPolicy;
+import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
+import org.apache.nifi.syslog.events.Syslog5424Event;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -82,9 +85,9 @@ import java.util.Set;
 @SeeAlso({ListenSyslog.class, ParseSyslog.class, PutSyslog.class})
 public class ParseSyslog5424 extends AbstractProcessor {
 
-    public static final AllowableValue OMIT = new AllowableValue(NilPolicy.OMIT.name(),NilPolicy.OMIT.name(),"The missing field will not have an attribute added.");
-    public static final AllowableValue NULL = new AllowableValue(NilPolicy.NULL.name(),NilPolicy.NULL.name(),"The missing field will have an empty attribute added.");
-    public static final AllowableValue DASH = new AllowableValue(NilPolicy.DASH.name(),NilPolicy.DASH.name(),"The missing field will have an attribute added with the value of '-'.");
+    public static final AllowableValue OMIT = new AllowableValue(NilHandlingPolicy.OMIT.name(),NilHandlingPolicy.OMIT.name(),"The missing field will not have an attribute added.");
+    public static final AllowableValue NULL = new AllowableValue(NilHandlingPolicy.NULL.name(),NilHandlingPolicy.NULL.name(),"The missing field will have an empty attribute added.");
+    public static final AllowableValue DASH = new AllowableValue(NilHandlingPolicy.DASH.name(),NilHandlingPolicy.DASH.name(),"The missing field will have an attribute added with the value of '-'.");
 
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
         .name("Character Set")
@@ -149,7 +152,9 @@ public class ParseSyslog5424 extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         final String charsetName = context.getProperty(CHARSET).getValue();
         final String nilPolicyString = context.getProperty(NIL_POLICY).getValue();
-        parser = new StrictSyslog5424Parser(Charset.forName(charsetName),NilPolicy.valueOf(nilPolicyString));
+        parser = new StrictSyslog5424Parser(Charset.forName(charsetName),
+                NilHandlingPolicy.valueOf(nilPolicyString),
+                NifiStructuredDataPolicy.FLATTEN,new SyslogPrefixedKeyProvider());
     }
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -186,11 +191,18 @@ public class ParseSyslog5424 extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-        Map<String,String> attributeMap = syslogEvent.getFieldMap();
+        Map<String,String> attributeMap = convertMap(syslogEvent.getFieldMap());
         if (!includeBody) {
-            attributeMap.remove(SyslogAttributes.BODY.key());
+            attributeMap.remove(SyslogAttributes.SYSLOG_BODY.key());
         }
         flowFile = session.putAllAttributes(flowFile, attributeMap);
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+
+    private static Map<String,String> convertMap(Map<String, Object> map) {
+        Map<String,String> returnMap = new HashMap<>();
+        map.forEach((key,value) -> returnMap.put(key,(String)value));
+        return returnMap;
     }
 }

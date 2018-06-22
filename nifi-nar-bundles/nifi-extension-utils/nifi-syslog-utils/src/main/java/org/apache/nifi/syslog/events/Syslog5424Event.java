@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.syslog;
+package org.apache.nifi.syslog.events;
 
 import java.util.Map;
 
@@ -22,11 +22,12 @@ import java.util.Map;
  * Encapsulates the parsed information for a single Syslog 5424 event.
  */
 public class Syslog5424Event {
-    private final Map<String,String> fieldMap;
+    private final Map<String, Object> fieldMap;
     private final String fullMessage;
     private final byte[] rawMessage;
     private final String sender;
     private final boolean valid;
+    private final Exception exception;
 
     private Syslog5424Event(final Builder builder) {
         this.fieldMap = builder.fieldMap;
@@ -34,10 +35,15 @@ public class Syslog5424Event {
         this.rawMessage = builder.rawMessage;
         this.sender = builder.sender;
         this.valid = builder.valid;
+        this.exception = builder.exception;
     }
 
-    public Map<String,String> getFieldMap() {
+    public Map<String, Object> getFieldMap() {
         return fieldMap;
+    }
+
+    public Exception getException() {
+        return exception;
     }
 
     public String getFullMessage() {
@@ -57,9 +63,10 @@ public class Syslog5424Event {
     }
 
     public static final class Builder {
+        private Exception exception;
         private String fullMessage;
         private String sender;
-        private Map<String, String> fieldMap;
+        private Map<String, Object> fieldMap;
         private byte[] rawMessage;
         private boolean valid;
 
@@ -68,6 +75,7 @@ public class Syslog5424Event {
             this.sender = null;
             this.fullMessage = null;
             this.valid = false;
+            this.exception = null;
         }
 
         public Builder sender(String sender) {
@@ -75,7 +83,12 @@ public class Syslog5424Event {
             return this;
         }
 
-        public Builder fieldMap(Map<String, String> fieldMap) {
+        public Builder exception(Exception exception) {
+            this.exception = exception;
+            return this;
+        }
+
+        public Builder fieldMap(Map<String, Object> fieldMap) {
             this.fieldMap = fieldMap;
             return this;
         }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.syslog;
+package org.apache.nifi.syslog.events;
 
 /**
  * Encapsulates the parsed information for a single Syslog event.
