@@ -1,0 +1,51 @@
+nifi-data-generation-nar
+Copyright 2014-2018 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Snappy Java
+    The following NOTICE information applies:
+      This product includes software developed by Google
+       Snappy: http://code.google.com/p/snappy/ (New BSD License)
+
+      This product includes software developed by Apache
+       PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
+       (Apache 2.0 license)
+
+      This library containd statically linked libstdc++. This inclusion is allowed by
+      "GCC RUntime Library Exception"
+      http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+  (ASLv2) Generex
+    This library was released under the ASL 2.0 license according to its official repository at:
+    https://github.com/mifmif/Generex
+
+  (ASLv2) Avro Random Generator
+     https://github.com/confluentinc/avro-random-generator/
+     Schema test samples in test/resources taken directly from examples in Avro Random Generator documentation.
+     Copyright Confluent, Inc.
+
+****************
+BSD
+****************
+
+    Brics Automaton (under core/src/java/org/apache/lucene/util/automaton) is
+    BSD-licensed, created by Anders Møller. See http://www.brics.dk/automaton/
+
+
+*****************
+Public Domain
+*****************
+
+The following binary components are provided to the 'Public Domain'.  See project link for details.
+
+    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
+
+
+
