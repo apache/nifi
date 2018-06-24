@@ -19,9 +19,11 @@ package org.apache.nifi.processors.pulsar.pubsub;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -32,6 +34,7 @@ import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
 
+@SeeAlso(PublishPulsar.class)
 @Tags({"Pulsar", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume"})
 @CapabilityDescription("Consumes messages from Apache Pulsar "
         + "The complementary NiFi processor for sending messages is PublishPulsar.")
@@ -41,11 +44,13 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         try {
+            Consumer<byte[]> consumer = getConsumer(context, getConsumerId(context, session.get()));
+
             if (context.getProperty(ASYNC_ENABLED).asBoolean()) {
-                consumeAsync(context, session);
-                handleAsync(context, session);
+                consumeAsync(consumer, context, session);
+                handleAsync(consumer, context, session);
             } else {
-                consume(context, session);
+                consume(consumer, context, session);
             }
         } catch (PulsarClientException e) {
             getLogger().error("Unable to consume from Pulsar Topic ", e);
@@ -54,31 +59,36 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
         }
     }
 
-    private void handleAsync(ProcessContext context, ProcessSession session) {
+    private void handleAsync(final Consumer<byte[]> consumer, ProcessContext context, ProcessSession session) {
         try {
-            Future<Message<byte[]>> done = consumerService.take();
-            Message<byte[]> msg = done.get();
+            Future<Message<byte[]>> done = getConsumerService().poll(50, TimeUnit.MILLISECONDS);
 
-            if (msg != null) {
-                FlowFile flowFile = null;
-                final byte[] value = msg.getData();
-                if (value != null && value.length > 0) {
-                    flowFile = session.create();
-                    flowFile = session.write(flowFile, out -> {
-                        out.write(value);
-                    });
+            if (done != null) {
+               Message<byte[]> msg = done.get();
 
-                   session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPICS).evaluateAttributeExpressions().getValue());
-                   session.transfer(flowFile, REL_SUCCESS);
-                   session.commit();
-                }
-                // Acknowledge consuming the message
-                ackService.submit(new Callable<Object>() {
-                    @Override
-                    public Object call() throws Exception {
-                       return getConsumer(context).acknowledgeAsync(msg).get();
-                    }
-                 });
+               if (msg != null) {
+                  FlowFile flowFile = null;
+                  final byte[] value = msg.getData();
+                  if (value != null && value.length > 0) {
+                      flowFile = session.create();
+                      flowFile = session.write(flowFile, out -> {
+                          out.write(value);
+                      });
+
+                     session.getProvenanceReporter().receive(flowFile, "From " + getPulsarClientService().getPulsarBrokerRootURL());
+                     session.transfer(flowFile, REL_SUCCESS);
+                     session.commit();
+                  }
+                  // Acknowledge consuming the message
+                  getAckService().submit(new Callable<Object>() {
+                      @Override
+                      public Object call() throws Exception {
+                         return consumer.acknowledgeAsync(msg).get();
+                      }
+                   });
+              }
+            } else {
+               // Check if the processor is stopped and if so gracefully stop processing.
             }
 
         } catch (InterruptedException | ExecutionException e) {
@@ -86,10 +96,7 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
         }
     }
 
-    private void consume(ProcessContext context, ProcessSession session) throws PulsarClientException {
-
-        Consumer<byte[]> consumer = getConsumer(context);
-
+    private void consume(Consumer<byte[]> consumer, ProcessContext context, ProcessSession session) throws PulsarClientException {
         try {
             final Message<byte[]> msg = consumer.receive();
             final byte[] value = msg.getData();
@@ -100,13 +107,13 @@ public class ConsumePulsar extends AbstractPulsarConsumerProcessor<byte[]> {
                     out.write(value);
                 });
 
-                session.getProvenanceReporter().receive(flowFile, "From " + context.getProperty(TOPICS).evaluateAttributeExpressions().getValue());
+                session.getProvenanceReporter().receive(flowFile, "From " + getPulsarClientService().getPulsarBrokerRootURL());
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Created {} from {} messages received from Pulsar Server and transferred to 'success'",
+                getLogger().debug("Created {} from {} messages received from Pulsar Server and transferred to 'success'",
                         new Object[]{flowFile, 1});
 
                 session.commit();
-                getLogger().info("Acknowledging message " + msg.getMessageId());
+                getLogger().debug("Acknowledging message " + msg.getMessageId());
 
             } else {
                 session.commit();

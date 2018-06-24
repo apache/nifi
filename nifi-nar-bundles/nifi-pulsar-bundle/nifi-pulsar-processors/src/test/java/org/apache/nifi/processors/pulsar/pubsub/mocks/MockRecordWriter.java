@@ -143,7 +143,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
 
             @Override
             public WriteResult finishRecordSet() throws IOException {
-                return null;
+                return WriteResult.EMPTY;
             }
         };
     }

@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_READER;
-import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_WRITER;
+import static org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord.RECORD_READER;
+import static org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord.RECORD_WRITER;
+
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessor;
+import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessorTest;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordParser;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordWriter;
 import org.apache.nifi.reporting.InitializationException;
@@ -40,7 +42,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-public class TestConsumePulsarRecord extends AbstractPulsarProcessorTest<byte[]> {
+public class TestConsumePulsarRecord extends AbstractPulsarConsumerProcessorTest<byte[]> {
 
     protected static String BAD_MSG = "Malformed message";
     protected static String MOCKED_MSG = "Mocked Message, 1";
@@ -112,7 +114,6 @@ public class TestConsumePulsarRecord extends AbstractPulsarProcessorTest<byte[]>
         }
 
         runner.run(iterations, true);
-
         runner.assertAllFlowFilesTransferred(ConsumePulsarRecord.REL_SUCCESS);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord.REL_SUCCESS);

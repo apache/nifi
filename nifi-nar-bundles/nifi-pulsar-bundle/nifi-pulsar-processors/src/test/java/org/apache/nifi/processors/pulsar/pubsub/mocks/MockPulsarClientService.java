@@ -184,4 +184,9 @@ public class MockPulsarClientService<T> extends AbstractControllerService implem
     public PulsarClient getPulsarClient() {
       return mockClient;
     }
+
+    @Override
+    public String getPulsarBrokerRootURL() {
+       return "pulsar://mocked:6650";
+    }
 }

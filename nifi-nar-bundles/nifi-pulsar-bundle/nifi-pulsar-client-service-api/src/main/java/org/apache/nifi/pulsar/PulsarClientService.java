@@ -27,4 +27,6 @@ import org.apache.pulsar.client.api.PulsarClient;
 public interface PulsarClientService extends ControllerService {
 
     public PulsarClient getPulsarClient();
+
+    public String getPulsarBrokerRootURL();
 }
