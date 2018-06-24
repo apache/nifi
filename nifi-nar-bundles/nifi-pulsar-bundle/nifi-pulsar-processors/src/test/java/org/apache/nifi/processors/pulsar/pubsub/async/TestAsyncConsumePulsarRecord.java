@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.pulsar.pubsub.ConsumePulsarRecord;
 import org.apache.nifi.processors.pulsar.pubsub.TestConsumePulsarRecord;
 import org.apache.nifi.util.MockFlowFile;
@@ -42,7 +41,7 @@ public class TestAsyncConsumePulsarRecord extends TestConsumePulsarRecord {
         runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 1 + "");
         runner.setProperty(ConsumePulsarRecord.ASYNC_ENABLED, Boolean.toString(true));
         runner.run();
-        runner.assertAllFlowFilesTransferred(ConsumePulsarRecord.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(ConsumePulsarRecord.REL_PARSE_FAILURE);
 
         verify(mockClientService.getMockConsumer(), times(1)).acknowledgeAsync(mockMessage);
     }
@@ -123,59 +122,6 @@ public class TestAsyncConsumePulsarRecord extends TestConsumePulsarRecord {
 
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord.REL_PARSE_FAILURE);
         assertEquals(1, failureFlowFiles.size());
-    }
-
-    /*
-     * Send 40 single record messages, and we expect them to be processed in
-     * a batch and combined into a single FlowFile
-     */
-    @Test
-    public void multipleMessagesTest() throws PulsarClientException {
-       List<MockFlowFile> results = this.sendMessages(MOCKED_MSG, false, 1, 40);
-       assertEquals(1, results.size());
-    }
-
-    @Test
-    public void multipleMessagesGoodAndBadTest() {
-        // The getBytes method is call 4 times for each message processed.
-        when(mockMessage.getData()).thenReturn(
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             BAD_MSG.getBytes(), BAD_MSG.getBytes(),
-             "Mary Jane, 19".getBytes());
-
-        mockClientService.setMockMessage(mockMessage);
-
-        runner.setProperty(ConsumePulsarRecord.ASYNC_ENABLED, Boolean.toString(false));
-        runner.setProperty(ConsumePulsarRecord.TOPICS, DEFAULT_TOPIC);
-        runner.setProperty(ConsumePulsarRecord.SUBSCRIPTION_NAME, DEFAULT_SUB);
-        runner.setProperty(ConsumePulsarRecord.BATCH_SIZE, 50 + "");
-        runner.setProperty(ConsumePulsarRecord.MAX_WAIT_TIME, "5 seconds");
-        runner.run(1, true);
-
-        List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord.REL_PARSE_FAILURE);
-        assertEquals(4, failureFlowFiles.size());
-
-        for (int idx = 0; idx < 4; idx++) {
-           String flowFileContents = new String(runner.getContentAsByteArray(failureFlowFiles.get(idx)));
-           assertEquals(BAD_MSG, flowFileContents);
-        }
-
-        List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ConsumePulsarRecord.REL_SUCCESS);
-        assertEquals(1, successFlowFiles.size());
-
-        String flowFileContents = new String(runner.getContentAsByteArray(successFlowFiles.get(0)));
-        String[] records = StringUtils.split(flowFileContents, "\n");
-
-        assertEquals(46, records.length);
-        for (int idx = 0; idx < records.length; idx++) {
-           assertEquals("\"Mary Jane\",\"19\"", records[idx]);
-        }
     }
 
     /*

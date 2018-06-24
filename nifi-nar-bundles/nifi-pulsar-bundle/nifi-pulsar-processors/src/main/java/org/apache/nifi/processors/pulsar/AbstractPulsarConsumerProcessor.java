@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.pulsar;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -32,11 +33,17 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.pulsar.PulsarClientService;
+import org.apache.nifi.pulsar.cache.LRUCache;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
@@ -44,7 +51,7 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.SubscriptionType;
 
-public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarProcessor {
+public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcessor {
 
     static final AllowableValue EXCLUSIVE = new AllowableValue("Exclusive", "Exclusive", "There can be only 1 consumer on the same topic with the same subscription name");
     static final AllowableValue SHARED = new AllowableValue("Shared", "Shared", "Multiple consumer will be able to use the same subscription name and the messages");
@@ -57,6 +64,23 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
             "Discard the message and don't perform any addtional processing on the message");
     static final AllowableValue FAIL = new AllowableValue(ConsumerCryptoFailureAction.FAIL.name(), "Fail",
             "Report a failure condition, and the route the message contents to the FAILED relationship.");
+
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles for which all content was consumed from Pulsar.")
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot receive data from Pulsar will be routed to this Relationship")
+            .build();
+
+    public static final PropertyDescriptor PULSAR_CLIENT_SERVICE = new PropertyDescriptor.Builder()
+            .name("Pulsar Client Service")
+            .description("Specified the Pulsar Client Service that can be used to create Pulsar connections")
+            .required(true)
+            .identifiesControllerService(PulsarClientService.class)
+            .build();
 
     public static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topics")
@@ -71,9 +95,11 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
 
     public static final PropertyDescriptor TOPICS_PATTERN = new PropertyDescriptor.Builder()
             .name("Topics Pattern")
-            .description("Specify a pattern for topics that this consumer will subscribe on. "
-                    + "It accepts regular expression and will be compiled into a pattern internally. "
-                    + "E.g. \"persistent://prop/use/ns-abc/pattern-topic-.*\"")
+            .description("Alternatively, you can specify a pattern for topics that this consumer "
+                    + "will subscribe on. It accepts a regular expression and will be compiled into "
+                    + "a pattern internally. E.g. \"persistent://my-tenant/ns-abc/pattern-topic-.*\" "
+                    + "would subscribe to any topic whose name started with 'pattern-topic-' that was in "
+                    + "the 'ns-abc' namespace, and belonged to the 'my-tenant' tentant.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
@@ -89,9 +115,13 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
             .name("Async Enabled")
             .description("Control whether the messages will be consumed asyncronously or not. Messages consumed"
                     + " syncronously will be acknowledged immediately before processing the next message, while"
-                    + " asyncronous messages will be acknowledged after the Pulsar broker responds.")
+                    + " asyncronous messages will be acknowledged after the Pulsar broker responds. \n"
+                    + "Enabling asyncronous message consumption introduces the possibility of duplicate data "
+                    + "consumption in the case where the Processor is stopped before it has time to send an "
+                    + "acknowledgement back to the Broker. In this scenario, the Broker would assume that the "
+                    + "un-acknowledged message was not successuflly processed and re-send it when the Processor restarted.")
             .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
@@ -106,10 +136,14 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
 
     public static final PropertyDescriptor ACK_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Acknowledgment Timeout")
-            .description("Set the timeout (in milliseconds) for unacked messages, truncated to the "
-                    + "nearest millisecond. A value of 0 means there is no timeout. If a non-zero value "
-                    + "is sepcified, then messages that are not acknowledged within the configured"
-                    + " timeout will be replayed.")
+            .description("Set the timeout for unacked messages. A value of 0 means there is no timeout. "
+                    + "If a non-zero value is sepcified, then messages that are not acknowledged within "
+                    + "the configured timeout will be replayed. Setting this property to a non-zero value "
+                    + "introduces the possibility of a message being consumed more than once, so only do so"
+                    + "if you want AT LEAST ONCE consumption of the message vs. EXACTLY ONCE consumption with"
+                    + "the default setting of zero.")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
             .required(false)
             .build();
 
@@ -131,7 +165,7 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
             .build();
 
     public static final PropertyDescriptor RECEIVER_QUEUE_SIZE = new PropertyDescriptor.Builder()
-            .name("Consumer receive queue size.")
+            .name("Consumer Receiver Queue Size")
             .description("The consumer receive queue controls how many messages can be accumulated "
                     + "by the Consumer before the application calls Consumer.receive(). Using a higher "
                     + "value could potentially increase the consumer throughput at the expense of bigger "
@@ -178,11 +212,12 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
         RELATIONSHIPS = Collections.unmodifiableSet(relationships);
     }
 
-    protected Consumer<T> consumer;
-    protected ExecutorService consumerPool;
-    protected ExecutorCompletionService<Message<T>> consumerService;
-    protected ExecutorService ackPool;
-    protected ExecutorCompletionService<Object> ackService;
+    private PulsarClientService pulsarClientService;
+    private LRUCache<String, Consumer<T>> consumers;
+    private ExecutorService consumerPool;
+    private ExecutorCompletionService<Message<T>> consumerService;
+    private ExecutorService ackPool;
+    private ExecutorCompletionService<Object> ackService;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -194,103 +229,185 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractPulsarP
         return PROPERTIES;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Set<ValidationResult> results = new HashSet<>();
+        boolean topicsSet = validationContext.getProperty(TOPICS).isSet();
+        boolean topicPatternSet = validationContext.getProperty(TOPICS_PATTERN).isSet();
+
+        if (!topicsSet && !topicPatternSet) {
+           results.add(new ValidationResult.Builder().valid(false).explanation(
+                    "At least one of the 'Topics' or 'Topic Pattern' properties must be specified.").build());
+        } else if (topicsSet && topicPatternSet) {
+           results.add(new ValidationResult.Builder().valid(false).explanation(
+                    "Only one of the two properties ('Topics' and 'Topic Pattern') can be specified.").build());
+        }
+
+        return results;
+    }
+
     @OnScheduled
     public void init(ProcessContext context) {
        if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-           consumerPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger());
-           consumerService = new ExecutorCompletionService<>(consumerPool);
-           ackPool = Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger() + 1);
-           ackService = new ExecutorCompletionService<>(ackPool);
+           setConsumerPool(Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger()));
+           setConsumerService(new ExecutorCompletionService<>(getConsumerPool()));
+           setAckPool(Executors.newFixedThreadPool(context.getProperty(MAX_ASYNC_REQUESTS).asInteger() + 1));
+           setAckService(new ExecutorCompletionService<>(getAckPool()));
        }
+
+       setPulsarClientService(context.getProperty(PULSAR_CLIENT_SERVICE).asControllerService(PulsarClientService.class));
     }
 
     @OnUnscheduled
     public void shutDown(final ProcessContext context) {
+        /*
+         * If we are running in asynchronous mode, then we need to stop all of the consumer threads that
+         * are running in the ConsumerPool. After, we have stopped them, we need to wait a little bit
+         * to ensure that all of the messages are properly acked, in order to prevent re-processing the
+         * same messages in the event of a shutdown and restart of the processor since the un-acked
+         * messages would be replayed on startup.
+         */
         if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
             try {
-                consumerPool.shutdown();
-                consumerPool.awaitTermination(10, TimeUnit.SECONDS);
+                getConsumerPool().shutdown();
+                getAckPool().shutdown();
+
+                // Allow some time for the acks to be sent back to the Broker.
+                getConsumerPool().awaitTermination(10, TimeUnit.SECONDS);
+                getAckPool().awaitTermination(10, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 getLogger().error("Unable to stop all the Pulsar Consumers", e);
             }
-
-            try {
-                ackPool.shutdown();
-                ackPool.awaitTermination(10, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                getLogger().error("Unable to wait for all of the message acknowledgments to be sent", e);
-            }
         }
-        close(context);
     }
 
     @OnStopped
-    public void close(final ProcessContext context) {
-        try {
-            getLogger().info("Disconnecting Pulsar Consumer");
-            if (consumer != null) {
-              consumer.close();
-            }
-        } catch (Exception e) {
-           getLogger().error("Unable to close Pulsar consumer", e);
-        } finally {
-           consumer = null;
-        }
+    public void cleanUp(final ProcessContext context) {
+       // Close all of the Producers
+       getConsumers().getValues().stream().forEach(c -> {
+          try {
+             c.close();
+          } catch (PulsarClientException e) {
+             e.printStackTrace();
+          }
+        });
+
+       getConsumers().clear();
     }
 
-    protected void consumeAsync(ProcessContext context, ProcessSession session) throws PulsarClientException {
-        Consumer<T> consumer = getConsumer(context);
+    /**
+     * Method returns a string that uniquely identifies a consumer by concatenating
+     * the topic name and subscription properties together.
+     */
+    protected String getConsumerId(final ProcessContext context, FlowFile flowFile) {
+        if (context == null) {
+           return null;
+        }
 
+        StringBuffer sb = new StringBuffer();
+
+        if (context.getProperty(TOPICS).isSet()) {
+          sb.append(context.getProperty(TOPICS).evaluateAttributeExpressions(flowFile).getValue());
+        } else {
+          sb.append(context.getProperty(TOPICS_PATTERN).getValue());
+        }
+        return sb.append("-").append(context.getProperty(SUBSCRIPTION_NAME).getValue()).toString();
+    }
+
+    protected void consumeAsync(final Consumer<T> consumer, ProcessContext context, ProcessSession session) throws PulsarClientException {
         try {
-            consumerService.submit(() -> {
+            getConsumerService().submit(() -> {
                return consumer.receive();
             });
         } catch (final RejectedExecutionException ex) {
-            getLogger().error("Unable to consume aany more Pulsar messages", ex);
+            getLogger().error("Unable to consume any more Pulsar messages", ex);
+            context.yield();
         }
     }
 
-    protected Consumer<T> getConsumer(ProcessContext context) throws PulsarClientException {
+    protected Consumer<T> getConsumer(ProcessContext context, String topic) throws PulsarClientException {
+        Consumer<T> consumer = getConsumers().get(topic);
 
-        if (consumer == null) {
-           ConsumerBuilder<T> builder = (ConsumerBuilder<T>) getPulsarClient(context).newConsumer();
+        if (consumer != null) {
+          return consumer;
+        }
 
-           if (context.getProperty(TOPICS).isSet()) {
-              builder = builder.topic(context.getProperty(TOPICS)
-                               .evaluateAttributeExpressions().getValue().split("[, ]"));
-           } else if (context.getProperty(TOPICS_PATTERN).isSet()) {
-              builder = builder.topicsPattern(context.getProperty(TOPICS_PATTERN).getValue());
-           } else {
-             throw new PulsarClientException("No topic specified.");
-           }
-
-           if (context.getProperty(SUBSCRIPTION_NAME).isSet()) {
-             builder = builder.subscriptionName(context.getProperty(SUBSCRIPTION_NAME).getValue());
-           } else {
-             throw new PulsarClientException("No subscription specified.");
-           }
-
-           if (context.getProperty(ACK_TIMEOUT).isSet()) {
-             builder = builder.ackTimeout(context.getProperty(ACK_TIMEOUT).asLong(), TimeUnit.MILLISECONDS);
-           }
-
-           if (context.getProperty(CONSUMER_NAME).isSet()) {
-             builder = builder.consumerName(context.getProperty(CONSUMER_NAME).getValue());
-           }
-
-           if (context.getProperty(PRIORITY_LEVEL).isSet()) {
-              builder = builder.priorityLevel(context.getProperty(PRIORITY_LEVEL).asInteger());
-           }
-
-           if (context.getProperty(RECEIVER_QUEUE_SIZE).isSet()) {
-              builder = builder.receiverQueueSize(context.getProperty(RECEIVER_QUEUE_SIZE).asInteger());
-           }
-
-           if (context.getProperty(SUBSCRIPTION_TYPE).isSet()) {
-              builder = builder.subscriptionType(SubscriptionType.valueOf(context.getProperty(SUBSCRIPTION_TYPE).getValue()));
-           }
-           consumer = builder.subscribe();
+        consumer = getConsumerBulder(context).subscribe();
+        if (consumer != null) {
+          getConsumers().put(topic, consumer);
         }
         return consumer;
+    }
+
+    protected ConsumerBuilder<T> getConsumerBulder(ProcessContext context) throws PulsarClientException {
+
+        ConsumerBuilder<T> builder = (ConsumerBuilder<T>) getPulsarClientService().getPulsarClient().newConsumer();
+
+        if (context.getProperty(TOPICS).isSet()) {
+           builder = builder.topic(context.getProperty(TOPICS).evaluateAttributeExpressions().getValue().split("[, ]"));
+        } else if (context.getProperty(TOPICS_PATTERN).isSet()) {
+           builder = builder.topicsPattern(context.getProperty(TOPICS_PATTERN).getValue());
+        }
+
+        if (context.getProperty(CONSUMER_NAME).isSet()) {
+            builder = builder.consumerName(context.getProperty(CONSUMER_NAME).getValue());
+        }
+
+        return builder.subscriptionName(context.getProperty(SUBSCRIPTION_NAME).getValue())
+                      .ackTimeout(context.getProperty(ACK_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS)
+                      .priorityLevel(context.getProperty(PRIORITY_LEVEL).asInteger())
+                      .receiverQueueSize(context.getProperty(RECEIVER_QUEUE_SIZE).asInteger())
+                      .subscriptionType(SubscriptionType.valueOf(context.getProperty(SUBSCRIPTION_TYPE).getValue()));
+    }
+
+    protected synchronized ExecutorService getConsumerPool() {
+       return consumerPool;
+    }
+
+    protected synchronized void setConsumerPool(ExecutorService pool) {
+       this.consumerPool = pool;
+    }
+
+    protected synchronized ExecutorCompletionService<Message<T>> getConsumerService() {
+       return consumerService;
+    }
+
+    protected synchronized void setConsumerService(ExecutorCompletionService<Message<T>> service) {
+       this.consumerService = service;
+    }
+
+    protected synchronized ExecutorService getAckPool() {
+      return ackPool;
+    }
+
+    protected synchronized void setAckPool(ExecutorService pool) {
+      this.ackPool = pool;
+    }
+
+    protected synchronized ExecutorCompletionService<Object> getAckService() {
+      return ackService;
+    }
+
+    protected synchronized void setAckService(ExecutorCompletionService<Object> ackService) {
+      this.ackService = ackService;
+    }
+
+    protected synchronized PulsarClientService getPulsarClientService() {
+      return pulsarClientService;
+    }
+
+    protected synchronized void setPulsarClientService(PulsarClientService pulsarClientService) {
+      this.pulsarClientService = pulsarClientService;
+    }
+
+    protected LRUCache<String, Consumer<T>> getConsumers() {
+        if (consumers == null) {
+          consumers = new LRUCache<String, Consumer<T>>(20);
+        }
+        return consumers;
+    }
+
+    protected void setConsumers(LRUCache<String, Consumer<T>> consumers) {
+       this.consumers = consumers;
     }
 }

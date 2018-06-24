@@ -57,7 +57,7 @@ public class TestAsyncPublishPulsarRecord extends TestPublishPulsarRecord {
        assertEquals(1, results.size());
 
        String flowFileContents = new String(runner.getContentAsByteArray(results.get(0)));
-       assertEquals("\"Mary Jane\",\"32\"", flowFileContents);
+       assertEquals("Mary Jane, 32", flowFileContents);
     }
 
     // Malformed content test, using "some content"

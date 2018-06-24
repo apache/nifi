@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.pulsar.cache;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 
 public class LRUCache<K, V> {
@@ -24,7 +25,6 @@ public class LRUCache<K, V> {
     private final int capacity;
     private final boolean SORT_BY_ACCESS = true;
     private final float LOAD_FACTOR = 0.75F;
-    //private final ResourcePool<V> resourcePool;
 
     public LRUCache(int capacity){
         this.capacity = capacity;
@@ -53,7 +53,11 @@ public class LRUCache<K, V> {
         lruCacheMap.clear();
     }
 
-    public void printSequence() {
-       System.out.println(lruCacheMap.keySet());
+    public String getSequence() {
+       return lruCacheMap.keySet().toString();
+    }
+
+    public Collection<V> getValues() {
+       return lruCacheMap.values();
     }
 }

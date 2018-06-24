@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.pulsar.pubsub;
+package org.apache.nifi.processors.pulsar;
 
-import org.apache.nifi.processors.pulsar.AbstractPulsarProcessor;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockPulsarClientService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 
-public abstract class AbstractPulsarProcessorTest<T> {
+public abstract class AbstractPulsarConsumerProcessorTest<T> {
 
     protected TestRunner runner;
 
@@ -31,6 +30,6 @@ public abstract class AbstractPulsarProcessorTest<T> {
         mockClientService = new MockPulsarClientService<T>();
         runner.addControllerService("Pulsar Client Service", mockClientService);
         runner.enableControllerService(mockClientService);
-        runner.setProperty(AbstractPulsarProcessor.PULSAR_CLIENT_SERVICE, "Pulsar Client Service");
+        runner.setProperty(AbstractPulsarConsumerProcessor.PULSAR_CLIENT_SERVICE, "Pulsar Client Service");
     }
 }

@@ -21,9 +21,9 @@ import java.io.ByteArrayOutputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -33,8 +33,9 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
 
+@SeeAlso(ConsumePulsar.class)
 @Tags({"Apache", "Pulsar", "Put", "Send", "Message", "PubSub"})
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Pulsar using the Pulsar 1.X Producer API."
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Pulsar using the Pulsar Producer API."
     + "The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line. "
     + "The complementary NiFi processor for fetching messages is ConsumePulsar.")
@@ -51,11 +52,10 @@ public class PublishPulsar extends AbstractPulsarProducerProcessor<byte[]> {
             return;
         }
 
-        final ComponentLog logger = getLogger();
         final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
 
         if (StringUtils.isBlank(topic)) {
-            logger.error("Invalid topic specified {}", new Object[] {topic});
+            getLogger().error("Invalid topic specified {}", new Object[] {topic});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -82,7 +82,7 @@ public class PublishPulsar extends AbstractPulsarProducerProcessor<byte[]> {
                 send(producer, session, flowFile, messageContent);
             }
         } catch (final PulsarClientException e) {
-            logger.error("Failed to connect to Pulsar Server due to {}", new Object[]{e});
+            getLogger().error("Failed to connect to Pulsar Server due to {}", new Object[]{e});
             session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
@@ -94,7 +94,7 @@ public class PublishPulsar extends AbstractPulsarProducerProcessor<byte[]> {
         if (msgId != null) {
             flowFile = session.putAttribute(flowFile, MSG_COUNT, "1");
             session.adjustCounter("Messages Sent", 1, true);
-            session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + producer.getTopic() );
+            session.getProvenanceReporter().send(flowFile, "Sent message " + msgId + " to " + getPulsarClientService().getPulsarBrokerRootURL() );
             session.transfer(flowFile, REL_SUCCESS);
         } else {
             session.transfer(flowFile, REL_FAILURE);

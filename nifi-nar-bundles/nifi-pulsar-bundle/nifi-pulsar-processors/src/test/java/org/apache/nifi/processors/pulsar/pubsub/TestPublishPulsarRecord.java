@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub;
 
-import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_READER;
-import static org.apache.nifi.processors.pulsar.pubsub.RecordBasedConst.RECORD_WRITER;
+import static org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord.RECORD_READER;
+import static org.apache.nifi.processors.pulsar.pubsub.PublishPulsarRecord.RECORD_WRITER;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -26,6 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.nifi.processors.pulsar.AbstractPulsarConsumerProcessorTest;
 import org.apache.nifi.processors.pulsar.AbstractPulsarProducerProcessor;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordParser;
 import org.apache.nifi.processors.pulsar.pubsub.mocks.MockRecordWriter;
@@ -37,7 +38,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPublishPulsarRecord extends AbstractPulsarProcessorTest<byte[]> {
+public class TestPublishPulsarRecord extends AbstractPulsarConsumerProcessorTest<byte[]> {
 
     protected static final String TOPIC_NAME = "unit-test";
 

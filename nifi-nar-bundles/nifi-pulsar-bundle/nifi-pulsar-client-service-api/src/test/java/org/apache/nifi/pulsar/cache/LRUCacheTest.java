@@ -25,20 +25,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
+@SuppressWarnings("rawtypes")
 public class LRUCacheTest {
-
-    //@Mock
-    //private ResourcePool<PulsarProducer> mockedResourcePool;
 
     @Mock
     private Producer mockedPulsarProducer;
 
-    @SuppressWarnings("unchecked")
     @Before
     public void setUp() throws InterruptedException {
-     // mockedResourcePool = mock(ResourcePool.class);
       mockedPulsarProducer = mock(Producer.class);
-     // when(mockedResourcePool.acquire(any(Properties.class))).thenReturn(mockedPulsarProducer);
     }
 
     /**
