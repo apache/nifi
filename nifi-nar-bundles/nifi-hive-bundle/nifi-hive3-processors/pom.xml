@@ -80,6 +80,10 @@
                         <groupId>org.json</groupId>
                         <artifactId>json</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-server</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
