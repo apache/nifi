@@ -1953,7 +1953,7 @@ image::PG1_process_group.png["PG1 Process Group"]
 
 The GetFile processor in PG1 references the variable "RPG_Var":
 
-image::PG1_variable_reference.png["PG1 References RPG Variable"]
+image::PG1_variable_ref_1.png["PG1 References RPG Variable"]
 
 PG1 is saved as a versioned flow:
 
