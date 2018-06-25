@@ -101,6 +101,8 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/avro/user.avsc</exclude>
+                        <exclude>src/test/resources/avro/user-with-array.avsc</exclude>
+                        <exclude>src/test/resources/avro/user-with-nullable-array.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>
