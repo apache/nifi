@@ -62,6 +62,8 @@ public class FetchParquetTest {
     static final String RECORD_HEADER = "name,favorite_number,favorite_color";
 
     private Schema schema;
+    private Schema schemaWithArray;
+    private Schema schemaWithNullableArray;
     private Configuration testConf;
     private FetchParquet proc;
     private TestRunner testRunner;
@@ -70,6 +72,12 @@ public class FetchParquetTest {
     public void setup() throws IOException, InitializationException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/avro/user.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
+
+        final String avroSchemaWithArray = IOUtils.toString(new FileInputStream("src/test/resources/avro/user-with-array.avsc"), StandardCharsets.UTF_8);
+        schemaWithArray = new Schema.Parser().parse(avroSchemaWithArray);
+
+        final String avroSchemaWithNullableArray = IOUtils.toString(new FileInputStream("src/test/resources/avro/user-with-nullable-array.avsc"), StandardCharsets.UTF_8);
+        schemaWithNullableArray = new Schema.Parser().parse(avroSchemaWithNullableArray);
 
         testConf = new Configuration();
         testConf.addResource(new Path(TEST_CONF_PATH));
@@ -243,6 +251,42 @@ public class FetchParquetTest {
         flowFile.assertContentEquals("TRIGGER");
     }
 
+    @Test
+    public void testFetchWithArray() throws InitializationException, IOException {
+        configure(proc);
+
+        final File parquetDir = new File(DIRECTORY);
+        final File parquetFile = new File(parquetDir,"testFetchParquetWithArrayToCSV.parquet");
+        final int numUsers = 10;
+        writeParquetUsersWithArray(parquetFile, numUsers);
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testFetchWithNullableArray() throws InitializationException, IOException {
+        configure(proc);
+
+        final File parquetDir = new File(DIRECTORY);
+        final File parquetFile = new File(parquetDir,"testFetchParquetWithNullableArrayToCSV.parquet");
+        final int numUsers = 10;
+        writeParquetUsersWithNullableArray(parquetFile, numUsers);
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
+        attributes.put(CoreAttributes.FILENAME.key(), parquetFile.getName());
+
+        testRunner.enqueue("TRIGGER", attributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+    }
+
     protected void verifyCSVRecords(int numUsers, String csvContent) {
         final String[] splits = csvContent.split("[\\n]");
         Assert.assertEquals(numUsers, splits.length);
@@ -271,6 +315,72 @@ public class FetchParquetTest {
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
                 user.put("favorite_color", "blue" + i);
+
+                writer.write(user);
+            }
+        }
+
+    }
+
+    private void writeParquetUsersWithArray(final File parquetFile, int numUsers) throws IOException {
+        if (parquetFile.exists()) {
+            Assert.assertTrue(parquetFile.delete());
+        }
+
+        final Path parquetPath = new Path(parquetFile.getPath());
+
+        final AvroParquetWriter.Builder<GenericRecord> writerBuilder = AvroParquetWriter
+                .<GenericRecord>builder(parquetPath)
+                .withSchema(schemaWithArray)
+                .withConf(testConf);
+
+        final Schema favoriteColorsSchema = schemaWithArray.getField("favorite_colors").schema();
+
+        try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
+            for (int i=0; i < numUsers; i++) {
+                final GenericRecord user = new GenericData.Record(schema);
+                user.put("name", "Bob" + i);
+                user.put("favorite_number", i);
+
+
+                final GenericData.Array<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
+                colors.add("blue" + i);
+
+                user.put("favorite_color", colors);
+
+                writer.write(user);
+            }
+        }
+
+    }
+
+    private void writeParquetUsersWithNullableArray(final File parquetFile, int numUsers) throws IOException {
+        if (parquetFile.exists()) {
+            Assert.assertTrue(parquetFile.delete());
+        }
+
+        final Path parquetPath = new Path(parquetFile.getPath());
+
+        final AvroParquetWriter.Builder<GenericRecord> writerBuilder = AvroParquetWriter
+                .<GenericRecord>builder(parquetPath)
+                .withSchema(schemaWithNullableArray)
+                .withConf(testConf);
+
+        // use the schemaWithArray here just to get the schema for the array part of the favorite_colors fields, the overall
+        // schemaWithNullableArray has a union of the array schema and null
+        final Schema favoriteColorsSchema = schemaWithArray.getField("favorite_colors").schema();
+
+        try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
+            for (int i=0; i < numUsers; i++) {
+                final GenericRecord user = new GenericData.Record(schema);
+                user.put("name", "Bob" + i);
+                user.put("favorite_number", i);
+
+
+                final GenericData.Array<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
+                colors.add("blue" + i);
+
+                user.put("favorite_color", colors);
 
                 writer.write(user);
             }
