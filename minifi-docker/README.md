@@ -13,7 +13,7 @@
   limitations under the License.
 -->
 
-Apache MiNiFi
+Apache NiFi - MiNiFi
 -------------
 A subproject of Apache NiFi and a complementary data collection approach that supplements the core tenets of NiFi in dataflow management, focusing on the collection of data at the source of its creation.
 

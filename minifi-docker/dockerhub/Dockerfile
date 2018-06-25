@@ -21,7 +21,7 @@ MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
 
 ARG UID=1000
 ARG GID=1000
-ARG MINIFI_VERSION=0.2.0
+ARG MINIFI_VERSION=0.5.0
 
 ENV MINIFI_BASE_DIR /opt/minifi
 ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION
@@ -34,6 +34,8 @@ RUN mkdir -p $MINIFI_HOME
 
 RUN apk --no-cache add curl
 
+ADD sh/ ${MINIFI_BASE_DIR}/scripts/
+
 # Download, validate, and expand Apache MiNiFi binary.
 RUN curl -fSL $MINIFI_BINARY_URL -o $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION-bin.tar.gz \
 	&& echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/minifi-$MINIFI_VERSION-bin.tar.gz" | sha256sum -c - \
@@ -45,4 +47,4 @@ RUN chown -R minifi:minifi $MINIFI_HOME
 USER minifi
 
 # Startup MiNiFi
-CMD $MINIFI_HOME/bin/minifi.sh run
+CMD ${MINIFI_BASE_DIR}/scripts/start.sh
