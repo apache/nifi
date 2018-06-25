@@ -520,29 +520,26 @@ public class JettyServer implements NiFiServer {
         try {
             // Load the nifi/docs directory
             final File docsDir = getDocsDir("docs");
-            final Resource docsResource = Resource.newResource(docsDir);
 
             // load the component documentation working directory
             final File componentDocsDirPath = props.getComponentDocumentationWorkingDirectory();
             final File workingDocsDirectory = getWorkingDocsDirectory(componentDocsDirPath);
-            final Resource workingDocsResource = Resource.newResource(workingDocsDirectory);
 
             // Load the API docs
             final File webApiDocsDir = getWebApiDocsDir();
-            final Resource webApiDocsResource = Resource.newResource(webApiDocsDir);
 
             // Create the servlet which will serve the static resources
             ServletHolder defaultHolder = new ServletHolder("default", DefaultServlet.class);
             defaultHolder.setInitParameter("dirAllowed", "false");
 
             ServletHolder docs = new ServletHolder("docs", DefaultServlet.class);
-            docs.setInitParameter("resourceBase", docsResource.getURI().toString());
+            docs.setInitParameter("resourceBase", docsDir.getPath());
 
             ServletHolder components = new ServletHolder("components", DefaultServlet.class);
-            components.setInitParameter("resourceBase", workingDocsResource.getURI().toString());
+            components.setInitParameter("resourceBase", workingDocsDirectory.getPath());
 
             ServletHolder restApi = new ServletHolder("rest-api", DefaultServlet.class);
-            restApi.setInitParameter("resourceBase", webApiDocsResource.getURI().toString());
+            restApi.setInitParameter("resourceBase", webApiDocsDir.getPath());
 
             docsContext.addServlet(docs, "/html/*");
             docsContext.addServlet(components, "/components/*");
