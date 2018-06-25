@@ -894,13 +894,23 @@ public class AvroTypeUtil {
             case STRING:
                 return value.toString();
             case ARRAY:
-                final GenericData.Array<?> array = (GenericData.Array<?>) value;
-                final Object[] valueArray = new Object[array.size()];
-                for (int i = 0; i < array.size(); i++) {
-                    final Schema elementSchema = avroSchema.getElementType();
-                    valueArray[i] = normalizeValue(array.get(i), elementSchema, fieldName + "[" + i + "]");
+                if (value instanceof List) {
+                    final List<?> list = (List<?>) value;
+                    final Object[] valueArray = new Object[list.size()];
+                    for (int i = 0; i < list.size(); i++) {
+                        final Schema elementSchema = avroSchema.getElementType();
+                        valueArray[i] = normalizeValue(list.get(i), elementSchema, fieldName + "[" + i + "]");
+                    }
+                    return valueArray;
+                } else {
+                    final GenericData.Array<?> array = (GenericData.Array<?>) value;
+                    final Object[] valueArray = new Object[array.size()];
+                    for (int i = 0; i < array.size(); i++) {
+                        final Schema elementSchema = avroSchema.getElementType();
+                        valueArray[i] = normalizeValue(array.get(i), elementSchema, fieldName + "[" + i + "]");
+                    }
+                    return valueArray;
                 }
-                return valueArray;
             case MAP:
                 final Map<?, ?> avroMap = (Map<?, ?>) value;
                 final Map<String, Object> map = new HashMap<>(avroMap.size());
