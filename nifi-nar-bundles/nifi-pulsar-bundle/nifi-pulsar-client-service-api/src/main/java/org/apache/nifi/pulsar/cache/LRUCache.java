@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.pulsar.cache;
 
+import java.io.Closeable;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 
-public class LRUCache<K, V> {
+public class LRUCache<K, V extends Closeable> {
 
     private LinkedHashMap<K, V> lruCacheMap;
     private final int capacity;
@@ -36,11 +37,15 @@ public class LRUCache<K, V> {
     }
 
     public void put(K k, V v){
-        if(lruCacheMap.containsKey(k)){
-            lruCacheMap.remove(k);
+
+        if (k == null || v == null) {
+          return;
+        }
+
+        if (lruCacheMap.containsKey(k)) {
+           evict(k);
         } else if(lruCacheMap.size() >= capacity){
-            K victimKey = lruCacheMap.keySet().iterator().next();
-            lruCacheMap.remove(victimKey);
+           evict(lruCacheMap.keySet().iterator().next());
         }
         lruCacheMap.put(k, v);
     }
@@ -50,6 +55,13 @@ public class LRUCache<K, V> {
     }
 
     public void clear() {
+        lruCacheMap.values().stream().forEach(c -> {
+            try {
+               c.close();
+            } catch (Exception e) {
+               // Ignore these
+            }
+        });
         lruCacheMap.clear();
     }
 
@@ -59,5 +71,14 @@ public class LRUCache<K, V> {
 
     public Collection<V> getValues() {
        return lruCacheMap.values();
+    }
+
+    private void evict(K victimKey) {
+        try {
+          lruCacheMap.get(victimKey).close();
+        } catch (Exception e) {
+          // Ignore these
+        }
+        lruCacheMap.remove(victimKey);
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.pulsar;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -283,15 +284,6 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
 
     @OnStopped
     public void cleanUp(final ProcessContext context) {
-       // Close all of the Producers
-       getConsumers().getValues().stream().forEach(c -> {
-          try {
-             c.close();
-          } catch (PulsarClientException e) {
-             e.printStackTrace();
-          }
-        });
-
        getConsumers().clear();
     }
 
@@ -311,7 +303,13 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
         } else {
           sb.append(context.getProperty(TOPICS_PATTERN).getValue());
         }
-        return sb.append("-").append(context.getProperty(SUBSCRIPTION_NAME).getValue()).toString();
+
+        sb.append("-").append(context.getProperty(SUBSCRIPTION_NAME).getValue());
+
+        if (context.getProperty(CONSUMER_NAME).isSet()) {
+           sb.append("-").append(context.getProperty(CONSUMER_NAME).getValue());
+        }
+        return sb.toString();
     }
 
     protected void consumeAsync(final Consumer<T> consumer, ProcessContext context, ProcessSession session) throws PulsarClientException {
@@ -344,13 +342,14 @@ public abstract class AbstractPulsarConsumerProcessor<T> extends AbstractProcess
         ConsumerBuilder<T> builder = (ConsumerBuilder<T>) getPulsarClientService().getPulsarClient().newConsumer();
 
         if (context.getProperty(TOPICS).isSet()) {
-           builder = builder.topic(context.getProperty(TOPICS).evaluateAttributeExpressions().getValue().split("[, ]"));
+           builder = builder.topic(Arrays.stream(context.getProperty(TOPICS).evaluateAttributeExpressions().getValue().split("[, ]"))
+                                         .map(String::trim).toArray(String[]::new));
         } else if (context.getProperty(TOPICS_PATTERN).isSet()) {
            builder = builder.topicsPattern(context.getProperty(TOPICS_PATTERN).getValue());
         }
 
         if (context.getProperty(CONSUMER_NAME).isSet()) {
-            builder = builder.consumerName(context.getProperty(CONSUMER_NAME).getValue());
+           builder = builder.consumerName(context.getProperty(CONSUMER_NAME).getValue());
         }
 
         return builder.subscriptionName(context.getProperty(SUBSCRIPTION_NAME).getValue())
