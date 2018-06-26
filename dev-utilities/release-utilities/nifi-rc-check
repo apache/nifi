@@ -20,7 +20,7 @@ shopt -s nocasematch
 function print_help {
   echo " "
   echo "usage: ${0}"
-  echo "    -v/--version=<version>   The version of the Nifi release. [Required]"
+  echo "    -v/--version=<version>   The version of the NiFi release. [Required]"
   echo "    -c/--candidate=<RC#>      Defines the Release Candidate. [Required]"
   echo "    -h/--help                Usage information."
   echo " "
@@ -204,12 +204,12 @@ if ! gpg --import KEYS ; then
 fi
 
 print_section_item "Verifying Nifi Assembly"
-if ! gpg --verify ./"nifi-$NIFI_VERSION-source-release.zip.asc" "nifi-$NIFI_VERSION-source-release.zip" ; then
+if ! gpg --verify -v ./"nifi-$NIFI_VERSION-source-release.zip.asc" "nifi-$NIFI_VERSION-source-release.zip" ; then
   print_error "failed to verify Nifi Assembly"
   exit 1
 fi
 
-LOCAL_SHA1="$(sha1sum ${LOCAL_ASSEMBLY} | cut -d' ' -f1)";
+LOCAL_SHA1="$(shasum -a 1 ${LOCAL_ASSEMBLY} | cut -d' ' -f1)";
 REMOTE_SHA1="$(curl -s ${NIFI_ASSEMBLY_SHA1})"
 print_section_item "Verifying Nifi Assembly SHA1"
 if [ "${LOCAL_SHA1}" = "${REMOTE_SHA1}" ] ; then
@@ -286,7 +286,7 @@ read -p " Build Nifi and run contrib check? [yN]" -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   print_section_item "Performing build with contrib-check"
-  if ! mvn -f nifi-${NIFI_VERSION}/pom.xml clean install -Pcontrib-check ; then
+  if ! mvn -f nifi-${NIFI_VERSION}/pom.xml clean install -Pcontrib-check -Pinclude-grpc ; then
     print_error "[ERROR] failed to mvn install metron"
     exit 1
   fi
