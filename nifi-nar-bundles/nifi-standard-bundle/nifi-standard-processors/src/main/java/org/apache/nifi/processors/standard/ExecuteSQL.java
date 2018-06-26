@@ -100,6 +100,8 @@ public class ExecuteSQL extends AbstractProcessor {
 
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
     public static final String RESULT_QUERY_DURATION = "executesql.query.duration";
+    public static final String RESULT_QUERY_EXECUTION_TIME = "executesql.query.executiontime";
+    public static final String RESULT_QUERY_FETCH_TIME = "executesql.query.fetchtime";
     public static final String RESULTSET_INDEX = "executesql.resultset.index";
 
     // Relationships
@@ -203,7 +205,6 @@ public class ExecuteSQL extends AbstractProcessor {
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(fileToProcess).asInteger();
         final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(fileToProcess).asInteger();
-        final StopWatch stopWatch = new StopWatch(true);
         final String selectQuery;
         if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
             selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
@@ -224,7 +225,12 @@ public class ExecuteSQL extends AbstractProcessor {
                 JdbcCommon.setParameters(st, fileToProcess.getAttributes());
             }
             logger.debug("Executing query {}", new Object[]{selectQuery});
+            final StopWatch executionTime = new StopWatch(true);
+
             boolean hasResults = st.execute();
+
+            long executionTimeElapsed = executionTime.getElapsed(TimeUnit.MILLISECONDS);
+
             boolean hasUpdateCount = st.getUpdateCount() != -1;
 
             while(hasResults || hasUpdateCount) {
@@ -237,6 +243,8 @@ public class ExecuteSQL extends AbstractProcessor {
                         resultSetFF = session.create(fileToProcess);
                         resultSetFF = session.putAllAttributes(resultSetFF, fileToProcess.getAttributes());
                     }
+
+                    final StopWatch fetchTime = new StopWatch(true);
 
                     final AtomicLong nrOfRows = new AtomicLong(0L);
                     resultSetFF = session.write(resultSetFF, out -> {
@@ -255,17 +263,19 @@ public class ExecuteSQL extends AbstractProcessor {
                         }
                     });
 
-                    long duration = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+                    long fetchTimeElapsed = fetchTime.getElapsed(TimeUnit.MILLISECONDS);
 
                     // set attribute how many rows were selected
                     resultSetFF = session.putAttribute(resultSetFF, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
-                    resultSetFF = session.putAttribute(resultSetFF, RESULT_QUERY_DURATION, String.valueOf(duration));
+                    resultSetFF = session.putAttribute(resultSetFF, RESULT_QUERY_DURATION, String.valueOf(executionTimeElapsed + fetchTimeElapsed));
+                    resultSetFF = session.putAttribute(resultSetFF, RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
+                    resultSetFF = session.putAttribute(resultSetFF, RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
                     resultSetFF = session.putAttribute(resultSetFF, CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
                     resultSetFF = session.putAttribute(resultSetFF, RESULTSET_INDEX, String.valueOf(resultCount));
 
                     logger.info("{} contains {} Avro records; transferring to 'success'",
                             new Object[]{resultSetFF, nrOfRows.get()});
-                    session.getProvenanceReporter().modifyContent(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", duration);
+                    session.getProvenanceReporter().modifyContent(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
                     session.transfer(resultSetFF, REL_SUCCESS);
 
                     resultCount++;
