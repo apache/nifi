@@ -218,6 +218,14 @@ The following binary components are provided under the Apache Software License v
         Copyright 2006 - 2013 Pentaho Corporation.  All rights reserved.
         Copyright 2000-2005, 2014-2016 Julian Hyde
 
+  (ASLv2) simple-syslog-5424
+    The following NOTICE information applies:
+
+        simple-syslog-5424
+        https://github.com/palindromicity/simple-syslog-5424
+
+        Copyright 2018 simple-syslog-5424 authors.
+
 ************************
 Common Development and Distribution License 1.1
 ************************
