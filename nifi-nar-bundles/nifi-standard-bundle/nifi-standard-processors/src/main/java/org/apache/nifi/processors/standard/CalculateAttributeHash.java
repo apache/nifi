@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @SupportsBatching
 @Tags({"attributes", "hash"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Calculates a hash value for the value specified attributes and write it to an output attribute")
+@CapabilityDescription("Calculates a hash value for the value specified attributes and write it to an output attribute.  Please refer to https://csrc.nist.gov/Projects/Hash-Functions/NIST-Policy-on-Hash-Functions help decide on which algorithm to use.")
 @WritesAttribute(attribute = "<Specified Attribute Name per Dynamic Property>", description = "This Processor adds an attribute whose value is the result of "
         + "Hashing of the found attribute. The name of this attribute is specified by the value of the dynamic property.")
 @DynamicProperty(name = "A flowfile attribute key for attribute inspection", value = "Attribute Name",
@@ -77,7 +77,8 @@ public class CalculateAttributeHash extends AbstractProcessor {
     public static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
             .name("hash_algorithm")
             .displayName("Hash Algorithm")
-            .description("The Hash Algorithm to use")
+            .description("The Hash Algorithm to use.  Note that not all of the algorithms available are recommended for use.  " +
+            "There are many things to consider when picking an algorithm, it is recommended that use most secure algorithm when possible.")
             .required(true)
             .allowableValues(MD2_VALUE, MD5_VALUE, SHA1_VALUE, SHA256_VALUE, SHA384_VALUE, SHA512_VALUE)
             .defaultValue(SHA256_VALUE.getValue())
