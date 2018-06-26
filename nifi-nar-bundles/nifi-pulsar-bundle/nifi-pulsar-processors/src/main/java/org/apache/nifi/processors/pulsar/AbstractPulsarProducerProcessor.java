@@ -25,7 +25,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -41,6 +40,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.pulsar.pubsub.InFlightMessageMonitor;
 import org.apache.nifi.pulsar.PulsarClientService;
 import org.apache.nifi.pulsar.cache.LRUCache;
 import org.apache.pulsar.client.api.CompressionType;
@@ -162,6 +162,18 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
             .defaultValue(COMPRESSION_TYPE_NONE.getValue())
             .build();
 
+    public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
+            .name("message-demarcator")
+            .displayName("Message Demarcator")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .description("Specifies the string (interpreted as UTF-8) to use for demarcating multiple messages within "
+                + "a single FlowFile. If not specified, the entire content of the FlowFile will be used as a single message. If specified, the "
+                + "contents of the FlowFile will be split on this delimiter and each section sent as a separate Pulsar message. "
+                + "To enter special character such as 'new line' use CTRL+Enter or Shift+Enter, depending on your OS.")
+            .build();
+
     public static final PropertyDescriptor MESSAGE_ROUTING_MODE = new PropertyDescriptor.Builder()
             .name("Message Routing Mode")
             .description("Set the message routing mode for the producer. This applies only if the destination topic is partitioned")
@@ -194,6 +206,7 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
         properties.add(BLOCK_IF_QUEUE_FULL);
         properties.add(COMPRESSION_TYPE);
         properties.add(MESSAGE_ROUTING_MODE);
+        properties.add(MESSAGE_DEMARCATOR);
         properties.add(PENDING_MAX_MESSAGES);
         PROPERTIES = Collections.unmodifiableList(properties);
 
@@ -248,68 +261,83 @@ public abstract class AbstractPulsarProducerProcessor<T> extends AbstractProcess
 
     @OnStopped
     public void cleanUp(final ProcessContext context) {
-       // Close all of the Producers
-       getProducers().getValues().stream().forEach(p -> {
-          try {
-            p.close();
-          } catch (PulsarClientException e) {
-            e.printStackTrace();
-          }
-       });
-
        getProducers().clear();
     }
 
-    @SuppressWarnings("rawtypes")
-    protected void sendAsync(final Producer producer, final ProcessSession session, final byte[] messageContent) {
-        try {
-            getPublisherService().submit(new Callable<Object>() {
-               @Override
-               public Object call() throws Exception {
-                 try {
-                     return producer.newMessage().value(messageContent).sendAsync().handle((msgId, ex) -> {
-                        if (msgId != null) {
-                           return msgId;
-                        } else {
-                           FlowFile flowFile = session.create();
-                           session.transfer(flowFile, REL_FAILURE);
-                           return null;
-                        }
-                   }).get();
-                 } catch (final Throwable t) {
-                   getLogger().error("Unable to send message to Pulsar asyncronously.", t);
-                   session.transfer(session.create(), REL_FAILURE);
-                   return null;
-                 }
-              }
+    protected void sendAsync(Producer<byte[]> producer, ProcessSession session, FlowFile flowFile, InFlightMessageMonitor<byte[]> monitor) {
+        if (monitor == null || monitor.getRecords().isEmpty())
+           return;
+
+        for (byte[] record: monitor.getRecords() ) {
+           try {
+              getPublisherService().submit(new Callable<Object>() {
+                @Override
+                public Object call() throws Exception {
+                  try {
+                     return producer.sendAsync(record).handle((msgId, ex) -> {
+                         if (msgId != null) {
+                            monitor.getSuccessCounter().incrementAndGet();
+                            return msgId;
+                         } else {
+                            monitor.getFailureCounter().incrementAndGet();
+                            monitor.getFailures().add(record);
+                            return null;
+                         }
+                     }).get();
+
+                   } catch (final Throwable t) {
+                      // This traps any exceptions thrown while calling the producer.sendAsync() method.
+                      monitor.getFailureCounter().incrementAndGet();
+                      monitor.getFailures().add(record);
+                      return null;
+                   } finally {
+                      monitor.getLatch().countDown();
+                   }
+               }
              });
-        } catch (final RejectedExecutionException ex) {
-           getLogger().error("Unable to send message to Pulsar asyncronously, due to RejectedExecutionException: ", ex);
-           session.transfer(session.create(), REL_FAILURE);
-        }
+          } catch (final RejectedExecutionException ex) {
+            // This can happen if the processor is being Unscheduled.
+          }
+       }
     }
 
-    protected void handleAsync() {
-        try {
-           Future<Object> done = null;
-           do {
-              done = getPublisherService().poll(50, TimeUnit.MILLISECONDS);
-           } while (done != null);
+    protected void handleAsync(InFlightMessageMonitor<byte[]> monitor, ProcessSession session, FlowFile flowFile, String topic) {
+       try {
+           monitor.getLatch().await();
+
+           if (monitor.getSuccessCounter().intValue() > 0) {
+               // Report the number of messages successfully sent to Pulsar.
+               session.getProvenanceReporter().send(flowFile, "Sent " + monitor.getSuccessCounter().get() + " records to " + getPulsarClientService().getPulsarBrokerRootURL() );
+           }
+
+           if (monitor.getFailureCounter().intValue() > 0) {
+              session.putAttribute(flowFile, MSG_COUNT, String.valueOf(monitor.getFailureCounter().get()));
+              session.transfer(flowFile, REL_FAILURE);
+           } else {
+               flowFile = session.putAttribute(flowFile, MSG_COUNT, monitor.getSuccessCounter().get() + "");
+               flowFile = session.putAttribute(flowFile, TOPIC_NAME, topic);
+               session.adjustCounter("Messages Sent", monitor.getSuccessCounter().get(), true);
+               session.transfer(flowFile, REL_SUCCESS);
+           }
         } catch (InterruptedException e) {
-           getLogger().error("Trouble publishing messages ", e);
+          getLogger().error("Pulsar did not receive all async messages", e);
         }
     }
 
-    protected Producer<T> getProducer(ProcessContext context, String topic) throws PulsarClientException {
+    protected Producer<T> getProducer(ProcessContext context, String topic) {
         Producer<T> producer = getProducers().get(topic);
 
-        if (producer != null) {
-          return producer;
-        }
-
-        producer = getBuilder(context, topic).create();
-        if (producer != null) {
-          getProducers().put(topic, producer);
+        try {
+            if (producer != null) {
+              return producer;
+            }
+            producer = getBuilder(context, topic).create();
+            if (producer != null) {
+              getProducers().put(topic, producer);
+            }
+        } catch (PulsarClientException e) {
+            getLogger().error("Unable to create Pulsar Producer ", e);
+            producer = null;
         }
         return producer;
     }

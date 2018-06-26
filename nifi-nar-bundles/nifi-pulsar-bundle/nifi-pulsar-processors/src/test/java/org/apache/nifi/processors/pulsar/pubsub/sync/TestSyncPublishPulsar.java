@@ -124,4 +124,25 @@ public class TestSyncPublishPulsar extends TestPublishPulsar {
         // Verify that the send method on the producer was called with the expected content
         verify(mockClientService.getMockProducer(), times(20)).send(content.getBytes());
     }
+
+    @Test
+    public void demarcatedFlowFileTest() throws UnsupportedEncodingException, PulsarClientException {
+        final String content = "some content";
+        final String demarcator = "\n";
+        when(mockClientService.getMockProducer().getTopic()).thenReturn("my-topic");
+
+        runner.setProperty(PublishPulsar.TOPIC, "my-topic");
+        runner.setProperty(PublishPulsar.MESSAGE_DEMARCATOR, demarcator);
+
+        final StringBuffer sb = new StringBuffer();
+
+        for (int idx = 0; idx < 20; idx++) {
+           sb.append(content).append(demarcator);
+        }
+
+        runner.enqueue(sb.toString().getBytes("UTF-8"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+        verify(mockClientService.getMockProducer(), times(20)).send(content.getBytes());
+    }
 }

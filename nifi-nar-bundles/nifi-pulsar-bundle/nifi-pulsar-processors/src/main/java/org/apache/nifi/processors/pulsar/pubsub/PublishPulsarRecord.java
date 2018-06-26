@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -123,7 +121,7 @@ public class PublishPulsarRecord extends AbstractPulsarProducerProcessor<byte[]>
             final Producer<byte[]> producer = getProducer(context, topic);
 
             if (context.getProperty(ASYNC_ENABLED).isSet() && context.getProperty(ASYNC_ENABLED).asBoolean()) {
-               InFlightMessageMonitor bundle = getInFlightMessages(writerFactory, schema, recordSet);
+               InFlightMessageMonitor<byte[]> bundle = getInFlightMessages(writerFactory, schema, recordSet);
                sendAsync(producer, session, flowFile, bundle);
                handleAsync(bundle, session, flowFile, topic);
            } else {
@@ -163,7 +161,7 @@ public class PublishPulsarRecord extends AbstractPulsarProducerProcessor<byte[]>
         return recordCount;
     }
 
-    private InFlightMessageMonitor getInFlightMessages(RecordSetWriterFactory writerFactory, RecordSchema schema, RecordSet recordSet) throws IOException, SchemaNotFoundException {
+    private InFlightMessageMonitor<byte[]> getInFlightMessages(RecordSetWriterFactory writerFactory, RecordSchema schema, RecordSet recordSet) throws IOException, SchemaNotFoundException {
         ArrayList<byte[]> records = new ArrayList<byte[]>();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
 
@@ -177,66 +175,6 @@ public class PublishPulsarRecord extends AbstractPulsarProducerProcessor<byte[]>
             }
             records.add(baos.toByteArray());
         }
-        return new InFlightMessageMonitor(records);
-    }
-
-    protected void sendAsync(Producer<byte[]> producer, ProcessSession session, FlowFile flowFile, InFlightMessageMonitor monitor) {
-        if (monitor == null || monitor.getRecords().isEmpty())
-           return;
-
-        for (byte[] record: monitor.getRecords() ) {
-           try {
-              getPublisherService().submit(new Callable<Object>() {
-                @Override
-                public Object call() throws Exception {
-                  try {
-                     return producer.sendAsync(record).handle((msgId, ex) -> {
-                         if (msgId != null) {
-                            monitor.getSuccessCounter().incrementAndGet();
-                            return msgId;
-                         } else {
-                            monitor.getFailureCounter().incrementAndGet();
-                            monitor.getFailures().add(record);
-                            return null;
-                         }
-                     }).get();
-
-                   } catch (final Throwable t) {
-                      // This traps any exceptions thrown while calling the producer.sendAsync() method.
-                      monitor.getFailureCounter().incrementAndGet();
-                      monitor.getFailures().add(record);
-                      return null;
-                   } finally {
-                      monitor.getLatch().countDown();
-                   }
-               }
-             });
-          } catch (final RejectedExecutionException ex) {
-            // This can happen if the processor is being Unscheduled.
-          }
-       }
-    }
-
-    private void handleAsync(InFlightMessageMonitor monitor, ProcessSession session, FlowFile flowFile, String topic) {
-       try {
-           monitor.getLatch().await();
-
-           if (monitor.getSuccessCounter().intValue() > 0) {
-               // Report the number of messages successfully sent to Pulsar.
-               session.getProvenanceReporter().send(flowFile, "Sent " + monitor.getSuccessCounter().get() + " records to " + getPulsarClientService().getPulsarBrokerRootURL() );
-           }
-
-           if (monitor.getFailureCounter().intValue() > 0) {
-              session.putAttribute(flowFile, MSG_COUNT, String.valueOf(monitor.getFailureCounter().get()));
-              session.transfer(flowFile, REL_FAILURE);
-           } else {
-               flowFile = session.putAttribute(flowFile, MSG_COUNT, monitor.getSuccessCounter().get() + "");
-               flowFile = session.putAttribute(flowFile, TOPIC_NAME, topic);
-               session.adjustCounter("Messages Sent", monitor.getSuccessCounter().get(), true);
-               session.transfer(flowFile, REL_SUCCESS);
-           }
-        } catch (InterruptedException e) {
-          getLogger().error("Pulsar did not receive all async messages", e);
-        }
+        return new InFlightMessageMonitor<byte[]>(records);
     }
 }

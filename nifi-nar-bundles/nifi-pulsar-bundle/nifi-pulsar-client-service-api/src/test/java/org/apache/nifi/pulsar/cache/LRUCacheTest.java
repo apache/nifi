@@ -17,6 +17,7 @@
 package org.apache.nifi.pulsar.cache;
 
 import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -24,6 +25,8 @@ import org.mockito.Mock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("rawtypes")
 public class LRUCacheTest {
@@ -98,16 +101,18 @@ public class LRUCacheTest {
     }
 
     @Test
-    public void clearTest() {
+    public void clearTest() throws PulsarClientException {
        LRUCache<String, Producer> cache = new LRUCache<String, Producer>(26);
 
-       for (Character i='A'; i<='Z'; i++){
+       for (Character i='A'; i<='Z'; i++) {
           cache.put(i.toString(), mockedPulsarProducer);
-        }
+       }
 
        // Make sure we only have all the items in the cache
        assertEquals(26, cache.getSize());
        cache.clear();
+
+       verify(mockedPulsarProducer, times(26)).close();
 
        // Make sure all the items were removed
        assertEquals(0, cache.getSize());

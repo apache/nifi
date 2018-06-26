@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.pulsar.pubsub.async;
 
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,14 +46,35 @@ public class TestAsyncPublishPulsar extends TestPublishPulsar {
         verify(mockClientService.getMockProducerBuilder(), times(1)).topic("my-topic");
 
         // Verify that the send method on the producer was called with the expected content
-        verify(mockClientService.getMockTypedMessageBuilder(), times(1)).value(content.getBytes());
-        verify(mockClientService.getMockTypedMessageBuilder(), times(1)).sendAsync();
+        verify(mockClientService.getMockProducer(), times(1)).sendAsync(content.getBytes());
     }
 
     @Test
-    public void failureTest() throws UnsupportedEncodingException {
+    public void demarcatedFlowFileTest() throws UnsupportedEncodingException, PulsarClientException {
+        final String content = "some content";
+        final String demarcator = "\n";
+        when(mockClientService.getMockProducer().getTopic()).thenReturn("my-topic");
 
-        when(mockClientService.getMockTypedMessageBuilder().sendAsync()).thenThrow(PulsarClientException.class);
+        runner.setProperty(PublishPulsar.TOPIC, "my-topic");
+        runner.setProperty(PublishPulsar.MESSAGE_DEMARCATOR, demarcator);
+        runner.setProperty(PublishPulsar.ASYNC_ENABLED, Boolean.TRUE.toString());
+
+        final StringBuffer sb = new StringBuffer();
+
+        for (int idx = 0; idx < 20; idx++) {
+           sb.append(content).append(demarcator);
+        }
+
+        runner.enqueue(sb.toString().getBytes("UTF-8"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
+        verify(mockClientService.getMockProducer(), times(20)).sendAsync(content.getBytes());
+    }
+
+    @Test
+    public void pulsarClientExceptionTest() throws UnsupportedEncodingException {
+
+        when(mockClientService.getMockProducer().sendAsync(any(byte[].class))).thenThrow(PulsarClientException.class);
         when(mockClientService.getMockProducer().getTopic()).thenReturn("my-topic");
 
         runner.setProperty(PublishPulsar.TOPIC, "my-topic");
@@ -81,8 +103,7 @@ public class TestAsyncPublishPulsar extends TestPublishPulsar {
         }
 
         // Verify that the send method on the producer was called with the expected content
-        verify(mockClientService.getMockTypedMessageBuilder(), times(20)).value(content.getBytes());
-        verify(mockClientService.getMockTypedMessageBuilder(), times(20)).sendAsync();
+        verify(mockClientService.getMockProducer(), times(20)).sendAsync(content.getBytes());
     }
 
     @Test
@@ -100,7 +121,6 @@ public class TestAsyncPublishPulsar extends TestPublishPulsar {
             runner.assertAllFlowFilesTransferred(PublishPulsar.REL_SUCCESS);
         }
 
-        verify(mockClientService.getMockTypedMessageBuilder(), times(50)).value(content.getBytes());
-        verify(mockClientService.getMockTypedMessageBuilder(), times(50)).sendAsync();
+        verify(mockClientService.getMockProducer(), times(50)).sendAsync(content.getBytes());
     }
 }

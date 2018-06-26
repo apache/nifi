@@ -26,19 +26,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  * of records to Apache Pulsar.
  *
  */
-public class InFlightMessageMonitor {
+public class InFlightMessageMonitor<T> {
 
-    private List<byte[]> records;
+    private List<T> records;
     private AtomicInteger successCounter;
     private AtomicInteger failureCounter;
-    private List<byte[]> failures;
+    private List<T> failures;
     private CountDownLatch latch;
 
-    public InFlightMessageMonitor(List<byte[]> records) {
+    public InFlightMessageMonitor(List<T> records) {
         this.records = records;
         this.successCounter = new AtomicInteger(0);
         this.failureCounter = new AtomicInteger(0);
-        this.failures = new ArrayList<byte[]>();
+        this.failures = new ArrayList<T>();
         this.latch = new CountDownLatch(records.size());
     }
 
@@ -46,11 +46,11 @@ public class InFlightMessageMonitor {
         return latch;
     }
 
-    public List<byte[]> getRecords() {
+    public List<T> getRecords() {
         return records;
     }
 
-    public List<byte[]> getFailures() {
+    public List<T> getFailures() {
         return failures;
     }
 
