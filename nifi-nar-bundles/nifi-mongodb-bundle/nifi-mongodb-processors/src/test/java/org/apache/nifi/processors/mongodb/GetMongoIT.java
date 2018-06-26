@@ -406,7 +406,6 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
-
     }
 
     @Test
@@ -444,6 +443,27 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testKeepOriginalAttributes() {
+        final String query = "{ \"c\": { \"$gte\": 4 }}";
+        final Map<String, String> attributesMap = new HashMap<>(1);
+        attributesMap.put("property.1", "value-1");
+
+        runner.setIncomingConnection(true);
+        runner.removeProperty(GetMongo.QUERY);
+        runner.enqueue(query, attributesMap);
+
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
+        Assert.assertTrue(flowFile.getAttributes().containsKey("property.1"));
+        flowFile.assertAttributeEquals("property.1", "value-1");
     }
     /*
      * End query read behavior tests

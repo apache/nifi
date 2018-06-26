@@ -45,6 +45,7 @@ import org.bson.json.JsonWriterSettings;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -209,6 +210,8 @@ public class GetMongo extends AbstractMongoProcessor {
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 
         final Document query;
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue());
+
         String queryStr;
         if (context.getProperty(QUERY).isSet()) {
             queryStr = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
@@ -268,7 +271,7 @@ public class GetMongo extends AbstractMongoProcessor {
             final MongoCursor<Document> cursor = it.iterator();
             ComponentLog log = getLogger();
             try {
-                FlowFile flowFile = null;
+                FlowFile outgoingFlowFile;
                 if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
                     int ceiling = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
                     List<Document> batch = new ArrayList<>();
@@ -297,21 +300,20 @@ public class GetMongo extends AbstractMongoProcessor {
                     }
                 } else {
                     while (cursor.hasNext()) {
-                        final FlowFile ffPtr = input;
-                        flowFile = session.create();
-                        flowFile = session.write(flowFile, out -> {
+                        outgoingFlowFile = (input == null) ? session.create() : session.create(input);
+                        outgoingFlowFile = session.write(outgoingFlowFile, out -> {
                             String json;
                             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
                                 json = getObjectWriter(objectMapper, usePrettyPrint).writeValueAsString(cursor.next());
                             } else {
                                 json = cursor.next().toJson();
                             }
-                            out.write(json.getBytes(context.getProperty(CHARSET).evaluateAttributeExpressions(ffPtr).getValue()));
+                            out.write(json.getBytes(charset));
                         });
-                        flowFile = session.putAllAttributes(flowFile, attributes);
+                        outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
 
-                        session.getProvenanceReporter().receive(flowFile, getURI(context));
-                        session.transfer(flowFile, REL_SUCCESS);
+                        session.getProvenanceReporter().receive(outgoingFlowFile, getURI(context));
+                        session.transfer(outgoingFlowFile, REL_SUCCESS);
                     }
                 }
 
