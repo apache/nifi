@@ -312,9 +312,17 @@ public class TestExecuteSQL {
         runner.run();
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, ExecuteSQL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, ExecuteSQL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, ExecuteSQL.RESULT_QUERY_FETCH_TIME);
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, ExecuteSQL.RESULT_ROW_COUNT);
 
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
+        final long executionTime = Long.parseLong(flowfiles.get(0).getAttribute(ExecuteSQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowfiles.get(0).getAttribute(ExecuteSQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowfiles.get(0).getAttribute(ExecuteSQL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
+
         final InputStream in = new ByteArrayInputStream(flowfiles.get(0).toByteArray());
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
