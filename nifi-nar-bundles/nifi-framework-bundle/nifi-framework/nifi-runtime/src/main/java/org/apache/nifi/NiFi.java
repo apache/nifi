@@ -191,16 +191,20 @@ public class NiFi {
         SLF4JBridgeHandler.install();
     }
 
-    private static ClassLoader createBootstrapClassLoader() throws IOException {
+    private static ClassLoader createBootstrapClassLoader() {
         //Get list of files in bootstrap folder
         final List<URL> urls = new ArrayList<>();
-        Files.list(Paths.get("lib/bootstrap")).forEach(p -> {
-            try {
-                urls.add(p.toUri().toURL());
-            } catch (final MalformedURLException mef) {
-                LOGGER.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
-            }
-        });
+        try {
+            Files.list(Paths.get("lib/bootstrap")).forEach(p -> {
+                try {
+                    urls.add(p.toUri().toURL());
+                } catch (final MalformedURLException mef) {
+                    LOGGER.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
+                }
+            });
+        } catch (IOException ioe) {
+            LOGGER.warn("Unable to access lib/bootstrap to create bootstrap classloader", ioe);
+        }
         //Create the bootstrap classloader
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
@@ -295,7 +299,7 @@ public class NiFi {
         }
     }
 
-    protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args) throws IOException {
+    protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args) {
         final ClassLoader bootstrap = createBootstrapClassLoader();
         NiFiProperties properties = initializeProperties(args, bootstrap);
         properties.validate();
@@ -327,7 +331,10 @@ public class NiFi {
             final NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
             LOGGER.info("Loaded {} properties", properties.size());
             return properties;
-        } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException reex) {
+        } catch (InvocationTargetException wrappedException) {
+            final String msg = "There was an issue decrypting protected properties";
+            throw new IllegalArgumentException(msg, wrappedException.getCause() == null ? wrappedException : wrappedException.getCause());
+        } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException reex) {
             final String msg = "Unable to access properties loader in the expected manner - apparent classpath or build issue";
             throw new IllegalArgumentException(msg, reex);
         } catch (final RuntimeException e) {
