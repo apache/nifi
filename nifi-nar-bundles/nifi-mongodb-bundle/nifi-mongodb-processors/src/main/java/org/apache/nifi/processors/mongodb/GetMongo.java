@@ -281,7 +281,7 @@ public class GetMongo extends AbstractMongoProcessor {
                                     log.debug("Writing batch...");
                                 }
                                 String payload = buildBatch(batch, jsonTypeSetting, usePrettyPrint);
-                                writeBatch(payload, null, context, session, attributes, REL_SUCCESS);
+                                writeBatch(payload, input, context, session, attributes, REL_SUCCESS);
                                 batch = new ArrayList<>();
                             } catch (Exception ex) {
                                 getLogger().error("Error building batch", ex);
@@ -290,7 +290,7 @@ public class GetMongo extends AbstractMongoProcessor {
                     }
                     if (batch.size() > 0) {
                         try {
-                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), null, context, session, attributes, REL_SUCCESS);
+                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
                         } catch (Exception ex) {
                             getLogger().error("Error sending remainder of batch", ex);
                         }

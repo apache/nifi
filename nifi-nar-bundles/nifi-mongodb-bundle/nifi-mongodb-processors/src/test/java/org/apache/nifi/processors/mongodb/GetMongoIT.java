@@ -427,6 +427,24 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
     }
+
+    @Test
+    public void testReadCharsetWithEL() {
+        String query = "{ \"c\": { \"$gte\": 4 }}";
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("charset", "UTF-8");
+
+        runner.setProperty(GetMongo.CHARSET, "${charset}");
+        runner.setProperty(GetMongo.BATCH_SIZE, "2");
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "2");
+
+        runner.setIncomingConnection(true);
+        runner.enqueue(query, attrs);
+        runner.run(1, true, true);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+    }
     /*
      * End query read behavior tests
      */
