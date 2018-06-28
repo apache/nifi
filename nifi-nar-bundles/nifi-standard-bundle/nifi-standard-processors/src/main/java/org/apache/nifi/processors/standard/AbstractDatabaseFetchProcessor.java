@@ -21,7 +21,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -217,18 +216,6 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 .allowableValues(dbAdapterValues.toArray(new AllowableValue[dbAdapterValues.size()]))
                 .defaultValue("Generic")
                 .required(true)
-                .build();
-    }
-
-    @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .required(false)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .dynamic(true)
                 .build();
     }
 
@@ -540,19 +527,16 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         return sb.toString();
     }
 
-    protected Map<String,String> getDefaultMaxValueProperties(final Map<PropertyDescriptor, String> properties){
-        final Map<String,String> defaultMaxValues = new HashMap<>();
+    protected Map<String, String> getDefaultMaxValueProperties(final ProcessContext context, final FlowFile flowFile) {
+        final Map<String, String> defaultMaxValues = new HashMap<>();
 
-        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-            final String key = entry.getKey().getName();
+        context.getProperties().forEach((k, v) -> {
+            final String key = k.getName();
 
-            if(!key.startsWith(INITIAL_MAX_VALUE_PROP_START)) {
-                continue;
+            if (key.startsWith(INITIAL_MAX_VALUE_PROP_START)) {
+                defaultMaxValues.put(key.substring(INITIAL_MAX_VALUE_PROP_START.length()), context.getProperty(k).evaluateAttributeExpressions(flowFile).getValue());
             }
-
-            defaultMaxValues.put(key.substring(INITIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
-        }
-
+        });
         return defaultMaxValues;
     }
 }
