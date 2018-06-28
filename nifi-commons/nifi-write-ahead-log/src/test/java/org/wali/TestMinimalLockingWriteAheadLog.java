@@ -495,7 +495,7 @@ public class TestMinimalLockingWriteAheadLog {
     @Test
     public void testRecoverFileThatHasTrailingNULBytesAndTruncation() throws IOException {
         final int numPartitions = 5;
-        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytes");
+        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytesAndTruncation");
         deleteRecursively(path.toFile());
         Files.createDirectories(path);
 
@@ -569,7 +569,7 @@ public class TestMinimalLockingWriteAheadLog {
     @Test
     public void testRecoverFileThatHasTrailingNULBytesNoTruncation() throws IOException {
         final int numPartitions = 5;
-        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytes");
+        final Path path = Paths.get("target/testRecoverFileThatHasTrailingNULBytesNoTruncation");
         deleteRecursively(path.toFile());
         Files.createDirectories(path);
 
