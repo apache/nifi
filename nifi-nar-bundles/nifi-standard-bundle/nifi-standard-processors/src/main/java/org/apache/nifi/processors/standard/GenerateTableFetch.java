@@ -37,6 +37,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -98,9 +99,11 @@ import java.util.stream.IntStream;
         @WritesAttribute(attribute = "generatetablefetch.limit", description = "The number of result rows to be fetched by the SQL statement."),
         @WritesAttribute(attribute = "generatetablefetch.offset", description = "Offset to be used to retrieve the corresponding partition.")
 })
-@DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language",
-        expressionLanguageScope = ExpressionLanguageScope.NONE, description = "Specifies an initial "
-        + "max value for max value columns. Properties should be added in the format `initial.maxvalue.{max_value_column}`.")
+@DynamicProperty(name = "initial.maxvalue.<max_value_column>", value = "Initial maximum value for the specified column",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES, description = "Specifies an initial "
+        + "max value for max value columns. Properties should be added in the format `initial.maxvalue.<max_value_column>`. This value is only used the first time "
+        + "the table is accessed (when a Maximum Value Column is specified). In the case of incoming connections, the value is only used the first time for each table "
+        + "specified in the flow files.")
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     public static final PropertyDescriptor PARTITION_SIZE = new PropertyDescriptor.Builder()
@@ -165,6 +168,18 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
+    }
+
+    @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final PropertyValue columnForPartitioning = validationContext.getProperty(COLUMN_FOR_VALUE_PARTITIONING);
@@ -180,7 +195,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     @Override
     @OnScheduled
     public void setup(final ProcessContext context) {
-        maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
         if (context.hasIncomingConnection() && !context.hasNonLoopConnection()) {
             getLogger().error("The failure relationship can be used only if there is another incoming connection to this processor.");
         }
@@ -209,6 +223,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 return;
             }
         }
+        maxValueProperties = getDefaultMaxValueProperties(context, fileToProcess);
+
 
         final ComponentLog logger = getLogger();
 
