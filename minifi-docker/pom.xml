@@ -15,12 +15,12 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi</artifactId>
-        <version>0.5.0</version>
+        <version>0.6.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi-docker</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
