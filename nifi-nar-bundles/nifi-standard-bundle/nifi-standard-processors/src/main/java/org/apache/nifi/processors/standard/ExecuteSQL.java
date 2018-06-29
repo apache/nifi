@@ -92,7 +92,9 @@ import static org.apache.nifi.processors.standard.util.JdbcCommon.USE_AVRO_LOGIC
 })
 @WritesAttributes({
     @WritesAttribute(attribute="executesql.row.count", description = "Contains the number of rows returned in the select query"),
-    @WritesAttribute(attribute="executesql.query.duration", description = "Duration of the query in milliseconds"),
+    @WritesAttribute(attribute="executesql.query.duration", description = "Combined duration of the query execution time and fetch time in milliseconds"),
+    @WritesAttribute(attribute="executesql.query.executiontime", description = "Duration of the query execution time in milliseconds"),
+    @WritesAttribute(attribute="executesql.query.fetchtime", description = "Duration of the result set fetch time in milliseconds"),
     @WritesAttribute(attribute="executesql.resultset.index", description = "Assuming multiple result sets are returned, "
        + "the zero based index of this result set.")
 })
