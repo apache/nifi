@@ -92,7 +92,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.25</org.slf4j.version>
-        <ranger.version>0.7.1</ranger.version>
+        <ranger.version>1.0.0</ranger.version>
         <jetty.version>9.4.3.v20170317</jetty.version>
     </properties>
 
