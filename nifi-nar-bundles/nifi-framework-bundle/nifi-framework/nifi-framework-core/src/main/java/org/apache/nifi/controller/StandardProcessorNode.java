@@ -1482,11 +1482,15 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final Processor processor = getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
 
-        final long completionTimestamp = System.currentTimeMillis() + onScheduleTimeoutMillis;
+        // Completion Timestamp is set to MAX_VALUE because we don't want to timeout until the task has a chance to run.
+        final AtomicLong completionTimestampRef = new AtomicLong(Long.MAX_VALUE);
 
         // Create a task to invoke the @OnScheduled annotation of the processor
         final Callable<Void> startupTask = () -> {
             LOG.debug("Invoking @OnScheduled methods of {}", processor);
+
+            // Now that the task has been scheduled, set the timeout
+            completionTimestampRef.set(System.currentTimeMillis() + onScheduleTimeoutMillis);
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                 try {
@@ -1572,7 +1576,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     return;
                 }
 
-                monitorAsyncTask(taskFuture, monitoringFuture, completionTimestamp);
+                monitorAsyncTask(taskFuture, monitoringFuture, completionTimestampRef.get());
             }
         };
 
