@@ -17,6 +17,7 @@
 
 package org.apache.nifi.mongodb;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.controller.ControllerService;
 import org.bson.Document;
 
@@ -43,4 +44,6 @@ public interface MongoDBClientService extends ControllerService {
     void upsert(Document query, Document update);
     void dropDatabase();
     void dropCollection();
+
+    MongoDatabase getDatabase(String name);
 }
