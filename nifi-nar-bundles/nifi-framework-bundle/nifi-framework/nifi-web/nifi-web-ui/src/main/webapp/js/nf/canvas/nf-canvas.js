@@ -166,6 +166,14 @@
             nfNgBridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
             nfNgBridge.injector.get('breadcrumbsCtrl').resetScrollPosition();
 
+            // set page title to the name of the root processor group
+            var rootBreadcrumb = breadcrumb;
+            while(rootBreadcrumb.parentBreadcrumb != null) {
+                rootBreadcrumb = rootBreadcrumb.parentBreadcrumb
+            }
+
+            document.title = rootBreadcrumb.breadcrumb.name;
+
             // update the timestamp
             $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);
 
