@@ -35,7 +35,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -64,8 +63,10 @@ import java.util.concurrent.atomic.AtomicReference;
                 + "The property value defines the name to give the generated attribute."
                 + "Attribute names must be unique.")
 public class CalculateAttributeHash extends AbstractProcessor {
-
-    public static final Charset UTF8 = Charset.forName("UTF-8");
+    public enum PartialAttributePolicy {
+        ALLOW,
+        PROHIBIT
+    }
 
     static final AllowableValue MD2_VALUE = new AllowableValue("MD2", "MD2 Hashing Algorithm", "MD2 Hashing Algorithm");
     static final AllowableValue MD5_VALUE = new AllowableValue("MD5", "MD5 Hashing Algorithm", "MD5 Hashing Algorithm");
@@ -73,6 +74,33 @@ public class CalculateAttributeHash extends AbstractProcessor {
     static final AllowableValue SHA256_VALUE = new AllowableValue("SHA-256", "SHA-256 Hashing Algorithm", "SHA-256 Hashing Algorithm");
     static final AllowableValue SHA384_VALUE = new AllowableValue("SHA-384", "SHA-384 Hashing Algorithm", "SHA-384 Hashing Algorithm");
     static final AllowableValue SHA512_VALUE = new AllowableValue("SHA-512", "SHA-512 Hashing Algorithm", "SHA-512 Hashing Algorithm");
+
+    static final AllowableValue ALLOW_PARITAL_ATTRIBUTES_VALUE = new AllowableValue(PartialAttributePolicy.ALLOW.name(),
+            "Allow missing attributes",
+            "Do not route to failure if there are attributes configured for hashing that are not present in the flow file");
+
+    static final AllowableValue FAIL_PARTIAL_ATTRIBUTES_VALUE = new AllowableValue(PartialAttributePolicy.PROHIBIT.name(),
+            "Fail if missing attributes",
+            "Route to failure if there are attributes configured for hashing that are not present in the flow file");
+
+    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("Character Set")
+            .description("The Character Set in which the file is encoded")
+            .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue("UTF-8")
+            .build();
+
+    public static final PropertyDescriptor FAIL_WHEN_EMPTY = new PropertyDescriptor.Builder()
+            .name("fail_when_empty")
+            .displayName("Fail when no attributes")
+            .description("Route to failure when none of the attributes that are configured for hashing are found.  " +
+            "If set to false, then flow files that do not contain any of the attributes that are configured for hashing will just pass through to success.")
+            .allowableValues("true","false")
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("true")
+            .build();
 
     public static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
             .name("hash_algorithm")
@@ -85,6 +113,16 @@ public class CalculateAttributeHash extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PARTIAL_ATTR_ROUTE_POLICY = new PropertyDescriptor.Builder()
+            .name("missing_attr_policy")
+            .displayName("Missing attribute policy")
+            .description("Policy for how the processor handles attributes that are configured for hashing but are not found in the flowfile.")
+            .required(true)
+            .allowableValues(ALLOW_PARITAL_ATTRIBUTES_VALUE, FAIL_PARTIAL_ATTRIBUTES_VALUE)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(ALLOW_PARITAL_ATTRIBUTES_VALUE.getValue())
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Used for FlowFiles that have a hash value added")
@@ -94,21 +132,23 @@ public class CalculateAttributeHash extends AbstractProcessor {
             .description("Used for FlowFiles that are missing required attributes")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
+    private final static Set<Relationship> relationships;
+    private final static List<PropertyDescriptor> properties;
 
     private final AtomicReference<Map<String, String>> attributeToGenerateNameMapRef = new AtomicReference<>(Collections.emptyMap());
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
+    static {
+        final Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_FAILURE);
+        _relationships.add(REL_SUCCESS);
+        relationships = Collections.unmodifiableSet(_relationships);
 
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(HASH_ALGORITHM);
-        this.properties = Collections.unmodifiableList(properties);
+        final List<PropertyDescriptor> _properties = new ArrayList<>();
+        _properties.add(CHARACTER_SET);
+        _properties.add(FAIL_WHEN_EMPTY);
+        _properties.add(HASH_ALGORITHM);
+        _properties.add(PARTIAL_ATTR_ROUTE_POLICY);
+        properties = Collections.unmodifiableList(_properties);
     }
 
     @Override
@@ -149,35 +189,36 @@ public class CalculateAttributeHash extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
-
+        final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final Map<String, String> attributeToGeneratedNameMap = attributeToGenerateNameMapRef.get();
         final ComponentLog logger = getLogger();
 
         final SortedMap<String, String> attributes = getRelevantAttributes(flowFile, attributeToGeneratedNameMap);
-        if (attributes.size() != attributeToGeneratedNameMap.size()) {
-            final Set<String> wantedKeys = attributeToGeneratedNameMap.keySet();
-            final Set<String> foundKeys = attributes.keySet();
-            final StringBuilder missingKeys = new StringBuilder();
-            for (final String wantedKey : wantedKeys) {
-                if (!foundKeys.contains(wantedKey)) {
-                    missingKeys.append(wantedKey).append(" ");
-                }
+        if(attributes.isEmpty()) {
+            if( context.getProperty(FAIL_WHEN_EMPTY).asBoolean()) {
+                logger.info("routing {} to 'failure' because of missing all attributes: {}", new Object[]{flowFile, getMissingKeysString(null,attributeToGeneratedNameMap.keySet())});
+                session.transfer(flowFile, REL_FAILURE);
+                return;
             }
-            logger.info("routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, missingKeys.toString()});
-            session.transfer(flowFile, REL_FAILURE);
-        } else {
-            // Generate a hash with the configured algorithm for each attribute value
-            // and create a new attribute with the configured name
-            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-                String value = hashValue(context.getProperty(HASH_ALGORITHM).getValue(), entry.getValue());
-                session.putAttribute(flowFile, attributeToGeneratedNameMap.get(entry.getKey()), value);
-            }
-            session.getProvenanceReporter().modifyAttributes(flowFile);
-            session.transfer(flowFile, REL_SUCCESS);
         }
+        if (attributes.size() != attributeToGeneratedNameMap.size()) {
+            if (PartialAttributePolicy.valueOf(context.getProperty(PARTIAL_ATTR_ROUTE_POLICY).getValue()) == PartialAttributePolicy.PROHIBIT) {
+                logger.info("routing {} to 'failure' because of missing attributes: {}", new Object[]{flowFile, getMissingKeysString(attributes.keySet(),attributeToGeneratedNameMap.keySet())});
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+        }
+        // Generate a hash with the configured algorithm for each attribute value
+        // and create a new attribute with the configured name
+        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+            String value = hashValue(context.getProperty(HASH_ALGORITHM).getValue(), entry.getValue(), charset);
+            session.putAttribute(flowFile, attributeToGeneratedNameMap.get(entry.getKey()), value);
+        }
+        session.getProvenanceReporter().modifyAttributes(flowFile);
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private SortedMap<String, String> getRelevantAttributes(final FlowFile flowFile, final Map<String, String> attributeToGeneratedNameMap) {
+    private static SortedMap<String, String> getRelevantAttributes(final FlowFile flowFile, final Map<String, String> attributeToGeneratedNameMap) {
         final SortedMap<String, String> attributeMap = new TreeMap<>();
         for (final Map.Entry<String, String> entry : attributeToGeneratedNameMap.entrySet()) {
             final String attributeName = entry.getKey();
@@ -189,11 +230,21 @@ public class CalculateAttributeHash extends AbstractProcessor {
         return attributeMap;
     }
 
-    private static String hashValue(String algorithm, String value) {
+    private static String hashValue(String algorithm, String value, Charset charset) {
         if (StringUtils.isBlank(value)) {
             return value;
         }
-        return Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest(value.getBytes(UTF8)));
+        return Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest(value.getBytes(charset)));
+    }
+
+    private static String getMissingKeysString(Set<String> foundKeys, Set<String> wantedKeys) {
+        final StringBuilder missingKeys = new StringBuilder();
+        for (final String wantedKey : wantedKeys) {
+            if (foundKeys == null || !foundKeys.contains(wantedKey)) {
+                missingKeys.append(wantedKey).append(" ");
+            }
+        }
+        return missingKeys.toString();
     }
 }
 
