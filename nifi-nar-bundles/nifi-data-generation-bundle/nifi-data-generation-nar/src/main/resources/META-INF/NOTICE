@@ -26,6 +26,36 @@ The following binary components are provided under the Apache Software License v
     This library was released under the ASL 2.0 license according to its official repository at:
     https://github.com/mifmif/Generex
 
+  (ASLv2) Apache Avro
+    The following NOTICE information applies:
+      Apache Avro
+      Copyright 2009-2017 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons Lang
+    Copyright Apache Software Foundation
+
+   (ASLv2) Apache Commons CSV
+     The following NOTICE information applies:
+       Apache Commons CSV
+       Copyright 2005-2016 The Apache Software Foundation
+
   (ASLv2) Avro Random Generator
      https://github.com/confluentinc/avro-random-generator/
      Schema test samples in test/resources taken directly from examples in Avro Random Generator documentation.
