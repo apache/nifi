@@ -94,10 +94,10 @@ public class TestCalculateAttributeHash {
         final List<MockFlowFile> success = runner.getFlowFilesForRelationship(HashAttribute.REL_SUCCESS);
 
         for (final MockFlowFile flowFile : success) {
-            Assert.assertEquals(flowFile.getAttribute(String.format("%s_%s", "name", algorithm)),
-                    Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest("abcdefg".getBytes(UTF8))));
-            Assert.assertEquals(flowFile.getAttribute(String.format("%s_%s", "value", algorithm)),
-                    Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest("hijklmnop".getBytes(UTF8))));
+            Assert.assertEquals(Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest("abcdefg".getBytes(UTF8))),
+                    flowFile.getAttribute(String.format("%s_%s", "name", algorithm)));
+            Assert.assertEquals(Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest("hijklmnop".getBytes(UTF8))),
+                    flowFile.getAttribute(String.format("%s_%s", "value", algorithm)));
         }
     }
 
@@ -121,9 +121,9 @@ public class TestCalculateAttributeHash {
         final List<MockFlowFile> success = runner.getFlowFilesForRelationship(HashAttribute.REL_SUCCESS);
 
         for (final MockFlowFile flowFile : success) {
-            Assert.assertEquals(flowFile.getAttribute(String.format("%s_%s", "name", algorithm)),
-                    Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest("abcdefg".getBytes(UTF8))));
-        }
+            Assert.assertEquals(Hex.encodeHexString(DigestUtils.getDigest(algorithm).digest("abcdefg".getBytes(UTF8))),
+                    flowFile.getAttribute(String.format("%s_%s", "name", algorithm)));
+                   }
 
         runner.clearTransferState();
 
@@ -171,8 +171,8 @@ public class TestCalculateAttributeHash {
         for (final MockFlowFile flowFile : success) {
             flowFile.assertAttributeNotExists(String.format("%s_%s", "name", algorithm));
             flowFile.assertAttributeNotExists(String.format("%s_%s", "value", algorithm));
-            Assert.assertEquals(flowFile.getAttribute("not_name"),"abcdefg");
-            Assert.assertEquals(flowFile.getAttribute("not_value"),"hijklmnop");
+            Assert.assertEquals("abcdefg",flowFile.getAttribute("not_name"));
+            Assert.assertEquals("hijklmnop",flowFile.getAttribute("not_value"));
         }
     }
 }
