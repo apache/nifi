@@ -1453,6 +1453,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         getLogger().terminate();
         scheduledState.set(ScheduledState.STOPPED);
+        hasActiveThreads = false;
 
         return count;
     }
