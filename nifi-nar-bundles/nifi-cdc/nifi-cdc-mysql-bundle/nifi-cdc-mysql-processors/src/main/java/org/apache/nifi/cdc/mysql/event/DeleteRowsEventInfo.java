@@ -29,4 +29,8 @@ public class DeleteRowsEventInfo extends BaseBinlogRowEventInfo<Serializable[]> 
     public DeleteRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, Long binlogPosition, DeleteRowsEventData data) {
         super(tableInfo, DELETE_EVENT, timestamp, binlogFilename, binlogPosition, data.getIncludedColumns(), data.getRows());
     }
+
+    public DeleteRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogGtidSet, DeleteRowsEventData data) {
+        super(tableInfo, DELETE_EVENT, timestamp, binlogGtidSet, data.getIncludedColumns(), data.getRows());
+    }
 }
