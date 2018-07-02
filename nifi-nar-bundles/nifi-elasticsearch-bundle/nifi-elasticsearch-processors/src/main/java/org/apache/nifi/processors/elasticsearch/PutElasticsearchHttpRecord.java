@@ -29,6 +29,8 @@ import okhttp3.ResponseBody;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -88,6 +90,10 @@ import java.util.Set;
         + "the index to insert into and the type of the document, as well as the operation type (index, upsert, delete, etc.). Note: The Bulk API is used to "
         + "send the records. This means that the entire contents of the incoming flow file are read into memory, and each record is transformed into a JSON document "
         + "which is added to a single HTTP request body. For very large flow files (files with a large number of records, e.g.), this could cause memory usage issues.")
+@WritesAttributes({
+        @WritesAttribute(attribute="record.count", description="The number of records in an outgoing FlowFile. This is only populated on the 'success' relationship."),
+        @WritesAttribute(attribute="failure.count", description="The number of records found by Elasticsearch to have errors. This is only populated on the 'failure' relationship.")
+})
 @DynamicProperty(
         name = "A URL query parameter",
         value = "The value to set it to",
@@ -308,6 +314,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         final RecordPath recordPath = StringUtils.isEmpty(id_path) ? null : recordPathCache.getCompiled(id_path);
         final StringBuilder sb = new StringBuilder();
 
+        int recordCount = 0;
         try (final InputStream in = session.read(flowFile);
              final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
 
@@ -341,6 +348,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                 json.append(out.toString());
 
                 buildBulkCommand(sb, index, docType, indexOp, id, json.toString());
+                recordCount++;
             }
         } catch (IdentifierNotFoundException infe) {
             logger.error(infe.getMessage(), new Object[]{flowFile});
@@ -374,34 +382,40 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
 
                 JsonNode responseJson = parseJsonResponse(new ByteArrayInputStream(bodyBytes));
                 boolean errors = responseJson.get("errors").asBoolean(false);
+                int failureCount = 0;
                 // ES has no rollback, so if errors occur, log them and route the whole flow file to failure
                 if (errors) {
                     ArrayNode itemNodeArray = (ArrayNode) responseJson.get("items");
-                    if (itemNodeArray.size() > 0) {
-                        // All items are returned whether they succeeded or failed, so iterate through the item array
-                        // at the same time as the flow file list, moving each to success or failure accordingly,
-                        // but only keep the first error for logging
-                        String errorReason = null;
-                        for (int i = itemNodeArray.size() - 1; i >= 0; i--) {
-                            JsonNode itemNode = itemNodeArray.get(i);
-                            int status = itemNode.findPath("status").asInt();
-                            if (!isSuccess(status)) {
-                                if (errorReason == null) {
-                                    // Use "result" if it is present; this happens for status codes like 404 Not Found, which may not have an error/reason
-                                    String reason = itemNode.findPath("result").asText();
-                                    if (StringUtils.isEmpty(reason)) {
-                                        // If there was no result, we expect an error with a string description in the "reason" field
-                                        reason = itemNode.findPath("reason").asText();
+                    if(itemNodeArray != null) {
+                        if (itemNodeArray.size() > 0) {
+                            // All items are returned whether they succeeded or failed, so iterate through the item array
+                            // at the same time as the flow file list, moving each to success or failure accordingly,
+                            // but only keep the first error for logging
+                            String errorReason = null;
+                            for (int i = itemNodeArray.size() - 1; i >= 0; i--) {
+                                JsonNode itemNode = itemNodeArray.get(i);
+                                int status = itemNode.findPath("status").asInt();
+                                if (!isSuccess(status)) {
+                                    if (errorReason == null) {
+                                        // Use "result" if it is present; this happens for status codes like 404 Not Found, which may not have an error/reason
+                                        String reason = itemNode.findPath("result").asText();
+                                        if (StringUtils.isEmpty(reason)) {
+                                            // If there was no result, we expect an error with a string description in the "reason" field
+                                            reason = itemNode.findPath("reason").asText();
+                                        }
+                                        errorReason = reason;
+                                        logger.error("Failed to process {} due to {}, transferring to failure",
+                                                new Object[]{flowFile, errorReason});
                                     }
-                                    errorReason = reason;
-                                    logger.error("Failed to process {} due to {}, transferring to failure",
-                                            new Object[]{flowFile, errorReason});
+                                    failureCount++;
                                 }
                             }
                         }
                     }
+                    flowFile = session.putAttribute(flowFile, "failure.count", Integer.toString(failureCount));
                     session.transfer(flowFile, REL_FAILURE);
                 } else {
+                    flowFile = session.putAttribute(flowFile, "record.count", Integer.toString(recordCount));
                     session.transfer(flowFile, REL_SUCCESS);
                     session.getProvenanceReporter().send(flowFile, url.toString());
                 }

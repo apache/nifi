@@ -78,6 +78,7 @@ public class TestPutElasticsearchHttpRecord {
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("record.count", "4");
         List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
         assertNotNull(provEvents);
         assertEquals(1, provEvents.size());
@@ -263,8 +264,10 @@ public class TestPutElasticsearchHttpRecord {
         runner.enqueue(new byte[0]);
         runner.run(1, true, true);
 
-        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
         runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
+        flowFile.assertAttributeEquals("failure.count", "1");
     }
 
     @Test
