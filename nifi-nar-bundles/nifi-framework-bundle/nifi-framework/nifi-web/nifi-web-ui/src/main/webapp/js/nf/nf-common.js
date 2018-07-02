@@ -70,6 +70,7 @@
             $(e.target).parent().find('.nf-checkbox').click();
         });
 
+
         // show the loading icon when appropriate
         $(document).ajaxStart(function () {
             // show the loading indicator
@@ -88,7 +89,7 @@
         // handle logout
         $('#user-logout').on('click', function () {
             nfStorage.removeItem('jwt');
-            window.location = '../nifi/login';
+            window.location = '../nifi/logout';
         });
 
         // handle home
