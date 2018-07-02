@@ -1,0 +1,23 @@
+[ {
+  "RatingRange" : 5,
+  "rating" : {
+    "primary" : {
+      "value" : 3,
+      "MaxLabel" : "High",
+      "MinLabel" : "Low",
+      "DisplayType" : "NORMAL"
+    },
+    "quality" : {
+      "value" : 3,
+      "MaxLabel" : "High",
+      "MinLabel" : "Low",
+      "DisplayType" : "NORMAL"
+    },
+    "series" : {
+      "value" : [ 5, 4 ],
+      "MaxLabel" : "High",
+      "MinLabel" : "Low",
+      "DisplayType" : "NORMAL"
+    }
+  }
+} ]

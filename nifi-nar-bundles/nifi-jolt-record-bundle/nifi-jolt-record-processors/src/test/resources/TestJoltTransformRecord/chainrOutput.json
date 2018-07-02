@@ -1,0 +1,16 @@
+[ {
+  "Range" : 5,
+  "Rating" : 3,
+  "SecondaryRatings" : {
+    "quality" : {
+      "Id" : "quality",
+      "Range" : 5,
+      "Value" : 3
+    },
+    "series" : {
+      "Id" : "series",
+      "Range" : 5,
+      "Value" : [ 5, 4 ]
+    }
+  }
+} ]
