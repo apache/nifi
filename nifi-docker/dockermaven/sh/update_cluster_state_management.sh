@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-login_providers_file=${NIFI_HOME}/conf/state-management.xml
+state_providers_file=${NIFI_HOME}/conf/state-management.xml
 property_xpath='/stateManagement/cluster-provider/property'
 
 edit_property() {
@@ -23,7 +23,7 @@ edit_property() {
   property_value=$2
 
   if [ -n "${property_value}" ]; then
-    xmlstarlet ed --inplace -u "${property_xpath}[@name='${property_name}']" -v "${property_value}" "${login_providers_file}"
+    xmlstarlet ed --inplace -u "${property_xpath}[@name='${property_name}']" -v "${property_value}" "${state_providers_file}"
   fi
 }
 
