@@ -31,7 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class TestSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
+public class StubSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     @Override
     public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) {
         List<RecordField> fields = new ArrayList<>();

@@ -63,12 +63,10 @@ public class MongoDBLookupServiceIT {
         runner.setProperty(controllerService, MongoDBControllerService.URI, "mongodb://localhost:27017");
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "message");
         runner.setProperty(service, MongoDBLookupService.CONTROLLER_SERVICE, "Client Service 2");
-        SchemaRegistry registry = new TestSchemaRegistry();
+        SchemaRegistry registry = new StubSchemaRegistry();
         runner.addControllerService("registry", registry);
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "");
         runner.setProperty(service, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
-        runner.setProperty(service, service.getPropertyDescriptor(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName()),
-                SchemaAccessUtils.INFER_SCHEMA);
         runner.enableControllerService(registry);
         runner.enableControllerService(controllerService);
         runner.enableControllerService(service);
@@ -83,6 +81,7 @@ public class MongoDBLookupServiceIT {
     @Test
     public void testInit() {
         runner.assertValid(service);
+
     }
 
     @Test

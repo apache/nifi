@@ -55,6 +55,11 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
     }
 
     @Override
+    protected AllowableValue getDefaultSchemaAccessStrategy() {
+        return INFER_SCHEMA;
+    }
+
+    @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
         if (strategy == null) {
             return null;
