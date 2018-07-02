@@ -26,6 +26,8 @@ prop_replace 'nifi.remote.input.host'           "${NIFI_REMOTE_INPUT_HOST:-$HOST
 prop_replace 'nifi.remote.input.socket.port'    "${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
 prop_replace 'nifi.remote.input.secure'         'false'
 
+prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
+
 # Check if we are secured or unsecured
 case ${AUTH} in
     tls)
