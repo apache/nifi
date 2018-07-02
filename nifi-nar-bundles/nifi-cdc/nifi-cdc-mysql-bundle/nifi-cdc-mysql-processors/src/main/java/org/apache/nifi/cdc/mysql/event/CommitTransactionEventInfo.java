@@ -29,6 +29,11 @@ public class CommitTransactionEventInfo extends BaseBinlogEventInfo {
         this.databaseName = databaseName;
     }
 
+    public CommitTransactionEventInfo(String databaseName, Long timestamp, String binlogGtidSet) {
+        super(COMMIT_EVENT, timestamp, binlogGtidSet);
+        this.databaseName = databaseName;
+    }
+
     public String getDatabaseName() {
         return databaseName;
     }

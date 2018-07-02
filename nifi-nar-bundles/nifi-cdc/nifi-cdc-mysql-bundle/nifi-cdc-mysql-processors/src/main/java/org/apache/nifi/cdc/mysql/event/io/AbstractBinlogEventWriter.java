@@ -33,8 +33,14 @@ import java.util.Map;
 public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> extends AbstractEventWriter<T> {
 
     protected void writeJson(T event) throws IOException {
-        jsonGenerator.writeStringField("binlog_filename", event.getBinlogFilename());
-        jsonGenerator.writeNumberField("binlog_position", event.getBinlogPosition());
+        String gtidSet = event.getBinlogGtidSet();
+
+        if (gtidSet == null) {
+            jsonGenerator.writeStringField("binlog_filename", event.getBinlogFilename());
+            jsonGenerator.writeNumberField("binlog_position", event.getBinlogPosition());
+        } else {
+            jsonGenerator.writeStringField("binlog_gtidset", event.getBinlogGtidSet());
+        }
     }
 
     protected Map<String, String> getCommonAttributes(final long sequenceId, BinlogEventInfo eventInfo) {
@@ -42,8 +48,13 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
             {
                 put(SEQUENCE_ID_KEY, Long.toString(sequenceId));
                 put(CDC_EVENT_TYPE_ATTRIBUTE, eventInfo.getEventType());
-                put(BinlogEventInfo.BINLOG_FILENAME_KEY, eventInfo.getBinlogFilename());
-                put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(eventInfo.getBinlogPosition()));
+                String gtidSet = eventInfo.getBinlogGtidSet();
+                if (gtidSet == null) {
+                    put(BinlogEventInfo.BINLOG_FILENAME_KEY, eventInfo.getBinlogFilename());
+                    put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(eventInfo.getBinlogPosition()));
+                } else {
+                    put(BinlogEventInfo.BINLOG_GTIDSET_KEY, gtidSet);
+                }
                 put(CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
             }
         };

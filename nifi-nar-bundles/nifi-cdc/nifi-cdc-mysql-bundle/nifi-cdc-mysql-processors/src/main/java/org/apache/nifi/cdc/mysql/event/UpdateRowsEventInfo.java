@@ -35,6 +35,11 @@ public class UpdateRowsEventInfo extends BaseBinlogRowEventInfo<Map.Entry<Serial
         includedColumnsBeforeUpdate = data.getIncludedColumnsBeforeUpdate();
     }
 
+    public UpdateRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogGtidSet, UpdateRowsEventData data) {
+        super(tableInfo, UPDATE_EVENT, timestamp, binlogGtidSet, data.getIncludedColumns(), data.getRows());
+        includedColumnsBeforeUpdate = data.getIncludedColumnsBeforeUpdate();
+    }
+
     public BitSet getIncludedColumnsBeforeUpdate() {
         return includedColumnsBeforeUpdate;
     }
