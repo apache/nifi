@@ -25,8 +25,11 @@ public interface BinlogEventInfo extends EventInfo {
 
     String BINLOG_FILENAME_KEY = "binlog.filename";
     String BINLOG_POSITION_KEY = "binlog.position";
+    String BINLOG_GTIDSET_KEY = "binlog.gtidset";
 
     String getBinlogFilename();
 
     Long getBinlogPosition();
+
+    String getBinlogGtidSet();
 }
