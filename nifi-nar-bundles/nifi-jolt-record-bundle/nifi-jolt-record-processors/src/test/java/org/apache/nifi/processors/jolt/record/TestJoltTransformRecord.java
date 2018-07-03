@@ -265,6 +265,7 @@ public class TestJoltTransformRecord {
         runner.enableControllerService(writer);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleChainrSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORD_SET);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
@@ -285,6 +286,7 @@ public class TestJoltTransformRecord {
         runner.enableControllerService(writer);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/multipleToMultipleChainrSpec.json")));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformRecord.TRANSFORM_STRATEGY, JoltTransformRecord.APPLY_TO_RECORD_SET);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformRecord.REL_SUCCESS);
