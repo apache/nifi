@@ -124,6 +124,29 @@ volume to provide certificates on the host system to the container instance.
     -e LDAP_TLS_TRUSTSTORE_PASSWORD: ''
     -e LDAP_TLS_TRUSTSTORE_TYPE: ''
 
+#### Clustering can be enabled by using the following properties to Docker environment variable mappings.
+
+##### nifi.properties
+
+| Property                                  | Environment Variable                   |
+|-------------------------------------------|----------------------------------------|
+| nifi.cluster.is.node                      | NIFI_CLUSTER_IS_NODE                   |
+| nifi.cluster.node.address                 | NIFI_CLUSTER_ADDRESS                   |
+| nifi.cluster.node.protocol.port           | NIFI_CLUSTER_NODE_PROTOCOL_PORT        |
+| nifi.cluster.node.protocol.threads        | NIFI_CLUSTER_NODE_PROTOCOL_THREADS     |
+| nifi.cluster.node.protocol.max.threads    | NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS |
+| nifi.zookeeper.connect.string             | NIFI_ZK_CONNECT_STRING                 |
+| nifi.zookeeper.root.node                  | NIFI_ZK_ROOT_NODE                      |
+| nifi.cluster.flow.election.max.wait.time  | NIFI_ELECTION_MAX_WAIT                 |
+| nifi.cluster.flow.election.max.candidates | NIFI_ELECTION_MAX_CANDIDATES           |
+
+##### state-management.xml
+
+| Property Name  | Environment Variable   |
+|----------------|------------------------|
+| Connect String | NIFI_ZK_CONNECT_STRING |
+| Root Node      | NIFI_ZK_ROOT_NODE      |
+
 ## Configuration Information
 The following ports are specified by default in Docker for NiFi operation within the container and 
 can be published to the host.
