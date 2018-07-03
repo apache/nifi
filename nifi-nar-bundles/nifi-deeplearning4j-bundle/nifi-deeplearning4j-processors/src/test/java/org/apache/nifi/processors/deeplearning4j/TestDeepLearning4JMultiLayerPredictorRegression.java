@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Collections;
@@ -48,7 +47,6 @@ import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import com.google.gson.Gson;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -58,14 +56,23 @@ import org.junit.Test;
  */
 public class TestDeepLearning4JMultiLayerPredictorRegression {
 
-    private static File regressionModelFile;
-    private static int regressionInputNumber;
+    private static final File regressionModelFile = new File("src/test/resources/regression-model.zip");
     private TestRunner runner;
-    protected MultiLayerNetwork model = null;
-    protected Gson gson = new Gson();
+    private Gson gson = new Gson();
 
     @BeforeClass
-    public static void setUpModel() throws FileNotFoundException, IOException, InterruptedException {
+    public static void setUpModel() throws IOException {
+
+        if (regressionModelFile.isFile()) {
+            // An existing model was found, use it.
+            // Delete the existing zip file to recreate a model.
+            return;
+        }
+
+        if (!regressionModelFile.createNewFile()) {
+            throw new RuntimeException("Failed to create new model file.");
+        }
+
         int nSamples = 1000;
         Random random = new Random(42);
         INDArray x = Nd4j.linspace(-Math.PI,Math.PI, nSamples ).reshape(nSamples, 1);
@@ -75,7 +82,7 @@ public class TestDeepLearning4JMultiLayerPredictorRegression {
         final List<DataSet> list = allData.asList();
         Collections.shuffle(list,random);
         final DataSetIterator iterator = new ListDataSetIterator<DataSet>(list,100);
-        regressionInputNumber = 1;
+        final int regressionInputNumber = 1;
         long seed = 42;
         int numberOfNodes = 50;
 
@@ -100,15 +107,8 @@ public class TestDeepLearning4JMultiLayerPredictorRegression {
         for(int i = 0; i< 2000; i++ ) {
             regressionModel.fit(iterator);
         }
-        regressionModelFile = File.createTempFile("regression-model", ".zip", new File("./"));
-        regressionModelFile.deleteOnExit();
 
         ModelSerializer.writeModel(regressionModel, regressionModelFile ,false);
-    }
-
-    @AfterClass
-    public static void deleteModel() throws FileNotFoundException, IOException, InterruptedException {
-        regressionModelFile.delete();
     }
 
     @Before
