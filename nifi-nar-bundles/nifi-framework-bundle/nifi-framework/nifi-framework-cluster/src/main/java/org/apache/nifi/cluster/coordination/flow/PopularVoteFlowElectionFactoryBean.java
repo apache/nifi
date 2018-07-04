@@ -18,7 +18,6 @@
 package org.apache.nifi.cluster.coordination.flow;
 
 import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.util.FormatUtils;
@@ -44,8 +43,10 @@ public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVo
         }
 
         final Integer maxNodes = properties.getFlowElectionMaxCandidates();
-
-        final StringEncryptor encryptor = StringEncryptor.createEncryptor(properties);
+        final String algorithm = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+        final String provider =  properties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
+        final String password =  properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
         final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor);
         return new PopularVoteFlowElection(maxWaitMillis, TimeUnit.MILLISECONDS, maxNodes, fingerprintFactory);
     }

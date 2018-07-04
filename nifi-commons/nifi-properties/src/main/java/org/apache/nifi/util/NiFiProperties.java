@@ -131,11 +131,6 @@ public abstract class NiFiProperties {
     public static final String COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION = "nifi.components.status.repository.implementation";
     public static final String COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "nifi.components.status.snapshot.frequency";
 
-    // encryptor properties
-    public static final String NF_SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
-    public static final String NF_SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
-    public static final String NF_SENSITIVE_PROPS_PROVIDER = "nifi.sensitive.props.provider";
-
     // security properties
     public static final String SECURITY_KEYSTORE = "nifi.security.keystore";
     public static final String SECURITY_KEYSTORE_TYPE = "nifi.security.keystoreType";

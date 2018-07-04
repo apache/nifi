@@ -18,22 +18,35 @@
 package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import com.fluenda.parcefone.event.CEFHandlingException;
 import com.fluenda.parcefone.event.CommonEvent;
 import com.fluenda.parcefone.parser.CEFParser;
-
 import com.martiansoftware.macnificent.MacAddress;
-
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import javax.validation.Validation;
 import org.apache.bval.jsr.ApacheValidationProvider;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -59,28 +72,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-
-import javax.validation.Validation;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.text.SimpleDateFormat;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
 
 @EventDriven
 @SideEffectFree
@@ -176,7 +168,7 @@ public class ParseCEF extends AbstractProcessor {
         .build();
 
     // Create a Bean validator to be shared by the parser instances.
-    final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();;
+    final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -202,18 +194,18 @@ public class ParseCEF extends AbstractProcessor {
         // Configure jackson mapper before spawning onTriggers
         final SimpleModule module = new SimpleModule()
                                         .addSerializer(MacAddress.class, new MacAddressToStringSerializer());
-        this.mapper.registerModule(module);
-        this.mapper.setDateFormat(this.simpleDateFormat);
+        mapper.registerModule(module);
+        mapper.setDateFormat(this.simpleDateFormat);
 
         switch (context.getProperty(TIME_REPRESENTATION).getValue()) {
             case LOCAL_TZ:
                 // set the mapper TZ to local TZ
-                this.mapper.setTimeZone(TimeZone.getDefault());
+                mapper.setTimeZone(TimeZone.getDefault());
                 tzId = TimeZone.getDefault().getID();
                 break;
             case UTC:
                 // set the mapper TZ to local TZ
-                this.mapper.setTimeZone(TimeZone.getTimeZone(UTC));
+                mapper.setTimeZone(TimeZone.getTimeZone(UTC));
                 tzId = UTC;
                 break;
         }
@@ -351,7 +343,7 @@ public class ParseCEF extends AbstractProcessor {
         public void serialize(MacAddress macAddress,
                               JsonGenerator jsonGenerator,
                               SerializerProvider serializerProvider)
-                throws IOException, JsonProcessingException {
+                throws IOException {
             jsonGenerator.writeObject(macAddress.toString());
         }
     }

@@ -17,16 +17,15 @@
 
 package org.apache.nifi.processors.email;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailAttachment;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.MultiPartEmail;
 import org.apache.commons.mail.SimpleEmail;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
-import java.io.IOException;
 
 public class GenerateAttachment {
     String from;

@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.stream.io;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
 import junit.framework.TestCase;
 
 public class LimitingInputStreamTest extends TestCase {

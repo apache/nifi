@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.processors.standard.relp.frame;
 
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.Charset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.Charset;
 
 /**
  * Decodes a RELP frame by maintaining a state based on each byte that has been processed. This class

@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.remote.io.socket.ssl;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
-import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.remote.protocol.CommunicationsOutput;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
 
 public class SSLSocketChannelOutput implements CommunicationsOutput {
 

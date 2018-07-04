@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Maps;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -30,7 +31,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -49,8 +49,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Maps;
 
 public class TestGetHDFSFileInfo {
 
@@ -615,11 +613,13 @@ public class TestGetHDFSFileInfo {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public long getDefaultBlockSize() {
             return 1024L;
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public short getDefaultReplication() {
             return 1;
         }

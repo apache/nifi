@@ -36,7 +36,6 @@ import org.apache.nifi.security.util.crypto.CipherProvider;
 import org.apache.nifi.security.util.crypto.CipherProviderFactory;
 import org.apache.nifi.security.util.crypto.CipherUtility;
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
-import org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -69,6 +68,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  * </p>
  */
+@SuppressWarnings("deprecation")
 public class StringEncryptor {
     private static final Logger logger = LoggerFactory.getLogger(StringEncryptor.class);
 
@@ -297,8 +297,8 @@ public class StringEncryptor {
         // Generate salt
         byte[] salt;
         // NiFi legacy code determined the salt length based on the cipher block size
-        if (pbecp instanceof NiFiLegacyCipherProvider) {
-            salt = ((NiFiLegacyCipherProvider) pbecp).generateSalt(encryptionMethod);
+        if (pbecp instanceof org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) {
+            salt = ((org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider) pbecp).generateSalt(encryptionMethod);
         } else {
             salt = pbecp.generateSalt();
         }

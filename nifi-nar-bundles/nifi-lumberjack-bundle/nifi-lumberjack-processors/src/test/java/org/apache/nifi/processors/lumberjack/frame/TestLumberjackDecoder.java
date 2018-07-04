@@ -19,14 +19,12 @@ package org.apache.nifi.processors.lumberjack.frame;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-
 import javax.xml.bind.DatatypeConverter;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-
+@SuppressWarnings("deprecation")
 public class TestLumberjackDecoder {
 
     // Because no encoder for type 43 was coded, added Static hex

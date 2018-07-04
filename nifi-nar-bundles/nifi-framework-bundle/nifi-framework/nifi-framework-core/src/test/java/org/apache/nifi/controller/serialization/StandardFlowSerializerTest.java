@@ -16,6 +16,17 @@
  */
 package org.apache.nifi.controller.serialization;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.MockPolicyBasedAuthorizer;
@@ -33,23 +44,11 @@ import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.w3c.dom.Document;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import org.apache.commons.io.FileUtils;
-import org.junit.After;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class StandardFlowSerializerTest {
 
@@ -72,7 +71,10 @@ public class StandardFlowSerializerTest {
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
-        final StringEncryptor encryptor = StringEncryptor.createEncryptor(nifiProperties);
+        final String algorithm = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+        final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
+        final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);

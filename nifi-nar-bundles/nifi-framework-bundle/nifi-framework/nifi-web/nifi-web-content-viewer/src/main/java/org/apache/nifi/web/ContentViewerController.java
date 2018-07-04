@@ -18,6 +18,16 @@ package org.apache.nifi.web;
 
 import com.ibm.icu.text.CharsetDetector;
 import com.ibm.icu.text.CharsetMatch;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -30,17 +40,6 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.UriBuilder;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 
 /**
  * Controller servlet for viewing content. This is responsible for generating
@@ -152,7 +151,7 @@ public class ContentViewerController extends HttpServlet {
         }
 
         // buffer the content to support resetting in case we need to detect the content type or char encoding
-        try (final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());) {
+        try (final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent())) {
             final String mimeType;
             final String normalizedMimeType;
 
@@ -300,6 +299,7 @@ public class ContentViewerController extends HttpServlet {
      * @param request request
      * @return Get the content request context based on the specified request
      */
+    @SuppressWarnings("deprecation")
     private ContentRequestContext getContentRequest(final HttpServletRequest request) {
         final String ref = request.getParameter("ref");
         final String clientId = request.getParameter("clientId");

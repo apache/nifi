@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.remote.protocol.http;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.AbstractTransaction;
@@ -26,13 +31,7 @@ import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 
 public class HttpClientTransaction extends AbstractTransaction {
 

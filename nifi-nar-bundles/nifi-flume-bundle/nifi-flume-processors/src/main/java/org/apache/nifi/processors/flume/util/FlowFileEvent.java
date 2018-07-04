@@ -16,7 +16,14 @@
  */
 package org.apache.nifi.processors.flume.util;
 
+import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.ENTRY_DATE_HEADER;
+import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.ID_HEADER;
+import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.LAST_QUEUE_DATE_HEADER;
+import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.LINEAGE_START_DATE_HEADER;
+import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.SIZE_HEADER;
+
 import com.google.common.collect.Maps;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,13 +33,6 @@ import org.apache.flume.Event;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.ENTRY_DATE_HEADER;
-import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.ID_HEADER;
-import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.LAST_QUEUE_DATE_HEADER;
-import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.LINEAGE_START_DATE_HEADER;
-import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.SIZE_HEADER;
-
-import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class FlowFileEvent implements Event {

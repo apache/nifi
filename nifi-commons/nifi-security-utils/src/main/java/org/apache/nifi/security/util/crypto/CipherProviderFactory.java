@@ -23,6 +23,7 @@ import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("deprecation")
 public class CipherProviderFactory {
     private static final Logger logger = LoggerFactory.getLogger(CipherProviderFactory.class);
 
@@ -30,7 +31,7 @@ public class CipherProviderFactory {
 
     static {
         registeredCipherProviders = new HashMap<>();
-        registeredCipherProviders.put(KeyDerivationFunction.NIFI_LEGACY, NiFiLegacyCipherProvider.class);
+        registeredCipherProviders.put(KeyDerivationFunction.NIFI_LEGACY, org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider.class);
         registeredCipherProviders.put(KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY, OpenSSLPKCS5CipherProvider.class);
         registeredCipherProviders.put(KeyDerivationFunction.PBKDF2, PBKDF2CipherProvider.class);
         registeredCipherProviders.put(KeyDerivationFunction.BCRYPT, BcryptCipherProvider.class);
