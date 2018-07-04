@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<flowController encoding-version="1.1">
+  <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
+  <maxEventDrivenThreadCount>5</maxEventDrivenThreadCount>
+  <rootGroup>
+    <id>b895989d-015e-1000-6ace-31c53901f9e7</id>
+    <name>NiFi Flow</name>
+    <position x="0.0" y="0.0"/>
+    <comment/>
+    <processor>
+      <id>bd4ba8b0-015e-1000-d3ee-28f5484892b4</id>
+      <name>GetHTTP</name>
+      <position x="337.0" y="107.0"/>
+      <styles/>
+      <comment/>
+      <class>org.apache.nifi.processors.standard.GetHTTP</class>
+      <bundle>
+        <group>org.apache.nifi</group>
+        <artifact>nifi-standard-nar</artifact>
+        <version>1.6.0</version>
+      </bundle>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>30 sec</penalizationPeriod>
+      <yieldPeriod>1 sec</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>RUNNING</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>URL</name>
+        <value>http://feeds.bbci.co.uk/news/technology/rss.xml?edition=uk#</value>
+      </property>
+      <property>
+        <name>Filename</name>
+        <value>bbc-world.rss.xml</value>
+      </property>
+      <property>
+        <name>SSL Context Service</name>
+      </property>
+      <property>
+        <name>Username</name>
+      </property>
+      <property>
+        <name>Password</name>
+      </property>
+      <property>
+        <name>Connection Timeout</name>
+        <value>30 sec</value>
+      </property>
+      <property>
+        <name>Data Timeout</name>
+        <value>30 sec</value>
+      </property>
+      <property>
+        <name>User Agent</name>
+      </property>
+      <property>
+        <name>Accept Content-Type</name>
+      </property>
+      <property>
+        <name>Follow Redirects</name>
+        <value>false</value>
+      </property>
+      <property>
+        <name>redirect-cookie-policy</name>
+        <value>default</value>
+      </property>
+      <property>
+        <name>Proxy Host</name>
+      </property>
+      <property>
+        <name>Proxy Port</name>
+      </property>
+    </processor>
+    <processor>
+      <id>bd4d98aa-015e-1000-72cb-f10194e94546</id>
+      <name>PutFile</name>
+      <position x="333.0" y="312.0"/>
+      <styles/>
+      <comment/>
+      <class>org.apache.nifi.processors.standard.PutFile</class>
+      <bundle>
+        <group>org.apache.nifi</group>
+        <artifact>nifi-standard-nar</artifact>
+        <version>1.6.0</version>
+      </bundle>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>30 sec</penalizationPeriod>
+      <yieldPeriod>1 sec</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>RUNNING</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>Directory</name>
+        <value>${"user.home"}/NiFiTest/NiFiReadTest</value>
+      </property>
+      <property>
+        <name>Conflict Resolution Strategy</name>
+        <value>ignore</value>
+      </property>
+      <property>
+        <name>Create Missing Directories</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>Maximum File Count</name>
+      </property>
+      <property>
+        <name>Last Modified Time</name>
+      </property>
+      <property>
+        <name>Permissions</name>
+      </property>
+      <property>
+        <name>Owner</name>
+      </property>
+      <property>
+        <name>Group</name>
+      </property>
+      <autoTerminatedRelationship>success</autoTerminatedRelationship>
+      <autoTerminatedRelationship>failure</autoTerminatedRelationship>
+    </processor>
+    <connection>
+      <id>bd4e54a4-015e-1000-3b0f-19d24756ce1c</id>
+      <name/>
+      <bendPoints/>
+      <labelIndex>1</labelIndex>
+      <zIndex>0</zIndex>
+      <sourceId>bd4ba8b0-015e-1000-d3ee-28f5484892b4</sourceId>
+      <sourceGroupId>b895989d-015e-1000-6ace-31c53901f9e7</sourceGroupId>
+      <sourceType>PROCESSOR</sourceType>
+      <destinationId>bd4d98aa-015e-1000-72cb-f10194e94546</destinationId>
+      <destinationGroupId>b895989d-015e-1000-6ace-31c53901f9e7</destinationGroupId>
+      <destinationType>PROCESSOR</destinationType>
+      <relationship>success</relationship>
+      <maxWorkQueueSize>10000</maxWorkQueueSize>
+      <maxWorkQueueDataSize>1 GB</maxWorkQueueDataSize>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+    </connection>
+  </rootGroup>
+  <controllerServices/>
+  <reportingTasks/>
+</flowController>
