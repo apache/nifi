@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -63,15 +64,18 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ActiveThreadInfo;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -79,6 +83,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
@@ -94,9 +99,12 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
+import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -154,6 +162,19 @@ import org.apache.nifi.web.api.dto.action.details.ConfigureDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ConnectDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.MoveDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.PurgeDetailsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ClassLoaderDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ConnectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ControllerServiceDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GCDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GarbageCollectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMControllerDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.RepositoryUsageDTO;
+import org.apache.nifi.web.api.dto.diagnostics.ThreadDumpDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
@@ -196,6 +217,7 @@ import org.apache.nifi.web.revision.RevisionManager;
 
 import javax.ws.rs.WebApplicationException;
 import java.text.Collator;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -243,7 +265,9 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval) {
+    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval,
+                                                           final Long defaultBackPressureObjectThreshold,
+                                                           final String defaultBackPressureDataSizeThreshold) {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
@@ -256,6 +280,9 @@ public final class DtoFactory {
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
         dto.setCurrentTime(now);
+
+        dto.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        dto.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
 
         return dto;
     }
@@ -976,7 +1003,10 @@ public final class DtoFactory {
         snapshot.setBytesSent(processGroupStatus.getBytesSent());
         snapshot.setFlowFilesReceived(processGroupStatus.getFlowFilesReceived());
         snapshot.setBytesReceived(processGroupStatus.getBytesReceived());
+
         snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(processGroupStatus.getTerminatedThreadCount());
+
         StatusMerger.updatePrettyPrintedFields(snapshot);
         return processGroupStatusDto;
     }
@@ -1141,6 +1171,7 @@ public final class DtoFactory {
         snapshot.setExecutionNode(procStatus.getExecutionNode().toString());
 
         snapshot.setActiveThreadCount(procStatus.getActiveThreadCount());
+        snapshot.setTerminatedThreadCount(procStatus.getTerminatedThreadCount());
         snapshot.setType(procStatus.getType());
 
         StatusMerger.updatePrettyPrintedFields(snapshot);
@@ -1350,6 +1381,9 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
+        final ValidationStatus validationStatus = reportingTaskNode.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
+
         // add the validation errors
         final Collection<ValidationResult> validationErrors = reportingTaskNode.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1428,6 +1462,8 @@ public final class DtoFactory {
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
+        dto.setValidationStatus(controllerServiceNode.getValidationStatus(1, TimeUnit.MILLISECONDS).name());
+
         // add the validation errors
         final Collection<ValidationResult> validationErrors = controllerServiceNode.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1442,7 +1478,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ConfiguredComponent component) {
+    public ControllerServiceReferencingComponentDTO createControllerServiceReferencingComponentDTO(final ComponentNode component) {
         final ControllerServiceReferencingComponentDTO dto = new ControllerServiceReferencingComponentDTO();
         dto.setId(component.getIdentifier());
         dto.setName(component.getName());
@@ -1482,39 +1518,43 @@ public final class DtoFactory {
             processGroupId = null;
         }
 
-        if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
-            final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-                @Override
-                public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-                    return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-                }
-            });
-            sortedProperties.putAll(component.getProperties());
+        // ensure descriptors is non null
+        if (propertyDescriptors == null) {
+            propertyDescriptors = new ArrayList<>();
+        }
 
-            final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
-            for (final PropertyDescriptor descriptor : propertyDescriptors) {
-                orderedProperties.put(descriptor, null);
+        // process properties unconditionally since dynamic properties are available here and not in getPropertyDescriptors
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
+            @Override
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
+                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
-            orderedProperties.putAll(sortedProperties);
+        });
+        sortedProperties.putAll(component.getProperties());
 
-            // build the descriptor and property dtos
-            dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-            dto.setProperties(new LinkedHashMap<String, String>());
-            for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
-                final PropertyDescriptor descriptor = entry.getKey();
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        for (final PropertyDescriptor descriptor : propertyDescriptors) {
+            orderedProperties.put(descriptor, null);
+        }
+        orderedProperties.putAll(sortedProperties);
 
-                // store the property descriptor
-                dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
+        // build the descriptor and property dtos
+        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
+        dto.setProperties(new LinkedHashMap<String, String>());
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
 
-                // determine the property value - don't include sensitive properties
-                String propertyValue = entry.getValue();
-                if (propertyValue != null && descriptor.isSensitive()) {
-                    propertyValue = SENSITIVE_VALUE_MASK;
-                }
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, processGroupId));
 
-                // set the property value
-                dto.getProperties().put(descriptor.getName(), propertyValue);
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
             }
+
+            // set the property value
+            dto.getProperties().put(descriptor.getName(), propertyValue);
         }
 
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -1574,8 +1614,8 @@ public final class DtoFactory {
             return null;
         }
 
-        final Set<RemoteProcessGroupPortDTO> inputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
-        final Set<RemoteProcessGroupPortDTO> outputPorts = new TreeSet<>(new DtoFactory.SortedRemoteGroupPortComparator());
+        final Set<RemoteProcessGroupPortDTO> inputPorts = new HashSet<>();
+        final Set<RemoteProcessGroupPortDTO> outputPorts = new HashSet<>();
 
         int activeRemoteInputPortCount = 0;
         int inactiveRemoteInputPortCount = 0;
@@ -1879,7 +1919,7 @@ public final class DtoFactory {
     }
 
 
-    public AffectedComponentDTO createAffectedComponentDto(final ConfiguredComponent component) {
+    public AffectedComponentDTO createAffectedComponentDto(final ComponentNode component) {
         final AffectedComponentDTO dto = new AffectedComponentDTO();
         dto.setId(component.getIdentifier());
         dto.setName(component.getName());
@@ -2457,7 +2497,7 @@ public final class DtoFactory {
         return deprecationNotice == null ? null : deprecationNotice.reason();
     }
 
-    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ConfiguredComponent> affectedComponents, final RevisionManager revisionManager) {
+    public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ComponentNode> affectedComponents, final RevisionManager revisionManager) {
         return affectedComponents.stream()
                 .map(component -> {
                     final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);
@@ -2607,6 +2647,10 @@ public final class DtoFactory {
             }
         }
 
+        if (cls.isAnnotationPresent(Restricted.class)) {
+            tags.add("restricted");
+        }
+
         return tags;
     }
 
@@ -2742,6 +2786,7 @@ public final class DtoFactory {
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(node.isRestricted());
         dto.setDeprecated(node.isDeprecated());
+        dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
         dto.setExtensionMissing(node.isExtensionMissing());
         dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
         dto.setVersionedComponentId(node.getVersionedComponentId().orElse(null));
@@ -2775,8 +2820,11 @@ public final class DtoFactory {
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
-        dto.setSupportsBatching(node.isHighThroughputSupported());
+        dto.setSupportsBatching(node.isSessionBatchingSupported());
         dto.setConfig(createProcessorConfigDto(node));
+
+        final ValidationStatus validationStatus = node.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -3158,6 +3206,304 @@ public final class DtoFactory {
     }
 
     /**
+     * Creates a ProcessorDiagnosticsDTO from the given Processor and status information with some additional supporting information
+     *
+     * @param procNode the processor to create diagnostics for
+     * @param procStatus the status of given processor
+     * @param bulletinRepo the bulletin repository
+     * @param flowController flowController
+     * @param serviceEntityFactory function for creating a ControllerServiceEntity from a given ID
+     * @return ProcessorDiagnosticsDTO for the given Processor
+     */
+    public ProcessorDiagnosticsDTO createProcessorDiagnosticsDto(final ProcessorNode procNode, final ProcessorStatus procStatus, final BulletinRepository bulletinRepo,
+            final FlowController flowController, final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+
+        final ProcessorDiagnosticsDTO procDiagnostics = new ProcessorDiagnosticsDTO();
+
+        procDiagnostics.setClassLoaderDiagnostics(createClassLoaderDiagnosticsDto(procNode));
+        procDiagnostics.setIncomingConnections(procNode.getIncomingConnections().stream()
+            .map(this::createConnectionDiagnosticsDto)
+            .collect(Collectors.toSet()));
+        procDiagnostics.setOutgoingConnections(procNode.getConnections().stream()
+            .map(this::createConnectionDiagnosticsDto)
+            .collect(Collectors.toSet()));
+        procDiagnostics.setJvmDiagnostics(createJvmDiagnosticsDto(flowController));
+        procDiagnostics.setProcessor(createProcessorDto(procNode));
+        procDiagnostics.setProcessorStatus(createProcessorStatusDto(procStatus));
+        procDiagnostics.setThreadDumps(createThreadDumpDtos(procNode));
+
+        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = createReferencedServiceDiagnostics(procNode.getProperties(), flowController, serviceEntityFactory);
+        procDiagnostics.setReferencedControllerServices(referencedServiceDiagnostics);
+
+        return procDiagnostics;
+    }
+
+    private Set<ControllerServiceDiagnosticsDTO> createReferencedServiceDiagnostics(final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider serviceProvider,
+        final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+
+        final Set<ControllerServiceDiagnosticsDTO> referencedServiceDiagnostics = new HashSet<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() == null) {
+                continue;
+            }
+
+            final String serviceId = entry.getValue();
+            final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(serviceId);
+            if (serviceNode == null) {
+                continue;
+            }
+
+            final ControllerServiceDiagnosticsDTO serviceDiagnostics = createControllerServiceDiagnosticsDto(serviceNode, serviceEntityFactory, serviceProvider);
+            if (serviceDiagnostics != null) {
+                referencedServiceDiagnostics.add(serviceDiagnostics);
+            }
+        }
+
+        return referencedServiceDiagnostics;
+    }
+
+    /**
+     * Creates a ControllerServiceDiagnosticsDTO from the given Controller Service with some additional supporting information
+     *
+     * @param serviceNode the controller service to create diagnostics for
+     * @param serviceEntityFactory a function to convert a controller service id to a controller service entity
+     * @param serviceProvider the controller service provider
+     * @return ControllerServiceDiagnosticsDTO for the given Controller Service
+     */
+    public ControllerServiceDiagnosticsDTO createControllerServiceDiagnosticsDto(final ControllerServiceNode serviceNode, final Function<String, ControllerServiceEntity> serviceEntityFactory,
+            final ControllerServiceProvider serviceProvider) {
+
+        final ControllerServiceDiagnosticsDTO serviceDiagnostics = new ControllerServiceDiagnosticsDTO();
+        final ControllerServiceEntity serviceEntity = serviceEntityFactory.apply(serviceNode.getIdentifier());
+        serviceDiagnostics.setControllerService(serviceEntity);
+
+        serviceDiagnostics.setClassLoaderDiagnostics(createClassLoaderDiagnosticsDto(serviceNode));
+        return serviceDiagnostics;
+    }
+
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ControllerServiceNode serviceNode) {
+        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(serviceNode.getIdentifier());
+        if (componentClassLoader == null) {
+            componentClassLoader = serviceNode.getControllerServiceImplementation().getClass().getClassLoader();
+        }
+
+        return createClassLoaderDiagnosticsDto(componentClassLoader);
+    }
+
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ProcessorNode procNode) {
+        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(procNode.getIdentifier());
+        if (componentClassLoader == null) {
+            componentClassLoader = procNode.getProcessor().getClass().getClassLoader();
+        }
+
+        return createClassLoaderDiagnosticsDto(componentClassLoader);
+    }
+
+    private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ClassLoader classLoader) {
+        final ClassLoaderDiagnosticsDTO dto = new ClassLoaderDiagnosticsDTO();
+
+        final Bundle bundle = ExtensionManager.getBundle(classLoader);
+        if (bundle != null) {
+            dto.setBundle(createBundleDto(bundle.getBundleDetails().getCoordinate()));
+        }
+
+        final ClassLoader parentClassLoader = classLoader.getParent();
+        if (parentClassLoader != null) {
+            dto.setParentClassLoader(createClassLoaderDiagnosticsDto(parentClassLoader));
+        }
+
+        return dto;
+    }
+
+    private ConnectionDiagnosticsDTO createConnectionDiagnosticsDto(final Connection connection) {
+        final ConnectionDiagnosticsDTO dto = new ConnectionDiagnosticsDTO();
+        dto.setConnection(createConnectionDto(connection));
+
+        final FlowFileQueue queue = connection.getFlowFileQueue();
+        final QueueSize totalSize = queue.size();
+        dto.setTotalByteCount(totalSize.getByteCount());
+        dto.setTotalFlowFileCount(totalSize.getObjectCount());
+
+        final QueueSize activeSize = queue.getActiveQueueSize();
+        dto.setActiveQueueByteCount(activeSize.getByteCount());
+        dto.setActiveQueueFlowFileCount(activeSize.getObjectCount());
+
+        final QueueSize inFlightSize = queue.getUnacknowledgedQueueSize();
+        dto.setInFlightByteCount(inFlightSize.getByteCount());
+        dto.setInFlightFlowFileCount(inFlightSize.getObjectCount());
+
+        final QueueSize swapSize = queue.getSwapQueueSize();
+        dto.setSwapByteCount(swapSize.getByteCount());
+        dto.setSwapFlowFileCount(swapSize.getObjectCount());
+
+        dto.setSwapFiles(queue.getSwapFileCount());
+        dto.setAllActiveQueueFlowFilesPenalized(queue.isAllActiveFlowFilesPenalized());
+        dto.setAnyActiveQueueFlowFilesPenalized(queue.isAnyActiveFlowFilePenalized());
+
+        return dto;
+    }
+
+    private JVMDiagnosticsDTO createJvmDiagnosticsDto(final FlowController flowController) {
+        final JVMDiagnosticsDTO dto = new JVMDiagnosticsDTO();
+        dto.setAggregateSnapshot(createJvmDiagnosticsSnapshotDto(flowController));
+        dto.setClustered(flowController.isClustered());
+        dto.setConnected(flowController.isConnected());
+        return dto;
+    }
+
+    private JVMDiagnosticsSnapshotDTO createJvmDiagnosticsSnapshotDto(final FlowController flowController) {
+        final JVMDiagnosticsSnapshotDTO dto = new JVMDiagnosticsSnapshotDTO();
+
+        final JVMControllerDiagnosticsSnapshotDTO controllerDiagnosticsDto = new JVMControllerDiagnosticsSnapshotDTO();
+        final JVMFlowDiagnosticsSnapshotDTO flowDiagnosticsDto = new JVMFlowDiagnosticsSnapshotDTO();
+        final JVMSystemDiagnosticsSnapshotDTO systemDiagnosticsDto = new JVMSystemDiagnosticsSnapshotDTO();
+
+        dto.setControllerDiagnostics(controllerDiagnosticsDto);
+        dto.setFlowDiagnosticsDto(flowDiagnosticsDto);
+        dto.setSystemDiagnosticsDto(systemDiagnosticsDto);
+
+        final SystemDiagnostics systemDiagnostics = flowController.getSystemDiagnostics();
+
+        // flow-related information
+        final Set<BundleDTO> bundlesLoaded = ExtensionManager.getAllBundles().stream()
+            .map(bundle -> bundle.getBundleDetails().getCoordinate())
+            .sorted((a, b) -> a.getCoordinate().compareTo(b.getCoordinate()))
+            .map(this::createBundleDto)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        flowDiagnosticsDto.setActiveEventDrivenThreads(flowController.getActiveEventDrivenThreadCount());
+        flowDiagnosticsDto.setActiveTimerDrivenThreads(flowController.getActiveTimerDrivenThreadCount());
+        flowDiagnosticsDto.setBundlesLoaded(bundlesLoaded);
+        flowDiagnosticsDto.setTimeZone(System.getProperty("user.timezone"));
+        flowDiagnosticsDto.setUptime(FormatUtils.formatHoursMinutesSeconds(systemDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
+
+        // controller-related information
+        controllerDiagnosticsDto.setClusterCoordinator(flowController.isClusterCoordinator());
+        controllerDiagnosticsDto.setPrimaryNode(flowController.isPrimary());
+        controllerDiagnosticsDto.setMaxEventDrivenThreads(flowController.getMaxEventDrivenThreadCount());
+        controllerDiagnosticsDto.setMaxTimerDrivenThreads(flowController.getMaxTimerDrivenThreadCount());
+
+        // system-related information
+        systemDiagnosticsDto.setMaxOpenFileDescriptors(systemDiagnostics.getMaxOpenFileHandles());
+        systemDiagnosticsDto.setOpenFileDescriptors(systemDiagnostics.getOpenFileHandles());
+        systemDiagnosticsDto.setPhysicalMemoryBytes(systemDiagnostics.getTotalPhysicalMemory());
+        systemDiagnosticsDto.setPhysicalMemory(FormatUtils.formatDataSize(systemDiagnostics.getTotalPhysicalMemory()));
+
+        final NumberFormat percentageFormat = NumberFormat.getPercentInstance();
+        percentageFormat.setMaximumFractionDigits(2);
+
+        final Set<RepositoryUsageDTO> contentRepoUsage = new HashSet<>();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getContentRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
+            usageDto.setName(repoName);
+
+            usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getContentRepoFileStoreName(repoName)));
+            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
+            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            usageDto.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            usageDto.setUtilization(utilization);
+            contentRepoUsage.add(usageDto);
+        }
+
+        final Set<RepositoryUsageDTO> provRepoUsage = new HashSet<>();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
+            usageDto.setName(repoName);
+
+            usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getProvenanceRepoFileStoreName(repoName)));
+            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
+            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            usageDto.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            usageDto.setUtilization(utilization);
+            provRepoUsage.add(usageDto);
+        }
+
+        final RepositoryUsageDTO flowFileRepoUsage = new RepositoryUsageDTO();
+        for (final Map.Entry<String, StorageUsage> entry : systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet()) {
+            final String repoName = entry.getKey();
+            final StorageUsage usage = entry.getValue();
+
+            flowFileRepoUsage.setName(repoName);
+
+            flowFileRepoUsage.setFileStoreHash(DigestUtils.sha256Hex(flowController.getFlowRepoFileStoreName()));
+            flowFileRepoUsage.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
+            flowFileRepoUsage.setFreeSpaceBytes(usage.getFreeSpace());
+            flowFileRepoUsage.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
+            flowFileRepoUsage.setTotalSpaceBytes(usage.getTotalSpace());
+
+            final double usedPercentage = (usage.getTotalSpace() - usage.getFreeSpace()) / (double) usage.getTotalSpace();
+            final String utilization = percentageFormat.format(usedPercentage);
+            flowFileRepoUsage.setUtilization(utilization);
+        }
+
+        systemDiagnosticsDto.setContentRepositoryStorageUsage(contentRepoUsage);
+        systemDiagnosticsDto.setCpuCores(systemDiagnostics.getAvailableProcessors());
+        systemDiagnosticsDto.setCpuLoadAverage(systemDiagnostics.getProcessorLoadAverage());
+        systemDiagnosticsDto.setFlowFileRepositoryStorageUsage(flowFileRepoUsage);
+        systemDiagnosticsDto.setMaxHeapBytes(systemDiagnostics.getMaxHeap());
+        systemDiagnosticsDto.setMaxHeap(FormatUtils.formatDataSize(systemDiagnostics.getMaxHeap()));
+        systemDiagnosticsDto.setProvenanceRepositoryStorageUsage(provRepoUsage);
+
+        // Create the Garbage Collection History info
+        final GarbageCollectionHistory gcHistory = flowController.getGarbageCollectionHistory();
+        final List<GarbageCollectionDiagnosticsDTO> gcDiagnostics = new ArrayList<>();
+        for (final String memoryManager : gcHistory.getMemoryManagerNames()) {
+            final List<GarbageCollectionStatus> statuses = gcHistory.getGarbageCollectionStatuses(memoryManager);
+
+            final List<GCDiagnosticsSnapshotDTO> gcSnapshots = new ArrayList<>();
+            for (final GarbageCollectionStatus status : statuses) {
+                final GCDiagnosticsSnapshotDTO snapshotDto = new GCDiagnosticsSnapshotDTO();
+                snapshotDto.setTimestamp(status.getTimestamp());
+                snapshotDto.setCollectionCount(status.getCollectionCount());
+                snapshotDto.setCollectionMillis(status.getCollectionMillis());
+                gcSnapshots.add(snapshotDto);
+            }
+
+            final GarbageCollectionDiagnosticsDTO gcDto = new GarbageCollectionDiagnosticsDTO();
+            gcDto.setMemoryManagerName(memoryManager);
+            gcDto.setSnapshots(gcSnapshots);
+            gcDiagnostics.add(gcDto);
+        }
+
+        systemDiagnosticsDto.setGarbageCollectionDiagnostics(gcDiagnostics);
+
+        return dto;
+    }
+
+    private List<ThreadDumpDTO> createThreadDumpDtos(final ProcessorNode procNode) {
+        final List<ThreadDumpDTO> threadDumps = new ArrayList<>();
+
+        final List<ActiveThreadInfo> activeThreads = procNode.getActiveThreads();
+        for (final ActiveThreadInfo threadInfo : activeThreads) {
+            final ThreadDumpDTO dto = new ThreadDumpDTO();
+            dto.setStackTrace(threadInfo.getStackTrace());
+            dto.setThreadActiveMillis(threadInfo.getActiveMillis());
+            dto.setThreadName(threadInfo.getThreadName());
+            dto.setTaskTerminated(threadInfo.isTerminated());
+            threadDumps.add(dto);
+        }
+
+        return threadDumps;
+    }
+
+    /**
      * Creates a ProcessorConfigDTO from the specified ProcessorNode.
      *
      * @param procNode node
@@ -3261,6 +3607,12 @@ public final class DtoFactory {
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
 
+        // to support legacy/deprecated method .expressionLanguageSupported(true)
+        String description = propertyDescriptor.isExpressionLanguageSupported()
+                && propertyDescriptor.getExpressionLanguageScope().equals(ExpressionLanguageScope.NONE)
+                ? "true (undefined scope)" : propertyDescriptor.getExpressionLanguageScope().getDescription();
+        dto.setExpressionLanguageScope(description);
+
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {
             final Class serviceClass = propertyDescriptor.getControllerServiceDefinition();
@@ -3340,6 +3692,7 @@ public final class DtoFactory {
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setPersistsState(original.getPersistsState());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setValidationStatus(original.getValidationStatus());
         copy.setVersionedComponentId(original.getVersionedComponentId());
         return copy;
     }
@@ -3415,9 +3768,11 @@ public final class DtoFactory {
         copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setSupportsBatching(original.getSupportsBatching());
         copy.setPersistsState(original.getPersistsState());
+        copy.setExecutionNodeRestricted(original.isExecutionNodeRestricted());
         copy.setExtensionMissing(original.getExtensionMissing());
         copy.setMultipleVersionsAvailable(original.getMultipleVersionsAvailable());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setValidationStatus(original.getValidationStatus());
         copy.setVersionedComponentId(original.getVersionedComponentId());
 
         return copy;
@@ -3763,44 +4118,6 @@ public final class DtoFactory {
         copy.setControllerServices(controllerServices);
 
         return copy;
-    }
-
-    private static class SortedRemoteGroupPortComparator implements Comparator<RemoteProcessGroupPortDTO> {
-
-        @Override
-        public int compare(final RemoteProcessGroupPortDTO o1, final RemoteProcessGroupPortDTO o2) {
-            if (o2 == null) {
-                return -1;
-            } else if (o1 == null) {
-                return 1;
-            }
-
-            final String name1 = o1.getName();
-            final String name2 = o2.getName();
-            if (name2 == null) {
-                return -1;
-            } else if (name1 == null) {
-                return 1;
-            } else {
-                int compareResult = Collator.getInstance(Locale.US).compare(name2, name2);
-
-                // if the names are same, use the id
-                if (compareResult == 0) {
-                    final String id1 = o1.getId();
-                    final String id2 = o2.getId();
-                    if (id2 == null) {
-                        compareResult = -1;
-                    } else if (id1 == null) {
-                        compareResult = 1;
-                    } else {
-                        compareResult = id1.compareTo(id2);
-                    }
-                }
-
-                return compareResult;
-            }
-
-        }
     }
 
     /**

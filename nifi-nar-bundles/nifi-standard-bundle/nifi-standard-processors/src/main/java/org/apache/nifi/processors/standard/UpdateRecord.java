@@ -40,6 +40,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.record.path.FieldValue;
@@ -87,7 +88,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
         .description("Specifies how to interpret the configured replacement values")
         .allowableValues(LITERAL_VALUES, RECORD_PATH_VALUES)
         .defaultValue(LITERAL_VALUES.getValue())
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .build();
 
@@ -105,7 +106,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
             .description("Specifies the value to use to replace fields in the record that match the RecordPath: " + propertyDescriptorName)
             .required(false)
             .dynamic(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new RecordPathPropertyNameValidator())
             .build();
     }
@@ -179,7 +180,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
                         fieldVal.updateValue(evaluatedReplacementVal);
                     });
                 } else {
-                    final String evaluatedReplacementVal = replacementValue.getValue();
+                    final String evaluatedReplacementVal = replacementValue.evaluateAttributeExpressions(flowFile).getValue();
                     result.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(evaluatedReplacementVal));
                 }
             }

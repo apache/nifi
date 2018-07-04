@@ -54,7 +54,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -87,7 +86,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -117,7 +115,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy10MBytes.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -132,13 +129,32 @@ public class TestExecuteStreamCommand {
     }
 
     @Test
+    public void testLoggingToStdErr() throws IOException {
+        File exJar = new File("src/test/resources/ExecuteCommand/TestLogStdErr.jar");
+        File dummy = new File("src/test/resources/ExecuteCommand/1mb.txt");
+        String jarPath = exJar.getAbsolutePath();
+        exJar.setExecutable(true);
+        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setValidateExpressionUsage(false);
+        controller.enqueue(dummy.toPath());
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.run(1);
+        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertEquals(0, flowFile.getSize());
+        assertEquals("fffffffffffffffffffffffffffffff", flowFile.getAttribute("execution.error").substring(0, 31));
+    }
+
+    @Test
     public void testExecuteIngestAndUpdateWithWorkingDir() throws IOException {
         File exJar = new File("src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar");
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -161,7 +177,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -185,7 +200,6 @@ public class TestExecuteStreamCommand {
         testFile.delete();
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.enqueue(dummy.toPath());
         controller.enqueue(dummy.toPath());
@@ -212,7 +226,6 @@ public class TestExecuteStreamCommand {
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setProperty("NIFI_TEST_1", "testvalue1");
         controller.setProperty("NIFI_TEST_2", "testvalue2");
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -234,7 +247,6 @@ public class TestExecuteStreamCommand {
         File dummy = new File("src/test/resources/hello.txt");
         assertTrue(dummy.exists());
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue("".getBytes());
 
         if(isWindows()) {
@@ -268,7 +280,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -296,7 +307,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue("small test".getBytes());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -335,7 +345,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy10MBytes.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
@@ -361,7 +370,6 @@ public class TestExecuteStreamCommand {
         }
 
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue("".getBytes());
         if(isWindows()) {
             controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
@@ -392,8 +400,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
-
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -415,7 +421,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -439,7 +444,6 @@ public class TestExecuteStreamCommand {
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setProperty("NIFI_TEST_1", "testvalue1");
         controller.setProperty("NIFI_TEST_2", "testvalue2");
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
@@ -481,7 +485,6 @@ public class TestExecuteStreamCommand {
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
-        controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);

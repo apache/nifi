@@ -38,12 +38,14 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -61,7 +63,6 @@ import java.util.stream.Collectors;
         description = "Endpoint for accessing dataflow snippets."
 )
 public class SnippetResource extends ApplicationResource {
-
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
 
@@ -169,6 +170,8 @@ public class SnippetResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestSnippetEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestSnippetEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -258,6 +261,8 @@ public class SnippetResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestSnippetEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestSnippetEntity.isDisconnectedNodeAcknowledged());
         }
 
         // get the revision from this snippet
@@ -317,6 +322,11 @@ public class SnippetResource extends ApplicationResource {
     public Response deleteSnippet(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The snippet id.",
                     required = true
             )
@@ -324,6 +334,8 @@ public class SnippetResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final ComponentEntity requestEntity = new ComponentEntity();

@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -95,7 +96,7 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             .required(true)
             .defaultValue(";")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -146,7 +147,21 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             if (e instanceof SQLNonTransientException) {
                 return ErrorTypes.InvalidInput;
             } else if (e instanceof SQLException) {
-                return ErrorTypes.TemporalFailure;
+                // Use the SQLException's vendor code for guidance -- see Hive's ErrorMsg class for details on error codes
+                int errorCode = ((SQLException) e).getErrorCode();
+                if (errorCode >= 10000 && errorCode < 20000) {
+                    return ErrorTypes.InvalidInput;
+                } else if (errorCode >= 20000 && errorCode < 30000) {
+                    return ErrorTypes.TemporalFailure;
+                } else if (errorCode >= 30000 && errorCode < 40000) {
+                    return ErrorTypes.TemporalInputFailure;
+                } else if (errorCode >= 40000 && errorCode < 50000) {
+                    // These are unknown errors (to include some parse errors), but rather than generating an UnknownFailure which causes
+                    // a ProcessException, we'll route to failure via an InvalidInput error type.
+                    return ErrorTypes.InvalidInput;
+                } else {
+                    return ErrorTypes.UnknownFailure;
+                }
             } else {
                 return ErrorTypes.UnknownFailure;
             }
@@ -186,9 +201,9 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
         }
     }
 
-    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc) -> {
+    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ff) -> {
         final HiveDBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(HiveDBCPService.class);
-        final Connection connection = dbcpService.getConnection();
+        final Connection connection = dbcpService.getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
         fc.connectionUrl = dbcpService.getConnectionURL();
         return connection;
     };

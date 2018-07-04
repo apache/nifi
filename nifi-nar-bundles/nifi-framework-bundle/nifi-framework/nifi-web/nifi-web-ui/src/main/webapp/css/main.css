@@ -138,6 +138,26 @@ div.context-menu-provenance {
     text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
+.validating {
+    float: left;
+    width: 12px;
+    height: 12px;
+    line-height: 12px !important;
+    margin-top: 5px !important;
+    color: #a8a8a8 !important;
+    fill: #a8a8a8 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+    transform-origin: 6px 6px 0;
+}
+
+.validating:before {
+    font-family: FontAwesome;
+    font-size: 12px;
+    content: "\f1ce";
+    color: #a8a8a8;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
 .transmitting {
     float: left;
     color: #44a3cf !important;
@@ -182,7 +202,7 @@ div.valid {
     background-color: transparent;
 }
 
-div.has-bulletins {
+div.has-bulletins, div.warning {
     color: #ba554a !important;
 }
 

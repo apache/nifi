@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -72,7 +73,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("5")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -82,7 +83,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
             .required(true)
             .defaultValue("50")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     static final PropertyDescriptor KEY_SEPARATOR = new PropertyDescriptor.Builder()
@@ -93,7 +94,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
             .required(true)
             .defaultValue(",")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("delete-char-set")
@@ -103,6 +104,17 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
+    static final PropertyDescriptor VISIBLITY_LABEL = new PropertyDescriptor.Builder()
+            .name("delete-visibility-label")
+            .displayName("Visibility Label")
+            .description("If visibility labels are enabled, a row cannot be deleted without supplying its visibility label(s) in the delete " +
+                    "request. Note: this visibility label will be applied to all cells within the row that is specified. If some cells have " +
+                    "different visibility labels, they will not be deleted. When that happens, the failure to delete will be considered a success " +
+                    "because HBase does not report it as a failure.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -111,6 +123,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
         properties.add(FLOWFILE_FETCH_COUNT);
         properties.add(BATCH_SIZE);
         properties.add(KEY_SEPARATOR);
+        properties.add(VISIBLITY_LABEL);
         properties.add(CHARSET);
 
         return properties;
@@ -127,10 +140,12 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
         if (flowFiles != null && flowFiles.size() > 0) {
             for (int index = 0; index < flowFiles.size(); index++) {
                 FlowFile flowFile = flowFiles.get(index);
+                final String visibility  = context.getProperty(VISIBLITY_LABEL).isSet()
+                        ? context.getProperty(VISIBLITY_LABEL).evaluateAttributeExpressions(flowFile).getValue() : null;
                 final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
                 try {
                     if (location.equals(ROW_ID_CONTENT.getValue())) {
-                        flowFile = doDeleteFromContent(flowFile, context, session, tableName, batchSize, charset);
+                        flowFile = doDeleteFromContent(flowFile, context, session, tableName, batchSize, charset, visibility);
                         if (flowFile.getAttribute(RESTART_INDEX) != null) {
                             session.transfer(flowFile, REL_FAILURE);
                         } else {
@@ -139,7 +154,7 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
                             session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUrl);
                         }
                     } else {
-                        String transitUrl = doDeleteFromAttribute(flowFile, context, tableName, charset);
+                        String transitUrl = doDeleteFromAttribute(flowFile, context, tableName, charset, visibility);
                         session.transfer(flowFile, REL_SUCCESS);
                         session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUrl);
                     }
@@ -151,14 +166,14 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
         }
     }
 
-    private String doDeleteFromAttribute(FlowFile flowFile, ProcessContext context, String tableName, String charset) throws Exception {
+    private String doDeleteFromAttribute(FlowFile flowFile, ProcessContext context, String tableName, String charset, String visibility) throws Exception {
         String rowKey = context.getProperty(ROW_ID).evaluateAttributeExpressions(flowFile).getValue();
-        clientService.delete(tableName, rowKey.getBytes(charset));
+        clientService.delete(tableName, rowKey.getBytes(charset), visibility);
 
         return clientService.toTransitUri(tableName, rowKey);
     }
 
-    private FlowFile doDeleteFromContent(FlowFile flowFile, ProcessContext context, ProcessSession session, String tableName, int batchSize, String charset) throws Exception {
+    private FlowFile doDeleteFromContent(FlowFile flowFile, ProcessContext context, ProcessSession session, String tableName, int batchSize, String charset, String visibility) throws Exception {
         String keySeparator = context.getProperty(KEY_SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
         final String restartIndex = flowFile.getAttribute(RESTART_INDEX);
 
@@ -191,13 +206,13 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
 
                     batch.add(parts[index].getBytes(charset));
                     if (batch.size() == batchSize) {
-                        clientService.delete(tableName, batch);
+                        clientService.delete(tableName, batch, visibility);
                         batch = new ArrayList<>();
                     }
                     last = parts[index];
                 }
                 if (batch.size() > 0) {
-                    clientService.delete(tableName, batch);
+                    clientService.delete(tableName, batch, visibility);
                 }
 
                 flowFile = session.removeAttribute(flowFile, RESTART_INDEX);

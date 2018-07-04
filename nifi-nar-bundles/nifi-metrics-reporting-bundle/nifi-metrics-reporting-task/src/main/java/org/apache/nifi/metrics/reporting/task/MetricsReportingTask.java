@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.FlowMetricSet;
 import org.apache.nifi.metrics.reporting.reporter.service.MetricReporterService;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -73,7 +74,7 @@ public class MetricsReportingTask extends AbstractReportingTask {
             .description("The id of the process group to report. If not specified, metrics of the root process group" +
                     "are reported.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

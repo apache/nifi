@@ -34,6 +34,9 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
@@ -131,7 +134,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_DISABLED;
+import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_ENABLED;
 
 /**
  * RESTful endpoint for managing a Flow.
@@ -563,27 +571,61 @@ public class FlowResource extends ApplicationResource {
         if (requestScheduleComponentsEntity.getState() == null) {
             throw new IllegalArgumentException("The scheduled state must be specified.");
         } else {
-            try {
-                state = ScheduledState.valueOf(requestScheduleComponentsEntity.getState());
-            } catch (final IllegalArgumentException iae) {
-                throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+            if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                state = ScheduledState.STOPPED;
+            } else {
+                try {
+                    state = ScheduledState.valueOf(requestScheduleComponentsEntity.getState());
+                } catch (final IllegalArgumentException iae) {
+                    throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                            StringUtils.join(Stream.of(ScheduledState.RUNNING, ScheduledState.STOPPED, STATE_ENABLED, ScheduledState.DISABLED), ", ")));
+                }
             }
         }
 
         // ensure its a supported scheduled state
-        if (ScheduledState.DISABLED.equals(state) || ScheduledState.STARTING.equals(state) || ScheduledState.STOPPING.equals(state)) {
-            throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+        if (ScheduledState.STARTING.equals(state) || ScheduledState.STOPPING.equals(state)) {
+            throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
+                    StringUtils.join(Stream.of(ScheduledState.RUNNING, ScheduledState.STOPPED, STATE_ENABLED, ScheduledState.DISABLED), ", ")));
         }
 
         // if the components are not specified, gather all components and their current revision
         if (requestScheduleComponentsEntity.getComponents() == null) {
+            final Supplier<Predicate<ProcessorNode>> getProcessorFilter = () -> {
+                if (ScheduledState.RUNNING.equals(state)) {
+                    return ProcessGroup.START_PROCESSORS_FILTER;
+                } else if (ScheduledState.STOPPED.equals(state)) {
+                    if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                        return ProcessGroup.ENABLE_PROCESSORS_FILTER;
+                    } else {
+                        return ProcessGroup.STOP_PROCESSORS_FILTER;
+                    }
+                } else {
+                    return ProcessGroup.DISABLE_PROCESSORS_FILTER;
+                }
+            };
+
+            final Supplier<Predicate<Port>> getPortFilter = () -> {
+                if (ScheduledState.RUNNING.equals(state)) {
+                    return ProcessGroup.START_PORTS_FILTER;
+                } else if (ScheduledState.STOPPED.equals(state)) {
+                    if (requestScheduleComponentsEntity.getState().equals(STATE_ENABLED)) {
+                        return ProcessGroup.ENABLE_PORTS_FILTER;
+                    } else {
+                        return ProcessGroup.STOP_PORTS_FILTER;
+                    }
+                } else {
+                    return ProcessGroup.DISABLE_PORTS_FILTER;
+                }
+            };
+
             // get the current revisions for the components being updated
             final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
                 final Set<String> componentIds = new HashSet<>();
 
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PROCESSORS : ProcessGroup.UNSCHEDULABLE_PROCESSORS)
+                        .filter(getProcessorFilter.get())
                         .filter(processor -> processor.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(processor -> {
                             componentIds.add(processor.getIdentifier());
@@ -591,7 +633,7 @@ public class FlowResource extends ApplicationResource {
 
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(getPortFilter.get())
                         .filter(inputPort -> inputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(inputPort -> {
                             componentIds.add(inputPort.getIdentifier());
@@ -599,7 +641,7 @@ public class FlowResource extends ApplicationResource {
 
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
-                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                        .filter(getPortFilter.get())
                         .filter(outputPort -> outputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(outputPort -> {
                             componentIds.add(outputPort.getIdentifier());
@@ -623,6 +665,8 @@ public class FlowResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestScheduleComponentsEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestScheduleComponentsEntity.isDisconnectedNodeAcknowledged());
         }
 
         final Map<String, RevisionDTO> requestComponentsToSchedule = requestScheduleComponentsEntity.getComponents();
@@ -644,16 +688,34 @@ public class FlowResource extends ApplicationResource {
                         connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
-                () -> serviceFacade.verifyScheduleComponents(id, state, requestComponentRevisions.keySet()),
+                () -> {
+                    if (STATE_ENABLED.equals(requestScheduleComponentsEntity.getState()) || STATE_DISABLED.equals(requestScheduleComponentsEntity.getState())) {
+                        serviceFacade.verifyEnableComponents(id, state, requestComponentRevisions.keySet());
+                    } else {
+                        serviceFacade.verifyScheduleComponents(id, state, requestComponentRevisions.keySet());
+                    }
+                },
                 (revisions, scheduleComponentsEntity) -> {
-                    final ScheduledState scheduledState = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+
+                    final ScheduledState scheduledState;
+                    if (STATE_ENABLED.equals(scheduleComponentsEntity.getState())) {
+                        scheduledState = ScheduledState.STOPPED;
+                    } else {
+                        scheduledState = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+                    }
 
                     final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
                     final Map<String, Revision> componentRevisions =
                             componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
 
                     // update the process group
-                final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
+                    final ScheduleComponentsEntity entity;
+                    if (STATE_ENABLED.equals(scheduleComponentsEntity.getState()) || STATE_DISABLED.equals(scheduleComponentsEntity.getState())) {
+                        entity = serviceFacade.enableComponents(id, scheduledState, componentRevisions);
+                    } else {
+                        entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
+                    }
+
                     return generateOkResponse(entity).build();
                 }
         );
@@ -692,12 +754,12 @@ public class FlowResource extends ApplicationResource {
                 + "not equal the process group id of the requested resource (%s).", requestEntity.getId(), id));
         }
 
-        final ControllerServiceState state;
+        final ControllerServiceState desiredState;
         if (requestEntity.getState() == null) {
             throw new IllegalArgumentException("The controller service state must be specified.");
         } else {
             try {
-                state = ControllerServiceState.valueOf(requestEntity.getState());
+                desiredState = ControllerServiceState.valueOf(requestEntity.getState());
             } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format("The controller service state must be one of [%s].",
                     StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
@@ -705,7 +767,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // ensure its a supported scheduled state
-        if (ControllerServiceState.DISABLING.equals(state) || ControllerServiceState.ENABLING.equals(state)) {
+        if (ControllerServiceState.DISABLING.equals(desiredState) || ControllerServiceState.ENABLING.equals(desiredState)) {
             throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
                 StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
         }
@@ -717,10 +779,10 @@ public class FlowResource extends ApplicationResource {
                 final Set<String> componentIds = new HashSet<>();
 
                 final Predicate<ControllerServiceNode> filter;
-                if (ControllerServiceState.ENABLED.equals(state)) {
-                    filter = service -> !service.isActive() && service.isValid();
+                if (ControllerServiceState.ENABLED.equals(desiredState)) {
+                    filter = service -> !service.isActive() && service.getValidationStatus() == ValidationStatus.VALID;
                 } else {
-                    filter = service -> service.isActive();
+                    filter = ControllerServiceNode::isActive;
                 }
 
                 group.findAllControllerServices().stream()
@@ -745,6 +807,8 @@ public class FlowResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
         }
 
         final Map<String, RevisionDTO> requestComponentsToSchedule = requestEntity.getComponents();
@@ -766,7 +830,7 @@ public class FlowResource extends ApplicationResource {
                         authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
-                () -> serviceFacade.verifyActivateControllerServices(id, state, requestComponentRevisions.keySet()),
+            () -> serviceFacade.verifyActivateControllerServices(id, desiredState, requestComponentRevisions.keySet()),
                 (revisions, scheduleComponentsEntity) -> {
                 final ControllerServiceState serviceState = ControllerServiceState.valueOf(scheduleComponentsEntity.getState());
 

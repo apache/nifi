@@ -393,6 +393,7 @@ public class RecordBin {
             attributes.put(MERGE_BIN_AGE_ATTRIBUTE, Long.toString(getBinAge()));
 
             merged = session.putAllAttributes(merged, attributes);
+            flowFiles.stream().forEach(ff -> session.putAttribute(ff, "merge.uuid", merged.getAttribute(CoreAttributes.UUID.key())));
 
             session.getProvenanceReporter().join(flowFiles, merged, "Records Merged due to: " + completionReason);
             session.transfer(merged, MergeRecord.REL_MERGED);

@@ -17,15 +17,17 @@
 package org.apache.nifi.processors.gcp;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.HttpServiceOptions;
 import com.google.cloud.Service;
+import com.google.cloud.ServiceOptions;
 import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+
 
 import java.util.List;
 
@@ -35,8 +37,7 @@ import java.util.List;
  */
 public abstract class AbstractGCPProcessor<
         CloudService extends Service<CloudServiceOptions>,
-        CloudServiceRpc,
-        CloudServiceOptions extends HttpServiceOptions<CloudService, CloudServiceRpc, CloudServiceOptions>> extends AbstractProcessor {
+        CloudServiceOptions extends ServiceOptions<CloudService, CloudServiceOptions>> extends AbstractProcessor {
 
     public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor
             .Builder().name("gcp-project-id")
@@ -60,7 +61,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("Proxy host")
             .description("IP or hostname of the proxy to be used")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -69,7 +70,7 @@ public abstract class AbstractGCPProcessor<
             .displayName("Proxy port")
             .description("Proxy port number")
             .required(false)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -110,7 +111,7 @@ public abstract class AbstractGCPProcessor<
      * @return GoogleCredentials for the processor to access.
      * @see  <a href="https://developers.google.com/api-client-library/java/google-api-java-client/reference/1.20.0/com/google/api/client/googleapis/auth/oauth2/GoogleCredential">AuthCredentials</a>
      */
-    private GoogleCredentials getGoogleCredentials(final ProcessContext context) {
+    protected GoogleCredentials getGoogleCredentials(final ProcessContext context) {
         final GCPCredentialsService gcpCredentialsService =
                 context.getProperty(GCP_CREDENTIALS_PROVIDER_SERVICE).asControllerService(GCPCredentialsService.class);
         return gcpCredentialsService.getGoogleCredentials();
@@ -123,7 +124,7 @@ public abstract class AbstractGCPProcessor<
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         final CloudServiceOptions options = getServiceOptions(context, getGoogleCredentials(context));
-        this.cloudService = options.getService();
+        this.cloudService = options != null ? options.getService() : null;
     }
 
     /**

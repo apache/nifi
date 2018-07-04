@@ -16,13 +16,18 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import okhttp3.Call;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -37,17 +42,13 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.ConnectException;
-import java.util.HashMap;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class TestPutElasticsearchHttpRecord {
 
@@ -62,7 +63,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerIndex() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -88,7 +88,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerUpdate() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -110,7 +109,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerDelete() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -132,7 +130,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerEL() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -159,7 +156,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerBadIndexOp() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -181,7 +177,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchInvalidConfig() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -276,7 +271,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticsearchOnTriggerWithIndexFromAttribute() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false));
         generateTestData();
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "${i}");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "${type}");
@@ -310,7 +304,6 @@ public class TestPutElasticsearchHttpRecord {
     public void testPutElasticSearchOnTriggerWithInvalidIndexOp() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -339,7 +332,6 @@ public class TestPutElasticsearchHttpRecord {
         p.setExpectedUrl("http://127.0.0.1:9200/_bulk?pipeline=my-pipeline");
         runner = TestRunners.newTestRunner(p);
         generateTestData();
-        runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -427,6 +419,7 @@ public class TestPutElasticsearchHttpRecord {
             });
         }
 
+        @Override
         protected OkHttpClient getClient() {
             return client;
         }
@@ -449,7 +442,6 @@ public class TestPutElasticsearchHttpRecord {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-        runner.setValidateExpressionUsage(false);
 
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -476,7 +468,6 @@ public class TestPutElasticsearchHttpRecord {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-        runner.setValidateExpressionUsage(false);
 
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
@@ -493,6 +484,23 @@ public class TestPutElasticsearchHttpRecord {
         }
         runner.run();
         runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 100);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testPutElasticSearchBadHostInEL() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
+
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.assertValid();
+
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "1");
+        }});
+
+        runner.run();
     }
 
     private void generateTestData() throws IOException {

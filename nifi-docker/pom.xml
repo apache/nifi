@@ -15,12 +15,12 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-docker</artifactId>
-    <version>1.6.0-SNAPSHOT</version>
+    <version>1.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -29,6 +29,7 @@ language governing permissions and limitations under the License. -->
 
     <modules>
         <module>dockermaven</module>
+        <module>dockerhub</module>
     </modules>
     
     <build>

@@ -22,6 +22,7 @@
         define(['jquery',
                 'd3',
                 'nf.Common',
+                'nf.Dialog',
                 'nf.Graph',
                 'nf.Shell',
                 'nf.ng.Bridge',
@@ -33,14 +34,15 @@
                 'nf.ContextMenu',
                 'nf.Actions',
                 'nf.ProcessGroup'],
-            function ($, d3, nfCommon, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
-                return (nf.Canvas = factory($, d3, nfCommon, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup));
+            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
+                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Canvas =
             factory(require('jquery'),
                 require('d3'),
                 require('nf.Common'),
+                require('nf.Dialog'),
                 require('nf.Graph'),
                 require('nf.Shell'),
                 require('nf.ng.Bridge'),
@@ -56,6 +58,7 @@
         nf.Canvas = factory(root.$,
             root.d3,
             root.nf.Common,
+            root.nf.Dialog,
             root.nf.Graph,
             root.nf.Shell,
             root.nf.ng.Bridge,
@@ -68,7 +71,7 @@
             root.nf.Actions,
             root.nf.ProcessGroup);
     }
-}(this, function ($, d3, nfCommon, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
+}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
     'use strict';
 
     var SCALE = 1;
@@ -163,6 +166,14 @@
             nfNgBridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
             nfNgBridge.injector.get('breadcrumbsCtrl').resetScrollPosition();
 
+            // set page title to the name of the root processor group
+            var rootBreadcrumb = breadcrumb;
+            while(rootBreadcrumb.parentBreadcrumb != null) {
+                rootBreadcrumb = rootBreadcrumb.parentBreadcrumb
+            }
+
+            document.title = rootBreadcrumb.breadcrumb.name;
+
             // update the timestamp
             $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);
 
@@ -254,6 +265,19 @@
                 });
                 var clusterSummary = nfClusterSummary.loadClusterSummary().done(function (response) {
                     var clusterSummary = response.clusterSummary;
+
+                    // see if this node has been (dis)connected
+                    if (nfClusterSummary.didConnectedStateChange()) {
+                        if (clusterSummary.connectedToCluster) {
+                            nfDialog.showConnectedToClusterMessage(function () {
+                                nfStorage.resetDisconnectionAcknowledgement();
+                            });
+                        } else {
+                            nfDialog.showDisconnectedFromClusterMessage(function () {
+                                nfStorage.acknowledgeDisconnection();
+                            });
+                        }
+                    }
 
                     // update the cluster summary
                     nfNgBridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
@@ -651,9 +675,13 @@
                     // resize grids when appropriate
                     var gridElements = $('*[class*="slickgrid_"]');
                     for (var j = 0, len = gridElements.length; j < len; j++) {
-                        if ($(gridElements[j]).is(':visible')){
-                            setTimeout(function(gridElement){
-                                gridElement.data('gridInstance').resizeCanvas();
+                        if ($(gridElements[j]).is(':visible')) {
+                            setTimeout(function(gridElement) {
+                                var grid = gridElement.data('gridInstance');
+                                var editorLock = grid.getEditorLock();
+                                if (!editorLock.isActive()) {
+                                    grid.resizeCanvas();
+                                }
                             }, 50, $(gridElements[j]));
                         }
                     }
@@ -972,7 +1000,6 @@
                 init: function () {
                     var refreshed;
 
-                    var zoomed = false;
                     var panning = false;
 
                     // filters zoom events as programmatically modifying the translate or scale now triggers the handlers
@@ -1022,13 +1049,8 @@
                                 k = d3.event.transform.k;
                             }
 
-                            // if we have zoomed, indicate that we are panning
-                            // to prevent deselection elsewhere
-                            if (zoomed) {
-                                panning = true;
-                            } else {
-                                zoomed = true;
-                            }
+                            // indicate that we are panning to prevent deselection in zoom.end below
+                            panning = true;
 
                             // refresh the canvas
                             refreshed = nfCanvas.View.refresh({
@@ -1069,7 +1091,6 @@
                             }
 
                             panning = false;
-                            zoomed = false;
                         });
 
                     // add the behavior to the canvas and disable dbl click zoom

@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.microsoft.azure.storage.OperationContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -77,6 +78,9 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
             CloudBlob blob = container.getBlockBlobReference(blobPath);
 
+            final OperationContext operationContext = new OperationContext();
+            AzureStorageUtils.setProxy(operationContext, context);
+
             final Map<String, String> attributes = new HashMap<>();
             long length = flowFile.getSize();
             session.read(flowFile, rawIn -> {
@@ -87,7 +91,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                 }
 
                 try {
-                    blob.upload(in, length);
+                    blob.upload(in, length, null, null, operationContext);
                     BlobProperties properties = blob.getProperties();
                     attributes.put("azure.container", containerName);
                     attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());

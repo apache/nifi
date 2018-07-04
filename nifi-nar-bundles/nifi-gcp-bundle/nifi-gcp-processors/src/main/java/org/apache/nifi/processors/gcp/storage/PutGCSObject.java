@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -111,7 +112,7 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the GCS Object",
         value = "The value of a User-Defined Metadata field to add to the GCS Object",
         description = "Allows user-defined metadata to be added to the GCS object as key/value pairs",
-        supportsExpressionLanguage = true)
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttributes({
         @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the " +
                 "GCS object"),
@@ -150,7 +151,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .description(BUCKET_DESC)
             .required(true)
             .defaultValue("${" + BUCKET_ATTR + "}")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -160,7 +161,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .description(KEY_DESC)
             .required(true)
             .defaultValue("${filename}")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -170,7 +171,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                       .description("Content Type for the file, i.e. text/plain")
                       .defaultValue("${mime.type}")
                       .required(false)
-                      .expressionLanguageSupported(true)
+                      .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                       .build();
 
@@ -179,7 +180,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .displayName("MD5 Hash")
             .description("MD5 Hash (encoded in Base64) of the file for server-side validation.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -189,7 +190,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .displayName("CRC32C Checksum")
             .description("CRC32C Checksum (encoded in Base64, big-Endian order) of the file for server-side validation.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -252,7 +253,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .displayName("Server Side Encryption Key")
             .description("An AES256 Encryption Key (encoded in base64) for server-side encryption of the object.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -307,7 +308,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }

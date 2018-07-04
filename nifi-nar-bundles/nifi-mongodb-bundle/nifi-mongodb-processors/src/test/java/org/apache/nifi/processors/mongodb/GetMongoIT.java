@@ -135,7 +135,7 @@ public class GetMongoIT {
 
         // invalid projection
         runner.setVariable("projection", "{a: x,y,z}");
-        runner.setProperty(GetMongo.QUERY, "{a: 1}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": 1}");
         runner.setProperty(GetMongo.PROJECTION, "{a: z}");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
@@ -190,7 +190,7 @@ public class GetMongoIT {
 
     @Test
     public void testReadMultipleDocuments() throws Exception {
-        runner.setProperty(GetMongo.QUERY, "{a: {$exists: true}}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 3);
@@ -202,8 +202,8 @@ public class GetMongoIT {
 
     @Test
     public void testProjection() throws Exception {
-        runner.setProperty(GetMongo.QUERY, "{a: 1, b: 3}");
-        runner.setProperty(GetMongo.PROJECTION, "{_id: 0, a: 1}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": 1, \"b\": 3}");
+        runner.setProperty(GetMongo.PROJECTION, "{\"_id\": 0, \"a\": 1}");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
@@ -215,7 +215,7 @@ public class GetMongoIT {
     @Test
     public void testSort() throws Exception {
         runner.setVariable("sort", "{a: -1, b: -1, c: 1}");
-        runner.setProperty(GetMongo.QUERY, "{a: {$exists: true}}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.setProperty(GetMongo.SORT, "${sort}");
         runner.run();
 
@@ -228,7 +228,7 @@ public class GetMongoIT {
 
     @Test
     public void testLimit() throws Exception {
-        runner.setProperty(GetMongo.QUERY, "{a: {$exists: true}}");
+        runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.setProperty(GetMongo.LIMIT, "${limit}");
         runner.setVariable("limit", "1");
         runner.run();
@@ -359,7 +359,6 @@ public class GetMongoIT {
         runner.setIncomingConnection(true);
         runner.setProperty(GetMongo.QUERY, query);
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "10");
-        runner.setValidateExpressionUsage(true);
         runner.enqueue("test", attributes);
         runner.run(1, true, true);
 
@@ -427,6 +426,24 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+    }
+
+    @Test
+    public void testReadCharsetWithEL() {
+        String query = "{ \"c\": { \"$gte\": 4 }}";
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("charset", "UTF-8");
+
+        runner.setProperty(GetMongo.CHARSET, "${charset}");
+        runner.setProperty(GetMongo.BATCH_SIZE, "2");
+        runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "2");
+
+        runner.setIncomingConnection(true);
+        runner.enqueue(query, attrs);
+        runner.run(1, true, true);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
     }
     /*
      * End query read behavior tests

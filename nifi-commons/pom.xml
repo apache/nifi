@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-commons</artifactId>
@@ -31,6 +31,7 @@
         <module>nifi-security-utils</module>
         <module>nifi-socket-utils</module>
         <module>nifi-utils</module>
+        <module>nifi-json-utils</module>
         <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>
         <module>nifi-site-to-site-client</module>

@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -40,7 +41,7 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
             .description("Specifies the character set of the document data.")
             .required(true)
             .defaultValue("UTF-8")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
@@ -111,7 +112,7 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
                     "for determining RethinkDB key for the Flow File content")
                 .required(true)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
 
     public static AllowableValue DURABILITY_SOFT = new AllowableValue("soft", "Soft", "Don't save changes to disk before ack");
@@ -125,7 +126,7 @@ abstract class AbstractRethinkDBProcessor extends AbstractProcessor {
                 .required(true)
                 .defaultValue("hard")
                 .allowableValues(DURABILITY_HARD, DURABILITY_SOFT)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")

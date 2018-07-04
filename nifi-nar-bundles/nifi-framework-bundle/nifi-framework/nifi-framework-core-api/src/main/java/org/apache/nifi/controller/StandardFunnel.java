@@ -190,7 +190,7 @@ public class StandardFunnel implements Funnel {
             writeLock.lock();
             try {
                 if (!outgoingConnections.remove(connection)) {
-                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Port");
+                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Funnel");
                 }
                 outgoingConnections.add(connection);
             } finally {
@@ -202,7 +202,7 @@ public class StandardFunnel implements Funnel {
             writeLock.lock();
             try {
                 if (!incomingConnections.remove(connection)) {
-                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Port");
+                    throw new IllegalStateException("No Connection with ID " + connection.getIdentifier() + " is currently registered with this Funnel");
                 }
                 incomingConnections.add(connection);
             } finally {
@@ -218,7 +218,7 @@ public class StandardFunnel implements Funnel {
             if (!requireNonNull(connection).getSource().equals(this)) {
                 final boolean existed = incomingConnections.remove(connection);
                 if (!existed) {
-                    throw new IllegalStateException("The given connection is not currently registered for this ProcessorNode");
+                    throw new IllegalStateException("The given connection is not currently registered for this Funnel");
                 }
                 return;
             }
@@ -459,6 +459,12 @@ public class StandardFunnel implements Funnel {
     @Override
     public void yield() {
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);
+        yield(yieldMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void yield(final long yieldDuration, final TimeUnit timeUnit) {
+        final long yieldMillis = timeUnit.toMillis(yieldDuration);
         yieldExpiration.set(Math.max(yieldExpiration.get(), System.currentTimeMillis() + yieldMillis));
     }
 

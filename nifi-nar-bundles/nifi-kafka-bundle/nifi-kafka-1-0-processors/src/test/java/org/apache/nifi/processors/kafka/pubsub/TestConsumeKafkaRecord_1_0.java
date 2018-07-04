@@ -200,7 +200,7 @@ public class TestConsumeKafkaRecord_1_0 {
         runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
         runner.assertNotValid();
 
-        runner.setProperty(KafkaProcessorUtils.KERBEROS_PRINCIPLE, "kafka");
+        runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "kafka");
         runner.assertValid();
 
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "nifi@APACHE.COM");

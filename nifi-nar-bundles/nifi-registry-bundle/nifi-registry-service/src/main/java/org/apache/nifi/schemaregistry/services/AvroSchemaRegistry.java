@@ -16,32 +16,16 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
-
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
@@ -49,13 +33,24 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 @Tags({"schema", "registry", "avro", "json", "csv"})
 @CapabilityDescription("Provides a service for registering and accessing schemas. You can register a schema "
     + "as a dynamic property where 'name' represents the schema name and 'value' represents the textual "
     + "representation of the actual schema following the syntax and semantics of Avro's Schema format.")
 public class AvroSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT, SchemaField.SCHEMA_TEXT_FORMAT);
-    private final Map<String, String> schemaNameToSchemaMap;
     private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
     static final PropertyDescriptor VALIDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
@@ -70,9 +65,6 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     private List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
 
-    public AvroSchemaRegistry() {
-        this.schemaNameToSchemaMap = new HashMap<>();
-    }
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
@@ -92,7 +84,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
                 try {
                     // Use a non-strict parser here, a strict parse can be done (if specified) in customValidate().
                     final Schema avroSchema = new Schema.Parser().setValidate(false).parse(newValue);
-                    final SchemaIdentifier schemaId = SchemaIdentifier.ofName(descriptor.getName());
+                    final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(descriptor.getName()).build();
                     final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, newValue, schemaId);
                     recordSchemas.put(descriptor.getName(), recordSchema);
                 } catch (final Exception e) {
@@ -127,18 +119,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
         return results;
     }
 
-    @Override
-    public String retrieveSchemaText(final String schemaName) throws SchemaNotFoundException {
-        final String schemaText = schemaNameToSchemaMap.get(schemaName);
-        if (schemaText == null) {
-            throw new SchemaNotFoundException("Unable to find schema with name '" + schemaName + "'");
-        }
-
-        return schemaText;
-    }
-
-    @Override
-    public RecordSchema retrieveSchema(final String schemaName) throws SchemaNotFoundException {
+    private RecordSchema retrieveSchemaByName(final String schemaName) throws SchemaNotFoundException {
         final RecordSchema recordSchema = recordSchemas.get(schemaName);
         if (recordSchema == null) {
             throw new SchemaNotFoundException("Unable to find schema with name '" + schemaName + "'");
@@ -147,26 +128,13 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     }
 
     @Override
-    public RecordSchema retrieveSchema(long schemaId, int version) throws IOException, SchemaNotFoundException {
-        throw new SchemaNotFoundException("This Schema Registry does not support schema lookup by identifier and version - only by name.");
-    }
-
-    @Override
-    public String retrieveSchemaText(long schemaId, int version) throws IOException, SchemaNotFoundException {
-        throw new SchemaNotFoundException("This Schema Registry does not support schema lookup by identifier and version - only by name.");
-    }
-
-    @OnDisabled
-    public void close() throws Exception {
-        schemaNameToSchemaMap.clear();
-    }
-
-
-    @OnEnabled
-    public void enable(final ConfigurationContext configurationContext) throws InitializationException {
-        this.schemaNameToSchemaMap.putAll(configurationContext.getProperties().entrySet().stream()
-            .filter(propEntry -> propEntry.getKey().isDynamic())
-            .collect(Collectors.toMap(propEntry -> propEntry.getKey().getName(), propEntry -> propEntry.getValue())));
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+        final Optional<String> schemaName = schemaIdentifier.getName();
+        if (schemaName.isPresent()) {
+            return retrieveSchemaByName(schemaName.get());
+        } else {
+            throw new SchemaNotFoundException("This Schema Registry only supports retrieving a schema by name.");
+        }
     }
 
     @Override
@@ -181,7 +149,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamic(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     }
 

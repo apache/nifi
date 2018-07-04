@@ -19,7 +19,6 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
@@ -61,6 +60,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -74,6 +74,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
@@ -126,6 +127,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
+
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
@@ -159,7 +163,7 @@ public class PostHTTP extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor SEND_AS_FLOWFILE = new PropertyDescriptor.Builder()
             .name("Send as FlowFile")
@@ -242,24 +246,12 @@ public class PostHTTP extends AbstractProcessor {
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
-    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("Proxy Host")
-            .description("The fully qualified hostname or IP address of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("Proxy Port")
-            .description("The port of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .build();
     public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
             .name("Content-Type")
             .description("The Content-Type to specify for the content of the FlowFile being POSTed if " + SEND_AS_FLOWFILE.getName() + " is false. "
                     + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -301,6 +293,7 @@ public class PostHTTP extends AbstractProcessor {
         properties.add(DATA_TIMEOUT);
         properties.add(ATTRIBUTES_AS_HEADERS_REGEX);
         properties.add(USER_AGENT);
+        properties.add(HTTPUtils.PROXY_CONFIGURATION_SERVICE);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         properties.add(CONTENT_TYPE);
@@ -327,14 +320,6 @@ public class PostHTTP extends AbstractProcessor {
                     .valid(false).subject("SSL Context").build());
         }
 
-        if (context.getProperty(PROXY_HOST).isSet() && !context.getProperty(PROXY_PORT).isSet()) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Proxy Host was set but no Proxy Port was specified")
-                    .valid(false)
-                    .subject("Proxy server configuration")
-                    .build());
-        }
-
         boolean sendAsFlowFile = context.getProperty(SEND_AS_FLOWFILE).asBoolean();
         int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
         boolean chunkedSet = context.getProperty(CHUNKED_ENCODING).isSet();
@@ -343,6 +328,8 @@ public class PostHTTP extends AbstractProcessor {
             results.add(new ValidationResult.Builder().valid(false).subject(CHUNKED_ENCODING.getName())
                     .explanation("if compression level is 0 and not sending as a FlowFile, then the \'" + CHUNKED_ENCODING.getName() + "\' property must be set").build());
         }
+
+        HTTPUtils.validateProxyProperties(context, results);
 
         return results;
     }
@@ -534,22 +521,18 @@ public class PostHTTP extends AbstractProcessor {
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
         // set the credentials if appropriate
+        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
         if (username != null) {
-            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             if (password == null) {
                 credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
             } else {
                 credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
             }
-            clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
         }
 
         // Set the proxy if specified
-        if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
-            final String host = context.getProperty(PROXY_HOST).getValue();
-            final int port = context.getProperty(PROXY_PORT).asInteger();
-            clientBuilder.setProxy(new HttpHost(host, port));
-        }
+        HTTPUtils.setProxy(context, clientBuilder, credentialsProvider);
 
         client = clientBuilder.build();
 

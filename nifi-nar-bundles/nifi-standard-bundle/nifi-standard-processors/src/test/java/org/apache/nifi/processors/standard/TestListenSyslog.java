@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -253,7 +254,13 @@ public class TestListenSyslog {
         public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
             properties.remove(PORT);
-            properties.add(new PropertyDescriptor.Builder().name(PORT.getName()).addValidator(Validator.VALID).build());
+            properties.add(
+                new PropertyDescriptor.Builder()
+                    .name(PORT.getName())
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .addValidator(Validator.VALID)
+                    .build()
+            );
             return properties;
         }
 

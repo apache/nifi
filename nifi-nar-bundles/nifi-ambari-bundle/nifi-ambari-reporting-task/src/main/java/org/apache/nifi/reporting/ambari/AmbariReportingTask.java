@@ -25,11 +25,12 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.ambari.api.MetricsBuilder;
-import org.apache.nifi.reporting.ambari.metrics.MetricsService;
+import org.apache.nifi.reporting.util.metrics.MetricsService;
+import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import javax.json.Json;
@@ -60,7 +61,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
             .name("Metrics Collector URL")
             .description("The URL of the Ambari Metrics Collector Service")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("http://localhost:6188/ws/v1/timeline/metrics")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
@@ -69,7 +70,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
             .name("Application ID")
             .description("The Application ID to be included in the metrics sent to Ambari")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -78,7 +79,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
             .name("Hostname")
             .description("The Hostname of this NiFi instance to be included in the metrics sent to Ambari")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -88,7 +89,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
             .description("If specified, the reporting task will send metrics about this process group only. If"
                     + " not, the root process group is used and global metrics are sent.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

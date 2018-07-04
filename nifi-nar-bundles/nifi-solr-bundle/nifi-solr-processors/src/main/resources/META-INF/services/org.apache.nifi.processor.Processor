@@ -13,4 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.solr.PutSolrContentStream
+org.apache.nifi.processors.solr.PutSolrRecord
 org.apache.nifi.processors.solr.GetSolr
+org.apache.nifi.processors.solr.QuerySolr

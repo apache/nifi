@@ -19,23 +19,31 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-mongodb-bundle</artifactId>
     <packaging>pom</packaging>
 
     <modules>
-        <module>nifi-mongodb-processors</module>
+	    <module>nifi-mongodb-client-service-api</module>
+        <module>nifi-mongodb-client-service-api-nar</module>
+        <module>nifi-mongodb-services</module>
+        <module>nifi-mongodb-services-nar</module>
+	    <module>nifi-mongodb-processors</module>
         <module>nifi-mongodb-nar</module>
     </modules>
+
+    <properties>
+        <mongo.driver.version>3.2.2</mongo.driver.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-processors</artifactId>
-                <version>1.6.0-SNAPSHOT</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

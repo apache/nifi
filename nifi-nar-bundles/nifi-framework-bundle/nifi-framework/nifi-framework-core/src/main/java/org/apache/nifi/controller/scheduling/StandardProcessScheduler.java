@@ -19,6 +19,7 @@ package org.apache.nifi.controller.scheduling;
 import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -38,12 +39,14 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.StandardProcessorNode;
+import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -70,29 +73,26 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessScheduler.class);
 
     private final ControllerServiceProvider controllerServiceProvider;
+    private final FlowController flowController;
     private final long administrativeYieldMillis;
     private final String administrativeYieldDuration;
     private final StateManagerProvider stateManagerProvider;
 
-    private final ConcurrentMap<Object, ScheduleState> scheduleStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Object, LifecycleState> lifecycleStates = new ConcurrentHashMap<>();
     private final ScheduledExecutorService frameworkTaskExecutor;
     private final ConcurrentMap<SchedulingStrategy, SchedulingAgent> strategyAgentMap = new ConcurrentHashMap<>();
 
     // thread pool for starting/stopping components
     private final ScheduledExecutorService componentLifeCycleThreadPool;
-    private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processore Lifecycle", true);
+    private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
 
     private final StringEncryptor encryptor;
 
-    public StandardProcessScheduler(
-        final FlowEngine componentLifecycleThreadPool,
-            final ControllerServiceProvider controllerServiceProvider,
-            final StringEncryptor encryptor,
-            final StateManagerProvider stateManagerProvider,
-            final NiFiProperties nifiProperties
-    ) {
+    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController, final StringEncryptor encryptor,
+        final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties) {
         this.componentLifeCycleThreadPool = componentLifecycleThreadPool;
-        this.controllerServiceProvider = controllerServiceProvider;
+        this.controllerServiceProvider = flowController;
+        this.flowController = flowController;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
 
@@ -170,40 +170,43 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public void schedule(final ReportingTaskNode taskNode) {
-        final ScheduleState scheduleState = getScheduleState(requireNonNull(taskNode));
-        if (scheduleState.isScheduled()) {
+        final LifecycleState lifecycleState = getLifecycleState(requireNonNull(taskNode), true);
+        if (lifecycleState.isScheduled()) {
             return;
         }
 
-        final int activeThreadCount = scheduleState.getActiveThreadCount();
+        final int activeThreadCount = lifecycleState.getActiveThreadCount();
         if (activeThreadCount > 0) {
             throw new IllegalStateException("Reporting Task " + taskNode.getName() + " cannot be started because it has " + activeThreadCount + " threads still running");
         }
 
-        if (!taskNode.isValid()) {
-            throw new IllegalStateException("Reporting Task " + taskNode.getName() + " is not in a valid state for the following reasons: " + taskNode.getValidationErrors());
+        switch (taskNode.getValidationStatus()) {
+            case INVALID:
+                throw new IllegalStateException("Reporting Task " + taskNode.getName() + " is not in a valid state for the following reasons: " + taskNode.getValidationErrors());
+            case VALIDATING:
+                throw new IllegalStateException("Reporting Task " + taskNode.getName() + " cannot be scheduled because it is in the process of validating its configuration");
         }
 
         final SchedulingAgent agent = getSchedulingAgent(taskNode.getSchedulingStrategy());
-        scheduleState.setScheduled(true);
+        lifecycleState.setScheduled(true);
 
         final Runnable startReportingTaskRunnable = new Runnable() {
             @Override
             public void run() {
-                final long lastStopTime = scheduleState.getLastStopTime();
+                final long lastStopTime = lifecycleState.getLastStopTime();
                 final ReportingTask reportingTask = taskNode.getReportingTask();
 
                 // Continually attempt to start the Reporting Task, and if we fail sleep for a bit each time.
                 while (true) {
                     try {
-                        synchronized (scheduleState) {
+                        synchronized (lifecycleState) {
                             // if no longer scheduled to run, then we're finished. This can happen, for example,
                             // if the @OnScheduled method throws an Exception and the user stops the reporting task
                             // while we're administratively yielded.
                             // we also check if the schedule state's last start time is equal to what it was before.
                             // if not, then means that the reporting task has been stopped and started again, so we should just
                             // bail; another thread will be responsible for invoking the @OnScheduled methods.
-                            if (!scheduleState.isScheduled() || scheduleState.getLastStopTime() != lastStopTime) {
+                            if (!lifecycleState.isScheduled() || lifecycleState.getLastStopTime() != lastStopTime) {
                                 return;
                             }
 
@@ -211,7 +214,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                             }
 
-                            agent.schedule(taskNode, scheduleState);
+                            agent.schedule(taskNode, lifecycleState);
                             return;
                         }
                     } catch (final Exception e) {
@@ -241,8 +244,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public void unschedule(final ReportingTaskNode taskNode) {
-        final ScheduleState scheduleState = getScheduleState(requireNonNull(taskNode));
-        if (!scheduleState.isScheduled()) {
+        final LifecycleState lifecycleState = getLifecycleState(requireNonNull(taskNode), false);
+        if (!lifecycleState.isScheduled()) {
             return;
         }
 
@@ -256,8 +259,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             public void run() {
                 final ConfigurationContext configurationContext = taskNode.getConfigurationContext();
 
-                synchronized (scheduleState) {
-                    scheduleState.setScheduled(false);
+                synchronized (lifecycleState) {
+                    lifecycleState.setScheduled(false);
 
                     try {
                         try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass(), reportingTask.getIdentifier())) {
@@ -278,9 +281,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         }
                     }
 
-                    agent.unschedule(taskNode, scheduleState);
+                    agent.unschedule(taskNode, lifecycleState);
 
-                    if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
+                    if (lifecycleState.getActiveThreadCount() == 0 && lifecycleState.mustCallOnStoppedMethods()) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
                     }
                 }
@@ -299,27 +302,29 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      */
     @Override
     public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
+        final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
+
         final StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-            this.encryptor, getStateManager(procNode.getIdentifier()));
-        final ScheduleState scheduleState = getScheduleState(requireNonNull(procNode));
+            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
             @Override
             public void trigger() {
-                getSchedulingAgent(procNode).schedule(procNode, scheduleState);
+                lifecycleState.clearTerminationFlag();
+                getSchedulingAgent(procNode).schedule(procNode, lifecycleState);
                 future.complete(null);
             }
 
             @Override
-            public Future<?> scheduleTask(Callable<?> task) {
-                scheduleState.incrementActiveThreadCount();
-                return componentLifeCycleThreadPool.submit(task);
+            public Future<?> scheduleTask(final Callable<?> task) {
+                lifecycleState.incrementActiveThreadCount(null);
+                return componentMonitoringThreadPool.submit(task);
             }
 
             @Override
             public void onTaskComplete() {
-                scheduleState.decrementActiveThreadCount();
+                lifecycleState.decrementActiveThreadCount(null);
             }
         };
 
@@ -330,19 +335,69 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Stops the given {@link Processor} by invoking its
-     * {@link ProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, ScheduleState)}
+     * {@link ProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, LifecycleState)}
      * method.
      *
-     * @see StandardProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, ScheduleState)
+     * @see StandardProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, LifecycleState)
      */
     @Override
     public synchronized CompletableFuture<Void> stopProcessor(final ProcessorNode procNode) {
+        final LifecycleState lifecycleState = getLifecycleState(procNode, false);
+
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-            this.encryptor, getStateManager(procNode.getIdentifier()));
-        final ScheduleState state = getScheduleState(procNode);
+            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated);
 
         LOG.info("Stopping {}", procNode);
-        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), state);
+        return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState);
+    }
+
+    @Override
+    public synchronized void terminateProcessor(final ProcessorNode procNode) {
+        if (procNode.getScheduledState() != ScheduledState.STOPPED) {
+            throw new IllegalStateException("Cannot terminate " + procNode + " because it is not currently stopped");
+        }
+
+        final LifecycleState state = getLifecycleState(procNode, false);
+        if (state.getActiveThreadCount() == 0) {
+            LOG.debug("Will not terminate {} because it has no active threads", procNode);
+            return;
+        }
+
+        LOG.debug("Terminating {}", procNode);
+
+        final int tasksTerminated = procNode.terminate();
+        state.terminate();
+
+        getSchedulingAgent(procNode).incrementMaxThreadCount(tasksTerminated);
+
+        try {
+            flowController.reload(procNode, procNode.getProcessor().getClass().getName(), procNode.getBundleCoordinate(), Collections.emptySet());
+        } catch (final ProcessorInstantiationException e) {
+            // This shouldn't happen because we already have been able to instantiate the processor before
+            LOG.error("Failed to replace instance of Processor for {} when terminating Processor", procNode);
+        }
+
+        LOG.info("Successfully terminated {} with {} active threads", procNode, tasksTerminated);
+    }
+
+    @Override
+    public void onProcessorRemoved(final ProcessorNode procNode) {
+        lifecycleStates.remove(procNode);
+    }
+
+    @Override
+    public void onPortRemoved(final Port port) {
+        lifecycleStates.remove(port);
+    }
+
+    @Override
+    public void onFunnelRemoved(Funnel funnel) {
+        lifecycleStates.remove(funnel);
+    }
+
+    @Override
+    public void onReportingTaskRemoved(final ReportingTaskNode reportingTask) {
+        lifecycleStates.remove(reportingTask);
     }
 
     @Override
@@ -378,7 +433,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public int getActiveThreadCount(final Object scheduled) {
-        return getScheduleState(scheduled).getActiveThreadCount();
+        return getLifecycleState(scheduled, false).getActiveThreadCount();
     }
 
     @Override
@@ -414,22 +469,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             throw new IllegalStateException(connectable.getIdentifier() + " is disabled, so it cannot be started");
         }
 
-        final ScheduleState scheduleState = getScheduleState(requireNonNull(connectable));
-        if (scheduleState.isScheduled()) {
+        final LifecycleState lifecycleState = getLifecycleState(requireNonNull(connectable), true);
+        if (lifecycleState.isScheduled()) {
             return;
         }
 
-        final int activeThreads = scheduleState.getActiveThreadCount();
+        final int activeThreads = lifecycleState.getActiveThreadCount();
         if (activeThreads > 0) {
             throw new IllegalStateException("Port cannot be scheduled to run until its last " + activeThreads + " threads finish");
         }
 
-        getSchedulingAgent(connectable).schedule(connectable, scheduleState);
-        scheduleState.setScheduled(true);
+        lifecycleState.clearTerminationFlag();
+        getSchedulingAgent(connectable).schedule(connectable, lifecycleState);
+        lifecycleState.setScheduled(true);
     }
 
     private synchronized void stopConnectable(final Connectable connectable) {
-        final ScheduleState state = getScheduleState(requireNonNull(connectable));
+        final LifecycleState state = getLifecycleState(requireNonNull(connectable), false);
         if (!state.isScheduled()) {
             return;
         }
@@ -516,25 +572,48 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public boolean isScheduled(final Object scheduled) {
-        final ScheduleState scheduleState = scheduleStates.get(scheduled);
-        return scheduleState == null ? false : scheduleState.isScheduled();
+        final LifecycleState lifecycleState = lifecycleStates.get(scheduled);
+        return lifecycleState == null ? false : lifecycleState.isScheduled();
     }
 
     /**
-     * Returns the ScheduleState that is registered for the given component; if
-     * no ScheduleState current is registered, one is created and registered
+     * Returns the LifecycleState that is registered for the given component; if
+     * no LifecycleState current is registered, one is created and registered
      * atomically, and then that value is returned.
      *
      * @param schedulable schedulable
      * @return scheduled state
      */
-    private ScheduleState getScheduleState(final Object schedulable) {
-        ScheduleState scheduleState = this.scheduleStates.get(schedulable);
-        if (scheduleState == null) {
-            scheduleState = new ScheduleState();
-            this.scheduleStates.putIfAbsent(schedulable, scheduleState);
+    private LifecycleState getLifecycleState(final Object schedulable, final boolean replaceTerminatedState) {
+        LifecycleState lifecycleState;
+        while (true) {
+            lifecycleState = this.lifecycleStates.get(schedulable);
+
+            if (lifecycleState == null) {
+                lifecycleState = new LifecycleState();
+                final LifecycleState existing = this.lifecycleStates.putIfAbsent(schedulable, lifecycleState);
+
+                if (existing == null) {
+                    break;
+                } else {
+                    continue;
+                }
+            } else if (replaceTerminatedState && lifecycleState.isTerminated()) {
+                final LifecycleState newLifecycleState = new LifecycleState();
+                final boolean replaced = this.lifecycleStates.replace(schedulable, lifecycleState, newLifecycleState);
+
+                if (replaced) {
+                    lifecycleState = newLifecycleState;
+                    break;
+                } else {
+                    continue;
+                }
+            } else {
+                break;
+            }
         }
-        return scheduleState;
+
+        return lifecycleState;
     }
 
     @Override

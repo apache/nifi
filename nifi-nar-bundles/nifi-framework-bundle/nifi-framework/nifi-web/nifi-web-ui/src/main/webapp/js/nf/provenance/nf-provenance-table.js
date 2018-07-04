@@ -635,7 +635,7 @@
 
                 // conditionally include the cluster node id
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-right: 3px;"></div>';
+                    markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage"></div>';
                 }
 
                 // conditionally support going to the component
@@ -1300,6 +1300,20 @@
             showEventDetails: function (eventId, clusterNodeId) {
                 provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
                     var event = response.provenanceEvent;
+
+                    // Hide or show dialog tabs as required if base properties are defined
+                    var tabs = $('#event-details-tabs').find("li");
+                    $(tabs).each(function(index) {
+                        if ((event["attributes"] === undefined && index == 1) ||
+                            (event["inputContentAvailable"] === undefined && index ==2)) {
+                                $(this).hide();
+                            } else {
+                                $(this).show();
+                            }
+                        });
+
+                    // ensure the details are selected in case other tabs we're previously selected and have been hidden
+                    $(tabs).first().click();
 
                     // update the event details
                     $('#provenance-event-id').text(event.eventId);

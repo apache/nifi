@@ -46,8 +46,8 @@
     <li><b>Destination Name</b> - [REQUIRED] the name of the <i>javax.jms.Destination</i>. 
     Usually provided by administrator (e.g., 'topic://myTopic'). 
     </li>
-    <li><b>Destination Type</b> - [OPTIONAL] the type of the <i>javax.jms.Destination</i>. Could be one of 'QUEUE' or 'TOPIC'
-    Usually provided by the administrator. Defaults to 'TOPIC'. 
+    <li><b>Destination Type</b> - [REQUIRED] the type of the <i>javax.jms.Destination</i>. Could be one of 'QUEUE' or 'TOPIC'
+    Usually provided by the administrator. Defaults to 'QUEUE'.
     </li>
     <li><b>Connection Factory Service</b> - [REQUIRED] link to a pre-configured instance of org.apache.nifi.jms.cf.JMSConnectionFactoryProvider.
     </li>

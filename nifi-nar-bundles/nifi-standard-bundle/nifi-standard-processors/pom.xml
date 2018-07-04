@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -37,17 +37,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -60,7 +60,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -73,6 +73,10 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-proxy-configuration-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -127,7 +131,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -172,12 +176,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-socket-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-load-distribution-service-api</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -206,12 +210,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -234,13 +238,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -256,25 +260,25 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-prioritizers</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-services</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -307,7 +311,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
@@ -326,8 +330,8 @@
             <artifactId>bval-jsr</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.thekraken</groupId>
-            <artifactId>grok</artifactId>
+            <groupId>io.krakens</groupId>
+            <artifactId>java-grok</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.calcite</groupId>
@@ -336,6 +340,16 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-web-test-utils</artifactId>
+            <version>1.8.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.palindromicity</groupId>
+            <artifactId>simple-syslog-5424</artifactId>
         </dependency>
     </dependencies>
     <build>
@@ -353,6 +367,7 @@
                         <exclude>src/test/resources/CompressedData/SampleFile.txt</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFileConcat.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/1000bytes.txt</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/1mb.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/test.txt</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-empty-new-lines</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-extra-info</exclude>
@@ -455,6 +470,7 @@
                         <exclude>src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestSuccess.jar</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestDynamicEnvironment.jar</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/TestLogStdErr.jar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.jar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.tar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.tar.gz</exclude>
@@ -464,6 +480,7 @@
                         <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/invalid_data.zip</exclude>
                         <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
@@ -498,8 +515,29 @@
                         <exclude>src/main/java/org/apache/nifi/security/util/crypto/bcrypt/BCrypt.java</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/xxe_from_report.xml</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array-strings.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/two-elements-nested-nested-array-null.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/input/complex-input-json.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/extract-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-address.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

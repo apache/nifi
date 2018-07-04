@@ -64,4 +64,9 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
         }
     }
 
+    @Override
+    public void purgeTransferEvents(String componentIdentifier) {
+        componentEventMap.remove(componentIdentifier);
+    }
+
 }

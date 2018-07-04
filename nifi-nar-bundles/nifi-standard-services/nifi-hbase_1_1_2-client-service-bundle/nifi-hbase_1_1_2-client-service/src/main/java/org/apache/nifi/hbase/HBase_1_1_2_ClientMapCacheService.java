@@ -32,8 +32,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.distributed.cache.client.Deserializer;
-import java.io.ByteArrayOutputStream;
 import org.apache.nifi.reporting.InitializationException;
 
 import java.nio.charset.StandardCharsets;
@@ -44,6 +44,8 @@ import org.apache.nifi.hbase.put.PutColumn;
 
 
 import org.apache.nifi.processor.util.StandardValidators;
+
+import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
 
 @Tags({"distributed", "cache", "state", "map", "cluster","hbase"})
 @SeeAlso(classNames = {"org.apache.nifi.hbase.HBase_1_1_2_ClientService"})
@@ -63,7 +65,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         .name("HBase Cache Table Name")
         .description("Name of the table on HBase to use for the cache.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -71,7 +73,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         .name("HBase Column Family")
         .description("Name of the column family on HBase to use for the cache.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("f")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -81,7 +83,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         .description("Name of the column qualifier on HBase to use for the cache")
         .defaultValue("q")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
@@ -89,6 +91,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(HBASE_CACHE_TABLE_NAME);
+        descriptors.add(AUTHORIZATIONS);
         descriptors.add(HBASE_CLIENT_SERVICE);
         descriptors.add(HBASE_COLUMN_FAMILY);
         descriptors.add(HBASE_COLUMN_QUALIFIER);
@@ -105,6 +108,8 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
     private volatile String hBaseColumnQualifier;
     private volatile byte[] hBaseColumnQualifierBytes;
 
+    private List<String> authorizations;
+
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException{
         hBaseClientService   = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
@@ -115,6 +120,8 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
 
         hBaseColumnFamilyBytes    = hBaseColumnFamily.getBytes(StandardCharsets.UTF_8);
         hBaseColumnQualifierBytes = hBaseColumnQualifier.getBytes(StandardCharsets.UTF_8);
+
+        authorizations = VisibilityLabelUtils.getAuthorizations(context);
     }
 
     private <T> byte[] serialize(final T value, final Serializer<T> serializer) throws IOException {
@@ -157,7 +164,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
 
       final List<Column> columnsList = new ArrayList<Column>(0);
 
-      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, handler);
+      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
       return (handler.numRows() > 0);
     }
 
@@ -189,7 +196,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
 
       final List<Column> columnsList = new ArrayList<Column>(0);
 
-      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, handler);
+      hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
       if (handler.numRows() > 1) {
           throw new IOException("Found multiple rows in HBase for key");
       } else if(handler.numRows() == 1) {

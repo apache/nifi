@@ -24,15 +24,15 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
                 'nf.CanvasUtils',
-                'nf.ReportingTask',
                 'nf.Processor'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
-                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
+                return (nf.ControllerService = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
@@ -41,12 +41,12 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
                 require('nf.CanvasUtils'),
-                require('nf.ReportingTask'),
                 require('nf.Processor')));
     } else {
         nf.ControllerService = factory(root.$,
@@ -54,18 +54,18 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
             root.nf.CanvasUtils,
-            root.nf.ReportingTask,
             root.nf.Processor);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfReportingTask, nfProcessor) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
     'use strict';
 
-    var nfControllerServices;
+    var nfControllerServices, nfReportingTask;
 
     var config = {
         edit: 'edit',
@@ -144,6 +144,7 @@
 
         // create the controller service entity
         var controllerServiceEntity = {};
+        controllerServiceEntity['disconnectedNodeAcknowledged'] = nfStorage.isDisconnectionAcknowledged();
         controllerServiceEntity['component'] = controllerServiceDto;
 
         // return the marshaled details
@@ -634,6 +635,7 @@
         // build the request entity
         var updateControllerServiceEntity = {
             'revision': nfClient.getRevision(controllerServiceEntity),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': controllerServiceEntity.id,
                 'state': enabled ? 'ENABLED' : 'DISABLED'
@@ -756,7 +758,8 @@
         var referenceEntity = {
             'id': controllerServiceEntity.id,
             'state': running ? 'RUNNING' : 'STOPPED',
-            'referencingComponentRevisions': referencingRevisions
+            'referencingComponentRevisions': referencingRevisions,
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
         };
 
         // issue the request to update the referencing components
@@ -1051,7 +1054,8 @@
         var referenceEntity = {
             'id': controllerServiceEntity.id,
             'state': enabled ? 'ENABLED' : 'DISABLED',
-            'referencingComponentRevisions': referencingRevisions
+            'referencingComponentRevisions': referencingRevisions,
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
         };
 
         // issue the request to update the referencing components
@@ -1634,8 +1638,9 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef) {
             nfControllerServices = nfControllerServicesRef;
+            nfReportingTask = nfReportingTaskRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
@@ -2183,8 +2188,9 @@
             $.ajax({
                 type: 'DELETE',
                 url: controllerServiceEntity.uri + '?' + $.param({
-                    version: revision.version,
-                    clientId: revision.clientId
+                    'version': revision.version,
+                    'clientId': revision.clientId,
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                 }),
                 dataType: 'json'
             }).done(function (response) {

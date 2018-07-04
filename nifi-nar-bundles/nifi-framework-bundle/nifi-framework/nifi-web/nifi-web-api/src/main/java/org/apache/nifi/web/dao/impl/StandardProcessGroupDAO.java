@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
@@ -132,6 +131,20 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
+    public void verifyEnableComponents(String groupId, ScheduledState state, Set<String> componentIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        for (final String componentId : componentIds) {
+            final Connectable connectable = group.findLocalConnectable(componentId);
+            if (ScheduledState.STOPPED.equals(state)) {
+                connectable.verifyCanEnable();
+            } else if (ScheduledState.DISABLED.equals(state)) {
+                connectable.verifyCanDisable();
+            }
+        }
+    }
+
+    @Override
     public void verifyActivateControllerServices(final ControllerServiceState state, final Collection<String> serviceIds) {
         final Set<ControllerServiceNode> serviceNodes = serviceIds.stream()
             .map(flowController::getControllerServiceNode)
@@ -172,7 +185,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                         remotePort.getRemoteProcessGroup().startTransmitting(remotePort);
                         break;
                 }
-            } else {
+            } else if (ScheduledState.STOPPED.equals(state)) {
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
                         final CompletableFuture<?> processorFuture = connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
@@ -197,7 +210,41 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public Future<Void> activateControllerServices(final ControllerServiceState state, final Collection<String> serviceIds) {
+    public void enableComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        for (final String componentId : componentIds) {
+            final Connectable connectable = group.findLocalConnectable(componentId);
+            if (ScheduledState.STOPPED.equals(state)) {
+                switch (connectable.getConnectableType()) {
+                    case PROCESSOR:
+                        connectable.getProcessGroup().enableProcessor((ProcessorNode) connectable);
+                        break;
+                    case INPUT_PORT:
+                        connectable.getProcessGroup().enableInputPort((Port) connectable);
+                        break;
+                    case OUTPUT_PORT:
+                        connectable.getProcessGroup().enableOutputPort((Port) connectable);
+                        break;
+                }
+            } else if (ScheduledState.DISABLED.equals(state)) {
+                switch (connectable.getConnectableType()) {
+                    case PROCESSOR:
+                        connectable.getProcessGroup().disableProcessor((ProcessorNode) connectable);
+                        break;
+                    case INPUT_PORT:
+                        connectable.getProcessGroup().disableInputPort((Port) connectable);
+                        break;
+                    case OUTPUT_PORT:
+                        connectable.getProcessGroup().disableOutputPort((Port) connectable);
+                        break;
+                }
+            }
+        }
+    }
+
+    @Override
+    public Future<Void> activateControllerServices(final String groupId, final ControllerServiceState state, final Collection<String> serviceIds) {
         final List<ControllerServiceNode> serviceNodes = serviceIds.stream()
             .map(flowController::getControllerServiceNode)
             .collect(Collectors.toList());
@@ -266,7 +313,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup updateProcessGroupFlow(final String groupId, final NiFiUser user, final VersionedFlowSnapshot proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
+    public ProcessGroup updateProcessGroupFlow(final String groupId, final VersionedFlowSnapshot proposedSnapshot, final VersionControlInformationDTO versionControlInformation,
                                                final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
 
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -284,7 +331,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup updateVariableRegistry(final NiFiUser user, final VariableRegistryDTO variableRegistry) {
+    public ProcessGroup updateVariableRegistry(final VariableRegistryDTO variableRegistry) {
         final ProcessGroup group = locateProcessGroup(flowController, variableRegistry.getProcessGroupId());
         if (group == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + variableRegistry.getProcessGroupId());

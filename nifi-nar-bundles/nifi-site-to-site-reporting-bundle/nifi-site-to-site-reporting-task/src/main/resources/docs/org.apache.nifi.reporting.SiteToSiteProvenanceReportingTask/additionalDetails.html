@@ -25,7 +25,7 @@
     	<p>
     		The Site-to-Site Provenance Reporting Task allows the user to publish all of the Provenance Events from a NiFi instance back to
     		the same NiFi instance or another NiFi instance. This provides a great deal of power because it allows the user to make use of
-    		all of the different Processors that are available in NiFi in order to processor or distribute that data. When possible, it is
+    		all of the different Processors that are available in NiFi in order to process or distribute that data. When possible, it is
     		advisable to send the Provenance data to a different NiFi instance than the one that this Reporting Task is running on, because
     		when the data is received over Site-to-Site and processed, that in and of itself will generate Provenance events. As a result, there
     		is a cycle that is created. However, the data is sent in batches (1,000 by default). This means that for each batch of Provenance events
@@ -33,8 +33,8 @@
     	</p>
     	
     	<p>
-    		When published to a NiFi instance, the Provenance data is sent as a JSON array. Quite often, it can be useful to work with this data using
-    		a schema. As such, the schema for this Provenance data can be defined as follows:
+    		By default, when published to a NiFi instance, the Provenance data is sent as a JSON array. However, the user can define a Record Writer 
+    		and directly specify the output format and data with the assumption that the input schema is defined as follows:
     	</p>
 
 <pre>
@@ -53,6 +53,9 @@
     { "name": "details", "type": "string" },
     { "name": "componentId", "type": "string" },
     { "name": "componentType", "type": "string" },
+    { "name": "componentName", "type": "string" },
+    { "name": "processGroupId", "type": "string" },
+    { "name": "processGroupName", "type": "string" },
     { "name": "entityId", "type": "string" },
     { "name": "entityType", "type": "string" },
     { "name": "entitySize", "type": ["null", "long"] },
@@ -66,6 +69,8 @@
     { "name": "childIds", "type": { "type": "array", "items": "string" } },
     { "name": "platform", "type": "string" },
     { "name": "application", "type": "string" },
+    { "name": "remoteIdentifier", "type": "string" },
+    { "name": "alternateIdentifier", "type": "string" },
     { "name": "transitUri", "type": ["null", "string"] }
   ]
 }

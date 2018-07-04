@@ -37,6 +37,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -83,7 +84,7 @@ import java.util.zip.Checksum;
 // note: it is important that this Processor is not marked as @SupportsBatching because the session commits must complete before persisting state locally; otherwise, data loss may occur
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"tail", "file", "log", "text", "source", "restricted"})
+@Tags({"tail", "file", "log", "text", "source"})
 @CapabilityDescription("\"Tails\" a file, or a list of files, ingesting data from the file as it is written to the file. The file is expected to be textual. Data is ingested only when a "
         + "new line is encountered (carriage return or new-line character or combination). If the file to tail is periodically \"rolled over\", as is generally the case "
         + "with log files, an optional Rolling Filename Pattern can be used to retrieve data from files that have rolled over, even if the rollover occurred while NiFi "
@@ -134,7 +135,7 @@ public class TailFile extends AbstractProcessor {
             .name("tail-base-directory")
             .displayName("Base directory")
             .description("Base directory used to look for files to tail. This property is required when using Multifile mode.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .required(false)
             .build();
@@ -144,7 +145,7 @@ public class TailFile extends AbstractProcessor {
             .displayName("Tailing mode")
             .description("Mode to use: single file will tail only one file, multiple file will look for a list of file. In Multiple mode"
                     + " the Base directory is required.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(MODE_SINGLEFILE, MODE_MULTIFILE)
             .defaultValue(MODE_SINGLEFILE.getValue())
@@ -156,7 +157,7 @@ public class TailFile extends AbstractProcessor {
             .description("Path of the file to tail in case of single file mode. If using multifile mode, regular expression to find files "
                     + "to tail in the base directory. In case recursivity is set to true, the regular expression will be used to match the "
                     + "path starting from the base directory (see additional details for examples).")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .required(true)
             .build();
@@ -169,7 +170,7 @@ public class TailFile extends AbstractProcessor {
                     + "(without extension), and will assume that the files that have rolled over live in the same directory as the file being tailed. "
                     + "The same glob pattern will be used for all files.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
 
@@ -290,11 +291,7 @@ public class TailFile extends AbstractProcessor {
         this.requireStateLookup = true;
     }
 
-    @OnScheduled
-    public void recoverState(final ProcessContext context) throws IOException {
-        // set isMultiChanging
-        isMultiChanging.set(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue()));
-
+    private List<String> lookup(final ProcessContext context) {
         // set last lookup to now
         lastLookup.set(new Date().getTime());
 
@@ -306,13 +303,21 @@ public class TailFile extends AbstractProcessor {
 
         if(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
             filesToTail.addAll(getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
-                    context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
-                    context.getProperty(RECURSIVE).asBoolean(),
-                    maxAge));
+                context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(RECURSIVE).asBoolean(),
+                maxAge));
         } else {
             filesToTail.add(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
         }
+        return filesToTail;
+    }
 
+    @OnScheduled
+    public void recoverState(final ProcessContext context) throws IOException {
+        // set isMultiChanging
+        isMultiChanging.set(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue()));
+
+        List<String> filesToTail = lookup(context);
 
         final Scope scope = getStateScope(context);
         final StateMap stateMap = context.getStateManager().getState(scope);
@@ -577,7 +582,10 @@ public class TailFile extends AbstractProcessor {
             long timeSinceLastLookup = new Date().getTime() - lastLookup.get();
             if(timeSinceLastLookup > context.getProperty(LOOKUP_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS)) {
                 try {
-                    recoverState(context);
+                    final List<String> filesToTail = lookup(context);
+                    final Scope scope = getStateScope(context);
+                    final StateMap stateMap = context.getStateManager().getState(scope);
+                    initStates(filesToTail, stateMap.toMap(), false);
                 } catch (IOException e) {
                     getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
                     context.yield();

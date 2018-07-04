@@ -23,19 +23,28 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
+import org.apache.nifi.hbase.util.VisibilityUtil;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.RecordPath;
+import org.apache.nifi.record.path.RecordPathResult;
+import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
@@ -46,6 +55,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @EventDriven
@@ -61,7 +71,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .name("Row Identifier Field Name")
             .description("Specifies the name of a record field whose value should be used as the row id for the given record.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -71,8 +81,19 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .description("Specifies the name of a record field whose value should be used as the timestamp for the cells in HBase. " +
                     "The value of this field must be a number, string, or date that can be converted to a long. " +
                     "If this field is left blank, HBase will use the current time.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    protected static final PropertyDescriptor DEFAULT_VISIBILITY_STRING = new PropertyDescriptor.Builder()
+            .name("hbase-default-vis-string")
+            .displayName("Default Visibility String")
+            .description("When using visibility labels, any value set in this field will be applied to all cells that are written unless " +
+                    "an attribute with the convention \"visibility.COLUMN_FAMILY.COLUMN_QUALIFIER\" is present on the flowfile. If this field " +
+                    "is left blank, it will be assumed that no visibility is to be set unless visibility-related attributes are set. NOTE: " +
+                    "this configuration will have no effect on your data if you have not enabled visibility labels in the HBase cluster.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(Validator.VALID)
             .build();
 
     protected static final String FAIL_VALUE = "Fail";
@@ -96,7 +117,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
     protected static final PropertyDescriptor COMPLEX_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("Complex Field Strategy")
             .description("Indicates how to handle complex fields, i.e. fields that do not have a single text value.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(COMPLEX_FIELD_FAIL, COMPLEX_FIELD_WARN, COMPLEX_FIELD_IGNORE, COMPLEX_FIELD_TEXT)
             .defaultValue(COMPLEX_FIELD_TEXT.getValue())
@@ -141,6 +162,16 @@ public class PutHBaseRecord extends AbstractPutHBase {
             .allowableValues(NULL_FIELD_EMPTY, NULL_FIELD_SKIP)
             .build();
 
+    protected static final PropertyDescriptor VISIBILITY_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("put-hb-rec-visibility-record-path")
+            .displayName("Visibility String Record Path Root")
+            .description("A record path that points to part of the record which contains a path to a mapping of visibility strings to record paths")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .build();
+
+    protected RecordPathCache recordPathCache;
+
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -151,6 +182,8 @@ public class PutHBaseRecord extends AbstractPutHBase {
         properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(NULL_FIELD_STRATEGY);
         properties.add(COLUMN_FAMILY);
+        properties.add(DEFAULT_VISIBILITY_STRING);
+        properties.add(VISIBILITY_RECORD_PATH);
         properties.add(TIMESTAMP_FIELD_NAME);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
@@ -176,6 +209,12 @@ public class PutHBaseRecord extends AbstractPutHBase {
         return columns;
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        recordPathCache = new RecordPathCache(4);
+        super.onScheduled(context);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
@@ -194,6 +233,12 @@ public class PutHBaseRecord extends AbstractPutHBase {
         final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
         final String complexFieldStrategy = context.getProperty(COMPLEX_FIELD_STRATEGY).getValue();
         final String rowEncodingStrategy = context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue();
+        final String recordPathText = context.getProperty(VISIBILITY_RECORD_PATH).getValue();
+
+        RecordPath recordPath = null;
+        if (recordPathCache != null && !StringUtils.isEmpty(recordPathText)) {
+            recordPath = recordPathCache.getCompiled(recordPathText);
+        }
 
         final long start = System.nanoTime();
         int index = 0;
@@ -214,7 +259,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
             }
 
             while ((record = reader.nextRecord()) != null) {
-                PutFlowFile putFlowFile = createPut(context, record, reader.getSchema(), flowFile, rowFieldName, columnFamily,
+                PutFlowFile putFlowFile = createPut(context, record, reader.getSchema(), recordPath, flowFile, rowFieldName, columnFamily,
                         timestampFieldName, fieldEncodingStrategy, rowEncodingStrategy, complexFieldStrategy);
                 if (putFlowFile.getColumns().size() == 0) {
                     continue;
@@ -339,13 +384,14 @@ public class PutHBaseRecord extends AbstractPutHBase {
 
     static final byte[] EMPTY = "".getBytes();
 
-    protected PutFlowFile createPut(ProcessContext context, Record record, RecordSchema schema, FlowFile flowFile, String rowFieldName,
+    protected PutFlowFile createPut(ProcessContext context, Record record, RecordSchema schema, RecordPath recordPath, FlowFile flowFile, String rowFieldName,
                                     String columnFamily, String timestampFieldName, String fieldEncodingStrategy, String rowEncodingStrategy,
                                     String complexFieldStrategy)
             throws PutCreationFailedInvokedException {
         PutFlowFile retVal = null;
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String nullStrategy = context.getProperty(NULL_FIELD_STRATEGY).getValue();
+        final String defaultVisibility = context.getProperty(DEFAULT_VISIBILITY_STRING).evaluateAttributeExpressions(flowFile).getValue();
 
         boolean asString = STRING_ENCODING_VALUE.equals(fieldEncodingStrategy);
 
@@ -367,9 +413,18 @@ public class PutHBaseRecord extends AbstractPutHBase {
                 timestamp = null;
             }
 
+            RecordField visField = null;
+            Map visSettings = null;
+            if (recordPath != null) {
+                final RecordPathResult result = recordPath.evaluate(record);
+                FieldValue fv = result.getSelectedFields().findFirst().get();
+                visField = fv.getField();
+                visSettings = (Map)fv.getValue();
+            }
+
             List<PutColumn> columns = new ArrayList<>();
             for (String name : schema.getFieldNames()) {
-                if (name.equals(rowFieldName) || name.equals(timestampFieldName)) {
+                if (name.equals(rowFieldName) || name.equals(timestampFieldName) || (visField != null && name.equals(visField.getFieldName()))) {
                     continue;
                 }
 
@@ -385,7 +440,20 @@ public class PutHBaseRecord extends AbstractPutHBase {
 
 
                 if (fieldValueBytes != null) {
-                    columns.add(new PutColumn(fam, clientService.toBytes(name), fieldValueBytes, timestamp));
+
+                    String visString = (visField != null && visSettings != null && visSettings.containsKey(name))
+                            ? (String)visSettings.get(name) : defaultVisibility;
+
+                    //TODO: factor this into future enhancements to how complex records are handled.
+                    if (StringUtils.isBlank(visString)) {
+                        visString = VisibilityUtil.pickVisibilityString(columnFamily, name, flowFile, context);
+                    }
+
+                    PutColumn column = !StringUtils.isEmpty(visString)
+                            ? new PutColumn(fam, clientService.toBytes(name), fieldValueBytes, timestamp, visString)
+                            : new PutColumn(fam, clientService.toBytes(name), fieldValueBytes, timestamp);
+
+                    columns.add(column);
                 }
             }
 

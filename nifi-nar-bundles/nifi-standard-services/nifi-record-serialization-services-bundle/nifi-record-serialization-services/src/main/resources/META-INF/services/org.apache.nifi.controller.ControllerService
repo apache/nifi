@@ -26,3 +26,6 @@ org.apache.nifi.csv.CSVRecordSetWriter
 org.apache.nifi.grok.GrokReader
 
 org.apache.nifi.text.FreeFormTextRecordSetWriter
+
+org.apache.nifi.xml.XMLReader
+org.apache.nifi.xml.XMLRecordSetWriter

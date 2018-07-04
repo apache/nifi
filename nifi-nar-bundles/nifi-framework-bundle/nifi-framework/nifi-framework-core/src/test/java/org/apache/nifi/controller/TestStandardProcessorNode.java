@@ -51,7 +51,6 @@ import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.SystemBundle;
@@ -72,6 +71,7 @@ import org.apache.nifi.test.processors.ModifiesClasspathProcessor;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -99,10 +99,10 @@ public class TestStandardProcessorNode {
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, coordinate, null);
         final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, createValidationContextFactory(), null, null,
-            NiFiProperties.createBasicNiFiProperties(null, null), new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent);
+            NiFiProperties.createBasicNiFiProperties(null, null), new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, new SynchronousValidationTrigger());
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestClasspathResources", true);
 
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null);
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false);
         final SchedulingAgentCallback schedulingAgentCallback = new SchedulingAgentCallback() {
             @Override
             public void onTaskComplete() {
@@ -119,6 +119,7 @@ public class TestStandardProcessorNode {
             }
         };
 
+        procNode.performValidation();
         procNode.start(taskScheduler, 20000L, processContext, schedulingAgentCallback, true);
 
         Thread.sleep(1000L);
@@ -127,22 +128,6 @@ public class TestStandardProcessorNode {
         assertEquals(1, processor.onStoppedCount);
     }
 
-    @Test
-    public void testDisabledValidationErrors() {
-        final MockReloadComponent reloadComponent = new MockReloadComponent();
-        final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
-        final StandardProcessorNode procNode = createProcessorNode(processor, reloadComponent);
-
-        // Set a property to an invalid value
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(ModifiesClasspathNoAnnotationProcessor.CLASSPATH_RESOURCE.getName(), "");
-        procNode.setProperties(properties);
-        Assert.assertTrue(procNode.getValidationErrors().size() > 0);
-
-        // Disabled processors skip property validation
-        procNode.disable();
-        Assert.assertFalse(procNode.getValidationErrors().size() > 0);
-    }
 
     @Test
     public void testSinglePropertyDynamicallyModifiesClasspath() throws MalformedURLException {
@@ -176,7 +161,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.isValid());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -215,7 +200,7 @@ public class TestStandardProcessorNode {
             }
 
             // Should pass validation
-            assertTrue(procNode.isValid());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
 
             // Simulate setting updating the other property which should not change the classpath
             final Map<String, String> otherProperties = new HashMap<>();
@@ -228,7 +213,7 @@ public class TestStandardProcessorNode {
             }
 
             // Should STILL pass validation
-            assertTrue(procNode.isValid());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
 
             // Lets update the classpath property and make sure the resources get updated
             final Map<String, String> newClasspathProperties = new HashMap<>();
@@ -243,7 +228,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should STILL pass validation
-            assertTrue(procNode.isValid());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -288,7 +273,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.isValid());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -330,7 +315,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.isValid());
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -357,8 +342,7 @@ public class TestStandardProcessorNode {
             assertEquals(ModifiesClasspathNoAnnotationProcessor.class.getCanonicalName(), reloadComponent.getNewType());
 
             // Should pass validation
-            assertTrue(procNode.isValid());
-
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
         } finally {
             ExtensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -405,7 +389,7 @@ public class TestStandardProcessorNode {
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", null);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
-        final ComponentLog componentLog = Mockito.mock(ComponentLog.class);
+        final TerminationAwareLogger componentLog = Mockito.mock(TerminationAwareLogger.class);
 
         final Bundle systemBundle = SystemBundle.create(niFiProperties);
         ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
@@ -416,13 +400,12 @@ public class TestStandardProcessorNode {
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), componentLog);
         return new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler,
-            null, niFiProperties, new StandardComponentVariableRegistry(variableRegistry), reloadComponent);
+            null, niFiProperties, new StandardComponentVariableRegistry(variableRegistry), reloadComponent, new SynchronousValidationTrigger());
     }
 
     private static class MockReloadComponent implements ReloadComponent {
 
         private String newType;
-        private BundleCoordinate bundleCoordinate;
         private final Set<URL> additionalUrls = new LinkedHashSet<>();
 
         public Set<URL> getAdditionalUrls() {
@@ -433,28 +416,23 @@ public class TestStandardProcessorNode {
             return newType;
         }
 
-        public BundleCoordinate getBundleCoordinate() {
-            return bundleCoordinate;
-        }
-
         @Override
         public void reload(ProcessorNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ProcessorInstantiationException {
-            reload(newType, bundleCoordinate, additionalUrls);
+            reload(newType, additionalUrls);
         }
 
         @Override
         public void reload(ControllerServiceNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ControllerServiceInstantiationException {
-            reload(newType, bundleCoordinate, additionalUrls);
+            reload(newType, additionalUrls);
         }
 
         @Override
         public void reload(ReportingTaskNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ReportingTaskInstantiationException {
-            reload(newType, bundleCoordinate, additionalUrls);
+            reload(newType, additionalUrls);
         }
 
-        private void reload(String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) {
+        private void reload(String newType, Set<URL> additionalUrls) {
             this.newType = newType;
-            this.bundleCoordinate = bundleCoordinate;
             this.additionalUrls.clear();
             if (additionalUrls != null) {
                 this.additionalUrls.addAll(additionalUrls);

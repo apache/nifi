@@ -19,16 +19,16 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-redis-bundle</artifactId>
-    <version>1.6.0-SNAPSHOT</version>
+    <version>1.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
-        <spring.data.redis.version>1.8.3.RELEASE</spring.data.redis.version>
+        <spring.data.redis.version>1.8.11.RELEASE</spring.data.redis.version>
     </properties>
 
     <modules>

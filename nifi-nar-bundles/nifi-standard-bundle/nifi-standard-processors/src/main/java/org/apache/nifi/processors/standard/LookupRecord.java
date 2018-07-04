@@ -17,18 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -45,6 +33,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.processor.ProcessContext;
@@ -59,6 +48,18 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.Tuple;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @EventDriven
@@ -81,8 +82,8 @@ import org.apache.nifi.util.Tuple;
     + "that match will be updated. If there is no match in the configured LookupService, then no fields will be updated. I.e., it will not overwrite an existing value in the Record "
     + "with a null value. Please note, however, that if the results returned by the LookupService are not accounted for in your schema (specifically, "
     + "the schema that is configured for your Record Writer) then the fields will not be written out to the FlowFile.")
-@DynamicProperty(name = "Value To Lookup", value = "Valid Record Path", supportsExpressionLanguage = true, description = "A RecordPath that points to the field whose value will be "
-    + "looked up in the configured Lookup Service")
+@DynamicProperty(name = "Value To Lookup", value = "Valid Record Path", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                    description = "A RecordPath that points to the field whose value will be looked up in the configured Lookup Service")
 @SeeAlso(value = {ConvertRecord.class, SplitRecord.class}, classNames = {"org.apache.nifi.lookup.SimpleKeyValueLookupService", "org.apache.nifi.lookup.maxmind.IPLookupService"})
 public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPath>, RecordPath>> {
 
@@ -115,7 +116,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             + "If not specified, the value that is returned from the Lookup Service will be ignored, except for determining whether the FlowFile should "
             + "be routed to the 'matched' or 'unmatched' Relationship.")
         .addValidator(new RecordPathValidator())
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
         .build();
 
@@ -133,7 +134,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         .name("routing-strategy")
         .displayName("Routing Strategy")
         .description("Specifies how to route records after a Lookup has completed")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(ROUTE_TO_SUCCESS, ROUTE_TO_MATCHED_UNMATCHED)
         .defaultValue(ROUTE_TO_SUCCESS.getValue())
         .required(true)
@@ -186,7 +187,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             .name(propertyDescriptorName)
             .description("A RecordPath that points to the field whose value will be looked up in the configured Lookup Service")
             .addValidator(new RecordPathValidator())
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .dynamic(true)
             .build();
@@ -291,7 +292,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
         final Optional<?> lookupValueOption;
         try {
-            lookupValueOption = lookupService.lookup(lookupCoordinates);
+            lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
         } catch (final Exception e) {
             throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
         }

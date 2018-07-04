@@ -35,6 +35,7 @@ public class ProcessGroupStatus implements Cloneable {
     private Integer outputCount;
     private Long outputContentSize;
     private Integer activeThreadCount;
+    private Integer terminatedThreadCount;
     private Integer queuedCount;
     private Long queuedContentSize;
     private Long bytesRead;
@@ -149,6 +150,14 @@ public class ProcessGroupStatus implements Cloneable {
         this.activeThreadCount = activeThreadCount;
     }
 
+    public Integer getTerminatedThreadCount() {
+        return terminatedThreadCount;
+    }
+
+    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+        this.terminatedThreadCount = terminatedThreadCount;
+    }
+
     public Collection<ConnectionStatus> getConnectionStatus() {
         return connectionStatus;
     }
@@ -257,6 +266,7 @@ public class ProcessGroupStatus implements Cloneable {
         clonedObj.inputContentSize = inputContentSize;
         clonedObj.inputCount = inputCount;
         clonedObj.activeThreadCount = activeThreadCount;
+        clonedObj.terminatedThreadCount = terminatedThreadCount;
         clonedObj.queuedContentSize = queuedContentSize;
         clonedObj.queuedCount = queuedCount;
         clonedObj.bytesRead = bytesRead;
@@ -334,6 +344,8 @@ public class ProcessGroupStatus implements Cloneable {
         builder.append(outputContentSize);
         builder.append(", activeThreadCount=");
         builder.append(activeThreadCount);
+        builder.append(", terminatedThreadCount=");
+        builder.append(terminatedThreadCount);
         builder.append(", flowFilesTransferred=");
         builder.append(flowFilesTransferred);
         builder.append(", bytesTransferred=");
@@ -403,6 +415,7 @@ public class ProcessGroupStatus implements Cloneable {
         target.setBytesRead(target.getBytesRead() + toMerge.getBytesRead());
         target.setBytesWritten(target.getBytesWritten() + toMerge.getBytesWritten());
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         target.setFlowFilesTransferred(target.getFlowFilesTransferred() + toMerge.getFlowFilesTransferred());
         target.setBytesTransferred(target.getBytesTransferred() + toMerge.getBytesTransferred());
         target.setFlowFilesReceived(target.getFlowFilesReceived() + toMerge.getFlowFilesReceived());
@@ -452,6 +465,7 @@ public class ProcessGroupStatus implements Cloneable {
             }
 
             merged.setActiveThreadCount(merged.getActiveThreadCount() + statusToMerge.getActiveThreadCount());
+            merged.setTerminatedThreadCount(merged.getTerminatedThreadCount() + statusToMerge.getTerminatedThreadCount());
             merged.setBytesRead(merged.getBytesRead() + statusToMerge.getBytesRead());
             merged.setBytesWritten(merged.getBytesWritten() + statusToMerge.getBytesWritten());
             merged.setInputBytes(merged.getInputBytes() + statusToMerge.getInputBytes());
@@ -467,7 +481,9 @@ public class ProcessGroupStatus implements Cloneable {
             // and should not differ amongst nodes. however, whether a processor is invalid
             // can be driven by environmental conditions. this check allows any of those to
             // take precedence over the configured run status.
-            if (RunStatus.Invalid.equals(statusToMerge.getRunStatus())) {
+            if (RunStatus.Validating.equals(statusToMerge.getRunStatus())) {
+                merged.setRunStatus(RunStatus.Validating);
+            } else if (RunStatus.Invalid.equals(statusToMerge.getRunStatus())) {
                 merged.setRunStatus(RunStatus.Invalid);
             }
         }

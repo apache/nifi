@@ -42,6 +42,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -87,7 +88,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .description("Path to Maxmind IP Enrichment Database File")
         .required(true)
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     static final PropertyDescriptor LOOKUP_CITY = new PropertyDescriptor.Builder()
         .name("lookup-city")
@@ -95,14 +96,14 @@ public class IPLookupService extends AbstractControllerService implements Record
         .description("Specifies whether or not information about the geographic information, such as cities, corresponding to the IP address should be returned")
         .allowableValues("true", "false")
         .defaultValue("true")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .build();
     static final PropertyDescriptor LOOKUP_ISP = new PropertyDescriptor.Builder()
         .name("lookup-isp")
         .displayName("Lookup ISP")
         .description("Specifies whether or not information about the Information Service Provider corresponding to the IP address should be returned")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -112,7 +113,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .displayName("Lookup Domain Name")
         .description("Specifies whether or not information about the Domain Name corresponding to the IP address should be returned. "
             + "If true, the lookup will contain second-level domain information, such as foo.com but will not contain bar.foo.com")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -122,7 +123,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .displayName("Lookup Connection Type")
         .description("Specifies whether or not information about the Connection Type corresponding to the IP address should be returned. "
             + "If true, the lookup will contain a 'connectionType' field that (if populated) will contain a value of 'Dialup', 'Cable/DSL', 'Corporate', or 'Cellular'")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -131,7 +132,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .name("lookup-anonymous-ip")
         .displayName("Lookup Anonymous IP Information")
         .description("Specifies whether or not information about whether or not the IP address belongs to an anonymous network should be returned.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)

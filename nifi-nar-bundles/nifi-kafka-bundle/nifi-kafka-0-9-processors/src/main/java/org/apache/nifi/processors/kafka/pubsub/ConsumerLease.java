@@ -178,10 +178,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                 logger.debug("Resuming " + assignments);
             }
         } finally {
-            if (assignments != null) {
-                kafkaConsumer.resume(assignments);
+            try {
+                if (assignments != null) {
+                    kafkaConsumer.resume(assignments);
+                }
+            } finally {
+                pollingLock.unlock();
             }
-            pollingLock.unlock();
         }
     }
 

@@ -64,6 +64,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -103,9 +104,11 @@ import org.apache.nifi.util.StopWatch;
     + "set of columns and aggregations. As a result, though, the schema that is derived will have no schema name, so it is important that the configured Record Writer not attempt "
     + "to write the Schema Name as an attribute if inheriting the Schema from the Record. See the Processor Usage documentation for more information.")
 @DynamicRelationship(name="<Property Name>", description="Each user-defined property defines a new Relationship for this Processor.")
-@DynamicProperty(name = "The name of the relationship to route data to", value="A SQL SELECT statement that is used to determine what data should be routed to this "
-        + "relationship.", supportsExpressionLanguage=true, description="Each user-defined property specifies a SQL SELECT statement to run over the data, with the data "
-        + "that is selected being routed to the relationship whose name is the property name")
+@DynamicProperty(name = "The name of the relationship to route data to",
+                 value="A SQL SELECT statement that is used to determine what data should be routed to this relationship.",
+                 expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                 description="Each user-defined property specifies a SQL SELECT statement to run over the data, with the data "
+                         + "that is selected being routed to the relationship whose name is the property name")
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
     @WritesAttribute(attribute = "record.count", description = "The number of records selected by the query")
@@ -130,7 +133,7 @@ public class QueryRecord extends AbstractProcessor {
         .displayName("Include Zero Record FlowFiles")
         .description("When running the SQL statement against an incoming FlowFile, if the result has no data, "
             + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
@@ -142,7 +145,7 @@ public class QueryRecord extends AbstractProcessor {
             + "the Processor will cache these values so that the Processor is much more efficient and much faster. However, if this is done, "
             + "then the schema that is derived for the first FlowFile processed must apply to all FlowFiles. If all FlowFiles will not have the exact "
             + "same schema, or if the SQL SELECT statement uses the Expression Language, this value should be set to false.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
@@ -238,7 +241,7 @@ public class QueryRecord extends AbstractProcessor {
                 + "SQL SELECT should select from the FLOWFILE table")
             .required(false)
             .dynamic(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(new SqlValidator())
             .build();
     }
@@ -464,7 +467,13 @@ public class QueryRecord extends AbstractProcessor {
         final FlowFileTable<?, ?> table = cachedStatement.getTable();
         table.setFlowFile(session, flowFile);
 
-        final ResultSet rs = stmt.executeQuery();
+        final ResultSet rs;
+        try {
+            rs = stmt.executeQuery();
+        } catch (final Throwable t) {
+            table.close();
+            throw t;
+        }
 
         return new QueryResult() {
             @Override
@@ -513,11 +522,18 @@ public class QueryRecord extends AbstractProcessor {
             rootSchema.setCacheEnabled(false);
 
             statement = connection.createStatement();
-            resultSet = statement.executeQuery(sql);
+
+            try {
+                resultSet = statement.executeQuery(sql);
+            } catch (final Throwable t) {
+                flowFileTable.close();
+                throw t;
+            }
 
             final ResultSet rs = resultSet;
             final Statement stmt = statement;
             final Connection conn = connection;
+
             return new QueryResult() {
                 @Override
                 public void close() throws IOException {

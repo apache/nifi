@@ -1,5 +1,5 @@
 Apache NiFi
-Copyright 2014-2017 The Apache Software Foundation
+Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -19,6 +19,12 @@ This includes derived works from the Apache Storm (ASLv2 licensed) project (http
     org/apache/storm/hive/common/HiveWriter.java
     org/apache/storm/hive/common/HiveOptions.java
   and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hadoop (ASLv2 licensed) project (https://github.com/apache/hadoop):
+  Copyright 2014 The Apache Software Foundation
+  The derived work is adapted from
+    org/apache/hadoop/security/authentication/client/KerberosAuthenticator.java
+  and can be found in the org.apache.nifi.hadoop package
 
 This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
   Copyright 2008-2016 The Apache Software Foundation
@@ -50,3 +56,35 @@ This includes derived works from Apache Calcite available under Apache Software 
   Copyright 2012-2017 The Apache Software Foundation
   The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
   and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan
+
+This includes derived works from Apache Solr available under Apache Software License V2. Portions of the code found in
+  https://github.com/apache/lucene-solr/blob/branch_6x/solr/solrj/src/java/org/apache/solr/client/solrj/impl/Krb5HttpClientConfigurer.java
+  Copyright 2006-2018 The Apache Software Foundation
+  The code can be found nifi-nar-bundles/nifi-solr-bundle/nifi-solr-processors/src/main/java/org/apache/nifi/processors/solr/kerberos/KerberosHttpClientConfigurer.java
+
+This includes derived works from Apache Hadoop available under Apache Software License V2. Portions of the code found in
+  https://github.com/apache/hadoop/blob/release-2.7.3-RC2/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/security/UserGroupInformation.java
+  The code can be found nifi-commons/nifi-security-utils/src/main/java/org/apache/nifi/security/krb/KeytabUser.java
+This includes derived works from apigateway-generic-java-sdk (ASLv2 licenced) project (https://github.com/rpgreen/apigateway-generic-java-sdk):
+  The derived work is adapted from
+    main/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+    test/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClientTest.java
+      LambdaMatcher.java
+  and can be found in the directories:
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-abstract-processors/src/main/../wag/client/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+      Validate.java
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-processors/src/test/../wag/
+      RequestMatcher.java
+      GetAWSGatewayApiTest.java
+

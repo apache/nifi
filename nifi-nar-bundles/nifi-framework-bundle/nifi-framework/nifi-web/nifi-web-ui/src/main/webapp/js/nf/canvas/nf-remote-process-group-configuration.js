@@ -24,12 +24,13 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.RemoteProcessGroup'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
-                return (nf.RemoteProcessGroupConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
+                return (nf.RemoteProcessGroupConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.RemoteProcessGroupConfiguration =
@@ -38,6 +39,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge'),
@@ -48,12 +50,13 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge,
             root.nf.RemoteProcessGroup);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
     'use strict';
 
     return {
@@ -76,6 +79,7 @@
                             // create the remote process group details
                             var remoteProcessGroupEntity = {
                                 'revision': nfClient.getRevision(remoteProcessGroupData),
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                                 'component': {
                                     id: remoteProcessGroupId,
                                     targetUris: $('#remote-process-group-urls').val(),

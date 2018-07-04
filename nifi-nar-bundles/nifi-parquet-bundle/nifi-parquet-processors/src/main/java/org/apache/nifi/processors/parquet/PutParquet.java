@@ -32,6 +32,7 @@ import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -55,7 +56,7 @@ import java.util.Collections;
 import java.util.List;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"put", "parquet", "hadoop", "HDFS", "filesystem", "restricted", "record"})
+@Tags({"put", "parquet", "hadoop", "HDFS", "filesystem", "record"})
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
         "to a Parquet file. The schema for the Parquet file must be provided in the processor properties. This processor will " +
         "first write a temporary dot file and upon successfully writing every record to the dot file, it will rename the " +
@@ -69,16 +70,11 @@ import java.util.List;
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file is stored in this attribute."),
         @WritesAttribute(attribute = "record.count", description = "The number of records written to the Parquet file")
 })
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to write any file that NiFi has access to in HDFS or the local filesystem."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.ACCESS_KEYTAB,
-                        explanation = "Provides operator the ability to make use of any keytab and principal on the local filesystem that NiFi has access to."),
-        }
-)
+@Restricted(restrictions = {
+    @Restriction(
+        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        explanation = "Provides operator the ability to write any file that NiFi has access to in HDFS or the local filesystem.")
+})
 public class PutParquet extends AbstractPutHDFSRecord {
 
     public static final PropertyDescriptor ROW_GROUP_SIZE = new PropertyDescriptor.Builder()
@@ -87,7 +83,7 @@ public class PutParquet extends AbstractPutHDFSRecord {
             .description("The row group size used by the Parquet writer. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder()
@@ -96,7 +92,7 @@ public class PutParquet extends AbstractPutHDFSRecord {
             .description("The page size used by the Parquet writer. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor DICTIONARY_PAGE_SIZE = new PropertyDescriptor.Builder()
@@ -105,7 +101,7 @@ public class PutParquet extends AbstractPutHDFSRecord {
             .description("The dictionary page size used by the Parquet writer. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor MAX_PADDING_SIZE = new PropertyDescriptor.Builder()
@@ -115,7 +111,7 @@ public class PutParquet extends AbstractPutHDFSRecord {
                     "underlying filesystem. If the underlying filesystem is not a block filesystem like HDFS, this has no effect. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor ENABLE_DICTIONARY_ENCODING = new PropertyDescriptor.Builder()

@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -27,13 +28,10 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.processors.standard.FetchFileTransfer;
-import org.apache.nifi.processors.standard.GetFTP;
-import org.apache.nifi.processors.standard.GetSFTP;
-import org.apache.nifi.processors.standard.PutFTP;
-import org.apache.nifi.processors.standard.PutSFTP;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 
 // Note that we do not use @SupportsBatching annotation. This processor cannot support batching because it must ensure that session commits happen before remote files are deleted.
@@ -62,11 +60,13 @@ public class FetchFTP extends FetchFileTransfer {
         properties.add(REMOTE_FILENAME);
         properties.add(COMPLETION_STRATEGY);
         properties.add(MOVE_DESTINATION_DIR);
+        properties.add(MOVE_CREATE_DIRECTORY);
         properties.add(FTPTransfer.CONNECTION_TIMEOUT);
         properties.add(FTPTransfer.DATA_TIMEOUT);
         properties.add(FTPTransfer.USE_COMPRESSION);
         properties.add(FTPTransfer.CONNECTION_MODE);
         properties.add(FTPTransfer.TRANSFER_MODE);
+        properties.add(FTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
@@ -79,5 +79,12 @@ public class FetchFTP extends FetchFileTransfer {
     @Override
     protected FileTransfer createFileTransfer(final ProcessContext context) {
         return new FTPTransfer(context, getLogger());
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        FTPTransfer.validateProxySpec(validationContext, results);
+        return results;
     }
 }

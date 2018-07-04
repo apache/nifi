@@ -36,5 +36,5 @@ if ! [ -f "${toolkit_path}/${program}.sh" ]; then
     print_help ${program}
 else
     shift
-    ${toolkit_path}/${program}.sh "$@"
+    exec ${toolkit_path}/${program}.sh "$@"
 fi

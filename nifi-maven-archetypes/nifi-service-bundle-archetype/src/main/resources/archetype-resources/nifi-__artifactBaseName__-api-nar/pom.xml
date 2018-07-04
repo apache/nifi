@@ -34,6 +34,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
+            <version>${nifiVersion}</version>
             <type>nar</type>
         </dependency>
         <dependency>

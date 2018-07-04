@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -45,6 +47,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -99,9 +102,20 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("HiveQL query execution failed. Incoming FlowFile will be penalized and routed to this relationship")
+            .description("HiveQL query execution failed. Incoming FlowFile will be penalized and routed to this relationship.")
             .build();
 
+
+    public static final PropertyDescriptor HIVEQL_PRE_QUERY = new PropertyDescriptor.Builder()
+            .name("hive-pre-query")
+            .displayName("HiveQL Pre-Query")
+            .description("HiveQL pre-query to execute. Semicolon-delimited list of queries. "
+                    + "Example: 'set tez.queue.name=queue1; set hive.exec.orc.split.strategy=ETL; set hive.exec.reducers.bytes.per.reducer=1073741824'. "
+                    + "Note, the results/outputs of these queries will be suppressed if successfully executed.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     public static final PropertyDescriptor HIVEQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("hive-query")
@@ -109,7 +123,17 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .description("HiveQL SELECT query to execute. If this is not set, the query is assumed to be in the content of an incoming FlowFile.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor HIVEQL_POST_QUERY = new PropertyDescriptor.Builder()
+            .name("hive-post-query")
+            .displayName("HiveQL Post-Query")
+            .description("HiveQL post-query to execute. Semicolon-delimited list of queries. "
+                    + "Note, the results/outputs of these queries will be suppressed if successfully executed.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
@@ -120,7 +144,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
@@ -131,7 +155,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor MAX_FRAGMENTS = new PropertyDescriptor.Builder()
@@ -142,7 +166,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor HIVEQL_CSV_HEADER = new PropertyDescriptor.Builder()
@@ -161,7 +185,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .description("Comma separated list of header fields")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor HIVEQL_CSV_DELIMITER = new PropertyDescriptor.Builder()
@@ -171,7 +195,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .required(true)
             .defaultValue(",")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor HIVEQL_CSV_QUOTE = new PropertyDescriptor.Builder()
@@ -200,7 +224,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .required(true)
             .allowableValues(AVRO, CSV)
             .defaultValue(AVRO)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -213,7 +237,9 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(HIVE_DBCP_SERVICE);
+        _propertyDescriptors.add(HIVEQL_PRE_QUERY);
         _propertyDescriptors.add(HIVEQL_SELECT_QUERY);
+        _propertyDescriptors.add(HIVEQL_POST_QUERY);
         _propertyDescriptors.add(FETCH_SIZE);
         _propertyDescriptors.add(MAX_ROWS_PER_FLOW_FILE);
         _propertyDescriptors.add(MAX_FRAGMENTS);
@@ -276,19 +302,22 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final HiveDBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(HiveDBCPService.class);
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
 
+        List<String> preQueries = getQueries(context.getProperty(HIVEQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        List<String> postQueries = getQueries(context.getProperty(HIVEQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+
         final boolean flowbased = !(context.getProperty(HIVEQL_SELECT_QUERY).isSet());
 
         // Source the SQL
-        final String selectQuery;
+        String hqlStatement;
 
         if (context.getProperty(HIVEQL_SELECT_QUERY).isSet()) {
-            selectQuery = context.getProperty(HIVEQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+            hqlStatement = context.getProperty(HIVEQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         } else {
             // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
             // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
             final StringBuilder queryContents = new StringBuilder();
             session.read(fileToProcess, in -> queryContents.append(IOUtils.toString(in, charset)));
-            selectQuery = queryContents.toString();
+            hqlStatement = queryContents.toString();
         }
 
 
@@ -307,10 +336,17 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final boolean escape = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
-        try (final Connection con = dbcpService.getConnection();
-             final Statement st = (flowbased ? con.prepareStatement(selectQuery) : con.createStatement())
+        try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
+             final Statement st = (flowbased ? con.prepareStatement(hqlStatement) : con.createStatement())
         ) {
-
+            Pair<String,SQLException> failure = executeConfigStatements(con, preQueries);
+            if (failure != null) {
+                // In case of failure, assigning config query to "hqlStatement"  to follow current error handling
+                hqlStatement = failure.getLeft();
+                flowfile = (fileToProcess == null) ? session.create() : fileToProcess;
+                fileToProcess = null;
+                throw failure.getRight();
+            }
             if (fetchSize != null && fetchSize > 0) {
                 try {
                     st.setFetchSize(fetchSize);
@@ -322,14 +358,14 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
             final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
             try {
-                logger.debug("Executing query {}", new Object[]{selectQuery});
+                logger.debug("Executing query {}", new Object[]{hqlStatement});
                 if (flowbased) {
                     // Hive JDBC Doesn't Support this yet:
                     // ParameterMetaData pmd = ((PreparedStatement)st).getParameterMetaData();
                     // int paramCount = pmd.getParameterCount();
 
                     // Alternate way to determine number of params in SQL.
-                    int paramCount = StringUtils.countMatches(selectQuery, "?");
+                    int paramCount = StringUtils.countMatches(hqlStatement, "?");
 
                     if (paramCount > 0) {
                         setParameters(1, (PreparedStatement) st, paramCount, fileToProcess.getAttributes());
@@ -339,7 +375,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 final ResultSet resultSet;
 
                 try {
-                    resultSet = (flowbased ? ((PreparedStatement) st).executeQuery() : st.executeQuery(selectQuery));
+                    resultSet = (flowbased ? ((PreparedStatement) st).executeQuery() : st.executeQuery(hqlStatement));
                 } catch (SQLException se) {
                     // If an error occurs during the query, a flowfile is expected to be routed to failure, so ensure one here
                     flowfile = (fileToProcess == null) ? session.create() : fileToProcess;
@@ -351,7 +387,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 String baseFilename = (fileToProcess != null) ? fileToProcess.getAttribute(CoreAttributes.FILENAME.key()) : null;
                 while (true) {
                     final AtomicLong nrOfRows = new AtomicLong(0L);
-                    flowfile = (flowfile == null) ? session.create() : session.create(flowfile);
+                    flowfile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                     if (baseFilename == null) {
                         baseFilename = flowfile.getAttribute(CoreAttributes.FILENAME.key());
                     }
@@ -384,10 +420,10 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
                         try {
                             // Set input/output table names by parsing the query
-                            attributes.putAll(toQueryTableAttributes(findTableNames(selectQuery)));
+                            attributes.putAll(toQueryTableAttributes(findTableNames(hqlStatement)));
                         } catch (Exception e) {
                             // If failed to parse the query, just log a warning message, but continue.
-                            getLogger().warn("Failed to parse query: {} due to {}", new Object[]{selectQuery, e}, e);
+                            getLogger().warn("Failed to parse query: {} due to {}", new Object[]{hqlStatement, e}, e);
                         }
 
                         // Set MIME type on output document and add extension to filename
@@ -406,14 +442,13 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
                         flowfile = session.putAllAttributes(flowfile, attributes);
 
-                        logger.info("{} contains {} Avro records; transferring to 'success'",
+                        logger.info("{} contains {} " + outputFormat + " records; transferring to 'success'",
                                 new Object[]{flowfile, nrOfRows.get()});
 
                         if (context.hasIncomingConnection()) {
-                            // If the flow file came from an incoming connection, issue a Modify Content provenance event
-
-                            session.getProvenanceReporter().modifyContent(flowfile, "Retrieved " + nrOfRows.get() + " rows",
-                                    stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                            // If the flow file came from an incoming connection, issue a Fetch provenance event
+                            session.getProvenanceReporter().fetch(flowfile, dbcpService.getConnectionURL(),
+                                    "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                         } else {
                             // If we created a flow file from rows received from Hive, issue a Receive provenance event
                             session.getProvenanceReporter().receive(flowfile, dbcpService.getConnectionURL(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
@@ -422,6 +457,9 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                     } else {
                         // If there were no rows returned (and the first flow file has been sent, we're done processing, so remove the flowfile and carry on
                         session.remove(flowfile);
+                        if (resultSetFlowFiles != null && resultSetFlowFiles.size()>0) {
+                            flowfile = resultSetFlowFiles.get(resultSetFlowFiles.size()-1);
+                        }
                         break;
                     }
 
@@ -443,31 +481,72 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
                 throw e;
             }
 
-            session.transfer(resultSetFlowFiles, REL_SUCCESS);
+            failure = executeConfigStatements(con, postQueries);
+            if (failure != null) {
+                hqlStatement = failure.getLeft();
+                if (resultSetFlowFiles != null) {
+                    resultSetFlowFiles.forEach(ff -> session.remove(ff));
+                }
+                flowfile = (fileToProcess == null) ? session.create() : fileToProcess;
+                fileToProcess = null;
+                throw failure.getRight();
+            }
 
+            session.transfer(resultSetFlowFiles, REL_SUCCESS);
+            if (fileToProcess != null) {
+                session.remove(fileToProcess);
+            }
         } catch (final ProcessException | SQLException e) {
-            logger.error("Issue processing SQL {} due to {}.", new Object[]{selectQuery, e});
+            logger.error("Issue processing SQL {} due to {}.", new Object[]{hqlStatement, e});
             if (flowfile == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("Unable to execute HiveQL select query {} due to {}. No FlowFile to route to failure",
-                        new Object[]{selectQuery, e});
+                        new Object[]{hqlStatement, e});
                 context.yield();
             } else {
                 if (context.hasIncomingConnection()) {
                     logger.error("Unable to execute HiveQL select query {} for {} due to {}; routing to failure",
-                            new Object[]{selectQuery, flowfile, e});
+                            new Object[]{hqlStatement, flowfile, e});
                     flowfile = session.penalize(flowfile);
                 } else {
                     logger.error("Unable to execute HiveQL select query {} due to {}; routing to failure",
-                            new Object[]{selectQuery, e});
+                            new Object[]{hqlStatement, e});
                     context.yield();
                 }
                 session.transfer(flowfile, REL_FAILURE);
             }
-        } finally {
-            if (fileToProcess != null) {
-                session.remove(fileToProcess);
+        }
+    }
+
+    /*
+     * Executes given queries using pre-defined connection.
+     * Returns null on success, or a query string if failed.
+     */
+    protected Pair<String,SQLException> executeConfigStatements(final Connection con, final List<String> configQueries){
+        if (configQueries == null || configQueries.isEmpty()) {
+            return null;
+        }
+
+        for (String confSQL : configQueries) {
+            try(final Statement st = con.createStatement()){
+                st.execute(confSQL);
+            } catch (SQLException e) {
+                return Pair.of(confSQL, e);
             }
         }
+        return null;
+    }
+
+    protected List<String> getQueries(final String value) {
+        if (value == null || value.length() == 0 || value.trim().length() == 0) {
+            return null;
+        }
+        final List<String> queries = new LinkedList<>();
+        for (String query : value.split(";")) {
+            if (query.trim().length() > 0) {
+                queries.add(query.trim());
+            }
+        }
+        return queries;
     }
 }

@@ -67,9 +67,15 @@ public class NiFiOrcUtils {
         if (o != null) {
             if (typeInfo instanceof UnionTypeInfo) {
                 OrcUnion union = new OrcUnion();
+                // Avro uses Utf8 and GenericData.EnumSymbol objects instead of Strings. This is handled in other places in the method, but here
+                // we need to determine the union types from the objects, so choose String.class if the object is one of those Avro classes
+                Class clazzToCompareTo = o.getClass();
+                if (o instanceof org.apache.avro.util.Utf8 || o instanceof GenericData.EnumSymbol) {
+                    clazzToCompareTo = String.class;
+                }
                 // Need to find which of the union types correspond to the primitive object
                 TypeInfo objectTypeInfo = TypeInfoUtils.getTypeInfoFromObjectInspector(
-                        ObjectInspectorFactory.getReflectionObjectInspector(o.getClass(), ObjectInspectorFactory.ObjectInspectorOptions.JAVA));
+                        ObjectInspectorFactory.getReflectionObjectInspector(clazzToCompareTo, ObjectInspectorFactory.ObjectInspectorOptions.JAVA));
                 List<TypeInfo> unionTypeInfos = ((UnionTypeInfo) typeInfo).getAllUnionObjectTypeInfos();
 
                 int index = 0;

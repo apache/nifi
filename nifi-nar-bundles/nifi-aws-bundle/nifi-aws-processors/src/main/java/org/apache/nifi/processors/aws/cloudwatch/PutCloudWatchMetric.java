@@ -37,6 +37,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -62,7 +63,7 @@ import com.amazonaws.services.cloudwatch.model.StatisticSet;
         "minimum, maximum, sum and sample count.")
 @DynamicProperty(name = "Dimension Name", value = "Dimension Value",
         description = "Allows dimension name/value pairs to be added to the metric. AWS supports a maximum of 10 dimensions.",
-        supportsExpressionLanguage = true)
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @Tags({"amazon", "aws", "cloudwatch", "metrics", "put", "publish"})
 public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor<AmazonCloudWatchClient> {
 
@@ -93,7 +94,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .displayName("Namespace")
             .description("The namespace for the metric data for CloudWatch")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -101,7 +102,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("MetricName")
             .displayName("Metric Name")
             .description("The name of the metric")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(new StandardValidators.StringLengthValidator(1, 255))
             .build();
@@ -110,7 +111,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("Value")
             .displayName("Value")
             .description("The value for the metric. Must be a double")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(DOUBLE_VALIDATOR)
             .build();
@@ -119,7 +120,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("Timestamp")
             .displayName("Timestamp")
             .description("A point in time expressed as the number of milliseconds since Jan 1, 1970 00:00:00 UTC. If not specified, the default value is set to the time the metric data was received")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
@@ -128,7 +129,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("Unit")
             .displayName("Unit")
             .description("The unit of the metric. (e.g Seconds, Bytes, Megabytes, Percent, Count,  Kilobytes/Second, Terabits/Second, Count/Second) For details see http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDatum.html")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -137,7 +138,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("maximum")
             .displayName("Maximum")
             .description("The maximum value of the sample set. Must be a double")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(DOUBLE_VALIDATOR)
             .build();
@@ -146,7 +147,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("minimum")
             .displayName("Minimum")
             .description("The minimum value of the sample set. Must be a double")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(DOUBLE_VALIDATOR)
             .build();
@@ -155,7 +156,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("sampleCount")
             .displayName("Sample Count")
             .description("The number of samples used for the statistic set. Must be a double")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(DOUBLE_VALIDATOR)
             .build();
@@ -164,7 +165,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .name("sum")
             .displayName("Sum")
             .description("The sum of values for the sample set. Must be a double")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(DOUBLE_VALIDATOR)
             .build();
@@ -173,7 +174,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             Collections.unmodifiableList(
                     Arrays.asList(NAMESPACE, METRIC_NAME, VALUE, MAXIMUM, MINIMUM, SAMPLECOUNT, SUM, TIMESTAMP,
                             UNIT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                            TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT)
+                            TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD)
             );
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
@@ -188,7 +189,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
     }

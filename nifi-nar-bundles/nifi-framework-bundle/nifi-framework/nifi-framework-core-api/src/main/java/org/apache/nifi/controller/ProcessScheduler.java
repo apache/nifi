@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -24,6 +26,9 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 public interface ProcessScheduler {
@@ -58,6 +63,53 @@ public interface ProcessScheduler {
      * @param procNode to stop
      */
     Future<Void> stopProcessor(ProcessorNode procNode);
+
+    /**
+     * Interrupts all threads that are currently active in the Processor in an attempt to
+     * regain the threads and stop running the tasks in the Processor. All instances of
+     * {@link ProcessSession}, {@link ProcessSessionFactory}, {@link ProcessContext}, and
+     * the {@link InputStream}s and {@link OutputStream}s that were generated from the associated
+     * Process Sessions will also be poisoned, meaning that any calls to those objects will result
+     * in a {@link TerminatedTaskException} being thrown. In addition, the number of active threads
+     * will immediately be set to 0 so that the Processor can be modified. Note, however, that if
+     * the threads do not return, they cannot be returned to the Thread Pool. As such, invoking this
+     * method many times or when many threads are active and deadlocked/livelocked can result in
+     * thread pool exhaustion. If the given Processor is not in a Scheduled State of STOPPED, then this
+     * method does nothing.
+     *
+     * @param procNode the Processor to terminate
+     *
+     * @throws IllegalStateException if the Processor's Scheduled State is not currently STOPPED
+     */
+    void terminateProcessor(ProcessorNode procNode);
+
+    /**
+     * Notifies the scheduler that the given Processor has been removed from the flow
+     *
+     * @param procNode the processor being removed
+     */
+    void onProcessorRemoved(ProcessorNode procNode);
+
+    /**
+     * Notifies the scheduler that the given port has been removed from the flow
+     *
+     * @param port the port being removed
+     */
+    void onPortRemoved(Port port);
+
+    /**
+     * Notifies the scheduler that the given funnel has been removed from the flow
+     *
+     * @param funnel the funnel being removed
+     */
+    void onFunnelRemoved(Funnel funnel);
+
+    /**
+     * Notifies the scheduler that the given reporting task has been removed from the flow
+     *
+     * @param reportingTask the reporting task being removed
+     */
+    void onReportingTaskRemoved(ReportingTaskNode reportingTask);
 
     /**
      * Starts scheduling the given Port to run. If the Port is already scheduled

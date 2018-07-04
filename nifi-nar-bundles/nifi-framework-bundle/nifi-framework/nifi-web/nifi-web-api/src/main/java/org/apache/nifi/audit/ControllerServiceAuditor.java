@@ -27,12 +27,11 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -222,23 +221,21 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ControllerServiceDAO+) && "
-            + "execution(org.apache.nifi.controller.service.ControllerServiceReference "
+            + "execution(java.util.Set<org.apache.nifi.controller.ComponentNode> "
             + "updateControllerServiceReferencingComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, "
             + "org.apache.nifi.controller.service.ControllerServiceState))")
     public Object updateControllerServiceReferenceAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the controller service references
-        final ControllerServiceReference controllerServiceReference = (ControllerServiceReference) proceedingJoinPoint.proceed();
+        final Set<ComponentNode> referencingComponents = (Set<ComponentNode>) proceedingJoinPoint.proceed();
 
         // get the current user
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         if (user != null) {
             final Collection<Action> actions = new ArrayList<>();
-            final Collection<String> visitedServices = new ArrayList<>();
-            visitedServices.add(controllerServiceReference.getReferencedComponent().getIdentifier());
 
             // get all applicable actions
-            getUpdateActionsForReferencingComponents(user, actions, visitedServices, controllerServiceReference.getReferencingComponents());
+            getUpdateActionsForReferencingComponents(user, actions, referencingComponents);
 
             // ensure there are actions to record
             if (!actions.isEmpty()) {
@@ -247,7 +244,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             }
         }
 
-        return controllerServiceReference;
+        return referencingComponents;
     }
 
     /**
@@ -255,13 +252,11 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      *
      * @param user user
      * @param actions actions
-     * @param visitedServices services
      * @param referencingComponents components
      */
-    private void getUpdateActionsForReferencingComponents(
-            final NiFiUser user, final Collection<Action> actions, final Collection<String> visitedServices, final Set<ConfiguredComponent> referencingComponents) {
+    private void getUpdateActionsForReferencingComponents(final NiFiUser user, final Collection<Action> actions, final Set<ComponentNode> referencingComponents) {
         // consider each component updates
-        for (final ConfiguredComponent component : referencingComponents) {
+        for (final ComponentNode component : referencingComponents) {
             if (component instanceof ProcessorNode) {
                 final ProcessorNode processor = ((ProcessorNode) component);
 
@@ -313,11 +308,6 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 serviceAction.setComponentDetails(serviceDetails);
                 serviceAction.setOperation(isDisabled(controllerService) ? Operation.Disable : Operation.Enable);
                 actions.add(serviceAction);
-
-                // need to consider components referencing this controller service (transitive)
-                if (!visitedServices.contains(controllerService.getIdentifier())) {
-                    getUpdateActionsForReferencingComponents(user, actions, visitedServices, controllerService.getReferences().getReferencingComponents());
-                }
             }
         }
     }

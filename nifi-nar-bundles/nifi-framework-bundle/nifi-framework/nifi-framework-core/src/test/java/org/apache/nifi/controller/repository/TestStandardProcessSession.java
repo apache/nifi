@@ -16,6 +16,48 @@
  */
 package org.apache.nifi.controller.repository;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.notNull;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -32,6 +74,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.MissingFlowFileException;
@@ -55,53 +98,12 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.notNull;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 public class TestStandardProcessSession {
 
     private StandardProcessSession session;
     private MockContentRepository contentRepo;
     private FlowFileQueue flowFileQueue;
-    private ProcessContext context;
+    private RepositoryContext context;
     private Connectable connectable;
 
     private ProvenanceEventRepository provenanceRepo;
@@ -188,11 +190,10 @@ public class TestStandardProcessSession {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository();
 
-        context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
-        session = new StandardProcessSession(context);
+        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        session = new StandardProcessSession(context, () -> false);
     }
 
-    @SuppressWarnings("unchecked")
     private Connection createConnection() {
         AtomicReference<FlowFileQueue> queueReference = new AtomicReference<>(flowFileQueue);
         Connection connection = createConnection(queueReference);
@@ -206,7 +207,7 @@ public class TestStandardProcessSession {
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
         final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null,
-                processScheduler, swapManager, null, 10000);
+                processScheduler, swapManager, null, 10000, 0L, "0 B");
         return Mockito.spy(actualQueue);
     }
 
@@ -261,6 +262,7 @@ public class TestStandardProcessSession {
             }
         }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 
+        Mockito.when(connection.getIdentifier()).thenReturn("conn-uuid");
         return connection;
     }
 
@@ -326,6 +328,44 @@ public class TestStandardProcessSession {
         }
 
         assertArrayEquals(replacementContent, buffer);
+    }
+
+    @Test
+    public void testEmbeddedReads() {
+        FlowFile ff1 = session.write(session.create(), out -> out.write(new byte[] {'A', 'B'}));
+        FlowFile ff2 = session.write(session.create(), out -> out.write('C'));
+
+        session.read(ff1, in1 -> {
+            int a = in1.read();
+            assertEquals('A', a);
+
+            session.read(ff2, in2 -> {
+                int c = in2.read();
+                assertEquals('C', c);
+            });
+
+            int b = in1.read();
+            assertEquals('B', b);
+        });
+    }
+
+    @Test
+    public void testSequentialReads() throws IOException {
+        FlowFile ff1 = session.write(session.create(), out -> out.write(new byte[] {'A', 'B'}));
+        FlowFile ff2 = session.write(session.create(), out -> out.write('C'));
+
+        final byte[] buff1 = new byte[2];
+        try (final InputStream in = session.read(ff1)) {
+            StreamUtils.fillBuffer(in, buff1);
+        }
+
+        final byte[] buff2 = new byte[1];
+        try (final InputStream in = session.read(ff2)) {
+            StreamUtils.fillBuffer(in, buff2);
+        }
+
+        Assert.assertArrayEquals(new byte[] {'A', 'B'}, buff1);
+        Assert.assertArrayEquals(new byte[] {'C'}, buff2);
     }
 
     @Test
@@ -1177,6 +1217,36 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testAppendToFlowFileWhereResourceClaimHasMultipleContentClaims() throws IOException {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile ffa = session.create();
+        ffa = session.write(ffa, (out) -> out.write('A'));
+        session.transfer(ffa, relationship);
+
+        FlowFile ffb = session.create();
+        ffb = session.write(ffb, (out) -> out.write('B'));
+        session.transfer(ffb, relationship);
+        session.commit();
+
+        final ProcessSession newSession = new StandardProcessSession(context, () -> false);
+        FlowFile toUpdate = newSession.get();
+        newSession.append(toUpdate, out -> out.write('C'));
+
+        // Read the content back and ensure that it is correct
+        final byte[] buff;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            newSession.read(toUpdate, in -> StreamUtils.copy(in, baos));
+            buff = baos.toByteArray();
+        }
+
+        final String output = new String(buff, StandardCharsets.UTF_8);
+        assertEquals("AC", output);
+        newSession.transfer(toUpdate);
+        newSession.commit();
+    }
+
+    @Test
     public void testAppendDoesNotDecrementContentClaimIfNotNeeded() {
         FlowFile flowFile = session.create();
 
@@ -1232,7 +1302,7 @@ public class TestStandardProcessSession {
 
         StandardProcessSession[] standardProcessSessions = new StandardProcessSession[100000];
         for (int i = 0; i < 70000; i++) {
-            standardProcessSessions[i] = new StandardProcessSession(context);
+            standardProcessSessions[i] = new StandardProcessSession(context, () -> false);
 
             FlowFile flowFile = standardProcessSessions[i].create();
             final byte[] buff = new byte["Hello".getBytes().length];
@@ -1805,7 +1875,7 @@ public class TestStandardProcessSession {
         flowFile = session.append(flowFile, out -> out.write("1".getBytes()));
         flowFile = session.append(flowFile, out -> out.write("2".getBytes()));
 
-        final StandardProcessSession newSession = new StandardProcessSession(context);
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false);
 
         assertTrue(session.isFlowFileKnown(flowFile));
         assertFalse(newSession.isFlowFileKnown(flowFile));
@@ -1972,6 +2042,11 @@ public class TestStandardProcessSession {
         }
 
         @Override
+        public String getFileStoreName() {
+            return null;
+        }
+
+        @Override
         public boolean isVolatile() {
             return false;
         }
@@ -2088,6 +2163,11 @@ public class TestStandardProcessSession {
         @Override
         public long getContainerUsableSpace(String containerName) throws IOException {
             return 0;
+        }
+
+        @Override
+        public String getContainerFileStoreName(String containerName) {
+            return null;
         }
 
         @Override

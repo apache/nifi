@@ -266,7 +266,7 @@
 
         // define a custom formatter for showing more processor details
         var moreProcessorDetails = function (row, cell, value, columnDef, dataContext) {
-            var markup = '<div title="View Processor Details" class="pointer show-processor-details fa fa-info-circle" style="margin-right: 3px;"></div>';
+            var markup = '<div title="View Processor Details" class="pointer show-processor-details fa fa-info-circle"></div>';
 
             // if there are bulletins, render them on the graph
             if (!nfCommon.isEmpty(dataContext.bulletins)) {
@@ -306,9 +306,14 @@
 
         // define a custom formatter for the run status column
         var runStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            var activeThreadCount = '';
-            if (nfCommon.isDefinedAndNotNull(dataContext.activeThreadCount) && dataContext.activeThreadCount > 0) {
-                activeThreadCount = '(' + nfCommon.escapeHtml(dataContext.activeThreadCount) + ')';
+            var threadCounts = '';
+            var threadTip = '';
+            if (dataContext.terminatedThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + ' / ' + dataContext.terminatedThreadCount + ')';
+                threadTip = 'Threads: (Active / Terminated)';
+            } else if (dataContext.activeThreadCount > 0) {
+                threadCounts = '(' + dataContext.activeThreadCount + ')';
+                threadTip = 'Active Threads';
             }
             var classes;
             switch (value.toLowerCase()) {
@@ -324,14 +329,28 @@
                 case 'disabled':
                     classes = 'icon icon-enable-false disabled';
                     break;
+                case 'validating':
+                    classes = 'fa fa-spin fa-circle-notch validating';
+                    break;
                 case 'invalid':
                     classes = 'fa fa-warning invalid';
                     break;
                 default:
                     classes = '';
             }
-            var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nfCommon.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
+
+            var markup =
+                '<div layout="row">' +
+                    '<div class="' + classes + '"></div>' +
+                    '<div class="status-text">' +
+                        nfCommon.escapeHtml(value) +
+                    '</div>' +
+                    '<div style="float: left; margin-left: 4px;" title="' + threadTip + '">' +
+                        nfCommon.escapeHtml(threadCounts) +
+                    '</div>' +
+                '</div>';
+
+            return markup;
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -439,11 +458,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor in ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + '" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor in ' + nfCommon.escapeHtml(dataContext.processGroupNamePath) + '"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -686,7 +705,7 @@
 
         // define a custom formatter for showing more processor details
         var moreConnectionDetails = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details" style="margin-top: 5px;"></div>';
+            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details"></div>';
         };
 
         var backpressureFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -771,11 +790,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -993,7 +1012,7 @@
 
             // if there are bulletins, render them on the graph
             if (!nfCommon.isEmpty(dataContext.bulletins)) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-left: 5px; float: left;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-left: 5px; float: left;"></div><span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
 
             return markup;
@@ -1069,7 +1088,7 @@
                     classes = '';
                     label = '';
             }
-            return '<div layout="row"><div class="' + classes + '"></div><div class="status-text" style="margin-top: 4px;">' + label + '</div></div>';
+            return '<div layout="row"><div class="' + classes + '"></div><div class="status-text">' + label + '</div></div>';
         };
 
         // define the column model for the summary table
@@ -1106,11 +1125,11 @@
                 var markup = '';
 
                 if (isInShell && dataContext.groupId !== null) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -1366,7 +1385,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port"></div>';
                 }
 
                 if (isClustered) {
@@ -1613,7 +1632,7 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port"></div>';
                 }
 
                 if (isClustered) {
@@ -1865,7 +1884,7 @@
 
             // generate the mark up
             var formattedValue = '<div layout="row"><div class="' + transmissionClass + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
+            return formattedValue + '<div class="status-text">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var transmissionStatusColumn = {
@@ -1912,11 +1931,11 @@
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group"></div>';
                 }
 
                 if (nfCommon.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>';
+                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="View Status History"></div>';
                 }
 
                 if (isClustered) {
@@ -2694,6 +2713,7 @@
                         node: nodeSnapshot.address + ':' + nodeSnapshot.apiPort,
                         runStatus: snapshot.runStatus,
                         activeThreadCount: snapshot.activeThreadCount,
+                        terminatedThreadCount: snapshot.terminatedThreadCount,
                         input: snapshot.input,
                         read: snapshot.read,
                         written: snapshot.written,

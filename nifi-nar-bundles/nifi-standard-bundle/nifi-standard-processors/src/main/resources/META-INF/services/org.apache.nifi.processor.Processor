@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.standard.AttributesToJSON
+org.apache.nifi.processors.standard.AttributesToCSV
 org.apache.nifi.processors.standard.Base64EncodeContent
+org.apache.nifi.processors.standard.CalculateRecordStats
 org.apache.nifi.processors.standard.CompressContent
 org.apache.nifi.processors.standard.ControlRate
 org.apache.nifi.processors.standard.ConvertCharacterSet
@@ -35,6 +37,7 @@ org.apache.nifi.processors.standard.ExtractText
 org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FetchFile
 org.apache.nifi.processors.standard.FlattenJson
+org.apache.nifi.processors.standard.ForkRecord
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GetFile
 org.apache.nifi.processors.standard.GetFTP
@@ -72,6 +75,7 @@ org.apache.nifi.processors.standard.MonitorActivity
 org.apache.nifi.processors.standard.Notify
 org.apache.nifi.processors.standard.ParseCEF
 org.apache.nifi.processors.standard.ParseSyslog
+org.apache.nifi.processors.standard.ParseSyslog5424
 org.apache.nifi.processors.standard.PartitionRecord
 org.apache.nifi.processors.standard.PostHTTP
 org.apache.nifi.processors.standard.PutDatabaseRecord

@@ -26,6 +26,8 @@ import org.apache.nifi.util.RingBuffer.Filter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -115,7 +117,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
             }
         };
 
-        final List<Bulletin> selected = new ArrayList<>();
+        final Set<Bulletin> selected = new TreeSet<>();
         int max = bulletinQuery.getLimit() == null ? Integer.MAX_VALUE : bulletinQuery.getLimit();
 
         for (final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap : bulletinStoreMap.values()) {
@@ -129,10 +131,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
             }
         }
 
-        // sort by descending ID
-        Collections.sort(selected);
-
-        return selected;
+        return new ArrayList<>(selected);
     }
 
     @Override

@@ -38,14 +38,11 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.reporting.AbstractSiteToSiteReportingTask.NiFiUrlValidator;
-import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
 import org.junit.Test;
@@ -91,7 +88,6 @@ public class TestSiteToSiteBulletinReportingTask {
 
         // creating reporting task
         final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
-        Mockito.when(context.getStateManager()).thenReturn(new MockStateManager(task));
 
         // settings properties and mocking access to properties
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -127,70 +123,11 @@ public class TestSiteToSiteBulletinReportingTask {
         assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
     }
 
-    @Test
-    public void testWhenProvenanceMaxIdEqualToLastEventIdInStateManager() throws IOException, InitializationException {
-        // creating the list of bulletins
-        final List<Bulletin> bulletins = new ArrayList<Bulletin>();
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
-        bulletins.add(BulletinFactory.createBulletin("category", "severity", "message"));
-
-        // mock the access to the list of bulletins
-        final ReportingContext context = Mockito.mock(ReportingContext.class);
-        final BulletinRepository repository = Mockito.mock(BulletinRepository.class);
-        Mockito.when(context.getBulletinRepository()).thenReturn(repository);
-        Mockito.when(repository.findBulletins(Mockito.any(BulletinQuery.class))).thenReturn(bulletins);
-
-        final long maxEventId = getMaxBulletinId(bulletins);;
-
-        // create the mock reporting task and mock state manager
-        final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
-        final MockStateManager stateManager = new MockStateManager(task);
-
-        // settings properties and mocking access to properties
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
-            properties.put(descriptor, descriptor.getDefaultValue());
-        }
-        properties.put(SiteToSiteBulletinReportingTask.BATCH_SIZE, "1000");
-        properties.put(SiteToSiteBulletinReportingTask.PLATFORM, "nifi");
-        properties.put(SiteToSiteBulletinReportingTask.TRANSPORT_PROTOCOL, SiteToSiteTransportProtocol.HTTP.name());
-        properties.put(SiteToSiteBulletinReportingTask.HTTP_PROXY_HOSTNAME, "localhost");
-        properties.put(SiteToSiteBulletinReportingTask.HTTP_PROXY_PORT, "80");
-        properties.put(SiteToSiteBulletinReportingTask.HTTP_PROXY_USERNAME, "username");
-        properties.put(SiteToSiteBulletinReportingTask.HTTP_PROXY_PASSWORD, "password");
-
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
-        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
-
-        // create the state map and set the last id to the same value as maxEventId
-        final Map<String,String> state = new HashMap<>();
-        state.put(SiteToSiteProvenanceReportingTask.LAST_EVENT_ID_KEY, String.valueOf(maxEventId));
-        stateManager.setState(state, Scope.LOCAL);
-
-        // setup the mock reporting context to return the mock state manager
-        Mockito.when(context.getStateManager()).thenReturn(stateManager);
-
-        // setup the mock initialization context
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
-        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        Mockito.when(initContext.getLogger()).thenReturn(logger);
-
-        task.initialize(initContext);
-
-        // execute the reporting task and should not produce any data b/c max id same as previous id
-        task.onTrigger(context);
-        assertEquals(0, task.dataSent.size());
-    }
-
     private static final class MockSiteToSiteBulletinReportingTask extends SiteToSiteBulletinReportingTask {
+
+        public MockSiteToSiteBulletinReportingTask() throws IOException {
+            super();
+        }
 
         final List<byte[]> dataSent = new ArrayList<>();
 
@@ -218,16 +155,6 @@ public class TestSiteToSiteBulletinReportingTask {
             return client;
         }
 
-    }
-
-    private Long getMaxBulletinId(List<Bulletin> bulletins) {
-        long result = -1L;
-        for (Bulletin bulletin : bulletins) {
-            if(bulletin.getId() > result) {
-                result = bulletin.getId();
-            }
-        }
-        return result;
     }
 
 }

@@ -40,6 +40,7 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
@@ -455,6 +456,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestProcessGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -551,11 +554,27 @@ public class ProcessGroupResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response deleteVariableRegistryUpdateRequest(
-        @ApiParam(value = "The process group id.", required = true) @PathParam("groupId") final String groupId,
-        @ApiParam(value = "The ID of the Variable Registry Update Request", required = true) @PathParam("updateId") final String updateId) {
+        @ApiParam(
+                value = "The process group id.",
+                required = true
+        )
+        @PathParam("groupId") final String groupId,
+        @ApiParam(
+                value = "The ID of the Variable Registry Update Request",
+                required = true)
+        @PathParam("updateId") final String updateId,
+        @ApiParam(
+                value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                required = false
+        )
+        @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged) {
 
         if (groupId == null || updateId == null) {
             throw new IllegalArgumentException("Group ID and Update ID must both be specified.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -626,6 +645,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestVariableRegistryEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestVariableRegistryEntity.isDisconnectedNodeAcknowledged());
         }
 
         // handle expects request (usually from the cluster manager)
@@ -685,6 +706,10 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestVariableRegistryEntity.getProcessGroupRevision() == null) {
             throw new IllegalArgumentException("Process Group Revision must be specified.");
+        }
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestVariableRegistryEntity.isDisconnectedNodeAcknowledged());
         }
 
         // In order to update variables in a variable registry, we have to perform the following steps:
@@ -1091,15 +1116,14 @@ public class ProcessGroupResource extends ApplicationResource {
      * @param serviceIds the ID of all Controller Services whose state should be equal to the given desired state
      * @param desiredState the desired state for all services with the ID's given
      * @param pause the Pause that can be used to wait between polling
-     * @param user the user that is retrieving the controller services
      * @return <code>true</code> if successful, <code>false</code> if unable to wait for services to reach the desired state
      */
     private boolean waitForLocalControllerServiceStatus(final String groupId, final Set<String> serviceIds, final ControllerServiceState desiredState,
-                                                        final VariableRegistryUpdateRequest updateRequest, final Pause pause, final NiFiUser user) {
+                                                        final VariableRegistryUpdateRequest updateRequest, final Pause pause) {
 
         boolean continuePolling = true;
         while (continuePolling) {
-            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true, user);
+            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true);
 
             // update the affected controller services
             updateAffectedControllerServices(serviceEntities, updateRequest);
@@ -1170,16 +1194,20 @@ public class ProcessGroupResource extends ApplicationResource {
             @Override
             public void run() {
                 try {
+                    // set the user authentication token
+                    final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(user));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+
                     // Stop processors
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getStopProcessorsStep(), "Stopping Processors",
-                        () -> stopProcessors(user, updateRequest, groupId, processorRevisionMap, pause));
+                        () -> stopProcessors(updateRequest, groupId, processorRevisionMap, pause));
 
                     // Update revision map because this will have modified the revisions of our components.
                     final Map<String, Revision> updatedProcessorRevisionMap = getRevisions(groupId, affectedProcessorIds);
 
                     // Disable controller services
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getDisableServicesStep(), "Disabling Controller Services",
-                        () -> disableControllerServices(user, updateRequest, groupId, serviceRevisionMap, pause));
+                        () -> disableControllerServices(updateRequest, groupId, serviceRevisionMap, pause));
 
                     // Update revision map because this will have modified the revisions of our components.
                     final Map<String, Revision> updatedServiceRevisionMap = getRevisions(groupId, affectedServiceIds);
@@ -1187,17 +1215,17 @@ public class ProcessGroupResource extends ApplicationResource {
                     // Apply the updates
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getApplyUpdatesStep(), "Applying updates to Variable Registry",
                         () -> {
-                            final VariableRegistryEntity entity = serviceFacade.updateVariableRegistry(user, requestRevision, requestEntity.getVariableRegistry());
+                            final VariableRegistryEntity entity = serviceFacade.updateVariableRegistry(requestRevision, requestEntity.getVariableRegistry());
                             updateRequest.setProcessGroupRevision(entity.getProcessGroupRevision());
                         });
 
                     // Re-enable the controller services
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getEnableServicesStep(), "Re-enabling Controller Services",
-                        () -> enableControllerServices(user, updateRequest, groupId, updatedServiceRevisionMap, pause));
+                        () -> enableControllerServices(updateRequest, groupId, updatedServiceRevisionMap, pause));
 
                     // Restart processors
                     performUpdateVariableRegistryStep(groupId, updateRequest, updateRequest.getStartProcessorsStep(), "Restarting Processors",
-                        () -> startProcessors(user, updateRequest, groupId, updatedProcessorRevisionMap, pause));
+                        () -> startProcessors(updateRequest, groupId, updatedProcessorRevisionMap, pause));
 
                     // Set complete
                     updateRequest.setComplete(true);
@@ -1207,6 +1235,9 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     updateRequest.setComplete(true);
                     updateRequest.setFailureReason("An unexpected error has occurred: " + e);
+                } finally {
+                    // clear the authentication token
+                    SecurityContextHolder.getContext().setAuthentication(null);
                 }
             }
         };
@@ -1255,7 +1286,7 @@ public class ProcessGroupResource extends ApplicationResource {
         request.setLastUpdated(new Date());
     }
 
-    private void stopProcessors(final NiFiUser user, final VariableRegistryUpdateRequest updateRequest, final String processGroupId,
+    private void stopProcessors(final VariableRegistryUpdateRequest updateRequest, final String processGroupId,
         final Map<String, Revision> processorRevisions, final Pause pause) {
 
         if (processorRevisions.isEmpty()) {
@@ -1263,21 +1294,21 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         serviceFacade.verifyScheduleComponents(processGroupId, ScheduledState.STOPPED, processorRevisions.keySet());
-        serviceFacade.scheduleComponents(user, processGroupId, ScheduledState.STOPPED, processorRevisions);
+        serviceFacade.scheduleComponents(processGroupId, ScheduledState.STOPPED, processorRevisions);
         waitForLocalProcessor(processGroupId, processorRevisions.keySet(), ScheduledState.STOPPED, updateRequest, pause);
     }
 
-    private void startProcessors(final NiFiUser user, final VariableRegistryUpdateRequest request, final String processGroupId, final Map<String, Revision> processorRevisions, final Pause pause) {
+    private void startProcessors(final VariableRegistryUpdateRequest request, final String processGroupId, final Map<String, Revision> processorRevisions, final Pause pause) {
         if (processorRevisions.isEmpty()) {
             return;
         }
 
         serviceFacade.verifyScheduleComponents(processGroupId, ScheduledState.RUNNING, processorRevisions.keySet());
-        serviceFacade.scheduleComponents(user, processGroupId, ScheduledState.RUNNING, processorRevisions);
+        serviceFacade.scheduleComponents(processGroupId, ScheduledState.RUNNING, processorRevisions);
         waitForLocalProcessor(processGroupId, processorRevisions.keySet(), ScheduledState.RUNNING, request, pause);
     }
 
-    private void disableControllerServices(final NiFiUser user, final VariableRegistryUpdateRequest updateRequest, final String processGroupId,
+    private void disableControllerServices(final VariableRegistryUpdateRequest updateRequest, final String processGroupId,
                                            final Map<String, Revision> serviceRevisions, final Pause pause) {
 
         if (serviceRevisions.isEmpty()) {
@@ -1285,11 +1316,11 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.DISABLED, serviceRevisions.keySet());
-        serviceFacade.activateControllerServices(user, processGroupId, ControllerServiceState.DISABLED, serviceRevisions);
-        waitForLocalControllerServiceStatus(processGroupId, serviceRevisions.keySet(), ControllerServiceState.DISABLED, updateRequest, pause, user);
+        serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.DISABLED, serviceRevisions);
+        waitForLocalControllerServiceStatus(processGroupId, serviceRevisions.keySet(), ControllerServiceState.DISABLED, updateRequest, pause);
     }
 
-    private void enableControllerServices(final NiFiUser user, final VariableRegistryUpdateRequest updateRequest, final String processGroupId,
+    private void enableControllerServices(final VariableRegistryUpdateRequest updateRequest, final String processGroupId,
                                           final Map<String, Revision> serviceRevisions, final Pause pause) {
 
         if (serviceRevisions.isEmpty()) {
@@ -1297,8 +1328,8 @@ public class ProcessGroupResource extends ApplicationResource {
         }
 
         serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.ENABLED, serviceRevisions.keySet());
-        serviceFacade.activateControllerServices(user, processGroupId, ControllerServiceState.ENABLED, serviceRevisions);
-        waitForLocalControllerServiceStatus(processGroupId, serviceRevisions.keySet(), ControllerServiceState.ENABLED, updateRequest, pause, user);
+        serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.ENABLED, serviceRevisions);
+        waitForLocalControllerServiceStatus(processGroupId, serviceRevisions.keySet(), ControllerServiceState.ENABLED, updateRequest, pause);
     }
 
 
@@ -1522,6 +1553,11 @@ public class ProcessGroupResource extends ApplicationResource {
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
                     value = "The process group id.",
                     required = true
             )
@@ -1530,6 +1566,8 @@ public class ProcessGroupResource extends ApplicationResource {
         // replicate if cluster manager
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
         final ProcessGroupEntity requestProcessGroupEntity = new ProcessGroupEntity();
@@ -1676,6 +1714,8 @@ public class ProcessGroupResource extends ApplicationResource {
         // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestProcessGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestProcessGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -1689,10 +1729,11 @@ public class ProcessGroupResource extends ApplicationResource {
                     // for write access to the RestrictedComponents resource
                     final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
                     if (versionedFlowSnapshot != null) {
-                        final boolean containsRestrictedComponent = FlowRegistryUtils.containsRestrictedComponent(versionedFlowSnapshot.getFlowContents());
-                        if (containsRestrictedComponent) {
-                            lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                        }
+                        final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents());
+                        restrictedComponents.forEach(restrictedComponent -> {
+                            final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
+                            authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
+                        });
                     }
                 },
                 () -> {
@@ -1726,8 +1767,8 @@ public class ProcessGroupResource extends ApplicationResource {
                         // placed the Process Group. However, we do want to use the name of the Process Group that is in the Flow Contents.
                         // To accomplish this, we call updateProcessGroupContents() passing 'true' for the updateSettings flag but null out the position.
                         flowSnapshot.getFlowContents().setPosition(null);
-                        entity = serviceFacade.updateProcessGroupContents(NiFiUserUtils.getNiFiUser(), newGroupRevision, newGroupId,
-                            versionControlInfo, flowSnapshot, getIdGenerationSeed().orElse(null), false, true, true);
+                        entity = serviceFacade.updateProcessGroupContents(newGroupRevision, newGroupId, versionControlInfo, flowSnapshot,
+                                getIdGenerationSeed().orElse(null), false, true, true);
                     }
 
                     populateRemainingProcessGroupEntityContent(entity);
@@ -1877,6 +1918,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestProcessorEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestProcessorEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2051,6 +2094,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestPortEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestPortEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2199,6 +2244,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestPortEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestPortEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2348,6 +2395,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestFunnelEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestFunnelEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2497,6 +2546,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestLabelEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestLabelEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2653,6 +2704,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestRemoteProcessGroupEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestRemoteProcessGroupEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -2856,6 +2909,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestConnectionEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestConnectionEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3027,6 +3082,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestCopySnippetEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestCopySnippetEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3192,6 +3249,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestInstantiateTemplateRequestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestInstantiateTemplateRequestEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3224,7 +3283,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 instantiateTemplateRequestEntity -> {
                     // create the template and generate the json
                     final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(), instantiateTemplateRequestEntity.getOriginY(),
-                            instantiateTemplateRequestEntity.getEncodingVersion(), instantiateTemplateRequestEntity.getSnippet(), getIdGenerationSeed().orElse(null));
+                        instantiateTemplateRequestEntity.getEncodingVersion(), instantiateTemplateRequestEntity.getSnippet(), getIdGenerationSeed().orElse(null));
 
                     final FlowDTO flowSnippet = entity.getFlow();
 
@@ -3304,6 +3363,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestCreateTemplateRequestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestCreateTemplateRequestEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3374,6 +3435,11 @@ public class ProcessGroupResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @FormDataParam("template") final InputStream in) throws InterruptedException {
 
         // unmarshal the template
@@ -3399,9 +3465,14 @@ public class ProcessGroupResource extends ApplicationResource {
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
 
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
         // build the response entity
         TemplateEntity entity = new TemplateEntity();
         entity.setTemplate(template);
+        entity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
 
         if (isReplicateRequest()) {
             // convert request accordingly
@@ -3468,6 +3539,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestTemplateEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestTemplateEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(
@@ -3574,6 +3647,8 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestControllerServiceEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestControllerServiceEntity.isDisconnectedNodeAcknowledged());
         }
 
         return withWriteLock(

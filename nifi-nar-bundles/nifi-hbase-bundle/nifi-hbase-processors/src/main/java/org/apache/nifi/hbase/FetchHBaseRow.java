@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hbase.io.JsonFullRowSerializer;
@@ -62,7 +63,7 @@ import java.util.regex.Pattern;
         @WritesAttribute(attribute = "hbase.row", description = "A JSON document representing the row. This property is only written when a Destination of flowfile-attributes is selected."),
         @WritesAttribute(attribute = "mime.type", description = "Set to application/json when using a Destination of flowfile-content, not set or modified otherwise")
 })
-public class FetchHBaseRow extends AbstractProcessor {
+public class FetchHBaseRow extends AbstractProcessor implements VisibilityFetchSupport {
 
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+(:\\w+)?(?:,\\w+(:\\w+)?)*");
 
@@ -77,7 +78,7 @@ public class FetchHBaseRow extends AbstractProcessor {
             .name("Table Name")
             .description("The name of the HBase Table to fetch from.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -85,7 +86,7 @@ public class FetchHBaseRow extends AbstractProcessor {
             .name("Row Identifier")
             .description("The identifier of the row to fetch.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -94,7 +95,7 @@ public class FetchHBaseRow extends AbstractProcessor {
             .description("An optional comma-separated list of \"<colFamily>:<colQualifier>\" pairs to fetch. To return all columns " +
                     "for a given family, leave off the qualifier such as \"<colFamily1>,<colFamily2>\".")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
             .build();
 
@@ -178,6 +179,7 @@ public class FetchHBaseRow extends AbstractProcessor {
         props.add(TABLE_NAME);
         props.add(ROW_ID);
         props.add(COLUMNS);
+        props.add(AUTHORIZATIONS);
         props.add(DESTINATION);
         props.add(JSON_FORMAT);
         props.add(JSON_VALUE_ENCODING);
@@ -251,6 +253,8 @@ public class FetchHBaseRow extends AbstractProcessor {
         final String destination = context.getProperty(DESTINATION).getValue();
         final boolean base64Encode = context.getProperty(JSON_VALUE_ENCODING).getValue().equals(ENCODING_BASE64.getValue());
 
+        List<String> authorizations = getAuthorizations(context, flowFile);
+
         final RowSerializer rowSerializer = base64Encode ? base64RowSerializer : regularRowSerializer;
 
         final FetchHBaseRowHandler handler = destination.equals(DESTINATION_CONTENT.getValue())
@@ -259,7 +263,7 @@ public class FetchHBaseRow extends AbstractProcessor {
         final byte[] rowIdBytes = rowId.getBytes(StandardCharsets.UTF_8);
 
         try {
-            hBaseClientService.scan(tableName, rowIdBytes, rowIdBytes, columns, handler);
+            hBaseClientService.scan(tableName, rowIdBytes, rowIdBytes, columns, authorizations, handler);
         } catch (Exception e) {
             getLogger().error("Unable to fetch row {} from  {} due to {}", new Object[] {rowId, tableName, e});
             session.transfer(handler.getFlowFile(), REL_FAILURE);

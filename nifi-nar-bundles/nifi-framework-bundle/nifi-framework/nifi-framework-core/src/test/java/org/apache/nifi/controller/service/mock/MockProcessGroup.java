@@ -25,7 +25,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
@@ -627,7 +627,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Set<ConfiguredComponent> getComponentsAffectedByVariable(String variableName) {
+    public Set<ComponentNode> getComponentsAffectedByVariable(String variableName) {
         return Collections.emptySet();
     }
 
@@ -681,5 +681,9 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void onComponentModified() {
+    }
+
+    @Override
+    public void terminateProcessor(ProcessorNode processor) {
     }
 }

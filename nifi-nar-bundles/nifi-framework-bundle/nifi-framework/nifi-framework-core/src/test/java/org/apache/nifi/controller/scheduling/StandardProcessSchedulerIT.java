@@ -35,6 +35,7 @@ import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -67,9 +68,12 @@ public class StandardProcessSchedulerIT {
     @Test
     public void validateLongEnablingServiceCanStillBeDisabled() throws Exception {
         final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), null, null, stateMgrProvider, nifiProperties);
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
+            stateMgrProvider, variableRegistry, nifiProperties, new SynchronousValidationTrigger());
+
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
             "1", systemBundle.getBundleDetails().getCoordinate(), null, false);
+
         final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(3000);
         scheduler.enableControllerService(serviceNode);

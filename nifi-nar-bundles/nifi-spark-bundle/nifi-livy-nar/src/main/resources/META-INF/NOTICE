@@ -1,5 +1,5 @@
 nifi-livy-nar
-Copyright 2014-2017 The Apache Software Foundation
+Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -52,6 +52,11 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Commons IO
       Copyright 2002-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Text
+    The following NOTICE information applies:
+      Apache Commons Text
+      Copyright 2001-2018 The Apache Software Foundation
 
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:

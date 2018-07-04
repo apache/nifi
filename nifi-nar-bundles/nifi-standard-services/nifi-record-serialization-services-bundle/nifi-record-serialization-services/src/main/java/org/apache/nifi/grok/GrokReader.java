@@ -17,24 +17,19 @@
 
 package org.apache.nifi.grok;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-
+import io.krakens.grok.api.Grok;
+import io.krakens.grok.api.GrokCompiler;
+import io.krakens.grok.api.GrokUtils;
+import io.krakens.grok.api.exception.GrokException;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
@@ -50,9 +45,18 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import io.thekraken.grok.api.Grok;
-import io.thekraken.grok.api.GrokUtils;
-import io.thekraken.grok.api.exception.GrokException;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
 
 @Tags({"grok", "logs", "logfiles", "parse", "unstructured", "text", "record", "reader", "regex", "pattern", "logstash"})
 @CapabilityDescription("Provides a mechanism for reading unstructured text data, such as log files, and structuring the data "
@@ -64,12 +68,13 @@ import io.thekraken.grok.api.exception.GrokException;
     + "no stack trace, it will have a NULL value for the stackTrace field (assuming that the schema does in fact include a stackTrace field of type String). "
     + "Assuming that the schema includes a '_raw' field of type String, the raw message will be included in the Record.")
 public class GrokReader extends SchemaRegistryService implements RecordReaderFactory {
+    private volatile GrokCompiler grokCompiler;
     private volatile Grok grok;
     private volatile boolean appendUnmatchedLine;
     private volatile RecordSchema recordSchema;
     private volatile RecordSchema recordSchemaFromGrok;
 
-    private static final String DEFAULT_PATTERN_NAME = "/default-grok-patterns.txt";
+    static final String DEFAULT_PATTERN_NAME = "/default-grok-patterns.txt";
 
     static final AllowableValue APPEND_TO_PREVIOUS_MESSAGE = new AllowableValue("append-to-previous-message", "Append to Previous Message",
         "The line of text that does not match the Grok Expression will be appended to the last field of the prior message.");
@@ -86,15 +91,16 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             + "will be used. If specified, all patterns in the given pattern file will override the default patterns. See the Controller Service's "
             + "Additional Details for a list of pre-defined patterns.")
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
         .build();
 
     static final PropertyDescriptor GROK_EXPRESSION = new PropertyDescriptor.Builder()
         .name("Grok Expression")
         .description("Specifies the format of a log line in Grok format. This allows the Record Reader to understand how to parse each log line. "
-            + "If a line in the log file does not match this pattern, the line will be assumed to belong to the previous log message.")
-        .addValidator(new GrokExpressionValidator())
+            + "If a line in the log file does not match this pattern, the line will be assumed to belong to the previous log message."
+            + "If other Grok expressions are referenced by this expression, they need to be supplied in the Grok Pattern File")
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .required(true)
         .build();
 
@@ -119,18 +125,21 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
     @OnEnabled
     public void preCompile(final ConfigurationContext context) throws GrokException, IOException {
-        grok = new Grok();
+        grokCompiler = GrokCompiler.newInstance();
 
         try (final InputStream in = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
             final Reader reader = new InputStreamReader(in)) {
-            grok.addPatternFromReader(reader);
+            grokCompiler.register(reader);
         }
 
         if (context.getProperty(PATTERN_FILE).isSet()) {
-            grok.addPatternFromFile(context.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue());
+            try (final InputStream in = new FileInputStream(context.getProperty(PATTERN_FILE)
+                    .evaluateAttributeExpressions().getValue()); final Reader reader = new InputStreamReader(in)) {
+                grokCompiler.register(reader);
+            }
         }
 
-        grok.compile(context.getProperty(GROK_EXPRESSION).getValue());
+        grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue());
 
         appendUnmatchedLine = context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(APPEND_TO_PREVIOUS_MESSAGE.getValue());
 
@@ -142,6 +151,32 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         } else {
             this.recordSchema = null;
         }
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        ArrayList<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        // validate the grok expression against configuration
+        GrokCompiler grokCompiler = GrokCompiler.newInstance();
+        String subject = GROK_EXPRESSION.getName();
+        String input = validationContext.getProperty(GROK_EXPRESSION).getValue();
+        GrokExpressionValidator validator;
+
+        try (final InputStream in = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
+             final Reader reader = new InputStreamReader(in)) {
+            grokCompiler.register(reader);
+        } catch (IOException e) {
+            results.add(new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(false)
+                    .explanation("Unable to load default patterns: " + e.getMessage())
+                    .build());
+        }
+
+        validator = new GrokExpressionValidator(validationContext.getProperty(PATTERN_FILE).getValue(),grokCompiler);
+        results.add(validator.validate(subject,input,validationContext));
+        return results;
     }
 
     static RecordSchema createRecordSchema(final Grok grok) {
@@ -158,10 +193,11 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     }
 
     private static void populateSchemaFieldNames(final Grok grok, String grokExpression, final List<RecordField> fields) {
+        final Set<String> namedGroups = GrokUtils.getNameGroups(GrokUtils.GROK_PATTERN.pattern());
         while (grokExpression.length() > 0) {
             final Matcher matcher = GrokUtils.GROK_PATTERN.matcher(grokExpression);
             if (matcher.find()) {
-                final Map<String, String> extractedGroups = GrokUtils.namedGroups(matcher, grokExpression);
+                final Map<String, String> extractedGroups = GrokUtils.namedGroups(matcher, namedGroups);
                 final String subName = extractedGroups.get("subname");
 
                 if (subName == null) {

@@ -108,6 +108,23 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource PROVENANCE_DATA_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.ProvenanceData.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Provenance data for ";
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return "the provenance data for ";
+        }
+    };
+
     private final static Resource DATA_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -338,7 +355,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", RESTRICTED_COMPONENTS_RESOURCE.getIdentifier(), requiredPermission.getPermissionIdentifier());
+                return RESTRICTED_COMPONENTS_RESOURCE.getIdentifier() + "/" + requiredPermission.getPermissionIdentifier();
             }
 
             @Override
@@ -374,7 +391,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", ResourceType.DataTransfer.getValue(), resource.getIdentifier());
+                return ResourceType.DataTransfer.getValue() + resource.getIdentifier();
             }
 
             @Override
@@ -409,7 +426,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", POLICY_RESOURCE.getIdentifier(), resource.getIdentifier());
+                return POLICY_RESOURCE.getIdentifier() + resource.getIdentifier();
             }
 
             @Override
@@ -439,7 +456,7 @@ public final class ResourceFactory {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", resourceType.getValue(), identifier);
+                return resourceType.getValue() + "/" + identifier;
             }
 
             @Override
@@ -491,16 +508,16 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets a Resource for accessing a component's provenance events.
+     * Gets a Resource for accessing flowfile information
      *
      * @param resource The resource for the component being accessed
-     * @return The resource for the provenance of the component being accessed
+     * @return The resource for the data of the component being accessed
      */
     public static Resource getDataResource(final Resource resource) {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", DATA_RESOURCE.getIdentifier(), resource.getIdentifier());
+                return DATA_RESOURCE.getIdentifier() + resource.getIdentifier();
             }
 
             @Override
@@ -511,6 +528,33 @@ public final class ResourceFactory {
             @Override
             public String getSafeDescription() {
                 return DATA_RESOURCE.getSafeDescription() + resource.getSafeDescription();
+            }
+        };
+    }
+
+    /**
+     * Gets a Resource for accessing provenance data.
+     *
+     * @param resource      The resource for the component being accessed
+     * @return              The resource for the provenance data being accessed
+     */
+    public static Resource getProvenanceDataResource(final Resource resource) {
+        Objects.requireNonNull(resource, "The resource must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s%s", PROVENANCE_DATA_RESOURCE.getIdentifier(), resource.getIdentifier());
+            }
+
+            @Override
+            public String getName() {
+                return PROVENANCE_DATA_RESOURCE.getName() + resource.getName();
+            }
+
+            @Override
+            public String getSafeDescription() {
+                return PROVENANCE_DATA_RESOURCE.getSafeDescription() + resource.getSafeDescription();
             }
         };
     }

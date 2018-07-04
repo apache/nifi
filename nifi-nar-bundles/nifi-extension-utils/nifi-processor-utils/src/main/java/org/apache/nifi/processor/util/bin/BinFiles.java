@@ -72,9 +72,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor MAX_ENTRIES = new PropertyDescriptor.Builder()
             .name("Maximum Number of Entries")
-            .description("The maximum number of files to include in a bundle. If not specified, there is no maximum.")
+            .description("The maximum number of files to include in a bundle")
             .defaultValue("1000")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -157,7 +157,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
      *             will be transferred to failure and the ProcessSession provided by the 'session'
      *             argument rolled back
      */
-    protected abstract boolean processBin(Bin unmodifiableBin, ProcessContext context) throws ProcessException;
+    protected abstract BinProcessingResult processBin(Bin unmodifiableBin, ProcessContext context) throws ProcessException;
 
     /**
      * Allows additional custom validation to be done. This will be called from the parent's customValidation method.
@@ -221,9 +221,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         int processedBins = 0;
         Bin bin;
         while ((bin = readyBins.poll()) != null) {
-            boolean binAlreadyCommitted;
+            BinProcessingResult binProcessingResult;
             try {
-                binAlreadyCommitted = this.processBin(bin, context);
+                binProcessingResult = this.processBin(bin, context);
             } catch (final ProcessException e) {
                 logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
 
@@ -241,8 +241,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             }
 
             // If this bin's session has been committed, move on.
-            if (!binAlreadyCommitted) {
+            if (!binProcessingResult.isCommitted()) {
                 final ProcessSession binSession = bin.getSession();
+                bin.getContents().stream().forEach(ff -> binSession.putAllAttributes(ff, binProcessingResult.getAttributes()));
                 binSession.transfer(bin.getContents(), REL_ORIGINAL);
                 binSession.commit();
             }

@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -73,46 +74,51 @@ public class PutSyslog extends AbstractSyslogProcessor {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
-            .description("The ip address or hostname of the Syslog server.")
+            .description("The ip address or hostname of the Syslog server. Note that Expression language is not evaluated per FlowFile.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Size of Socket Send Buffer")
             .description("The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System " +
                     "to indicate how big the socket buffer should be. If this value is set too low, the buffer may fill up before " +
-                    "the data can be read, and incoming data will be dropped.")
+                    "the data can be read, and incoming data will be dropped. Note that Expression language is not evaluated per FlowFile.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor
             .Builder().name("Batch Size")
-            .description("The number of incoming FlowFiles to process in a single execution of this processor.")
+            .description("The number of incoming FlowFiles to process in a single execution of this processor. Note that Expression language is not evaluated per FlowFile.")
             .required(true)
             .defaultValue("25")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor IDLE_EXPIRATION = new PropertyDescriptor
             .Builder().name("Idle Connection Expiration")
-            .description("The amount of time a connection should be held open without being used before closing the connection.")
+            .description("The amount of time a connection should be held open without being used before closing the connection. Note that Expression language is not evaluated per FlowFile.")
             .required(true)
             .defaultValue("5 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor MSG_PRIORITY = new PropertyDescriptor
             .Builder().name("Message Priority")
             .description("The priority for the Syslog messages, excluding < >.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MSG_VERSION = new PropertyDescriptor
             .Builder().name("Message Version")
             .description("The version for the Syslog messages.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MSG_TIMESTAMP = new PropertyDescriptor
             .Builder().name("Message Timestamp")
@@ -122,7 +128,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .required(true)
             .defaultValue("${now():format('MMM d HH:mm:ss')}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MSG_HOSTNAME = new PropertyDescriptor
             .Builder().name("Message Hostname")
@@ -130,14 +136,14 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .required(true)
             .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor MSG_BODY = new PropertyDescriptor
             .Builder().name("Message Body")
             .description("The body for the Syslog messages.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -223,11 +229,11 @@ public class PutSyslog extends AbstractSyslogProcessor {
     }
 
     protected ChannelSender createSender(final ProcessContext context) throws IOException {
-        final int port = context.getProperty(PORT).asInteger();
-        final String host = context.getProperty(HOSTNAME).getValue();
+        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        final int maxSendBuffer = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final int timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int maxSendBuffer = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue();
+        final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         return createSender(sslContextService, protocol, host, port, maxSendBuffer, timeout);
     }
@@ -299,11 +305,11 @@ public class PutSyslog extends AbstractSyslogProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
         final List<FlowFile> flowFiles = session.get(batchSize);
         if (flowFiles == null || flowFiles.isEmpty()) {
-            final PruneResult result = pruneIdleSenders(context.getProperty(IDLE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS).longValue());
+            final PruneResult result = pruneIdleSenders(context.getProperty(IDLE_EXPIRATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).longValue());
             // yield if we closed an idle connection, or if there were no connections in the first place
             if (result.getNumClosed() > 0 || (result.getNumClosed() == 0 && result.getNumConsidered() == 0)) {
                 context.yield();
@@ -329,11 +335,11 @@ public class PutSyslog extends AbstractSyslogProcessor {
             }
         }
 
-        final String port = context.getProperty(PORT).getValue();
-        final String host = context.getProperty(HOSTNAME).getValue();
+        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
+        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final String transitUri = new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
         final AtomicReference<IOException> exceptionHolder = new AtomicReference<>(null);
-        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+        final Charset charSet = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
 
         try {
             for (FlowFile flowFile : flowFiles) {

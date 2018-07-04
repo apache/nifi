@@ -148,7 +148,7 @@
             .attrs({
                 'x': 75,
                 'y': 18,
-                'width': 210,
+                'width': 230,
                 'height': 14,
                 'class': 'processor-name'
             });
@@ -259,7 +259,9 @@
                         .attrs({
                             'class': 'run-status-icon',
                             'x': 55,
-                            'y': 23
+                            'y': 23,
+                            'width': 14,
+                            'height': 14
                         });
 
                     // processor type
@@ -278,7 +280,7 @@
                             'class': 'processor-bundle',
                             'x': 75,
                             'y': 45,
-                            'width': 230,
+                            'width': 200,
                             'height': 12
                         });
 
@@ -547,7 +549,7 @@
                     details.append('text')
                         .attrs({
                             'class': 'active-thread-count-icon',
-                            'y': 45
+                            'y': 46
                         })
                         .text('\ue83f');
 
@@ -555,7 +557,7 @@
                     details.append('text')
                         .attrs({
                             'class': 'active-thread-count',
-                            'y': 45
+                            'y': 46
                         });
 
                     // ---------
@@ -796,6 +798,35 @@
     };
 
     /**
+     * Determines whether the specific component needs a tooltip.
+     *
+     * @param d
+     * @return if a tip is required
+     */
+    var needsTip = function (d) {
+        return (d.permissions.canRead && !nfCommon.isEmpty(d.component.validationErrors)) || d.status.aggregateSnapshot.runStatus === 'Validating';
+    };
+
+    /**
+     * Gets the tooltip content.
+     *
+     * @param d
+     * @return the tip content
+     */
+    var getTip = function (d) {
+        if (d.permissions.canRead && !nfCommon.isEmpty(d.component.validationErrors)) {
+            var list = nfCommon.formatUnorderedList(d.component.validationErrors);
+            if (list === null || list.length === 0) {
+                return '';
+            } else {
+                return list;
+            }
+        } else {
+            return 'Validating...';
+        }
+    };
+
+    /**
      * Updates the stats for the processors in the specified selection.
      *
      * @param {selection} updated           The processors to update
@@ -811,7 +842,9 @@
                 'fill': function (d) {
                     var fill = '#728e9b';
 
-                    if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
+                    if (d.status.aggregateSnapshot.runStatus === 'Validating') {
+                        fill = '#a8a8a8';
+                    } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                         fill = '#cf9f5d';
                     } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                         fill = '#7dc7a0';
@@ -829,10 +862,15 @@
                     return family;
                 }
             })
+            .classed('fa-spin', function (d) {
+                return d.status.aggregateSnapshot.runStatus === 'Validating';
+            })
             .text(function (d) {
                 var img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
+                } else if (d.status.aggregateSnapshot.runStatus === 'Validating') {
+                    img = '\uf1ce';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     img = '\uf071';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
@@ -847,7 +885,7 @@
                 var tip = d3.select('#run-status-tip-' + d.id);
 
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && !nfCommon.isEmpty(d.component.validationErrors)) {
+                if (needsTip(d)) {
                     // create the tip if necessary
                     if (tip.empty()) {
                         tip = d3.select('#processor-tooltips').append('div')
@@ -859,12 +897,7 @@
 
                     // update the tip
                     tip.html(function () {
-                        var list = nfCommon.formatUnorderedList(d.component.validationErrors);
-                        if (list === null || list.length === 0) {
-                            return '';
-                        } else {
-                            return $('<div></div>').append(list).html();
-                        }
+                        return $('<div></div>').append(getTip(d)).html();
                     });
 
                     // add the tooltip

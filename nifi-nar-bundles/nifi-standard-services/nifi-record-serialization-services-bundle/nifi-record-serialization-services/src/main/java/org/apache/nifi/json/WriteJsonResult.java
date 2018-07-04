@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
@@ -46,6 +47,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.util.MinimalPrettyPrinter;
 
 public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
     private final ComponentLog logger;
@@ -54,18 +56,20 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final JsonFactory factory = new JsonFactory();
     private final JsonGenerator generator;
     private final NullSuppression nullSuppression;
+    private final OutputGrouping outputGrouping;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
-        final NullSuppression nullSuppression, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
+        final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         super(out);
         this.logger = logger;
         this.recordSchema = recordSchema;
         this.schemaAccess = schemaAccess;
         this.nullSuppression = nullSuppression;
+        this.outputGrouping = outputGrouping;
 
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
@@ -78,6 +82,9 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.generator = factory.createJsonGenerator(out);
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
+        } else if (OutputGrouping.OUTPUT_ONELINE.equals(outputGrouping)) {
+            // Use a minimal pretty printer with a newline object separator, will output one JSON object per line
+            generator.setPrettyPrinter(new MinimalPrettyPrinter("\n"));
         }
     }
 
@@ -87,12 +94,16 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         final OutputStream out = getOutputStream();
         schemaAccess.writeHeader(recordSchema, out);
 
-        generator.writeStartArray();
+        if (outputGrouping == OutputGrouping.OUTPUT_ARRAY) {
+            generator.writeStartArray();
+        }
     }
 
     @Override
     protected Map<String, String> onFinishRecordSet() throws IOException {
-        generator.writeEndArray();
+        if (outputGrouping == OutputGrouping.OUTPUT_ARRAY) {
+            generator.writeEndArray();
+        }
         return schemaAccess.getAttributes(recordSchema);
     }
 
@@ -191,8 +202,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 }
             }
 
-
-
             endTask.apply(generator);
         } catch (final Exception e) {
             logger.error("Failed to write {} with schema {} as a JSON Object due to {}", new Object[] {record, record.getSchema(), e.toString(), e});
@@ -259,14 +268,19 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     }
 
     @SuppressWarnings("unchecked")
-    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType)
-        throws JsonGenerationException, IOException {
+    private void writeValue(final JsonGenerator generator, final Object value, final String fieldName, final DataType dataType) throws JsonGenerationException, IOException {
         if (value == null) {
             generator.writeNull();
             return;
         }
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
+        if (chosenDataType == null) {
+            logger.debug("Could not find a suitable field type in the CHOICE for field {} and value {}; will use null value", new Object[] {fieldName, value});
+            generator.writeNull();
+            return;
+        }
+
         final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
         if (coercedValue == null) {
             generator.writeNull();

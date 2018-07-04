@@ -17,17 +17,13 @@
 package org.apache.nifi.hbase;
 
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -37,9 +33,26 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Base class for processors that put data to HBase.
  */
+@DynamicProperties({
+    @DynamicProperty(name = "visibility.<COLUMN FAMILY>", description = "Visibility label for everything under that column family " +
+        "when a specific label for a particular column qualifier is not available.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        value = "visibility label for <COLUMN FAMILY>"
+    ),
+    @DynamicProperty(name = "visibility.<COLUMN FAMILY>.<COLUMN QUALIFIER>", description = "Visibility label for the specified column qualifier " +
+        "qualified by a configured column family.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        value = "visibility label for <COLUMN FAMILY>:<COLUMN QUALIFIER>."
+    )
+})
 public abstract class AbstractPutHBase extends AbstractProcessor {
 
     protected static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
@@ -52,14 +65,14 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .name("Table Name")
             .description("The name of the HBase Table to put data into")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor ROW_ID = new PropertyDescriptor.Builder()
             .name("Row Identifier")
             .description("Specifies the Row ID to use when inserting data into HBase")
             .required(false) // not all sub-classes will require this
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -80,7 +93,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
                     " to the correct byte[] representation. The Binary option should be used if you are using Binary row" +
                     " keys in HBase")
             .required(false) // not all sub-classes will require this
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue(ROW_ID_ENCODING_STRING.getValue())
             .allowableValues(ROW_ID_ENCODING_STRING,ROW_ID_ENCODING_BINARY)
             .build();
@@ -88,21 +101,21 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .name("Column Family")
             .description("The Column Family to use when inserting data into HBase")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor COLUMN_QUALIFIER = new PropertyDescriptor.Builder()
             .name("Column Qualifier")
             .description("The Column Qualifier to use when inserting data into HBase")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     protected static final PropertyDescriptor TIMESTAMP = new PropertyDescriptor.Builder()
             .name("timestamp")
             .displayName("Timestamp")
             .description("The timestamp for the cells being created in HBase. This field can be left blank and HBase will use the current time.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .build();
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -128,6 +141,36 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         clientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        if (propertyDescriptorName.startsWith("visibility.")) {
+            String[] parts = propertyDescriptorName.split("\\.");
+            String displayName;
+            String description;
+
+            if (parts.length == 2) {
+                displayName = String.format("Column Family %s Default Visibility", parts[1]);
+                description = String.format("Default visibility setting for %s", parts[1]);
+            } else if (parts.length == 3) {
+                displayName = String.format("Column Qualifier %s.%s Default Visibility", parts[1], parts[2]);
+                description = String.format("Default visibility setting for %s.%s", parts[1], parts[2]);
+            } else {
+                return null;
+            }
+
+            return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .displayName(displayName)
+                .description(description)
+                .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
+        }
+
+        return null;
     }
 
     @Override

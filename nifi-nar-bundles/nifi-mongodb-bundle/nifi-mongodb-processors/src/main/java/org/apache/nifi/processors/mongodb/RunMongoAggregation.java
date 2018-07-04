@@ -19,6 +19,7 @@
 
 package org.apache.nifi.processors.mongodb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
@@ -28,15 +29,15 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.JsonValidator;
+import org.bson.Document;
 import org.bson.conversions.Bson;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -74,38 +75,20 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         ObjectMapper mapper = new ObjectMapper();
         List<Map> values = mapper.readValue(query, List.class);
-        for (Map val : values) {
+        for (Map<?, ?> val : values) {
             result.add(new BasicDBObject(val));
         }
 
         return result;
     }
 
-    public static final Validator AGG_VALIDATOR = (subject, value, context) -> {
-        final ValidationResult.Builder builder = new ValidationResult.Builder();
-        builder.subject(subject).input(value);
-
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-            return builder.valid(true).explanation("Contains Expression Language").build();
-        }
-
-        String reason = null;
-        try {
-            buildAggregationQuery(value);
-        } catch (final RuntimeException | IOException e) {
-            reason = e.getLocalizedMessage();
-        }
-
-        return builder.explanation(reason).valid(reason == null).build();
-    };
-
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("mongo-agg-query")
             .displayName("Query")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .description("The aggregation query to be executed.")
             .required(true)
-            .addValidator(AGG_VALIDATOR)
+            .addValidator(JsonValidator.INSTANCE)
             .build();
 
     static {
@@ -113,6 +96,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(CHARSET);
         _propertyDescriptors.add(QUERY);
+        _propertyDescriptors.add(JSON_TYPE);
         _propertyDescriptors.add(QUERY_ATTRIBUTE);
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
@@ -137,11 +121,10 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         return propertyDescriptors;
     }
 
-    static String buildBatch(List batch) {
-        ObjectMapper mapper = new ObjectMapper();
+    private String buildBatch(List<Document> batch) {
         String retVal;
         try {
-            retVal = mapper.writeValueAsString(batch.size() > 1 ? batch : batch.get(0));
+            retVal = objectMapper.writeValueAsString(batch.size() > 1 ? batch : batch.get(0));
         } catch (Exception e) {
             retVal = null;
         }
@@ -160,32 +143,35 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             }
         }
 
-        String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
-        String queryAttr = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
-        Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
+        final String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
+        final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
+        final Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final Integer resultsPerFlowfile = context.getProperty(RESULTS_PER_FLOWFILE).asInteger();
+        final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
 
-        Map attrs = new HashMap();
+        configureMapper(jsonTypeSetting);
+
+        Map<String, String> attrs = new HashMap<>();
         if (queryAttr != null && queryAttr.trim().length() > 0) {
             attrs.put(queryAttr, query);
         }
 
-        MongoCollection collection = getCollection(context);
-        MongoCursor iter = null;
+        MongoCollection<Document> collection = getCollection(context, flowFile);
+        MongoCursor<Document> iter = null;
 
         try {
             List<Bson> aggQuery = buildAggregationQuery(query);
-            AggregateIterable it = collection.aggregate(aggQuery);
+            AggregateIterable<Document> it = collection.aggregate(aggQuery);
             it.batchSize(batchSize != null ? batchSize : 1);
 
             iter = it.iterator();
-            List batch = new ArrayList();
+            List<Document> batch = new ArrayList<>();
 
             while (iter.hasNext()) {
                 batch.add(iter.next());
                 if (batch.size() == resultsPerFlowfile) {
                     writeBatch(buildBatch(batch), flowFile, context, session, attrs, REL_RESULTS);
-                    batch = new ArrayList();
+                    batch = new ArrayList<>();
                 }
             }
 

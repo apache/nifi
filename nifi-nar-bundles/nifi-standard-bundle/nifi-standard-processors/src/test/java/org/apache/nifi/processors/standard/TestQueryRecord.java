@@ -57,6 +57,46 @@ public class TestQueryRecord {
 
     private static final String REL_NAME = "success";
 
+    public TestRunner getRunner() {
+        TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+
+        /**
+         * we have to disable validation of expression language because the scope of the evaluation
+         * depends of the value of another property: if we are caching the schema/queries or not. If
+         * we don't disable the validation, it'll throw an error saying that the scope is incorrect.
+         */
+        runner.setValidateExpressionUsage(false);
+
+        return runner;
+    }
+
+    @Test
+    public void testStreamClosedWhenBadData() throws InitializationException {
+        final MockRecordParser parser = new MockRecordParser();
+        parser.failAfter(0);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("age", RecordFieldType.INT);
+        parser.addRecord("Tom", 49);
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select name, age from FLOWFILE WHERE name <> ''");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(QueryRecord.REL_FAILURE, 1);
+    }
+
     @Test
     public void testSimple() throws InitializationException, IOException, SQLException {
         final MockRecordParser parser = new MockRecordParser();
@@ -66,7 +106,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -99,7 +139,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -139,7 +179,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"NAME\",\"POINTS\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -169,7 +209,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        TestRunner runner = getRunner();
         runner.enforceReadStreamsClosed(false);
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
@@ -200,7 +240,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -235,7 +275,7 @@ public class TestQueryRecord {
         colNames.add("FAV_GREETING");
         final ResultSetValidatingRecordWriter writer = new ResultSetValidatingRecordWriter(colNames);
 
-        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);

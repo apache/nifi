@@ -24,12 +24,13 @@
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.ProcessGroup',
                 'nf.Shell',
                 'nf.CanvasUtils'],
-            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfProcessGroup, nfShell, nfCanvasUtils) {
-                return (nf.ProcessGroupConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfProcessGroup, nfShell, nfCanvasUtils));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfProcessGroup, nfShell, nfCanvasUtils) {
+                return (nf.ProcessGroupConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfProcessGroup, nfShell, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessGroupConfiguration =
@@ -38,6 +39,7 @@
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.ProcessGroup'),
                 require('nf.Shell'),
@@ -48,12 +50,13 @@
             root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.ProcessGroup,
             root.nf.Shell,
             root.nf.CanvasUtils);
     }
-}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfProcessGroup, nfShell, nfCanvasUtils) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfProcessGroup, nfShell, nfCanvasUtils) {
     'use strict';
 
     var nfControllerServices;
@@ -93,6 +96,7 @@
                     'version': version
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'id': groupId,
                 'name': $('#process-group-name').val(),

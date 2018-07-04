@@ -52,6 +52,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -92,7 +93,7 @@ public class ConsumeEWS extends AbstractProcessor {
             .displayName("User Name")
             .description("User Name used for authentication and authorization with Email server.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
@@ -100,7 +101,7 @@ public class ConsumeEWS extends AbstractProcessor {
             .displayName("Password")
             .description("Password used for authentication and authorization with Email server.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -109,7 +110,7 @@ public class ConsumeEWS extends AbstractProcessor {
             .displayName("Folder")
             .description("Email folder to retrieve messages from (e.g., INBOX)")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("INBOX")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -118,7 +119,7 @@ public class ConsumeEWS extends AbstractProcessor {
             .displayName("Fetch Size")
             .description("Specify the maximum number of Messages to fetch per call to Email Server.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("10")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
@@ -137,7 +138,7 @@ public class ConsumeEWS extends AbstractProcessor {
             .description("The amount of time to wait to connect to Email server")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("30 sec")
             .build();
     public static final PropertyDescriptor EXCHANGE_VERSION = new PropertyDescriptor.Builder()
@@ -256,7 +257,7 @@ public class ConsumeEWS extends AbstractProcessor {
             this.messageQueue = new ArrayBlockingQueue<>(fetchSize);
         }
 
-        this.folderName = context.getProperty(FOLDER).getValue();
+        this.folderName = context.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
 
         Message emailMessage = this.receiveMessage(context);
         if (emailMessage != null) {
@@ -274,8 +275,8 @@ public class ConsumeEWS extends AbstractProcessor {
         final String timeoutInMillis = String.valueOf(context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS));
         service.setTimeout(Integer.parseInt(timeoutInMillis));
 
-        String userEmail = context.getProperty(USER).getValue();
-        String password = context.getProperty(PASSWORD).getValue();
+        String userEmail = context.getProperty(USER).evaluateAttributeExpressions().getValue();
+        String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
         ExchangeCredentials credentials = new WebCredentials(userEmail, password);
         service.setCredentials(credentials);
@@ -407,10 +408,15 @@ public class ConsumeEWS extends AbstractProcessor {
         MultiPartEmail mm;
 
         if(ewsMessage.getBody().getBodyType() == BodyType.HTML){
-            mm = new HtmlEmail().setHtmlMsg(bodyText);
+            mm = new HtmlEmail();
+            if(!StringUtils.isEmpty(bodyText)){
+                ((HtmlEmail)mm).setHtmlMsg(bodyText);
+            }
         } else {
             mm = new MultiPartEmail();
-            mm.setMsg(bodyText);
+            if(!StringUtils.isEmpty(bodyText)){
+                mm.setMsg(bodyText);
+            }
         }
         mm.setHostName("NiFi-EWS");
         //from

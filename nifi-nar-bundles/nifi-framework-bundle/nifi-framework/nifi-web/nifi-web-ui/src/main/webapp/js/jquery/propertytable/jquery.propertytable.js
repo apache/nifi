@@ -26,6 +26,7 @@
                 'nf.Common',
                 'nf.UniversalCapture',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.ErrorHandler',
                 'nf.ProcessGroupConfiguration',
@@ -35,6 +36,7 @@
                       nfCommon,
                       nfUniversalCapture,
                       nfDialog,
+                      nfStorage,
                       nfClient,
                       nfErrorHandler,
                       nfProcessGroupConfiguration,
@@ -44,6 +46,7 @@
                     nfCommon,
                     nfUniversalCapture,
                     nfDialog,
+                    nfStorage,
                     nfClient,
                     nfErrorHandler,
                     nfProcessGroupConfiguration,
@@ -55,6 +58,7 @@
             require('nf.Common'),
             require('nf.UniversalCapture'),
             require('nf.Dialog'),
+            require('nf.Storage'),
             require('nf.Client'),
             require('nf.ErrorHandler'),
             require('nf.ProcessGroupConfiguration'),
@@ -65,6 +69,7 @@
             root.nf.Common,
             root.nf.UniversalCapture,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.ErrorHandler,
             root.nf.ProcessGroupConfiguration,
@@ -75,6 +80,7 @@
                   nfCommon,
                   nfUniversalCapture,
                   nfDialog,
+                  nfStorage,
                   nfClient,
                   nfErrorHandler,
                   nfProcessGroupConfiguration,
@@ -1115,6 +1121,7 @@
                                 'version': 0,
                             }
                         }),
+                        'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                         'component': {
                             'type': newControllerServiceType.type,
                             'bundle': newControllerServiceType.bundle
@@ -1195,7 +1202,7 @@
             // show the property description if applicable
             if (nfCommon.isDefinedAndNotNull(propertyDescriptor)) {
                 if (!nfCommon.isBlank(propertyDescriptor.description) || !nfCommon.isBlank(propertyDescriptor.defaultValue) || !nfCommon.isBlank(propertyDescriptor.supportsEl)) {
-                    $('<div class="fa fa-question-circle" alt="Info" style="float: right; margin-right: 6px; margin-top: 4px;"></div>').appendTo(cellContent);
+                    $('<div class="fa fa-question-circle" alt="Info" style="float: right;"></div>').appendTo(cellContent);
                     $('<span class="hidden property-descriptor-name"></span>').text(dataContext.property).appendTo(cellContent);
                     nameWidthOffset = 46; // 10 + icon width (10) + icon margin (6) + padding (20)
                 }
@@ -1299,7 +1306,7 @@
                 $.each(propertyDescriptor.allowableValues, function (_, allowableValueEntity) {
                     var allowableValue = allowableValueEntity.allowableValue;
                     if (allowableValue.value === dataContext.value) {
-                        markup += '<div class="pointer go-to-service fa fa-long-arrow-right" title="Go To" style="margin-top: 2px" ></div>';
+                        markup += '<div class="pointer go-to-service fa fa-long-arrow-right" title="Go To"></div>';
                         return false;
                     }
                 });
@@ -1307,7 +1314,7 @@
 
             // allow user defined properties to be removed
             if (options.readOnly !== true && dataContext.type === 'userDefined') {
-                markup += '<div title="Delete" class="delete-property pointer fa fa-trash" style="margin-top: 2px" ></div>';
+                markup += '<div title="Delete" class="delete-property pointer fa fa-trash"></div>';
             }
 
             return markup;
@@ -1484,6 +1491,14 @@
                 }
             }
         });
+
+        if (options.readOnly !== true) {
+            propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+                setTimeout(function() {
+                    propertyGrid.resizeCanvas();
+                }, 50);
+            });
+        }
 
         // wire up the dataview to the grid
         propertyData.onRowCountChanged.subscribe(function (e, args) {

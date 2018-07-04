@@ -31,6 +31,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -106,7 +107,7 @@ public class EnforceOrder extends AbstractProcessor {
                 " If evaluated result is empty, the FlowFile will be routed to failure.")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${filename}")
         .build();
 
@@ -117,7 +118,7 @@ public class EnforceOrder extends AbstractProcessor {
                 " If a FlowFile does not have this attribute, or its value is not an integer, the FlowFile will be routed to failure.")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .build();
 
     public static final PropertyDescriptor INITIAL_ORDER = new PropertyDescriptor.Builder()
@@ -129,7 +130,7 @@ public class EnforceOrder extends AbstractProcessor {
                 " and initial order will be left unknown until consecutive FlowFiles provide a valid initial order.")
         .required(true)
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("0")
         .build();
 
@@ -143,7 +144,7 @@ public class EnforceOrder extends AbstractProcessor {
                 " and maximum order will be left unknown until consecutive FlowFiles provide a valid maximum order.")
         .required(false)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     public static final PropertyDescriptor WAIT_TIMEOUT = new PropertyDescriptor.Builder()
@@ -153,7 +154,7 @@ public class EnforceOrder extends AbstractProcessor {
         .required(true)
         .defaultValue("10 min")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .build();
 
     public static final PropertyDescriptor INACTIVE_TIMEOUT = new PropertyDescriptor.Builder()
@@ -169,7 +170,7 @@ public class EnforceOrder extends AbstractProcessor {
         .required(true)
         .defaultValue("30 min")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .build();
 
     public static final PropertyDescriptor BATCH_COUNT = new PropertyDescriptor.Builder()
@@ -179,7 +180,7 @@ public class EnforceOrder extends AbstractProcessor {
         .required(true)
         .defaultValue("1000")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

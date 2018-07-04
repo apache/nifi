@@ -15,36 +15,33 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.influxdb;
-
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
-
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 
 /**
  * Abstract base class for InfluxDB processors
  */
-abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
+public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
 
-    protected static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("influxdb-charset")
             .displayName("Character Set")
             .description("Specifies the character set of the document data.")
             .required(true)
             .defaultValue("UTF-8")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
@@ -54,7 +51,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .description("InfluxDB URL to connect to. Eg: http://influxdb:8086")
             .defaultValue("http://localhost:8086")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -72,7 +69,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Database Name")
             .description("InfluxDB database to connect to")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -81,7 +78,7 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Username")
             .required(false)
             .description("Username for accessing InfluxDB")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -90,23 +87,22 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .displayName("Password")
             .required(false)
             .description("Password for user")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
 
-    protected static final PropertyDescriptor MAX_RECORDS_SIZE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor MAX_RECORDS_SIZE = new PropertyDescriptor.Builder()
             .name("influxdb-max-records-size")
             .displayName("Max size of records")
             .description("Maximum size of records allowed to be posted in one batch")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("1 MB")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
     public static final String INFLUX_DB_ERROR_MESSAGE = "influxdb.error.message";
-
     protected AtomicReference<InfluxDB> influxDB = new AtomicReference<>();
     protected long maxRecordsSize;
 
@@ -120,12 +116,11 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
             long connectionTimeout = context.getProperty(INFLUX_DB_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS);
             String influxDbUrl = context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue();
-
             try {
                 influxDB.set(makeConnection(username, password, influxDbUrl, connectionTimeout));
             } catch(Exception e) {
                 getLogger().error("Error while getting connection {}", new Object[] { e.getLocalizedMessage() },e);
-                throw new RuntimeException("Error while getting connection" + e.getLocalizedMessage(),e);
+                throw new RuntimeException("Error while getting connection " + e.getLocalizedMessage(),e);
             }
             getLogger().info("InfluxDB connection created for host {}",
                     new Object[] {influxDbUrl});
@@ -135,7 +130,6 @@ abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        maxRecordsSize = context.getProperty(MAX_RECORDS_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
     }
 
     protected InfluxDB makeConnection(String username, String password, String influxDbUrl, long connectionTimeout) {

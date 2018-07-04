@@ -37,6 +37,7 @@ public class ComponentEntity extends Entity {
     private PositionDTO position;
     private PermissionsDTO permissions;
     private List<BulletinEntity> bulletins;
+    private Boolean disconnectedNodeAcknowledged;
 
     /**
      * @return revision for this request/response
@@ -130,6 +131,17 @@ public class ComponentEntity extends Entity {
 
     public void setBulletins(List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
+    }
+
+    @ApiModelProperty(
+            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    )
+    public Boolean isDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
+
+    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
     @Override

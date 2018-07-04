@@ -17,13 +17,13 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.Operation;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -35,6 +35,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.serialization.record.Record;
 
+import com.google.common.annotations.VisibleForTesting;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -75,27 +78,31 @@ public class PutKudu extends AbstractKudu {
     @Override
     protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
         Upsert upsert = kuduTable.newUpsert();
-        this.insert(kuduTable, upsert, record, fieldNames);
+        this.buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames);
         return upsert;
     }
 
     @Override
     protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) throws IllegalStateException, Exception {
         Insert insert = kuduTable.newInsert();
-        this.insert(kuduTable, insert, record, fieldNames);
+        this.buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames);
         return insert;
     }
 
-    private void insert(KuduTable kuduTable, Operation operation, Record record, List<String> fieldNames){
-        PartialRow row = operation.getRow();
-        Schema colSchema = kuduTable.getSchema();
-
+    @VisibleForTesting
+    void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames) {
         for (String colName : fieldNames) {
-            int colIdx = this.getColumnIndex(colSchema, colName);
+            int colIdx = this.getColumnIndex(schema, colName);
             if (colIdx != -1) {
-                Type colType = colSchema.getColumnByIndex(colIdx).getType();
+                ColumnSchema colSchema = schema.getColumnByIndex(colIdx);
+                Type colType = colSchema.getType();
 
-                switch (colType.getDataType()) {
+                if (record.getValue(colName) == null) {
+                    row.setNull(colName);
+                    continue;
+                }
+
+                switch (colType.getDataType(colSchema.getTypeAttributes())) {
                     case BOOL:
                         row.addBoolean(colIdx, record.getAsBoolean(colName));
                         break;
@@ -109,17 +116,25 @@ public class PutKudu extends AbstractKudu {
                         row.addBinary(colIdx, record.getAsString(colName).getBytes());
                         break;
                     case INT8:
+                        row.addByte(colIdx, record.getAsInt(colName).byteValue());
+                        break;
                     case INT16:
-                        short temp = (short)record.getAsInt(colName).intValue();
-                        row.addShort(colIdx, temp);
+                        row.addShort(colIdx, record.getAsInt(colName).shortValue());
+                        break;
                     case INT32:
                         row.addInt(colIdx, record.getAsInt(colName));
                         break;
                     case INT64:
+                    case UNIXTIME_MICROS:
                         row.addLong(colIdx, record.getAsLong(colName));
                         break;
                     case STRING:
                         row.addString(colIdx, record.getAsString(colName));
+                        break;
+                    case DECIMAL32:
+                    case DECIMAL64:
+                    case DECIMAL128:
+                        row.addDecimal(colIdx, new BigDecimal(record.getAsString(colName)));
                         break;
                     default:
                         throw new IllegalStateException(String.format("unknown column type %s", colType));

@@ -17,18 +17,17 @@
 package org.apache.nifi.controller.api.livy;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.util.Map;
 
+import org.apache.http.client.HttpClient;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
 
 public interface LivySessionService extends ControllerService {
     String APPLICATION_JSON = "application/json";
     String USER = "nifi";
-    String GET = "GET";
-    String POST = "POST";
 
-    Map<String, String> getSession();
+    Map<String, String> getSession() throws SessionManagerException;
 
-    HttpURLConnection getConnection(String urlString) throws IOException;
+    HttpClient getConnection() throws IOException, SessionManagerException;
 }

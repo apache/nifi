@@ -44,6 +44,8 @@
 }(this, function ($, Slick, nfCommon, nfDialog, nfErrorHandler) {
     'use strict';
 
+    var isDisconnectionAcknowledged = false;
+
     /**
      * Configuration object used to hold a number of configuration items.
      */
@@ -129,7 +131,9 @@
     var deleteTemplate = function (templateEntity) {
         $.ajax({
             type: 'DELETE',
-            url: templateEntity.template.uri,
+            url: templateEntity.template.uri + '?' + $.param({
+                'disconnectedNodeAcknowledged': isDisconnectionAcknowledged
+            }),
             dataType: 'json'
         }).done(function () {
             var templatesGrid = $('#templates-table').data('gridInstance');
@@ -226,7 +230,9 @@
         /**
          * Initializes the templates list.
          */
-        init: function () {
+        init: function (disconnectionAcknowledged) {
+            isDisconnectionAcknowledged = disconnectionAcknowledged;
+
             // define the function for filtering the list
             $('#templates-filter').keyup(function () {
                 applyFilter();
@@ -283,18 +289,17 @@
                 var markup = '';
 
                 if (dataContext.permissions.canRead === true) {
-                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px; margin-right: 3px;"></div>';
+                    markup += '<div title="Download" class="pointer export-template icon icon-template-save"></div>';
                 }
 
-                // all DFMs to remove templates
                 if (dataContext.permissions.canWrite === true) {
-                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
+                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash"></div>';
                 }
 
-                // allow policy configuration conditionally if embedded in
+                // allow policy configuration conditionally if framed
                 if (top !== window && nfCommon.canAccessTenants()) {
                     if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isManagedAuthorizer()) {
-                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key"></div>';
                     }
                 }
 

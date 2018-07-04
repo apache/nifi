@@ -29,14 +29,15 @@
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.Common',
                 'nf.ng.Bridge',
                 'nf.Processor',
                 'nf.ProcessGroup',
                 'nf.ProcessGroupConfiguration'],
-            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
-                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration));
+            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
+                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ComponentState =
@@ -47,6 +48,7 @@
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.Common'),
                 require('nf.ng.Bridge'),
@@ -61,6 +63,7 @@
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.Common,
             root.nf.ng.Bridge,
@@ -68,7 +71,7 @@
             root.nf.ProcessGroup,
             root.nf.ProcessGroupConfiguration);
     }
-}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
+}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
     'use strict';
 
     var lastSelectedId = null;
@@ -398,12 +401,12 @@
             var markup = '';
 
             if (dataContext.isEditable === true) {
-                markup += '<div title="Delete" class="delete-variable pointer fa fa-trash" style="margin-top: 2px;" ></div>';
+                markup += '<div title="Delete" class="delete-variable pointer fa fa-trash"></div>';
             } else {
                 var currentProcessGroupId = $('#variable-registry-process-group-id').text();
 
                 if (dataContext.processGroupId !== currentProcessGroupId) {
-                    markup += '<div title="Go To" class="go-to-variable pointer fa fa-long-arrow-right" style="margin-top: 2px;" ></div>';
+                    markup += '<div title="Go To" class="go-to-variable pointer fa fa-long-arrow-right"></div>';
                 }
             }
 
@@ -581,6 +584,11 @@
                     }
                 }
             }
+        });
+        variablesGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
+            setTimeout(function() {
+                variablesGrid.resizeCanvas();
+            }, 50);
         });
 
         // wire up the dataview to the grid
@@ -1333,6 +1341,7 @@
                     version: processGroupRevision.version
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             variableRegistry: {
                 processGroupId: processGroupId,
                 variables: variables
@@ -1373,7 +1382,9 @@
     var deleteUpdateRequest = function (processGroupId, updateRequestId) {
         return $.ajax({
             type: 'DELETE',
-            url: '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/variable-registry/update-requests/' + encodeURIComponent(updateRequestId),
+            url: '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/variable-registry/update-requests/' + encodeURIComponent(updateRequestId) + '?' + $.param({
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+            }),
             dataType: 'json'
         }).fail(nfErrorHandler.handleAjaxError);
     };

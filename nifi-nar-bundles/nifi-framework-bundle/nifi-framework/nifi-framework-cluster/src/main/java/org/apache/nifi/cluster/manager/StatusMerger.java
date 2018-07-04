@@ -30,6 +30,12 @@ import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO.GarbageCollectionDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO.StorageUsageDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GCDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.GarbageCollectionDiagnosticsDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMControllerDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
+import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
@@ -55,9 +61,11 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -74,6 +82,7 @@ public class StatusMerger {
         }
 
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         target.setBytesQueued(target.getBytesQueued() + toMerge.getBytesQueued());
         target.setFlowFilesQueued(target.getFlowFilesQueued() + toMerge.getFlowFilesQueued());
 
@@ -150,6 +159,7 @@ public class StatusMerger {
         target.setFlowFilesSent(target.getFlowFilesSent() + toMerge.getFlowFilesSent());
 
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         updatePrettyPrintedFields(target);
 
         // connection status
@@ -405,13 +415,15 @@ public class StatusMerger {
             target.setType(toMerge.getType());
         }
 
-        // if the status to merge is invalid allow it to take precedence. whether the
+        // if the status to merge is validating/invalid allow it to take precedence. whether the
         // processor run status is disabled/stopped/running is part of the flow configuration
-        // and should not differ amongst nodes. however, whether a processor is invalid
+        // and should not differ amongst nodes. however, whether a processor is validating/invalid
         // can be driven by environmental conditions. this check allows any of those to
         // take precedence over the configured run status.
-        if (RunStatus.Invalid.name().equals(toMerge.getRunStatus())) {
-            target.setRunStatus(RunStatus.Invalid.name());
+        if (RunStatus.Validating.toString().equals(toMerge.getRunStatus())) {
+            target.setRunStatus(RunStatus.Validating.toString());
+        } else if (RunStatus.Invalid.toString().equals(toMerge.getRunStatus())) {
+            target.setRunStatus(RunStatus.Invalid.toString());
         }
 
         target.setBytesRead(target.getBytesRead() + toMerge.getBytesRead());
@@ -423,6 +435,7 @@ public class StatusMerger {
         target.setTaskCount(target.getTaskCount() + toMerge.getTaskCount());
         target.setTasksDurationNanos(target.getTasksDurationNanos() + toMerge.getTasksDurationNanos());
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         updatePrettyPrintedFields(target);
     }
 
@@ -562,8 +575,8 @@ public class StatusMerger {
 
         // should be unnecessary here since ports run status not should be affected by
         // environmental conditions but doing so in case that changes
-        if (RunStatus.Invalid.name().equals(toMerge.getRunStatus())) {
-            target.setRunStatus(RunStatus.Invalid.name());
+        if (RunStatus.Invalid.toString().equals(toMerge.getRunStatus())) {
+            target.setRunStatus(RunStatus.Invalid.toString());
         }
 
         updatePrettyPrintedFields(target);
@@ -624,6 +637,155 @@ public class StatusMerger {
         mergeGarbageCollection(target.getGarbageCollection(), toMerge.getGarbageCollection());
 
         updatePrettyPrintedFields(target);
+    }
+
+    public static void merge(final JVMDiagnosticsSnapshotDTO target, final JVMDiagnosticsSnapshotDTO toMerge, final long numMillis) {
+        if (target == null || toMerge == null) {
+            return;
+        }
+
+        if (toMerge.getControllerDiagnostics() == null) {
+            target.setControllerDiagnostics(null);
+        } else {
+            merge(target.getControllerDiagnostics(), toMerge.getControllerDiagnostics());
+        }
+
+        if (toMerge.getFlowDiagnosticsDto() == null) {
+            target.setFlowDiagnosticsDto(null);
+        } else {
+            merge(target.getFlowDiagnosticsDto(), toMerge.getFlowDiagnosticsDto());
+        }
+
+        if (toMerge.getSystemDiagnosticsDto() == null) {
+            target.setSystemDiagnosticsDto(null);
+        } else {
+            merge(target.getSystemDiagnosticsDto(), toMerge.getSystemDiagnosticsDto(), numMillis);
+        }
+    }
+
+    private static void merge(final JVMControllerDiagnosticsSnapshotDTO target, final JVMControllerDiagnosticsSnapshotDTO toMerge) {
+        if (toMerge == null || target == null) {
+            return;
+        }
+
+        target.setMaxEventDrivenThreads(add(target.getMaxEventDrivenThreads(), toMerge.getMaxEventDrivenThreads()));
+        target.setMaxTimerDrivenThreads(add(target.getMaxTimerDrivenThreads(), toMerge.getMaxTimerDrivenThreads()));
+        target.setClusterCoordinator(null);
+        target.setPrimaryNode(null);
+    }
+
+    private static void merge(final JVMFlowDiagnosticsSnapshotDTO target, final JVMFlowDiagnosticsSnapshotDTO toMerge) {
+        if (toMerge == null || target == null) {
+            return;
+        }
+
+        target.setActiveEventDrivenThreads(add(target.getActiveEventDrivenThreads(), toMerge.getActiveEventDrivenThreads()));
+        target.setActiveTimerDrivenThreads(add(target.getActiveTimerDrivenThreads(), toMerge.getActiveTimerDrivenThreads()));
+        target.setBundlesLoaded(null);
+        target.setUptime(null);
+
+        if (!Objects.equals(target.getTimeZone(), toMerge.getTimeZone())) {
+            target.setTimeZone(null);
+        }
+    }
+
+    private static void merge(final JVMSystemDiagnosticsSnapshotDTO target, final JVMSystemDiagnosticsSnapshotDTO toMerge, final long numMillis) {
+        if (toMerge == null || target == null) {
+            return;
+        }
+
+        target.setCpuCores(add(target.getCpuCores(), toMerge.getCpuCores()));
+        target.setCpuLoadAverage(add(target.getCpuLoadAverage(), toMerge.getCpuLoadAverage()));
+        target.setOpenFileDescriptors(add(target.getOpenFileDescriptors(), toMerge.getOpenFileDescriptors()));
+        target.setMaxOpenFileDescriptors(add(target.getMaxOpenFileDescriptors(), toMerge.getMaxOpenFileDescriptors()));
+        target.setPhysicalMemoryBytes(add(target.getPhysicalMemoryBytes(), toMerge.getPhysicalMemoryBytes()));
+        target.setPhysicalMemory(FormatUtils.formatDataSize(target.getPhysicalMemoryBytes()));
+
+        target.setContentRepositoryStorageUsage(null);
+        target.setFlowFileRepositoryStorageUsage(null);
+        target.setProvenanceRepositoryStorageUsage(null);
+
+        target.setMaxHeapBytes(add(target.getMaxHeapBytes(), toMerge.getMaxHeapBytes()));
+        target.setMaxHeap(FormatUtils.formatDataSize(target.getMaxHeapBytes()));
+
+        final List<GarbageCollectionDiagnosticsDTO> mergedGcDiagnosticsDtos = mergeGarbageCollectionDiagnostics(target.getGarbageCollectionDiagnostics(),
+            toMerge.getGarbageCollectionDiagnostics(), numMillis);
+        target.setGarbageCollectionDiagnostics(mergedGcDiagnosticsDtos);
+    }
+
+    private static List<GarbageCollectionDiagnosticsDTO> mergeGarbageCollectionDiagnostics(final List<GarbageCollectionDiagnosticsDTO> target,
+            final List<GarbageCollectionDiagnosticsDTO> toMerge, final long numMillis) {
+
+        final Map<String, Map<Date, GCDiagnosticsSnapshotDTO>> metricsByMemoryMgr = new HashMap<>();
+        merge(target, metricsByMemoryMgr, numMillis);
+        merge(toMerge, metricsByMemoryMgr, numMillis);
+
+        final List<GarbageCollectionDiagnosticsDTO> gcDiagnosticsDtos = new ArrayList<>();
+        for (final Map.Entry<String, Map<Date, GCDiagnosticsSnapshotDTO>> entry : metricsByMemoryMgr.entrySet()) {
+            final String memoryManagerName = entry.getKey();
+
+            final Map<Date, GCDiagnosticsSnapshotDTO> snapshotMap = entry.getValue();
+
+            final GarbageCollectionDiagnosticsDTO gcDiagnosticsDto = new GarbageCollectionDiagnosticsDTO();
+            gcDiagnosticsDto.setMemoryManagerName(memoryManagerName);
+
+            final List<GCDiagnosticsSnapshotDTO> gcDiagnosticsSnapshots = new ArrayList<>(snapshotMap.values());
+            Collections.sort(gcDiagnosticsSnapshots, (a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+
+            gcDiagnosticsDto.setSnapshots(gcDiagnosticsSnapshots);
+            gcDiagnosticsDtos.add(gcDiagnosticsDto);
+        }
+
+        return gcDiagnosticsDtos;
+    }
+
+
+    private static void merge(final List<GarbageCollectionDiagnosticsDTO> toMerge, final Map<String, Map<Date, GCDiagnosticsSnapshotDTO>> metricsByMemoryMgr, final long numMillis) {
+        for (final GarbageCollectionDiagnosticsDTO gcDiagnostics : toMerge) {
+            final String memoryManagerName = gcDiagnostics.getMemoryManagerName();
+            final Map<Date, GCDiagnosticsSnapshotDTO> metricsByDate = metricsByMemoryMgr.computeIfAbsent(memoryManagerName, key -> new HashMap<>());
+
+            for (final GCDiagnosticsSnapshotDTO snapshot : gcDiagnostics.getSnapshots()) {
+                final long timestamp = snapshot.getTimestamp().getTime();
+                final Date normalized = new Date(timestamp - timestamp % numMillis);
+
+                final GCDiagnosticsSnapshotDTO aggregate = metricsByDate.computeIfAbsent(normalized, key -> new GCDiagnosticsSnapshotDTO());
+                aggregate.setCollectionCount(add(aggregate.getCollectionCount(), snapshot.getCollectionCount()));
+                aggregate.setCollectionMillis(add(aggregate.getCollectionMillis(), snapshot.getCollectionMillis()));
+                aggregate.setTimestamp(normalized);
+            }
+        }
+    }
+
+
+    private static Integer add(final Integer a, final Integer b) {
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+        return a + b;
+    }
+
+    private static Double add(final Double a, final Double b) {
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+        return a + b;
+    }
+
+    private static Long add(final Long a, final Long b) {
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+        return a + b;
     }
 
     public static void updatePrettyPrintedFields(final SystemDiagnosticsSnapshotDTO target) {

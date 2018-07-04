@@ -18,29 +18,23 @@ package org.apache.nifi.processors.livy;
 
 import org.apache.nifi.controller.livy.LivySessionController;
 import org.apache.nifi.ssl.StandardSSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.jetty.server.Handler;
+import org.apache.nifi.web.util.TestServer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class TestExecuteSparkInteractiveSSL extends ExecuteSparkInteractiveTestBase {
 
     private static Map<String, String> sslProperties;
 
-    public static TestServer server;
-    public static String url;
-
-    public TestRunner runner;
+    private static TestServer server;
+    private static String url;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -61,10 +55,6 @@ public class TestExecuteSparkInteractiveSSL extends ExecuteSparkInteractiveTestB
 
         // this is the base url with the random port
         url = server.getSecureUrl();
-    }
-
-    public void addHandler(Handler handler) {
-        server.addHandler(handler);
     }
 
     @AfterClass
@@ -100,25 +90,13 @@ public class TestExecuteSparkInteractiveSSL extends ExecuteSparkInteractiveTestB
         runner.shutdown();
     }
 
-    private static TestServer createServer() throws IOException {
+    private static TestServer createServer() {
         return new TestServer(sslProperties);
     }
 
     @Test
-    public void testSslSparkSession() throws Exception {
-        addHandler(new LivyAPIHandler());
-
-        runner.enqueue("print \"hello world\"");
-        runner.run();
-        List<MockFlowFile> waitingFlowfiles = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_WAIT);
-        while (!waitingFlowfiles.isEmpty()) {
-            Thread.sleep(1000);
-            runner.clearTransferState();
-            runner.enqueue("print \"hello world\"");
-            runner.run();
-            waitingFlowfiles = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_WAIT);
-        }
-        runner.assertTransferCount(ExecuteSparkInteractive.REL_SUCCESS, 1);
+    public void testSparkSession() throws Exception {
+      testCode(server,"print \"hello world\"");
     }
 
     private static Map<String, String> createSslProperties() {

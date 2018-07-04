@@ -21,6 +21,7 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -91,6 +92,7 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testConvertRecordFieldToObject() {
         assertNull(DataTypeUtils.convertRecordFieldtoObject(null, null));
         assertNull(DataTypeUtils.convertRecordFieldtoObject(null, RecordFieldType.MAP.getDataType()));
@@ -124,8 +126,8 @@ public class TestDataTypeUtils {
         complexValueRecord2.put("a",new String[] {"hello","world!"});
         complexValueRecord2.put("b",new String[] {"5","4","3"});
 
-        complexValues.put("complex1", DataTypeUtils.toRecord(complexValueRecord1, nestedRecordSchema, "complex1"));
-        complexValues.put("complex2", DataTypeUtils.toRecord(complexValueRecord2, nestedRecordSchema, "complex2"));
+        complexValues.put("complex1", DataTypeUtils.toRecord(complexValueRecord1, nestedRecordSchema, "complex1", StandardCharsets.UTF_8));
+        complexValues.put("complex2", DataTypeUtils.toRecord(complexValueRecord2, nestedRecordSchema, "complex2", StandardCharsets.UTF_8));
 
         values.put("complex", complexValues);
         final Record inputRecord = new MapRecord(schema, values);
@@ -164,5 +166,62 @@ public class TestDataTypeUtils {
         assertTrue(o instanceof String[]);
         assertEquals("4", ((String[])o)[1]);
 
+    }
+
+    @Test
+    public void testStringToBytes() {
+        Object bytes = DataTypeUtils.convertType("Hello", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()),null, StandardCharsets.UTF_8);
+        assertTrue(bytes instanceof Byte[]);
+        assertNotNull(bytes);
+        Byte[] b = (Byte[]) bytes;
+        assertEquals("Conversion from String to byte[] failed", (long) 72, (long) b[0] );  // H
+        assertEquals("Conversion from String to byte[] failed", (long) 101, (long) b[1] ); // e
+        assertEquals("Conversion from String to byte[] failed", (long) 108, (long) b[2] ); // l
+        assertEquals("Conversion from String to byte[] failed", (long) 108, (long) b[3] ); // l
+        assertEquals("Conversion from String to byte[] failed", (long) 111, (long) b[4] ); // o
+    }
+
+    @Test
+    public void testBytesToString() {
+        Object s = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16), RecordFieldType.STRING.getDataType(),null, StandardCharsets.UTF_16);
+        assertNotNull(s);
+        assertTrue(s instanceof String);
+        assertEquals("Conversion from byte[] to String failed", "Hello", s);
+    }
+
+    @Test
+    public void testBytesToBytes() {
+        Object b = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16), RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()),null, StandardCharsets.UTF_16);
+        assertNotNull(b);
+        assertTrue(b instanceof Byte[]);
+        assertEquals("Conversion from byte[] to String failed at char 0", (Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0]);
+    }
+
+    @Test
+    public void testFloatingPointCompatibility() {
+        final String[] prefixes = new String[] {"", "-", "+"};
+        final String[] exponents = new String[] {"e0", "e1", "e-1", "E0", "E1", "E-1"};
+        final String[] decimals = new String[] {"", ".0", ".1", "."};
+
+        for (final String prefix : prefixes) {
+            for (final String decimal : decimals) {
+                for (final String exp : exponents) {
+                    String toTest = prefix + "100" + decimal + exp;
+                    assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
+                    assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+
+                    Double.parseDouble(toTest); // ensure we can actually parse it
+                    Float.parseFloat(toTest);
+
+                    if (decimal.length() > 1) {
+                        toTest = prefix + decimal + exp;
+                        assertTrue(toTest + " not valid float", DataTypeUtils.isFloatTypeCompatible(toTest));
+                        assertTrue(toTest + " not valid double", DataTypeUtils.isDoubleTypeCompatible(toTest));
+                        Double.parseDouble(toTest); // ensure we can actually parse it
+                        Float.parseFloat(toTest);
+                    }
+                }
+            }
+        }
     }
 }

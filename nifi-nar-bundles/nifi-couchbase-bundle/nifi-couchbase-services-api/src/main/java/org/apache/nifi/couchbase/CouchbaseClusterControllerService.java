@@ -31,6 +31,6 @@ public interface CouchbaseClusterControllerService extends ControllerService {
      * @param bucketName the bucket name to access
      * @return a connected bucket instance
      */
-    public Bucket openBucket(String bucketName);
+    Bucket openBucket(String bucketName);
 
 }

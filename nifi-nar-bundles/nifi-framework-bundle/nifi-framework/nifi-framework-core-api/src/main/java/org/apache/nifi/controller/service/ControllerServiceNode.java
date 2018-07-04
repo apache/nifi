@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.controller.service;
 
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.VersionedComponent;
-import org.apache.nifi.controller.ConfiguredComponent;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.groups.ProcessGroup;
-
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
-public interface ControllerServiceNode extends ConfiguredComponent, ConfigurableComponent, VersionedComponent {
+import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.LoggableComponent;
+import org.apache.nifi.groups.ProcessGroup;
+
+public interface ControllerServiceNode extends ComponentNode, VersionedComponent {
 
     /**
      * @return the Process Group that this Controller Service belongs to, or <code>null</code> if the Controller Service
@@ -121,13 +120,13 @@ public interface ControllerServiceNode extends ConfiguredComponent, Configurable
      * Indicates that the given component is now referencing this Controller Service
      * @param referringComponent the component referencing this service
      */
-    void addReference(ConfiguredComponent referringComponent);
+    void addReference(ComponentNode referringComponent);
 
     /**
      * Indicates that the given component is no longer referencing this Controller Service
      * @param referringComponent the component that is no longer referencing this service
      */
-    void removeReference(ConfiguredComponent referringComponent);
+    void removeReference(ComponentNode referringComponent);
 
     void setComments(String comment);
 

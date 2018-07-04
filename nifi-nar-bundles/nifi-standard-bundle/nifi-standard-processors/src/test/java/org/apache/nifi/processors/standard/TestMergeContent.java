@@ -86,6 +86,11 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
         runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        assertEquals(runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0).getAttribute(CoreAttributes.UUID.key()),
+                runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL).get(0).getAttribute(MergeContent.MERGE_UUID_ATTRIBUTE));
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assertEquals(1024 * 6, bundle.getSize());
 
         // Queue should not be empty because the first FlowFile will be transferred back to the input queue
         // when we run out @OnStopped logic, since it won't be transferred to any bin.
@@ -489,6 +494,9 @@ public class TestMergeContent {
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+
+        runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL).stream().forEach(
+                ff -> assertEquals(bundle.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeContent.MERGE_UUID_ATTRIBUTE)));
     }
 
     @Test
@@ -561,11 +569,20 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
-        runner.setProperty(MergeContent.HEADER, "src/test/resources/TestMergeContent/head");
-        runner.setProperty(MergeContent.DEMARCATOR, "src/test/resources/TestMergeContent/demarcate");
-        runner.setProperty(MergeContent.FOOTER, "src/test/resources/TestMergeContent/foot");
+        runner.setProperty(MergeContent.HEADER, "${header}");
+        runner.setProperty(MergeContent.DEMARCATOR, "${demarcator}");
+        runner.setProperty(MergeContent.FOOTER, "${footer}");
 
-        createFlowFiles(runner);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+        attributes.put("header", "src/test/resources/TestMergeContent/head");
+        attributes.put("demarcator", "src/test/resources/TestMergeContent/demarcate");
+        attributes.put("footer", "src/test/resources/TestMergeContent/foot");
+
+        runner.enqueue("Hello".getBytes("UTF-8"), attributes);
+        runner.enqueue(", ".getBytes("UTF-8"), attributes);
+        runner.enqueue("World!".getBytes("UTF-8"), attributes);
         runner.run();
 
         runner.assertQueueEmpty();
@@ -852,6 +869,68 @@ public class TestMergeContent {
     }
 
     @Test
+    public void testDefragmentDuplicateFragement() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "4");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+
+        runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        // enqueue a duplicate fragment
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
+        runner.enqueue("Panama".getBytes("UTF-8"), attributes);
+
+        runner.run(1, false);
+
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+
+        runner.clearTransferState();
+        Thread.sleep(1_100L);
+        runner.run();
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 1);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 0);
+    }
+
+    @Test
+    public void testDefragmentWithTooManyFragements() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "4");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+
+        runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
+        runner.enqueue("Panama".getBytes("UTF-8"), attributes);
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+    }
+
+    @Test
     public void testDefragmentWithTooFewFragments() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
@@ -908,6 +987,9 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
         final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+
+        runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL).stream().forEach(
+                ff -> assertEquals(assembled.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeContent.MERGE_UUID_ATTRIBUTE)));
     }
 
     @Test
@@ -1182,6 +1264,8 @@ public class TestMergeContent {
     private void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+        // add 'fragment.index' attribute to ensure non-defragment mode operates correctly even when index is present
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
 
         testRunner.enqueue("Hello".getBytes("UTF-8"), attributes);
         testRunner.enqueue(", ".getBytes("UTF-8"), attributes);

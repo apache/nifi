@@ -23,8 +23,11 @@ import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.DeleteBucketRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -38,6 +41,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static org.junit.Assert.fail;
 
@@ -58,7 +62,7 @@ public abstract class AbstractS3IT {
     // when bucket is rapidly added/deleted and consistency propagation causes this error.
     // (Should not be necessary if REGION remains static, but added to prevent future frustration.)
     // [see http://stackoverflow.com/questions/13898057/aws-error-message-a-conflicting-conditional-operation-is-currently-in-progress]
-    protected final static String BUCKET_NAME = "test-bucket-00000000-0000-0000-0000-123456789021-" + REGION;
+    protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis() + "-" + REGION;
 
     // Static so multiple Tests can use same client
     protected static AmazonS3Client client;
@@ -142,6 +146,12 @@ public abstract class AbstractS3IT {
         PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, new FileInputStream(file), objectMetadata);
 
         client.putObject(putRequest);
+    }
+
+    protected void putFileWithObjectTag(String key, File file, List<Tag> objectTags) {
+        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, file);
+        putRequest.setTagging(new ObjectTagging(objectTags));
+        PutObjectResult result = client.putObject(putRequest);
     }
 
     protected Path getResourcePath(String resourceName) {

@@ -74,6 +74,21 @@ public class TestQuery {
         //System.out.println(Query.compile("").evaluate(null));
     }
 
+    @Test
+    public void testPrepareWithEscapeChar() {
+        final Map<String, String> variables = Collections.singletonMap("foo", "bar");
+
+        final PreparedQuery onlyEscapedQuery = Query.prepare("$${foo}");
+        final String onlyEscapedEvaluated = onlyEscapedQuery.evaluateExpressions(variables, null);
+        assertEquals("${foo}", onlyEscapedEvaluated);
+
+        final PreparedQuery mixedQuery = Query.prepare("${foo}$${foo}");
+        final String mixedEvaluated = mixedQuery.evaluateExpressions(variables, null);
+        assertEquals("bar${foo}", mixedEvaluated);
+
+        assertEquals("bar${foo}$bar", Query.prepare("${foo}$${foo}$$${foo}").evaluateExpressions(variables, null));
+    }
+
     private void assertValid(final String query) {
         try {
             Query.compile(query);

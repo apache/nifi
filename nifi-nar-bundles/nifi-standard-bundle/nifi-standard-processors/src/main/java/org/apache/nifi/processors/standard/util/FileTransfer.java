@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -57,19 +58,35 @@ public interface FileTransfer extends Closeable {
 
     void ensureDirectoryExists(FlowFile flowFile, File remoteDirectory) throws IOException;
 
+    /**
+     * Compute an absolute file path for the given remote path.
+     * @param flowFile is used to setup file transfer client with its attribute values, to get user home directory
+     * @param remotePath the target remote path
+     * @return The absolute path for the given remote path
+     */
+    default String getAbsolutePath(FlowFile flowFile, String remotePath) throws IOException {
+        final String absoluteRemotePath;
+        if (!remotePath.startsWith("/") && !remotePath.startsWith("\\")) {
+            absoluteRemotePath = new File(getHomeDirectory(flowFile), remotePath).getPath();
+        } else {
+            absoluteRemotePath = remotePath;
+        }
+        return absoluteRemotePath.replace("\\", "/");
+    }
+
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Hostname")
         .description("The fully qualified hostname or IP address of the remote system")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
         .name("Username")
         .description("Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
         .name("Password")
@@ -77,7 +94,7 @@ public interface FileTransfer extends Closeable {
         .addValidator(Validator.VALID)
         .required(false)
         .sensitive(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor DATA_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Data Timeout")
@@ -98,7 +115,7 @@ public interface FileTransfer extends Closeable {
         .description("The path on the remote system from which to pull or push files")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor CREATE_DIRECTORY = new PropertyDescriptor.Builder()
         .name("Create Directory")
@@ -217,7 +234,7 @@ public interface FileTransfer extends Closeable {
         .description("If set, the filename of the sent file will be equal to the value specified during the transfer and after successful "
             + "completion will be renamed to the original filename. If this value is set, the Dot Rename property is ignored.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
         .build();
     public static final PropertyDescriptor LAST_MODIFIED_TIME = new PropertyDescriptor.Builder()
@@ -227,7 +244,7 @@ public interface FileTransfer extends Closeable {
             + "is invalid, the processor will not be invalid but will fail to change lastModifiedTime of the file.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PERMISSIONS = new PropertyDescriptor.Builder()
         .name("Permissions")
@@ -237,7 +254,7 @@ public interface FileTransfer extends Closeable {
             + "fail to change permissions of the file.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor REMOTE_OWNER = new PropertyDescriptor.Builder()
         .name("Remote Owner")
@@ -246,7 +263,7 @@ public interface FileTransfer extends Closeable {
             + "will fail to change the owner of the file.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor REMOTE_GROUP = new PropertyDescriptor.Builder()
         .name("Remote Group")
@@ -255,7 +272,7 @@ public interface FileTransfer extends Closeable {
             + "will fail to change the group of the file.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Batch Size")

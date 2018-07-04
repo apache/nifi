@@ -36,6 +36,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -76,7 +77,7 @@ import java.util.stream.Stream;
 @DynamicProperty(
         name = "A URL query parameter",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 @Stateful(description = "After each successful scroll page, the latest scroll_id is persisted in scrollId as input for the next scroll call.  "
         + "Once the entire query is complete, finishedQuery state will be set to true, and the processor will not execute unless this is cleared.", scopes = { Scope.LOCAL })
@@ -100,9 +101,12 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                             + "flow files will be routed to failure.").build();
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("scroll-es-query").displayName("Query")
-            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)").required(true)
-            .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .name("scroll-es-query")
+            .displayName("Query")
+            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor SCROLL_DURATION = new PropertyDescriptor.Builder()
@@ -111,7 +115,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             .description("The scroll duration is how long each search context is kept in memory.")
             .defaultValue("1m")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(
                     StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9]+(m|h)")))
             .build();
@@ -122,7 +126,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             .description("The name of the index to read from. If the property is set "
                             + "to _all, the query will match across all indexes.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -134,7 +138,8 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                     + "the the query will match across all types.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .expressionLanguageSupported(true).build();
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
             .name("scroll-es-fields")
@@ -142,8 +147,10 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             .description(
                     "A comma-separated list of fields to retrieve from the document. If the Fields property is left blank, "
                             + "then the entire document's source will be retrieved.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
             .name("scroll-es-sort")
@@ -151,14 +158,20 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             .description(
                     "A sort parameter (e.g., timestamp:asc). If the Sort property is left blank, "
                             + "then the results will be retrieved in document order.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("scroll-es-size").displayName("Page Size").defaultValue("20")
+            .name("scroll-es-size")
+            .displayName("Page Size")
+            .defaultValue("20")
             .description("Determines how many documents to return per page during scrolling.")
-            .required(true).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
@@ -169,13 +182,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         _rels.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(_rels);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ES_URL);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(RESPONSE_TIMEOUT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(QUERY);
         descriptors.add(SCROLL_DURATION);
         descriptors.add(PAGE_SIZE);

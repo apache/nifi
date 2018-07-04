@@ -21,7 +21,7 @@ LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 
 ARG UID=1000
 ARG GID=1000
-ARG NIFI_TOOLKIT_VERSION=${project.version}
+ARG NIFI_TOOLKIT_VERSION=
 ARG NIFI_TOOLKIT_BINARY=nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz
 
 ENV NIFI_TOOLKIT_BASE_DIR=/opt/nifi-toolkit
@@ -30,7 +30,9 @@ ENV NIFI_TOOLKIT_HOME=${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSI
 ADD ./sh/docker-entrypoint.sh /opt/sh/docker-entrypoint.sh
 
 # Fix docker-entrypoint perms as per https://issues.apache.org/jira/browse/MRESOURCES-236 and Setup NiFi user
-RUN chmod +x /opt/sh/docker-entrypoint.sh \
+RUN apk add --update curl bash jq openssl \
+    && rm -rf /var/cache/apk/* \
+    && chmod +x /opt/sh/docker-entrypoint.sh \
     && addgroup -g $GID nifi \
     && adduser -D -s /bin/ash -u $UID -G nifi nifi \
     && mkdir -p ${NIFI_TOOLKIT_BASE_DIR}

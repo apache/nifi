@@ -113,7 +113,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         final WriteConcern writeConcern = getWriteConcern(context);
 
-        final MongoCollection<Document> collection = getCollection(context).withWriteConcern(writeConcern);
+        final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
 
         List<Document> inserts = new ArrayList<>();
         int ceiling = context.getProperty(INSERT_COUNT).asInteger();
@@ -131,7 +131,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 for (String name : schema.getFieldNames()) {
                     document.put(name, contentMap.get(name));
                 }
-                inserts.add(document);
+                inserts.add(convertArrays(document));
                 if (inserts.size() == ceiling) {
                     collection.insertMany(inserts);
                     added += inserts.size();
@@ -153,5 +153,35 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             }
         }
         session.commit();
+    }
+
+    private Document convertArrays(Document doc) {
+        Document retVal = new Document();
+        for (Map.Entry<String, Object> entry : doc.entrySet()) {
+            if (entry.getValue() != null && entry.getValue().getClass().isArray()) {
+                retVal.put(entry.getKey(), convertArrays((Object[])entry.getValue()));
+            } else if (entry.getValue() != null && (entry.getValue() instanceof Map || entry.getValue() instanceof Document)) {
+                retVal.put(entry.getKey(), convertArrays(new Document((Map)entry.getValue())));
+            } else {
+                retVal.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return retVal;
+    }
+
+    private List convertArrays(Object[] input) {
+        List retVal = new ArrayList();
+        for (Object o : input) {
+            if (o != null && o.getClass().isArray()) {
+                retVal.add(convertArrays((Object[])o));
+            } else if (o instanceof Map) {
+                retVal.add(convertArrays(new Document((Map)o)));
+            } else {
+                retVal.add(o);
+            }
+        }
+
+        return retVal;
     }
 }

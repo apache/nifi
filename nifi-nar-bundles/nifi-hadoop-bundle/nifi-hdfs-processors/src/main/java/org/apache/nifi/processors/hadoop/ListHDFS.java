@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -62,6 +63,7 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+@PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -143,7 +145,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     private volatile long latestTimestampListed = -1L;
     private volatile long latestTimestampEmitted = -1L;
     private volatile long lastRunTimestamp = -1L;
-
+    private volatile boolean resetState = false;
     static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
     static final String EMITTED_TIMESTAMP_KEY = "emitted.timestamp";
 
@@ -202,8 +204,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         if (isConfigurationRestored() && (descriptor.equals(DIRECTORY) || descriptor.equals(FILE_FILTER))) {
-            latestTimestampEmitted = -1L;
-            latestTimestampListed = -1L;
+            this.resetState = true;
         }
     }
 
@@ -283,8 +284,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         return toList;
     }
 
-
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // We have to ensure that we don't continually perform listings, because if we perform two listings within
@@ -302,6 +301,12 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
+            if (resetState) {
+                getLogger().debug("Property has been modified. Resetting the state values - listing.timestamp and emitted.timestamp to -1L");
+                context.getStateManager().clear(Scope.CLUSTER);
+                this.resetState = false;
+            }
+
             final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
             if (stateMap.getVersion() == -1L) {
                 latestTimestampEmitted = -1L;
@@ -464,4 +469,5 @@ public class ListHDFS extends AbstractHadoopProcessor {
             }
         };
     }
+
 }

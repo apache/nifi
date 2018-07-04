@@ -37,6 +37,9 @@ public class FlowConfigurationDTO {
     private Date currentTime;
     private Integer timeOffset;
 
+    private Long defaultBackPressureObjectThreshold;
+    private String defaultBackPressureDataSizeThreshold;
+
     /**
      * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
      */
@@ -126,5 +129,33 @@ public class FlowConfigurationDTO {
 
     public void setTimeOffset(Integer timeOffset) {
         this.timeOffset = timeOffset;
+    }
+
+    /**
+     * @return the default back pressure object threshold
+     */
+    @ApiModelProperty(
+            value = "The default back pressure object threshold."
+    )
+    public Long getDefaultBackPressureObjectThreshold() {
+        return defaultBackPressureObjectThreshold;
+    }
+
+    public void setDefaultBackPressureObjectThreshold(Long backPressureObjectThreshold) {
+        this.defaultBackPressureObjectThreshold = backPressureObjectThreshold;
+    }
+
+    /**
+     * @return the default back pressure data size threshold
+     */
+    @ApiModelProperty(
+            value = "The default back pressure data size threshold."
+    )
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return defaultBackPressureDataSizeThreshold;
+    }
+
+    public void setDefaultBackPressureDataSizeThreshold(String backPressureDataSizeThreshold) {
+        this.defaultBackPressureDataSizeThreshold = backPressureDataSizeThreshold;
     }
 }

@@ -60,6 +60,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         this.serviceNodeHolder.set(serviceNode);
     }
 
+    @Override
     public void setServiceNode(final ControllerServiceNode serviceNode) {
         this.serviceNodeHolder.set(serviceNode);
     }
@@ -75,14 +76,8 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         final ControllerServiceState state = node.getState();
         final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
         if (disabled && !validDisabledMethods.contains(method)) {
-            // Use nar class loader here because we are implicitly calling toString() on the original implementation.
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
-                throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService.getIdentifier()
-                        + " because the Controller Service is disabled");
-            } catch (final Throwable e) {
-                throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service with identifier "
-                        + originalService.getIdentifier() + " because the Controller Service is disabled");
-            }
+            throw new ControllerServiceDisabledException(node.getIdentifier(), "Cannot invoke method " + method + " on Controller Service with identifier "
+                + serviceNodeHolder.get().getIdentifier() + " because the Controller Service's State is currently " + state);
         }
 
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {

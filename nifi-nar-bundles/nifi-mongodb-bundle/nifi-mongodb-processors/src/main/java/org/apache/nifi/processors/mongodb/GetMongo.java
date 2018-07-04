@@ -29,8 +29,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -38,14 +38,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,28 +53,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 @Tags({ "mongodb", "read", "get" })
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB")
 public class GetMongo extends AbstractMongoProcessor {
-    public static final Validator DOCUMENT_VALIDATOR = (subject, value, context) -> {
-        final ValidationResult.Builder builder = new ValidationResult.Builder();
-        builder.subject(subject).input(value);
-
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-            return builder.valid(true).explanation("Contains Expression Language").build();
-        }
-
-        String reason = null;
-        try {
-            Document.parse(value);
-        } catch (final RuntimeException e) {
-            reason = e.getLocalizedMessage();
-        }
-
-        return builder.explanation(reason).valid(reason == null).build();
-    };
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -95,29 +76,29 @@ public class GetMongo extends AbstractMongoProcessor {
                 "the flowfile's body. If this field is left blank and a timer is enabled instead of an incoming connection, " +
                 "that will result in a full collection fetch using a \"{}\" query.")
         .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(DOCUMENT_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(JsonValidator.INSTANCE)
         .build();
 
     static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
             .name("Projection")
             .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
             .required(false)
-            .expressionLanguageSupported(true)
-            .addValidator(DOCUMENT_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
             .build();
     static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
             .name("Sort")
             .description("The fields by which to sort; must be a valid BSON document")
             .required(false)
-            .expressionLanguageSupported(true)
-            .addValidator(DOCUMENT_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(JsonValidator.INSTANCE)
             .build();
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
             .name("Limit")
             .description("The maximum number of elements to return")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -125,7 +106,7 @@ public class GetMongo extends AbstractMongoProcessor {
             .name("Batch Size")
             .description("The number of elements returned from the server in one batch")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
@@ -133,7 +114,7 @@ public class GetMongo extends AbstractMongoProcessor {
             .displayName("Results Per FlowFile")
             .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -148,24 +129,6 @@ public class GetMongo extends AbstractMongoProcessor {
             .defaultValue(YES_PP.getValue())
             .allowableValues(YES_PP, NO_PP)
             .addValidator(Validator.VALID)
-            .build();
-
-    static final String JSON_TYPE_EXTENDED = "Extended";
-    static final String JSON_TYPE_STANDARD   = "Standard";
-    static final AllowableValue JSON_EXTENDED = new AllowableValue(JSON_TYPE_EXTENDED, "Extended JSON",
-            "Use MongoDB's \"extended JSON\". This is the JSON generated with toJson() on a MongoDB Document from the Java driver");
-    static final AllowableValue JSON_STANDARD = new AllowableValue(JSON_TYPE_STANDARD, "Standard JSON",
-            "Generate a JSON document that conforms to typical JSON conventions instead of Mongo-specific conventions.");
-    static final PropertyDescriptor JSON_TYPE = new PropertyDescriptor.Builder()
-            .allowableValues(JSON_EXTENDED, JSON_STANDARD)
-            .defaultValue(JSON_TYPE_EXTENDED)
-            .displayName("JSON Type")
-            .name("json-type")
-            .description("By default, MongoDB's Java driver returns \"extended JSON\". Some of the features of this variant of JSON" +
-                    " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
-                    " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
-            .expressionLanguageSupported(false)
-            .required(true)
             .build();
 
     private final static Set<Relationship> relationships;
@@ -205,8 +168,6 @@ public class GetMongo extends AbstractMongoProcessor {
         return propertyDescriptors;
     }
 
-    private ObjectMapper mapper;
-
     //Turn a list of Mongo result documents into a String representation of a JSON array
     private String buildBatch(List<Document> documents, String jsonTypeSetting, String prettyPrintSetting) throws IOException {
         StringBuilder builder = new StringBuilder();
@@ -214,7 +175,7 @@ public class GetMongo extends AbstractMongoProcessor {
             Document document = documents.get(index);
             String asJson;
             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
-                asJson = getObjectWriter(mapper, prettyPrintSetting).writeValueAsString(document);
+                asJson = getObjectWriter(objectMapper, prettyPrintSetting).writeValueAsString(document);
             } else {
                 asJson = document.toJson(new JsonWriterSettings(true));
             }
@@ -224,15 +185,6 @@ public class GetMongo extends AbstractMongoProcessor {
         }
 
         return "[" + builder.toString() + "]";
-    }
-
-    private void configureMapper(String setting) {
-        mapper = new ObjectMapper();
-        if (setting.equals(JSON_TYPE_STANDARD)) {
-            mapper.registerModule(ObjectIdSerializer.getModule());
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            mapper.setDateFormat(df);
-        }
     }
 
     private ObjectWriter getObjectWriter(ObjectMapper mapper, String ppSetting) {
@@ -253,7 +205,7 @@ public class GetMongo extends AbstractMongoProcessor {
 
         final ComponentLog logger = getLogger();
 
-        Map attributes = new HashMap();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 
         final Document query;
@@ -296,7 +248,7 @@ public class GetMongo extends AbstractMongoProcessor {
         configureMapper(jsonTypeSetting);
 
 
-        final MongoCollection<Document> collection = getCollection(context);
+        final MongoCollection<Document> collection = getCollection(context, input);
 
         try {
             final FindIterable<Document> it = query != null ? collection.find(query) : collection.find();
@@ -329,7 +281,7 @@ public class GetMongo extends AbstractMongoProcessor {
                                     log.debug("Writing batch...");
                                 }
                                 String payload = buildBatch(batch, jsonTypeSetting, usePrettyPrint);
-                                writeBatch(payload, null, context, session, attributes, REL_SUCCESS);
+                                writeBatch(payload, input, context, session, attributes, REL_SUCCESS);
                                 batch = new ArrayList<>();
                             } catch (Exception ex) {
                                 getLogger().error("Error building batch", ex);
@@ -338,22 +290,23 @@ public class GetMongo extends AbstractMongoProcessor {
                     }
                     if (batch.size() > 0) {
                         try {
-                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), null, context, session, attributes, REL_SUCCESS);
+                            writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
                         } catch (Exception ex) {
                             getLogger().error("Error sending remainder of batch", ex);
                         }
                     }
                 } else {
                     while (cursor.hasNext()) {
+                        final FlowFile ffPtr = input;
                         flowFile = session.create();
                         flowFile = session.write(flowFile, out -> {
                             String json;
                             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
-                                json = getObjectWriter(mapper, usePrettyPrint).writeValueAsString(cursor.next());
+                                json = getObjectWriter(objectMapper, usePrettyPrint).writeValueAsString(cursor.next());
                             } else {
                                 json = cursor.next().toJson();
                             }
-                            out.write(json.getBytes(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue()));
+                            out.write(json.getBytes(context.getProperty(CHARSET).evaluateAttributeExpressions(ffPtr).getValue()));
                         });
                         flowFile = session.putAllAttributes(flowFile, attributes);
 

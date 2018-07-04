@@ -28,6 +28,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import java.io.File;
 import java.io.IOException;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,12 +46,16 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.processors.aws.regions.AWSRegions;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 
 /**
@@ -78,7 +83,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("Proxy Host")
             .description("Proxy host name or IP")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -86,9 +91,28 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final PropertyDescriptor PROXY_HOST_PORT = new PropertyDescriptor.Builder()
             .name("Proxy Host Port")
             .description("Proxy host port")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("proxy-user-name")
+            .displayName("Proxy Username")
+            .description("Proxy username")
+            .expressionLanguageSupported(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("proxy-user-password")
+            .displayName("Proxy Password")
+            .description("Proxy password")
+            .expressionLanguageSupported(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
             .build();
 
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
@@ -117,7 +141,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .description("Endpoint URL to use instead of the AWS default including scheme, host, port, and path. " +
                     "The AWS libraries select an endpoint URL based on the AWS region, but this property overrides " +
                     "the selected endpoint URL, allowing use with other S3-compatible endpoints.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
@@ -129,16 +153,18 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     protected static final String DEFAULT_USER_AGENT = "NiFi";
 
-    private static AllowableValue createAllowableValue(final Regions regions) {
-        return new AllowableValue(regions.getName(), regions.getName(), regions.getName());
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
+    protected static AllowableValue createAllowableValue(final Regions region) {
+        return new AllowableValue(region.getName(), AWSRegions.getRegionDisplayName(region.getName()));
     }
 
-    private static AllowableValue[] getAvailableRegions() {
+    protected static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
-        for (final Regions regions : Regions.values()) {
-            values.add(createAllowableValue(regions));
+        for (final Regions region : Regions.values()) {
+            values.add(createAllowableValue(region));
         }
-
         return values.toArray(new AllowableValue[values.size()]);
     }
 
@@ -163,10 +189,23 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
-        final boolean proxyHostPortSet = validationContext.getProperty(PROXY_HOST_PORT).isSet();
-        if ( ((!proxyHostSet) && proxyHostPortSet) || (proxyHostSet && (!proxyHostPortSet)) ) {
-            problems.add(new ValidationResult.Builder().input("Proxy Host Port").valid(false).explanation("Both proxy host and port must be set").build());
+        final boolean proxyPortSet = validationContext.getProperty(PROXY_HOST_PORT).isSet();
+
+        if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {
+            problems.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
         }
+
+        final boolean proxyUserSet = validationContext.getProperty(PROXY_USERNAME).isSet();
+        final boolean proxyPwdSet = validationContext.getProperty(PROXY_PASSWORD).isSet();
+
+        if ((proxyUserSet && !proxyPwdSet) || (!proxyUserSet && proxyPwdSet)) {
+            problems.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
+        }
+        if (proxyUserSet && !proxyHostSet) {
+            problems.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
+        }
+
+        ProxyConfiguration.validateProxySpec(validationContext, problems, PROXY_SPECS);
 
         return problems;
     }
@@ -182,19 +221,41 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         config.setConnectionTimeout(commsTimeout);
         config.setSocketTimeout(commsTimeout);
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
-            // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
-            SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-            config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+        if(this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
+            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            if (sslContextService != null) {
+                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
+                // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
+                SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
+                config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+            }
         }
 
-        if (context.getProperty(PROXY_HOST).isSet()) {
-            String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-            config.setProxyHost(proxyHost);
-            Integer proxyPort = context.getProperty(PROXY_HOST_PORT).evaluateAttributeExpressions().asInteger();
-            config.setProxyPort(proxyPort);
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
+            if (context.getProperty(PROXY_HOST).isSet()) {
+                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
+                String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+                Integer proxyPort = context.getProperty(PROXY_HOST_PORT).evaluateAttributeExpressions().asInteger();
+                String proxyUsername = context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue();
+                String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
+                componentProxyConfig.setProxyServerHost(proxyHost);
+                componentProxyConfig.setProxyServerPort(proxyPort);
+                componentProxyConfig.setProxyUserName(proxyUsername);
+                componentProxyConfig.setProxyUserPassword(proxyPassword);
+                return componentProxyConfig;
+            }
+            return ProxyConfiguration.DIRECT_CONFIGURATION;
+        });
+
+        if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
+            config.setProxyHost(proxyConfig.getProxyServerHost());
+            config.setProxyPort(proxyConfig.getProxyServerPort());
+
+            if (proxyConfig.hasCredential()) {
+                config.setProxyUsername(proxyConfig.getProxyUserName());
+                config.setProxyPassword(proxyConfig.getProxyUserPassword());
+            }
         }
 
         return config;

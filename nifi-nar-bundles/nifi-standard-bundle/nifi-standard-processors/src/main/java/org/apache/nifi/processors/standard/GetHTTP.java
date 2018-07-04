@@ -42,7 +42,6 @@ import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -82,6 +81,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -92,12 +92,16 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
+
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -107,8 +111,9 @@ import org.apache.nifi.util.Tuple;
     + "management, stored \"last modified\" and etag fields never expire. If the URL in GetHttp uses Expression Language that is unbounded, there "
     + "is the potential for Out of Memory Errors to occur.")
 @DynamicProperties({
-    @DynamicProperty(name = "Header Name", value = "The Expression Language to be used to populate the header value", description = "The additional headers to be sent by the processor " +
-            "whenever making a new HTTP request. \n " +
+    @DynamicProperty(name = "Header Name", value = "The Expression Language to be used to populate the header value",
+            expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+            description = "The additional headers to be sent by the processor whenever making a new HTTP request. \n " +
             "Setting a dynamic property name to XYZ and value to ${attribute} will result in the header 'XYZ: attribute_value' being sent to the HTTP endpoint"),
 })
 @WritesAttributes({
@@ -131,7 +136,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .name("URL")
             .description("The URL to pull from")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .build();
@@ -164,7 +169,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
             .description("The filename to assign to the file when pulled")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .required(true)
             .build();
@@ -192,18 +197,6 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
-            .build();
-    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("Proxy Host")
-            .description("The fully qualified hostname or IP address of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("Proxy Port")
-            .description("The port of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
     public static final String DEFAULT_COOKIE_POLICY_STR = "default";
@@ -266,6 +259,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         properties.add(ACCEPT_CONTENT_TYPE);
         properties.add(FOLLOW_REDIRECTS);
         properties.add(REDIRECT_COOKIE_POLICY);
+        properties.add(HTTPUtils.PROXY_CONFIGURATION_SERVICE);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);
@@ -313,13 +307,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     .build());
         }
 
-        if (context.getProperty(PROXY_HOST).isSet() && !context.getProperty(PROXY_PORT).isSet()) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Proxy Host was set but no Proxy Port was specified")
-                    .valid(false)
-                    .subject("Proxy server configuration")
-                    .build());
-        }
+        HTTPUtils.validateProxyProperties(context, results);
 
         return results;
     }
@@ -328,7 +316,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .addValidator(Validator.VALID)
                 .required(false)
                 .dynamic(true)
@@ -454,22 +442,18 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             final String password = context.getProperty(PASSWORD).getValue();
 
             // set the credentials if appropriate
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             if (username != null) {
-                final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 if (password == null) {
                     credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
                 } else {
                     credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
                 }
-                clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             }
 
             // Set the proxy if specified
-            if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
-                final String host = context.getProperty(PROXY_HOST).getValue();
-                final int port = context.getProperty(PROXY_PORT).asInteger();
-                clientBuilder.setProxy(new HttpHost(host, port));
-            }
+            HTTPUtils.setProxy(context, clientBuilder, credentialsProvider);
 
             // create request
             final HttpGet get = new HttpGet(url);

@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -30,9 +30,10 @@
         <module>nifi-standard-nar</module>
         <module>nifi-jolt-transform-json-ui</module>
         <module>nifi-standard-utils</module>
+        <module>nifi-standard-web-test-utils</module>
     </modules>
     <properties>
-        <jackson.version>2.9.1</jackson.version>        
+        <jackson.version>2.9.5</jackson.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.0</jolt.version>
         <jersey.version>2.26</jersey.version>
@@ -42,24 +43,24 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>1.6.0-SNAPSHOT</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>1.6.0-SNAPSHOT</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-content-viewer</artifactId>
                 <type>war</type>
-                <version>1.6.0-SNAPSHOT</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jolt-transform-json-ui</artifactId>
                 <type>war</type>
-                <version>1.6.0-SNAPSHOT</version>
+                <version>1.8.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.bazaarvoice.jolt</groupId>
@@ -169,7 +170,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.15</version>
+                <version>1.16.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -265,12 +266,12 @@
             <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
-                <version>2.0.0</version>
+                <version>2.4.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.16</version>
+                <version>1.17</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
@@ -359,9 +360,9 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>io.thekraken</groupId>
-                <artifactId>grok</artifactId>
-                <version>0.1.5</version>
+                <groupId>io.krakens</groupId>
+                <artifactId>java-grok</artifactId>
+                <version>0.1.9</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.google.code</groupId>
@@ -378,6 +379,11 @@
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>1.8.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.palindromicity</groupId>
+                <artifactId>simple-syslog-5424</artifactId>
+                <version>0.0.5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

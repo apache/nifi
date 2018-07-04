@@ -1,5 +1,5 @@
 Apache NiFi
-Copyright 2014-2017 The Apache Software Foundation
+Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -19,6 +19,12 @@ This includes derived works from the Apache Storm (ASLv2 licensed) project (http
     org/apache/storm/hive/common/HiveWriter.java
     org/apache/storm/hive/common/HiveOptions.java
   and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hadoop (ASLv2 licensed) project (https://github.com/apache/hadoop):
+  Copyright 2014 The Apache Software Foundation
+  The derived work is adapted from
+    org/apache/hadoop/security/authentication/client/KerberosAuthenticator.java
+  and can be found in the org.apache.nifi.hadoop package
 
 This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
   Copyright 2008-2016 The Apache Software Foundation
@@ -289,6 +295,11 @@ The following binary components are provided under the Apache Software License v
 
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+  (ASLv2) Apache Commons Text
+    The following NOTICE information applies:
+      Apache Commons Text
+      Copyright 2001-2018 The Apache Software Foundation
 
   (ASLv2) Apache Commons Configuration
     The following NOTICE information applies:
@@ -1712,6 +1723,13 @@ The following binary components are provided under the Apache Software License v
       server-metrics
       Copyright 2011-2015 Metamarkets Group Inc.
 
+  (ASLv2) simple-syslog-5424
+    The following NOTICE information applies:
+
+        simple-syslog-5424
+        https://github.com/palindromicity/simple-syslog-5424
+
+        Copyright 2018 simple-syslog-5424 authors.
 
 ************************
 Common Development and Distribution License 1.1
@@ -1808,7 +1826,7 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.3 - http://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.3 - http://logback.qos.ch/)
     (EPLv1.0)(GPL 2)(LGPL 2.1) JRuby (org.jruby:jruby-complete:9.1.9.0 - http://jruby.org).
-    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.0.2 - https://github.com/eclipse/paho.mqtt.java)
+    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0 - https://github.com/eclipse/paho.mqtt.java)
     (EPL 1.0) Eclipse Link (org.eclipse.persistence:eclipselink:2.5.2 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Common Service Data Objects (org.eclipse.persistence:commonj.sdo:2.1.1 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)

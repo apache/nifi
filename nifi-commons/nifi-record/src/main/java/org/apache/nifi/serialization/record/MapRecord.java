@@ -17,6 +17,7 @@
 
 package org.apache.nifi.serialization.record;
 
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -268,7 +269,7 @@ public class MapRecord implements Record {
 
     @Override
     public Object[] getAsArray(final String fieldName) {
-        return DataTypeUtils.toArray(getValue(fieldName), fieldName);
+        return DataTypeUtils.toArray(getValue(fieldName), fieldName, null, StandardCharsets.UTF_8);
     }
 
 

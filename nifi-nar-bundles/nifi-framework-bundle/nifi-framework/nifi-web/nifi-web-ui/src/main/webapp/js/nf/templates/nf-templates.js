@@ -21,27 +21,30 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common',
+                'nf.Dialog',
                 'nf.TemplatesTable',
                 'nf.ErrorHandler',
                 'nf.Storage'],
-            function ($, nfCommon, nfTemplatesTable, nfErrorHandler, nfStorage) {
-                return (nf.Templates = factory($, nfCommon, nfTemplatesTable, nfErrorHandler, nfStorage));
+            function ($, nfCommon, nfDialog, nfTemplatesTable, nfErrorHandler, nfStorage) {
+                return (nf.Templates = factory($, nfCommon, nfDialog, nfTemplatesTable, nfErrorHandler, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Templates =
             factory(require('jquery'),
                 require('nf.Common'),
+                require('nf.Dialog'),
                 require('nf.TemplatesTable'),
                 require('nf.ErrorHandler'),
                 require('nf.Storage')));
     } else {
         nf.Templates = factory(root.$,
             root.nf.Common,
+            root.nf.Dialog,
             root.nf.TemplatesTable,
             root.nf.ErrorHandler,
             root.nf.Storage);
     }
-}(this, function ($, nfCommon, nfTemplatesTable, nfErrorHandler, nfStorage) {
+}(this, function ($, nfCommon, nfDialog, nfTemplatesTable, nfErrorHandler, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -71,6 +74,36 @@
         }).done(function (currentUser) {
             nfCommon.setCurrentUser(currentUser);
         }).fail(nfErrorHandler.handleAjaxError);
+    };
+
+    /**
+     * Verifies if the current node is disconnected from the cluster.
+     */
+    var verifyDisconnectedCluster = function () {
+        return $.Deferred(function (deferred) {
+            if (top !== window && nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.Storage)) {
+                deferred.resolve(parent.nf.Storage.isDisconnectionAcknowledged());
+            } else {
+                $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/flow/cluster/summary',
+                    dataType: 'json'
+                }).done(function (clusterSummaryResult) {
+                    var clusterSummaryResponse = clusterSummaryResult;
+                    var clusterSummary = clusterSummaryResponse.clusterSummary;
+
+                    if (clusterSummary.connectedToCluster) {
+                        deferred.resolve(false);
+                    } else {
+                        nfDialog.showDisconnectedFromClusterMessage(function () {
+                            deferred.resolve(true);
+                        });
+                    }
+                }).fail(nfErrorHandler.handleAjaxError).fail(function () {
+                    deferred.reject();
+                });
+            }
+        }).promise();
     };
 
     /**
@@ -139,10 +172,10 @@
             nfStorage.init();
 
             // load the current user
-            loadCurrentUser().done(function () {
+            $.when(verifyDisconnectedCluster(), loadCurrentUser()).done(function (verifyDisconnectedClusterResult) {
 
                 // create the templates table
-                nfTemplatesTable.init();
+                nfTemplatesTable.init(verifyDisconnectedClusterResult);
 
                 // load the table
                 nfTemplatesTable.loadTemplatesTable().done(function () {

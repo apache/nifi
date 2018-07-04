@@ -81,6 +81,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Gets the input content for a provenance event",
             response = StreamingOutput.class,
             authorizations = {
+                    @Authorization(value = "Read Component Provenance Data - /provenance-data/{component-type}/{uuid}"),
                     @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
@@ -164,6 +165,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Gets the output content for a provenance event",
             response = StreamingOutput.class,
             authorizations = {
+                    @Authorization(value = "Read Component Provenance Data - /provenance-data/{component-type}/{uuid}"),
                     @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
             }
     )
@@ -247,7 +249,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Gets a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}")
+                    @Authorization(value = "Read Component Provenance Data - /provenance-data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
@@ -320,6 +322,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             value = "Replays content from a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
+                    @Authorization(value = "Read Component Provenance Data - /provenance-data/{component-type}/{uuid}"),
                     @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}"),
                     @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}")
             }

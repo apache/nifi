@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
+import static org.apache.nifi.flowfile.attributes.CoreAttributes.MIME_TYPE;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Arrays;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
@@ -31,7 +34,9 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -68,17 +73,25 @@ import java.util.stream.Stream;
         + "To retrieve more records, use the ScrollElasticsearchHttp processor.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The filename attribute is set to the document identifier"),
+        @WritesAttribute(attribute = "es.query.hitcount", description = "The number of hits for a query"),
         @WritesAttribute(attribute = "es.id", description = "The Elasticsearch document identifier"),
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
+        @WritesAttribute(attribute = "es.query.url", description = "The Elasticsearch query that was built"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type"),
         @WritesAttribute(attribute = "es.result.*", description = "If Target is 'Flow file attributes', the JSON attributes of "
                 + "each result will be placed into corresponding attributes with this prefix.") })
 @DynamicProperty(
         name = "A URL query parameter",
         value = "The value to set it to",
-        supportsExpressionLanguage = true,
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
         description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing")
 public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
+
+    public enum QueryInfoRouteStrategy {
+        NEVER,
+        ALWAYS,
+        NOHIT
+    }
 
     private static final String FROM_QUERY_PARAM = "from";
 
@@ -86,6 +99,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final String TARGET_FLOW_FILE_ATTRIBUTES = "Flow file attributes";
     private static final String ATTRIBUTE_PREFIX = "es.result.";
 
+    static final AllowableValue ALWAYS = new AllowableValue(QueryInfoRouteStrategy.ALWAYS.name(), "Always", "Always route Query Info");
+    static final AllowableValue NEVER = new AllowableValue(QueryInfoRouteStrategy.NEVER.name(), "Never", "Never route Query Info");
+    static final AllowableValue NO_HITS = new AllowableValue(QueryInfoRouteStrategy.NOHIT.name(), "No Hits", "Route Query Info if the Query returns no hits");
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description(
@@ -106,17 +122,30 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                             + "based on the processor properties and the results of the fetch operation.")
             .build();
 
+    public static final Relationship REL_QUERY_INFO = new Relationship.Builder()
+            .name("query-info")
+            .description(
+                    "Depending on the setting of the Routing Strategy for Query Info property, a FlowFile is routed to this relationship with " +
+                            "the incoming FlowFile's attributes (if present), the number of hits, and the Elasticsearch query")
+            .build();
+
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("query-es-query").displayName("Query")
-            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)").required(true)
-            .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .name("query-es-query")
+            .displayName("Query")
+            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
-            .name("query-es-index").displayName("Index")
+            .name("query-es-index")
+            .displayName("Index")
             .description("The name of the index to read from. If the property is set "
-                            + "to _all, the query will match across all indexes.").required(true)
-            .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                            + "to _all, the query will match across all indexes.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
@@ -126,7 +155,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
                             + "the the query will match across all types.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -137,7 +166,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     "A comma-separated list of fields to retrieve from the document. If the Fields property is left blank, "
                             + "then the entire document's source will be retrieved.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -147,20 +176,29 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .description(
                     "A sort parameter (e.g., timestamp:asc). If the Sort property is left blank, "
                             + "then the results will be retrieved in document order.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("query-es-size").displayName("Page Size").defaultValue("20")
+            .name("query-es-size")
+            .displayName("Page Size")
+            .defaultValue("20")
             .description("Determines how many documents to return per page during scrolling.")
-            .required(true).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
-            .name("query-es-limit").displayName("Limit")
+            .name("query-es-limit")
+            .displayName("Limit")
             .description("If set, limits the number of results that will be returned.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor TARGET = new PropertyDescriptor.Builder()
             .name("query-es-target")
@@ -170,28 +208,29 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                             + "response will be written as the content of the flow file.  In the case of 'Flow file attributes', "
                             + "the original flow file (if applicable) will be cloned for each result, and all return fields will be placed "
                             + "in a flow file attribute of the same name, but prefixed by 'es.result.'")
-            .required(true).expressionLanguageSupported(false)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .defaultValue(TARGET_FLOW_FILE_CONTENT)
             .allowableValues(TARGET_FLOW_FILE_CONTENT, TARGET_FLOW_FILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    private static final Set<Relationship> relationships;
+    public static final PropertyDescriptor ROUTING_QUERY_INFO_STRATEGY = new PropertyDescriptor.Builder()
+            .name("routing-query-info-strategy")
+            .displayName("Routing Strategy for Query Info")
+            .description("Specifies when to generate and route Query Info after a successful query")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(ALWAYS, NEVER, NO_HITS)
+            .defaultValue(NEVER.getValue())
+            .required(false)
+            .build();
+
+    private volatile Set<Relationship> relationships = new HashSet<>(Arrays.asList(new Relationship[] {REL_SUCCESS, REL_FAILURE, REL_RETRY}));
     private static final List<PropertyDescriptor> propertyDescriptors;
+    private QueryInfoRouteStrategy queryInfoRouteStrategy = QueryInfoRouteStrategy.NEVER;
 
     static {
-        final Set<Relationship> _rels = new HashSet<>();
-        _rels.add(REL_SUCCESS);
-        _rels.add(REL_FAILURE);
-        _rels.add(REL_RETRY);
-        relationships = Collections.unmodifiableSet(_rels);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ES_URL);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(RESPONSE_TIMEOUT);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
         descriptors.add(QUERY);
         descriptors.add(PAGE_SIZE);
         descriptors.add(INDEX);
@@ -200,6 +239,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         descriptors.add(SORT);
         descriptors.add(LIMIT);
         descriptors.add(TARGET);
+        descriptors.add(ROUTING_QUERY_INFO_STRATEGY);
 
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -217,6 +257,23 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     @OnScheduled
     public void setup(ProcessContext context) {
         super.setup(context);
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+
+        if (ROUTING_QUERY_INFO_STRATEGY.equals(descriptor)) {
+            final Set<Relationship> relationshipSet = new HashSet<>();
+            relationshipSet.add(REL_SUCCESS);
+            relationshipSet.add(REL_FAILURE);
+            relationshipSet.add(REL_RETRY);
+
+            if (ALWAYS.getValue().equalsIgnoreCase(newValue) || NO_HITS.getValue().equalsIgnoreCase(newValue)) {
+                relationshipSet.add(REL_QUERY_INFO);
+            }
+            this.queryInfoRouteStrategy = QueryInfoRouteStrategy.valueOf(newValue);
+            this.relationships = relationshipSet;
+        }
     }
 
     @Override
@@ -263,7 +320,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         final ComponentLog logger = getLogger();
 
         int fromIndex = 0;
-        int numResults;
+        int numResults = 0;
 
         try {
             logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index, docType,
@@ -287,10 +344,11 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
                 numResults = this.getPage(getResponse, queryUrl, context, session, flowFile,
-                        logger, startNanos, targetIsContent);
+                        logger, startNanos, targetIsContent, numResults);
                 fromIndex += pageSize;
                 getResponse.close();
-            } while (numResults > 0 && !hitLimit);
+            }
+            while (numResults > 0 && !hitLimit);
 
             if (flowFile != null) {
                 session.remove(flowFile);
@@ -323,7 +381,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private int getPage(final Response getResponse, final URL url, final ProcessContext context,
             final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
-            final long startNanos, boolean targetIsContent)
+            final long startNanos, boolean targetIsContent, int priorResultCount)
             throws IOException {
         List<FlowFile> page = new ArrayList<>();
         final int statusCode = getResponse.code();
@@ -333,6 +391,17 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             final byte[] bodyBytes = body.bytes();
             JsonNode responseJson = parseJsonResponse(new ByteArrayInputStream(bodyBytes));
             JsonNode hits = responseJson.get("hits").get("hits");
+
+            // if there are no hits, and there have never been any hits in this run ( priorResultCount ) and
+            // we are in NOHIT or ALWAYS, send the query info
+            if ( (hits.size() == 0 && priorResultCount == 0 && queryInfoRouteStrategy == QueryInfoRouteStrategy.NOHIT)
+                    || queryInfoRouteStrategy == QueryInfoRouteStrategy.ALWAYS) {
+                FlowFile queryInfo = flowFile == null ? session.create() : session.create(flowFile);
+                session.putAttribute(queryInfo, "es.query.url", url.toExternalForm());
+                session.putAttribute(queryInfo, "es.query.hitcount", String.valueOf(hits.size()));
+                session.putAttribute(queryInfo, MIME_TYPE.key(), "application/json");
+                session.transfer(queryInfo,REL_QUERY_INFO);
+            }
 
             for(int i = 0; i < hits.size(); i++) {
                 JsonNode hit = hits.get(i);
@@ -351,6 +420,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.id", retrievedId);
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.index", retrievedIndex);
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.type", retrievedType);
+                documentFlowFile = session.putAttribute(documentFlowFile, "es.query.url", url.toExternalForm());
 
                 if (targetIsContent) {
                     documentFlowFile = session.putAttribute(documentFlowFile, "filename", retrievedId);

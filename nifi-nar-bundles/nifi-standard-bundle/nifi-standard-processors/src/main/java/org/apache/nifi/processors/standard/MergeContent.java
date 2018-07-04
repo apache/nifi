@@ -70,9 +70,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -86,6 +86,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.bin.Bin;
 import org.apache.nifi.processor.util.bin.BinFiles;
 import org.apache.nifi.processor.util.bin.BinManager;
+import org.apache.nifi.processor.util.bin.BinProcessingResult;
 import org.apache.nifi.processors.standard.merge.AttributeStrategy;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
@@ -110,7 +111,8 @@ import org.apache.nifi.util.FlowFilePackagerV3;
         + "attribute must be present on all FlowFiles when using the Defragment Merge Strategy and must be a unique (i.e., unique across all "
         + "FlowFiles that have the same value for the \"fragment.identifier\" attribute) integer "
         + "between 0 and the value of the fragment.count attribute. If two or more FlowFiles have the same value for the "
-        + "\"fragment.identifier\" attribute and the same value for the \"fragment.index\" attribute, the behavior of this Processor is undefined."),
+        + "\"fragment.identifier\" attribute and the same value for the \"fragment.index\" attribute, the first FlowFile processed will be "
+        + "accepted and subsequent FlowFiles will not be accepted into the Bin."),
     @ReadsAttribute(attribute = "fragment.count", description = "Applicable only if the <Merge Strategy> property is set to Defragment. This "
         + "attribute must be present on all FlowFiles with the same value for the fragment.identifier attribute. All FlowFiles in the same "
         + "bundle must have the same value for this attribute. The value of this attribute indicates how many FlowFiles should be expected "
@@ -131,7 +133,8 @@ import org.apache.nifi.util.FlowFilePackagerV3;
         + "if Merge Format is FlowFileStream, then the filename will be appended with .pkg"),
     @WritesAttribute(attribute = "merge.count", description = "The number of FlowFiles that were merged into this bundle"),
     @WritesAttribute(attribute = "merge.bin.age", description = "The age of the bin, in milliseconds, when it was merged and output. Effectively "
-        + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output") })
+        + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output"),
+    @WritesAttribute(attribute = "merge.uuid", description = "UUID of the merged flow file that will be added to the original flow files attributes.")})
 @SeeAlso({SegmentContent.class, MergeRecord.class})
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "While content is not stored in memory, the FlowFiles' attributes are. " +
         "The configuration of MergeContent (maximum bin size, maximum group size, maximum bin age, max number of entries) will influence how much " +
@@ -241,6 +244,7 @@ public class MergeContent extends BinFiles {
     public static final String TAR_PERMISSIONS_ATTRIBUTE = "tar.permissions";
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
     public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
+    public static final String MERGE_UUID_ATTRIBUTE = "merge.uuid";
 
     public static final PropertyDescriptor MERGE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Merge Strategy")
@@ -264,7 +268,7 @@ public class MergeContent extends BinFiles {
             .description("If specified, like FlowFiles will be binned together, where 'like FlowFiles' means FlowFiles that have the same value for "
                     + "this Attribute. If not specified, FlowFiles are bundled by the order in which they are pulled from the queue.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .defaultValue(null)
             .build();
@@ -284,7 +288,7 @@ public class MergeContent extends BinFiles {
                     + "binary-concatenation merge strategy; otherwise, it is ignored.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor FOOTER = new PropertyDescriptor.Builder()
             .name("Footer File")
@@ -293,7 +297,7 @@ public class MergeContent extends BinFiles {
                     + "binary-concatenation merge strategy; otherwise, it is ignored.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Demarcator File")
@@ -302,7 +306,7 @@ public class MergeContent extends BinFiles {
                     + "using the binary-concatenation merge strategy; otherwise, it is ignored.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Compression Level")
@@ -326,7 +330,7 @@ public class MergeContent extends BinFiles {
                     + "(e.g. ${file.lastModifiedTime} or static value, both of which must match the ISO8601 format 'yyyy-MM-dd'T'HH:mm:ssZ'; if using "
                     + "other merge strategy or left blank, this value is ignored")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("${file.lastModifiedTime}")
             .build();
@@ -437,8 +441,8 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected boolean processBin(final Bin bin, final ProcessContext context) throws ProcessException {
-
+    protected BinProcessingResult processBin(final Bin bin, final ProcessContext context) throws ProcessException {
+        final BinProcessingResult binProcessingResult = new BinProcessingResult(true);
         final String mergeFormat = context.getProperty(MERGE_FORMAT).getValue();
         MergeBin merger;
         switch (mergeFormat) {
@@ -482,7 +486,7 @@ public class MergeContent extends BinFiles {
                 binSession.transfer(contents, REL_FAILURE);
                 binSession.commit();
 
-                return true;
+                return binProcessingResult;
             }
 
             Collections.sort(contents, new FragmentComparator());
@@ -506,6 +510,7 @@ public class MergeContent extends BinFiles {
         final String inputDescription = contents.size() < 10 ? contents.toString() : contents.size() + " FlowFiles";
         getLogger().info("Merged {} into {}", new Object[]{inputDescription, bundle});
         binSession.transfer(bundle, REL_MERGED);
+        binProcessingResult.getAttributes().put(MERGE_UUID_ATTRIBUTE, bundle.getAttribute(CoreAttributes.UUID.key()));
 
         for (final FlowFile unmerged : merger.getUnmergedFlowFiles()) {
             final FlowFile unmergedCopy = binSession.clone(unmerged);
@@ -513,7 +518,8 @@ public class MergeContent extends BinFiles {
         }
 
         // We haven't committed anything, parent will take care of it
-        return false;
+        binProcessingResult.setCommitted(false);
+        return binProcessingResult;
     }
 
     private String getDefragmentValidationError(final List<FlowFile> binContents) {
@@ -655,13 +661,13 @@ public class MergeContent extends BinFiles {
         private byte[] getDelimiterFileContent(final ProcessContext context, final List<FlowFile> flowFiles, final PropertyDescriptor descriptor)
                 throws IOException {
             byte[] property = null;
-            final String descriptorValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
-            if (descriptorValue != null && flowFiles != null && flowFiles.size() > 0) {
-                final String content = new String(readContent(descriptorValue), StandardCharsets.UTF_8);
+            if (flowFiles != null && flowFiles.size() > 0) {
                 final FlowFile flowFile = flowFiles.get(0);
-                if (flowFile != null && content != null) {
-                    final PropertyValue propVal = context.newPropertyValue(content).evaluateAttributeExpressions(flowFile);
-                    property = propVal.getValue().getBytes(StandardCharsets.UTF_8);
+                if (flowFile != null) {
+                    final String value = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+                    if (value != null) {
+                        property = readContent(value);
+                    }
                 }
             }
             return property;

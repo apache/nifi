@@ -18,19 +18,6 @@
 package org.apache.nifi.processors.standard;
 
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Parser;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -48,6 +35,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -70,9 +58,23 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RawRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.validation.RecordSchemaValidator;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @EventDriven
 @SideEffectFree
@@ -111,6 +113,16 @@ public class ValidateRecord extends AbstractProcessor {
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
+    static final PropertyDescriptor INVALID_RECORD_WRITER = new PropertyDescriptor.Builder()
+        .name("invalid-record-writer")
+        .displayName("Record Writer for Invalid Records")
+        .description("If specified, this Controller Service will be used to write out any records that are invalid. "
+            + "If not specified, the writer specified by the \"Record Writer\" property will be used. This is useful, for example, when the configured "
+            + "Record Writer cannot write data that does not adhere to its schema (as is the case with Avro) or when it is desirable to keep invalid records "
+            + "in their original format while converting valid records to another format.")
+        .identifiesControllerService(RecordSetWriterFactory.class)
+        .required(false)
+        .build();
     static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
         .name("schema-access-strategy")
         .displayName("Schema Access Strategy")
@@ -131,7 +143,7 @@ public class ValidateRecord extends AbstractProcessor {
         .displayName("Schema Name")
         .description("Specifies the name of the schema to lookup in the Schema Registry property")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${schema.name}")
         .required(false)
         .build();
@@ -140,7 +152,7 @@ public class ValidateRecord extends AbstractProcessor {
         .displayName("Schema Text")
         .description("The text of an Avro-formatted Schema")
         .addValidator(new AvroSchemaValidator())
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("${avro.schema}")
         .required(false)
         .build();
@@ -185,6 +197,7 @@ public class ValidateRecord extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
+        properties.add(INVALID_RECORD_WRITER);
         properties.add(SCHEMA_ACCESS_STRATEGY);
         properties.add(SCHEMA_REGISTRY);
         properties.add(SCHEMA_NAME);
@@ -236,7 +249,10 @@ public class ValidateRecord extends AbstractProcessor {
             return;
         }
 
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final RecordSetWriterFactory validRecordWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final RecordSetWriterFactory invalidRecordWriterFactory = context.getProperty(INVALID_RECORD_WRITER).isSet()
+            ? context.getProperty(INVALID_RECORD_WRITER).asControllerService(RecordSetWriterFactory.class)
+            : validRecordWriterFactory;
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final boolean allowExtraFields = context.getProperty(ALLOW_EXTRA_FIELDS).asBoolean();
@@ -276,7 +292,7 @@ public class ValidateRecord extends AbstractProcessor {
                             validFlowFile = session.create(flowFile);
                         }
 
-                        validWriter = writer = createIfNecessary(validWriter, writerFactory, session, validFlowFile, record.getSchema());
+                        validWriter = writer = createIfNecessary(validWriter, validRecordWriterFactory, session, validFlowFile, record.getSchema());
                     } else {
                         invalidCount++;
                         logValidationErrors(flowFile, recordCount, result);
@@ -285,7 +301,7 @@ public class ValidateRecord extends AbstractProcessor {
                             invalidFlowFile = session.create(flowFile);
                         }
 
-                        invalidWriter = writer = createIfNecessary(invalidWriter, writerFactory, session, invalidFlowFile, record.getSchema());
+                        invalidWriter = writer = createIfNecessary(invalidWriter, invalidRecordWriterFactory, session, invalidFlowFile, record.getSchema());
 
                         // Add all of the validation errors to our Set<ValidationError> but only keep up to MAX_VALIDATION_ERRORS because if
                         // we keep too many then we both use up a lot of heap and risk outputting so much information in the Provenance Event
@@ -379,7 +395,7 @@ public class ValidateRecord extends AbstractProcessor {
             session.adjustCounter("Records Validated", recordCount, false);
             session.adjustCounter("Records Found Valid", validCount, false);
             session.adjustCounter("Records Found Invalid", invalidCount, false);
-        } catch (final IOException | MalformedRecordException | SchemaNotFoundException e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             if (validFlowFile != null) {
@@ -450,7 +466,8 @@ public class ValidateRecord extends AbstractProcessor {
         } else if (schemaAccessStrategy.equals(SCHEMA_NAME_PROPERTY.getValue())) {
             final SchemaRegistry schemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
             final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            return schemaRegistry.retrieveSchema(schemaName);
+            final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name(schemaName).build();
+            return schemaRegistry.retrieveSchema(schemaIdentifier);
         } else if (schemaAccessStrategy.equals(SCHEMA_TEXT_PROPERTY.getValue())) {
             final String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions(flowFile).getValue();
             final Parser parser = new Schema.Parser();

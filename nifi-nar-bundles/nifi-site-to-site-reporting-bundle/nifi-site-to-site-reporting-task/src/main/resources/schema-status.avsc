@@ -1,0 +1,78 @@
+{
+  "type" : "record",
+  "name" : "status",
+  "namespace" : "status",
+  "fields" : [
+  
+    // common fields for all components
+	{ "name" : "statusId", "type" : "string"},
+	{ "name" : "timestampMillis", "type": { "type": "long", "logicalType": "timestamp-millis" } },
+	{ "name" : "timestamp", "type" : "string"},
+	{ "name" : "actorHostname", "type" : "string"},
+	{ "name" : "componentType", "type" : "string"},
+	{ "name" : "componentName", "type" : "string"},
+	{ "name" : "parentId", "type" : ["string", "null"]},
+	{ "name" : "platform", "type" : "string"},
+	{ "name" : "application", "type" : "string"},
+	{ "name" : "componentId", "type" : "string"},
+	
+	// PG + RPG + Ports + Processors
+	{ "name" : "activeThreadCount", "type" : ["long", "null"]},
+	
+	// PG + Ports + Processors
+	{ "name" : "flowFilesReceived", "type" : ["long", "null"]},
+	{ "name" : "flowFilesSent", "type" : ["long", "null"]},
+	
+	// PG + Ports + Processors
+	{ "name" : "bytesReceived", "type" : ["long", "null"]},
+	{ "name" : "bytesSent", "type" : ["long", "null"]},
+	
+	// PG + Connections
+	{ "name" : "queuedCount", "type" : ["long", "null"]},
+	
+	// PG + Processors
+	{ "name" : "bytesRead", "type" : ["long", "null"]},
+	{ "name" : "bytesWritten", "type" : ["long", "null"]},
+	
+	// fields for process group status
+	{ "name" : "bytesTransferred", "type" : ["long", "null"]},
+	{ "name" : "flowFilesTransferred", "type" : ["long", "null"]},
+	{ "name" : "inputContentSize", "type" : ["long", "null"]},
+	{ "name" : "outputContentSize", "type" : ["long", "null"]},
+	{ "name" : "queuedContentSize", "type" : ["long", "null"]},
+	
+	// fields for remote process groups
+	{ "name" : "activeRemotePortCount", "type" : ["long", "null"]},
+	{ "name" : "inactiveRemotePortCount", "type" : ["long", "null"]},
+	{ "name" : "receivedContentSize", "type" : ["long", "null"]},
+	{ "name" : "receivedCount", "type" : ["long", "null"]},
+	{ "name" : "sentContentSize", "type" : ["long", "null"]},
+	{ "name" : "sentCount", "type" : ["long", "null"]},
+	{ "name" : "averageLineageDuration", "type" : ["long", "null"]},
+	
+	// fields for input/output ports + connections + PG
+	{ "name" : "inputBytes", "type" : ["long", "null"]},
+	{ "name" : "inputCount", "type" : ["long", "null"]},
+	{ "name" : "outputBytes", "type" : ["long", "null"]},
+	{ "name" : "outputCount", "type" : ["long", "null"]},
+	
+	// fields for connections
+	{ "name" : "sourceId", "type" : ["string", "null"]},
+	{ "name" : "sourceName", "type" : ["string", "null"]},
+	{ "name" : "destinationId", "type" : ["string", "null"]},
+	{ "name" : "destinationName", "type" : ["string", "null"]},
+	{ "name" : "maxQueuedBytes", "type" : ["long", "null"]},
+	{ "name" : "maxQueuedCount", "type" : ["long", "null"]},
+	{ "name" : "queuedBytes", "type" : ["long", "null"]},
+	{ "name" : "backPressureBytesThreshold", "type" : ["long", "null"]},
+	{ "name" : "backPressureObjectThreshold", "type" : ["long", "null"]},
+	{ "name" : "isBackPressureEnabled", "type" : ["string", "null"]},
+	
+    // fields for processors
+	{ "name" : "processorType", "type" : ["string", "null"]},
+	{ "name" : "averageLineageDurationMS", "type" : ["long", "null"]},
+	{ "name" : "flowFilesRemoved", "type" : ["long", "null"]},
+	{ "name" : "invocations", "type" : ["long", "null"]},
+	{ "name" : "processingNanos", "type" : ["long", "null"]}
+  ]
+}

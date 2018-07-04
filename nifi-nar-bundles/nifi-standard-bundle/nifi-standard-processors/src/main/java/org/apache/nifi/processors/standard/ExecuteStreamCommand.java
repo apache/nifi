@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.ProcessBuilder.Redirect;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -35,6 +52,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -49,24 +67,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.lang.ProcessBuilder.Redirect;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * <p>
@@ -132,14 +132,14 @@ import java.util.concurrent.atomic.AtomicReference;
 @EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"command execution", "command", "stream", "execute", "restricted"})
+@Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({
-    @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
-    @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
-    @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
-    @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
+        @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
+        @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
+        @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
+        @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -171,7 +171,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder()
             .name("Command Path")
             .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .required(true)
             .build();
@@ -179,12 +179,13 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor EXECUTION_ARGUMENTS = new PropertyDescriptor.Builder()
             .name("Command Arguments")
             .description("The arguments to supply to the executable delimited by the ';' character.")
-            .expressionLanguageSupported(true).addValidator(new Validator() {
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(new Validator() {
 
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
                     ValidationResult result = new ValidationResult.Builder()
-                    .subject(subject).valid(true).input(input).build();
+                            .subject(subject).valid(true).input(input).build();
                     List<String> args = ArgumentUtils.splitArgs(input, context.getProperty(ARG_DELIMITER).getValue().charAt(0));
                     for (String arg : args) {
                         ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.validate(subject, arg, context);
@@ -200,7 +201,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
             .name("Working Directory")
             .description("The directory to use as the current working directory when executing the command")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, true))
             .required(false)
             .build();
@@ -298,11 +299,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-        .name(propertyDescriptorName)
-        .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
-        .dynamic(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+                .name(propertyDescriptorName)
+                .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+                .dynamic(true)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .build();
     }
 
     @Override
@@ -349,6 +350,15 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         builder.directory(dir);
         builder.redirectInput(Redirect.PIPE);
         builder.redirectOutput(Redirect.PIPE);
+        final File errorOut;
+        try {
+            errorOut = File.createTempFile("out", null);
+            builder.redirectError(errorOut);
+        } catch (IOException e) {
+            logger.error("Could not create temporary file for error logging", e);
+            throw new ProcessException(e);
+        }
+
         final Process process;
         try {
             process = builder.start();
@@ -358,9 +368,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         }
         try (final OutputStream pos = process.getOutputStream();
              final InputStream pis = process.getInputStream();
-             final InputStream pes = process.getErrorStream();
-             final BufferedInputStream bis = new BufferedInputStream(pis);
-             final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(pes))) {
+             final BufferedInputStream bis = new BufferedInputStream(pis)) {
             int exitCode = -1;
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
             FlowFile outputFlowFile = putToAttribute ? inputFlowFile : session.create(inputFlowFile);
@@ -380,10 +388,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             Map<String, String> attributes = new HashMap<>();
 
             final StringBuilder strBldr = new StringBuilder();
-            try {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    strBldr.append(line).append("\n");
+            try (final InputStream is = new FileInputStream(errorOut)) {
+                int c;
+                while ((c = is.read()) != -1) {
+                    strBldr.append((char) c);
                 }
             } catch (IOException e) {
                 strBldr.append("Unknown...could not read Process's Std Error");
@@ -422,6 +430,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             // could not close Process related streams
             logger.warn("Problem terminating Process {}", new Object[]{process}, ex);
         } finally {
+            errorOut.delete();
             process.destroy(); // last ditch effort to clean up that process.
         }
     }
@@ -466,7 +475,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
                     // Because the outputstream has a cap that the copy doesn't know about, adjust
                     // the actual size
-                    if (longSize > (long) attributeSize) { // Explicit cast for readability
+                    if (longSize > attributeSize) { // Explicit cast for readability
                         size = attributeSize;
                     } else{
                         size = (int) longSize; // Note: safe cast, longSize is limited by attributeSize

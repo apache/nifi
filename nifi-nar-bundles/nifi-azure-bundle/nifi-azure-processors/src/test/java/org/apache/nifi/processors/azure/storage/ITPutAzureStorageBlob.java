@@ -42,8 +42,6 @@ public class ITPutAzureStorageBlob {
         final TestRunner runner = TestRunners.newTestRunner(new PutAzureBlobStorage());
 
         try {
-            runner.setValidateExpressionUsage(true);
-
             runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
             runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
             runner.setProperty(AzureStorageUtils.CONTAINER, containerName);

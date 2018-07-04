@@ -132,6 +132,7 @@ public class TemplateUtils {
             processGroupDTO.setStaleCount(null);
             processGroupDTO.setLocallyModifiedAndStaleCount(null);
             processGroupDTO.setSyncFailureCount(null);
+            processGroupDTO.setVersionControlInformation(null);
 
             scrubSnippet(processGroupDTO.getContents());
         }
@@ -181,6 +182,7 @@ public class TemplateUtils {
             processorDTO.setExtensionMissing(null);
             processorDTO.setMultipleVersionsAvailable(null);
             processorDTO.setValidationErrors(null);
+            processorDTO.setValidationStatus(null);
             processorDTO.setInputRequirement(null);
             processorDTO.setDescription(null);
             processorDTO.setInputRequirement(null);
@@ -209,6 +211,7 @@ public class TemplateUtils {
         descriptor.setRequired(null);
         descriptor.setSensitive(null);
         descriptor.setSupportsEl(null);
+        descriptor.setExpressionLanguageScope(null);
         descriptor.setIdentifiesControllerServiceBundle(null);
     }
 
@@ -234,6 +237,7 @@ public class TemplateUtils {
 
             serviceDTO.setCustomUiUrl(null);
             serviceDTO.setValidationErrors(null);
+            serviceDTO.setValidationStatus(null);
         }
     }
 

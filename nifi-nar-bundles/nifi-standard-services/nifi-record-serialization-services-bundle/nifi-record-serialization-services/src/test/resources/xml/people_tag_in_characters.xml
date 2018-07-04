@@ -1,0 +1,23 @@
+<PEOPLE attr="attr1">
+    <PERSON ID="P1">
+        <NAME ATTR="attr content">Cleve <INNER>inner content</INNER>Butler</NAME>
+        <AGE>42</AGE>
+    </PERSON>
+    <PERSON ID="P2">
+        <NAME ATTR="attr content">Ainslie <INNER>inner content</INNER>Fletcher</NAME>
+        <AGE>33</AGE>
+    </PERSON>
+    <PERSON ID="P3">
+        <NAME ATTR="attr content">Amélie <INNER>inner content</INNER>Bonfils</NAME>
+        <AGE>74</AGE>
+    </PERSON>
+    <PERSON ID="P4">
+        <NAME ATTR="attr content">Elenora <INNER>inner content</INNER>Scrivens</NAME>
+        <AGE>16</AGE>
+    </PERSON>
+    <PERSON ID="P5">
+        <NAME><INNER>inner content</INNER></NAME>
+        <AGE></AGE>
+        <COUNTRY></COUNTRY>
+    </PERSON>
+</PEOPLE>

@@ -16,53 +16,43 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.tasks.ContinuallyRunConnectableTask;
-import org.apache.nifi.controller.tasks.ContinuallyRunProcessorTask;
+import org.apache.nifi.controller.tasks.ConnectableTask;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.FormatUtils;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
 
     private final Logger logger = LoggerFactory.getLogger(QuartzSchedulingAgent.class);
 
     private final FlowController flowController;
-    private final ProcessContextFactory contextFactory;
+    private final RepositoryContextFactory contextFactory;
     private final StringEncryptor encryptor;
 
     private volatile String adminYieldDuration = "1 sec";
     private final Map<Object, List<AtomicBoolean>> canceledTriggers = new HashMap<>();
 
-    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final ProcessContextFactory contextFactory, final StringEncryptor enryptor) {
+    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final RepositoryContextFactory contextFactory, final StringEncryptor enryptor) {
         super(flowEngine);
         this.flowController = flowController;
         this.contextFactory = contextFactory;
         this.encryptor = enryptor;
-    }
-
-    private StateManager getStateManager(final String componentId) {
-        return flowController.getStateManagerProvider().getStateManager(componentId);
     }
 
     @Override
@@ -70,7 +60,7 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
     }
 
     @Override
-    public void doSchedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
+    public void doSchedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
         final List<AtomicBoolean> existingTriggers = canceledTriggers.get(taskNode);
         if (existingTriggers != null) {
             throw new IllegalStateException("Cannot schedule " + taskNode.getReportingTask().getIdentifier() + " because it is already scheduled to run");
@@ -87,7 +77,13 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
         final ReportingTaskWrapper taskWrapper = new ReportingTaskWrapper(taskNode, scheduleState);
 
         final AtomicBoolean canceled = new AtomicBoolean(false);
+        final Date initialDate = cronExpression.getTimeAfter(new Date());
+        final long initialDelay = initialDate.getTime() - System.currentTimeMillis();
+
         final Runnable command = new Runnable() {
+
+            private Date nextSchedule = initialDate;
+
             @Override
             public void run() {
                 if (canceled.get()) {
@@ -100,10 +96,10 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
                     return;
                 }
 
-                final Date date = cronExpression.getTimeAfter(new Date());
-                final long delay = date.getTime() - System.currentTimeMillis();
+                nextSchedule = getNextSchedule(nextSchedule, cronExpression);
+                final long delay = getDelay(nextSchedule);
 
-                logger.debug("Finished running Reporting Task {}; next scheduled time is at {} after a delay of {} milliseconds", taskNode, date, delay);
+                logger.debug("Finished running Reporting Task {}; next scheduled time is at {} after a delay of {} milliseconds", taskNode, nextSchedule, delay);
                 flowEngine.schedule(this, delay, TimeUnit.MILLISECONDS);
             }
         };
@@ -112,15 +108,13 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
         triggers.add(canceled);
         canceledTriggers.put(taskNode, triggers);
 
-        final Date initialDate = cronExpression.getTimeAfter(new Date());
-        final long initialDelay = initialDate.getTime() - System.currentTimeMillis();
         flowEngine.schedule(command, initialDelay, TimeUnit.MILLISECONDS);
         scheduleState.setScheduled(true);
         logger.info("Scheduled Reporting Task {} to run threads on schedule {}", taskNode, cronSchedule);
     }
 
     @Override
-    public synchronized void doSchedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public synchronized void doSchedule(final Connectable connectable, final LifecycleState scheduleState) {
         final List<AtomicBoolean> existingTriggers = canceledTriggers.get(connectable);
         if (existingTriggers != null) {
             throw new IllegalStateException("Cannot schedule " + connectable + " because it is already scheduled to run");
@@ -136,21 +130,17 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
 
         final List<AtomicBoolean> triggers = new ArrayList<>();
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
-            final Callable<Boolean> continuallyRunTask;
-
-            if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
-                final ProcessorNode procNode = (ProcessorNode) connectable;
-
-                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor, getStateManager(connectable.getIdentifier()));
-                ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, contextFactory, scheduleState, standardProcContext);
-                continuallyRunTask = runnableTask;
-            } else {
-                final ConnectableProcessContext connProcContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
-                continuallyRunTask = new ContinuallyRunConnectableTask(contextFactory, connectable, scheduleState, connProcContext);
-            }
+            final ConnectableTask continuallyRunTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState, encryptor);
 
             final AtomicBoolean canceled = new AtomicBoolean(false);
+
+            final Date initialDate = cronExpression.getTimeAfter(new Date());
+            final long initialDelay = initialDate.getTime() - System.currentTimeMillis();
+
             final Runnable command = new Runnable() {
+
+                private Date nextSchedule = initialDate;
+
                 @Override
                 public void run() {
                     if (canceled.get()) {
@@ -158,7 +148,7 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
                     }
 
                     try {
-                        continuallyRunTask.call();
+                        continuallyRunTask.invoke();
                     } catch (final RuntimeException re) {
                         throw re;
                     } catch (final Exception e) {
@@ -169,16 +159,15 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
                         return;
                     }
 
-                    final Date date = cronExpression.getTimeAfter(new Date());
-                    final long delay = date.getTime() - System.currentTimeMillis();
+                    nextSchedule = getNextSchedule(nextSchedule, cronExpression);
+                    final long delay = getDelay(nextSchedule);
 
-                    logger.debug("Finished task for {}; next scheduled time is at {} after a delay of {} milliseconds", connectable, date, delay);
+                    logger.debug("Finished task for {}; next scheduled time is at {} after a delay of {} milliseconds", connectable, nextSchedule, delay);
                     flowEngine.schedule(this, delay, TimeUnit.MILLISECONDS);
                 }
             };
 
-            final Date initialDate = cronExpression.getTimeAfter(new Date());
-            final long initialDelay = initialDate.getTime() - System.currentTimeMillis();
+
             flowEngine.schedule(command, initialDelay, TimeUnit.MILLISECONDS);
             triggers.add(canceled);
         }
@@ -188,16 +177,16 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
     }
 
     @Override
-    public synchronized void doUnschedule(final Connectable connectable, final ScheduleState scheduleState) {
+    public synchronized void doUnschedule(final Connectable connectable, final LifecycleState scheduleState) {
         unschedule((Object) connectable, scheduleState);
     }
 
     @Override
-    public synchronized void doUnschedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
+    public synchronized void doUnschedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
         unschedule((Object) taskNode, scheduleState);
     }
 
-    private void unschedule(final Object scheduled, final ScheduleState scheduleState) {
+    private void unschedule(final Object scheduled, final LifecycleState scheduleState) {
         final List<AtomicBoolean> triggers = canceledTriggers.remove(scheduled);
         if (triggers == null) {
             throw new IllegalStateException("Cannot unschedule " + scheduled + " because it was not scheduled to run");
@@ -232,5 +221,27 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
     @Override
     public long getAdministrativeYieldDuration(final TimeUnit timeUnit) {
         return FormatUtils.getTimeDuration(adminYieldDuration, timeUnit);
+    }
+
+    @Override
+    public void incrementMaxThreadCount(int toAdd) {
+        final int corePoolSize = flowEngine.getCorePoolSize();
+        if (toAdd < 0 && corePoolSize + toAdd < 1) {
+            throw new IllegalStateException("Cannot remove " + (-toAdd) + " threads from pool because there are only " + corePoolSize + " threads in the pool");
+        }
+
+        flowEngine.setCorePoolSize(corePoolSize + toAdd);
+    }
+
+    private static Date getNextSchedule(final Date currentSchedule, final CronExpression cronExpression) {
+        // Since the clock has not a millisecond precision, we have to check that we
+        // schedule the next time after the time this was supposed to run, otherwise
+        // we might end up with running the same task twice
+        final Date now = new Date();
+        return cronExpression.getTimeAfter(now.after(currentSchedule) ? now : currentSchedule);
+    }
+
+    private static long getDelay(Date nextSchedule) {
+        return Math.max(nextSchedule.getTime() - System.currentTimeMillis(), 0L);
     }
 }

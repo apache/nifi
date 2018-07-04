@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -33,12 +34,18 @@ import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.jcraft.jsch.ProxySOCKS5;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.ChannelSftp;
@@ -46,8 +53,11 @@ import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.ChannelSftp.LsEntrySelector;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.ProxyHTTP;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
+
+import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
 public class SFTPTransfer implements FileTransfer {
 
@@ -56,14 +66,14 @@ public class SFTPTransfer implements FileTransfer {
         .description("The fully qualified path to the Private Key file")
         .required(false)
         .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder()
         .name("Private Key Passphrase")
         .description("Password for the private key")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .sensitive(true)
         .build();
     public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder()
@@ -83,7 +93,7 @@ public class SFTPTransfer implements FileTransfer {
         .name("Port")
         .description("The port that the remote system is listening on for file transfers")
         .addValidator(StandardValidators.PORT_VALIDATOR)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .defaultValue("22")
         .build();
@@ -95,6 +105,7 @@ public class SFTPTransfer implements FileTransfer {
         .required(true)
         .build();
 
+
     /**
      * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
      * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
@@ -105,7 +116,7 @@ public class SFTPTransfer implements FileTransfer {
         .description("If set to 'true', directory listing is not performed prior to create missing directories." +
                 " By default, this processor executes a directory listing command" +
                 " to see target directory existence before creating missing directories." +
-                " However, there are situations that you might need to disable the directory listing such as followings." +
+                " However, there are situations that you might need to disable the directory listing such as the following." +
                 " Directory listing might fail with some permission setups (e.g. chmod 100) on a directory." +
                 " Also, if any other SFTP client created the directory after this processor performed a listing" +
                 " and before a directory creation request by this processor is finished," +
@@ -114,6 +125,10 @@ public class SFTPTransfer implements FileTransfer {
         .allowableValues("true", "false")
         .defaultValue("false")
         .build();
+
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS_AUTH};
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
     private final ComponentLog logger;
 
@@ -131,6 +146,10 @@ public class SFTPTransfer implements FileTransfer {
 
         final PropertyValue disableListing = processContext.getProperty(DISABLE_DIRECTORY_LISTING);
         disableDirectoryListing = disableListing == null ? false : Boolean.TRUE.equals(disableListing.asBoolean());
+    }
+
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+        ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
     @Override
@@ -352,48 +371,52 @@ public class SFTPTransfer implements FileTransfer {
         final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
 
         // if we disable the directory listing, we just want to blindly perform the mkdir command,
-        // eating any exceptions thrown (like if the directory already exists).
+        // eating failure exceptions thrown (like if the directory already exists).
         if (disableDirectoryListing) {
             try {
+                // Blindly create the dir.
                 channel.mkdir(remoteDirectory);
+                // The remote directory did not exist, and was created successfully.
+                return;
             } catch (SftpException e) {
-                if (e.id != ChannelSftp.SSH_FX_FAILURE) {
+                if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                    // No Such File. This happens when parent directory was not found.
+                    logger.debug(String.format("Could not create %s due to 'No such file'. Will try to create the parent dir.", remoteDirectory));
+                } else if (e.id == ChannelSftp.SSH_FX_FAILURE) {
+                    // Swallow '4: Failure' including the remote directory already exists.
+                    logger.debug("Could not blindly create remote directory due to " + e.getMessage(), e);
+                    return;
+                } else {
                     throw new IOException("Could not blindly create remote directory due to " + e.getMessage(), e);
                 }
             }
-            return;
-        }
-        // end if disableDirectoryListing
-
-        boolean exists;
-        try {
-            channel.stat(remoteDirectory);
-            exists = true;
-        } catch (final SftpException e) {
-            if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
-                // No Such File
-                exists = false;
-            } else {
-                throw new IOException("Failed to determine if remote directory exists at " + remoteDirectory + " due to " + e, e);
-            }
-        }
-
-        if (!exists) {
-            // first ensure parent directories exist before creating this one
-            if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
-                ensureDirectoryExists(flowFile, directoryName.getParentFile());
-            }
-            logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
+        } else {
             try {
-                channel.mkdir(remoteDirectory);
-                logger.debug("Created {}", new Object[] {remoteDirectory});
+                // Check dir existence.
+                channel.stat(remoteDirectory);
+                // The remote directory already exists.
+                return;
             } catch (final SftpException e) {
-                throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + e, e);
+                if (e.id != ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+                    throw new IOException("Failed to determine if remote directory exists at " + remoteDirectory + " due to " + e, e);
+                }
             }
+        }
+
+        // first ensure parent directories exist before creating this one
+        if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
+            ensureDirectoryExists(flowFile, directoryName.getParentFile());
+        }
+        logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
+        try {
+            channel.mkdir(remoteDirectory);
+            logger.debug("Created {}", new Object[] {remoteDirectory});
+        } catch (final SftpException e) {
+            throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + e, e);
         }
     }
 
-    private ChannelSftp getChannel(final FlowFile flowFile) throws IOException {
+    protected ChannelSftp getChannel(final FlowFile flowFile) throws IOException {
         if (sftp != null) {
             String sessionhost = session.getHost();
             String desthost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -412,6 +435,26 @@ public class SFTPTransfer implements FileTransfer {
             final Session session = jsch.getSession(username,
                 ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
                 ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
+
+            final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
+            switch (proxyConfig.getProxyType()) {
+                case HTTP:
+                    final ProxyHTTP proxyHTTP = new ProxyHTTP(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
+                    // Check if Username is set and populate the proxy accordingly
+                    if (proxyConfig.hasCredential()) {
+                        proxyHTTP.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                    }
+                    session.setProxy(proxyHTTP);
+                    break;
+                case SOCKS:
+                    final ProxySOCKS5 proxySOCKS5 = new ProxySOCKS5(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
+                    if (proxyConfig.hasCredential()) {
+                        proxySOCKS5.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                    }
+                    session.setProxy(proxySOCKS5);
+                    break;
+
+            }
 
             final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
             if (hostKeyVal != null) {
@@ -632,7 +675,7 @@ public class SFTPTransfer implements FileTransfer {
         } catch (final SftpException e) {
             switch (e.id) {
                 case ChannelSftp.SSH_FX_NO_SUCH_FILE:
-                    throw new FileNotFoundException();
+                    throw new FileNotFoundException("No such file or directory");
                 case ChannelSftp.SSH_FX_PERMISSION_DENIED:
                     throw new PermissionDeniedException("Could not rename remote file " + source + " to " + target + " due to insufficient permissions");
                 default:

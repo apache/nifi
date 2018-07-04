@@ -66,7 +66,10 @@
 
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
+            this.clusterConnectionWarning = false;
             this.activeThreadCount = "-";
+            this.terminatedThreadCount = "-";
+            this.threadCounts = "-";
             this.totalQueued = "-";
             this.controllerTransmittingCount = "-";
             this.controllerNotTransmittingCount = "-";
@@ -405,35 +408,59 @@
              * @param summary
              */
             updateClusterSummary: function (summary) {
-                // see if this node has been (dis)connected
-                if (nfClusterSummary.isConnectedToCluster() !== summary.connectedToCluster) {
-                    if (summary.connectedToCluster) {
-                        nfDialog.showConnectedToClusterMessage();
-                    } else {
-                        nfDialog.showDisconnectedFromClusterMessage();
-                    }
-                }
-
-                var color = '#728E9B';
-
                 // update the connection state
                 if (summary.connectedToCluster) {
-                    if (nfCommon.isDefinedAndNotNull(summary.connectedNodes)) {
-                        var connectedNodes = summary.connectedNodes.split(' / ');
-                        if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
-                            this.clusterConnectionWarning = true;
-                            color = '#BA554A';
-                        }
+                    var connectedNodes = summary.connectedNodes.split(' / ');
+                    if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
+                        this.clusterConnectionWarning = true;
+                    } else {
+                        this.clusterConnectionWarning = false;
                     }
-                    this.connectedNodesCount =
-                        nfCommon.isDefinedAndNotNull(summary.connectedNodes) ? summary.connectedNodes : '-';
+                    this.connectedNodesCount = summary.connectedNodes;
                 } else {
                     this.connectedNodesCount = 'Disconnected';
-                    color = '#BA554A';
+                }
+            },
+
+            /**
+             * Returns whether there are any terminated threads.
+             *
+             * @returns {boolean} whether there are any terminated threads
+             */
+            hasTerminatedThreads: function () {
+                if (Number.isInteger(this.terminatedThreadCount)) {
+                    return this.terminatedThreadCount > 0;
+                } else {
+                    return false;
+                }
+            },
+
+            /**
+             * Returns any additional styles to apply to the thread counts.
+             *
+             * @returns {string}
+             */
+            getExtraThreadStyles: function () {
+                if (Number.isInteger(this.terminatedThreadCount) && this.terminatedThreadCount > 0) {
+                    return 'warning';
+                } else if (this.activeThreadCount === 0) {
+                    return 'zero';
                 }
 
-                // update the color
-                $('#connected-nodes-count').closest('div.fa-cubes').css('color', color);
+                return '';
+            },
+
+            /**
+             * Returns any additional styles to apply to the cluster label.
+             *
+             * @returns {string}
+             */
+            getExtraClusterStyles: function () {
+                if (this.connectedNodesCount === 'Disconnected' || this.clusterConnectionWarning === true) {
+                    return 'warning';
+                }
+
+                return '';
             },
 
             /**
@@ -442,21 +469,14 @@
              * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
              */
             update: function (status) {
-                var controllerInvalidCount = (nfCommon.isDefinedAndNotNull(status.invalidCount)) ? status.invalidCount : 0;
-
-                if (this.controllerInvalidCount > 0) {
-                    $('#controller-invalid-count').parent().removeClass('zero').addClass('invalid');
-                } else {
-                    $('#controller-invalid-count').parent().removeClass('invalid').addClass('zero');
-                }
-
                 // update the report values
                 this.activeThreadCount = status.activeThreadCount;
+                this.terminatedThreadCount = status.terminatedThreadCount;
 
-                if (this.activeThreadCount > 0) {
-                    $('#flow-status-container').find('.icon-threads').removeClass('zero');
+                if (this.hasTerminatedThreads()) {
+                    this.threadCounts = this.activeThreadCount + ' (' + this.terminatedThreadCount + ')';
                 } else {
-                    $('#flow-status-container').find('.icon-threads').addClass('zero');
+                    this.threadCounts = this.activeThreadCount;
                 }
 
                 this.totalQueued = status.queued;

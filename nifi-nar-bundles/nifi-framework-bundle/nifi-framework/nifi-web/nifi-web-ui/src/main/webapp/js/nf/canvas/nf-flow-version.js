@@ -26,6 +26,7 @@
                 'nf.ng.Bridge',
                 'nf.ErrorHandler',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Common',
                 'nf.Client',
                 'nf.CanvasUtils',
@@ -33,8 +34,8 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.Graph',
                 'nf.Birdseye'],
-            function ($, nfNgBridge, nfErrorHandler, nfDialog, nfCommon, nfClient, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfGraph, nfBirdseye) {
-                return (nf.FlowVersion = factory($, nfNgBridge, nfErrorHandler, nfDialog, nfCommon, nfClient, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfGraph, nfBirdseye));
+            function ($, nfNgBridge, nfErrorHandler, nfDialog, nfStorage, nfCommon, nfClient, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfGraph, nfBirdseye) {
+                return (nf.FlowVersion = factory($, nfNgBridge, nfErrorHandler, nfDialog, nfStorage, nfCommon, nfClient, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfGraph, nfBirdseye));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.FlowVerison =
@@ -42,6 +43,7 @@
                 require('nf.ng.Bridge'),
                 require('nf.ErrorHandler'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Common'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
@@ -54,6 +56,7 @@
             root.nf.ng.Bridge,
             root.nf.ErrorHandler,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Common,
             root.nf.Client,
             root.nf.CanvasUtils,
@@ -62,7 +65,7 @@
             root.nf.Graph,
             root.nf.Birdseye);
     }
-}(this, function ($, nfNgBridge, nfErrorHandler, nfDialog, nfCommon, nfClient, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfGraph, nfBirdseye) {
+}(this, function ($, nfNgBridge, nfErrorHandler, nfDialog, nfStorage, nfCommon, nfClient, nfCanvasUtils, nfProcessGroup, nfProcessGroupConfiguration, nfGraph, nfBirdseye) {
     'use strict';
 
     var serverTimeOffset = null;
@@ -387,7 +390,8 @@
                 revision: {
                     version: processGroupRevision.version
                 }
-            })
+            }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
         };
 
         var versionControlInformation = $('#save-flow-version-process-group-id').data('versionControlInformation');
@@ -618,7 +622,7 @@
             var markup = '';
 
             if (dataContext.differenceType !== 'Component Removed' && nfCommon.isDefinedAndNotNull(dataContext.processGroupId)) {
-                markup += '<div class="pointer go-to-component fa fa-long-arrow-right" title="Go To" style="margin-top: 2px" ></div>';
+                markup += '<div class="pointer go-to-component fa fa-long-arrow-right" title="Go To"></div>';
             }
 
             return markup;
@@ -980,6 +984,7 @@
                     'version': 0
                 }
             }),
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
             'component': {
                 'position': {
                     'x': pt.x,
@@ -1100,6 +1105,7 @@
                         'version': processGroupRevision.version
                     }
                 }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                 'versionControlInformation': {
                     'groupId': processGroupId,
                     'registryId': versionControlInformation.registryId,
@@ -1160,7 +1166,9 @@
             if (nfCommon.isDefinedAndNotNull(changeRequest)) {
                 $.ajax({
                     type: 'DELETE',
-                    url: changeRequest.uri,
+                    url: changeRequest.uri + '?' + $.param({
+                        'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+                    }),
                     dataType: 'json'
                 }).done(function (response) {
                     changeRequest = response.request;
@@ -1447,6 +1455,7 @@
                                 'version': response.processGroupRevision.version
                             }
                         }),
+                        'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                         'versionControlInformation': response.versionControlInformation
                     };
 
@@ -1501,7 +1510,9 @@
                     if (nfCommon.isDefinedAndNotNull(revertRequest)) {
                         $.ajax({
                             type: 'DELETE',
-                            url: revertRequest.uri,
+                            url: revertRequest.uri + '?' + $.param({
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+                            }),
                             dataType: 'json'
                         }).done(function (response) {
                             revertRequest = response.request;
@@ -1937,7 +1948,9 @@
 
                             $.ajax({
                                 type: 'DELETE',
-                                url: '../nifi-api/versions/process-groups/' + encodeURIComponent(processGroupId) + '?' + $.param(revision),
+                                url: '../nifi-api/versions/process-groups/' + encodeURIComponent(processGroupId) + '?' + $.param($.extend({
+                                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+                                }, revision)),
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {

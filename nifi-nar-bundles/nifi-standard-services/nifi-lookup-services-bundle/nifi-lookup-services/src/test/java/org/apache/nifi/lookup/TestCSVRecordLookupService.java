@@ -28,6 +28,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -65,5 +66,25 @@ public class TestCSVRecordLookupService {
         final Optional<Record> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
         assertEquals(EMPTY_RECORD, property3);
     }
+
+    @Test
+    public void testSimpleCsvFileLookupServiceWithCharset() throws InitializationException, IOException, LookupFailureException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final CSVRecordLookupService service = new CSVRecordLookupService();
+
+        runner.addControllerService("csv-file-lookup-service", service);
+        runner.setProperty(service, CSVRecordLookupService.CSV_FILE, "src/test/resources/test_Windows-31J.csv");
+        runner.setProperty(service, CSVRecordLookupService.CSV_FORMAT, "RFC4180");
+        runner.setProperty(service, CSVRecordLookupService.CHARSET, "Windows-31J");
+        runner.setProperty(service, CSVRecordLookupService.LOOKUP_KEY_COLUMN, "key");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        final Optional<Record> property1 = service.lookup(Collections.singletonMap("key", "property.1"));
+        assertThat(property1.isPresent(), is(true));
+        assertThat(property1.get().getAsString("value"), is("this is property \uff11"));
+        assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
+    }
+
 
 }

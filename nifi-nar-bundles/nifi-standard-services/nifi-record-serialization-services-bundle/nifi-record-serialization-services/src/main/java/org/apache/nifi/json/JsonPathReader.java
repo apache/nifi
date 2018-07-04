@@ -35,6 +35,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeUtils;
@@ -47,16 +48,17 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import com.jayway.jsonpath.JsonPath;
 
 @Tags({"json", "jsonpath", "record", "reader", "parser"})
-@CapabilityDescription("Parses JSON records and evaluates user-defined JSON Path's against each JSON object. The root element may be either "
-    + "a single JSON object or a JSON array. If a JSON array is found, each JSON object within that array is treated as a separate record. "
-    + "User-defined properties define the fields that should be extracted from the JSON in order to form the fields of a Record. Any JSON field "
-    + "that is not extracted via a JSONPath will not be returned in the JSON Records.")
+@CapabilityDescription("Parses JSON records and evaluates user-defined JSON Path's against each JSON object. While the reader expects each record "
+        + "to be well-formed JSON, the content of a FlowFile may consist of many records, each as a well-formed JSON array or JSON object with "
+        + "optional whitespace between them, such as the common 'JSON-per-line' format. If an array is encountered, each element in that array will "
+        + "be treated as a separate record. User-defined properties define the fields that should be extracted from the JSON in order to form the "
+        + "fields of a Record. Any JSON field that is not extracted via a JSONPath will not be returned in the JSON Records.")
 @SeeAlso(JsonTreeReader.class)
 @DynamicProperty(name = "The field name for the record.",
     value="A JSONPath Expression that will be evaluated against each JSON record. The result of the JSONPath will be the value of the "
         + "field whose name is the same as the property name.",
-    description="User-defined properties identifiy how to extract specific fields from a JSON object in order to create a Record",
-    supportsExpressionLanguage=false)
+    description="User-defined properties identify how to extract specific fields from a JSON object in order to create a Record",
+    expressionLanguageScope=ExpressionLanguageScope.NONE)
 public class JsonPathReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private volatile String dateFormat;

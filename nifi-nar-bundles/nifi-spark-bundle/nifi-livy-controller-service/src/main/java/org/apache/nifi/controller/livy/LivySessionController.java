@@ -21,11 +21,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.ConnectException;
-import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -45,6 +42,22 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.auth.AuthSchemeProvider;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.AuthSchemes;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.Lookup;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -53,8 +66,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
+import org.apache.nifi.hadoop.KerberosKeytabCredentials;
+import org.apache.nifi.hadoop.KerberosKeytabSPNegoAuthSchemeProvider;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -62,11 +78,10 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
 import org.apache.nifi.controller.api.livy.LivySessionService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
 @Tags({"Livy", "REST", "Spark", "http"})
@@ -79,7 +94,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("The hostname (or IP address) of the Livy server.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LIVY_PORT = new PropertyDescriptor.Builder()
@@ -88,7 +103,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("The port number for the Livy server.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("8998")
             .build();
 
@@ -99,7 +114,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .required(true)
             .defaultValue("2")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SESSION_TYPE = new PropertyDescriptor.Builder()
@@ -119,7 +134,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .required(true)
             .defaultValue("2 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor JARS = new PropertyDescriptor.Builder()
@@ -128,7 +143,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("JARs to be used in the Spark session.")
             .required(false)
             .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor FILES = new PropertyDescriptor.Builder()
@@ -137,6 +152,7 @@ public class LivySessionController extends AbstractControllerService implements 
             .description("Files to be used in the Spark session.")
             .required(false)
             .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.FILE_EXISTS_VALIDATOR))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .build();
 
@@ -155,6 +171,14 @@ public class LivySessionController extends AbstractControllerService implements 
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
+
     private volatile String livyUrl;
     private volatile int sessionPoolSize;
     private volatile String controllerKind;
@@ -166,6 +190,8 @@ public class LivySessionController extends AbstractControllerService implements 
     private volatile int connectTimeout;
     private volatile Thread livySessionManagerThread = null;
     private volatile boolean enabled = true;
+    private volatile KerberosCredentialsService credentialsService;
+    private volatile SessionManagerException sessionManagerException;
 
     private List<PropertyDescriptor> properties;
 
@@ -181,6 +207,7 @@ public class LivySessionController extends AbstractControllerService implements 
         props.add(CONNECT_TIMEOUT);
         props.add(JARS);
         props.add(FILES);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -192,18 +219,17 @@ public class LivySessionController extends AbstractControllerService implements 
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
-        ComponentLog log = getLogger();
-
         final String livyHost = context.getProperty(LIVY_HOST).evaluateAttributeExpressions().getValue();
         final String livyPort = context.getProperty(LIVY_PORT).evaluateAttributeExpressions().getValue();
         final String sessionPoolSize = context.getProperty(SESSION_POOL_SIZE).evaluateAttributeExpressions().getValue();
         final String sessionKind = context.getProperty(SESSION_TYPE).getValue();
-        final long sessionManagerStatusInterval = context.getProperty(SESSION_MGR_STATUS_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long sessionManagerStatusInterval = context.getProperty(SESSION_MGR_STATUS_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final String jars = context.getProperty(JARS).evaluateAttributeExpressions().getValue();
         final String files = context.getProperty(FILES).evaluateAttributeExpressions().getValue();
         sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
         connectTimeout = Math.toIntExact(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS));
+        credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
         this.livyUrl = "http" + (sslContextService != null ? "s" : "") + "://" + livyHost + ":" + livyPort;
         this.controllerKind = sessionKind;
@@ -216,12 +242,16 @@ public class LivySessionController extends AbstractControllerService implements 
             while (enabled) {
                 try {
                     manageSessions();
+                    sessionManagerException = null;
+                } catch (Exception e) {
+                    getLogger().error("Livy Session Manager Thread run into an error, but continues to run", e);
+                    sessionManagerException = new SessionManagerException(e);
+                }
+                try {
                     Thread.sleep(sessionManagerStatusInterval);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     enabled = false;
-                } catch (IOException ioe) {
-                    throw new ProcessException(ioe);
                 }
             }
         });
@@ -243,7 +273,9 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @Override
-    public Map<String, String> getSession() {
+    public Map<String, String> getSession() throws SessionManagerException {
+        checkSessionManagerException();
+
         Map<String, String> sessionMap = new HashMap<>();
         try {
             final Map<Integer, JSONObject> sessionsCopy = sessions;
@@ -254,6 +286,7 @@ public class LivySessionController extends AbstractControllerService implements 
                 if (state.equalsIgnoreCase("idle") && sessionKind.equalsIgnoreCase(controllerKind)) {
                     sessionMap.put("sessionId", String.valueOf(sessionId));
                     sessionMap.put("livyUrl", livyUrl);
+                    break;
                 }
             }
         } catch (JSONException e) {
@@ -263,18 +296,41 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @Override
-    public HttpURLConnection getConnection(String urlString) throws IOException {
-        URL url = new URL(urlString);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setConnectTimeout(connectTimeout);
+    public HttpClient getConnection() throws IOException, SessionManagerException {
+        checkSessionManagerException();
+
+        return openConnection();
+    }
+
+    private HttpClient openConnection() throws IOException {
+        HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+
         if (sslContextService != null) {
             try {
-                setSslSocketFactory((HttpsURLConnection) connection, sslContextService, sslContext);
+                SSLContext sslContext = getSslSocketFactory(sslContextService);
+                httpClientBuilder.setSSLContext(sslContext);
             } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | UnrecoverableKeyException | KeyManagementException e) {
                 throw new IOException(e);
             }
         }
-        return connection;
+
+        if (credentialsService != null) {
+            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(new AuthScope(null, -1, null),
+                new KerberosKeytabCredentials(credentialsService.getPrincipal(), credentialsService.getKeytab()));
+            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            Lookup<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider> create()
+                .register(AuthSchemes.SPNEGO, new KerberosKeytabSPNegoAuthSchemeProvider()).build();
+            httpClientBuilder.setDefaultAuthSchemeRegistry(authSchemeRegistry);
+        }
+
+        RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+        requestConfigBuilder.setConnectTimeout(connectTimeout);
+        requestConfigBuilder.setConnectionRequestTimeout(connectTimeout);
+        requestConfigBuilder.setSocketTimeout(connectTimeout);
+        httpClientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
+
+        return httpClientBuilder.build();
     }
 
     private void manageSessions() throws InterruptedException, IOException {
@@ -439,37 +495,34 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     private JSONObject readJSONObjectFromUrlPOST(String urlString, Map<String, String> headers, String payload) throws IOException, JSONException {
-        URL url = new URL(urlString);
-        HttpURLConnection connection = getConnection(urlString);
+        HttpClient httpClient = openConnection();
 
-        connection.setRequestMethod(POST);
-        connection.setDoOutput(true);
-
+        HttpPost request = new HttpPost(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
-            connection.setRequestProperty(entry.getKey(), entry.getValue());
+            request.addHeader(entry.getKey(), entry.getValue());
+        }
+        HttpEntity httpEntity = new StringEntity(payload);
+        request.setEntity(httpEntity);
+        HttpResponse response = httpClient.execute(request);
+
+        if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK && response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
+            throw new RuntimeException("Failed : HTTP error code : " + response.getStatusLine().getStatusCode() + " : " + response.getStatusLine().getReasonPhrase());
         }
 
-        OutputStream os = connection.getOutputStream();
-        os.write(payload.getBytes());
-        os.flush();
-
-        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK && connection.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
-            throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode() + " : " + connection.getResponseMessage());
-        }
-
-        InputStream content = connection.getInputStream();
+        InputStream content = response.getEntity().getContent();
         return readAllIntoJSONObject(content);
     }
 
     private JSONObject readJSONFromUrl(String urlString, Map<String, String> headers) throws IOException, JSONException {
+        HttpClient httpClient = openConnection();
 
-        HttpURLConnection connection = getConnection(urlString);
+        HttpGet request = new HttpGet(urlString);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
-            connection.setRequestProperty(entry.getKey(), entry.getValue());
+            request.addHeader(entry.getKey(), entry.getValue());
         }
-        connection.setRequestMethod(GET);
-        connection.setDoOutput(true);
-        InputStream content = connection.getInputStream();
+        HttpResponse response = httpClient.execute(request);
+
+        InputStream content = response.getEntity().getContent();
         return readAllIntoJSONObject(content);
     }
 
@@ -479,7 +532,7 @@ public class LivySessionController extends AbstractControllerService implements 
         return new JSONObject(jsonText);
     }
 
-    private void setSslSocketFactory(HttpsURLConnection httpsURLConnection, SSLContextService sslService, SSLContext sslContext)
+    private SSLContext getSslSocketFactory(SSLContextService sslService)
             throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
         final String keystoreLocation = sslService.getKeyStoreFile();
         final String keystorePass = sslService.getKeyStorePassword();
@@ -507,7 +560,14 @@ public class LivySessionController extends AbstractControllerService implements 
 
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
 
-        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        httpsURLConnection.setSSLSocketFactory(sslSocketFactory);
+        return sslContext;
     }
+
+    private void checkSessionManagerException() throws SessionManagerException {
+        SessionManagerException exception = sessionManagerException;
+        if (exception != null) {
+            throw sessionManagerException;
+        }
+    }
+
 }

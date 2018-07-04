@@ -22,14 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
-import javax.net.ssl.SSLContext;
-import java.io.File;
-
 import javax.jms.ConnectionFactory;
+import javax.net.ssl.SSLContext;
 
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -37,8 +32,12 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -64,8 +63,8 @@ import org.slf4j.LoggerFactory;
         + "ConnectionFactory can be served once this service is configured successfully")
 @DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
         description = "The properties that are set following Java Beans convention where a property name is derived from the 'set*' method of the vendor "
-        + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQConnectionFactory.setChannel(String)' would imply 'channel' "
-        + "property and 'com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)' would imply 'transportType' property.")
+                + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQConnectionFactory.setChannel(String)' would imply 'channel' "
+                + "property and 'com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)' would imply 'transportType' property.")
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS"})
 public class JMSConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition {
 
@@ -77,9 +76,9 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
 
     private volatile ConnectionFactory connectionFactory;
 
-    static final String BROKER = "broker";
-    static final String CF_IMPL = "cf";
-    static final String CF_LIB = "cflib";
+    private static final String BROKER = "broker";
+    private static final String CF_IMPL = "cf";
+    private static final String CF_LIB = "cflib";
 
     public static final PropertyDescriptor CONNECTION_FACTORY_IMPL = new PropertyDescriptor.Builder()
             .name(CF_IMPL)
@@ -88,7 +87,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     + "class (i.e., org.apache.activemq.ActiveMQConnectionFactory)")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor CLIENT_LIB_DIR_PATH = new PropertyDescriptor.Builder()
             .name(CF_LIB)
@@ -96,9 +95,10 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             .description("Path to the directory with additional resources (i.e., JARs, configuration files etc.) to be added "
                     + "to the classpath. Such resources typically represent target MQ client libraries for the "
                     + "ConnectionFactory implementation.")
-            .addValidator(new ClientLibValidator())
+            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
             .required(true)
-            .expressionLanguageSupported(true)
+            .dynamicallyModifiesClasspath(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     // ConnectionFactory specific properties
@@ -109,7 +109,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                     + "'tcp://myhost:61616' for ActiveMQ or 'myhost:1414' for IBM MQ")
             .addValidator(new NonEmptyBrokerURIValidator())
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -133,12 +133,13 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
         return new PropertyDescriptor.Builder()
                 .description("Specifies the value for '" + propertyDescriptorName
                         + "' property to be set on the provided ConnectionFactory implementation.")
-                .name(propertyDescriptorName).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).dynamic(true)
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .dynamic(true)
                 .build();
     }
 
     /**
-     *
      * @return new instance of {@link ConnectionFactory}
      */
     @Override
@@ -157,13 +158,10 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
                 if (logger.isInfoEnabled()) {
                     logger.info("Configuring " + this.getClass().getSimpleName() + " for '"
                             + context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be connected to '"
-                            + BROKER_URI + "'");
+                            + context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue() + "'");
                 }
-                // will load user provided libraries/resources on the classpath
-                Utils.addResourcesToClasspath(context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue());
 
                 this.createConnectionFactoryInstance(context);
-
                 this.setConnectionFactoryProperties(context);
             }
             this.configured = true;
@@ -187,7 +185,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * service configuration. For example, 'channel' property will correspond to
      * 'setChannel(..) method and 'queueManager' property will correspond to
      * setQueueManager(..) method with a single argument.
-     *
+     * <p>
      * There are also few adjustments to accommodate well known brokers. For
      * example ActiveMQ ConnectionFactory accepts address of the Message Broker
      * in a form of URL while IBMs in the form of host/port pair (more common).
@@ -243,7 +241,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * 'propertyName'. For example, 'channel' property will correspond to
      * 'setChannel(..) method and 'queueManager' property will correspond to
      * setQueueManager(..) method with a single argument.
-     *
+     * <p>
      * NOTE: There is a limited type conversion to accommodate property value
      * types since all NiFi configuration properties comes as String. It is
      * accomplished by checking the argument type of the method and executing
@@ -257,21 +255,26 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      */
     private void setProperty(String propertyName, Object propertyValue) {
         String methodName = this.toMethodName(propertyName);
-        Method method = Utils.findMethod(methodName, this.connectionFactory.getClass());
-        if (method != null) {
+        Method[] methods = Utils.findMethods(methodName, this.connectionFactory.getClass());
+        if (methods != null && methods.length > 0) {
             try {
-                Class<?> returnType = method.getParameterTypes()[0];
-                if (String.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, propertyValue);
-                } else if (int.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, Integer.parseInt((String) propertyValue));
-                } else if (long.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, Long.parseLong((String) propertyValue));
-                } else if (boolean.class.isAssignableFrom(returnType)) {
-                    method.invoke(this.connectionFactory, Boolean.parseBoolean((String) propertyValue));
-                } else {
-                    method.invoke(this.connectionFactory, propertyValue);
+                for (Method method : methods) {
+                    Class<?> returnType = method.getParameterTypes()[0];
+                    if (String.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, propertyValue);
+                        return;
+                    } else if (int.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, Integer.parseInt((String) propertyValue));
+                        return;
+                    } else if (long.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, Long.parseLong((String) propertyValue));
+                        return;
+                    } else if (boolean.class.isAssignableFrom(returnType)) {
+                        method.invoke(this.connectionFactory, Boolean.parseBoolean((String) propertyValue));
+                        return;
+                    }
                 }
+                methods[0].invoke(this.connectionFactory, propertyValue);
             } catch (Exception e) {
                 throw new IllegalStateException("Failed to set property " + propertyName, e);
             }
@@ -305,48 +308,13 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * evaluation
      */
     static class NonEmptyBrokerURIValidator implements Validator {
-
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
-            String value = input;
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                value = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }
-            return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, value, context);
+            return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input, context);
         }
     }
 
-    /**
-     *
-     */
-    static class ClientLibValidator implements Validator {
-
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            String libDirPath = context.getProperty(CLIENT_LIB_DIR_PATH).evaluateAttributeExpressions().getValue();
-            StringBuilder invalidationMessageBuilder = new StringBuilder();
-            if (libDirPath != null) {
-                File file = new File(libDirPath);
-                if (!file.isDirectory()) {
-                    invalidationMessageBuilder
-                            .append("MQ Client library directory path must point to a directory. Was '")
-                            .append(file.getAbsolutePath())
-                            .append("'.");
-                }
-            } else {
-                invalidationMessageBuilder.append("'MQ Client Libraries path' must be provided. \n");
-            }
-            String invalidationMessage = invalidationMessageBuilder.toString();
-            ValidationResult vResult;
-            if (invalidationMessage.length() == 0) {
-                vResult = new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation("Client lib path is valid and points to a directory").valid(true).build();
-            } else {
-                vResult = new ValidationResult.Builder().subject(subject).input(input)
-                        .explanation("Client lib path is invalid. " + invalidationMessage)
-                        .valid(false).build();
-            }
-            return vResult;
-        }
-    }
 }

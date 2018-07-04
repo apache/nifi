@@ -44,6 +44,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -91,7 +92,8 @@ import org.supercsv.prefs.CsvPreference;
 @WritesAttributes({
     @WritesAttribute(attribute="count.valid.lines", description="If line by line validation, number of valid lines extracted from the source data"),
     @WritesAttribute(attribute="count.invalid.lines", description="If line by line validation, number of invalid lines extracted from the source data"),
-    @WritesAttribute(attribute="count.total.lines", description="If line by line validation, total number of lines in the source data")
+    @WritesAttribute(attribute="count.total.lines", description="If line by line validation, total number of lines in the source data"),
+    @WritesAttribute(attribute="validation.error.message", description="For flow files routed to invalid, message of the first validation error")
 })
 public class ValidateCsv extends AbstractProcessor {
 
@@ -120,7 +122,7 @@ public class ValidateCsv extends AbstractProcessor {
                     + "processors to apply. The following cell processors are allowed in the schema definition: "
                     + allowedOperators.toString() + ". Note: cell processors cannot be nested except with Optional.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
@@ -140,7 +142,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Character used as 'quote' in the incoming data. Example: \"")
             .required(true)
             .defaultValue("\"")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -150,7 +152,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Character used as 'delimiter' in the incoming data. Example: ,")
             .required(true)
             .defaultValue(",")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -160,7 +162,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Symbols used as 'end of line' in the incoming data. Example: \\n")
             .required(true)
             .defaultValue("\\n")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -454,6 +456,7 @@ public class ValidateCsv extends AbstractProcessor {
         final AtomicReference<Integer> totalCount = new AtomicReference<Integer>(0);
         final AtomicReference<FlowFile> invalidFF = new AtomicReference<FlowFile>(null);
         final AtomicReference<FlowFile> validFF = new AtomicReference<FlowFile>(null);
+        final AtomicReference<String> validationError = new AtomicReference<String>(null);
 
         if(!isWholeFFValidation) {
             invalidFF.set(session.create(flowFile));
@@ -513,6 +516,7 @@ public class ValidateCsv extends AbstractProcessor {
                         } catch (final SuperCsvException e) {
                             valid.set(false);
                             if(isWholeFFValidation) {
+                                validationError.set(e.getLocalizedMessage());
                                 logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", new Object[]{flowFile}, e);
                                 break;
                             } else {
@@ -526,6 +530,10 @@ public class ValidateCsv extends AbstractProcessor {
 
                                 if(isFirstLineInvalid.get()) {
                                     isFirstLineInvalid.set(false);
+                                }
+
+                                if(validationError.get() == null) {
+                                    validationError.set(e.getLocalizedMessage());
                                 }
                             }
                         } finally {
@@ -553,6 +561,7 @@ public class ValidateCsv extends AbstractProcessor {
                 session.transfer(flowFile, REL_VALID);
             } else {
                 session.getProvenanceReporter().route(flowFile, REL_INVALID);
+                session.putAttribute(flowFile, "validation.error.message", validationError.get());
                 session.transfer(flowFile, REL_INVALID);
             }
         } else {
@@ -577,6 +586,7 @@ public class ValidateCsv extends AbstractProcessor {
                 session.getProvenanceReporter().route(invalidFF.get(), REL_INVALID, (totalCount.get() - okCount.get()) + " invalid line(s)");
                 session.putAttribute(invalidFF.get(), "count.invalid.lines", Integer.toString((totalCount.get() - okCount.get())));
                 session.putAttribute(invalidFF.get(), "count.total.lines", Integer.toString(totalCount.get()));
+                session.putAttribute(invalidFF.get(), "validation.error.message", validationError.get());
                 session.transfer(invalidFF.get(), REL_INVALID);
                 session.remove(flowFile);
             } else {
@@ -584,6 +594,7 @@ public class ValidateCsv extends AbstractProcessor {
                 session.getProvenanceReporter().route(invalidFF.get(), REL_INVALID, "All " + totalCount.get() + " line(s) are invalid");
                 session.putAttribute(invalidFF.get(), "count.invalid.lines", Integer.toString(totalCount.get()));
                 session.putAttribute(invalidFF.get(), "count.total.lines", Integer.toString(totalCount.get()));
+                session.putAttribute(invalidFF.get(), "validation.error.message", validationError.get());
                 session.transfer(invalidFF.get(), REL_INVALID);
                 session.remove(validFF.get());
                 session.remove(flowFile);

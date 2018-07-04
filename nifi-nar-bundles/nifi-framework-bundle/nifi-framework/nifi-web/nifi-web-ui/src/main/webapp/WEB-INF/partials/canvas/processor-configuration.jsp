@@ -170,7 +170,7 @@
                         <div class="execution-node-setting">
                             <div class="setting-name">
                                 Execution
-                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on."></div>
+                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on when clustered."></div>
                             </div>
                             <div class="setting-field">
                                 <div id="execution-node-combo"></div>

@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-docker</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>dockermaven</artifactId>
@@ -43,8 +43,7 @@
                                         <NIFI_BINARY>target/nifi-${nifi.version}-bin.tar.gz</NIFI_BINARY>
                                     </buildArgs>
                                     <repository>apache/nifi</repository>
-                                    <tag>${project.version}</tag>
-                                    <tag>latest</tag>
+                                    <tag>${project.version}-dockermaven</tag>
                                 </configuration>
                             </execution>
                         </executions>
@@ -69,6 +68,26 @@
                                 <goals>
                                     <goal>run</goal>
                                 </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <executions>
+                            <execution>
+                                <id>Docker integration tests</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>
+                                        <argument>${project.version}-dockermaven</argument>
+                                        <argument>${project.version}</argument>
+                                    </arguments>
+                                    <executable>${project.basedir}/integration-test.sh</executable>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

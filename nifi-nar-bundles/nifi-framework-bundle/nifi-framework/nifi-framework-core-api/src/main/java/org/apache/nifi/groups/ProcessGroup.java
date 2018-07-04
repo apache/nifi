@@ -25,12 +25,13 @@ import java.util.function.Predicate;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
@@ -57,24 +58,44 @@ import org.apache.nifi.remote.RemoteGroupPort;
 public interface ProcessGroup extends ComponentAuthorizable, Positionable, VersionedComponent {
 
     /**
-     * Predicate for filtering schedulable Processors.
+     * Predicate for starting eligible Processors.
      */
-    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.isValid();
+    Predicate<ProcessorNode> START_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.getValidationStatus() == ValidationStatus.VALID;
 
     /**
-     * Predicate for filtering unschedulable Processors.
+     * Predicate for stopping eligible Processors.
      */
-    Predicate<ProcessorNode> UNSCHEDULABLE_PROCESSORS = node -> node.isRunning();
+    Predicate<ProcessorNode> STOP_PROCESSORS_FILTER = node -> node.isRunning();
 
     /**
-     * Predicate for filtering schedulable Ports
+     * Predicate for enabling eligible Processors.
      */
-    Predicate<Port> SCHEDULABLE_PORTS = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
+    Predicate<ProcessorNode> ENABLE_PROCESSORS_FILTER = node -> ScheduledState.DISABLED.equals(node.getScheduledState());
 
     /**
-     * Predicate for filtering schedulable Ports
+     * Predicate for disabling eligible Processors.
      */
-    Predicate<Port> UNSCHEDULABLE_PORTS = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
+    Predicate<ProcessorNode> DISABLE_PROCESSORS_FILTER = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState());
+
+    /**
+     * Predicate for starting eligible Ports.
+     */
+    Predicate<Port> START_PORTS_FILTER = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
+
+    /**
+     * Predicate for stopping eligible Ports.
+     */
+    Predicate<Port> STOP_PORTS_FILTER = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
+
+    /**
+     * Predicate for enabling eligible Processors.
+     */
+    Predicate<Port> ENABLE_PORTS_FILTER = port -> ScheduledState.DISABLED.equals(port.getScheduledState());
+
+    /**
+     * Predicate for disabling eligible Ports.
+     */
+    Predicate<Port> DISABLE_PORTS_FILTER = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState());
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be
@@ -201,6 +222,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param processor to stop
      */
     CompletableFuture<Void> stopProcessor(ProcessorNode processor);
+
+    /**
+     * Terminates the given Processor
+     *
+     * @param processor processor to Terminate
+     * @throws IllegalStateException if the Processor's Scheduled State is not STOPPED.
+     */
+    void terminateProcessor(ProcessorNode processor);
 
     /**
      * Stops the given Port
@@ -371,7 +400,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return a {@link Collection} of all FlowFileProcessors that are contained
      * within this.
      */
-    Set<ProcessorNode> getProcessors();
+    Collection<ProcessorNode> getProcessors();
 
     /**
      * Returns the FlowFileProcessor with the given ID.
@@ -944,7 +973,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param variableName the name of the variable
      * @return a set of all components that are affected by the variable with the given name
      */
-    Set<ConfiguredComponent> getComponentsAffectedByVariable(String variableName);
+    Set<ComponentNode> getComponentsAffectedByVariable(String variableName);
 
     /**
      * @return the version control information that indicates where this flow is stored in a Flow Registry,

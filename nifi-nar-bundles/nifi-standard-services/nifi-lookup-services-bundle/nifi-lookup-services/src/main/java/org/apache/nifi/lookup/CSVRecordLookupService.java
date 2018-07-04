@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -39,8 +40,10 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,18 +77,28 @@ public class CSVRecordLookupService extends AbstractControllerService implements
                     .description("A CSV file that will serve as the data source.")
                     .required(true)
                     .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-                    .expressionLanguageSupported(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();
 
     static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
             .name("csv-format")
             .displayName("CSV Format")
             .description("Specifies which \"format\" the CSV data is in.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(Arrays.asList(CSVFormat.Predefined.values()).stream().map(e -> e.toString()).collect(Collectors.toSet()))
             .defaultValue(CSVFormat.Predefined.Default.toString())
             .required(true)
             .build();
+
+    public static final PropertyDescriptor CHARSET =
+            new PropertyDescriptor.Builder()
+                    .name("Character Set")
+                    .description("The Character Encoding that is used to decode the CSV file.")
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+                    .defaultValue("UTF-8")
+                    .required(true)
+                    .build();
 
     public static final PropertyDescriptor LOOKUP_KEY_COLUMN =
             new PropertyDescriptor.Builder()
@@ -95,7 +108,7 @@ public class CSVRecordLookupService extends AbstractControllerService implements
                             "This is the field that will be matched against the property specified in the lookup processor.")
                     .required(true)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();
 
     public static final PropertyDescriptor IGNORE_DUPLICATES =
@@ -117,6 +130,8 @@ public class CSVRecordLookupService extends AbstractControllerService implements
 
     private volatile CSVFormat csvFormat;
 
+    private volatile String charset;
+
     private volatile String lookupKeyColumn;
 
     private volatile boolean ignoreDuplicates;
@@ -133,36 +148,39 @@ public class CSVRecordLookupService extends AbstractControllerService implements
                     logger.debug("Loading lookup table from file: " + csvFile);
                 }
 
-                final FileReader reader = new FileReader(csvFile);
-                final CSVParser records = csvFormat.withFirstRecordAsHeader().parse(reader);
                 ConcurrentHashMap<String, Record> cache = new ConcurrentHashMap<>();
-                RecordSchema lookupRecordSchema = null;
-                for (final CSVRecord record : records) {
-                    final String key = record.get(lookupKeyColumn);
+                try (final InputStream is = new FileInputStream(csvFile)) {
+                    try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
+                        final CSVParser records = csvFormat.withFirstRecordAsHeader().parse(reader);
+                        RecordSchema lookupRecordSchema = null;
+                        for (final CSVRecord record : records) {
+                            final String key = record.get(lookupKeyColumn);
 
-                    if (StringUtils.isBlank(key)) {
-                        throw new IllegalStateException("Empty lookup key encountered in: " + csvFile);
-                    } else if (!ignoreDuplicates && cache.containsKey(key)) {
-                        throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
-                    } else if (ignoreDuplicates && cache.containsKey(key)) {
-                        logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
-                    }
+                            if (StringUtils.isBlank(key)) {
+                                throw new IllegalStateException("Empty lookup key encountered in: " + csvFile);
+                            } else if (!ignoreDuplicates && cache.containsKey(key)) {
+                                throw new IllegalStateException("Duplicate lookup key encountered: " + key + " in " + csvFile);
+                            } else if (ignoreDuplicates && cache.containsKey(key)) {
+                                logger.warn("Duplicate lookup key encountered: {} in {}", new Object[]{key, csvFile});
+                            }
 
-                    // Put each key/value pair (except the lookup) into the properties
-                    final Map<String, Object> properties = new HashMap<>();
-                    record.toMap().forEach((k, v) -> {
-                        if (!lookupKeyColumn.equals(k)) {
-                            properties.put(k, v);
+                            // Put each key/value pair (except the lookup) into the properties
+                            final Map<String, Object> properties = new HashMap<>();
+                            record.toMap().forEach((k, v) -> {
+                                if (!lookupKeyColumn.equals(k)) {
+                                    properties.put(k, v);
+                                }
+                            });
+
+                            if (lookupRecordSchema == null) {
+                                List<RecordField> recordFields = new ArrayList<>(properties.size());
+                                properties.forEach((k, v) -> recordFields.add(new RecordField(k, RecordFieldType.STRING.getDataType())));
+                                lookupRecordSchema = new SimpleRecordSchema(recordFields);
+                            }
+
+                            cache.put(key, new MapRecord(lookupRecordSchema, properties));
                         }
-                    });
-
-                    if (lookupRecordSchema == null) {
-                        List<RecordField> recordFields = new ArrayList<>(properties.size());
-                        properties.forEach((k, v) -> recordFields.add(new RecordField(k, RecordFieldType.STRING.getDataType())));
-                        lookupRecordSchema = new SimpleRecordSchema(recordFields);
                     }
-
-                    cache.put(key, new MapRecord(lookupRecordSchema, properties));
                 }
 
                 this.cache = cache;
@@ -186,6 +204,7 @@ public class CSVRecordLookupService extends AbstractControllerService implements
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CSV_FILE);
         properties.add(CSV_FORMAT);
+        properties.add(CHARSET);
         properties.add(LOOKUP_KEY_COLUMN);
         properties.add(IGNORE_DUPLICATES);
         this.properties = Collections.unmodifiableList(properties);
@@ -193,9 +212,10 @@ public class CSVRecordLookupService extends AbstractControllerService implements
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException {
-        this.csvFile = context.getProperty(CSV_FILE).getValue();
+        this.csvFile = context.getProperty(CSV_FILE).evaluateAttributeExpressions().getValue();
         this.csvFormat = CSVFormat.Predefined.valueOf(context.getProperty(CSV_FORMAT).getValue()).getFormat();
-        this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).getValue();
+        this.charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
+        this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
         this.ignoreDuplicates = context.getProperty(IGNORE_DUPLICATES).asBoolean();
         this.watcher = new SynchronousFileWatcher(Paths.get(csvFile), new LastModifiedMonitor(), 30000L);
         try {

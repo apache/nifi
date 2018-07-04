@@ -341,11 +341,19 @@ public class FileAccessPolicyProviderTest {
 
         // verify user2's policies
         final Map<String,Set<RequestAction>> user2Policies = getResourceActions(policies, user2);
-        assertEquals(2, user2Policies.size());
+        assertEquals(3, user2Policies.size());
 
         assertTrue(user2Policies.containsKey(ResourceType.Provenance.getValue()));
         assertEquals(1, user2Policies.get(ResourceType.Provenance.getValue()).size());
         assertTrue(user2Policies.get(ResourceType.Provenance.getValue()).contains(RequestAction.READ));
+
+        assertTrue(user2Policies.containsKey(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID));
+        assertEquals(1, user2Policies.get(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID).size());
+        assertTrue(user2Policies.get(ResourceType.ProvenanceData.getValue() + "/process-groups/" + ROOT_GROUP_ID).contains(RequestAction.READ));
+
+        assertTrue(user2Policies.containsKey(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID));
+        assertEquals(1, user2Policies.get(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID).size());
+        assertTrue(user2Policies.get(ResourceType.Data.getValue() + "/process-groups/" + ROOT_GROUP_ID).contains(RequestAction.READ));
 
         // verify user3's policies
         final Map<String,Set<RequestAction>> user3Policies = getResourceActions(policies, user3);

@@ -1,5 +1,5 @@
 nifi-aws-nar
-Copyright 2015-2017 The Apache Software Foundation
+Copyright 2015-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -92,3 +92,28 @@ The following binary components are provided under the Apache Software License v
         A list of contributors may be found from CREDITS file, which is included
         in some artifacts (usually source distributions); but is always available
         from the source code management (SCM) system project uses.
+
+
+  (ASLv2) This includes derived works from apigateway-generic-java-sdk project (https://github.com/rpgreen/apigateway-generic-java-sdk)
+  https://github.com/rpgreen/apigateway-generic-java-sdk/commit/32eea44cc855a530c9b4a28b9f3601a41bc85618 as the point reference:
+  The derived work is adapted from
+    main/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+    test/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClientTest.java
+      LambdaMatcher.java
+  and can be found in the directories:
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-abstract-processors/src/main/../wag/client/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+      Validate.java
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-processors/src/test/../wag/
+      RequestMatcher.java
+      GetAWSGatewayApiTest.java

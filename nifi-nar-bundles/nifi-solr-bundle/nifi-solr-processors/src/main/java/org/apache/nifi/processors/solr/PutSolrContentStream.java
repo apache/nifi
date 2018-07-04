@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -46,31 +47,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
+import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
-import static org.apache.nifi.processors.solr.SolrUtils.JAAS_CLIENT_APP_NAME;
-import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS_PER_HOST;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_SOCKET_TIMEOUT;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
+import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
+import static org.apache.nifi.processors.solr.SolrUtils.SSL_CONTEXT_SERVICE;
 import static org.apache.nifi.processors.solr.SolrUtils.ZK_CLIENT_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.ZK_CONNECTION_TIMEOUT;
-import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
-import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
-import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 
 @Tags({"Apache", "Solr", "Put", "Send"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -84,7 +81,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("The path in Solr to post the ContentStream")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("/update/json/docs")
             .build();
 
@@ -93,7 +90,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("Content-Type being sent to Solr")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("application/json")
             .build();
 
@@ -102,7 +99,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("The number of milliseconds before the given update is committed")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("5000")
             .build();
 
@@ -123,7 +120,6 @@ public class PutSolrContentStream extends SolrProcessor {
 
     public static final String COLLECTION_PARAM_NAME = "collection";
     public static final String COMMIT_WITHIN_PARAM_NAME = "commitWithin";
-    public static final String REPEATING_PARAM_PATTERN = "\\w+\\.\\d+";
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
@@ -139,7 +135,7 @@ public class PutSolrContentStream extends SolrProcessor {
         descriptors.add(CONTENT_STREAM_PATH);
         descriptors.add(CONTENT_TYPE);
         descriptors.add(COMMIT_WITHIN);
-        descriptors.add(JAAS_CLIENT_APP_NAME);
+        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -175,13 +171,13 @@ public class PutSolrContentStream extends SolrProcessor {
                 .name(propertyDescriptorName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .dynamic(true)
-                .expressionLanguageSupported(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    protected void doOnTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;
         }
@@ -193,7 +189,7 @@ public class PutSolrContentStream extends SolrProcessor {
         final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFile).getValue();
         final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
         final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        final MultiMapSolrParams requestParams = new MultiMapSolrParams(getRequestParams(context, flowFile));
+        final MultiMapSolrParams requestParams = new MultiMapSolrParams(SolrUtils.getRequestParams(context, flowFile));
 
         StopWatch timer = new StopWatch(true);
         session.read(flowFile, new InputStreamCallback() {
@@ -235,7 +231,7 @@ public class PutSolrContentStream extends SolrProcessor {
 
                         @Override
                         public String getContentType() {
-                            return context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions().getValue();
+                            return context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
                         }
                     });
 
@@ -263,7 +259,7 @@ public class PutSolrContentStream extends SolrProcessor {
         } else if (connectionError.get() != null) {
             getLogger().error("Failed to send {} to Solr due to {}; routing to connection_failure",
                     new Object[]{flowFile, connectionError.get()});
-            flowFile = session.penalize(flowFile);
+            session.penalize(flowFile);
             session.transfer(flowFile, REL_CONNECTION_FAILURE);
         } else {
             StringBuilder transitUri = new StringBuilder("solr://");
@@ -291,36 +287,4 @@ public class PutSolrContentStream extends SolrProcessor {
         }
         return foundIOException;
     }
-
-    // get all of the dynamic properties and values into a Map for later adding to the Solr request
-    private Map<String, String[]> getRequestParams(ProcessContext context, FlowFile flowFile) {
-        final Map<String,String[]> paramsMap = new HashMap<>();
-        final SortedMap<String,String> repeatingParams = new TreeMap<>();
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            if (descriptor.isDynamic()) {
-                final String paramName = descriptor.getName();
-                final String paramValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
-
-                if (!paramValue.trim().isEmpty()) {
-                    if (paramName.matches(REPEATING_PARAM_PATTERN)) {
-                        repeatingParams.put(paramName, paramValue);
-                    } else {
-                        MultiMapSolrParams.addParam(paramName, paramValue, paramsMap);
-                    }
-                }
-            }
-        }
-
-        for (final Map.Entry<String,String> entry : repeatingParams.entrySet()) {
-            final String paramName = entry.getKey();
-            final String paramValue = entry.getValue();
-            final int idx = paramName.lastIndexOf(".");
-            MultiMapSolrParams.addParam(paramName.substring(0, idx), paramValue, paramsMap);
-        }
-
-        return paramsMap;
-    }
-
 }

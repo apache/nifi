@@ -44,6 +44,8 @@
 }(this, function ($, Slick, nfCommon, nfClient, nfErrorHandler) {
     'use strict';
 
+    var isDisconnectionAcknowledged = false;
+
     /**
      * Configuration object used to hold a number of configuration items.
      */
@@ -72,11 +74,14 @@
                         var usersGrid = $('#users-table').data('gridInstance');
                         var usersData = usersGrid.getData();
                         var user = usersData.getItemById(userId);
+                        var revision = nfClient.getRevision(user);
 
                         // update the user
                         $.ajax({
                             type: 'DELETE',
-                            url: user.uri + '?' + $.param(nfClient.getRevision(user)),
+                            url: user.uri + '?' + $.param($.extend({
+                                'disconnectedNodeAcknowledged': isDisconnectionAcknowledged
+                            }, revision)),
                             dataType: 'json'
                         }).done(function () {
                             nfUsersTable.loadUsersTable();
@@ -170,6 +175,7 @@
         // build the request entity
         var updatedGroupEntity = {
             'revision': nfClient.getRevision(groupEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': $.extend({}, groupEntity.component, {
                 'users': groupMembers
             })
@@ -208,6 +214,7 @@
         // build the request entity
         var updatedGroupEntity = {
             'revision': nfClient.getRevision(groupEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': $.extend({}, groupEntity.component, {
                 'users': groupMembers
             })
@@ -277,6 +284,7 @@
 
         var updatedUserEntity = {
             'revision': nfClient.getRevision(userEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': {
                 'id': userId,
                 'identity': userIdentity
@@ -370,6 +378,7 @@
 
         var updatedGroupoEntity = {
             'revision': nfClient.getRevision(groupEntity),
+            'disconnectedNodeAcknowledged': isDisconnectionAcknowledged,
             'component': {
                 'id': groupId,
                 'identity': groupIdentity,
@@ -414,7 +423,8 @@
                                     'revision': {
                                         'version': 0
                                     }
-                                })
+                                }),
+                                'disconnectedNodeAcknowledged': isDisconnectionAcknowledged
                             };
 
                             // handle whether it's a user or a group
@@ -783,7 +793,7 @@
         var identityFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
             if (dataContext.type === 'group') {
-                markup += '<div class="fa fa-users" style="margin-right: 5px;"></div>';
+                markup += '<div class="fa fa-users"></div>';
             }
 
             markup += nfCommon.escapeHtml(dataContext.component.identity);
@@ -810,7 +820,7 @@
 
             // ensure user can modify the user
             if (configurableUsersAndGroups && dataContext.component.configurable === true && nfCommon.canModifyTenants()) {
-                markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
+                markup += '<div title="Edit" class="pointer edit-user fa fa-pencil"></div>';
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
 
@@ -1127,7 +1137,7 @@
                 var groupId = $('<span class="group-id hidden"></span>').text(group.id);
 
                 // icon
-                var groupIcon = $('<div class="fa fa-users nf-checkbox-label" style="margin-top: 6px;"></div>');
+                var groupIcon = $('<div class="fa fa-users nf-checkbox-label"></div>');
 
                 // identity
                 var identity = $('<div class="available-identities nf-checkbox-label"></div>').text(group.component.identity);
@@ -1234,7 +1244,9 @@
     };
 
     var nfUsersTable = {
-        init: function (configurableUsersAndGroups) {
+        init: function (configurableUsersAndGroups, disconnectionAcknowledged) {
+            isDisconnectionAcknowledged = disconnectionAcknowledged;
+
             initUserDialog();
             initUserPoliciesDialog();
             initUserPoliciesTable();

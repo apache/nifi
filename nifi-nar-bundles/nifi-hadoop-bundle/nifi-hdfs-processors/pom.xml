@@ -17,12 +17,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hadoop-bundle</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>1.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-hdfs-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <hadoop.version>2.7.3</hadoop.version>
+        <hadoop.version>3.0.0</hadoop.version>
     </properties>
     <dependencies>
         <dependency>
@@ -32,17 +32,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-utils</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -57,13 +57,23 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs-client</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>1.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -85,6 +95,13 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/testdata/.dotfile</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-mydir.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRunWithPermissionsExceptionContent.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir1.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-dir2.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupAllToAttributes.json</exclude>
+                        <exclude>src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir2.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

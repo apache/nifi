@@ -43,6 +43,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -101,7 +102,7 @@ public class ControlRate extends AbstractProcessor {
                     + "This value is ignored if Rate Control Criteria is not set to 'attribute value'. Changing this value resets the rate counters.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor TIME_PERIOD = new PropertyDescriptor.Builder()
             .name("Time Duration")
@@ -116,7 +117,7 @@ public class ControlRate extends AbstractProcessor {
                     + "each value specified by the attribute with this name. Changing this value resets the rate counters.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -394,18 +395,19 @@ public class ControlRate extends AbstractProcessor {
         @Override
         public FlowFileFilterResult filter(FlowFile flowFile) {
             long accrual = getFlowFileAccrual(flowFile);
-            if(accrual < 0){
+            if (accrual < 0) {
                 // this FlowFile is invalid for this configuration so let the processor deal with it
                 return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
             }
 
-            String groupName = (groupingAttributeName == null) ? DEFAULT_GROUP_ATTRIBUTE : flowFile
-                    .getAttribute(groupingAttributeName);
+            String groupName = (groupingAttributeName == null) ? DEFAULT_GROUP_ATTRIBUTE : flowFile.getAttribute(groupingAttributeName);
+
             // the flow file may not have the required attribute: in this case it is considered part
             // of the DEFAULT_GROUP_ATTRIBUTE
             if (groupName == null) {
                 groupName = DEFAULT_GROUP_ATTRIBUTE;
             }
+
             Throttle throttle = throttleMap.get(groupName);
             if (throttle == null) {
                 throttle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger());
@@ -436,7 +438,15 @@ public class ControlRate extends AbstractProcessor {
                 throttle.unlock();
             }
 
-            return FlowFileFilterResult.REJECT_AND_TERMINATE;
+            // If we are not using a grouping attribute, then no FlowFile will be able to continue on. So we can
+            // just TERMINATE the iteration over FlowFiles.
+            // However, if we are using a grouping attribute, then another FlowFile in the queue may be able to proceed,
+            // so we want to continue our iteration.
+            if (groupingAttributeName == null) {
+                return FlowFileFilterResult.REJECT_AND_TERMINATE;
+            }
+
+            return FlowFileFilterResult.REJECT_AND_CONTINUE;
         }
     }
 }

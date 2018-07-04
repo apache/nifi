@@ -35,12 +35,17 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+        return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
+    }
+
+    @Override
+    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
 
         final StringBuilder query = new StringBuilder();
-        boolean nestedSelect = (limit != null || offset != null);
+        boolean nestedSelect = (limit != null || offset != null) && StringUtils.isEmpty(columnForPartitioning);
         if (nestedSelect) {
             // Need a nested SELECT query here in order to use ROWNUM to limit the results
             query.append("SELECT ");
@@ -64,8 +69,20 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
         if (!StringUtils.isEmpty(whereClause)) {
             query.append(" WHERE ");
             query.append(whereClause);
+            if (!StringUtils.isEmpty(columnForPartitioning)) {
+                query.append(" AND ");
+                query.append(columnForPartitioning);
+                query.append(" >= ");
+                query.append(offset != null ? offset : "0");
+                if (limit != null) {
+                    query.append(" AND ");
+                    query.append(columnForPartitioning);
+                    query.append(" < ");
+                    query.append((offset == null ? 0 : offset) + limit);
+                }
+            }
         }
-        if (!StringUtils.isEmpty(orderByClause)) {
+        if (!StringUtils.isEmpty(orderByClause) && StringUtils.isEmpty(columnForPartitioning)) {
             query.append(" ORDER BY ");
             query.append(orderByClause);
         }
@@ -82,6 +99,7 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
             query.append(") WHERE rnum > ");
             query.append(offsetVal);
         }
+
         return query.toString();
     }
 }

@@ -1,5 +1,5 @@
 nifi-grpc-nar
-Copyright 2017 The Apache Software Foundation
+Copyright 2017-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -300,3 +300,4 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Google APIs
     The following NOTICE information applies:
       Copyright 2016 Google Inc.
+

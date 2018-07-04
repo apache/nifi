@@ -19,9 +19,11 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.registry.client.FlowClient;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.Context;
@@ -76,6 +78,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
             contents = IOUtils.toString(uri, StandardCharsets.UTF_8);
         }
 
+        final FlowClient flowClient = client.getFlowClient();
         final FlowSnapshotClient snapshotClient = client.getFlowSnapshotClient();
 
         final ObjectMapper objectMapper = JacksonUtils.getObjectMapper();
@@ -84,13 +87,12 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
             throw new IOException("Unable to deserialize flow version from " + inputFile);
         }
 
-        // determine the bucket for the provided flow id
-        final String bucketId = getBucketId(client, flowId);
+        final VersionedFlow versionedFlow = flowClient.get(flowId);
 
         // determine the latest existing version in the destination system
         Integer version;
         try {
-            final VersionedFlowSnapshotMetadata latestMetadata = snapshotClient.getLatestMetadata(bucketId, flowId);
+            final VersionedFlowSnapshotMetadata latestMetadata = snapshotClient.getLatestMetadata(flowId);
             version = latestMetadata.getVersion() + 1;
         } catch (NiFiRegistryException e) {
             // when there are no versions it produces a 404 not found
@@ -99,7 +101,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
 
         // create new metadata using the passed in bucket and flow in the target registry, keep comments
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
-        metadata.setBucketIdentifier(bucketId);
+        metadata.setBucketIdentifier(versionedFlow.getBucketIdentifier());
         metadata.setFlowIdentifier(flowId);
         metadata.setVersion(version);
         metadata.setComments(deserializedSnapshot.getSnapshotMetadata().getComments());

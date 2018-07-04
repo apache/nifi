@@ -41,6 +41,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -49,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class KafkaProcessorUtils {
+    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -74,7 +77,7 @@ final class KafkaProcessorUtils {
             .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("localhost:9092")
             .build();
     static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
@@ -82,11 +85,11 @@ final class KafkaProcessorUtils {
             .displayName("Security Protocol")
             .description("Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol' property.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(SEC_PLAINTEXT, SEC_SSL, SEC_SASL_PLAINTEXT, SEC_SASL_SSL)
             .defaultValue(SEC_PLAINTEXT.getValue())
             .build();
-    static final PropertyDescriptor KERBEROS_PRINCIPLE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.service.name")
             .displayName("Kerberos Service Name")
             .description("The Kerberos principal name that Kafka runs as. This can be defined either in Kafka's JAAS config or in Kafka's config. "
@@ -94,7 +97,7 @@ final class KafkaProcessorUtils {
                     + "It is ignored unless one of the SASL options of the <Security Protocol> are selected.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     static final PropertyDescriptor USER_PRINCIPAL = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.principal")
@@ -103,7 +106,7 @@ final class KafkaProcessorUtils {
                     + "in the JVM properties defined in the bootstrap.conf file. This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     static final PropertyDescriptor USER_KEYTAB = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.keytab")
@@ -112,7 +115,7 @@ final class KafkaProcessorUtils {
                     + "in the JVM properties defined in the bootstrap.conf file. This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl.context.service")
@@ -121,12 +124,20 @@ final class KafkaProcessorUtils {
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
 
     static List<PropertyDescriptor> getCommonPropertyDescriptors() {
         return Arrays.asList(
                 BOOTSTRAP_SERVERS,
                 SECURITY_PROTOCOL,
-                KERBEROS_PRINCIPLE,
+                JAAS_SERVICE_NAME,
+                KERBEROS_CREDENTIALS_SERVICE,
                 USER_PRINCIPAL,
                 USER_KEYTAB,
                 SSL_CONTEXT_SERVICE
@@ -138,71 +149,107 @@ final class KafkaProcessorUtils {
 
         String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
 
-        /*
-         * validates that if one of SASL (Kerberos) option is selected for
-         * security protocol, then Kerberos principal is provided as well
-         */
+        final String explicitPrincipal = validationContext.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = validationContext.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
+        final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        final String resolvedPrincipal;
+        final String resolvedKeytab;
+        if (credentialsService == null) {
+            resolvedPrincipal = explicitPrincipal;
+            resolvedKeytab = explicitKeytab;
+        } else {
+            resolvedPrincipal = credentialsService.getPrincipal();
+            resolvedKeytab = credentialsService.getKeytab();
+        }
+
+        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+            results.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
+                .build());
+        }
+
+        final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
+        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+            results.add(new ValidationResult.Builder()
+                .subject("Kerberos Credentials")
+                .valid(false)
+                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
+                    + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
+                .build());
+        }
+
+        // validates that if one of SASL (Kerberos) option is selected for
+        // security protocol, then Kerberos principal is provided as well
         if (SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol)) {
-            String kerberosPrincipal = validationContext.getProperty(KERBEROS_PRINCIPLE).evaluateAttributeExpressions().getValue();
-            if (kerberosPrincipal == null || kerberosPrincipal.trim().length() == 0) {
-                results.add(new ValidationResult.Builder().subject(KERBEROS_PRINCIPLE.getDisplayName()).valid(false)
-                        .explanation("The <" + KERBEROS_PRINCIPLE.getDisplayName() + "> property must be set when <"
-                                + SECURITY_PROTOCOL.getDisplayName() + "> is configured as '"
-                                + SEC_SASL_PLAINTEXT.getValue() + "' or '" + SEC_SASL_SSL.getValue() + "'.")
-                        .build());
+            String jaasServiceName = validationContext.getProperty(JAAS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
+            if (jaasServiceName == null || jaasServiceName.trim().length() == 0) {
+                results.add(new ValidationResult.Builder().subject(JAAS_SERVICE_NAME.getDisplayName()).valid(false)
+                    .explanation("The <" + JAAS_SERVICE_NAME.getDisplayName() + "> property must be set when <"
+                        + SECURITY_PROTOCOL.getDisplayName() + "> is configured as '"
+                        + SEC_SASL_PLAINTEXT.getValue() + "' or '" + SEC_SASL_SSL.getValue() + "'.")
+                    .build());
             }
 
-            String userKeytab = validationContext.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
-            String userPrincipal = validationContext.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
-            if((StringUtils.isBlank(userKeytab) && !StringUtils.isBlank(userPrincipal))
-                    || (!StringUtils.isBlank(userKeytab) && StringUtils.isBlank(userPrincipal))) {
-                results.add(new ValidationResult.Builder().subject(KERBEROS_PRINCIPLE.getDisplayName()).valid(false)
-                        .explanation("Both <" + USER_KEYTAB.getDisplayName()  + "> and <" + USER_PRINCIPAL.getDisplayName() + "> "
-                                + "must be set.")
-                        .build());
+            if ((resolvedKeytab == null && resolvedPrincipal != null) || (resolvedKeytab != null && resolvedPrincipal == null)) {
+                results.add(new ValidationResult.Builder()
+                    .subject(JAAS_SERVICE_NAME.getDisplayName())
+                    .valid(false)
+                    .explanation("Both <" + USER_KEYTAB.getDisplayName() + "> and <" + USER_PRINCIPAL.getDisplayName() + "> "
+                        + "must be set or neither must be set.")
+                    .build());
             }
         }
 
-        //If SSL or SASL_SSL then CS must be set.
+        // If SSL or SASL_SSL then SSLContext Controller Service must be set.
         final boolean sslProtocol = SEC_SSL.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol);
         final boolean csSet = validationContext.getProperty(SSL_CONTEXT_SERVICE).isSet();
         if (csSet && !sslProtocol) {
-            results.add(new ValidationResult.Builder().subject(SECURITY_PROTOCOL.getDisplayName()).valid(false)
-                    .explanation("If you set the SSL Controller Service you should also choose an SSL based security protocol.").build());
+            results.add(new ValidationResult.Builder()
+                .subject(SECURITY_PROTOCOL.getDisplayName())
+                .valid(false)
+                .explanation("If you set the SSL Controller Service you should also choose an SSL based security protocol.")
+                .build());
         }
+
         if (!csSet && sslProtocol) {
-            results.add(new ValidationResult.Builder().subject(SSL_CONTEXT_SERVICE.getDisplayName()).valid(false)
-                    .explanation("If you set to an SSL based protocol you need to set the SSL Controller Service").build());
+            results.add(new ValidationResult.Builder()
+                .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                .valid(false)
+                .explanation("If you set to an SSL based protocol you need to set the SSL Controller Service")
+                .build());
         }
 
         final String enableAutoCommit = validationContext.getProperty(new PropertyDescriptor.Builder().name(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG).build()).getValue();
         if (enableAutoCommit != null && !enableAutoCommit.toLowerCase().equals("false")) {
             results.add(new ValidationResult.Builder().subject(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG)
-                    .explanation("Enable auto commit must be false.  It is managed by the processor.").build());
+                .explanation("Enable auto commit must be false. It is managed by the processor.").build());
         }
 
         final String keySerializer = validationContext.getProperty(new PropertyDescriptor.Builder().name(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG).build()).getValue();
         if (keySerializer != null && !ByteArraySerializer.class.getName().equals(keySerializer)) {
             results.add(new ValidationResult.Builder().subject(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)
-                    .explanation("Key Serializer must be " + ByteArraySerializer.class.getName() + "' was '" + keySerializer + "'").build());
+                .explanation("Key Serializer must be " + ByteArraySerializer.class.getName() + "' was '" + keySerializer + "'").build());
         }
 
         final String valueSerializer = validationContext.getProperty(new PropertyDescriptor.Builder().name(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG).build()).getValue();
         if (valueSerializer != null && !ByteArraySerializer.class.getName().equals(valueSerializer)) {
             results.add(new ValidationResult.Builder().subject(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)
-                    .explanation("Value Serializer must be " + ByteArraySerializer.class.getName() + "' was '" + valueSerializer + "'").build());
+                .explanation("Value Serializer must be " + ByteArraySerializer.class.getName() + "' was '" + valueSerializer + "'").build());
         }
 
         final String keyDeSerializer = validationContext.getProperty(new PropertyDescriptor.Builder().name(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG).build()).getValue();
         if (keyDeSerializer != null && !ByteArrayDeserializer.class.getName().equals(keyDeSerializer)) {
             results.add(new ValidationResult.Builder().subject(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)
-                    .explanation("Key De-Serializer must be '" + ByteArrayDeserializer.class.getName() + "' was '" + keyDeSerializer + "'").build());
+                .explanation("Key De-Serializer must be '" + ByteArrayDeserializer.class.getName() + "' was '" + keyDeSerializer + "'").build());
         }
 
         final String valueDeSerializer = validationContext.getProperty(new PropertyDescriptor.Builder().name(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG).build()).getValue();
         if (valueDeSerializer != null && !ByteArrayDeserializer.class.getName().equals(valueDeSerializer)) {
             results.add(new ValidationResult.Builder().subject(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)
-                    .explanation("Value De-Serializer must be " + ByteArrayDeserializer.class.getName() + "' was '" + valueDeSerializer + "'").build());
+                .explanation("Value De-Serializer must be " + ByteArrayDeserializer.class.getName() + "' was '" + valueDeSerializer + "'").build());
         }
 
         return results;
@@ -297,7 +344,17 @@ final class KafkaProcessorUtils {
     private static void setJaasConfig(Map<String, Object> mapToPopulate, ProcessContext context) {
         String keytab = context.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
         String principal = context.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        String serviceName = context.getProperty(KERBEROS_PRINCIPLE).evaluateAttributeExpressions().getValue();
+
+        // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
+        // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (credentialsService != null) {
+            principal = credentialsService.getPrincipal();
+            keytab = credentialsService.getKeytab();
+        }
+
+
+        String serviceName = context.getProperty(JAAS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
         if(StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
             mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, "com.sun.security.auth.module.Krb5LoginModule required "
                     + "useTicketCache=false "

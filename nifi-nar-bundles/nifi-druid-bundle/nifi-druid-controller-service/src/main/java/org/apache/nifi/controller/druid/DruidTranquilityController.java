@@ -24,11 +24,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
+import io.druid.granularity.QueryGranularity;
+import io.druid.jackson.AggregatorsModule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.druid.query.aggregation.datasketches.theta.SketchModule;
+import io.druid.query.aggregation.histogram.ApproximateHistogramDruidModule;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -44,9 +50,9 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.api.druid.DruidTranquilityService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import com.metamx.common.Granularity;
 import com.metamx.tranquility.beam.Beam;
@@ -61,15 +67,7 @@ import com.metamx.tranquility.tranquilizer.Tranquilizer;
 import com.metamx.tranquility.typeclass.Timestamper;
 
 import io.druid.data.input.impl.TimestampSpec;
-import io.druid.granularity.QueryGranularity;
 import io.druid.query.aggregation.AggregatorFactory;
-import io.druid.query.aggregation.CountAggregatorFactory;
-import io.druid.query.aggregation.DoubleMaxAggregatorFactory;
-import io.druid.query.aggregation.DoubleMinAggregatorFactory;
-import io.druid.query.aggregation.DoubleSumAggregatorFactory;
-import io.druid.query.aggregation.LongMaxAggregatorFactory;
-import io.druid.query.aggregation.LongMinAggregatorFactory;
-import io.druid.query.aggregation.LongSumAggregatorFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
@@ -96,7 +94,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("A data source is the Druid equivalent of a database table.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ZOOKEEPER_CONNECTION_STRING = new PropertyDescriptor.Builder()
@@ -105,7 +103,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("A comma-separated list of host:port pairs, each corresponding to a ZooKeeper server. Ex: localhost:2181")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor ZOOKEEPER_RETRY_BASE_SLEEP_TIME = new PropertyDescriptor.Builder()
@@ -114,7 +112,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("When a connection to Zookeeper needs to be retried, this property specifies the amount of time (in milliseconds) to wait at first before retrying.")
             .required(true)
             .defaultValue("1000")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -124,7 +122,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("When a connection to Zookeeper needs to be retried, this property specifies how many times to attempt reconnection.")
             .required(true)
             .defaultValue("20")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -134,7 +132,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("When a connection to Zookeeper needs to be retried, this property specifies the amount of time to sleep (in milliseconds) between retries.")
             .required(true)
             .defaultValue("30000")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -145,7 +143,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("druid/overlord")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DRUID_DISCOVERY_PATH = new PropertyDescriptor.Builder()
@@ -155,7 +153,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("/druid/discovery")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor CLUSTER_PARTITIONS = new PropertyDescriptor.Builder()
@@ -164,7 +162,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("The number of partitions in the Druid cluster.")
             .required(true)
             .defaultValue("1")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -174,7 +172,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("The replication factor for the Druid cluster.")
             .required(true)
             .defaultValue("1")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
@@ -185,7 +183,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("timestamp")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor AGGREGATOR_JSON = new PropertyDescriptor.Builder()
@@ -226,7 +224,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
                     return new ValidationResult.Builder().subject(subject).input(value).valid(false).explanation(subject + " is not valid Aggregator JSON").build();
                 }
             })
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor DIMENSIONS_LIST = new PropertyDescriptor.Builder()
@@ -235,7 +233,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .description("A comma separated list of field names that will be stored as dimensions on ingest.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor SEGMENT_GRANULARITY = new PropertyDescriptor.Builder()
@@ -285,7 +283,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("2000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor MAX_PENDING_BATCHES = new PropertyDescriptor.Builder()
@@ -295,7 +293,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("5")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor LINGER_MILLIS = new PropertyDescriptor.Builder()
@@ -307,7 +305,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .defaultValue("1000")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private static final List<PropertyDescriptor> properties;
@@ -381,7 +379,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         final String windowPeriod = context.getProperty(WINDOW_PERIOD).getValue();
         final String indexRetryPeriod = context.getProperty(INDEX_RETRY_PERIOD).getValue();
         final String aggregatorJSON = context.getProperty(AGGREGATOR_JSON).evaluateAttributeExpressions().getValue();
-        final String dimensionsStringList = context.getProperty(DIMENSIONS_LIST).getValue();
+        final String dimensionsStringList = context.getProperty(DIMENSIONS_LIST).evaluateAttributeExpressions().getValue();
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final int maxPendingBatches = context.getProperty(MAX_PENDING_BATCHES).evaluateAttributeExpressions().asInteger();
         final int lingerMillis = context.getProperty(LINGER_MILLIS).evaluateAttributeExpressions().asInteger();
@@ -517,56 +515,22 @@ public class DruidTranquilityController extends AbstractControllerService implem
     }
 
     private List<AggregatorFactory> getAggregatorList(String aggregatorJSON) {
-        List<AggregatorFactory> aggregatorList = new LinkedList<>();
-        List<Map<String, String>> aggregatorInfo = parseJsonString(aggregatorJSON);
-        for (Map<String, String> aggregator : aggregatorInfo) {
+        ComponentLog log = getLogger();
+        ObjectMapper mapper = new ObjectMapper(null);
+        mapper.registerModule(new AggregatorsModule());
+        mapper.registerModules(Lists.newArrayList(new SketchModule().getJacksonModules()));
+        mapper.registerModules(Lists.newArrayList(new ApproximateHistogramDruidModule().getJacksonModules()));
 
-            if (aggregator.get("type").equalsIgnoreCase("count")) {
-                aggregatorList.add(getCountAggregator(aggregator));
-            } else if (aggregator.get("type").equalsIgnoreCase("doublesum")) {
-                aggregatorList.add(getDoubleSumAggregator(aggregator));
-            } else if (aggregator.get("type").equalsIgnoreCase("doublemax")) {
-                aggregatorList.add(getDoubleMaxAggregator(aggregator));
-            } else if (aggregator.get("type").equalsIgnoreCase("doublemin")) {
-                aggregatorList.add(getDoubleMinAggregator(aggregator));
-            } else if (aggregator.get("type").equalsIgnoreCase("longsum")) {
-                aggregatorList.add(getLongSumAggregator(aggregator));
-            } else if (aggregator.get("type").equalsIgnoreCase("longmax")) {
-                aggregatorList.add(getLongMaxAggregator(aggregator));
-            } else if (aggregator.get("type").equalsIgnoreCase("longmin")) {
-                aggregatorList.add(getLongMinAggregator(aggregator));
-            }
+        try {
+            return mapper.readValue(
+                aggregatorJSON,
+                new TypeReference<List<AggregatorFactory>>() {
+                }
+            );
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            return null;
         }
-
-        return aggregatorList;
-    }
-
-    private AggregatorFactory getLongMinAggregator(Map<String, String> map) {
-        return new LongMinAggregatorFactory(map.get("name"), map.get("fieldName"));
-    }
-
-    private AggregatorFactory getLongMaxAggregator(Map<String, String> map) {
-        return new LongMaxAggregatorFactory(map.get("name"), map.get("fieldName"));
-    }
-
-    private AggregatorFactory getLongSumAggregator(Map<String, String> map) {
-        return new LongSumAggregatorFactory(map.get("name"), map.get("fieldName"));
-    }
-
-    private AggregatorFactory getDoubleMinAggregator(Map<String, String> map) {
-        return new DoubleMinAggregatorFactory(map.get("name"), map.get("fieldName"));
-    }
-
-    private AggregatorFactory getDoubleMaxAggregator(Map<String, String> map) {
-        return new DoubleMaxAggregatorFactory(map.get("name"), map.get("fieldName"));
-    }
-
-    private AggregatorFactory getDoubleSumAggregator(Map<String, String> map) {
-        return new DoubleSumAggregatorFactory(map.get("name"), map.get("fieldName"));
-    }
-
-    private AggregatorFactory getCountAggregator(Map<String, String> map) {
-        return new CountAggregatorFactory(map.get("name"));
     }
 
     private Granularity getGranularity(String granularityString) {

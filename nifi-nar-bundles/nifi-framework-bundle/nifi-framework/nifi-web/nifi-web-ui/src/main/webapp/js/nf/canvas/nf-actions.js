@@ -24,6 +24,7 @@
                 'nf.CanvasUtils',
                 'nf.Common',
                 'nf.Dialog',
+                'nf.Storage',
                 'nf.Client',
                 'nf.ErrorHandler',
                 'nf.Clipboard',
@@ -56,8 +57,8 @@
                 'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -66,6 +67,7 @@
                 require('nf.CanvasUtils'),
                 require('nf.Common'),
                 require('nf.Dialog'),
+                require('nf.Storage'),
                 require('nf.Client'),
                 require('nf.ErrorHandler'),
                 require('nf.Clipboard'),
@@ -104,6 +106,7 @@
             root.nf.CanvasUtils,
             root.nf.Common,
             root.nf.Dialog,
+            root.nf.Storage,
             root.nf.Client,
             root.nf.ErrorHandler,
             root.nf.Clipboard,
@@ -137,7 +140,7 @@
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -171,6 +174,8 @@
      * @param {object} entity
      */
     var updateResource = function (uri, entity) {
+        entity['disconnectedNodeAcknowledged'] = nfStorage.isDisconnectionAcknowledged();
+
         return $.ajax({
             type: 'PUT',
             url: uri,
@@ -502,39 +507,58 @@
          * @argument {selection} selection      The selection
          */
         enable: function (selection) {
-            var componentsToEnable = nfCanvasUtils.filterEnable(selection);
+            if (selection.empty()) {
+                // build the entity
+                var entity = {
+                    'id': nfCanvasUtils.getGroupId(),
+                    'state': 'ENABLED'
+                };
 
-            if (componentsToEnable.empty()) {
-                nfDialog.showOkDialog({
-                    headerText: 'Enable Components',
-                    dialogContent: 'No eligible components are selected. Please select the components to be enabled and ensure they are no longer running.'
-                });
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
             } else {
-                var enableRequests = [];
+                var componentsToEnable = nfCanvasUtils.filterEnable(selection);
 
-                // enable the selected processors
-                componentsToEnable.each(function (d) {
-                    var selected = d3.select(this);
+                if (!componentsToEnable.empty()) {
+                    var enableRequests = [];
 
-                    // build the entity
-                    var entity = {
-                        'revision': nfClient.getRevision(d),
-                        'component': {
-                            'id': d.id,
-                            'state': 'STOPPED'
+                    // enable the selected processors
+                    componentsToEnable.each(function (d) {
+                        var selected = d3.select(this);
+
+                        // prepare the request
+                        var uri, entity;
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
+                            entity = {
+                                'id': d.id,
+                                'state': 'ENABLED'
+                            }
+                        } else {
+                            uri = d.uri;
+                            entity = {
+                                'revision': nfClient.getRevision(d),
+                                'component': {
+                                    'id': d.id,
+                                    'state': 'STOPPED'
+                                }
+                            };
                         }
-                    };
 
-                    enableRequests.push(updateResource(d.uri, entity).done(function (response) {
-                        nfCanvasUtils.getComponentByType(d.type).set(response);
-                    }));
-                });
-
-                // inform Angular app once the updates have completed
-                if (enableRequests.length > 0) {
-                    $.when.apply(window, enableRequests).always(function () {
-                        nfNgBridge.digest();
+                        enableRequests.push(updateResource(uri, entity).done(function (response) {
+                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                                nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                            } else {
+                                nfCanvasUtils.getComponentByType(d.type).set(response);
+                            }
+                        }));
                     });
+
+                    // inform Angular app once the updates have completed
+                    if (enableRequests.length > 0) {
+                        $.when.apply(window, enableRequests).always(function () {
+                            nfNgBridge.digest();
+                        });
+                    }
                 }
             }
         },
@@ -545,39 +569,58 @@
          * @argument {selection} selection      The selection
          */
         disable: function (selection) {
-            var componentsToDisable = nfCanvasUtils.filterDisable(selection);
+            if (selection.empty()) {
+                // build the entity
+                var entity = {
+                    'id': nfCanvasUtils.getGroupId(),
+                    'state': 'DISABLED'
+                };
 
-            if (componentsToDisable.empty()) {
-                nfDialog.showOkDialog({
-                    headerText: 'Disable Components',
-                    dialogContent: 'No eligible components are selected. Please select the components to be disabled and ensure they are no longer running.'
-                });
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
             } else {
-                var disableRequests = [];
+                var componentsToDisable = nfCanvasUtils.filterDisable(selection);
 
-                // disable the selected components
-                componentsToDisable.each(function (d) {
-                    var selected = d3.select(this);
+                if (!componentsToDisable.empty()) {
+                    var disableRequests = [];
 
-                    // build the entity
-                    var entity = {
-                        'revision': nfClient.getRevision(d),
-                        'component': {
-                            'id': d.id,
-                            'state': 'DISABLED'
+                    // disable the selected components
+                    componentsToDisable.each(function (d) {
+                        var selected = d3.select(this);
+
+                        // prepare the request
+                        var uri, entity;
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
+                            uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
+                            entity = {
+                                'id': d.id,
+                                'state': 'DISABLED'
+                            }
+                        } else {
+                            uri = d.uri;
+                            entity = {
+                                'revision': nfClient.getRevision(d),
+                                'component': {
+                                     'id': d.id,
+                                    'state': 'DISABLED'
+                                }
+                            };
                         }
-                    };
 
-                    disableRequests.push(updateResource(d.uri, entity).done(function (response) {
-                        nfCanvasUtils.getComponentByType(d.type).set(response);
-                    }));
-                });
-
-                // inform Angular app once the updates have completed
-                if (disableRequests.length > 0) {
-                    $.when.apply(window, disableRequests).always(function () {
-                        nfNgBridge.digest();
+                        disableRequests.push(updateResource(uri, entity).done(function (response) {
+                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                                nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                            } else {
+                                nfCanvasUtils.getComponentByType(d.type).set(response);
+                            }
+                        }));
                     });
+
+                    // inform Angular app once the updates have completed
+                    if (disableRequests.length > 0) {
+                        $.when.apply(window, disableRequests).always(function () {
+                            nfNgBridge.digest();
+                        });
+                    }
                 }
             }
         },
@@ -618,12 +661,7 @@
                 });
 
                 // ensure there are startable components selected
-                if (componentsToStart.empty()) {
-                    nfDialog.showOkDialog({
-                        headerText: 'Start Components',
-                        dialogContent: 'No eligible components are selected. Please select the components to be started and ensure they are no longer running.'
-                    });
-                } else {
+                if (!componentsToStart.empty()) {
                     var startRequests = [];
 
                     // start each selected component
@@ -688,12 +726,7 @@
                 });
 
                 // ensure there are some component to stop
-                if (componentsToStop.empty()) {
-                    nfDialog.showOkDialog({
-                        headerText: 'Stop Components',
-                        dialogContent: 'No eligible components are selected. Please select the components to be stopped.'
-                    });
-                } else {
+                if (!componentsToStop.empty()) {
                     var stopRequests = [];
 
                     // stop each selected component
@@ -735,6 +768,25 @@
                         });
                     }
                 }
+            }
+        },
+
+        /**
+         * Terminates active threads for the selected component.
+         *
+         * @param {selection} selection
+         */
+        terminate: function (selection) {
+            if (selection.size() === 1 && nfCanvasUtils.isProcessor(selection)) {
+                var selectionData = selection.datum();
+
+                $.ajax({
+                    type: 'DELETE',
+                    url: selectionData.uri + '/threads',
+                    dataType: 'json'
+                }).done(function (response) {
+                    nfProcessor.set(response);
+                }).fail(nfErrorHandler.handleAjaxError);
             }
         },
 
@@ -926,8 +978,9 @@
                     $.ajax({
                         type: 'DELETE',
                         url: selectionData.uri + '?' + $.param({
-                            version: revision.version,
-                            clientId: revision.clientId
+                            'version': revision.version,
+                            'clientId': revision.clientId,
+                            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                         }),
                         dataType: 'json'
                     }).done(function (response) {
@@ -1628,7 +1681,8 @@
                             var createSnippetEntity = {
                                 'name': templateName,
                                 'description': templateDescription,
-                                'snippetId': response.snippet.id
+                                'snippetId': response.snippet.id,
+                                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
                             };
 
                             // create the template
@@ -1816,6 +1870,7 @@
                 // build the connection entity
                 var connectionEntity = {
                     'revision': nfClient.getRevision(connection),
+                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
                     'component': {
                         'id': connection.id,
                         'zIndex': zIndex
@@ -1831,7 +1886,7 @@
                     contentType: 'application/json'
                 }).done(function (response) {
                     nfConnection.set(response);
-                });
+                }).fail(nfErrorHandler.handleAjaxError);
             }
         }
     };

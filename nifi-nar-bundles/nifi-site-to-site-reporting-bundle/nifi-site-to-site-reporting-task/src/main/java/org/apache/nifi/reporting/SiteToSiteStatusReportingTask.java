@@ -18,9 +18,9 @@
 package org.apache.nifi.reporting;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,14 +41,17 @@ import javax.json.JsonBuilderFactory;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
@@ -60,36 +63,41 @@ import org.apache.nifi.remote.TransferDirection;
         + "However, all process groups are recursively searched for matching components, regardless of whether the process group matches the component filters.")
 public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
         .description("The value to use for the platform field in each status record.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("nifi")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
+
     static final PropertyDescriptor COMPONENT_TYPE_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("Component Type Filter Regex")
         .description("A regex specifying which component types to report.  Any component type matching this regex will be included.  "
                 + "Component types are: Processor, RootProcessGroup, ProcessGroup, RemoteProcessGroup, Connection, InputPort, OutputPort")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("(Processor|ProcessGroup|RemoteProcessGroup|RootProcessGroup|Connection|InputPort|OutputPort)")
         .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
         .build();
+
     static final PropertyDescriptor COMPONENT_NAME_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("Component Name Filter Regex")
         .description("A regex specifying which component names to report.  Any component name matching this regex will be included.")
         .required(true)
-        .expressionLanguageSupported(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue(".*")
         .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
         .build();
 
     private volatile Pattern componentTypeFilter;
     private volatile Pattern componentNameFilter;
+
+    public SiteToSiteStatusReportingTask() throws IOException {
+        final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-status.avsc");
+        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -167,10 +175,9 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 for(JsonValue jsonValue : jsonBatch) {
                     jsonBatchArrayBuilder.add(jsonValue);
                 }
-                final JsonArray jsonBatchArray = jsonBatchArrayBuilder.build();
 
-                final byte[] data = jsonBatchArray.toString().getBytes(StandardCharsets.UTF_8);
-                transaction.send(data, attributes);
+                final JsonArray jsonBatchArray = jsonBatchArrayBuilder.build();
+                sendData(context, transaction, attributes, jsonBatchArray);
                 transaction.confirm();
                 transaction.complete();
 
@@ -197,7 +204,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      *            The component name
      * @return Whether the component matches both filters
      */
-    boolean componentMatchesFilters(final String componentType, final String componentName) {
+    private boolean componentMatchesFilters(final String componentType, final String componentName) {
         return componentTypeFilter.matcher(componentType).matches()
                 && componentNameFilter.matcher(componentName).matches();
     }
@@ -221,7 +228,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      * @param parentId
      *            The parent's component id
      */
-    void serializeProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
+    private void serializeProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
             final ProcessGroupStatus status, final DateFormat df,
         final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
@@ -278,7 +285,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializeRemoteProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
+    private void serializeRemoteProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
             final RemoteProcessGroupStatus status, final DateFormat df, final String hostname, final String applicationName,
             final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
@@ -303,7 +310,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializePortStatus(final String componentType, final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final PortStatus status,
+    private void serializePortStatus(final String componentType, final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final PortStatus status,
             final DateFormat df, final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentName = status.getName();
@@ -327,7 +334,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializeConnectionStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ConnectionStatus status, final DateFormat df,
+    private void serializeConnectionStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ConnectionStatus status, final DateFormat df,
             final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Connection";
@@ -338,6 +345,10 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                     componentType, componentName);
 
             addField(builder, "componentId", status.getId());
+            addField(builder, "sourceId", status.getSourceId());
+            addField(builder, "sourceName", status.getSourceName());
+            addField(builder, "destinationId", status.getDestinationId());
+            addField(builder, "destinationName", status.getDestinationName());
             addField(builder, "maxQueuedBytes", status.getMaxQueuedBytes());
             addField(builder, "maxQueuedCount", status.getMaxQueuedCount());
             addField(builder, "queuedBytes", status.getQueuedBytes());
@@ -355,7 +366,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    void serializeProcessorStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ProcessorStatus status, final DateFormat df,
+    private void serializeProcessorStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ProcessorStatus status, final DateFormat df,
             final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Processor";
@@ -386,7 +397,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    private static void addCommonFields(final JsonObjectBuilder builder, final DateFormat df, final String hostname,
+    private void addCommonFields(final JsonObjectBuilder builder, final DateFormat df, final String hostname,
             final String applicationName, final String platform, final String parentId, final Date currentDate,
             final String componentType, final String componentName) {
         addField(builder, "statusId", UUID.randomUUID().toString());
@@ -400,23 +411,4 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         addField(builder, "application", applicationName);
     }
 
-    private static void addField(final JsonObjectBuilder builder, final String key, final Long value) {
-        if (value != null) {
-            builder.add(key, value.longValue());
-        }
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final Integer value) {
-        if (value != null) {
-            builder.add(key, value.intValue());
-        }
-    }
-
-    private static void addField(final JsonObjectBuilder builder, final String key, final String value) {
-        if (value == null) {
-            return;
-        }
-
-        builder.add(key, value);
-    }
 }

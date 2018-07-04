@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.datadog;
 
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
@@ -34,6 +33,7 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
@@ -47,8 +47,6 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-
-
 
 @Tags({"reporting", "datadog", "metrics"})
 @CapabilityDescription("Publishes metrics from NiFi to datadog. For accurate and informative reporting, components should have unique names.")
@@ -73,7 +71,6 @@ public class DataDogReportingTask extends AbstractReportingTask {
     static final PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
             .name("API key")
             .description("Datadog API key. If specified value is 'agent', local Datadog agent will be used.")
-            .expressionLanguageSupported(false)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -82,7 +79,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             .name("Metrics prefix")
             .description("Prefix to be added before every metric")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -92,7 +89,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             .description("Environment, dataflow is running in. " +
                     "This property will be included as metrics tag.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("dev")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

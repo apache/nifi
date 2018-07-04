@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -32,15 +33,16 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -198,6 +200,7 @@ public class DebugFlow extends AbstractProcessor {
         .required(true)
         .defaultValue("0 sec")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     static final PropertyDescriptor ON_STOPPED_FAIL = new PropertyDescriptor.Builder()
         .name("Fail When @OnStopped called")
@@ -206,7 +209,30 @@ public class DebugFlow extends AbstractProcessor {
         .allowableValues("true", "false")
         .defaultValue("false")
         .build();
-
+    static final PropertyDescriptor ON_TRIGGER_SLEEP_TIME = new PropertyDescriptor.Builder()
+        .name("OnTrigger Pause Time")
+        .description("Specifies how long the processor should sleep in the onTrigger() method, so that the processor can be forced to take a long time to perform its task")
+        .required(true)
+        .defaultValue("0 sec")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+    static final PropertyDescriptor CUSTOM_VALIDATE_SLEEP_TIME = new PropertyDescriptor.Builder()
+        .name("CustomValidate Pause Time")
+        .displayName("CustomValidate Pause Time")
+        .description("Specifies how long the processor should sleep in the customValidate() method")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("0 sec")
+        .required(true)
+        .build();
+    static final PropertyDescriptor IGNORE_INTERRUPTS = new PropertyDescriptor.Builder()
+        .name("Ignore Interrupts When Paused")
+        .description("If the Processor's thread(s) are sleeping (due to one of the \"Pause Time\" properties above), and the thread is interrupted, "
+            + "this indicates whether the Processor should ignore the interrupt and continue sleeping or if it should allow itself to be interrupted.")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
+        .build();
 
     private volatile Integer flowFileMaxSuccess = 0;
     private volatile Integer flowFileMaxFailure = 0;
@@ -273,6 +299,9 @@ public class DebugFlow extends AbstractProcessor {
                 propList.add(ON_UNSCHEDULED_FAIL);
                 propList.add(ON_STOPPED_SLEEP_TIME);
                 propList.add(ON_STOPPED_FAIL);
+                propList.add(ON_TRIGGER_SLEEP_TIME);
+                propList.add(CUSTOM_VALIDATE_SLEEP_TIME);
+                propList.add(IGNORE_INTERRUPTS);
 
                 propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
             }
@@ -297,25 +326,59 @@ public class DebugFlow extends AbstractProcessor {
         flowFileExceptionClass = (Class<? extends RuntimeException>) Class.forName(context.getProperty(FF_EXCEPTION_CLASS).toString());
         noFlowFileExceptionClass = (Class<? extends RuntimeException>) Class.forName(context.getProperty(NO_FF_EXCEPTION_CLASS).toString());
 
-        sleep(context.getProperty(ON_SCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        sleep(context.getProperty(ON_SCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS),
+            context.getProperty(IGNORE_INTERRUPTS).asBoolean());
         fail(context.getProperty(ON_SCHEDULED_FAIL).asBoolean(), OnScheduled.class);
     }
 
     @OnUnscheduled
     public void onUnscheduled(final ProcessContext context) throws InterruptedException {
-        sleep(context.getProperty(ON_UNSCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        sleep(context.getProperty(ON_UNSCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS),
+            context.getProperty(IGNORE_INTERRUPTS).asBoolean());
         fail(context.getProperty(ON_UNSCHEDULED_FAIL).asBoolean(), OnUnscheduled.class);
     }
 
     @OnStopped
     public void onStopped(final ProcessContext context) throws InterruptedException {
-        sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS),
+            context.getProperty(IGNORE_INTERRUPTS).asBoolean());
+
         fail(context.getProperty(ON_STOPPED_FAIL).asBoolean(), OnStopped.class);
     }
 
-    private void sleep(final long millis) throws InterruptedException {
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        try {
+            sleep(validationContext.getProperty(CUSTOM_VALIDATE_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS),
+                validationContext.getProperty(IGNORE_INTERRUPTS).asBoolean());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+
+            return Collections.singleton(new ValidationResult.Builder()
+                .valid(false)
+                .subject("Validation")
+                .explanation("Processor Interrupted while performing validation").build());
+        }
+
+        return super.customValidate(validationContext);
+    }
+
+    private void sleep(final long millis, final boolean ignoreInterrupts) throws InterruptedException {
         if (millis > 0L) {
-            Thread.sleep(millis);
+            final long endSleep = System.currentTimeMillis() + millis;
+            while (System.currentTimeMillis() < endSleep) {
+                // Use Math.max(1, <sleep duration>) here in case
+                // System.currentTimeMillis() has changed since the check above
+                // and subtracting it from endSleep would now result in a value <= 0.
+                try {
+                    Thread.sleep(Math.max(1L, endSleep - System.currentTimeMillis()));
+                } catch (final InterruptedException ie) {
+                    if (!ignoreInterrupts) {
+                        Thread.currentThread().interrupt();
+                        throw ie;
+                    }
+                }
+            }
         }
     }
 
@@ -332,163 +395,180 @@ public class DebugFlow extends AbstractProcessor {
 
         FlowFile ff = session.get();
 
-        // Make up to 2 passes to allow rollover from last cycle to first.
-        // (This could be "while(true)" since responses should break out  if selected, but this
-        //  prevents endless loops in the event of unexpected errors or future changes.)
-        for (int pass = 2; pass > 0; pass--) {
-            if (ff == null) {
-                if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_SKIP_RESPONSE) {
-                    if (noFlowFileCurrSkip < noFlowFileMaxSkip) {
-                        noFlowFileCurrSkip += 1;
-                        logger.info("DebugFlow skipping with no flow file");
-                        return;
-                    } else {
-                        noFlowFileCurrSkip = 0;
-                        curr_noff_resp.getNextCycle();
-                    }
-                }
-                if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_EXCEPTION_RESPONSE) {
-                    if (noFlowFileCurrException < noFlowFileMaxException) {
-                        noFlowFileCurrException += 1;
-                        logger.info("DebugFlow throwing NPE with no flow file");
-                        String message = "forced by " + this.getClass().getName();
-                        RuntimeException rte;
-                        try {
-                            rte = noFlowFileExceptionClass.getConstructor(String.class).newInstance(message);
-                            throw rte;
-                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                            if (logger.isErrorEnabled()) {
-                                logger.error("{} unexpected exception throwing DebugFlow exception: {}",
-                                        new Object[]{this, e});
-                            }
+        try {
+            // Make up to 2 passes to allow rollover from last cycle to first.
+            // (This could be "while(true)" since responses should break out  if selected, but this
+            //  prevents endless loops in the event of unexpected errors or future changes.)
+            for (int pass = 2; pass > 0; pass--) {
+                if (ff == null) {
+                    if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_SKIP_RESPONSE) {
+                        if (noFlowFileCurrSkip < noFlowFileMaxSkip) {
+                            noFlowFileCurrSkip += 1;
+                            logger.info("DebugFlow skipping with no flow file");
+                            return;
+                        } else {
+                            noFlowFileCurrSkip = 0;
+                            curr_noff_resp.getNextCycle();
                         }
-                    } else {
-                        noFlowFileCurrException = 0;
-                        curr_noff_resp.getNextCycle();
                     }
-                }
-                if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_YIELD_RESPONSE) {
-                    if (noFlowFileCurrYield < noFlowFileMaxYield) {
-                        noFlowFileCurrYield += 1;
-                        logger.info("DebugFlow yielding with no flow file");
-                        context.yield();
-                        break;
-                    } else {
-                        noFlowFileCurrYield = 0;
-                        curr_noff_resp.getNextCycle();
-                    }
-                }
-                return;
-            } else {
-                final int writeIterations = context.getProperty(WRITE_ITERATIONS).asInteger();
-                if (writeIterations > 0 && pass == 1) {
-                    final Random random = new Random();
 
-                    for (int i = 0; i < writeIterations; i++) {
-                        final byte[] data = new byte[context.getProperty(CONTENT_SIZE).asDataSize(DataUnit.B).intValue()];
-                        random.nextBytes(data);
-
-                        ff = session.write(ff, new OutputStreamCallback() {
-                            @Override
-                            public void process(final OutputStream out) throws IOException {
-                                out.write(data);
+                    if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_EXCEPTION_RESPONSE) {
+                        if (noFlowFileCurrException < noFlowFileMaxException) {
+                            noFlowFileCurrException += 1;
+                            logger.info("DebugFlow throwing NPE with no flow file");
+                            String message = "forced by " + this.getClass().getName();
+                            RuntimeException rte;
+                            try {
+                                rte = noFlowFileExceptionClass.getConstructor(String.class).newInstance(message);
+                                throw rte;
+                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                                if (logger.isErrorEnabled()) {
+                                    logger.error("{} unexpected exception throwing DebugFlow exception: {}",
+                                        new Object[] {this, e});
+                                }
                             }
-                        });
-                    }
-                }
-
-                if (curr_ff_resp.state() == FlowFileResponseState.FF_SUCCESS_RESPONSE) {
-                    if (flowFileCurrSuccess < flowFileMaxSuccess) {
-                        flowFileCurrSuccess += 1;
-                        logger.info("DebugFlow transferring to success file={} UUID={}",
-                                new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                        ff.getAttribute(CoreAttributes.UUID.key())});
-                        session.transfer(ff, REL_SUCCESS);
-                        session.commit();
-                        break;
-                    } else {
-                        flowFileCurrSuccess = 0;
-                        curr_ff_resp.getNextCycle();
-                    }
-                }
-                if (curr_ff_resp.state() == FlowFileResponseState.FF_FAILURE_RESPONSE) {
-                    if (flowFileCurrFailure < flowFileMaxFailure) {
-                        flowFileCurrFailure += 1;
-                        logger.info("DebugFlow transferring to failure file={} UUID={}",
-                                new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                        ff.getAttribute(CoreAttributes.UUID.key())});
-                        session.transfer(ff, REL_FAILURE);
-                        session.commit();
-                        break;
-                    } else {
-                        flowFileCurrFailure = 0;
-                        curr_ff_resp.getNextCycle();
-                    }
-                }
-                if (curr_ff_resp.state() == FlowFileResponseState.FF_ROLLBACK_RESPONSE) {
-                    if (flowFileCurrRollback < flowFileMaxRollback) {
-                        flowFileCurrRollback += 1;
-                        logger.info("DebugFlow rolling back (no penalty) file={} UUID={}",
-                                new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                        ff.getAttribute(CoreAttributes.UUID.key())});
-                        session.rollback();
-                        session.commit();
-                        break;
-                    } else {
-                        flowFileCurrRollback = 0;
-                        curr_ff_resp.getNextCycle();
-                    }
-                }
-                if (curr_ff_resp.state() == FlowFileResponseState.FF_YIELD_RESPONSE) {
-                    if (flowFileCurrYield < flowFileMaxYield) {
-                        flowFileCurrYield += 1;
-                        logger.info("DebugFlow yielding file={} UUID={}",
-                                new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                        ff.getAttribute(CoreAttributes.UUID.key())});
-                        session.rollback();
-                        context.yield();
-                        return;
-                    } else {
-                        flowFileCurrYield = 0;
-                        curr_ff_resp.getNextCycle();
-                    }
-                }
-                if (curr_ff_resp.state() == FlowFileResponseState.FF_PENALTY_RESPONSE) {
-                    if (flowFileCurrPenalty < flowFileMaxPenalty) {
-                        flowFileCurrPenalty += 1;
-                        logger.info("DebugFlow rolling back (with penalty) file={} UUID={}",
-                                new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                        ff.getAttribute(CoreAttributes.UUID.key())});
-                        session.rollback(true);
-                        session.commit();
-                        break;
-                    } else {
-                        flowFileCurrPenalty = 0;
-                        curr_ff_resp.getNextCycle();
-                    }
-                }
-                if (curr_ff_resp.state() == FlowFileResponseState.FF_EXCEPTION_RESPONSE) {
-                    if (flowFileCurrException < flowFileMaxException) {
-                        flowFileCurrException += 1;
-                        String message = "forced by " + this.getClass().getName();
-                        logger.info("DebugFlow throwing NPE file={} UUID={}",
-                                new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                        ff.getAttribute(CoreAttributes.UUID.key())});
-                        RuntimeException rte;
-                        try {
-                            rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
-                            throw rte;
-                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                            if (logger.isErrorEnabled()) {
-                                logger.error("{} unexpected exception throwing DebugFlow exception: {}",
-                                        new Object[]{this, e});
-                            }
+                        } else {
+                            noFlowFileCurrException = 0;
+                            curr_noff_resp.getNextCycle();
                         }
-                    } else {
-                        flowFileCurrException = 0;
-                        curr_ff_resp.getNextCycle();
+                    }
+
+                    if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_YIELD_RESPONSE) {
+                        if (noFlowFileCurrYield < noFlowFileMaxYield) {
+                            noFlowFileCurrYield += 1;
+                            logger.info("DebugFlow yielding with no flow file");
+                            context.yield();
+                            break;
+                        } else {
+                            noFlowFileCurrYield = 0;
+                            curr_noff_resp.getNextCycle();
+                        }
+                    }
+
+                    return;
+                } else {
+                    final int writeIterations = context.getProperty(WRITE_ITERATIONS).asInteger();
+                    if (writeIterations > 0 && pass == 1) {
+                        final Random random = new Random();
+
+                        for (int i = 0; i < writeIterations; i++) {
+                            final byte[] data = new byte[context.getProperty(CONTENT_SIZE).asDataSize(DataUnit.B).intValue()];
+                            random.nextBytes(data);
+
+                            ff = session.write(ff, new OutputStreamCallback() {
+                                @Override
+                                public void process(final OutputStream out) throws IOException {
+                                    out.write(data);
+                                }
+                            });
+                        }
+                    }
+
+                    if (curr_ff_resp.state() == FlowFileResponseState.FF_SUCCESS_RESPONSE) {
+                        if (flowFileCurrSuccess < flowFileMaxSuccess) {
+                            flowFileCurrSuccess += 1;
+                            logger.info("DebugFlow transferring to success file={} UUID={}",
+                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            session.transfer(ff, REL_SUCCESS);
+                            break;
+                        } else {
+                            flowFileCurrSuccess = 0;
+                            curr_ff_resp.getNextCycle();
+                        }
+                    }
+
+                    if (curr_ff_resp.state() == FlowFileResponseState.FF_FAILURE_RESPONSE) {
+                        if (flowFileCurrFailure < flowFileMaxFailure) {
+                            flowFileCurrFailure += 1;
+                            logger.info("DebugFlow transferring to failure file={} UUID={}",
+                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            session.transfer(ff, REL_FAILURE);
+                            break;
+                        } else {
+                            flowFileCurrFailure = 0;
+                            curr_ff_resp.getNextCycle();
+                        }
+                    }
+
+                    if (curr_ff_resp.state() == FlowFileResponseState.FF_ROLLBACK_RESPONSE) {
+                        if (flowFileCurrRollback < flowFileMaxRollback) {
+                            flowFileCurrRollback += 1;
+                            logger.info("DebugFlow rolling back (no penalty) file={} UUID={}",
+                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            session.rollback();
+                            break;
+                        } else {
+                            flowFileCurrRollback = 0;
+                            curr_ff_resp.getNextCycle();
+                        }
+                    }
+
+                    if (curr_ff_resp.state() == FlowFileResponseState.FF_YIELD_RESPONSE) {
+                        if (flowFileCurrYield < flowFileMaxYield) {
+                            flowFileCurrYield += 1;
+                            logger.info("DebugFlow yielding file={} UUID={}",
+                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            session.rollback();
+                            context.yield();
+                            return;
+                        } else {
+                            flowFileCurrYield = 0;
+                            curr_ff_resp.getNextCycle();
+                        }
+                    }
+
+                    if (curr_ff_resp.state() == FlowFileResponseState.FF_PENALTY_RESPONSE) {
+                        if (flowFileCurrPenalty < flowFileMaxPenalty) {
+                            flowFileCurrPenalty += 1;
+                            logger.info("DebugFlow rolling back (with penalty) file={} UUID={}",
+                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            session.rollback(true);
+                            break;
+                        } else {
+                            flowFileCurrPenalty = 0;
+                            curr_ff_resp.getNextCycle();
+                        }
+                    }
+
+                    if (curr_ff_resp.state() == FlowFileResponseState.FF_EXCEPTION_RESPONSE) {
+                        if (flowFileCurrException < flowFileMaxException) {
+                            flowFileCurrException += 1;
+                            String message = "forced by " + this.getClass().getName();
+                            logger.info("DebugFlow throwing NPE file={} UUID={}",
+                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                            RuntimeException rte;
+                            try {
+                                rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
+                                throw rte;
+                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                                if (logger.isErrorEnabled()) {
+                                    logger.error("{} unexpected exception throwing DebugFlow exception: {}",
+                                        new Object[] {this, e});
+                                }
+                            }
+                        } else {
+                            flowFileCurrException = 0;
+                            curr_ff_resp.getNextCycle();
+                        }
                     }
                 }
+            }
+        } finally {
+            final long sleepMillis = context.getProperty(ON_TRIGGER_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+
+            try {
+                if (sleepMillis > 0) {
+                    sleep(sleepMillis, context.getProperty(IGNORE_INTERRUPTS).asBoolean());
+                    getLogger().info("DebugFlow finishes sleeping at completion of its onTrigger() method");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
     }

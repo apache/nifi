@@ -21,10 +21,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -70,26 +72,8 @@ public class TestPutS3Object {
 
     @Test
     public void testPutSinglePart() {
-        runner.setProperty(PutS3Object.REGION, "ap-northeast-1");
-        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
         runner.setProperty("x-custom-prop", "hello");
-        final Map<String, String> ffAttributes = new HashMap<>();
-        ffAttributes.put("filename", "testfile.txt");
-        runner.enqueue("Test Content", ffAttributes);
-
-        PutObjectResult putObjectResult = Mockito.spy(PutObjectResult.class);
-        Date expiration = new Date();
-        putObjectResult.setExpirationTime(expiration);
-        putObjectResult.setMetadata(new ObjectMetadata());
-        putObjectResult.setVersionId("test-version");
-        Mockito.when(putObjectResult.getETag()).thenReturn("test-etag");
-        Mockito.when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
-        MultipartUploadListing uploadListing = new MultipartUploadListing();
-        Mockito.when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
-        Mockito.when(mockS3Client.getResourceUrl(Mockito.anyString(), Mockito.anyString())).thenReturn("test-s3-url");
-
-        runner.assertValid();
-        runner.run(1);
+        testBase();
 
         ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
@@ -97,8 +81,10 @@ public class TestPutS3Object {
         assertEquals("test-bucket", request.getBucketName());
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
+
         ff0.assertAttributeEquals(CoreAttributes.FILENAME.key(), "testfile.txt");
         ff0.assertAttributeEquals(PutS3Object.S3_ETAG_ATTR_KEY, "test-etag");
         ff0.assertAttributeEquals(PutS3Object.S3_VERSION_ATTR_KEY, "test-version");
@@ -147,10 +133,54 @@ public class TestPutS3Object {
     }
 
     @Test
+    public void testObjectTags() {
+        runner.setProperty(PutS3Object.OBJECT_TAGS_PREFIX, "tagS3");
+        runner.setProperty(PutS3Object.REMOVE_TAG_PREFIX, "false");
+        testBase();
+
+        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
+        PutObjectRequest request = captureRequest.getValue();
+
+        List<Tag> tagSet = request.getTagging().getTagSet();
+
+        assertEquals(1, tagSet.size());
+        assertEquals("tagS3PII", tagSet.get(0).getKey());
+        assertEquals("true", tagSet.get(0).getValue());
+
+    }
+
+    private void testBase() {
+        runner.setProperty(PutS3Object.REGION, "ap-northeast-1");
+        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
+
+        final Map<String, String> ffAttributes = new HashMap<>();
+        ffAttributes.put("filename", "testfile.txt");
+        ffAttributes.put("tagS3PII", "true");
+        runner.enqueue("Test Content", ffAttributes);
+
+        PutObjectResult putObjectResult = Mockito.spy(PutObjectResult.class);
+        Date expiration = new Date();
+
+        putObjectResult.setExpirationTime(expiration);
+        putObjectResult.setMetadata(new ObjectMetadata());
+        putObjectResult.setVersionId("test-version");
+
+        Mockito.when(putObjectResult.getETag()).thenReturn("test-etag");
+        Mockito.when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
+
+        MultipartUploadListing uploadListing = new MultipartUploadListing();
+        Mockito.when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
+
+        runner.assertValid();
+        runner.run(1);
+    }
+
+    @Test
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 28, pd.size());
+        assertEquals("size should be eq", 33, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -172,6 +202,13 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
         assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
         assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
+        assertTrue(pd.contains(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE));
+        assertTrue(pd.contains(PutS3Object.PROXY_HOST));
+        assertTrue(pd.contains(PutS3Object.PROXY_HOST_PORT));
+        assertTrue(pd.contains(PutS3Object.PROXY_USERNAME));
+        assertTrue(pd.contains(PutS3Object.PROXY_PASSWORD));
+        assertTrue(pd.contains(PutS3Object.OBJECT_TAGS_PREFIX));
+        assertTrue(pd.contains(PutS3Object.REMOVE_TAG_PREFIX));
     }
 
 }

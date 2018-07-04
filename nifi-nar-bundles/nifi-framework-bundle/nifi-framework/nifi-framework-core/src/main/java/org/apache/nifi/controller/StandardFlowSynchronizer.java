@@ -73,6 +73,7 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.controller.service.ControllerServiceLoader;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.fingerprint.FingerprintException;
@@ -514,20 +515,25 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     private void updateReportingTaskControllerServices(final Set<ReportingTaskNode> reportingTasks, final Map<String, ControllerServiceNode> controllerServiceMapping) {
         for (ReportingTaskNode reportingTask : reportingTasks) {
             if (reportingTask.getProperties() != null) {
-                final Set<Map.Entry<PropertyDescriptor, String>> propertyDescriptors = reportingTask.getProperties().entrySet().stream()
-                        .filter(e -> e.getKey().getControllerServiceDefinition() != null)
-                        .filter(e -> controllerServiceMapping.containsKey(e.getValue()))
-                        .collect(Collectors.toSet());
+                reportingTask.pauseValidationTrigger();
+                try {
+                    final Set<Map.Entry<PropertyDescriptor, String>> propertyDescriptors = reportingTask.getProperties().entrySet().stream()
+                            .filter(e -> e.getKey().getControllerServiceDefinition() != null)
+                            .filter(e -> controllerServiceMapping.containsKey(e.getValue()))
+                            .collect(Collectors.toSet());
 
-                final Map<String,String> controllerServiceProps = new HashMap<>();
+                    final Map<String,String> controllerServiceProps = new HashMap<>();
 
-                for (Map.Entry<PropertyDescriptor, String> propEntry : propertyDescriptors) {
-                    final PropertyDescriptor propertyDescriptor = propEntry.getKey();
-                    final ControllerServiceNode clone = controllerServiceMapping.get(propEntry.getValue());
-                    controllerServiceProps.put(propertyDescriptor.getName(), clone.getIdentifier());
+                    for (Map.Entry<PropertyDescriptor, String> propEntry : propertyDescriptors) {
+                        final PropertyDescriptor propertyDescriptor = propEntry.getKey();
+                        final ControllerServiceNode clone = controllerServiceMapping.get(propEntry.getValue());
+                        controllerServiceProps.put(propertyDescriptor.getName(), clone.getIdentifier());
+                    }
+
+                    reportingTask.setProperties(controllerServiceProps);
+                } finally {
+                    reportingTask.resumeValidationTrigger();
                 }
-
-                reportingTask.setProperties(controllerServiceProps);
             }
         }
     }
@@ -749,6 +755,19 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
+    private ControllerServiceState getFinalTransitionState(final ControllerServiceState state) {
+        switch (state) {
+            case DISABLED:
+            case DISABLING:
+                return ControllerServiceState.DISABLED;
+            case ENABLED:
+            case ENABLING:
+                return ControllerServiceState.ENABLED;
+            default:
+                throw new AssertionError();
+        }
+    }
+
     private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
             final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
 
@@ -779,6 +798,39 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // get the real process group and ID
         final ProcessGroup processGroup = controller.getGroup(processGroupDto.getId());
 
+        // determine the scheduled state of all of the Controller Service
+        final List<Element> controllerServiceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
+        final Set<ControllerServiceNode> toDisable = new HashSet<>();
+        final Set<ControllerServiceNode> toEnable = new HashSet<>();
+
+        for (final Element serviceElement : controllerServiceNodeList) {
+            final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(serviceElement, encryptor);
+            final ControllerServiceNode serviceNode = processGroup.getControllerService(dto.getId());
+
+            // Check if the controller service is in the correct state. We consider it the correct state if
+            // we are in a transitional state and heading in the right direction or already in the correct state.
+            // E.g., it is the correct state if it should be 'DISABLED' and it is either DISABLED or DISABLING.
+            final ControllerServiceState serviceState = getFinalTransitionState(serviceNode.getState());
+            final ControllerServiceState clusterState = getFinalTransitionState(ControllerServiceState.valueOf(dto.getState()));
+
+            if (serviceState != clusterState) {
+                switch (clusterState) {
+                    case DISABLED:
+                        toDisable.add(serviceNode);
+                        break;
+                    case ENABLED:
+                        toEnable.add(serviceNode);
+                        break;
+                }
+            }
+        }
+
+        // Ensure that all services have been validated, so that we don't attempt to enable a service that is still in a 'validating' state
+        toEnable.stream().forEach(ControllerServiceNode::performValidation);
+
+        controller.disableControllerServicesAsync(toDisable);
+        controller.enableControllerServices(toEnable);
+
         // processors & ports cannot be updated - they must be the same. Except for the scheduled state.
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
@@ -798,6 +850,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                             break;
                         case RUNNING:
                             // we want to run now. Make sure processor is not disabled and then start it.
+                            procNode.performValidation();
                             procNode.getProcessGroup().enableProcessor(procNode);
                             controller.startProcessor(procNode.getProcessGroupIdentifier(), procNode.getIdentifier(), false);
                             break;
@@ -1026,48 +1079,55 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
     private void updateProcessor(final ProcessorNode procNode, final ProcessorDTO processorDTO, final ProcessGroup processGroup, final FlowController controller)
             throws ProcessorInstantiationException {
-        final ProcessorConfigDTO config = processorDTO.getConfig();
-        procNode.setProcessGroup(processGroup);
-        procNode.setLossTolerant(config.isLossTolerant());
-        procNode.setPenalizationPeriod(config.getPenaltyDuration());
-        procNode.setYieldPeriod(config.getYieldDuration());
-        procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
-        updateNonFingerprintedProcessorSettings(procNode, processorDTO);
 
-        if (config.getSchedulingStrategy() != null) {
-            procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
-        }
+        procNode.pauseValidationTrigger();
+        try {
+            final ProcessorConfigDTO config = processorDTO.getConfig();
+            procNode.setProcessGroup(processGroup);
+            procNode.setLossTolerant(config.isLossTolerant());
+            procNode.setPenalizationPeriod(config.getPenaltyDuration());
+            procNode.setYieldPeriod(config.getYieldDuration());
+            procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
+            updateNonFingerprintedProcessorSettings(procNode, processorDTO);
 
-        if (config.getExecutionNode() != null) {
-            procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
-        }
-
-        // must set scheduling strategy before these two
-        procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
-        procNode.setScheduldingPeriod(config.getSchedulingPeriod());
-        if (config.getRunDurationMillis() != null) {
-            procNode.setRunDuration(config.getRunDurationMillis(), TimeUnit.MILLISECONDS);
-        }
-
-        procNode.setAnnotationData(config.getAnnotationData());
-
-        if (config.getAutoTerminatedRelationships() != null) {
-            final Set<Relationship> relationships = new HashSet<>();
-            for (final String rel : config.getAutoTerminatedRelationships()) {
-                relationships.add(procNode.getRelationship(rel));
+            if (config.getSchedulingStrategy() != null) {
+                procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
             }
-            procNode.setAutoTerminatedRelationships(relationships);
-        }
 
-        procNode.setProperties(config.getProperties());
+            if (config.getExecutionNode() != null) {
+                procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
+            }
 
-        final ScheduledState scheduledState = ScheduledState.valueOf(processorDTO.getState());
-        if (ScheduledState.RUNNING.equals(scheduledState)) {
-            controller.startProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
-        } else if (ScheduledState.DISABLED.equals(scheduledState)) {
-            processGroup.disableProcessor(procNode);
-        } else if (ScheduledState.STOPPED.equals(scheduledState)) {
-            controller.stopProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
+            // must set scheduling strategy before these two
+            procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
+            procNode.setScheduldingPeriod(config.getSchedulingPeriod());
+            if (config.getRunDurationMillis() != null) {
+                procNode.setRunDuration(config.getRunDurationMillis(), TimeUnit.MILLISECONDS);
+            }
+
+            procNode.setAnnotationData(config.getAnnotationData());
+
+            if (config.getAutoTerminatedRelationships() != null) {
+                final Set<Relationship> relationships = new HashSet<>();
+                for (final String rel : config.getAutoTerminatedRelationships()) {
+                    relationships.add(procNode.getRelationship(rel));
+                }
+                procNode.setAutoTerminatedRelationships(relationships);
+            }
+
+            procNode.setProperties(config.getProperties());
+
+            final ScheduledState scheduledState = ScheduledState.valueOf(processorDTO.getState());
+            if (ScheduledState.RUNNING.equals(scheduledState)) {
+                procNode.performValidation(); // ensure that processor has been validated
+                controller.startProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
+            } else if (ScheduledState.DISABLED.equals(scheduledState)) {
+                processGroup.disableProcessor(procNode);
+            } else if (ScheduledState.STOPPED.equals(scheduledState)) {
+                controller.stopProcessor(processGroup.getIdentifier(), procNode.getIdentifier());
+            }
+        } finally {
+            procNode.resumeValidationTrigger();
         }
     }
 

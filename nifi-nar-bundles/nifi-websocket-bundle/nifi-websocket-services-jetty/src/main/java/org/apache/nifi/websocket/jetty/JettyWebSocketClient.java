@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.websocket.jetty;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -24,12 +25,15 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketMessageRouter;
+import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
@@ -37,6 +41,7 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -59,7 +64,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("WebSocket URI")
             .description("The WebSocket URI this client connects to.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .addValidator((subject, input, context) -> {
                 final ValidationResult.Builder result = new ValidationResult.Builder()
@@ -82,7 +87,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .displayName("Connection Timeout")
             .description("The timeout to connect the WebSocket URI.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("3 sec")
             .build();
@@ -97,9 +102,38 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                     " so that a WebSocket client can reuse the same session id transparently after it reconnects successfully. " +
                     " The maintenance activity is executed until corresponding processors or this controller service is stopped.")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 sec")
+            .build();
+
+    public static final PropertyDescriptor USER_NAME = new PropertyDescriptor.Builder()
+            .name("user-name")
+            .displayName("User Name")
+            .description("The user name for Basic Authentication.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor USER_PASSWORD = new PropertyDescriptor.Builder()
+            .name("user-password")
+            .displayName("User Password")
+            .description("The user password for Basic Authentication.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor AUTH_CHARSET = new PropertyDescriptor.Builder()
+            .name("authentication-charset")
+            .displayName("Authentication Header Charset")
+            .description("The charset for Basic Authentication header base64 string.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .defaultValue("US-ASCII")
             .build();
 
     private static final List<PropertyDescriptor> properties;
@@ -111,12 +145,16 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(SSL_CONTEXT);
         props.add(CONNECTION_TIMEOUT);
         props.add(SESSION_MAINTENANCE_INTERVAL);
+        props.add(USER_NAME);
+        props.add(USER_PASSWORD);
+        props.add(AUTH_CHARSET);
 
         properties = Collections.unmodifiableList(props);
     }
 
     private WebSocketClient client;
     private URI webSocketUri;
+    private String authorizationHeader;
     private long connectionTimeoutMillis;
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private final ReentrantLock connectionLock = new ReentrantLock();
@@ -138,14 +176,27 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         client = new WebSocketClient(sslContextFactory);
 
         configurePolicy(context, client.getPolicy());
+        final String userName = context.getProperty(USER_NAME).evaluateAttributeExpressions().getValue();
+        final String userPassword = context.getProperty(USER_PASSWORD).evaluateAttributeExpressions().getValue();
+        if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(userPassword)) {
+            final String charsetName = context.getProperty(AUTH_CHARSET).evaluateAttributeExpressions().getValue();
+            if (StringUtils.isEmpty(charsetName)) {
+                throw new IllegalArgumentException(AUTH_CHARSET.getDisplayName() + " was not specified.");
+            }
+            final Charset charset = Charset.forName(charsetName);
+            final String base64String = Base64.encodeBase64String((userName + ":" + userPassword).getBytes(charset));
+            authorizationHeader = "Basic " + base64String;
+        } else {
+            authorizationHeader = null;
+        }
 
         client.start();
         activeSessions.clear();
 
-        webSocketUri = new URI(context.getProperty(WS_URI).getValue());
-        connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        webSocketUri = new URI(context.getProperty(WS_URI).evaluateAttributeExpressions().getValue());
+        connectionTimeoutMillis = context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
-        final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long sessionMaintenanceInterval = context.getProperty(SESSION_MAINTENANCE_INTERVAL).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
         sessionMaintenanceScheduler = Executors.newSingleThreadScheduledExecutor();
         sessionMaintenanceScheduler.scheduleAtFixedRate(() -> {
@@ -200,6 +251,9 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             listener.setSessionId(sessionId);
 
             final ClientUpgradeRequest request = new ClientUpgradeRequest();
+            if (!StringUtils.isEmpty(authorizationHeader)) {
+                request.setHeader(HttpHeader.AUTHORIZATION.asString(), authorizationHeader);
+            }
             final Future<Session> connect = client.connect(listener, webSocketUri, request);
             getLogger().info("Connecting to : {}", new Object[]{webSocketUri});
 

@@ -95,10 +95,7 @@ public class StandardFlowFileQueue implements FlowFileQueue {
 
     private boolean swapMode = false;
 
-    public static final int DEFAULT_BACKPRESSURE_COUNT = 10000;
-    public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
-    private final AtomicReference<MaxQueueSize> maxQueueSize = new AtomicReference<>(new MaxQueueSize(DEFAULT_BACKPRESSURE_SIZE,
-            DataUnit.parseDataSize(DEFAULT_BACKPRESSURE_SIZE, DataUnit.B).longValue(), DEFAULT_BACKPRESSURE_COUNT));
+    private final AtomicReference<MaxQueueSize> maxQueueSize = new AtomicReference<>();
     private final AtomicReference<TimePeriod> expirationPeriod = new AtomicReference<>(new TimePeriod("0 mins", 0L));
 
     private final EventReporter eventReporter;
@@ -122,7 +119,8 @@ public class StandardFlowFileQueue implements FlowFileQueue {
     private final ProcessScheduler scheduler;
 
     public StandardFlowFileQueue(final String identifier, final Connection connection, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
-        final ResourceClaimManager resourceClaimManager, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter, final int swapThreshold) {
+                                 final ResourceClaimManager resourceClaimManager, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter,
+                                 final int swapThreshold, final long defaultBackPressureObjectThreshold, final String defaultBackPressureDataSizeThreshold) {
         activeQueue = new PriorityQueue<>(20, new Prioritizer(new ArrayList<FlowFilePrioritizer>()));
         priorities = new ArrayList<>();
         swapQueue = new ArrayList<>();
@@ -139,6 +137,10 @@ public class StandardFlowFileQueue implements FlowFileQueue {
 
         readLock = new TimedLock(this.lock.readLock(), identifier + " Read Lock", 100);
         writeLock = new TimedLock(this.lock.writeLock(), identifier + " Write Lock", 100);
+
+        final MaxQueueSize initialMaxQueueSize = new MaxQueueSize(defaultBackPressureDataSizeThreshold,
+                DataUnit.parseDataSize(defaultBackPressureDataSizeThreshold, DataUnit.B).longValue(), defaultBackPressureObjectThreshold);
+        this.maxQueueSize.set(initialMaxQueueSize);
     }
 
     @Override
@@ -218,8 +220,54 @@ public class StandardFlowFileQueue implements FlowFileQueue {
         return queueSize.activeQueueCount == 0 && queueSize.swappedCount == 0;
     }
 
+    @Override
     public QueueSize getActiveQueueSize() {
         return size.get().activeQueueSize();
+    }
+
+    @Override
+    public QueueSize getSwapQueueSize() {
+        return size.get().swapQueueSize();
+    }
+
+    @Override
+    public int getSwapFileCount() {
+        readLock.lock();
+        try {
+            return this.swapLocations.size();
+        } finally {
+            readLock.unlock("getSwapFileCount");
+        }
+    }
+
+    @Override
+    public boolean isAllActiveFlowFilesPenalized() {
+        readLock.lock();
+        try {
+            // If there are no elements then we return false
+            if (activeQueue.isEmpty()) {
+                return false;
+            }
+
+            // If the first element on the queue is penalized, then we know they all are,
+            // because our Comparator will put Penalized FlowFiles at the end. If the first
+            // FlowFile is not penalized, then we also know that they are not all penalized,
+            // so we can simplify this by looking solely at the first FlowFile in the queue.
+            final FlowFileRecord first = activeQueue.peek();
+            return first.isPenalized();
+        } finally {
+            readLock.unlock("isAllActiveFlowFilesPenalized");
+        }
+    }
+
+    @Override
+    public boolean isAnyActiveFlowFilePenalized() {
+        readLock.lock();
+        try {
+            return activeQueue.stream().anyMatch(FlowFileRecord::isPenalized);
+        } finally {
+            readLock.unlock("isAnyActiveFlowFilePenalized");
+        }
     }
 
     @Override
@@ -1368,7 +1416,6 @@ public class StandardFlowFileQueue implements FlowFileQueue {
     public QueueSize getUnacknowledgedQueueSize() {
         return size.get().unacknowledgedQueueSize();
     }
-
 
     private void incrementActiveQueueSize(final int count, final long bytes) {
         boolean updated = false;
