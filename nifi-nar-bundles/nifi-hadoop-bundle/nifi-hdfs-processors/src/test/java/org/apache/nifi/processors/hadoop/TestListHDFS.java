@@ -16,6 +16,25 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -38,27 +57,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestListHDFS {
 
@@ -455,11 +453,13 @@ public class TestListHDFS {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public long getDefaultBlockSize() {
             return 1024L;
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public short getDefaultReplication() {
             return 1;
         }
@@ -496,7 +496,7 @@ public class TestListHDFS {
         }
 
         @Override
-        public FileStatus[] listStatus(final Path f) throws FileNotFoundException, IOException {
+        public FileStatus[] listStatus(final Path f) throws IOException {
             final Set<FileStatus> statuses = fileStatuses.get(f);
             if (statuses == null) {
                 return new FileStatus[0];

@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
@@ -137,6 +136,19 @@ public class Node {
         return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
     }
 
+    /**
+     * Utility method which accepts {@link NiFiProperties} object but calls {@link StringEncryptor#createEncryptor(String, String, String)} with extracted properties.
+     *
+     * @param nifiProperties the NiFiProperties object
+     * @return the StringEncryptor
+     */
+    private StringEncryptor createEncryptorFromProperties(NiFiProperties nifiProperties) {
+        final String algorithm = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+        final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
+        final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        return StringEncryptor.createEncryptor(algorithm, provider, password);
+    }
+
     public synchronized void start() {
         running = true;
 
@@ -147,7 +159,7 @@ public class Node {
 
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
-            null, null, StringEncryptor.createEncryptor(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
+            null, null, createEncryptorFromProperties(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
             heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class));
 
         try {
@@ -161,7 +173,7 @@ public class Node {
             flowController.getStateManagerProvider().getStateManager("Cluster Node Configuration").setState(Collections.singletonMap("Node UUID", nodeId.getId()), Scope.LOCAL);
 
             flowService = StandardFlowService.createClusteredInstance(flowController, nodeProperties, senderListener, clusterCoordinator,
-                StringEncryptor.createEncryptor(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
+                createEncryptorFromProperties(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
 
             flowService.start();
 

@@ -38,7 +38,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.StandardFlowFileQueue;
@@ -70,6 +69,7 @@ import org.mockito.stubbing.Answer;
 import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.WriteAheadRepository;
 
+@SuppressWarnings("deprecation")
 public class TestWriteAheadFlowFileRepository {
 
     @BeforeClass

@@ -50,9 +50,9 @@ class FlowFromDOMFactoryTest {
     private static final byte[] DEFAULT_SALT = new byte[8]
     private static final int DEFAULT_ITERATION_COUNT = 0
 
-    private static final String ALGO = NiFiProperties.NF_SENSITIVE_PROPS_ALGORITHM
-    private static final String PROVIDER = NiFiProperties.NF_SENSITIVE_PROPS_PROVIDER
-    private static final String KEY = NiFiProperties.NF_SENSITIVE_PROPS_KEY
+    private static final String ALGO = NiFiProperties.SENSITIVE_PROPS_ALGORITHM
+    private static final String PROVIDER = NiFiProperties.SENSITIVE_PROPS_PROVIDER
+    private static final String KEY = NiFiProperties.SENSITIVE_PROPS_KEY
 
     @BeforeClass
     static void setUpOnce() throws Exception {

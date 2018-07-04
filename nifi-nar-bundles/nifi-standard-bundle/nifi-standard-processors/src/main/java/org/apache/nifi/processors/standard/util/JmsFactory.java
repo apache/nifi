@@ -33,6 +33,7 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
 import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
 import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.URI;
@@ -43,7 +44,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -59,7 +59,6 @@ import javax.jms.Session;
 import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ActiveMQSslConnectionFactory;
 import org.apache.activemq.command.ActiveMQQueue;
@@ -68,7 +67,6 @@ import org.apache.activemq.util.URISupport;
 import org.apache.activemq.util.URISupport.CompositeData;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
 public class JmsFactory {
 

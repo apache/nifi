@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.processors.avro;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-
-import java.io.IOException;
 
 public class AvroTestUtil {
 

@@ -16,6 +16,45 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
+import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response.Status;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpException;
@@ -90,51 +129,11 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.Response.Status;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-
-import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_HOST;
-import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
-
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
 @CapabilityDescription("Performs an HTTP Post with the content of the FlowFile. "
-    + "Uses a connection pool with max number of connections equal to its Concurrent Tasks configuration.")
+        + "Uses a connection pool with max number of connections equal to its Concurrent Tasks configuration.")
 public class PostHTTP extends AbstractProcessor {
 
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -524,11 +523,7 @@ public class PostHTTP extends AbstractProcessor {
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
         if (username != null) {
-            if (password == null) {
-                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
-            } else {
-                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-            }
+            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
         }
 
         // Set the proxy if specified

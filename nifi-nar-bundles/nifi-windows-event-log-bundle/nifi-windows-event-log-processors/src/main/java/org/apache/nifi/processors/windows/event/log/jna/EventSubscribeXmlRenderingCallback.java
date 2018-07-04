@@ -22,10 +22,9 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.W32Errors;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinNT;
-import org.apache.commons.io.Charsets;
-import org.apache.nifi.logging.ComponentLog;
-
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * Callback that will render the XML representation of the event using native Windows API
@@ -93,7 +92,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
             int lastError = kernel32.GetLastError();
             if (lastError == W32Errors.ERROR_SUCCESS) {
                 int usedBytes = used.getInt(0);
-                String string = Charsets.UTF_16LE.decode(buffer.getByteBuffer(0, usedBytes)).toString();
+                String string = StandardCharsets.UTF_16LE.decode(buffer.getByteBuffer(0, usedBytes)).toString();
                 if (string.endsWith("\u0000")) {
                     string = string.substring(0, string.length() - 1);
                 }

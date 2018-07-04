@@ -17,16 +17,15 @@
 
 package org.apache.nifi.processors.email;
 
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
-import java.io.IOException;
-import java.util.List;
 
 public class TestExtractEmailHeaders {
 
