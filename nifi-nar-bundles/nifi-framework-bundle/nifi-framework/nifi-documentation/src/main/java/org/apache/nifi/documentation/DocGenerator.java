@@ -57,6 +57,9 @@ public class DocGenerator {
      * @param extensionMapping extension mapping
      */
     public static void generate(final NiFiProperties properties, final ExtensionMapping extensionMapping) {
+
+
+
         final File explodedNiFiDocsDir = properties.getComponentDocumentationWorkingDirectory();
 
         logger.debug("Generating documentation for: " + extensionMapping.size() + " components in: " + explodedNiFiDocsDir);
