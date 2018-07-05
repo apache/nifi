@@ -17,12 +17,11 @@
 
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.controller.ComponentNode;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-
-import org.apache.nifi.controller.ComponentNode;
 
 public class ServiceStateTransition {
     private ControllerServiceState state = ControllerServiceState.DISABLED;
