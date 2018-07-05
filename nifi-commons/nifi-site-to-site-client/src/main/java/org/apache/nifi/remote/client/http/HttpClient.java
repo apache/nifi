@@ -16,6 +16,17 @@
  */
 package org.apache.nifi.remote.client.http;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -28,7 +39,6 @@ import org.apache.nifi.remote.client.PeerStatusProvider;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
-import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
@@ -37,18 +47,6 @@ import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusProvider {
 
@@ -122,7 +120,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     }
 
     @Override
-    public Transaction createTransaction(final TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException {
+    public Transaction createTransaction(final TransferDirection direction) throws IOException {
         final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
 
         PeerStatus peerStatus;
