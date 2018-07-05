@@ -21,12 +21,17 @@ import io.confluent.avro.random.generator.Generator;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -49,8 +54,15 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
+@Tags({ "generate", "record", "test", "data", "random" })
+@CapabilityDescription("Provides the ability to generate a record set of a configurable size using a supplied Avro schema.")
+@WritesAttributes({
+    @WritesAttribute(attribute = "mime.type", description = "The record set mime type."),
+    @WritesAttribute(attribute = "record.count", description = "The number of records in the generated record set.")
+})
 public class GenerateRecord extends AbstractProcessor {
     static final PropertyDescriptor WRITER = new PropertyDescriptor.Builder()
         .name("generate-record-writer")
@@ -187,6 +199,7 @@ public class GenerateRecord extends AbstractProcessor {
             }
 
             final AtomicInteger integer = new AtomicInteger();
+            final AtomicReference<String> mime = new AtomicReference<>();
             out = session.write(out, outputStream -> {
                 try {
                     RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, outputStream);
@@ -195,6 +208,7 @@ public class GenerateRecord extends AbstractProcessor {
                         writer.write(records.get(x));
                     }
                     WriteResult result = writer.finishRecordSet();
+                    mime.set(writer.getMimeType());
                     writer.close();
 
                     integer.set(result.getRecordCount());
@@ -205,6 +219,7 @@ public class GenerateRecord extends AbstractProcessor {
             });
 
             out = session.putAttribute(out, "record.count", String.valueOf(integer.get()));
+            out = session.putAttribute(out, CoreAttributes.MIME_TYPE.key(), mime.get());
 
             session.transfer(out, REL_SUCCESS);
             if (input != null) {
