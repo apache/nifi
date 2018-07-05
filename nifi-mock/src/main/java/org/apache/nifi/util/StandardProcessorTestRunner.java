@@ -686,6 +686,16 @@ public class StandardProcessorTestRunner implements TestRunner {
             throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is not disabled");
         }
 
+        // ensure controller service is valid before enabling
+        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+
+        for (final ValidationResult result : results) {
+            if (!result.isValid()) {
+                throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is in an invalid state: " + result.toString());
+            }
+        }
+
         try {
             final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context,variableRegistry);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
@@ -712,7 +722,9 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void removeControllerService(final ControllerService service) {
-        disableControllerService(service);
+        if (context.getControllerServiceLookup().isControllerServiceEnabled(service)) {
+            disableControllerService(service);
+        }
 
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnRemoved.class, service);
