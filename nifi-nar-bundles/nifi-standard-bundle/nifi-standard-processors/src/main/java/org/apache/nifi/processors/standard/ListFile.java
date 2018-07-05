@@ -31,6 +31,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -327,7 +328,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
+    protected List<FileInfo> performListing(ProcessContext context, FlowFile flowFile, Long minTimestamp) throws IOException {
         final File path = new File(getPath(context));
         final Boolean recurse = context.getProperty(RECURSE).asBoolean();
         return scanDirectory(path, fileFilterRef.get(), recurse, minTimestamp);

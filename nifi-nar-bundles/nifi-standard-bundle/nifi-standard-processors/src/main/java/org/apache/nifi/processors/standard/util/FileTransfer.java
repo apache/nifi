@@ -20,19 +20,27 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 public interface FileTransfer extends Closeable {
 
     String getHomeDirectory(FlowFile flowFile) throws IOException;
 
-    List<FileInfo> getListing() throws IOException;
+    List<FileInfo> getListing(FlowFile flowFile) throws IOException;
+
+    List<FileInfo> getDirectoryListing(FlowFile flowFile, String path) throws IOException;
 
     InputStream getInputStream(String remoteFileName) throws IOException;
 
@@ -56,7 +64,7 @@ public interface FileTransfer extends Closeable {
 
     String getProtocolName();
 
-    void ensureDirectoryExists(FlowFile flowFile, File remoteDirectory) throws IOException;
+    void ensureDirectoryExists(FlowFile flowFile, String remoteDirectory) throws IOException;
 
     /**
      * Compute an absolute file path for the given remote path.
@@ -74,21 +82,80 @@ public interface FileTransfer extends Closeable {
         return absoluteRemotePath.replace("\\", "/");
     }
 
-    public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
+    static boolean isPathMatch(ProcessContext ctx, FlowFile flowFile, String path){
+        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
+        final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
+        final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.compile(pathFilterRegex);
+        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+
+        // check if this directory path matches the PATH_FILTER_REGEX
+        boolean pathFilterMatches = true;
+        if (pathPattern != null) {
+            Path reldir = path == null ? Paths.get(".") : Paths.get(path);
+            if (remotePath != null) {
+                reldir = Paths.get(remotePath).relativize(reldir);
+            }
+            if (reldir != null && !reldir.toString().isEmpty()) {
+                if (!pathPattern.matcher(reldir.toString().replace("\\", "/")).matches()) {
+                    pathFilterMatches = false;
+                }
+            }
+        }
+
+        return pathFilterMatches;
+    }
+
+    static FileInfoFilter createFileInfoFilter(ProcessContext ctx, FlowFile flowFile){
+        final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
+        final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
+        final Pattern pattern = (fileFilterRegex == null || StringUtils.isEmpty(fileFilterRegex)) ? null : Pattern.compile(fileFilterRegex);
+
+        return new FileInfoFilter() {
+            @Override
+            public boolean accept(final File file, final FileInfo f) {
+                final String entryFilename = f.getFileName();
+
+                // skip over 'this directory' and 'parent directory' special
+                // files regardless of ignoring dot files
+                if (entryFilename.equals(".") || entryFilename.equals("..")) {
+                    return false;
+                }
+
+                // skip files and directories that begin with a dot if we're
+                // ignoring them
+                if (ignoreDottedFiles && entryFilename.startsWith(".")) {
+                    return false;
+                }
+
+                if(f.isDirectory()){
+                    return true;
+                }
+
+                //TODO: how to identify if this file is a link? SFTP code has !entry.getAttrs().isLink()
+                if (pattern == null || pattern.matcher(entryFilename).matches()) {
+                    return true;
+                }
+
+                return false;
+            }
+        };
+    }
+
+    PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Hostname")
         .description("The fully qualified hostname or IP address of the remote system")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+    PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
         .name("Username")
         .description("Username")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+    PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
         .name("Password")
         .description("Password for the user account")
         .addValidator(Validator.VALID)
@@ -96,28 +163,28 @@ public interface FileTransfer extends Closeable {
         .sensitive(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    public static final PropertyDescriptor DATA_TIMEOUT = new PropertyDescriptor.Builder()
+    PropertyDescriptor DATA_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Data Timeout")
         .description("When transferring a file between the local and remote system, this value specifies how long is allowed to elapse without any data being transferred between systems")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("30 sec")
         .build();
-    public static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+    PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Connection Timeout")
         .description("Amount of time to wait before timing out while creating a connection")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("30 sec")
         .build();
-    public static final PropertyDescriptor REMOTE_PATH = new PropertyDescriptor.Builder()
+    PropertyDescriptor REMOTE_PATH = new PropertyDescriptor.Builder()
         .name("Remote Path")
         .description("The path on the remote system from which to pull or push files")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
-    public static final PropertyDescriptor CREATE_DIRECTORY = new PropertyDescriptor.Builder()
+    PropertyDescriptor CREATE_DIRECTORY = new PropertyDescriptor.Builder()
         .name("Create Directory")
         .description("Specifies whether or not the remote directory should be created if it does not exist.")
         .required(true)
@@ -125,7 +192,7 @@ public interface FileTransfer extends Closeable {
         .defaultValue("false")
         .build();
 
-    public static final PropertyDescriptor USE_COMPRESSION = new PropertyDescriptor.Builder()
+    PropertyDescriptor USE_COMPRESSION = new PropertyDescriptor.Builder()
         .name("Use Compression")
         .description("Indicates whether or not ZLIB compression should be used when transferring files")
         .allowableValues("true", "false")
@@ -134,33 +201,33 @@ public interface FileTransfer extends Closeable {
         .build();
 
     // GET-specific properties
-    public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
+    PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
         .name("Search Recursively")
         .description("If true, will pull files from arbitrarily nested subdirectories; otherwise, will not traverse subdirectories")
         .required(true)
         .defaultValue("false")
         .allowableValues("true", "false")
         .build();
-    public static final PropertyDescriptor FILE_FILTER_REGEX = new PropertyDescriptor.Builder()
+    PropertyDescriptor FILE_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("File Filter Regex")
         .description("Provides a Java Regular Expression for filtering Filenames; if a filter is supplied, only files whose names match that Regular Expression will be fetched")
         .required(false)
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .build();
-    public static final PropertyDescriptor PATH_FILTER_REGEX = new PropertyDescriptor.Builder()
+    PropertyDescriptor PATH_FILTER_REGEX = new PropertyDescriptor.Builder()
         .name("Path Filter Regex")
         .description("When " + RECURSIVE_SEARCH.getName() + " is true, then only subdirectories whose path matches the given Regular Expression will be scanned")
         .required(false)
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .build();
-    public static final PropertyDescriptor MAX_SELECTS = new PropertyDescriptor.Builder()
+    PropertyDescriptor MAX_SELECTS = new PropertyDescriptor.Builder()
         .name("Max Selects")
         .description("The maximum number of files to pull in a single connection")
         .defaultValue("100")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
-    public static final PropertyDescriptor REMOTE_POLL_BATCH_SIZE = new PropertyDescriptor.Builder()
+    PropertyDescriptor REMOTE_POLL_BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Remote Poll Batch Size")
         .description("The value specifies how many file paths to find in a given directory on the remote system when doing a file listing. This value "
             + "in general should not need to be modified but when polling against a remote system with a tremendous number of files this value can "
@@ -170,28 +237,28 @@ public interface FileTransfer extends Closeable {
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .required(true)
         .build();
-    public static final PropertyDescriptor DELETE_ORIGINAL = new PropertyDescriptor.Builder()
+    PropertyDescriptor DELETE_ORIGINAL = new PropertyDescriptor.Builder()
         .name("Delete Original")
         .description("Determines whether or not the file is deleted from the remote system after it has been successfully transferred")
         .defaultValue("true")
         .allowableValues("true", "false")
         .required(true)
         .build();
-    public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder()
+    PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder()
         .name("Polling Interval")
         .description("Determines how long to wait between fetching the listing for new files")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .required(true)
         .defaultValue("60 sec")
         .build();
-    public static final PropertyDescriptor IGNORE_DOTTED_FILES = new PropertyDescriptor.Builder()
+    PropertyDescriptor IGNORE_DOTTED_FILES = new PropertyDescriptor.Builder()
         .name("Ignore Dotted Files")
         .description("If true, files whose names begin with a dot (\".\") will be ignored")
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
         .build();
-    public static final PropertyDescriptor USE_NATURAL_ORDERING = new PropertyDescriptor.Builder()
+    PropertyDescriptor USE_NATURAL_ORDERING = new PropertyDescriptor.Builder()
         .name("Use Natural Ordering")
         .description("If true, will pull files in the order in which they are naturally listed; otherwise, the order in which the files will be pulled is not defined")
         .allowableValues("true", "false")
@@ -200,28 +267,28 @@ public interface FileTransfer extends Closeable {
         .build();
 
     // PUT-specific properties
-    public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
 
-    public static final String CONFLICT_RESOLUTION_REPLACE = "REPLACE";
-    public static final String CONFLICT_RESOLUTION_RENAME = "RENAME";
-    public static final String CONFLICT_RESOLUTION_IGNORE = "IGNORE";
-    public static final String CONFLICT_RESOLUTION_REJECT = "REJECT";
-    public static final String CONFLICT_RESOLUTION_FAIL = "FAIL";
-    public static final String CONFLICT_RESOLUTION_NONE = "NONE";
-    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+    String CONFLICT_RESOLUTION_REPLACE = "REPLACE";
+    String CONFLICT_RESOLUTION_RENAME = "RENAME";
+    String CONFLICT_RESOLUTION_IGNORE = "IGNORE";
+    String CONFLICT_RESOLUTION_REJECT = "REJECT";
+    String CONFLICT_RESOLUTION_FAIL = "FAIL";
+    String CONFLICT_RESOLUTION_NONE = "NONE";
+    PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
         .name("Conflict Resolution")
         .description("Determines how to handle the problem of filename collisions")
         .required(true)
         .allowableValues(CONFLICT_RESOLUTION_REPLACE, CONFLICT_RESOLUTION_IGNORE, CONFLICT_RESOLUTION_RENAME, CONFLICT_RESOLUTION_REJECT, CONFLICT_RESOLUTION_FAIL, CONFLICT_RESOLUTION_NONE)
         .defaultValue(CONFLICT_RESOLUTION_NONE)
         .build();
-    public static final PropertyDescriptor REJECT_ZERO_BYTE = new PropertyDescriptor.Builder()
+    PropertyDescriptor REJECT_ZERO_BYTE = new PropertyDescriptor.Builder()
         .name("Reject Zero-Byte Files")
         .description("Determines whether or not Zero-byte files should be rejected without attempting to transfer")
         .allowableValues("true", "false")
         .defaultValue("true")
         .build();
-    public static final PropertyDescriptor DOT_RENAME = new PropertyDescriptor.Builder()
+    PropertyDescriptor DOT_RENAME = new PropertyDescriptor.Builder()
         .name("Dot Rename")
         .description("If true, then the filename of the sent file is prepended with a \".\" and then renamed back to the "
             + "original once the file is completely sent. Otherwise, there is no rename. This property is ignored if the "
@@ -229,7 +296,7 @@ public interface FileTransfer extends Closeable {
         .allowableValues("true", "false")
         .defaultValue("true")
         .build();
-    public static final PropertyDescriptor TEMP_FILENAME = new PropertyDescriptor.Builder()
+    PropertyDescriptor TEMP_FILENAME = new PropertyDescriptor.Builder()
         .name("Temporary Filename")
         .description("If set, the filename of the sent file will be equal to the value specified during the transfer and after successful "
             + "completion will be renamed to the original filename. If this value is set, the Dot Rename property is ignored.")
@@ -237,7 +304,7 @@ public interface FileTransfer extends Closeable {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
         .build();
-    public static final PropertyDescriptor LAST_MODIFIED_TIME = new PropertyDescriptor.Builder()
+    PropertyDescriptor LAST_MODIFIED_TIME = new PropertyDescriptor.Builder()
         .name("Last Modified Time")
         .description("The lastModifiedTime to assign to the file after transferring it. If not set, the lastModifiedTime will not be changed. "
             + "Format must be yyyy-MM-dd'T'HH:mm:ssZ. You may also use expression language such as ${file.lastModifiedTime}. If the value "
@@ -246,7 +313,7 @@ public interface FileTransfer extends Closeable {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    public static final PropertyDescriptor PERMISSIONS = new PropertyDescriptor.Builder()
+    PropertyDescriptor PERMISSIONS = new PropertyDescriptor.Builder()
         .name("Permissions")
         .description("The permissions to assign to the file after transferring it. Format must be either UNIX rwxrwxrwx with a - in place of "
             + "denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644). If not set, the permissions will not be changed. You may "
@@ -256,7 +323,7 @@ public interface FileTransfer extends Closeable {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    public static final PropertyDescriptor REMOTE_OWNER = new PropertyDescriptor.Builder()
+    PropertyDescriptor REMOTE_OWNER = new PropertyDescriptor.Builder()
         .name("Remote Owner")
         .description("Integer value representing the User ID to set on the file after transferring it. If not set, the owner will not be set. "
             + "You may also use expression language such as ${file.owner}. If the value is invalid, the processor will not be invalid but "
@@ -265,7 +332,7 @@ public interface FileTransfer extends Closeable {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    public static final PropertyDescriptor REMOTE_GROUP = new PropertyDescriptor.Builder()
+    PropertyDescriptor REMOTE_GROUP = new PropertyDescriptor.Builder()
         .name("Remote Group")
         .description("Integer value representing the Group ID to set on the file after transferring it. If not set, the group will not be set. "
             + "You may also use expression language such as ${file.group}. If the value is invalid, the processor will not be invalid but "
@@ -274,7 +341,7 @@ public interface FileTransfer extends Closeable {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+    PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Batch Size")
         .description("The maximum number of FlowFiles to send in a single connection")
         .required(true)

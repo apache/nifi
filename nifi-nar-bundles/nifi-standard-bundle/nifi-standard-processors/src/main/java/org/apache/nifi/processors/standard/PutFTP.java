@@ -32,6 +32,8 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -49,6 +51,9 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"remote", "copy", "egress", "put", "ftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an FTP Server")
+@WritesAttributes({
+        @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
+        @WritesAttribute(attribute = "absolute.path", description = "The full/absolute path where the file was uploaded to.")})
 @SeeAlso(GetFTP.class)
 @DynamicProperties({
     @DynamicProperty(name = "pre.cmd._____", value = "Not used", description = "The command specified in the key will be executed before doing a put.  You may add these optional properties "

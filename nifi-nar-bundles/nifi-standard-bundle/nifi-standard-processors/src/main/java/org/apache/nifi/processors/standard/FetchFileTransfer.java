@@ -326,7 +326,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                     final File targetFile = new File(absoluteTargetDirPath, simpleFilename);
                     if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
                         // Create the target directory if necessary.
-                        transfer.ensureDirectoryExists(flowFile, targetFile.getParentFile());
+                        transfer.ensureDirectoryExists(flowFile, targetFile.getParentFile().getAbsolutePath());
                     }
 
                     transfer.rename(flowFile, filename, targetFile.getAbsolutePath());

@@ -30,8 +30,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -53,6 +55,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.util.StringUtils;
 
 public class FTPTransfer implements FileTransfer {
 
@@ -184,49 +187,11 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public List<FileInfo> getListing() throws IOException {
-        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
-        final int depth = 0;
-        final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
-        return getListing(path, depth, maxResults);
-    }
+    public List<FileInfo> getDirectoryListing(FlowFile flowFile, String path) throws IOException {
+        final List<FileInfo> listing = new ArrayList<>(1000);
 
-    private List<FileInfo> getListing(final String path, final int depth, final int maxResults) throws IOException {
-        final List<FileInfo> listing = new ArrayList<>();
-        if (maxResults < 1) {
-            return listing;
-        }
+        final FTPClient client = getClient(flowFile);
 
-        if (depth >= 100) {
-            logger.warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
-            return listing;
-        }
-
-        final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
-        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
-        final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
-        final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
-        final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
-        final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.compile(pathFilterRegex);
-        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
-
-        // check if this directory path matches the PATH_FILTER_REGEX
-        boolean pathFilterMatches = true;
-        if (pathPattern != null) {
-            Path reldir = path == null ? Paths.get(".") : Paths.get(path);
-            if (remotePath != null) {
-                reldir = Paths.get(remotePath).relativize(reldir);
-            }
-            if (reldir != null && !reldir.toString().isEmpty()) {
-                if (!pathPattern.matcher(reldir.toString().replace("\\", "/")).matches()) {
-                    pathFilterMatches = false;
-                }
-            }
-        }
-
-        final FTPClient client = getClient(null);
-
-        int count = 0;
         final FTPFile[] files;
 
         if (path == null || path.trim().isEmpty()) {
@@ -234,6 +199,7 @@ public class FTPTransfer implements FileTransfer {
         } else {
             files = client.listFiles(path);
         }
+
         if (files.length == 0 && path != null && !path.trim().isEmpty()) {
             // throw exception if directory doesn't exist
             final boolean cdSuccessful = setWorkingDirectory(path);
@@ -248,32 +214,78 @@ public class FTPTransfer implements FileTransfer {
                 continue;
             }
 
-            if (ignoreDottedFiles && filename.startsWith(".")) {
+            listing.add(newFileInfo(file, path));
+        }
+
+        return listing;
+    }
+
+    @Override
+    public List<FileInfo> getListing(final FlowFile flowFile) throws IOException {
+        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+        final int depth = 0;
+        final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
+        final List<FileInfo> listing = new ArrayList<>();
+
+        return getListing(flowFile, path, depth, maxResults,listing);
+    }
+
+    private List<FileInfo> getListing(final FlowFile flowFile, final String path, final int depth, final int maxResults, final List<FileInfo> listing) throws IOException {
+        if (maxResults < 1) {
+            return listing;
+        }
+
+        if (depth >= 100) {
+            logger.warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
+            return listing;
+        }
+
+        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
+        final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
+        final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
+
+        // check if this directory path matches the PATH_FILTER_REGEX
+        boolean pathFilterMatches = FileTransfer.isPathMatch(ctx, flowFile, path);
+
+        final List<FileInfo> subDirs = new ArrayList<>();
+
+        //create FileInfo filter
+        FileInfoFilter fileInfoFilter = FileTransfer.createFileInfoFilter(ctx, flowFile);
+
+        final List<FileInfo> files = getDirectoryListing(flowFile, path);
+
+        for (FileInfo f:files) {
+            if(!fileInfoFilter.accept(null,f)){
                 continue;
             }
 
-            final File newFullPath = new File(path, filename);
-            final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
-
-            if (recurse && file.isDirectory()) {
-                try {
-                    listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
-                } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
-                }
+            // if is a directory and we're supposed to recurse
+            if (recurse && f.isDirectory()) {
+                subDirs.add(f);
+                continue;
             }
+
+            boolean isLink = f.getAttributes().containsKey("IsLink")?Boolean.parseBoolean(f.getAttributes().get("IsLink")):false;
 
             // if is not a directory and is not a link and it matches
-            // FILE_FILTER_REGEX - then let's add it
-            if (!file.isDirectory() && !file.isSymbolicLink() && pathFilterMatches) {
-                if (pattern == null || pattern.matcher(filename).matches()) {
-                    listing.add(newFileInfo(file, path));
-                    count++;
-                }
+            if(!f.isDirectory() && !isLink && pathFilterMatches){
+                listing.add(f);
             }
 
-            if (count >= maxResults) {
+            if (listing.size() >= maxResults) {
                 break;
+            }
+        }
+
+        for (final FileInfo entry : subDirs) {
+            final String entryFilename = entry.getFileName();
+            final File newFullPath = new File(path, entryFilename);
+            final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
+
+            try {
+                getListing(flowFile, newFullForwardPath, depth + 1, maxResults, listing);
+            } catch (final IOException e) {
+                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
             }
         }
 
@@ -297,6 +309,9 @@ public class FTPTransfer implements FileTransfer {
         perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
         perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
 
+        Map<String,String> attributes = new HashMap<>();
+        attributes.put("IsLink", Boolean.toString(file.isSymbolicLink()));
+
         FileInfo.Builder builder = new FileInfo.Builder()
             .filename(file.getName())
             .fullPathFileName(newFullForwardPath)
@@ -305,7 +320,8 @@ public class FTPTransfer implements FileTransfer {
             .lastModifiedTime(file.getTimestamp().getTimeInMillis())
             .permissions(perms.toString())
             .owner(file.getUser())
-            .group(file.getGroup());
+            .group(file.getGroup())
+            .setAttributes(attributes);
         return builder.build();
     }
 
@@ -366,9 +382,10 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public void ensureDirectoryExists(final FlowFile flowFile, final File directoryName) throws IOException {
+    public void ensureDirectoryExists(final FlowFile flowFile, final String ftpDirectoryName) throws IOException {
+        File directoryName = new File(ftpDirectoryName);
         if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
-            ensureDirectoryExists(flowFile, directoryName.getParentFile());
+            ensureDirectoryExists(flowFile, directoryName.getParentFile().getAbsolutePath());
         }
 
         final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
@@ -653,7 +670,13 @@ public class FTPTransfer implements FileTransfer {
     public static Supplier<ProxyConfiguration> createComponentProxyConfigSupplier(final PropertyContext ctx) {
         return () -> {
             final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-            componentProxyConfig.setProxyType(Proxy.Type.valueOf(ctx.getProperty(PROXY_TYPE).getValue()));
+
+            final String proxyType = ctx.getProperty(PROXY_TYPE).getValue();
+            if(StringUtils.isBlank(proxyType)){
+                return componentProxyConfig;
+            }
+
+            componentProxyConfig.setProxyType(Proxy.Type.valueOf(proxyType));
             componentProxyConfig.setProxyServerHost(ctx.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue());
             componentProxyConfig.setProxyServerPort(ctx.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger());
             componentProxyConfig.setProxyUserName(ctx.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue());
