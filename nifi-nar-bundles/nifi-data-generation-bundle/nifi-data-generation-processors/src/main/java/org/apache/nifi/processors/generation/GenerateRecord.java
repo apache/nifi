@@ -36,6 +36,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 public class GenerateRecord extends AbstractProcessor {
@@ -71,7 +73,8 @@ public class GenerateRecord extends AbstractProcessor {
         .name("generate-record-limit")
         .displayName("Limit")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .description("")
+        .description("The maximum number of records to generate per run. It is regulated by the Fixed Size configuration " +
+                "property.")
         .defaultValue("25")
         .required(false)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -81,7 +84,8 @@ public class GenerateRecord extends AbstractProcessor {
         .name("generate-record-fixed-size")
         .displayName("Fixed Size")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .description("")
+        .description("If true, the limit configuration will be used to generate a consistently sized record set. If false " +
+                "the limit value will be the ceiling of a random number range from 1 to that value.")
         .defaultValue("true")
         .allowableValues("true", "false")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -153,11 +157,13 @@ public class GenerateRecord extends AbstractProcessor {
             limit = context.getProperty(LIMIT).evaluateAttributeExpressions(input).asInteger();
         } else {
             int ceiling = context.getProperty(LIMIT).evaluateAttributeExpressions(input).asInteger();
-            limit = new Random().nextInt(ceiling);
+            limit = new Random().nextInt(ceiling) + 1;
         }
 
         final Generator generator;
         final RecordSchema schema;
+
+        FlowFile out = session.create(input);
 
         try {
             if (!context.getProperty(SCHEMA).isSet() && input != null) {
@@ -180,7 +186,7 @@ public class GenerateRecord extends AbstractProcessor {
                 records.add(new MapRecord(schema, y));
             }
 
-            FlowFile out = session.create(input);
+            final AtomicInteger integer = new AtomicInteger();
             out = session.write(out, outputStream -> {
                 try {
                     RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, outputStream);
@@ -188,12 +194,17 @@ public class GenerateRecord extends AbstractProcessor {
                     for (int x = 0; x < records.size(); x++) {
                         writer.write(records.get(x));
                     }
-                    writer.finishRecordSet();
+                    WriteResult result = writer.finishRecordSet();
                     writer.close();
+
+                    integer.set(result.getRecordCount());
                 } catch (SchemaNotFoundException e) {
                     getLogger().error(e.getMessage());
+                    throw new ProcessException(e);
                 }
             });
+
+            out = session.putAttribute(out, "record.count", String.valueOf(integer.get()));
 
             session.transfer(out, REL_SUCCESS);
             if (input != null) {
@@ -204,6 +215,8 @@ public class GenerateRecord extends AbstractProcessor {
             if (input != null) {
                 session.transfer(input, REL_FAILURE);
             }
+
+            session.remove(out);
         }
     }
 }
