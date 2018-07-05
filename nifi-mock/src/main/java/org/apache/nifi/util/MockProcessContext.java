@@ -249,6 +249,16 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
 
         final Collection<ValidationResult> serviceResults = validateReferencedControllerServices(validationContext);
         results.addAll(serviceResults);
+
+        // verify all controller services are enabled
+        for (Map.Entry<String, ControllerServiceConfiguration> service : getControllerServices().entrySet()) {
+            if (!service.getValue().isEnabled()) {
+                results.add(new ValidationResult.Builder()
+                        .explanation("Controller service " + service.getKey() + " for " + this.getName() + " is not enabled")
+                        .valid(false)
+                        .build());
+            }
+        }
         return results;
     }
 

@@ -224,7 +224,7 @@ public class SSLContextServiceTest {
         // Assert
 
         // Have to exhaust the cached result by checking n-1 more times
-        for (int i = 2; i <= sslContextService.getValidationCacheExpiration(); i++) {
+        for (int i = 2; i < sslContextService.getValidationCacheExpiration(); i++) {
             validationResults = sslContextService.customValidate(validationContext);
             assertTrue("validation results is not empty", validationResults.isEmpty());
             logger.info("(" + i + ") StandardSSLContextService#customValidate() returned true even though the keystore file is no longer available");

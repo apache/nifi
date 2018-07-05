@@ -29,6 +29,10 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
 
     private final Map<String, ControllerServiceConfiguration> controllerServiceMap = new ConcurrentHashMap<>();
 
+    public Map<String, ControllerServiceConfiguration> getControllerServices() {
+        return controllerServiceMap;
+    }
+
     public ControllerServiceConfiguration addControllerService(final ControllerService service, final String identifier) {
         final ControllerServiceConfiguration config = new ControllerServiceConfiguration(service);
         controllerServiceMap.put(identifier, config);
