@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -1648,6 +1649,30 @@ public class TestStandardProcessSession {
 
         final List<FlowFile> flowFiles = session.get(7);
         assertEquals(7, flowFiles.size());
+    }
+
+    @Test
+    public void testBatchQueuedHaveSameQueuedTime() {
+        for (int i = 0; i < 100; i++) {
+            final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                    .id(i)
+                    .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
+                    .build();
+            this.flowFileQueue.put(flowFile);
+        }
+
+        final List<FlowFile> flowFiles = session.get(100);
+
+        // FlowFile Queued times should not match yet
+        assertNotEquals("Queued times should not be equal.", flowFiles.get(0).getLastQueueDate(), flowFiles.get(99).getLastQueueDate());
+
+        session.transfer(flowFiles, new Relationship.Builder().name("A").build());
+        session.commit();
+
+        final List<FlowFile> flowFilesUpdated = session.get(100);
+
+        // FlowFile Queued times should match
+        assertEquals("Queued times should be equal.", flowFilesUpdated.get(0).getLastQueueDate(), flowFilesUpdated.get(99).getLastQueueDate());
     }
 
     @Test
